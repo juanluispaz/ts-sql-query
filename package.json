@@ -1,0 +1,65 @@
+{
+    "name": "ts-sql-query",
+    "private": true,
+    "version": "0.10.0",
+    "description": "Type-safe SQL query builder like QueryDSL or JOOQ in Java for TypeScript with MariaDB, MySql, Oracle, PostgreSql, Sqlite and SqlServer support.",
+    "license": "MIT",
+    "author": "juanluispaz",
+    "readmeFilename": "README.md",
+    "keywords": [
+        "jooq",
+        "querydsl",
+        "typescript",
+        "mariadb",
+        "mysql",
+        "oracle",
+        "sqlite",
+        "sqlserver",
+        "sql-server",
+        "sql server",
+        "postgre sql",
+        "postgresql",
+        "typesql",
+        "type-sql",
+        "type sql",
+        "type-safe sql",
+        "type safe sql",
+        "sql",
+        "query builder",
+        "orm"
+    ],
+    "scripts": {
+        "example": "npm run build && node dist/exampleTests.js",
+        "build": "rm -rf dist/*; tsc",
+        "dist": "npm run build && cp -t dist LICENSE.md package.json README.md && cd dist && rm exampleTests* && npm publish"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/juanluispaz/ts-sql-query.git"
+    },
+    "bugs": {
+        "url": "https://github.com/juanluispaz/ts-sql-query/issues"
+    },
+    "devDependencies": {
+        "typescript": "^3.3.3"
+    },
+    "optionalDependencies": {
+        "@types/any-db": "^2.1.30",
+        "@types/any-db-transaction": "^2.2.30",
+        "@types/better-sqlite3": "^5.4.0",
+        "@types/geojson": "^7946.0.7",
+        "@types/mssql": "^4.0.15",
+        "@types/mysql": "^2.15.6",
+        "@types/mysql2": "github:types/mysql2",
+        "@types/oracledb": "^3.1.3",
+        "@types/pg": "^7.4.14",
+        "@types/sqlite3": "^3.1.5",
+        "@types/tedious": "^4.0.0",
+        "mariadb": "^2.0.5",
+        "sqlite": "^3.0.3"
+    },
+    "dependencies": {
+        "chained-error": "^1.0.0",
+        "ts-extended-types": "^0.10.0"
+    }
+}

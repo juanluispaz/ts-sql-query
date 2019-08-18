@@ -1,0 +1,789 @@
+interface ValueSource {
+
+}
+
+interface NullableValueSource extends ValueSource {
+    isNull(): boolean
+    isNotNull(): boolean
+    valueWhenNull(value: this): this
+    asOptional(): this | null | undefined
+}
+
+interface EqualableValueSource extends NullableValueSource {
+    equalsIfValue(value: this | null | undefined): boolean
+    equals(value: this): boolean
+    notEqualsIfValue(value: this | null | undefined): boolean
+    notEquals(value: this): boolean
+    isIfValue(value: this | null | undefined): boolean
+    /** 'is' is the same that equals, but returns true when booth are null */
+    is(value: this): boolean
+    isNotIfValue(value: this | null | undefined): boolean
+    isNot(value: this): boolean
+}
+
+interface ComparableValueSource extends EqualableValueSource {
+    smallerIfValue(value: this | null | undefined): boolean
+    smaller(value: this): boolean
+    largerIfValue(value: this | null | undefined): boolean
+    larger(value: this): boolean
+    smallAsIfValue(value: this | null | undefined): boolean
+    smallAs(value: this): boolean
+    largeAsIfValue(value: this | null | undefined): boolean
+    largeAs(value: this): boolean
+    inIfValue(values: this[] | null | undefined): boolean
+    inIfValue(value: this | null | undefined): boolean
+    in(values: this[]): boolean
+    in(value: this): boolean
+    in(select: Subquery): boolean
+    notInIfValue(values: this[] | null | undefined): boolean
+    notInIfValue(value: this | null | undefined): boolean
+    notIn(values: this[]): boolean
+    notIn(value: this): boolean
+    notIn(select: Subquery): boolean
+    inN(...value: this[]): boolean
+    notInN(...value: this[]): boolean
+    between(value: this, value2: this): boolean
+    notBetween(value: this, value2: this): boolean
+}
+
+interface BooleanValueSource extends EqualableValueSource {
+    negate(): boolean
+    and(value: boolean): boolean
+    or(value: boolean): boolean
+}
+
+interface NumberValueSource extends ComparableValueSource {
+    asStringNumber(): number|string
+    abs(): number
+    ceil(): number
+    floor(): number
+    round(): number
+    exp(): number
+    ln(): number
+    log10(): number
+    sqrt(): number
+    cbrt(): number
+    sign(): number
+    acos(): number
+    asin(): number
+    atan(): number
+    cos(): number
+    cot(): number
+    sin(): number
+    tan(): number
+    power(value: number): number
+    logn(value: number): number
+    roundn(value: number): number
+    minValue(value: number): number
+    maxValue(value: number): number
+    add(value: number): number
+    substract(value: number): number
+    multiply(value: number): number
+    divide(value: number): number
+    mod(value: number): number
+    atan2(value: number): number
+}
+
+interface StringNumberValueSource extends ComparableValueSource {
+    abs(): number|string
+    ceil(): number|string
+    floor(): number|string
+    round(): number|string
+    exp(): number|string
+    ln(): number|string
+    log10(): number|string
+    sqrt(): number|string
+    cbrt(): number|string
+    sign(): number|string
+    acos(): number|string
+    asin(): number|string
+    atan(): number|string
+    cos(): number|string
+    cot(): number|string
+    sin(): number|string
+    tan(): number|string
+    power(value: number|string): number|string
+    logn(value: number|string): number|string
+    roundn(value: number|string): number|string
+    minValue(value: number|string): number|string
+    maxValue(value: number|string): number|string
+    add(value: number|string): number|string
+    substract(value: number|string): number|string
+    multiply(value: number|string): number|string
+    divide(value: number|string): number|string
+    mod(value: number|string): number|string
+    atan2(value: number|string): number|string
+}
+
+interface StringValueSource extends ComparableValueSource {
+    equalsInsensitiveIfValue(value: string | null | undefined): boolean
+    equalsInsensitive(value: string): boolean
+    notEqualsInsensitiveIfValue(value: string | null | undefined): boolean
+    notEqualsInsensitive(value: string): boolean
+    likeIfValue(value: string | null | undefined): boolean
+    like(value: string): boolean
+    notLikeIfValue(value: string | null | undefined): boolean
+    notLike(value: string): boolean
+    likeInsensitiveIfValue(value: string | null | undefined): boolean
+    likeInsensitive(value: string): boolean
+    notLikeInsensitiveIfValue(value: string | null | undefined): boolean
+    notLikeInsensitive(value: string): boolean
+    startWithIfValue(value: string | null | undefined): boolean
+    startWith(value: string): boolean
+    notStartWithIfValue(value: string | null | undefined): boolean
+    notStartWith(value: string): boolean
+    endWithIfValue(value: string | null | undefined): boolean
+    endWith(value: string): boolean
+    notEndWithIfValue(value: string | null | undefined): boolean
+    notEndWith(value: string): boolean
+    startWithInsensitiveIfValue(value: string | null | undefined): boolean
+    startWithInsensitive(value: string): boolean
+    notStartWithInsensitiveIfValue(value: string | null | undefined): boolean
+    notStartWithInsensitive(value: string): boolean
+    endWithInsensitiveIfValue(value: string | null | undefined): boolean
+    endWithInsensitive(value: string): boolean
+    notEndWithInsensitiveIfValue(value: string | null | undefined): boolean
+    notEndWithInsensitive(value: string): boolean
+    containsIfValue(value: string | null | undefined): boolean
+    contains(value: string): boolean
+    notContainsIfValue(value: string | null | undefined): boolean
+    notContains(value: string): boolean
+    containsInsensitiveIfValue(value: string | null | undefined): boolean
+    containsInsensitive(value: string): boolean
+    notContainsInsensitiveIfValue(value: string | null | undefined): boolean
+    notContainsInsensitive(value: string): boolean
+    lower(): string
+    upper(): string
+    length(): number
+    trim(): string
+    ltrim(): string
+    rtrim(): string
+    reverse(): string
+    concatIfValue(value: string | null | undefined): string
+    concat(value: string): string
+    substringToEnd(start: number): string
+    substring(start: number, end: number): string
+    replaceIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): string
+    replace(findString: string, replaceWith: string): string
+}
+
+interface DateValueSource extends ComparableValueSource {
+    /** Gets the year */
+    getFullYear(): number
+    /** Gets the month (value between 0 to 11)*/
+    getMonth(): number
+    /** Gets the day-of-the-month */
+    getDate(): number
+    /** Gets the day of the week (0 represents Sunday) */
+    getDay(): number
+}
+
+interface TimeValueSource extends ComparableValueSource {
+    /** Gets the hours */
+    getHours(): number
+    /** Gets the minutes */
+    getMinutes(): number
+    /** Gets the seconds */
+    getSeconds(): number
+    /** Gets the milliseconds */
+    getMilliseconds(): number
+}
+
+interface DateTimeValueSource extends ComparableValueSource {
+    /** Gets the year */
+    getFullYear(): number
+    /** Gets the month (value between 0 to 11)*/
+    getMonth(): number
+    /** Gets the day-of-the-month */
+    getDate(): number
+    /** Gets the day of the week (0 represents Sunday) */
+    getDay(): number
+    /** Gets the hours */
+    getHours(): number
+    /** Gets the minutes */
+    getMinutes(): number
+    /** Gets the seconds */
+    getSeconds(): number
+    /** Gets the milliseconds */
+    getMilliseconds(): number
+    /** Gets the time value in milliseconds */
+    getTime(): number
+}
+
+
+
+
+
+
+
+interface Connection {
+    /** Query runner used to create the connection */
+    readonly queryRunner: QueryRunner
+
+    // Transaction management
+    beginTransaction(): Promise<void>
+    commit(): Promise<void>
+    rollback(): Promise<void>
+
+    // Querying
+    insertInto(table: Table): InsertExpression
+    update(table: Table): UpdateExpression
+    updateAllowingNoWhere(table: Table): UpdateExpression
+    deleteFrom(table: Table): DeleteExpression
+    deleteAllowingNoWhereFrom(table: Table): DeleteExpression
+    selectFrom(table: Table | View): SelectExpression
+    selectDistinctFrom(table: Table | View): SelectExpression
+    selectFromNoTable(): SelectExpression
+
+    // These methods allows to create a subquery that depends of a outer table defined in the main query 
+    subSelectUsing(table: Table | View): SelectExpression
+    subSelectUsing(table1: Table | View, table2: Table | View): SelectExpression
+    subSelectUsing(table1: Table | View, table2: Table | View, table3: Table | View): SelectExpression
+    subSelectDistinctUsing(table: Table | View): SelectExpression
+    subSelectDistinctUsing(table1: Table | View, table2: Table | View): SelectExpression
+    subSelectDistinctUsing(table1: Table | View, table2: Table | View, table3: Table | View): SelectExpression
+    
+    // default value for use in insert queries
+    default(): Default
+
+    // values that can be returned by the database
+    pi(): NumberValueSource
+    random(): NumberValueSource
+    currentDate(): DateValueSource
+    currentTime(): TimeValueSource
+    currentDateTime(): DateTimeValueSource
+    currentTimestamp(): DateTimeValueSource
+    true(): BooleanValueSource
+    false(): BooleanValueSource
+
+    // methods that allows to create a value source with a constant value
+    const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    const(value: number | string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
+    const(value: number, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    const(value: number | string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
+    const(value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource
+    const(value: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    const(value: Date, type: 'localDate', adapter?: TypeAdapter): DateValueSource
+    const(value: Date, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
+    const(value: Date, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
+    const<T>(value: T, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    const<T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    
+    // allows to use the exits function on a subquery
+    exists(select: Subquery): BooleanValueSource
+    notExists(select: Subquery): BooleanValueSource
+
+    // aggregate functions
+    /** count(*) */
+    countAll(): NumberValueSource
+    /** count(value) */
+    count(value: ValueSource): NumberValueSource
+    /** count(distinct value) */
+    countDistinct(value: ValueSource): NumberValueSource
+    /** max(value) */
+    max<TYPE extends ComparableValueSource>(value: TYPE): TYPE
+    /** min(value) */
+    min<TYPE extends ComparableValueSource>(value: TYPE): TYPE
+    /** sum(value) */
+    sum(value: NumberValueSource): NumberValueSource
+    sum(value: StringNumberValueSource): StringNumberValueSource
+    /** sum(distinct value) */
+    sumDistinct(value: NumberValueSource): NumberValueSource
+    sumDistinct(value: StringNumberValueSource): StringNumberValueSource
+    /** avg(value) */
+    average(value: NumberValueSource): NumberValueSource
+    average(value: StringNumberValueSource): StringNumberValueSource
+    /** avg(disctinct value) */
+    averageDistinct(value: NumberValueSource): NumberValueSource
+    averageDistinct(value: StringNumberValueSource): StringNumberValueSource
+    /** group_concat(value, separator) sometimes called string_agg or listagg. The default separator is ',' */
+    stringConcat(value: StringValueSource, separator?: string): StringValueSource
+    /** group_concat(distinct value, separator) sometimes called string_agg or listagg. The default separator is ',' */
+    stringConcatDistinct(value: StringValueSource, separator?: string): StringValueSource
+
+    // Methods that allows create sql fragments
+    fragmentWithType(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType<T>(type: 'enum', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType<T>(type: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    
+    // Protected methods that allows call a stored procedure
+    executeProcedure(procedureName: string, params: ValueSource[]): Promise<void>
+
+    // Protected methods that allows call a function
+    executeFunction(functionName: string, params: ValueSource[], returnType: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<boolean>
+    executeFunction(functionName: string, params: ValueSource[], returnType: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
+    executeFunction(functionName: string, params: ValueSource[], returnType: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
+    executeFunction(functionName: string, params: ValueSource[], returnType: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
+    executeFunction(functionName: string, params: ValueSource[], returnType: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
+    executeFunction(functionName: string, params: ValueSource[], returnType: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
+    executeFunction(functionName: string, params: ValueSource[], returnType: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
+    executeFunction(functionName: string, params: ValueSource[], returnType: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
+    executeFunction(functionName: string, params: ValueSource[], returnType: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
+    executeFunction<T>(functionName: string, params: ValueSource[], returnType: 'enum', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
+    executeFunction<T>(functionName: string, params: ValueSource[], returnType: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
+
+    // Protected methods to define a sequence (only available in oracle, postgreSql and sqlServer)
+    sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource>
+    sequence(name: string, type: 'stringInt', adapter?: TypeAdapter): Sequence<StringNumberValueSource>
+    sequence(name: string, type: 'int', adapter?: TypeAdapter): Sequence<NumberValueSource>
+    sequence(name: string, type: 'stringDouble', adapter?: TypeAdapter): Sequence<StringNumberValueSource>
+    sequence(name: string, type: 'double', adapter?: TypeAdapter): Sequence<NumberValueSource>
+    sequence(name: string, type: 'string', adapter?: TypeAdapter): Sequence<StringValueSource>
+    sequence(name: string, type: 'localDate', adapter?: TypeAdapter): Sequence<DateValueSource>
+    sequence(name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<TimeValueSource>
+    sequence(name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<DateTimeValueSource>
+    sequence<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource>
+    sequence<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource>
+
+    /** Protected method that allows to transform the values received from the database */
+    transformValueFromDB(value: any, type: string): any
+    /** Protected method that allows to transform the values that will be send to the database */
+    transformValueToDB(value: any, type: string): any
+}
+
+interface FragmentExpression {
+    /** This is a template, you can call as: .sql`sql text with ${valueSourceParam}` */
+    sql(sql: TemplateStringsArray, ...p: ValueSource[]): ValueSource
+}
+
+interface TypeAdapter {
+    transformValueFromDB(value: any, type: string, next: DefaultTypeAdapter): any
+    transformValueToDB(value: any, type: string, next: DefaultTypeAdapter): any
+}
+
+interface DefaultTypeAdapter {
+    transformValueFromDB(value: any, type: string): any
+    transformValueToDB(value: any, type: string): any
+}
+
+interface Sequence<T> {
+    nextValue(): T
+    currentValue(): T
+}
+
+
+
+
+
+
+
+
+interface Table {
+    /** Allows to define an alias for the table to be used in the selects queries */
+    as(as: string): this
+    /** Allows  to use the table in a left join */
+    forUseInLeftJoin(): this & OuterJoinSource
+    /** Allows  to use the table in a left join with an alias */
+    forUseInLeftJoinAs(as: string): this & OuterJoinSource
+
+    // Protected methods that allow to create a required column that doesn't admits null
+    column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    column(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
+    column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    column(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
+    column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
+    column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    column(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
+    column(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
+    column(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
+    column<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    column<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+
+    // Protected methods that allow to create an optional column that admits null
+    optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    optionalColumn(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
+    optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    optionalColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
+    optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
+    optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
+    optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
+    optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
+    optionalColumn<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    optionalColumn<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    
+    // Protected methods that allow to create a required column that doesn't admits null but have a default value when insert
+    columnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    columnWithDefaultValue(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
+    columnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    columnWithDefaultValue(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
+    columnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
+    columnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    columnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
+    columnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
+    columnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
+    columnWithDefaultValue<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    columnWithDefaultValue<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    
+    // Protected methods that allow to create an optional column that admits null and have a default value when insert
+    optionalColumnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    optionalColumnWithDefaultValue(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
+    optionalColumnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    optionalColumnWithDefaultValue(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
+    optionalColumnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
+    optionalColumnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    optionalColumnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
+    optionalColumnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
+    optionalColumnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
+    optionalColumnWithDefaultValue<T>(name: string, type: 'enum', typeNme: string, adapter?: TypeAdapter): EqualableValueSource
+    optionalColumnWithDefaultValue<T>(name: string, type: 'custom', typeNme: string, adapter?: TypeAdapter): EqualableValueSource
+    
+    // Protected methods that allow to create a primary key column autogenerated in the database
+    // When you insert you don't need specify this column
+    autogeneratedPrimaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    autogeneratedPrimaryKey(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
+    autogeneratedPrimaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    autogeneratedPrimaryKey(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
+    autogeneratedPrimaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
+    autogeneratedPrimaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    autogeneratedPrimaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
+    autogeneratedPrimaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
+    autogeneratedPrimaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
+    autogeneratedPrimaryKey<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    autogeneratedPrimaryKey<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+
+    // Protected methods that allow to create a primary key column not automatically generated
+    // When you insert you must specify this column
+    primaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    primaryKey(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
+    primaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    primaryKey(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
+    primaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
+    primaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    primaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
+    primaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
+    primaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
+    primaryKey<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    primaryKey<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+      
+    // Protected methods that allow to create a primary key column generated by a sequence
+    // When you insert you don't need specify this column, it will be added automatically by ts-sql-query
+    // This method is only supported by oracle, postgreSql and sqlServer
+    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
+    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
+    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
+    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
+    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
+    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
+    autogeneratedPrimaryKeyBySequence<T>(name: string, sequenceName: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    autogeneratedPrimaryKeyBySequence<T>(name: string, sequenceName: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+}
+
+
+
+
+
+interface View {
+    /** Allows to define an alias for the view to be used in the selects queries */
+    as(as: string): this
+    /** Allows  to use the view in a left join */
+    forUseInLeftJoin(): this & OuterJoinSource
+    /** Allows  to use the view in a left join with an alias */
+    forUseInLeftJoinAs(as: string): this & OuterJoinSource
+
+    // Protected methods that allow to create a required column that doesn't admits null
+    column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    column(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
+    column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    column(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
+    column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
+    column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    column(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
+    column(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
+    column(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
+    column<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    column<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+
+    // Protected methods that allow to create an optional column that admits null
+    optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    optionalColumn(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
+    optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    optionalColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
+    optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
+    optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
+    optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
+    optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
+    optionalColumn<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    optionalColumn<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+}
+
+
+
+
+
+
+interface InsertExpression {
+    /** Set the values for insert */
+    set(columns: InsertSets): this
+    /** Set a value only if the provided value is not null or undefined */
+    setIfValue(columns: OptionalInsertSets): this
+    /** Set a previous set value only */
+    setIfSet(columns: InsertSets): this
+    /** Set a previous set value only if the provided value is not null or undefined */
+    setIfSetIfValue(columns: OptionalInsertSets): this
+    /** Set a unset value (only if the value was not previously set) */
+    setIfNotSet(columns: InsertSets): this
+    /** 
+     * Set a unset value only if the provided value is not null or undefined 
+     * (only if the value was not previously set) 
+     */
+    setIfNotSetIfValue(columns: OptionalInsertSets): this
+    /** Unset the listed columns previous set */
+    ignoreIfSet(...columns: string[]): this
+    /** Allows to set the values dynamically */
+    dynamicSet(): this
+
+    /** Insert the default values in the table */
+    defaultValues(): this
+
+    /** Indicate that the query must return the last inserted id */
+    returningLastInsertedId(): this
+
+    /** Execute the insert, by default returns the number of inserted rows*/
+    executeInsert(): Promise<RESULT>
+    /** Returns the sql query to be executed in the database */
+    query(): string
+    /** Returns the required parameters by the sql query */
+    params(): any[]
+}
+
+/** Columns required by the insert */
+type InsertSets = { [columnName: string]: any }
+/** Columns required by the insert, but marked as optionals */
+type OptionalInsertSets = { [columnName: string]: any }
+
+
+
+
+
+interface UpdateExpression {
+    /** Set the values for insert */
+    set(columns: InsertSets): this
+    /** Set a value only if the provided value is not null or undefined */
+    setIfValue(columns: OptionalInsertSets): this
+    /** Set a previous set value only */
+    setIfSet(columns: InsertSets): this
+    /** Set a previous set value only if the provided value is not null or undefined */
+    setIfSetIfValue(columns: OptionalInsertSets): this
+    /** Set a unset value (only if the value was not previously set) */
+    setIfNotSet(columns: InsertSets): this
+    /** 
+     * Set a unset value only if the provided value is not null or undefined 
+     * (only if the value was not previously set) 
+     */
+    setIfNotSetIfValue(columns: OptionalInsertSets): this
+    /** Unset the listed columns previous set */
+    ignoreIfSet(...columns: string[]): this
+    /** Allows to set the values dynamically */
+    dynamicSet(): this
+
+    /** Allows to create the where dynamically */
+    dynamicWhere(): this
+    /** Allows to specify the where */
+    where(condition: BooleanValueSource): this
+
+    /** Allows to extends the where using an and */
+    and(condition: BooleanValueSource): this
+    /** Allows to extends the where using an or */
+    or(condition: BooleanValueSource): this
+
+    /**
+     * Execute the update returning the number of updated rows
+     * 
+     * @param min Indicate the minimum of rows that must be updated, 
+     *           if the minimum is not reached an exception will be thrown
+     * @param max Indicate the maximum of rows that must be updated, 
+     *           if the maximum is exceeded an exception will be thrown
+     */
+    executeUpdate(min?: number, max?: number): Promise<number>
+    /** Returns the sql query to be executed in the database */
+    query(): string
+    /** Returns the required parameters by the sql query */
+    params(): any[]
+}
+
+/** Columns required by the update */
+type UpdateSets = { [columnName: string]: any }
+/** Columns required by the update, but marked as optional */
+type OptionalUpdateSets = { [columnName: string]: any }
+
+
+
+
+
+
+interface DeleteExpression {
+    /** Allows to create the where dynamically */
+    dynamicWhere(): this
+    /** Allows to specify the where */
+    where(condition: BooleanValueSource): this
+
+    /** Allows to extends the where using an and */
+    and(condition: BooleanValueSource): this
+    /** Allows to extends the where using an or */
+    or(condition: BooleanValueSource): this
+
+    /**
+    * Execute the delete returning the number of deleted rows
+    * 
+    * @param min Indicate the minimum of rows that must be deleted, 
+    *           if the minimum is not reached an exception will be thrown
+    * @param max Indicate the maximum of rows that must be deleted, 
+    *           if the maximum is exceeded an exception will be thrown
+    */
+    executeDelete(min?: number, max?: number): Promise<number>
+    /** Returns the sql query to be executed in the database */
+    query(): string
+    /** Returns the required parameters by the sql query */
+    params(): any[]
+}
+
+
+
+
+
+interface SelectExpression {
+    /** Allows to add a from to the select query */
+    from(table: Table | View): this
+
+    /** Allows to add a join to the select query */
+    join(table: Table | View): this
+    /** Allows to add a inner join to the select query */
+    innerJoin(table: Table | View): this
+    /** 
+     * Allows to add a left join to the select query. 
+     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     */
+    leftJoin(source: OuterJoinSource): this
+    /** 
+     * Allows to add a left outer join to the select query. 
+     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     */
+    leftOuterJoin(source: OuterJoinSource): this
+
+    /** Allows to create the on clause of a join dynamically */
+    dynamicOn(): this
+    /** Allows to specify the on clause of a join */
+    on(condition: BooleanValueSource): this
+
+    /** Allows to create the where dynamically */
+    dynamicWhere(): this
+    /** Allows to specify the where */
+    where(condition: BooleanValueSource): this
+    
+    /** Allows to specify the group by of the select query */
+    groupBy(...columns: ValueSource[]): this
+    /** 
+     * Allows to specify the group by of the select query.
+     * 
+     * If you already defined the select clause, you can use the name of
+     * the properties returned by the select instead of its definition, it
+     * will be replace by the definition automatically.
+     * 
+     * Note: this overload is only available if you define the select clause first.
+     */
+    groupBy(...columns: string[]): this
+    /** Allows to create the having clause of the group by dynamically */
+    dynamicHaving(): this
+    /** Allows to specify the having clause of the group by */
+    having(condition: BooleanValueSource): this
+
+    /** 
+     * Allows to specify the select clause.
+     * It must be an object where the name of the property is the name of the resulting property
+     * and the value is the ValueSource where the value will be obtained.
+     */
+    select(columns: SelectValues): this
+    /** 
+     * Allows to specify the select clause of a query that returns only one column.
+     * It receives as argument the ValueSource where the value will be obtained.
+     */
+    selectOneColumn(column: ValueSource): this
+
+    /** 
+     * Allows to specify an order by used by the query, you must indicate the name of the column
+     * returned by the query.
+     * If you select one column the name of the column is 'result'.
+     */
+    orderBy(column: string, mode?: OrderByMode): this
+    /** Allows to specify an order by dynamically, it is parsed from the provided string */
+    orderByFromString(orderBy: string): this
+
+    /** Allows to specify the maximum number of rows that will be returned by the query */
+    limit(limit: number): this
+     /** Allows to specify the number of first rows ignored by the query */
+    offset(offset: number): this
+
+
+    /** Allows to extends the where, or the on clause of a join, or the having clause using an and */
+    and(condition: BooleanValueSource): this
+    /** Allows to extends the where, or the on clause of a join, or the having clause using an or */
+    or(condition: BooleanValueSource): this
+
+    /** Execute the select query that returns one o no result from the database */
+    executeSelectNoneOrOne(): Promise<RESULT | null>
+    /** 
+     * Execute the select query that returns one result from the database.
+     * If no result is returned by the database an exception will be thrown.
+     */
+    executeSelectOne(): Promise<RESULT>
+    /** Execute the select query that returns zero or many results from the database */
+    executeSelectMany(): Promise<RESULT[]>
+    /** 
+     * Execute the select query that returns zero or many results from the database.
+     * Select page execute the query twice, the first one to get the data from the database 
+     * and the second one to get the count of all data without the limit and the offset. 
+     * Note: select page is only available if you don't define a group by clause.
+     */
+    executeSelectPage(): Promise<{ data: RESULT[], count: number }>
+    /** 
+     * Execute the select query as a select page, but allows to include extra properties to will be resulting object.
+     * If the object provided by argument includes the property count, the query that count the data will be omitted and
+     * this value will be used. If the object provided by argument includes the property data, the query that extract 
+     * the data will be omitted and this value will be used.
+     */
+    executeSelectPage<EXTRAS extends {}>(extras: EXTRAS): Promise<{ data: RESULT[], count: number } & EXTRAS>
+    
+    /** Returns the sql query to be executed in the database */
+    query(): string
+    /** Returns the required parameters by the sql query */
+    params(): any[]
+}
+
+/**
+ * Modes of sorting in an order by.
+ * If the database don't support one of then it will be emulated.
+ */
+type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last'
+/**
+ * Select projection of the value that vill be retreived from the database.
+ * 
+ * It must be an object where the name of the property is the name of the resulting property
+ * and the value is the ValueSource where the value will be obtained.
+ */
+type SelectValues = { [columnName: string]: ValueSource }
+/**
+ * Here we use the Subquery type to indicate that you can use any select as subquery
+ */
+type Subquery = SelectExpression
+
+
+
+/******************** */
+
+type RESULT = any
+type Default = any
+type QueryRunner = any
+type OuterJoinSource = any

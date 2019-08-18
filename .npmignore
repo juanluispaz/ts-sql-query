@@ -1,0 +1,10 @@
+[Tt]humbs.db
+.DS_Store
+node_modules
+npm-debug.log*
+coverage
+package-lock.json
+test
+.travis.yml
+src
+tsconfig.json

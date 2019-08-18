@@ -1,0 +1,27 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "commonjs",
+        "sourceMap": true,
+        "alwaysStrict": true,
+        "newLine": "LF",
+        "noFallthroughCasesInSwitch": true,
+        "noImplicitAny": true,
+        "noImplicitReturns": true,
+        "noImplicitThis": true,
+        "strictNullChecks": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "strict": true,
+        "declaration": true,
+        "outDir": "dist/",
+        "rootDir": "src/"
+    },
+    "exclude": [
+        "node_modules",
+        "test",
+        "dist",
+        "build",
+        "build-test"
+    ]
+}

@@ -1,6 +1,5 @@
 {
     "name": "ts-sql-query",
-    "private": true,
     "version": "0.10.0",
     "description": "Type-safe SQL query builder like QueryDSL or JOOQ in Java for TypeScript with MariaDB, MySql, Oracle, PostgreSql, Sqlite and SqlServer support.",
     "license": "MIT",

@@ -276,7 +276,34 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return result
     }
     _buildInsertDefaultValues(query: InsertData, params: any[]): string {
-        return 'insert into ' + this._getTableOrViewName(query.__table) + this._buildInsertOutput(query, params) + ' default values' + this._buildInsertReturning(query, params)
+        const table = query.__table
+        let columns = ''
+        let values = ''
+
+        for (var columnName in table) {
+            const column = __getColumnOfTable(table, columnName)
+            if (!column) {
+                continue
+            }
+            const columnPrivate = __getColumnPrivate(column)
+            if (!columnPrivate.__sequenceName) {
+                continue
+            }
+
+            if (columns) {
+                columns += ', '
+                values += ', '
+            }
+
+            columns += this._appendSql(column, params)
+            values += this._nextSequenceValue(params, columnPrivate.__sequenceName)
+        }
+
+        if (columns) {
+            return 'insert into ' + this._getTableOrViewName(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
+        } else {
+            return 'insert into ' + this._getTableOrViewName(query.__table) + this._buildInsertOutput(query, params) + ' default values' + this._buildInsertReturning(query, params)
+        }
     }
     _buildInsert(query: InsertData, params: any[]): string {
         const table = query.__table

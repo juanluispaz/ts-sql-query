@@ -6,7 +6,7 @@ Type-safe SQL query builder like QueryDSL or JOOQ in Java for TypeScript with Ma
 
 This package provides a way to build dynamic SQL queries in a type-safe way, that means, the TypeScript compiler verifies the queries. Note: this is not an ORM, and the most probably is you don't need one.
 
-Type-safe sql means the mistakes writting a query will be detected during the compilation time. With ts-sql-query you don't need to be affraid of change the database, the problems caused by the change will be detected during the compilation time.
+Type-safe sql means the mistakes writting a query will be detected during the compilation time. With ts-sql-query you don't need to be affraid of change the database, the problems caused by the change will be detected during compilation time.
 
 ## Install
 
@@ -49,7 +49,7 @@ const customersWithId: Promise<{
     id: number;
     firstName: string;
     lastName: string;
-    birthday?: Date | undefined;
+    birthday?: Date;
 }>
 ```
 
@@ -337,7 +337,7 @@ const deleteCustomer: Promise<number>
 
 ### Defining the connection object
 
-When you define the connection object you extends your database connection class that will receive two generic arguments, the first one is the connection class itself and the second one y a name for the database in your system.
+When you define the connection object you extends your database connection class that will receive two generic arguments, the first one is the connection class itself and the second one is a name for the database in your system.
 
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
@@ -458,6 +458,7 @@ import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnect
 class DBConection extends PostgreSqlConnection<DBConection, 'DBConnection'> { 
     myOwnprocedure(param1: number) {
         return this.executeProcedure('myOwnprocedure', [this.const(param1, 'int')]);
+    }
 }
 ```
 
@@ -1537,7 +1538,7 @@ async function main() {
         const connection = new DBConection(new MariaDBQueryRunner(mariaDBConnection));
         // Do your queries here
     } finally {
-        mariaDBConnection.end();
+        mariaDBConnection.release();
     }
 }
 ```
@@ -1714,10 +1715,10 @@ function main() {
         try {
             const connection = new DBConection(new MySql2QueryRunner(mysql2Connection));
             doYourLogic(connection).finnaly(() => {
-                pool.releaseConnection(mysql2Connection);
+                mysql2Connection.release();
             });
         } catch(e) {
-            pool.releaseConnection(mysql2Connection);
+            mysql2Connection.release();
             throw e;
         }
     });
@@ -1757,7 +1758,7 @@ async function init() {
     try {
         await oracledb.createPool({
             user: 'user',
-            password: 'pwd,
+            password: 'pwd',
             connectString: 'localhost/XEPDB1'
         });
         await main();

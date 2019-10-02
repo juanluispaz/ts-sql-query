@@ -349,24 +349,19 @@ class DBConection extends PostgreSqlConnection<DBConection, 'DBConnection'> { }
 
 ```ts
 const { Pool } = require('pg');
-import { PgQueryRunner } from "ts-sql-query/queryRunners/PgQueryRunner";
+import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
 
 const pool = new Pool();
 
 async function main() {
-    const pgConnection = await pool.connect();
-    try {
-        const connection = new DBConection(new PgQueryRunner(pgConnection));
-        // Do your queries here
-        /*
-         * Maybe you want to call:
-         * await connection.beginTransaction();
-         * await connection.commit();
-         * await connection.rollback();
-         */
-    } finally {
-        pgConnection.release();
-    }
+    const connection = new DBConection(new PgPoolQueryRunner(pool));
+    // Do your queries here
+    /*
+     * Maybe you want to call:
+     * await connection.beginTransaction();
+     * await connection.commit();
+     * await connection.rollback();
+     */
 }
 ```
 
@@ -1420,7 +1415,39 @@ class DBConection extends TypeSafeSqlServerConnection<DBConection, 'DBConnection
 
 ## Query runners
 
-### any-db
+### any-db (with connection pool)
+
+It allows to execute the queries using an [any-db](https://www.npmjs.com/package/any-db) connection pool. To use this query runner you need to install as well [any-db-transaction](https://www.npmjs.com/package/any-db-transaction).
+
+**Supported databases**: mariaDB, mySql, postgreSql, sqlite, sqlServer
+
+It internally uses:
+- [tedious](https://www.npmjs.com/package/tedious) for connections to SqlServer
+- [mysql](https://www.npmjs.com/package/mysql) for connections to MariaDB and MySql
+- [pg](https://www.npmjs.com/package/pg) for connections to PostgreSql
+- [sqlite3](https://www.npmjs.com/package/sqlite3) for connections to SqlLite
+
+**Note**: All of these implementations have a direct implementation here as alternative.
+
+```ts
+const anyDB = require('any-db');
+import { AnyDBPoolQueryRunner } from "ts-sql-query/queryRunners/AnyDBPoolQueryRunner";
+
+const pool = anyDB.createPool('postgres://user:pass@localhost/dbname', {
+  min: 5,
+  max: 15,
+  reset: function(conn, done) {
+    conn.query('ROLLBACK', done)
+  },
+});
+
+async function main() {
+    const connection = new DBConection(new AnyDBPoolQueryRunner(pool));
+    // Do your queries here
+}
+```
+
+### any-db (with connection)
 
 It allows to execute the queries using an [any-db](https://www.npmjs.com/package/any-db) connection. To use this query runner you need to install as well [any-db-transaction](https://www.npmjs.com/package/any-db-transaction).
 
@@ -1514,7 +1541,31 @@ async function main() {
 }
 ```
 
-### mariadb
+### mariadb (with a connection pool)
+
+It allows to execute the queries using a [mariadb](https://www.npmjs.com/package/mariadb) connection pool.
+
+**Supported databases**: mariaDB, mySql
+
+```ts
+const mariadb = require('mariadb');
+import { MariaDBPoolQueryRunner } from "ts-sql-query/queryRunners/MariaDBPoolQueryRunner";
+
+const pool = mariadb.createPool({
+    host: 'mydb.com', 
+    user: 'myUser', 
+    password: 'myPwd',
+    database: 'myDB',
+    connectionLimit: 5
+});
+
+async function main() {
+    const connection = new DBConection(new MariaDBPoolQueryRunner(pool));
+    // Do your queries here
+}
+```
+
+### mariadb (with a connection)
 
 It allows to execute the queries using a [mariadb](https://www.npmjs.com/package/mariadb) connection.
 
@@ -1617,9 +1668,9 @@ async function doYourLogic(connection: DBConection) {
 }
 ```
 
-### mssql
+### mssql (with a connection pool promise)
 
-It allows to execute the queries using a [mssql](https://www.npmjs.com/package/mssql) connection.
+It allows to execute the queries using a [mssql](https://www.npmjs.com/package/mssql) connection pool promise.
 
 **Supported databases**: sqlServer
 
@@ -1631,9 +1682,9 @@ It internally uses:
 
 ```ts
 const sql = require('mssql');
-import { MssqlQueryRunner } from "./queryRunners/MssqlQueryRunner";
+import { MssqlPoolPromiseQueryRunner } from "./queryRunners/MssqlPoolPromiseQueryRunner";
 
-const pool = new sql.ConnectionPool({
+const poolPromise = new sql.ConnectionPool({
     user: '...',
     password: '...',
     server: 'localhost',
@@ -1641,13 +1692,66 @@ const pool = new sql.ConnectionPool({
 }).connect();
 
 async function main() {
-    const mssqlPool = await pool;
-    const connection = new DBConection(new MssqlQueryRunner(mssqlPool));
+    const connection = new DBConection(new MssqlPoolPromiseQueryRunner(poolPromise));
     // Do your queries here
 }
 ```
 
-### mysql
+### mssql (with a connection pool)
+
+It allows to execute the queries using a [mssql](https://www.npmjs.com/package/mssql) connection pool.
+
+**Supported databases**: sqlServer
+
+It internally uses:
+- [tedious](https://www.npmjs.com/package/tedious) for connections to SqlServer on any OS
+- [msnodesqlv8](https://www.npmjs.com/package/msnodesqlv8) for connections to SqlServer only on Windows
+
+**Note**: All of these implementations have a direct implementation here as alternative.
+
+```ts
+const sql = require('mssql');
+import { MssqlPoolQueryRunner } from "./queryRunners/MssqlPoolQueryRunner";
+
+const poolPromise = new sql.ConnectionPool({
+    user: '...',
+    password: '...',
+    server: 'localhost',
+    database: '...'
+}).connect();
+
+async function main() {
+    const mssqlPool = await poolPromise;
+    const connection = new DBConection(new MssqlPoolQueryRunner(mssqlPool));
+    // Do your queries here
+}
+```
+
+### mysql (with a connection pool)
+
+It allows to execute the queries using a [mysql](https://www.npmjs.com/package/mysql) connection pool.
+
+**Supported databases**: mariaDB, mySql
+
+```ts
+var mysql = require('mysql');
+import { MySqlPoolQueryRunner } from "ts-sql-query/queryRunners/MySqlPoolQueryRunner";
+
+const pool  = mysql.createPool({
+  connectionLimit : 10,
+  host            : 'example.org',
+  user            : 'bob',
+  password        : 'secret',
+  database        : 'my_db'
+});
+
+async function main() {
+    const connection = new DBConection(new MySqlPoolQueryRunner(pool));
+    // Do your queries here
+}
+```
+
+### mysql (with a connection)
 
 It allows to execute the queries using a [mysql](https://www.npmjs.com/package/mysql) connection.
 
@@ -1683,11 +1787,37 @@ function main() {
 }
 
 async function doYourLogic(connection: DBConection) {
-     // Do your queries here
+    // Do your queries here
 }
 ```
 
-### mysql2
+### mysql2 (with a connection pool)
+
+It allows to execute the queries using a [mysql2](https://www.npmjs.com/package/mysql2) connection pool.
+
+**Supported databases**: mariaDB, mySql
+
+```ts
+const mysql = require('mysql2');
+import { MySql2PoolQueryRunner } from "ts-sql-query/queryRunners/MySql2PoolQueryRunner";
+
+const pool = mysql.createPool({
+  host: 'localhost',
+  user: 'user',
+  password: 'secret',
+  database: 'test',
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+});
+
+async function main() {
+    const connection = new DBConection(new MySql2PoolQueryRunner(pool));
+    // Do your queries here
+}
+```
+
+### mysql2 (with a connection)
 
 It allows to execute the queries using a [mysql2](https://www.npmjs.com/package/mysql2) connection.
 
@@ -1725,7 +1855,7 @@ function main() {
 }
 
 async doYourLogic(connection: DBConection) {
-     // Do your queries here
+    // Do your queries here
 }
 ```
 
@@ -1744,7 +1874,82 @@ async function main() {
 }
 ```
 
-### oracledb
+### oracledb (with a connection pool promise)
+
+It allows to execute the queries using an [oracledb](https://www.npmjs.com/package/oracledb) connection pool promise.
+
+**Supported databases**: oracle
+
+```ts
+const oracledb = require('oracledb');
+import { OracleDBPoolPromiseQueryRunner } from "ts-sql-query/queryRunners/OracleDBPoolPromiseQueryRunner";
+
+const poolPromise = oracledb.createPool({
+    user: 'user',
+    password: 'pwd',
+    connectString: 'localhost/XEPDB1'
+});
+
+async function closePoolAndExit() {
+    try {
+        const pool = await poolPromise;
+        await pool.close(10);
+        process.exit(0);
+    } catch(err) {
+        process.exit(1);
+    }
+}
+
+process
+  .once('SIGTERM', closePoolAndExit)
+  .once('SIGINT',  closePoolAndExit)
+  .once('beforeExit',  closePoolAndExit);;
+
+async function main() {
+    const connection = new DBConection(new OracleDBPoolPromiseQueryRunner(poolPromise));
+    // Do your queries here
+}
+```
+
+### oracledb (with a connection pool)
+
+It allows to execute the queries using an [oracledb](https://www.npmjs.com/package/oracledb) connection pool.
+
+**Supported databases**: oracle
+
+```ts
+const oracledb = require('oracledb');
+import { OracleDBPoolQueryRunner } from "ts-sql-query/queryRunners/OracleDBPoolQueryRunner";
+
+const poolPromise = oracledb.createPool({
+    user: 'user',
+    password: 'pwd',
+    connectString: 'localhost/XEPDB1'
+});
+
+async function closePoolAndExit() {
+    try {
+        const pool = await poolPromise;
+        await pool.close(10);
+        process.exit(0);
+    } catch(err) {
+        process.exit(1);
+    }
+}
+
+process
+  .once('SIGTERM', closePoolAndExit)
+  .once('SIGINT',  closePoolAndExit)
+  .once('beforeExit',  closePoolAndExit);;
+
+async function main() {
+    const pool = await poolPromise;
+    const connection = new DBConection(new OracleDBPoolQueryRunner(pool));
+    // Do your queries here
+}
+```
+
+### oracledb (with a connection)
 
 It allows to execute the queries using an [oracledb](https://www.npmjs.com/package/oracledb) connection.
 
@@ -1793,7 +1998,31 @@ async function main() {
 }
 ```
 
-### pg
+### pg (with a connection pool)
+
+It allows to execute the queries using a [pg](https://www.npmjs.com/package/pg) connection pool.
+
+**Supported databases**: postgreSql
+
+```ts
+const { Pool } = require('pg');
+import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
+
+const pool = new Pool({
+    user: 'dbuser',
+    host: 'database.server.com',
+    database: 'mydb',
+    password: 'secretpassword',
+    port: 3211,
+});
+
+async function main() {
+    const connection = new DBConection(new PgPoolQueryRunner(pool));
+    // Do your queries here
+}
+```
+
+### pg (with a connection)
 
 It allows to execute the queries using a [pg](https://www.npmjs.com/package/pg) connection.
 
@@ -1841,7 +2070,37 @@ async function main() {
 }
 ```
 
-### tedious
+### tedious (with a connection poll)
+
+It allows to execute the queries using a [tedious](https://www.npmjs.com/package/tedious) connection and a [tedious-connection-pool](https://www.npmjs.com/package/tedious-connection-pool) pool.
+
+**Supported databases**: sqlServer
+
+```ts
+const ConnectionPool = require('tedious-connection-pool');
+import { TediousPoolQueryRunner } from "ts-sql-query/queryRunners/TediousPoolQueryRunner";
+
+var poolConfig = {
+    min: 2,
+    max: 4,
+    log: true
+};
+
+var connectionConfig = {
+    userName: 'login',
+    password: 'password',
+    server: 'localhost'
+};
+
+var pool = new ConnectionPool(poolConfig, connectionConfig);
+
+async function main() {
+    const connection = new DBConection(new TediousPoolQueryRunner(pool));
+    // Do your queries here
+}
+```
+
+### tedious (with a connection)
 
 It allows to execute the queries using a [tedious](https://www.npmjs.com/package/tedious) connection and a [tedious-connection-pool](https://www.npmjs.com/package/tedious-connection-pool) pool.
 
@@ -1883,7 +2142,7 @@ function main() {
 }
 
 async doYourLogic(connection: DBConection) {
-     // Do your queries here
+    // Do your queries here
 }
 ```
 

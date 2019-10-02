@@ -1,19 +1,19 @@
 import { QueryRunner, DatabaseType } from "./QueryRunner"
 import { ConnectionPool, TYPES, ISqlTypeFactory, Transaction, Request } from 'mssql'
 
-export class MssqlQueryRunner implements QueryRunner {
+export class MssqlPoolQueryRunner implements QueryRunner {
     readonly sqlServer: true = true
     readonly database: DatabaseType
-    readonly connection: ConnectionPool
+    readonly pool: ConnectionPool
     transaction?: Transaction
 
-    constructor(connection: ConnectionPool) {
-        this.connection = connection
+    constructor(pool: ConnectionPool) {
+        this.pool = pool
         this.database = 'sqlServer'
     }
 
     getNativeConnection(): ConnectionPool {
-        return this.connection
+        return this.pool
     }
 
     executeSelectOneRow(query: string, params: any[]): Promise<any> {
@@ -168,7 +168,7 @@ export class MssqlQueryRunner implements QueryRunner {
         if (this.transaction) {
             return Promise.reject(new Error('Already in an transaction, you can only use one transaction'))
         }
-        this.transaction = this.connection.transaction()
+        this.transaction = this.pool.transaction()
         return this.transaction.begin()
     }
     executeCommit(): Promise<void> {
@@ -200,7 +200,7 @@ export class MssqlQueryRunner implements QueryRunner {
         if (this.transaction) {
             return this.transaction.request()
         } else {
-            return this.connection.request()
+            return this.pool.request()
         }
     }
 

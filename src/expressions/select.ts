@@ -11,9 +11,9 @@ export type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' 
 
 export abstract class SelectExpressionBase<DB extends AnyDB, REQUIRED_TABLE_OR_VIEW extends ITableOrView<DB>> {
     // @ts-ignore
-    private ___database: DB
+    protected ___database: DB
     // @ts-ignore
-    private ___requiredTable: REQUIRED_TABLE_OR_VIEW
+    protected ___requiredTable: REQUIRED_TABLE_OR_VIEW
 }
 
 export abstract class ExecutableSelect<DB extends AnyDB, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrView<DB>> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {

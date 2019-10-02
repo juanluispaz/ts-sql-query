@@ -9,9 +9,9 @@ import { NoTableOrViewRequired } from "../utils/NoTableOrViewRequired"
 
 export abstract class AbstractFragmentExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITable<DB>> {
     // @ts-ignore
-    private ___database: DB
+    protected ___database: DB
     // @ts-ignore
-    private ___table_or_view: TABLE_OR_VIEW
+    protected ___table_or_view: TABLE_OR_VIEW
 }
 
 export abstract class FragmentExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITable<DB>> extends AbstractFragmentExpression<DB, TABLE_OR_VIEW> {

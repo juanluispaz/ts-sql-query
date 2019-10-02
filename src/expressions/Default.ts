@@ -2,7 +2,7 @@ import { ToSql, SqlBuilder } from "../sqlBuilders/SqlBuilder"
 
 export abstract class Default  {
     // @ts-ignore
-    private ___default: 'default'
+    protected ___default: 'default'
 }
 
 export class DefaultImpl extends Default implements ToSql {

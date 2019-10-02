@@ -1,5 +1,5 @@
 // export class DataType<TYPE> {
-//     private ___type: TYPE
-//     private __type: string
-//     private __adapter?: TypeAdapter
+//     protected ___type: TYPE
+//     protected __type: string
+//     protected __adapter?: TypeAdapter
 // }

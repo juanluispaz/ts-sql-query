@@ -4,7 +4,7 @@ import { ValueSource, __ValueSourcePrivate } from "../expressions/values"
 
 export class Column {
     // @ts-ignore
-    private ___column: 'column'
+    protected ___column: 'column'
 }
 
 export interface __ColumnPrivate extends __ValueSourcePrivate {

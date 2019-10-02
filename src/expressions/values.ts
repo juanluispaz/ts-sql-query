@@ -8,11 +8,11 @@ import { TypeAdapter } from "../TypeAdapter"
 
 export abstract class ValueSource<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, TYPE> {
     // @ts-ignore
-    private ___database: DB
+    protected ___database: DB
     // @ts-ignore
-    private ___table_or_view: TABLE_OR_VIEW
+    protected ___table_or_view: TABLE_OR_VIEW
     // @ts-ignore
-    private ___type: TYPE
+    protected ___type: TYPE
 }
 
 export interface __ValueSourcePrivate {

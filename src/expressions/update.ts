@@ -7,7 +7,7 @@ import { int } from "ts-extended-types"
 
 export abstract class UpdateExpressionBase<DB extends AnyDB> {
     // @ts-ignore
-    private ___database: DB
+    protected ___database: DB
 }
 
 export abstract class ExecutableUpdate<DB extends AnyDB> extends UpdateExpressionBase<DB> {

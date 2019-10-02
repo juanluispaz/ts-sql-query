@@ -2,7 +2,7 @@ import { AnyDB } from "../databases/AnyDB"
 
 export class ITableOrView<DB extends AnyDB> {
     // @ts-ignore
-    private ___database: DB
+    protected ___database: DB
 }
 
 export interface __ITableOrViewPrivate {
@@ -17,10 +17,10 @@ export function __getTableOrViewPrivate(table: ITableOrView<any>): __ITableOrVie
 
 export class ITable<DB extends AnyDB> extends ITableOrView<DB>{
     // @ts-ignore
-    private ___table: 'table'
+    protected ___table: 'table'
 }
 
 export class IView<DB extends AnyDB> extends ITableOrView<DB>{
     // @ts-ignore
-    private ___view: 'view'
+    protected ___view: 'view'
 }

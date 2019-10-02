@@ -7,7 +7,7 @@ import { int } from "ts-extended-types"
 
 export abstract class DeleteExpressionBase<DB extends AnyDB> {
     // @ts-ignore
-    private ___database: DB
+    protected ___database: DB
 }
 
 export abstract class ExecutableDelete<DB extends AnyDB> extends DeleteExpressionBase<DB> {

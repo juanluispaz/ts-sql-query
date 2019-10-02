@@ -217,7 +217,7 @@ export abstract class StringNumberValueSource<DB extends AnyDB, TABLE_OR_VIEW ex
     abstract log10(): StringNumberValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract sqrt(): StringNumberValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract cbrt(): StringNumberValueSource<DB, TABLE_OR_VIEW, TYPE>
-    abstract sign(): NumberValueSource<DB, TABLE_OR_VIEW, NumberTypeOfString<TYPE>>
+    abstract sign(): NumberValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, number>>
     // Trigonometric Functions
     abstract acos(): StringNumberValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract asin(): StringNumberValueSource<DB, TABLE_OR_VIEW, TYPE>
@@ -272,93 +272,93 @@ export abstract class StringNumberValueSource<DB extends AnyDB, TABLE_OR_VIEW ex
 export abstract class IntValueSource<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, TYPE /*extends int | null | undefined = int*/> extends ComparableValueSource<DB, TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
-    abstract asStringInt(): StringIntValueSource<DB, TABLE_OR_VIEW, StringIntTypeOfInt<TYPE>>
-    abstract asDouble(): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract asStringDouble(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
+    abstract asStringInt(): StringIntValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringInt>>
+    abstract asDouble(): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract asStringDouble(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
     abstract abs(): IntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract ceil(): IntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract floor(): IntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract round(): IntValueSource<DB, TABLE_OR_VIEW, TYPE>
-    abstract exp(): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract ln(): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract log10(): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract sqrt(): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract cbrt(): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
+    abstract exp(): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract ln(): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract log10(): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract sqrt(): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract cbrt(): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
     abstract sign(): IntValueSource<DB, TABLE_OR_VIEW, TYPE>
     // Trigonometric Functions
-    abstract acos(): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract asin(): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract atan(): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract cos(): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract cot(): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract sin(): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract tan(): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
+    abstract acos(): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract asin(): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract atan(): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract cos(): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract cot(): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract sin(): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract tan(): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
     // SqlFunction1
-    abstract power(value: TYPE): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
-    abstract power(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
-    abstract logn(value: TYPE): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
-    abstract logn(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
-    abstract roundn(value: TYPE): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract roundn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract roundn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
+    abstract power(value: TYPE): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    abstract power(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    abstract logn(value: TYPE): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    abstract logn(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    abstract roundn(value: TYPE): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract roundn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract roundn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     abstract minValue(value: TYPE): IntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract minValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): IntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     abstract minValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
-    abstract minValue(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract minValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract minValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
+    abstract minValue(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract minValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract minValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     abstract maxValue(value: TYPE): IntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract maxValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): IntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     abstract maxValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
-    abstract maxValue(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract maxValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract maxValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
+    abstract maxValue(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract maxValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract maxValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     // Number operators
     abstract add(value: TYPE): IntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract add<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): IntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     abstract add<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
-    abstract add(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract add<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract add<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
+    abstract add(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract add<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract add<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     abstract substract(value: TYPE): IntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract substract<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): IntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     abstract substract<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
-    abstract substract(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract substract<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract substract<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
+    abstract substract(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract substract<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract substract<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     abstract multiply(value: TYPE): IntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract multiply<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): IntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     abstract multiply<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
-    abstract multiply(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract multiply<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract multiply<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
-    abstract divide(value: TYPE): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
-    abstract divide(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
+    abstract multiply(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract multiply<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract multiply<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    abstract divide(value: TYPE): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    abstract divide(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     abstract mod(value: TYPE): IntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract mod<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): IntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     abstract mod<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
-    abstract mod(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract mod<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract mod<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
+    abstract mod(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract mod<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract mod<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     // Trigonometric Functions
-    abstract atan2(value: TYPE): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
-    abstract atan2(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, DoubleTypeOf<TYPE>>
-    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE>>
-    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, DoubleTypeOf<TYPE> | null | undefined>
+    abstract atan2(value: TYPE): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    abstract atan2(value: double): DoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, double>>
+    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     // Redefined methods
     abstract valueWhenNull(value: MandatoryTypeOf<TYPE>): IntValueSource<DB, TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
     abstract valueWhenNull<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): IntValueSource<DB, TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
@@ -369,18 +369,18 @@ export abstract class IntValueSource<DB extends AnyDB, TABLE_OR_VIEW extends ITa
 export abstract class DoubleValueSource<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, TYPE /*extends double | null | undefined = double*/> extends ComparableValueSource<DB, TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
-    //abstract asInt(): IntValueSource<DB, TABLE_OR_VIEW, IntTypeOf<TYPE>> // test function
-    abstract asStringDouble(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOfDouble<TYPE>>
+    //abstract asInt(): IntValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, int>> // test function
+    abstract asStringDouble(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
     abstract abs(): DoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
-    abstract ceil(): IntValueSource<DB, TABLE_OR_VIEW, IntTypeOf<TYPE>>
-    abstract floor(): IntValueSource<DB, TABLE_OR_VIEW, IntTypeOf<TYPE>>
-    abstract round(): IntValueSource<DB, TABLE_OR_VIEW, IntTypeOf<TYPE>>
+    abstract ceil(): IntValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, int>>
+    abstract floor(): IntValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, int>>
+    abstract round(): IntValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, int>>
     abstract exp(): DoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract ln(): DoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract log10(): DoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract sqrt(): DoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract cbrt(): DoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
-    abstract sign(): IntValueSource<DB, TABLE_OR_VIEW, IntTypeOf<TYPE>>
+    abstract sign(): IntValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, int>>
     // Trigonometric Functions
     abstract acos(): DoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract asin(): DoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
@@ -465,91 +465,91 @@ export abstract class DoubleValueSource<DB extends AnyDB, TABLE_OR_VIEW extends 
 export abstract class StringIntValueSource<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, TYPE /*extends stringInt | null | undefined = stringInt*/> extends ComparableValueSource<DB, TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
-    abstract asStringDouble(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
+    abstract asStringDouble(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
     abstract abs(): StringIntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract ceil(): StringIntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract floor(): StringIntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract round(): StringIntValueSource<DB, TABLE_OR_VIEW, TYPE>
-    abstract exp(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract ln(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract log10(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract sqrt(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract cbrt(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract sign(): IntValueSource<DB, TABLE_OR_VIEW, IntTypeOfStringInt<TYPE>>
+    abstract exp(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract ln(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract log10(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract sqrt(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract cbrt(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract sign(): IntValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, int>>
     // Trigonometric Functions
-    abstract acos(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract asin(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract atan(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract cos(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract cot(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract sin(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract tan(): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
+    abstract acos(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract asin(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract atan(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract cos(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract cot(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract sin(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract tan(): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
     // SqlFunction1
-    abstract power(value: TYPE): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE | null | undefined>>
-    abstract power(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE> | null | undefined>
-    abstract logn(value: TYPE): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE | null | undefined>>
-    abstract logn(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE> | null | undefined>
-    abstract roundn(value: TYPE): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract roundn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract roundn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE | null | undefined>>
+    abstract power(value: TYPE): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
+    abstract power(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract power<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
+    abstract logn(value: TYPE): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
+    abstract logn(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract logn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
+    abstract roundn(value: TYPE): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract roundn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract roundn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
     abstract minValue(value: TYPE): StringIntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract minValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringIntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     abstract minValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringIntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
-    abstract minValue(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract minValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract minValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE> | null | undefined>
+    abstract minValue(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract minValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract minValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
     abstract maxValue(value: TYPE): StringIntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract maxValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringIntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     abstract maxValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringIntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
-    abstract maxValue(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract maxValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract maxValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE> | null | undefined>
+    abstract maxValue(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract maxValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract maxValue<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
     // Number operators
     abstract add(value: TYPE): StringIntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract add<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringIntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     abstract add<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringIntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
-    abstract add(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract add<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract add<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE> | null | undefined>
+    abstract add(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract add<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract add<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
     abstract substract(value: TYPE): StringIntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract substract<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringIntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     abstract substract<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringIntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
-    abstract substract(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract substract<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract substract<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE> | null | undefined>
+    abstract substract(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract substract<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract substract<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
     abstract multiply(value: TYPE): StringIntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract multiply<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringIntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     abstract multiply<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringIntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
-    abstract multiply(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract multiply<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract multiply<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE> | null | undefined>
-    abstract divide(value: TYPE): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE | null | undefined>>
-    abstract divide(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE> | null | undefined>
+    abstract multiply(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract multiply<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract multiply<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
+    abstract divide(value: TYPE): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
+    abstract divide(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract divide<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
     abstract mod(value: TYPE): StringIntValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract mod<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringIntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     abstract mod<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringIntValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
-    abstract mod(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract mod<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract mod<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE> | null | undefined>
+    abstract mod(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract mod<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract mod<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
     // Trigonometric Functions
-    abstract atan2(value: TYPE): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE | null | undefined>>
-    abstract atan2(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, StringDoubleTypeOf<TYPE>>
-    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE>>
-    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, StringDoubleTypeOf<TYPE> | null | undefined>
+    abstract atan2(value: TYPE): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
+    abstract atan2(value: stringDouble): StringDoubleValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    abstract atan2<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
     // Redefined methods
     abstract valueWhenNull(value: MandatoryTypeOf<TYPE>): StringIntValueSource<DB, TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
     abstract valueWhenNull<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): StringIntValueSource<DB, TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
@@ -562,15 +562,15 @@ export abstract class StringDoubleValueSource<DB extends AnyDB, TABLE_OR_VIEW ex
     // Number functions
     //abstract asInt(): StringIntValueSource<DB, TABLE_OR_VIEW, StringIntTypeOf<TYPE>> // test function
     abstract abs(): StringDoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
-    abstract ceil(): StringIntValueSource<DB, TABLE_OR_VIEW, StringIntTypeOf<TYPE>>
-    abstract floor(): StringIntValueSource<DB, TABLE_OR_VIEW, StringIntTypeOf<TYPE>>
-    abstract round(): StringIntValueSource<DB, TABLE_OR_VIEW, StringIntTypeOf<TYPE>>
+    abstract ceil(): StringIntValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringInt>>
+    abstract floor(): StringIntValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringInt>>
+    abstract round(): StringIntValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, stringInt>>
     abstract exp(): StringDoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract ln(): StringDoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract log10(): StringDoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract sqrt(): StringDoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract cbrt(): StringDoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
-    abstract sign(): IntValueSource<DB, TABLE_OR_VIEW, IntTypeOfStringDouble<TYPE>>
+    abstract sign(): IntValueSource<DB, TABLE_OR_VIEW, AsType<TYPE, int>>
     // Trigonometric Functions
     abstract acos(): StringDoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
     abstract asin(): StringDoubleValueSource<DB, TABLE_OR_VIEW, TYPE>
@@ -1175,16 +1175,5 @@ export type RemapValueSourceTypeAsMandatory<DB extends AnyDB, TABLE_OR_VIEW exte
 */
 
 export type MandatoryTypeOf<T> = T extends null | undefined ? never : T
-
-export type NumberTypeOfString<T> = T extends string ? number : T
-export type IntTypeOfStringInt<T> = T extends stringInt ? int : T extends int ? int : T
-export type IntTypeOfStringDouble<T> = T extends stringDouble ? int : T extends double ? int : T
-
-export type IntTypeOf<T> = T extends double ? int : T
-export type DoubleTypeOf<T> = T extends int ? double : T
-
-export type StringIntTypeOf<T> = T extends stringDouble ? stringInt : T extends double ? stringInt: T
-export type StringDoubleTypeOf<T> = T extends stringInt ? stringDouble : T extends int ? stringDouble : T
-
-export type StringIntTypeOfInt<T> = T extends int ? stringInt : T
-export type StringDoubleTypeOfDouble<T> = T extends double ? stringDouble : T
+export type OptionalTypeOf<T> = T extends null ? null : T extends undefined ? undefined : never
+export type AsType<T, TYPE> = TYPE | OptionalTypeOf<T>

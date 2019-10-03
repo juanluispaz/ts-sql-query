@@ -54,7 +54,7 @@ export class MySqlQueryRunner implements QueryRunner {
                     }
                     const row = results[0]
                     if (row) {
-                        const columns = Object.getOwnPropertyNames(row).filter((key) => +key >= 0)
+                        const columns = Object.getOwnPropertyNames(row)
                         if (columns.length > 1) {
                             reject(Error('Too many columns, expected only one column'))
                             return
@@ -76,7 +76,7 @@ export class MySqlQueryRunner implements QueryRunner {
                     const result = []
                     for (let i = 0, length = results.length; i < length; i++) {
                         const row = results[i]
-                        const columns = Object.getOwnPropertyNames(row).filter((key) => +key >= 0)
+                        const columns = Object.getOwnPropertyNames(row)
                         if (columns.length > 1) {
                             reject(new Error('Too many columns, expected only one column'))
                             return
@@ -155,7 +155,7 @@ export class MySqlQueryRunner implements QueryRunner {
                     }
                     const row = results[0]
                     if (row) {
-                        const columns = Object.getOwnPropertyNames(row).filter((key) => +key >= 0)
+                        const columns = Object.getOwnPropertyNames(row)
                         if (columns.length > 1) {
                             reject(Error('Too many columns, expected only one column'))
                             return

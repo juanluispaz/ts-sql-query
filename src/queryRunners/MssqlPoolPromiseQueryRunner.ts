@@ -3,7 +3,7 @@ import { DatabaseType, QueryRunner } from "./QueryRunner"
 import { ConnectionPool } from 'mssql'
 import { MssqlPoolQueryRunner } from "./MssqlPoolQueryRunner"
 
-export abstract class MssqlPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
+export class MssqlPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
     readonly sqlServer: true = true
     database: DatabaseType
     readonly promisePool: Promise<ConnectionPool>

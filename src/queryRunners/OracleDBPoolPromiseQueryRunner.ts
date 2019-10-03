@@ -3,7 +3,7 @@ import { DatabaseType, QueryRunner } from "./QueryRunner"
 import { Pool, Connection } from 'oracledb'
 import { OracleDBQueryRunner } from "./OracleDBQueryRunner"
 
-export abstract class OracleDBPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
+export class OracleDBPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
     readonly oracle: true = true
     database: DatabaseType
     readonly promisePool: Promise<Pool>

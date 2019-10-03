@@ -3,7 +3,7 @@ import { DatabaseType, QueryRunner } from "./QueryRunner"
 import * as ConnectionPool from 'tedious-connection-pool'
 import { TediousQueryRunner } from "./TediousQueryRunner"
 
-export abstract class TediousPoolQueryRunner extends AbstractPoolQueryRunner {
+export class TediousPoolQueryRunner extends AbstractPoolQueryRunner {
     readonly sqlServer: true = true
     database: DatabaseType
     readonly pool: ConnectionPool

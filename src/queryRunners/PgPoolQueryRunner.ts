@@ -3,7 +3,7 @@ import { DatabaseType, QueryRunner } from "./QueryRunner"
 import { Pool, PoolClient } from 'pg'
 import { PgQueryRunner } from "./PgQueryRunner"
 
-export abstract class PgPoolQueryRunner extends AbstractPoolQueryRunner {
+export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
     readonly postgreSql: true = true
     database: DatabaseType
     readonly pool: Pool

@@ -3,7 +3,7 @@ import { DatabaseType, QueryRunner } from "./QueryRunner"
 import { ConnectionPool, Connection } from 'any-db'
 import { AnyDBQueryRunner } from "./AnyDBQueryRunner"
 
-export abstract class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {
+export class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {
     // Supported databases
     readonly mariaDB: true = true
     readonly mySql: true = true

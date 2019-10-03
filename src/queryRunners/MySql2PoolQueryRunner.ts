@@ -3,7 +3,7 @@ import { DatabaseType, QueryRunner } from "./QueryRunner"
 import { Pool, PoolConnection } from "mysql2"
 import { MySql2QueryRunner } from "./MySql2QueryRunner"
 
-export abstract class MySql2PoolQueryRunner extends AbstractPoolQueryRunner {
+export class MySql2PoolQueryRunner extends AbstractPoolQueryRunner {
     readonly mySql: true = true
     readonly mariaDB: true = true
     database: DatabaseType

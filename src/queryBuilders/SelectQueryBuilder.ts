@@ -94,14 +94,33 @@ export class SelectQueryBuilder extends SelectExpression<any, any, any> implemen
         }
     }
     executeSelectOne(): Promise<any> {
+        this.query()
         const source = new Error('Query executed at')
-        return this.executeSelectNoneOrOne().then((result) => {
-            if (result === null || result === undefined) {
-                throw attachSource(new Error('No result returned by the database'), source)
+        try {
+            if (this.__oneColumn) {
+                return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
+                    const valueSource = this.__columns['result']
+                    if (value === undefined) {
+                        throw attachSource(new Error('No result returned by the database'), source)
+                    }
+                    return this.__transformValueFromDB(valueSource, value)
+                }).catch((e) => {
+                    throw attachSource(new ChainedError(e), source)
+                })
             } else {
-                return result
+                return this.__sqlBuilder._queryRunner.executeSelectOneRow(this.__query, this.__params).then((row) => {
+                    if (row) {
+                        return this.__transformRow(row)
+                    } else {
+                        throw attachSource(new Error('No result returned by the database'), source)
+                    }
+                }).catch((e) => {
+                    throw attachSource(new ChainedError(e), source)
+                })
             }
-        })
+        } catch (e) {
+            throw new ChainedError(e)
+        }
     }
     executeSelectMany(): Promise<any> {
         this.query()

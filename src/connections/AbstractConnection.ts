@@ -403,9 +403,6 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
         if (value === null) {
             return null
         }
-        if (value === '') {
-            return null
-        }
         switch (type) {
             case 'boolean':
                 if (typeof value === 'number') {
@@ -416,18 +413,14 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                 }
                 throw new Error('Invalid boolean value received from the db: ' + value)
             case 'int':
+                if (typeof value === 'string') {
+                    value = +value
+                }
                 if (typeof value === 'number') {
                     if (!Number.isInteger(value)) {
                         throw new Error('Invalid int value received from the db: ' + value)
                     }
                     return value
-                }
-                if (typeof value === 'string') {
-                    const result = +value
-                    if (isNaN(result)) {
-                        throw new Error('Invalid int value received from the db: ' + value)
-                    }
-                    return result
                 }
                 throw new Error('Invalid int value received from the db: ' + value)
             case 'stringInt':
@@ -435,7 +428,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                     if (!Number.isInteger(value)) {
                         throw new Error('Invalid stringInt value received from the db: ' + value)
                     }
-                    return value
+                    return value + ''
                 }
                 if (typeof value === 'string') {
                     if (!/^-?\d+$/g.test(value)) {
@@ -450,7 +443,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                 }
                 if (typeof value === 'string') {
                     const result = +value
-                    if (result + '' !== value) {
+                    if (Number.isNaN(result)) {
                         throw new Error('Invalid double value received from the db: ' + value)
                     }
                     return result
@@ -458,7 +451,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                 throw new Error('Invalid double value received from the db: ' + value)
             case 'stringDouble':
                 if (typeof value === 'number') {
-                    return value
+                    return value + ''
                 }
                 if (typeof value === 'string') {
                     if (!/^-?\d+(\.\d+)?$/g.test(value)) {
@@ -489,7 +482,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                 if (isNaN(result.getTime())) {
                     throw new Error('Invalid localDate value received from the db: ' + value)
                 }
-                (result as any).___type___ = 'LocalTime'
+                (result as any).___type___ = 'LocalDate'
                 return result
             }
             case 'localTime': {
@@ -499,12 +492,12 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                 } else if (typeof value === 'string') {
                     result = new Date('1970-01-01 ' + value)
                 } else {
-                    throw new Error('Invalid localDate value received from the db: ' + value)
+                    throw new Error('Invalid localTime value received from the db: ' + value)
                 }
                 if (isNaN(result.getTime())) {
-                    throw new Error('Invalid localDate value received from the db: ' + value)
+                    throw new Error('Invalid localTime value received from the db: ' + value)
                 }
-                (result as any).___type___ = 'LocalDate'
+                (result as any).___type___ = 'LocalTime'
                 return result
             }
             case 'localDateTime': {

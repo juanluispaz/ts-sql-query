@@ -526,9 +526,6 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
         if (value === null) {
             return null
         }
-        if (value === '') {
-            return null
-        }
         switch (type) {
             case 'boolean':
                 if (typeof value === 'boolean') {

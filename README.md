@@ -36,9 +36,9 @@ const customersWithId = connection.selectFrom(tCustomer)
 
 The executed query is:
 ```sql
-select id as id, first_name as firstName, last_name as lastName, birthday as birthday 
-from customer 
-where id = $1
+select "customer"."id" as "id", "customer"."first_name" as "firstName", "customer"."last_name" as "lastName", "customer"."birthday" as "birthday" 
+from "customer" 
+where "customer"."id" = $1
 ```
 
 The parameters are: `[ 10 ]`
@@ -80,10 +80,10 @@ const customersWithCompanyName = connection.selectFrom(tCustomer)
 
 The executed query is:
 ```sql
-select id as id, first_name as firstName, last_name as lastName, birthday as birthday, comp.name as companyName 
-from customer inner join company as comp on company_id = comp.id 
-where first_name ilike ($1 || '%') 
-order by firstName, lastName asc
+select "customer"."id" as "id", "customer"."first_name" as "firstName", "customer"."last_name" as "lastName", "customer"."birthday" as "birthday", "comp"."name" as "companyName" 
+from "customer" inner join "company" as "comp" on "customer"."company_id" = "comp"."id" 
+where "customer"."first_name" ilike ($1 || '%') 
+order by "customer"."firstName", "customer"."lastName" asc
 ```
 
 The parameters are: `[ 'John' ]`
@@ -119,12 +119,12 @@ const customerWithSelectedCompanies = connection.selectFrom(tCustomer)
 
 The executed query is:
 ```sql
-select id as customerId, first_name as customerFirstName, last_name as customerLastName 
-from customer 
-where company_id in (
-    select id from company where name like ('%' || $1 || '%')
+select "customer"."id" as "customerId", "customer"."first_name" as "customerFirstName", "customer"."last_name" as "customerLastName" 
+from "customer" 
+where "customer"."company_id" in (
+    select "company"."id" from "company" where "company"."name" like ('%' || $1 || '%')
 ) 
-order by customerFirstName asc nulls first, customerLastName
+order by "customerFirstName" asc nulls first, "customerLastName"
 ```
 
 The parameters are: `[ 'Cia.' ]`
@@ -154,9 +154,9 @@ const customerCountPerCompany = connection.selectFrom(tCompany)
 
 The executed query is:
 ```sql
-select id as companyId, name as companyName, count(id) as customerCount 
-from company inner join customer on company_id = id 
-group by id, name
+select "company"."id" as "companyId", "company"."name" as "companyName", count("customer"."id") as "customerCount" 
+from "company" inner join "customer" on "customer"."company_id" = "company"."id" 
+group by "company"."id", "company"."name"
 ```
 
 The parameters are: `[]`
@@ -195,11 +195,11 @@ const customerPageWithName = connection.selectFrom(tCustomer)
 
 The executed query to get the data is:
 ```sql
-select id as id, first_name as firstName, last_name as lastName 
-from customer 
-where first_name ilike ($1 || '%') 
-    or last_name ilike ($2 || '%') 
-order by firstName, lastName 
+select "customer"."id" as "id", "customer"."first_name" as "firstName", "customer"."last_name" as "lastName" 
+from "customer" 
+where "customer"."first_name" ilike ($1 || '%') 
+    or "customer"."last_name" ilike ($2 || '%') 
+order by "firstName", "lastName" 
 limit $3 
 offset $4
 ```
@@ -209,9 +209,9 @@ And its parameters are: `[ 'Smi', 'Smi', 10, 20 ]`
 The executed query to get the count is:
 ```sql
 select count(*) 
-from customer 
-where first_name ilike ($1 || '%') 
-    or last_name ilike ($2 || '%')
+from "customer" 
+where "customer"."first_name" ilike ($1 || '%') 
+    or "customer"."last_name" ilike ($2 || '%')
 ```
 
 And its parameters are: `[ 'Smi', 'Smi' ]`
@@ -246,9 +246,9 @@ const customersUsingCustomFragment = connection.selectFrom(tCustomer)
 
 The executed query is:
 ```sql
-select id::varchar as idAsString, first_name || $1 || last_name as name 
-from customer 
-where !!id = !!$2
+select "customer"."id"::varchar as "idAsString", "customer"."first_name" || $1 || "customer"."last_name" as "name" 
+from "customer" 
+where !!"customer"."id" = !!$2
 ```
 
 The parameters are: `[ ' ', 10 ]`
@@ -276,9 +276,9 @@ const insertCustomer = connection.insertInto(tCustomer).set({
 
 The executed query is:
 ```sql
-insert into customer (first_name, last_name, company_id, birthday) 
+insert into "customer" ("first_name", "last_name", "company_id", "birthday") 
 values ($1, $2, $3, $4) 
-returning id
+returning "id"
 ```
 
 The parameters are: `[ 'John', 'Smith', 1, 2019-08-16T15:02:32.849Z ]`
@@ -302,9 +302,9 @@ const updateCustomer = connection.update(tCustomer).set({
 
 The executed query is:
 ```sql
-update customer 
-set first_name = $1, last_name = $2 
-where id = $3
+update "customer" 
+set "first_name" = $1, "last_name" = $2 
+where "customer"."id" = $3
 ```
 
 The parameters are: `[ 'John', 'Smith', 10 ]`
@@ -324,8 +324,8 @@ const deleteCustomer = connection.deleteFrom(tCustomer)
 
 The executed query is:
 ```sql
-delete from customer 
-where id = $1
+delete from "customer" 
+where "customer"."id" = $1
 ```
 
 The parameters are: `[ 10 ]`
@@ -464,7 +464,7 @@ const result = connection.myOwnprocedure(10);
 
 The executed query is:
 ```sql
-call myOwnprocedure($1)
+call "myOwnprocedure"($1)
 ```
 
 The parameters are: `[ 10 ]`
@@ -493,7 +493,7 @@ const result = connection.myOwnFunction(10);
 
 The executed query is:
 ```sql
-select myOwnFunction($1)
+select "myOwnFunction"($1)
 ```
 
 The parameters are: `[ 10 ]`

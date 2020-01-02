@@ -22,31 +22,32 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         let orderByColumns = ''
         for (const property in orderBy) {
+            const columnName = this._escape(property)
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            const order = orderBy[property]
+            const order = orderBy[columnName]
             if (order) {
                 switch (order) {
                     case 'asc':
                     case 'asc nulls first':
-                        orderByColumns += property + ' asc'
+                        orderByColumns += columnName + ' asc'
                         break
                     case 'desc':
                     case 'desc nulls last':
-                        orderByColumns += property + ' desc'
+                        orderByColumns += columnName + ' desc'
                         break
                     case 'asc nulls last':
-                        orderByColumns += property + ' is null, ' + property + ' asc'
+                        orderByColumns += columnName + ' is null, ' + columnName + ' asc'
                         break
                     case 'desc nulls first':
-                        orderByColumns += property + ' is not null, ' + property + ' desc'
+                        orderByColumns += columnName + ' is not null, ' + columnName + ' desc'
                         break
                 }
-                orderByColumns += property
+                orderByColumns += columnName
                 orderByColumns += ' ' + order
             } else {
-                orderByColumns += property
+                orderByColumns += columnName
             }
         }
         if (!orderByColumns) {

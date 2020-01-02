@@ -47,6 +47,7 @@ export interface DeleteData {
 export interface SqlBuilder extends SqlOperation {
     _defaultTypeAdapter: DefaultTypeAdapter
     _queryRunner: QueryRunner
+    _escape(name: string): string
     _buildSelect(query: SelectData, params: any[]): string
     _buildInsertDefaultValues(query: InsertData, params: any[]): string
     _buildInsert(query: InsertData, params: any[]): string

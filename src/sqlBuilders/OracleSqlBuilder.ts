@@ -26,6 +26,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _valuePlaceholder(index: number, _columnType: string): string {
         return ':' + index
     }
+    _escape(name: string): string {
+        return '"' + name.replace('"', '') + '"';
+    }
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''
     }
@@ -33,7 +36,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (!query.__idColumn) {
             return ''
         }
-        const result = ' returning ' + __getColumnPrivate(query.__idColumn).__name + ' into :' + params.length
+        const result = ' returning ' + this._escape(__getColumnPrivate(query.__idColumn).__name) + ' into :' + params.length
         params.push({dir: 3003 /*oracledb.BIND_OUT*/}) // See https://github.com/oracle/node-oracledb/blob/master/lib/oracledb.js
         return result
 
@@ -93,7 +96,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'extract(millisecond from ' + this._appendSql(valueSource, params) + ')'
     }
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any, any>[]): string {
-        let result = 'begin ' + procedureName + '('
+        let result = 'begin ' + this._escape(procedureName) + '('
         if (procedureParams.length > 0) {
             result += this._appendSql(procedureParams[0], params)
 
@@ -105,7 +108,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return result + '); end;'
     }
     _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any, any>[]): string {
-        let result = 'begin :' + params.length + ' := ' + functionName + '('
+        let result = 'begin :' + params.length + ' := ' + this._escape(functionName) + '('
         params.push({dir: 3003 /*oracledb.BIND_OUT*/}) // See https://github.com/oracle/node-oracledb/blob/master/lib/oracledb.js
         if (params.length > 0) {
             result += this._appendSql(functionParams[0], params)

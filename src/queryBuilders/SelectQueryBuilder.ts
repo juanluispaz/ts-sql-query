@@ -420,7 +420,7 @@ export class SelectQueryBuilder extends SelectExpression<any, any, any> implemen
         const columnsInQuery: { [columnNameInLowerCase: string]: string | undefined } = {}
         const columns = this.__columns
         for (const property in columns) {
-            columnsInQuery[property.toLowerCase()] = property
+            columnsInQuery[property.toLowerCase()] = this.__sqlBuilder._escape(property)
         }
 
         const split = orderBy.trim().toLowerCase().replace(/\s+/g, ' ').split(/\s*,\s*/)

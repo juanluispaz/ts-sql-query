@@ -26,10 +26,7 @@ export class ColumnImpl<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>
 
     __toSql(_SqlBuilder: SqlBuilder, _params: any[]): string {
         let table = __getTableOrViewPrivate(this.__table_or_view)
-        if (table.__as) {
-            return table.__as + '.' + this.__name
-        }
-        return this.__name
+        return _SqlBuilder._escape(table.__as || table.__name) + '.' + _SqlBuilder._escape(this.__name)
     }
 
     __asColumn(): this & Column {

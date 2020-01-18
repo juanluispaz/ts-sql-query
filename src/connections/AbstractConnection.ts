@@ -461,7 +461,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                     return value
                 }
                 if (typeof value === 'string') {
-                    if (!/^-?\d+(\.\d+)?$/g.test(value)) {
+                    if (!/^(-?\d+(\.\d+)?|NaN|-?Infinity)$/g.test(value)) {
                         throw new Error('Invalid stringDouble value received from the db: ' + value)
                     }
                     return value
@@ -574,7 +574,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                     return value
                 }
                 if (typeof value === 'string') {
-                    if (!/^-?\d+(\.\d+)?$/g.test(value)) {
+                    if (!/^(-?\d+(\.\d+)?|NaN|-?Infinity)$/g.test(value)) {
                         throw new Error('Invalid stringDouble value to send to the db: ' + value)
                     }
                     return value

@@ -499,12 +499,12 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                 } else if (typeof value === 'string') {
                     result = new Date('1970-01-01 ' + value)
                 } else {
-                    throw new Error('Invalid localDate value received from the db: ' + value)
+                    throw new Error('Invalid localTime value received from the db: ' + value)
                 }
                 if (isNaN(result.getTime())) {
-                    throw new Error('Invalid localDate value received from the db: ' + value)
+                    throw new Error('Invalid localTime value received from the db: ' + value)
                 }
-                (result as any).___type___ = 'LocalDate'
+                (result as any).___type___ = 'localTime'
                 return result
             }
             case 'localDateTime': {

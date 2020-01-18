@@ -88,12 +88,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     _is(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (value === null || value === undefined) {
-            return this._appendSqlParenthesis(valueSource, params) + 'is null'
+            return this._appendSqlParenthesis(valueSource, params) + ' is null'
         } else if (!(value instanceof ValueSourceImpl)) {
             return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' = ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ')'
         } else if (valueSource instanceof SqlOperationStatic1ValueSource && valueSource.__operation === '_const') {
             if (valueSource.__value === null || valueSource.__value === undefined) {
-                return this._appendValueParenthesis(value, params, columnType, typeAdapter) + 'is null'
+                return this._appendValueParenthesis(value, params, columnType, typeAdapter) + ' is null'
             } else {
                 return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' = ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ')'
             }
@@ -108,12 +108,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     _isNot(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (value === null || value === undefined) {
-            return this._appendSqlParenthesis(valueSource, params) + 'is not null'
+            return this._appendSqlParenthesis(valueSource, params) + ' is not null'
         } else if (!(value instanceof ValueSourceImpl)) {
             return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' <> ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ')'
         } else if (valueSource instanceof SqlOperationStatic1ValueSource && valueSource.__operation === '_const') {
             if (valueSource.__value === null || valueSource.__value === undefined) {
-                return this._appendValueParenthesis(value, params, columnType, typeAdapter) + 'is not null'
+                return this._appendValueParenthesis(value, params, columnType, typeAdapter) + ' is not null'
             } else {
                 return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' <> ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ')'
             }

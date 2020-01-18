@@ -450,10 +450,10 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                 }
                 if (typeof value === 'string') {
                     const result = +value
-                    if (result + '' !== value) {
+                    if (result + '' !== value) { // Here the comparation is not isNaN(result) because NaN is a valid value as well Infinity and -Infinity
                         throw new Error('Invalid double value received from the db: ' + value)
                     }
-                    return value
+                    return result
                 }
                 throw new Error('Invalid double value received from the db: ' + value)
             case 'stringDouble':

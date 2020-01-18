@@ -489,7 +489,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                 if (isNaN(result.getTime())) {
                     throw new Error('Invalid localDate value received from the db: ' + value)
                 }
-                (result as any).___type___ = 'LocalTime'
+                (result as any).___type___ = 'localDate'
                 return result
             }
             case 'localTime': {

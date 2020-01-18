@@ -4,12 +4,15 @@ import { BooleanValueSource, ValueSource } from "../expressions/values"
 import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 import { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { QueryRunner } from "../queryRunners/QueryRunner"
+import { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
     _defaultTypeAdapter: DefaultTypeAdapter
     // @ts-ignore
     _queryRunner: QueryRunner
+    // @ts-ignore
+    _connectionConfiguration: ConnectionConfiguration
     _operationsThatNeedParenthesis: { [operation in keyof SqlOperation]?: boolean}
     constructor() {
         this._operationsThatNeedParenthesis = {
@@ -34,6 +37,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
             _getMilliseconds: true,
             _fragment: true
         }
+    }
+    _isValue(value: any): boolean {
+        if (value === null || undefined) {
+            return false
+        }
+        if (!this._connectionConfiguration.allowEmptyString && value === '') {
+            return false
+        }
+        if (Array.isArray(value) && value.length <= 0) {
+            return false
+        }
+        return true
     }
     _needParenthesis(value: any): boolean {
         const operation = operationOf(value)

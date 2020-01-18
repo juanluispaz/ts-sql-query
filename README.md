@@ -345,6 +345,20 @@ import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnect
 class DBConection extends PostgreSqlConnection<DBConection, 'DBConnection'> { }
 ```
 
+### Allowing empty string
+
+By default empty string as treated as null, if you want to allow to send and receive empty string to the database set the allowEmptyString property in the connection to true.
+
+```ts
+import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+class DBConection extends PostgreSqlConnection<DBConection, 'DBConnection'> { 
+    allowEmptyString = true
+}
+```
+
+**Recommendation**: Set this flag at the beginning of the project or create a derivated connection if you require to do it. Changing this flag change the way of the SQL query are constructed when you use the methods that the name ends in 'IfValue'.
+
 ### Instantiating the connection with the database connection
 
 ```ts
@@ -515,7 +529,7 @@ Here is shown a simplified version of the ts-sql-query APIs.
 
 All values managed by the database are represented as a subclass of `ValueSource`, almost all methods listed here support the TypeScript value and the database value (as overload).
 
-The methods which name ends with `IfValue` do the same that the one without `IfValue` but only if the provided value(s) are different to undefined, null or empty string, otherwise it is ignored.
+The methods which name ends with `IfValue` do the same that the one without `IfValue` but only if the provided value(s) are different to undefined, null, empty string (only when the allowEmptyString flag in the connection is not set to true, that is the default behaviour) or an empty array, otherwise it is ignored.
 
 Be aware, in the database, when null is part of an operation the result of the operation is null (It is not represented in the following definition but it is implemented)
 
@@ -886,6 +900,17 @@ interface Connection {
     sequence<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource>
     sequence<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource>
 
+    /*
+     * Configurations
+     */
+
+    /** 
+     * Protected property that allows changing the behaviour of empty string treatment.
+     * By default empty string as treated as null, if you want to allow to send and receive empty string to the database set this property to true
+     * Default value: false
+     */
+    allowEmptyString: boolean
+
     /** Protected method that allows to transform the values received from the database */
     transformValueFromDB(value: any, type: string): any
     /** Protected method that allows to transform the values that will be send to the database */
@@ -1066,16 +1091,24 @@ interface View {
 interface InsertExpression {
     /** Set the values for insert */
     set(columns: InsertSets): this
-    /** Set a value only if the provided value is not null or undefined */
+    /** Set a value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array 
+     */
     setIfValue(columns: OptionalInsertSets): this
     /** Set a previous set value only */
     setIfSet(columns: InsertSets): this
-    /** Set a previous set value only if the provided value is not null or undefined */
+    /** Set a previous set value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array 
+     */
     setIfSetIfValue(columns: OptionalInsertSets): this
     /** Set a unset value (only if the value was not previously set) */
     setIfNotSet(columns: InsertSets): this
     /** 
-     * Set a unset value only if the provided value is not null or undefined 
+     * Set a unset value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array
      * (only if the value was not previously set) 
      */
     setIfNotSetIfValue(columns: OptionalInsertSets): this
@@ -1110,16 +1143,24 @@ type OptionalInsertSets = { [columnName: string]: any }
 interface UpdateExpression {
     /** Set the values for insert */
     set(columns: InsertSets): this
-    /** Set a value only if the provided value is not null or undefined */
+    /** Set a value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array 
+     */
     setIfValue(columns: OptionalInsertSets): this
     /** Set a previous set value only */
     setIfSet(columns: InsertSets): this
-    /** Set a previous set value only if the provided value is not null or undefined */
+    /** Set a previous set value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array
+     */
     setIfSetIfValue(columns: OptionalInsertSets): this
     /** Set a unset value (only if the value was not previously set) */
     setIfNotSet(columns: InsertSets): this
     /** 
-     * Set a unset value only if the provided value is not null or undefined 
+     * Set a unset value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array
      * (only if the value was not previously set) 
      */
     setIfNotSetIfValue(columns: OptionalInsertSets): this
@@ -1351,7 +1392,7 @@ class DBConection extends SqliteConnection<DBConection, 'DBConnection'> { }
 
 ### SqlServer
 
-**Note**: Empty string will be treated as null value, if you need a different behaviour let me know.
+**Note**: An empty string will be treated as a null value; if you need to allow empty string set the allowEmptyString property to true in the connection object.
 
 ```ts
 import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
@@ -1405,7 +1446,7 @@ class DBConection extends TypeSafeSqliteConnection<DBConection, 'DBConnection'> 
 
 ### SqlServer
 
-**Note**: Empty string will be treated as null value, if you need a different behaviour let me know.
+**Note**: An empty string will be treated as a null value; if you need to allow empty string set the allowEmptyString property to true in the connection object.
 
 ```ts
 import { TypeSafeSqlServerConnection } from "ts-sql-query/connections/TypeSafeSqlServerConnection";

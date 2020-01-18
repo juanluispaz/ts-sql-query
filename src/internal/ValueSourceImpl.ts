@@ -23,37 +23,25 @@ export abstract class ValueSourceImpl extends ValueSource<any, any, any> impleme
     }
     // SqlComparator1
     equalsIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_equals', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_equals', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     equals(value: any): any {
         return new SqlOperation1ValueSource('_equals', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notEqualsIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_notEquals', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_notEquals', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notEquals(value: any): any {
         return new SqlOperation1ValueSource('_notEquals', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     isIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_is', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_is', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     is(value: any): any {
         return new SqlOperation1ValueSource('_is', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     isNotIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_isNot', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_isNot', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     isNot(value: any): any {
         return new SqlOperation1ValueSource('_isNot', this, value, 'boolean', getTypeAdapter2(this, value))
@@ -62,73 +50,49 @@ export abstract class ValueSourceImpl extends ValueSource<any, any, any> impleme
         return this
     }
     equalsInsensitiveIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_equalsInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_equalsInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     equalsInsensitive(value: any): any {
         return new SqlOperation1ValueSource('_equalsInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notEqualsInsensitiveIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_notEqualsInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_notEqualsInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notEqualsInsensitive(value: any): any {
         return new SqlOperation1ValueSource('_notEqualsInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     smallerIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_smaller', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_smaller', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     smaller(value: any): any {
         return new SqlOperation1ValueSource('_smaller', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     largerIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_larger', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_larger', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     larger(value: any): any {
         return new SqlOperation1ValueSource('_larger', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     smallAsIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_smallAs', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_smallAs', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     smallAs(value: any): any {
         return new SqlOperation1ValueSource('_smallAs', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     largeAsIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_largeAs', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_largeAs', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     largeAs(value: any): any {
         return new SqlOperation1ValueSource('_largeAs', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     inIfValue(value: any): any {
-        if (value === null || value === undefined || value === '' || (Array.isArray(value) && value.length <= 0)) {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_in', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_in', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     in(value: any): any {
         return new SqlOperation1ValueSource('_in', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notInIfValue(value: any): any {
-        if (value === null || value === undefined || value === '' || (Array.isArray(value) && value.length <= 0)) {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_notIn', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_notIn', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notIn(value: any): any {
         return new SqlOperation1ValueSource('_notIn', this, value, 'boolean', getTypeAdapter2(this, value))
@@ -140,145 +104,97 @@ export abstract class ValueSourceImpl extends ValueSource<any, any, any> impleme
         return new SqlOperation1ValueSource('_notIn', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     likeIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_like', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_like', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     like(value: any): any {
         return new SqlOperation1ValueSource('_like', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notLikeIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_notLike', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_notLike', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notLike(value: any): any {
         return new SqlOperation1ValueSource('_notLike', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     likeInsensitiveIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_likeInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_likeInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     likeInsensitive(value: any): any {
         return new SqlOperation1ValueSource('_likeInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notLikeInsensitiveIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_notLikeInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_notLikeInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notLikeInsensitive(value: any): any {
         return new SqlOperation1ValueSource('_notLikeInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     startWithIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_startWith', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_startWith', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     startWith(value: any): any {
         return new SqlOperation1ValueSource('_startWith', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notStartWithIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_notStartWith', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_notStartWith', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notStartWith(value: any): any {
         return new SqlOperation1ValueSource('_notStartWith', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     endWithIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_endWith', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_endWith', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     endWith(value: any): any {
         return new SqlOperation1ValueSource('_endWith', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notEndWithIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_notEndWith', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_notEndWith', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notEndWith(value: any): any {
         return new SqlOperation1ValueSource('_notEndWith', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     startWithInsensitiveIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_startWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_startWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     startWithInsensitive(value: any): any {
         return new SqlOperation1ValueSource('_startWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notStartWithInsensitiveIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_notStartWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_notStartWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notStartWithInsensitive(value: any): any {
         return new SqlOperation1ValueSource('_notStartWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     endWithInsensitiveIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_endWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_endWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     endWithInsensitive(value: any): any {
         return new SqlOperation1ValueSource('_endWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notEndWithInsensitiveIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_notEndWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_notEndWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notEndWithInsensitive(value: any): any {
         return new SqlOperation1ValueSource('_notEndWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     containsIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_contains', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_contains', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     contains(value: any): any {
         return new SqlOperation1ValueSource('_contains', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notContainsIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_notContains', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_notContains', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notContains(value: any): any {
         return new SqlOperation1ValueSource('_notContains', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     containsInsensitiveIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_containsInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_containsInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     containsInsensitive(value: any): any {
         return new SqlOperation1ValueSource('_containsInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notContainsInsensitiveIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return new NeutralBooleanValueSource('boolean', this.__typeAdapter)
-        }
-        return new SqlOperation1ValueSource('_notContainsInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_notContainsInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     notContainsInsensitive(value: any): any {
         return new SqlOperation1ValueSource('_notContainsInsensitive', this, value, 'boolean', getTypeAdapter2(this, value))
@@ -529,10 +445,7 @@ export abstract class ValueSourceImpl extends ValueSource<any, any, any> impleme
         return new SqlOperation1ValueSource('_concat', this, value, this.__columnType, getTypeAdapter2(this, value))
     }
     concatIfValue(value: any): any {
-        if (value === null || value === undefined || value === '') {
-            return this
-        }
-        return new SqlOperation1ValueSource('_concat', this, value, this.__columnType, getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_concat', this, value, this.__columnType, getTypeAdapter2(this, value))
     }
     substringToEnd(start: any): any {
         return new SqlOperation1ValueSource('_substringToEnd', this, start, this.__columnType, getTypeAdapter2(this, start))
@@ -598,13 +511,7 @@ export abstract class ValueSourceImpl extends ValueSource<any, any, any> impleme
         return new SqlOperation2ValueSource('_substring', this, start, end, this.__columnType, getTypeAdapter3(this, start, end))
     }
     replaceIfValue(findString: any, replaceWith: any): any {
-        if (findString === null || findString === undefined || findString === '') {
-            return this
-        }
-        if (replaceWith === null || replaceWith === undefined || replaceWith === '') {
-            return this
-        }
-        return new SqlOperation2ValueSource('_replace', this, findString, replaceWith, this.__columnType, getTypeAdapter3(this, findString, replaceWith))
+        return new SqlOperation2ValueSourceIfValueOrIgnore('_replace', this, findString, replaceWith, this.__columnType, getTypeAdapter3(this, findString, replaceWith))
     }
     replace(findString: any, replaceWith: any): any {
         return new SqlOperation2ValueSource('_replace', this, findString, replaceWith, this.__columnType, getTypeAdapter3(this, findString, replaceWith))
@@ -667,6 +574,25 @@ export class SqlOperation1ValueSource extends ValueSourceImpl implements HasOper
     }
 }
 
+export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl implements HasOperation {
+    __valueSource: ValueSourceImpl
+    __operation: keyof SqlOperation1
+    __value: any
+
+    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, columnType: string, typeAdapter: TypeAdapter | undefined) {
+        super(columnType, typeAdapter)
+        this.__valueSource = valueSource
+        this.__operation = operation
+        this.__value = value
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return ''
+        }
+        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__columnType, this.__valueSource.__typeAdapter)
+    }
+}
+
 export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOperation {
     __valueSource: ValueSourceImpl
     __operation: keyof SqlOperation2
@@ -685,14 +611,30 @@ export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOper
     }
 }
 
-export class NeutralBooleanValueSource extends ValueSourceImpl {
-    constructor(columnType: string, typeAdapter: TypeAdapter | undefined) {
+export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl implements HasOperation {
+    __valueSource: ValueSourceImpl
+    __operation: keyof SqlOperation2
+    __value: any
+    __value2: any
+
+    constructor(operation: keyof SqlOperation2, valueSource: ValueSourceImpl, value: any, value2: any, columnType: string, typeAdapter?: TypeAdapter | undefined) {
         super(columnType, typeAdapter)
+        this.__valueSource = valueSource
+        this.__operation = operation
+        this.__value = value
+        this.__value2 = value2
     }
-    __toSql(_sqlBuilder: SqlBuilder, _params: any[]): string {
-        return ''
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return this.__valueSource.__toSql(sqlBuilder, params)
+        }
+        if (!sqlBuilder._isValue(this.__value2)) {
+            return this.__valueSource.__toSql(sqlBuilder, params)
+        }
+        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__value2, this.__valueSource.__columnType, this.__valueSource.__typeAdapter)
     }
 }
+
 
 export class NoopValueSource extends ValueSourceImpl {
     __valueSource: ValueSourceImpl

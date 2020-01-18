@@ -343,6 +343,17 @@ interface Connection {
     sequence<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource>
     sequence<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource>
 
+    /*
+     * Configurations
+     */
+
+    /** 
+     * Protected property that allows changing the behaviour of empty string treatment.
+     * By default empty string as treated as null, if you want to allow to send and receive empty string to the database set this property to true
+     * Default value: false
+     */
+    allowEmptyString: boolean
+
     /** Protected method that allows to transform the values received from the database */
     transformValueFromDB(value: any, type: string): any
     /** Protected method that allows to transform the values that will be send to the database */
@@ -527,16 +538,24 @@ interface View {
 interface InsertExpression {
     /** Set the values for insert */
     set(columns: InsertSets): this
-    /** Set a value only if the provided value is not null or undefined */
+    /** Set a value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array 
+     */
     setIfValue(columns: OptionalInsertSets): this
     /** Set a previous set value only */
     setIfSet(columns: InsertSets): this
-    /** Set a previous set value only if the provided value is not null or undefined */
+    /** Set a previous set value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array 
+     */
     setIfSetIfValue(columns: OptionalInsertSets): this
     /** Set a unset value (only if the value was not previously set) */
     setIfNotSet(columns: InsertSets): this
     /** 
-     * Set a unset value only if the provided value is not null or undefined 
+     * Set a unset value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array
      * (only if the value was not previously set) 
      */
     setIfNotSetIfValue(columns: OptionalInsertSets): this
@@ -571,16 +590,24 @@ type OptionalInsertSets = { [columnName: string]: any }
 interface UpdateExpression {
     /** Set the values for insert */
     set(columns: InsertSets): this
-    /** Set a value only if the provided value is not null or undefined */
+    /** Set a value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array 
+     */
     setIfValue(columns: OptionalInsertSets): this
     /** Set a previous set value only */
     setIfSet(columns: InsertSets): this
-    /** Set a previous set value only if the provided value is not null or undefined */
+    /** Set a previous set value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array
+     */
     setIfSetIfValue(columns: OptionalInsertSets): this
     /** Set a unset value (only if the value was not previously set) */
     setIfNotSet(columns: InsertSets): this
     /** 
-     * Set a unset value only if the provided value is not null or undefined 
+     * Set a unset value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array
      * (only if the value was not previously set) 
      */
     setIfNotSetIfValue(columns: OptionalInsertSets): this

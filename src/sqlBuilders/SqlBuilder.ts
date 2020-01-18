@@ -5,6 +5,7 @@ import { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { OrderByMode } from "../expressions/select"
 import { Column } from "../utils/Column"
 import { QueryRunner } from "../queryRunners/QueryRunner"
+import { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 
 export interface JoinData {
     __joinType: 'join' | 'innerJoin' | 'leftJoin' | 'leftOuterJoin'
@@ -47,6 +48,8 @@ export interface DeleteData {
 export interface SqlBuilder extends SqlOperation {
     _defaultTypeAdapter: DefaultTypeAdapter
     _queryRunner: QueryRunner
+    _connectionConfiguration: ConnectionConfiguration
+    _isValue(value: any): boolean
     _buildSelect(query: SelectData, params: any[]): string
     _buildInsertDefaultValues(query: InsertData, params: any[]): string
     _buildInsert(query: InsertData, params: any[]): string

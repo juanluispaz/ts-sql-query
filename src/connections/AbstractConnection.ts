@@ -25,6 +25,7 @@ import { FragmentQueryBuilder } from "../queryBuilders/FragmentQueryBuilder"
 
 export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER extends SqlBuilder> extends IConnection<DB, NAME> {
     protected __sqlBuilder: SQL_BUILDER
+    protected allowEmptyString: boolean = false
     readonly queryRunner: QueryRunner
     readonly defaultTypeAdapter: DefaultTypeAdapter
 
@@ -35,6 +36,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
         this.__sqlBuilder = sqlBuilder
         this.queryRunner = queryRunner
         sqlBuilder._queryRunner = queryRunner
+        sqlBuilder._connectionConfiguration = this as any // transform protected methods to public
     }
 
     beginTransaction(): Promise<void> {
@@ -403,7 +405,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
         if (value === null) {
             return null
         }
-        if (value === '') {
+        if (value === '' && !this.allowEmptyString) {
             return null
         }
         switch (type) {
@@ -533,7 +535,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
         if (value === null) {
             return null
         }
-        if (value === '') {
+        if (value === '' && !this.allowEmptyString) {
             return null
         }
         switch (type) {

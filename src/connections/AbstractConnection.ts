@@ -635,4 +635,18 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
         }
     }
 
+    protected isReservedKeyword(word: string): boolean {
+        return this.__sqlBuilder._isReservedKeyword(word)
+
+    }
+    protected forceAsIdentifier(identifier: string): string {
+        return this.__sqlBuilder._forceAsIdentifier(identifier)
+    }
+    protected escape(identifier: string): string {
+        if (this.isReservedKeyword(identifier) || identifier.indexOf(' ') >= 0) {
+            return this.forceAsIdentifier(identifier)
+        }
+        return identifier
+    }
+
 }

@@ -1,9 +1,13 @@
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { ToSql, SelectData, InsertData } from "./SqlBuilder"
 import { TypeAdapter } from "../TypeAdapter"
+import { OrderByMode } from "../expressions/select"
 
 export class SqliteSqlBuilder extends AbstractSqlBuilder {
     sqlite: true = true
+    _isReservedKeyword(word: string): boolean {
+        return word.toUpperCase() in reservedWords
+    }
     _buildSelectOrderBy(query: SelectData, _params: any[]): string {
         const orderBy = query.__orderBy
         if (!orderBy) {
@@ -16,26 +20,25 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             }
             const order = orderBy[property]
             if (order) {
-                switch (order) {
+                switch (order as OrderByMode) {
                     case 'asc':
                     case 'asc nulls first':
-                        orderByColumns += property + ' asc'
+                        orderByColumns += this._escape(property) + ' asc'
                         break
                     case 'desc':
                     case 'desc nulls last':
-                        orderByColumns += property + ' desc'
+                        orderByColumns += this._escape(property) + ' desc'
                         break
                     case 'asc nulls last':
-                        orderByColumns += property + ' is null, ' + property + ' asc'
+                        orderByColumns += this._escape(property) + ' is null, ' + this._escape(property) + ' asc'
                         break
                     case 'desc nulls first':
-                        orderByColumns += property + ' is not null, ' + property + ' desc'
+                        orderByColumns += this._escape(property) + ' is not null, ' + this._escape(property) + ' desc'
                         break
                 }
-                orderByColumns += property
-                orderByColumns += ' ' + order
+                orderByColumns += this._escape(property) + ' ' + order
             } else {
-                orderByColumns += property
+                orderByColumns += this._escape(property)
             }
         }
         if (!orderByColumns) {
@@ -201,4 +204,151 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             return 'group_concat(distinct ' + this._appendSql(value, params) + ', ' + this._appendValue(separator, params, 'string', undefined) + ')'
         }
     }
+}
+
+// Source: https://www.sqlite.org/lang_keywords.html (version: 3.30.1)
+const reservedWords: { [word: string]: boolean | undefined } = {
+    ABORT: true,
+    ACTION: true,
+    ADD: true,
+    AFTER: true,
+    ALL: true,
+    ALTER: true,
+    ANALYZE: true,
+    AND: true,
+    AS: true,
+    ASC: true,
+    ATTACH: true,
+    AUTOINCREMENT: true,
+    BEFORE: true,
+    BEGIN: true,
+    BETWEEN: true,
+    BY: true,
+    CASCADE: true,
+    CASE: true,
+    CAST: true,
+    CHECK: true,
+    COLLATE: true,
+    COLUMN: true,
+    COMMIT: true,
+    CONFLICT: true,
+    CONSTRAINT: true,
+    CREATE: true,
+    CROSS: true,
+    CURRENT: true,
+    CURRENT_DATE: true,
+    CURRENT_TIME: true,
+    CURRENT_TIMESTAMP: true,
+    DATABASE: true,
+    DEFAULT: true,
+    DEFERRABLE: true,
+    DEFERRED: true,
+    DELETE: true,
+    DESC: true,
+    DETACH: true,
+    DISTINCT: true,
+    DO: true,
+    DROP: true,
+    EACH: true,
+    ELSE: true,
+    END: true,
+    ESCAPE: true,
+    EXCEPT: true,
+    EXCLUDE: true,
+    EXCLUSIVE: true,
+    EXISTS: true,
+    EXPLAIN: true,
+    FAIL: true,
+    FILTER: true,
+    FIRST: true,
+    FOLLOWING: true,
+    FOR: true,
+    FOREIGN: true,
+    FROM: true,
+    FULL: true,
+    GLOB: true,
+    GROUP: true,
+    GROUPS: true,
+    HAVING: true,
+    IF: true,
+    IGNORE: true,
+    IMMEDIATE: true,
+    IN: true,
+    INDEX: true,
+    INDEXED: true,
+    INITIALLY: true,
+    INNER: true,
+    INSERT: true,
+    INSTEAD: true,
+    INTERSECT: true,
+    INTO: true,
+    IS: true,
+    ISNULL: true,
+    JOIN: true,
+    KEY: true,
+    LAST: true,
+    LEFT: true,
+    LIKE: true,
+    LIMIT: true,
+    MATCH: true,
+    NATURAL: true,
+    NO: true,
+    NOT: true,
+    NOTHING: true,
+    NOTNULL: true,
+    NULL: true,
+    NULLS: true,
+    OF: true,
+    OFFSET: true,
+    ON: true,
+    OR: true,
+    ORDER: true,
+    OTHERS: true,
+    OUTER: true,
+    OVER: true,
+    PARTITION: true,
+    PLAN: true,
+    PRAGMA: true,
+    PRECEDING: true,
+    PRIMARY: true,
+    QUERY: true,
+    RAISE: true,
+    RANGE: true,
+    RECURSIVE: true,
+    REFERENCES: true,
+    REGEXP: true,
+    REINDEX: true,
+    RELEASE: true,
+    RENAME: true,
+    REPLACE: true,
+    RESTRICT: true,
+    RIGHT: true,
+    ROLLBACK: true,
+    ROW: true,
+    ROWS: true,
+    SAVEPOINT: true,
+    SELECT: true,
+    SET: true,
+    TABLE: true,
+    TEMP: true,
+    TEMPORARY: true,
+    THEN: true,
+    TIES: true,
+    TO: true,
+    TRANSACTION: true,
+    TRIGGER: true,
+    UNBOUNDED: true,
+    UNION: true,
+    UNIQUE: true,
+    UPDATE: true,
+    USING: true,
+    VACUUM: true,
+    VALUES: true,
+    VIEW: true,
+    VIRTUAL: true,
+    WHEN: true,
+    WHERE: true,
+    WINDOW: true,
+    WITH: true,
+    WITHOUT: true
 }

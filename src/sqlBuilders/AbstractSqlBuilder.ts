@@ -1,7 +1,7 @@
 import { ToSql, SqlBuilder, hasToSql, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, operationOf } from "./SqlBuilder"
 import { __getTableOrViewPrivate, ITableOrView } from "../utils/ITableOrView"
 import { BooleanValueSource, ValueSource } from "../expressions/values"
-import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
+import { __getColumnOfTable, __getColumnPrivate, Column } from "../utils/Column"
 import { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { QueryRunner } from "../queryRunners/QueryRunner"
 import { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
@@ -13,7 +13,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _queryRunner: QueryRunner
     // @ts-ignore
     _connectionConfiguration: ConnectionConfiguration
-    _operationsThatNeedParenthesis: { [operation in keyof SqlOperation]?: boolean}
+    _operationsThatNeedParenthesis: { [operation in keyof SqlOperation]?: boolean }
     constructor() {
         this._operationsThatNeedParenthesis = {
             _equals: true,
@@ -50,6 +50,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return true
     }
+    _isReservedKeyword(_word: string): boolean {
+        return false
+    }
+    _forceAsIdentifier(identifier: string): string {
+        return '"' + identifier + '"'
+    }
+    _escape(identifier: string): string {
+        return this._connectionConfiguration.escape(identifier)
+    }
     _needParenthesis(value: any): boolean {
         const operation = operationOf(value)
         if (!operation) {
@@ -73,11 +82,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return false
     }
-    _getTableOrViewName(table: ITableOrView<any>): string {
+    _appendColumnNameInSql(column: Column, _params: any[]): string {
+        const columnPrivate = __getColumnPrivate(column)
+        const tablePrivate = __getTableOrViewPrivate(columnPrivate.__table_or_view)
+        if (tablePrivate.__as) {
+            return this._escape(tablePrivate.__as) + '.' + this._escape(columnPrivate.__name)
+        }
+        return this._escape(columnPrivate.__name)
+    }
+    _getTableOrViewNameInSql(table: ITableOrView<any>): string {
         const t = __getTableOrViewPrivate(table)
-        let result = t.__name
+        let result = this._escape(t.__name)
         if (t.__as) {
-            result += ' as ' + t.__as
+            result += ' as ' + this._escape(t.__as)
         }
         return result
     }
@@ -99,16 +116,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendCondition(condition, params)
     }
-    _appendSql(value: ToSql | ValueSource<any, any, any>, params: any[]): string {
-        return (value as ToSql).__toSql(this, params) // All ValueSource have a hidden implemetation of ToSql
+    _appendSql(value: ToSql | ValueSource<any, any, any> | Column, params: any[]): string {
+        return (value as ToSql).__toSql(this, params) // All ValueSource or Column have a hidden implemetation of ToSql
     }
-    _appendSqlParenthesis(value: ToSql | ValueSource<any, any, any>, params: any[]): string {
+    _appendSqlParenthesis(value: ToSql | ValueSource<any, any, any> | Column, params: any[]): string {
         if (this._needParenthesis(value)) {
             return '(' + this._appendSql(value, params) + ')'
         }
         return this._appendSql(value, params)
     }
-    _appendSqlParenthesisExcluding(value: ToSql | ValueSource<any, any, any>, params: any[], excluding: keyof SqlOperation): string {
+    _appendSqlParenthesisExcluding(value: ToSql | ValueSource<any, any, any> | Column, params: any[], excluding: keyof SqlOperation): string {
         if (this._needParenthesisExcluding(value, excluding)) {
             return '(' + this._appendSql(value, params) + ')'
         }
@@ -170,7 +187,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
             selectQuery += this._appendSql(columns[property], params)
             if (property) {
-                selectQuery += ' as ' + property
+                selectQuery += ' as ' + this._escape(property)
             }
             requireComma = true
         }
@@ -186,7 +203,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (requireComma) {
                     selectQuery += ', '
                 }
-                selectQuery += this._getTableOrViewName(tables[i])
+                selectQuery += this._getTableOrViewNameInSql(tables[i])
                 requireComma = true
             }
         }
@@ -209,7 +226,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     case 'leftOuterJoin':
                         selectQuery += ' letf outer join '
                 }
-                selectQuery += this._getTableOrViewName(join.__table_or_view)
+                selectQuery += this._getTableOrViewNameInSql(join.__table_or_view)
                 if (join.__on) {
                     const onCondition = this._appendCondition(join.__on, params)
                     if (onCondition) {
@@ -265,7 +282,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            orderByColumns += property
+            orderByColumns += this._escape(property)
             const order = orderBy[property]
             if (order) {
                 orderByColumns += ' ' + order
@@ -314,10 +331,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
             values += this._nextSequenceValue(params, columnPrivate.__sequenceName)
         }
 
+        const tableName = this._getTableOrViewNameInSql(table)
         if (columns) {
-            return 'insert into ' + this._getTableOrViewName(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
+            return 'insert into ' + tableName + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
         } else {
-            return 'insert into ' + this._getTableOrViewName(query.__table) + this._buildInsertOutput(query, params) + ' default values' + this._buildInsertReturning(query, params)
+            return 'insert into ' + tableName + this._buildInsertOutput(query, params) + ' default values' + this._buildInsertReturning(query, params)
         }
     }
     _buildInsert(query: InsertData, params: any[]): string {
@@ -364,26 +382,27 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 const columnPrivate = __getColumnPrivate(column)
                 values += this._appendValue(value, params, columnPrivate.__columnType, columnPrivate.__typeAdapter)
             } else {
-                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewName(table) +'". The column is not included in the table definition')
+                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
             }
         }
 
-        return 'insert into ' + this._getTableOrViewName(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
+        return 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
     }
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''
     }
-    _buildInsertReturning(query: InsertData, _params: any[]): string {
-        if (!query.__idColumn) {
+    _buildInsertReturning(query: InsertData, params: any[]): string {
+        const idColumn = query.__idColumn
+        if (!idColumn) {
             return ''
         }
-        return ' returning ' + __getColumnPrivate(query.__idColumn).__name
+        return ' returning ' + this._appendSql(idColumn, params)
     }
     _nextSequenceValue( _params: any[], sequenceName: string) {
-        return "nextval('" + sequenceName + "')"
+        return "nextval('" + this._escape(sequenceName) + "')"
     }
     _currentSequenceValue(_params: any[], sequenceName: string): string {
-        return "currval('" + sequenceName + "')"
+        return "currval('" + this._escape(sequenceName) + "')"
     }
     _buildUpdate(query: UpdateData, params: any[]): string {
         const table = query.__table
@@ -405,11 +424,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 const columnPrivate = __getColumnPrivate(column)
                 columns += this._appendValue(value, params, columnPrivate.__columnType, columnPrivate.__typeAdapter)
             } else {
-                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewName(table) +'". The column is not included in the table definition')
+                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
             }
         }
 
-        let updateQuery = 'update ' + this._getTableOrViewName(table) + ' set ' + columns
+        let updateQuery = 'update ' + this._getTableOrViewNameInSql(table) + ' set ' + columns
         if (query.__where) {
             const whereCondition = this._appendCondition(query.__where, params)
             if (whereCondition) {
@@ -423,7 +442,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return updateQuery
     }
     _buildDelete(query: DeleteData, params: any[]): string {
-        let deleteQuery = 'delete from ' + this._getTableOrViewName(query.__table)
+        let deleteQuery = 'delete from ' + this._getTableOrViewNameInSql(query.__table)
         if (query.__where) {
             const whereCondition = this._appendCondition(query.__where, params)
             if (whereCondition) {
@@ -801,7 +820,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'replace(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(value2, params, columnType, typeAdapter) + ')'
     }
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any, any>[]): string {
-        let result = 'call ' + procedureName + '('
+        let result = 'call ' + this._escape(procedureName) + '('
         if (procedureParams.length > 0) {
             result += this._appendSql(procedureParams[0], params)
 
@@ -813,7 +832,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return result + ')'
     }
     _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any, any>[]): string {
-        let result = 'select ' + functionName + '('
+        let result = 'select ' + this._escape(functionName) + '('
         if (functionParams.length > 0) {
             result += this._appendSql(functionParams[0], params)
 

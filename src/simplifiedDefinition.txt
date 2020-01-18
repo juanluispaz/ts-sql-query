@@ -358,6 +358,17 @@ interface Connection {
     transformValueFromDB(value: any, type: string): any
     /** Protected method that allows to transform the values that will be send to the database */
     transformValueToDB(value: any, type: string): any
+
+    /** Protected method that returns true if the provided string is a reserved keyword, otherwise return false */
+    isReservedWord(word: string): boolean
+    /** Protected method that returns the provided string as a indefier quoting it all the time */
+    forceAsIdentifier(identifier: string): string
+    /** 
+     * Protected method that returns the provided identifier escaped.
+     * The default implementation quote the identifier only if it is a reserved keyword.
+     * If you want all identifiers quoted, you must reimplement this function returning the result of the forceAsIdentifier function.
+     */
+    escape(identifier: string): string
 }
 
 interface FragmentExpression {

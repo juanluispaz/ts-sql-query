@@ -1,6 +1,7 @@
 import { ToSql, SelectData, InsertData } from "./SqlBuilder"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { TypeAdapter } from "../TypeAdapter"
+import { OrderByMode } from "../expressions/select"
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     constructor() {
@@ -11,7 +12,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._getDate = true
         this._operationsThatNeedParenthesis._getMilliseconds = false
     }
-
+    _forceAsIdentifier(identifier: string): string {
+        return '`' + identifier + '`'
+    }
     _valuePlaceholder(_index: number, _columnType: string): string {
         return '?'
     }
@@ -27,26 +30,25 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             }
             const order = orderBy[property]
             if (order) {
-                switch (order) {
+                switch (order as OrderByMode) {
                     case 'asc':
                     case 'asc nulls first':
-                        orderByColumns += property + ' asc'
+                        orderByColumns += this._escape(property) + ' asc'
                         break
                     case 'desc':
                     case 'desc nulls last':
-                        orderByColumns += property + ' desc'
+                        orderByColumns += this._escape(property) + ' desc'
                         break
                     case 'asc nulls last':
-                        orderByColumns += property + ' is null, ' + property + ' asc'
+                        orderByColumns += this._escape(property) + ' is null, ' + this._escape(property) + ' asc'
                         break
                     case 'desc nulls first':
-                        orderByColumns += property + ' is not null, ' + property + ' desc'
+                        orderByColumns += this._escape(property) + ' is not null, ' + this._escape(property) + ' desc'
                         break
                 }
-                orderByColumns += property
-                orderByColumns += ' ' + order
+                orderByColumns += this._escape(property) + ' ' + order
             } else {
-                orderByColumns += property
+                orderByColumns += this._escape(property)
             }
         }
         if (!orderByColumns) {
@@ -70,7 +72,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return result
     }
     _buildInsertDefaultValues(query: InsertData, _params: any[]): string {
-        return 'insert into ' + this._getTableOrViewName(query.__table) + ' () values ()'
+        return 'insert into ' + this._getTableOrViewNameInSql(query.__table) + ' () values ()'
     }
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''

@@ -427,7 +427,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                     if (isNaN(result)) {
                         throw new Error('Invalid int value received from the db: ' + value)
                     }
-                    return value
+                    return result
                 }
                 throw new Error('Invalid int value received from the db: ' + value)
             case 'stringInt':

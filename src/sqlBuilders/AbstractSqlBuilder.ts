@@ -38,6 +38,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
             _fragment: true
         }
     }
+    _getSafeTableOrView(params: any[]): ITableOrView<any> | undefined {
+        return (params as any)._safeTableOrView
+    }
+    _setSafeTableOrView(params: any[], tableOrView: ITableOrView<any> | undefined): void {
+        Object.defineProperty(params, '_safeTableOrView', {
+            value: tableOrView,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
     _isValue(value: any): boolean {
         if (value === null || undefined) {
             return false
@@ -82,13 +93,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return false
     }
-    _appendColumnNameInSql(column: Column, _params: any[]): string {
+    _appendColumnNameInSql(column: Column, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
-        const tablePrivate = __getTableOrViewPrivate(columnPrivate.__table_or_view)
+        const tableOrView = columnPrivate.__table_or_view
+        const tablePrivate = __getTableOrViewPrivate(tableOrView)
+
         if (tablePrivate.__as) {
             return this._escape(tablePrivate.__as) + '.' + this._escape(columnPrivate.__name)
+        } else if (this._getSafeTableOrView(params) === tableOrView) {
+            return this._escape(columnPrivate.__name)
+        } else {
+            return this._escape(tablePrivate.__name) + '.' + this._escape(columnPrivate.__name)
         }
-        return this._escape(columnPrivate.__name)
     }
     _getTableOrViewNameInSql(table: ITableOrView<any>): string {
         const t = __getTableOrViewPrivate(table)
@@ -174,6 +190,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return '$' + index
     }
     _buildSelect(query: SelectData, params: any[]): string {
+        const oldSafeTableOrView = this._getSafeTableOrView(params)
+
+        const tables = query.__tables_or_views
+        const tablesLength = tables.length
+        const joins = query.__joins
+        const joinsLength = joins.length
+
+        if (tablesLength === 1 && joinsLength <= 0) {
+            this._setSafeTableOrView(params, tables[0])
+        } else {
+            this._setSafeTableOrView(params, undefined)
+        }
+
+
         let selectQuery = 'select '
         if (query.__distinct) {
             selectQuery += 'distinct '
@@ -192,8 +222,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
             requireComma = true
         }
 
-        const tables = query.__tables_or_views
-        const tablesLength = tables.length
         if (tablesLength <= 0) {
             selectQuery += this._fromNoTable()
         } else {
@@ -208,8 +236,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        const joins = query.__joins
-        const joinsLength = joins.length
         if (joinsLength > 0) {
             for (let i = 0; i < joinsLength; i++) {
                 const join = joins[i]
@@ -267,6 +293,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         selectQuery += this._buildSelectOrderBy(query, params)
         selectQuery += this._buildSelectLimitOffset(query, params)
 
+        this._setSafeTableOrView(params, oldSafeTableOrView)
         return selectQuery
     }
     _fromNoTable() {
@@ -308,7 +335,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return result
     }
     _buildInsertDefaultValues(query: InsertData, params: any[]): string {
+        const oldSafeTableOrView = this._getSafeTableOrView(params)
+
         const table = query.__table
+
+        this._setSafeTableOrView(params, table)
+
         let columns = ''
         let values = ''
 
@@ -332,15 +364,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         const tableName = this._getTableOrViewNameInSql(table)
+        let insertQuery: string
         if (columns) {
-            return 'insert into ' + tableName + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
+            insertQuery = 'insert into ' + tableName + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
         } else {
-            return 'insert into ' + tableName + this._buildInsertOutput(query, params) + ' default values' + this._buildInsertReturning(query, params)
+            insertQuery = 'insert into ' + tableName + this._buildInsertOutput(query, params) + ' default values' + this._buildInsertReturning(query, params)
         }
+
+        this._setSafeTableOrView(params, oldSafeTableOrView)
+        return insertQuery
     }
     _buildInsert(query: InsertData, params: any[]): string {
+        const oldSafeTableOrView = this._getSafeTableOrView(params)
+
         const table = query.__table
         const sets = query.__sets
+
+        this._setSafeTableOrView(params, table)
 
         let columns = ''
         let values = ''
@@ -386,7 +426,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        return 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
+        const insertQuery = 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
+
+        this._setSafeTableOrView(params, oldSafeTableOrView)
+        return insertQuery
     }
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''
@@ -405,8 +448,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return "currval('" + this._escape(sequenceName) + "')"
     }
     _buildUpdate(query: UpdateData, params: any[]): string {
+        const oldSafeTableOrView = this._getSafeTableOrView(params)
+
         const table = query.__table
         const sets = query.__sets
+
+        this._setSafeTableOrView(params, table)
 
         let columns = ''
         const properties = Object.getOwnPropertyNames(sets)
@@ -439,10 +486,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else if (!query.__allowNoWhere) {
             throw new Error('No where defined for the update operation')
         }
+
+        this._setSafeTableOrView(params, oldSafeTableOrView)
         return updateQuery
     }
     _buildDelete(query: DeleteData, params: any[]): string {
-        let deleteQuery = 'delete from ' + this._getTableOrViewNameInSql(query.__table)
+        const oldSafeTableOrView = this._getSafeTableOrView(params)
+
+        const table = query.__table
+        this._setSafeTableOrView(params, table)
+
+        let deleteQuery = 'delete from ' + this._getTableOrViewNameInSql(table)
         if (query.__where) {
             const whereCondition = this._appendCondition(query.__where, params)
             if (whereCondition) {
@@ -453,6 +507,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else if (!query.__allowNoWhere) {
             throw new Error('No where defined for the delete operation')
         }
+
+        this._setSafeTableOrView(params, oldSafeTableOrView)
         return deleteQuery
     }
 

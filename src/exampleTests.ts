@@ -458,7 +458,7 @@ const customersWithCompanyName = connection.selectFrom(tCustomer)
     .orderBy('lastName', 'asc')
     .executeSelectMany()
 
-// Query: select id as id, first_name as firstName, last_name as lastName, birthday as birthday, comp.name as companyName from customer inner join company as comp on company_id = comp.id where first_name ilike ($1 || '%') order by firstName, lastName asc
+// Query: select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, comp.name as companyName from customer inner join company as comp on customer.company_id = comp.id where customer.first_name ilike ($1 || '%') order by firstName, lastName asc
 // Params: [ 'John' ]
 
 const orderBy = 'customerFirstName asc nulls first, customerLastName'
@@ -474,8 +474,33 @@ const customerWithSelectedCompanies = connection.selectFrom(tCustomer)
     }).orderByFromString(orderBy)
     .executeSelectMany()
 
-// Query: select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select id from company where name like ('%' || $1 || '%')) order by customerFirstName asc nulls first, customerLastName
+// Query: select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select id as result from company where name like ('%' || $1 || '%')) order by customerFirstName asc nulls first, customerLastName
 // Params: [ 'Cia.' ]
+
+const customerCountPerCompany = connection.selectFrom(tCompany)
+    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+    .select({
+        companyId: tCompany.id,
+        companyName: tCompany.name,
+        customerCount: connection.count(tCustomer.id)
+    }).groupBy('companyId', 'companyName')
+    .executeSelectMany()
+
+// Query: select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.name
+// Params: []
+
+const customerCountPerCompany2 = connection.selectFrom(tCompany)
+    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+    .groupBy(tCompany.id, tCompany.name)
+    .select({
+        companyId: tCompany.id,
+        companyName: tCompany.name,
+        customerCount: connection.count(tCustomer.id)
+    })
+    .executeSelectMany()
+
+// Query: select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.name
+// Params: []
 
 const customerName = 'Smi'
 const customerPageWithName = connection.selectFrom(tCustomer)
@@ -497,33 +522,8 @@ const customerPageWithName = connection.selectFrom(tCustomer)
 // Query: select id as id, first_name as firstName, last_name as lastName from customer where first_name ilike ($1 || '%') or last_name ilike ($2 || '%') order by firstName, lastName limit $3 offset $4
 // Params: [ 'Smi', 'Smi', 10, 20 ]
 
-// Query: select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select id from company where name like ('%' || $1 || '%')) order by customerFirstName asc nulls first, customerLastName
-// Params: [ 'Cia.' ]
-
-const customerCountPerCompany = connection.selectFrom(tCompany)
-    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
-    .select({
-        companyId: tCompany.id,
-        companyName: tCompany.name,
-        customerCount: connection.count(tCustomer.id)
-    }).groupBy('companyId', 'companyName')
-    .executeSelectMany()
-
-// Query: select id as companyId, name as companyName, count(id) as customerCount from company inner join customer on company_id = id group by id, name
-// Params: []
-
-const customerCountPerCompany2 = connection.selectFrom(tCompany)
-    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
-    .groupBy(tCompany.id, tCompany.name)
-    .select({
-        companyId: tCompany.id,
-        companyName: tCompany.name,
-        customerCount: connection.count(tCustomer.id)
-    })
-    .executeSelectMany()
-
-// Query: select id as companyId, name as companyName, count(id) as customerCount from company inner join customer on company_id = id group by id, name
-// Params: []
+// Query: select count(*) from customer where first_name ilike ($1 || '%') or last_name ilike ($2 || '%')
+// Params: [ 'Smi', 'Smi' ]
 
 const id = 10
 const customersUsingCustomFragment = connection.selectFrom(tCustomer)

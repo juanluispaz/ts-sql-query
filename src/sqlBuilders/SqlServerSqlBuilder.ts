@@ -31,7 +31,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _falseValue = 'convert(bit, 0)'
     _appendValueToQueryParams(value: any, params: any[], columnType: string): void {
         // keep the data type to use in the query runner
-        Object.defineProperty(this, '@' + params.length, {
+        Object.defineProperty(params, '@' + params.length, {
             value: columnType,
             writable: true,
             enumerable: false,

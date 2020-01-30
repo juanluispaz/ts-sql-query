@@ -25,6 +25,9 @@ export class MariaDBPoolQueryRunner extends AbstractPoolQueryRunner {
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')
     }
+    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[]): Promise<any> {
+        throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
+    }
     protected async createQueryRunner(): Promise<QueryRunner> {
         const mariaDBConnection = await this.pool.getConnection()
         return new MariaDBQueryRunner(mariaDBConnection, this.database as any)

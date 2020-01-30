@@ -7,6 +7,7 @@ export interface QueryRunner {
     executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]>
     executeInsert(query: string, params: any[]): Promise<number>
     executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any>
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any[]>
     executeUpdate(query: string, params: any[]): Promise<number>
     executeDelete(query: string, params: any[]): Promise<number>
     executeProcedure(query: string, params: any[]): Promise<void>

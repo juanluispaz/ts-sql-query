@@ -47,6 +47,9 @@ export class ChainedQueryRunner<T extends QueryRunner & QueryRunnerSupportedDB> 
     executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
         return this.queryRunner.executeInsertReturningLastInsertedId(query, params)
     }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+        return this.queryRunner.executeInsertReturningMultipleLastInsertedId(query, params)
+    }
     executeUpdate(query: string, params: any[]): Promise<number> {
         return this.queryRunner.executeUpdate(query, params)
     }

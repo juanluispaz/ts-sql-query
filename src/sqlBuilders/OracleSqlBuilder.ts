@@ -2,6 +2,7 @@ import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { ToSql, InsertData } from "./SqlBuilder"
 import { TypeAdapter } from "../TypeAdapter"
 import { ValueSource } from "../expressions/values"
+import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     oracle: true = true
@@ -27,6 +28,93 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _falseValue = 'cast(0 as boolean)'
     _valuePlaceholder(index: number, _columnType: string): string {
         return ':' + index
+    }
+    _buildInsertMultiple(query: InsertData, params: any[]): string {
+        const multiple = query.__multiple
+        if (!multiple) {
+            throw new Error('Exepected a multiple insert')
+        }
+        if (multiple.length <= 0) {
+            return ''
+        }
+
+        const table = query.__table
+        const oldSafeTableOrView = this._getSafeTableOrView(params)
+        this._setSafeTableOrView(params, table)
+
+        const returning = !!query.__idColumn
+
+        let insertAll: string
+        let insertInto: string
+        let end: string
+        if (returning) {
+            insertInto = 'insert into '
+            end = '; '
+            insertAll = ''
+        } else {
+            insertInto = ' into '
+            end = ''
+            insertAll = 'insert all'
+        }
+
+        for (let i = 0, length = multiple.length; i < length; i++) {
+
+            const sets = multiple[i]
+    
+            let columns = ''
+            let values = ''
+    
+            for (var columnName in table) {
+                if (columnName in sets) {
+                    continue
+                }
+                const column = __getColumnOfTable(table, columnName)
+                if (!column) {
+                    continue
+                }
+                const columnPrivate = __getColumnPrivate(column)
+                if (!columnPrivate.__sequenceName) {
+                    continue
+                }
+    
+                if (columns) {
+                    columns += ', '
+                    values += ', '
+                }
+    
+                columns += this._appendSql(column, params)
+                values += this._nextSequenceValue(params, columnPrivate.__sequenceName)
+            }
+    
+            const properties = Object.getOwnPropertyNames(sets)
+            for (let i = 0, length = properties.length; i < length; i++) {
+                if (columns) {
+                    columns += ', '
+                    values += ', '
+                }
+    
+                const property = properties[i]
+                const value = sets[property]
+                const column = __getColumnOfTable(table, property)
+                if (column) {
+                    columns += this._appendSql(column, params)
+                    const columnPrivate = __getColumnPrivate(column)
+                    values += this._appendValue(value, params, columnPrivate.__columnType, columnPrivate.__typeAdapter)
+                } else {
+                    throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
+                }
+            }
+    
+            insertAll += insertInto + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params) + end
+        }
+
+        this._setSafeTableOrView(params, oldSafeTableOrView)
+
+        if (returning) {
+            return 'begin ' + insertAll + 'end;'
+        } else {
+            return insertAll + ' select ' + multiple.length + ' from dual'
+        }
     }
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''

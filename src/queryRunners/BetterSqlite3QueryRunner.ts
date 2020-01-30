@@ -94,6 +94,9 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
             return Promise.reject(e)
         }
     }
+    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[]): Promise<any> {
+        throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
+    }
     executeUpdate(query: string, params: any[]): Promise<number> {
         try {
             return Promise.resolve(this.connection.prepare(query).run(params).changes)

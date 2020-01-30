@@ -171,6 +171,31 @@ export class TediousQueryRunner implements QueryRunner {
             this.connection.execSql(req)
         })
     }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+        return new Promise((resolve, reject) => {
+            let result: any[] = []
+            const req = new Request(query, (error) => {
+                if (error) {
+                    reject(error)
+                } else {
+                    resolve(result)
+                }
+            })
+            for (var i = 0, length = params.length; i < length; i++) {
+                req.addParameter('' + i, this.getType(params, i), params[i])
+            }
+            req.on('row', function (columns) {
+                if (columns.length > 1) {
+                    reject(new Error('Too many columns, expected only one column'))
+                }
+                const column = columns[0]
+                if (column) {
+                    result.push(column.value)
+                }
+            })
+            this.connection.execSql(req)
+        })
+    }
     executeUpdate(query: string, params: any[]): Promise<number> {
         return new Promise((resolve, reject) => {
             const req = new Request(query, (error, rowCount) => {

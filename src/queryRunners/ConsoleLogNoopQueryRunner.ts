@@ -43,6 +43,10 @@ export class ConsoleLogNoopQueryRunner implements QueryRunner {
         console.log('executeInsertReturningLastInsertedId:', query, params)
         return Promise.resolve(undefined)
     }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+        console.log('executeInsertReturningMultipleLastInsertedId:', query, params)
+        return Promise.resolve([])
+    }
     executeUpdate(query: string, params: any[]): Promise<number> {
         console.log('executeUpdate:', query, params)
         return Promise.resolve(0)

@@ -1,15 +1,17 @@
 import { SqlBuilder, InsertData } from "../sqlBuilders/SqlBuilder"
 import { ITable } from "../utils/ITableOrView"
-import { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning } from "../expressions/insert"
+import { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, ExecutableMultipleInsert } from "../expressions/insert"
 import ChainedError from "chained-error"
 import { __getColumnOfTable, Column, __getColumnPrivate } from "../utils/Column"
 import { attachSource } from "../utils/attachSource"
 
-export class InsertQueryBuilder extends InsertExpression<any, any> implements ExecutableInsertReturning<any, any>, ExecutableInsert<any, any>, ExecutableInsertExpression<any, any>, InsertData {
+export class InsertQueryBuilder extends InsertExpression<any, any> implements ExecutableInsertReturning<any, any>, ExecutableInsert<any, any>, ExecutableInsertExpression<any, any>, ExecutableMultipleInsert<any, any>, InsertData {
     __sqlBuilder: SqlBuilder
 
     __table: ITable<any>
     __sets: { [property: string]: any } = {}
+    __multiple?: { [property: string]: any }[]
+    __isMultiple: boolean = false
     __idColumn?: Column
 
     // cache
@@ -27,23 +29,54 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
         const source = new Error('Query executed at')
         try {
             const idColumn = this.__idColumn
-            if (idColumn) {
+            const multiple = this.__multiple
+            if (multiple && multiple.length <= 0) {
+                if (idColumn) {
+                    return Promise.resolve([])
+                } else {
+                    return Promise.resolve(0)
+                }
+            } else if (!idColumn) {
+                return this.__sqlBuilder._queryRunner.executeInsert(this.__query, this.__params).catch((e) => {
+                    throw attachSource(new ChainedError(e), source)
+                })
+            } else if (!multiple) {
                 return this.__sqlBuilder._queryRunner.executeInsertReturningLastInsertedId(this.__query, this.__params).then((value) => {
                     if (value === undefined) {
                         value = null
                     }
                     const idColumnPrivate = __getColumnPrivate(idColumn)
                     const typeAdapter = idColumnPrivate.__typeAdapter
+                    let result
                     if (typeAdapter) {
-                        return typeAdapter.transformValueFromDB(value, idColumnPrivate.__columnType, this.__sqlBuilder._defaultTypeAdapter)
+                        result = typeAdapter.transformValueFromDB(value, idColumnPrivate.__columnType, this.__sqlBuilder._defaultTypeAdapter)
                     } else {
-                        return this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__columnType)
+                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__columnType)
+                    }
+                    if (this.__isMultiple) {
+                        return [result]
+                    } else {
+                        return result
                     }
                 }).catch((e) => {
                     throw attachSource(new ChainedError(e), source)
                 })
             } else {
-                return this.__sqlBuilder._queryRunner.executeInsert(this.__query, this.__params).catch((e) => {
+                return this.__sqlBuilder._queryRunner.executeInsertReturningMultipleLastInsertedId(this.__query, this.__params).then((rows) => {
+                    const idColumnPrivate = __getColumnPrivate(idColumn)
+                    const typeAdapter = idColumnPrivate.__typeAdapter
+                    const columnType = idColumnPrivate.__columnType
+                    const defaultTypeAdapter = this.__sqlBuilder._defaultTypeAdapter
+                    if (typeAdapter) {
+                        return rows.map((row) => {
+                            return typeAdapter.transformValueFromDB(row, columnType, defaultTypeAdapter)
+                        })
+                    } else {
+                        return rows.map((row) => {
+                            return defaultTypeAdapter.transformValueFromDB(row, columnType)
+                        })
+                    }
+                }).catch((e) => {
                     throw attachSource(new ChainedError(e), source)
                 })
             }
@@ -58,12 +91,13 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
         }
 
         try {
-            if (this.__sets === DEFAULT_VALUES) {
+            if (this.__multiple) {
+                this.__query = this.__sqlBuilder._buildInsertMultiple(this, this.__params)
+            } else if (this.__sets === DEFAULT_VALUES) {
                 this.__query = this.__sqlBuilder._buildInsertDefaultValues(this, this.__params)
-                return this.__query
+            } else {
+                this.__query = this.__sqlBuilder._buildInsert(this, this.__params)
             }
-
-            this.__query = this.__sqlBuilder._buildInsert(this, this.__params)
         } catch (e) {
             throw new ChainedError(e)
         }
@@ -199,6 +233,18 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
             delete sets[column]
         }
         return this
+    }
+    values(columns: any): this {
+        if (Array.isArray(columns)) {
+            this.__isMultiple = true
+            if (columns.length == 1) {
+                return this.set(columns[0])
+            }
+            this.__multiple = columns
+            return this
+        } else {
+            return this.set(columns)
+        }
     }
     defaultValues: never
     returningLastInsertedId: never

@@ -288,6 +288,46 @@ The result type is a promise with the id of the last inserted row:
 const insertCustomer: Promise<number>
 ```
 
+### Insert multiple values
+
+```ts
+const valuesToInsert = [
+    {
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 1
+    },
+    {
+        firstName: 'Other',
+        lastName: 'Person',
+        companyId: 1
+    }
+]
+
+const insertMultipleCustomers = connection.insertInto(tCustomer)
+    .values(valuesToInsert)
+    .returningLastInsertedId()
+    .executeInsert();
+```
+
+The executed query is:
+```sql
+insert into customer (first_name, last_name, company_id)
+values 
+    ($1, $2, $3),
+    ($4, $5, $6) 
+returning id
+```
+
+The parameters are: `[ 'John', 'Smith', 1, 'Other', 'Person', 1 ]`
+
+The result type is a promise with the id of the last inserted row:
+```ts
+const insertMultipleCustomers: Promise<number[]>
+```
+
+**Note**: Return the last inserted id of an insert with multiple rows is only supported by **PostgreSql**, **SqlServer** and **Oracle**. If you try to use it with other database you will get a compilation error.
+
 ### Update
 
 ```ts
@@ -1100,16 +1140,22 @@ interface View {
 
 ```ts
 interface InsertExpression {
+    /** Alias to set method: Set the values for insert */
+    values(columns: InsertSets): this
+    /** Allow to insert multiple registers in the database */
+    values(columns: InsertSets<DB, TABLE>[]): this
     /** Set the values for insert */
     set(columns: InsertSets): this
-    /** Set a value only if the provided value is not null, undefined, empty string 
+    /** 
+     * Set a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
     setIfValue(columns: OptionalInsertSets): this
     /** Set a previous set value only */
     setIfSet(columns: InsertSets): this
-    /** Set a previous set value only if the provided value is not null, undefined, empty string 
+    /** 
+     * Set a previous set value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
@@ -1131,7 +1177,10 @@ interface InsertExpression {
     /** Insert the default values in the table */
     defaultValues(): this
 
-    /** Indicate that the query must return the last inserted id */
+    /** 
+     * Indicate that the query must return the last inserted id 
+     * Note: If you are inserting multiple rows, only PostgreSql, SqlServer and Oracle support it
+     */
     returningLastInsertedId(): this
 
     /** Execute the insert, by default returns the number of inserted rows*/
@@ -1671,7 +1720,7 @@ The `MockQueryRunner` receives a function as argument to the constructor, this f
 
     ```ts
     type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
-    'insert' | 'insertReturningLastInsertedId' | 'update' | 'delete' | 
+    'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 
     'executeProcedure' | 'executeFunction' | 
     'beginTransaction' | 'commit' | 'rollback'
     ```

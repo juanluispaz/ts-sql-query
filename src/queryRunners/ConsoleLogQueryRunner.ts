@@ -35,6 +35,10 @@ export class ConsoleLogQueryRunner<T extends QueryRunner & QueryRunnerSupportedD
         console.log('executeInsertReturningLastInsertedId:', query, params)
         return this.queryRunner.executeInsertReturningLastInsertedId(query, params)
     }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+        console.log('executeInsertReturningMultipleLastInsertedId:', query, params)
+        return this.queryRunner.executeInsertReturningMultipleLastInsertedId(query, params)
+    }
     executeUpdate(query: string, params: any[]): Promise<number> {
         console.log('executeUpdate:', query, params)
         return this.queryRunner.executeUpdate(query, params)

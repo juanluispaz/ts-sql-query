@@ -29,6 +29,7 @@ export interface SelectData {
 export interface InsertData {
     __table: ITable<any>
     __sets: { [property: string]: any }
+    __multiple?: { [property: string]: any }[]
     __idColumn?: Column
 }
 
@@ -56,6 +57,7 @@ export interface SqlBuilder extends SqlOperation {
     _buildSelect(query: SelectData, params: any[]): string
     _buildInsertDefaultValues(query: InsertData, params: any[]): string
     _buildInsert(query: InsertData, params: any[]): string
+    _buildInsertMultiple(query: InsertData, params: any[]): string
     _buildUpdate(query: UpdateData, params: any[]): string
     _buildDelete(query: DeleteData, params: any[]): string
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any, any>[]): string

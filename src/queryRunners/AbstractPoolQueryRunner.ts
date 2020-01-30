@@ -54,6 +54,14 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             this.releaseIfNeeded()
         }
     }
+    async executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any[]> {
+        try {
+            const queryRunner = await this.getQueryRunner()
+            return await queryRunner.executeInsertReturningMultipleLastInsertedId(query, params)
+        } finally {
+            this.releaseIfNeeded()
+        }
+    }
     async executeUpdate(query: string, params: any[]): Promise<number> {
         try {
             const queryRunner = await this.getQueryRunner()

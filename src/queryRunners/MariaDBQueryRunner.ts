@@ -57,6 +57,9 @@ export class MariaDBQueryRunner implements QueryRunner {
     executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.insertId)
     }
+    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[]): Promise<any> {
+        throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
+    }
     executeUpdate(query: string, params: any[]): Promise<number> {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.affectedRows)
     }

@@ -116,6 +116,24 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             throw new Error('Unable to find the last inserted id')
         })
     }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+        const req = this.request()
+        for (var i = 0, length = params.length; i < length; i++) {
+            req.input('' + i, { type: this.getType(params, i) }, params[i])
+        }
+        return req.query(query).then((result) => {
+            if (!result.recordset) {
+                throw new Error('Unable to find the last inserted id')
+            }
+            return result.recordset.map((row) => {
+                const columns = Object.getOwnPropertyNames(row)
+                if (columns.length > 1) {
+                    throw new Error('Too many columns, expected only one column')
+                }
+                return row[columns[0]]
+            })
+        })
+    }
     executeUpdate(query: string, params: any[]): Promise<number> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {

@@ -547,16 +547,22 @@ interface View {
 
 
 interface InsertExpression {
+    /** Alias to set method: Set the values for insert */
+    values(columns: InsertSets): this
+    /** Allow to insert multiple registers in the database */
+    values(columns: InsertSets<DB, TABLE>[]): this
     /** Set the values for insert */
     set(columns: InsertSets): this
-    /** Set a value only if the provided value is not null, undefined, empty string 
+    /** 
+     * Set a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
     setIfValue(columns: OptionalInsertSets): this
     /** Set a previous set value only */
     setIfSet(columns: InsertSets): this
-    /** Set a previous set value only if the provided value is not null, undefined, empty string 
+    /** 
+     * Set a previous set value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
@@ -578,7 +584,10 @@ interface InsertExpression {
     /** Insert the default values in the table */
     defaultValues(): this
 
-    /** Indicate that the query must return the last inserted id */
+    /** 
+     * Indicate that the query must return the last inserted id 
+     * Note: If you are inserting multiple rows, only PostgreSql, SqlServer and Oracle support it
+     */
     returningLastInsertedId(): this
 
     /** Execute the insert, by default returns the number of inserted rows*/

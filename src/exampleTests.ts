@@ -549,6 +549,27 @@ const insertCustomer = connection.insertInto(tCustomer).set({
 // Query: insert into customer (first_name, last_name, company_id, birthday) values ($1, $2, $3, $4) returning id
 // Params: [ 'John', 'Smith', 1, 2019-08-16T15:02:32.849Z ]
 
+const valuesToInsert = [
+    {
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 1
+    },
+    {
+        firstName: 'Other',
+        lastName: 'Person',
+        companyId: 1
+    }
+]
+
+const insertMultipleCustomers = connection.insertInto(tCustomer)
+    .values(valuesToInsert)
+    .returningLastInsertedId()
+    .executeInsert();
+
+// Query: insert into customer (first_name, last_name, company_id) values ($1, $2, $3), ($4, $5, $6) returning id
+// Params: [ 'John', 'Smith', 1, 'Other', 'Person', 1 ]
+
 const updateCustomer = connection.update(tCustomer).set({
         firstName: 'John',
         lastName: 'Smith',
@@ -573,6 +594,7 @@ customerWithSelectedCompanies.finally(() => undefined)
 customerCountPerCompany.finally(() => undefined)
 customerCountPerCompany2.finally(() => undefined)
 insertCustomer.finally(() => undefined)
+insertMultipleCustomers.finally(() => undefined)
 updateCustomer.finally(() => undefined)
 deleteCustomer.finally(() => undefined)
 customersUsingCustomFragment.finally(() => undefined)
@@ -601,16 +623,18 @@ customersWithId.finally(() => undefined)
 
 /*
             returning   lastInsertedId  sequence
-MariaDB     no          si              no
-MySql       no          si              no
-Oracle      si          no              si
-Postgre     si          no              si
-Sqlite      no          si              no
-Sqlserver   si          no              si
+MariaDB     no          yes             no
+MySql       no          yes             no
+Oracle      yes*        no              yes
+Postgre     yes         no              yes
+Sqlite      no          yes             no
+Sqlserver   yes         no              yes
+
+   * It doen't work when you insert multiple rows
 */
 
 /*
-Cosas que quiero implementar
+Things that I want to implement:
 + return last inserted id
 + begin transaction, commit, rollback
 + call stored procedure
@@ -618,22 +642,25 @@ Cosas que quiero implementar
 + order by null first, last: https://stackoverflow.com/questions/12503120/how-to-do-nulls-last-in-sqlite https://nickstips.wordpress.com/2010/09/30/sql-order-by-with-null-values-last/
 + sql fragments
 
-Segundo a implementar:
+2nd to implement:
 + basic agragate functions
 + group by
 + having
 
-Tercero a implementar:
+3rd to implement:
++ insert multiple
+- insert from select
+
+4th to implement:
 - with
 - with recursive
 - from select
 - union, intersect
 - returning
 
-Cosas que no quiero implementar por ahora
+Things that I don't want to implement by now
 - agregate functions: filter
 - agregate functions: order by
 - window, over
 - complex agragate functions
-- insert multiple
 */

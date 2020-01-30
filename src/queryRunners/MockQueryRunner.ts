@@ -1,6 +1,6 @@
 import { QueryRunner, DatabaseType } from "./QueryRunner"
 
-export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'update' | 'delete' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback'
+export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback'
 
 export type QueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
 
@@ -65,6 +65,13 @@ export class MockQueryRunner implements QueryRunner {
     executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
         try {
             return Promise.resolve(this.queryExecutor('insertReturningLastInsertedId', query, params, this.count++))
+        } catch (e) {
+            return Promise.reject(e)
+        }
+    }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+        try {
+            return Promise.resolve(this.queryExecutor('insertReturningMultipleLastInsertedId', query, params, this.count++))
         } catch (e) {
             return Promise.reject(e)
         }

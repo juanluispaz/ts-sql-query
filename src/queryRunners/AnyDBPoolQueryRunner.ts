@@ -63,6 +63,13 @@ export class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')
     }
+    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+        const adapterName = this.pool.adapter.name
+        if (adapterName !== 'mssql' && adapterName !== 'postgreSql') {
+            throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
+        }
+        return super.executeInsertReturningMultipleLastInsertedId(query, params)
+    }
     protected async createQueryRunner(): Promise<QueryRunner> {
         return new Promise((resolve, reject) => {
             this.pool.acquire((error, anyDBConnection) => {

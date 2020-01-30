@@ -154,6 +154,26 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
             })
         })
     }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+        return new Promise((resolve, reject) => {
+            this.connection.query(query, params, function (error, rows) {
+                if (error) {
+                    reject(error)
+                } else if (!rows) {
+                    resolve(new Error('Unable to find the last inserted id'))
+                } else {
+                    const result = rows.map((row) => {
+                        const columns = Object.getOwnPropertyNames(row)
+                        if (columns.length > 1) {
+                            throw new Error('Too many columns, expected only one column')
+                        }
+                        return row[columns[0]]
+                    })
+                    resolve(result)
+                }
+            })
+        })
+    }
     executeUpdate(query: string, params: any[]): Promise<number> {
         return new Promise((resolve, reject) => {
             let rowCount = 0

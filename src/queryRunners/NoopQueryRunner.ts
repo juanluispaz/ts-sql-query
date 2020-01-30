@@ -37,6 +37,9 @@ export class NoopQueryRunner implements QueryRunner {
     executeInsertReturningLastInsertedId(_query: string, _params: any[]): Promise<any> {
         return Promise.resolve(undefined)
     }
+    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[]): Promise<any> {
+        return Promise.resolve([])
+    }
     executeUpdate(_query: string, _params: any[]): Promise<number> {
         return Promise.resolve(0)
     }

@@ -57,7 +57,7 @@ export class OracleDBQueryRunner implements QueryRunner {
         return this.connection.execute(query, params).then((result) => {
             const outBinds = result.outBinds
             if (!outBinds) {
-                throw new Error('Unable to find the last inserted id')
+                throw new Error('Unable to find the last inserted id, no outBinds')
             } else if (Array.isArray(outBinds)) {
                 if (outBinds.length === 1) {
                     return getOnlyOneValue(outBinds[0])
@@ -66,6 +66,22 @@ export class OracleDBQueryRunner implements QueryRunner {
                 throw new Error('Invalid outBinds returned by the database')
             }
             throw new Error('Unable to find the last inserted id')
+        })
+    }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+        return this.connection.execute(query, params).then((result) => {
+            const outBinds = result.outBinds
+            if (!outBinds) {
+                throw new Error('Unable to find the last inserted id, no outBinds')
+            } else if (Array.isArray(outBinds)) {
+                const result = []
+                for (var i = outBinds.length - 1; i >= 0; i--) {
+                    result.push(getOnlyOneValue(outBinds[i]))
+                }
+                return result
+            } else {
+                throw new Error('Invalid outBinds returned by the database')
+            }
         })
     }
     executeUpdate(query: string, params: any[]): Promise<number> {

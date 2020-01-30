@@ -69,6 +69,16 @@ export class PgQueryRunner implements QueryRunner {
             }
         })
     }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+        return this.connection.query({ text: query, values: params, rowMode: 'array' }).then((result) => {
+            return result.rows.map((row) => {
+                if (row.length > 1) {
+                    throw new Error('Too many columns, expected only one column')
+                }
+                return row[0]
+            })
+        })
+    }
     executeUpdate(query: string, params: any[]): Promise<number> {
         return this.connection.query(query, params).then((result) => result.rowCount)
     }

@@ -109,6 +109,9 @@ export class Sqlite3QueryRunner implements QueryRunner {
             })
         })
     }
+    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[]): Promise<any> {
+        throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
+    }
     executeUpdate(query: string, params: any[]): Promise<number> {
         return new Promise((resolve, reject) => {
             this.connection.run(query, params, function (error) {

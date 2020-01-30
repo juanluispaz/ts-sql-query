@@ -110,6 +110,9 @@ export class MySqlQueryRunner implements QueryRunner {
             })
         })
     }
+    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[]): Promise<any> {
+        throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
+    }
     executeUpdate(query: string, params: any[]): Promise<number> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error, results) => {

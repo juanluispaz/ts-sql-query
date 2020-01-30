@@ -334,6 +334,107 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
+    _buildInsertMultiple(query: InsertData, params: any[]): string {
+        const multiple = query.__multiple
+        if (!multiple) {
+            throw new Error('Exepected a multiple insert')
+        }
+        if (multiple.length <= 0) {
+            return ''
+        }
+
+        const oldSafeTableOrView = this._getSafeTableOrView(params)
+        const table = query.__table
+        this._setSafeTableOrView(params, table)
+
+        const usedColumns: { [name: string]: boolean | undefined } = {}
+        for (let i = 0, length = multiple.length; i < length; i++) {
+            const sets = multiple[i]
+            const properties = Object.getOwnPropertyNames(sets)
+            for (let j = 0, length = properties.length; j < length; j++) {
+                const columnName = properties[j]
+                usedColumns[columnName] = true
+            }
+        }
+
+        let columns = ''
+        let multipleValues = ''
+
+        const nextSequenceValues: string[] = []
+        for (var columnName in table) {
+            const column = __getColumnOfTable(table, columnName)
+            if (!column) {
+                continue
+            }
+            const columnPrivate = __getColumnPrivate(column)
+            if (!columnPrivate.__sequenceName) {
+                continue
+            }
+
+            if (columns) {
+                columns += ', '
+            }
+
+            columns += this._appendSql(column, params)
+            nextSequenceValues.push(columnPrivate.__sequenceName)
+        }
+
+        for (let columnName in usedColumns) {
+            if (columns) {
+                columns += ', '
+            }
+            const column = __getColumnOfTable(table, columnName)
+            if (column) {
+                columns += this._appendSql(column, params)
+            } else {
+                throw new Error('Unable to find the column "' + columnName + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
+            }
+        }
+
+        for (let i = 0, length = multiple.length; i < length; i++) {
+            let values = ''
+            for (let j = 0, length = nextSequenceValues.length; j < length; j++) {
+                if (values) {
+                    values += ', '
+                }
+                const sequenceName = nextSequenceValues[j]
+                values += this._nextSequenceValue(params, sequenceName)
+            }
+
+            const sets = multiple[i]
+
+            for (let columnName in usedColumns) {
+                if (values) {
+                    values += ', '
+                }
+
+                const value = sets[columnName]
+                const column = __getColumnOfTable(table, columnName)
+                if (column) {
+                    const columnPrivate = __getColumnPrivate(column)
+                    const sequenceName = columnPrivate.__sequenceName
+                    if (!(columnName in sets) && sequenceName) {
+                        values += this._nextSequenceValue(params, sequenceName)
+                    } else {
+                        values += this._appendValue(value, params, columnPrivate.__columnType, columnPrivate.__typeAdapter)
+                    }
+                } else {
+                    throw new Error('Unable to find the column "' + columnName + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
+                }
+            }
+
+            if (multipleValues) {
+                multipleValues += ', (' + values + ')'
+            } else {
+                multipleValues = '(' + values + ')'
+            }
+        }
+
+        const insertQuery = 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values ' + multipleValues+ this._buildInsertReturning(query, params)
+
+        this._setSafeTableOrView(params, oldSafeTableOrView)
+        return insertQuery
+    }
     _buildInsertDefaultValues(query: InsertData, params: any[]): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 

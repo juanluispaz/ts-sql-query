@@ -483,7 +483,7 @@ call myOwnprocedure($1)
 
 The parameters are: `[ 10 ]`
 
-The result type is a promise with the number of deleted rows:
+The result type is a promise:
 ```ts
 const result: Promise<void>
 ```
@@ -512,7 +512,7 @@ select myOwnFunction($1)
 
 The parameters are: `[ 10 ]`
 
-The result type is a promise with the number of deleted rows:
+The result type is a promise with the result returned by the function:
 ```ts
 const result: Promise<number>
 ```

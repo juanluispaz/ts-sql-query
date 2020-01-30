@@ -59,16 +59,11 @@ export class OracleDBQueryRunner implements QueryRunner {
             if (!outBinds) {
                 throw new Error('Unable to find the last inserted id')
             } else if (Array.isArray(outBinds)) {
-                for (var i = outBinds.length - 1; i >= 0; i--) {
-                    const value = outBinds[i]
-                    if (value !== undefined && value !== null) {
-                        return value
-                    }
+                if (outBinds.length === 1) {
+                    return getOnlyOneValue(outBinds[0])
                 }
             } else {
-                for (var prop in outBinds) {
-                    return outBinds[prop]
-                }
+                throw new Error('Invalid outBinds returned by the database')
             }
             throw new Error('Unable to find the last inserted id')
         })
@@ -86,20 +81,15 @@ export class OracleDBQueryRunner implements QueryRunner {
         return this.connection.execute(query, params).then((result) => {
             const outBinds = result.outBinds
             if (!outBinds) {
-                return undefined
+                throw new Error('Unable to find the function output')
             } else if (Array.isArray(outBinds)) {
-                for (var i = 0, length = outBinds.length; i < length; i++) {
-                    const value = outBinds[i]
-                    if (value !== undefined && value !== null) {
-                        return value
-                    }
+                if (outBinds.length === 1) {
+                    return outBinds[0]
                 }
             } else {
-                for (var prop in outBinds) {
-                    return outBinds[prop]
-                }
+                throw new Error('Invalid outBinds returned by the database')
             }
-            return undefined
+            throw new Error('Unable to find the function output')
         })
     }
     executeBeginTransaction(): Promise<void> {
@@ -121,5 +111,16 @@ export class OracleDBQueryRunner implements QueryRunner {
         const index = params.length
         params.push({dir: 3003 /*oracledb.BIND_OUT*/, as: name}) // See https://github.com/oracle/node-oracledb/blob/master/lib/oracledb.js
         return ':' + index
+    }
+}
+
+function getOnlyOneValue(values: any): any {
+    if (Array.isArray(values)) {
+        if (values.length != 1) {
+            throw new Error('Unable to find the output value in the output')
+        }
+        return values[0]
+    } else {
+        return values
     }
 }

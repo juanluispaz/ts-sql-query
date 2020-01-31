@@ -8,6 +8,79 @@ This package provides a way to build dynamic SQL queries in a type-safe way, tha
 
 Type-safe sql means the mistakes writting a query will be detected during the compilation time. With ts-sql-query you don't need to be affraid of change the database, the problems caused by the change will be detected during compilation time.
 
+# Summary
+
+- [Install](#install)
+- [Basic queries](#basic-queries)
+  - [Select one row](#select-one-row)
+  - [Select with joins and order by](#select-with-joins-and-order-by)
+  - [Select with subquery and dynamic order by](#select-with-subquery-and-dynamic-order-by)
+  - [Select with aggregate functions and group by](#select-with-aggregate-functions-and-group-by)
+  - [Select page](#select-page)
+  - [Select with custom sql fragment](#select-with-custom-sql-fragment)
+  - [Insert](#insert)
+  - [Insert multiple values](#insert-multiple-values)
+  - [Update](#update)
+  - [Delete](#delete)
+- [Connection, tables & views](#connection-tables--views)
+  - [Defining the connection object](#defining-the-connection-object)
+  - [Allowing empty string](#allowing-empty-string)
+  - [Instantiating the connection with the database connection](#instantiating-the-connection-with-the-database-connection)
+  - [Instantiating the connection with a mock database connection](#instantiating-the-connection-with-a-mock-database-connection)
+  - [Mapping the tables](#mapping-the-tables)
+  - [Mapping the views](#mapping-the-views)
+  - [Creating methods that allows to call a procedure](#creating-methods-that-allows-to-call-a-procedure)
+  - [Creating methods that allows to call a function](#creating-methods-that-allows-to-call-a-function)
+- [Supported operations](#supported-operations)
+  - [Operations definitions](#operations-definitions)
+  - [Connection definition](#connection-definition)
+  - [Table definition](#table-definition)
+  - [View definition](#view-definition)
+  - [Insert definition](#insert-definition)
+  - [Update definition](#update-definition)
+  - [Delete definition](#delete-definition)
+  - [Select definition](#select-definition)
+- [Supported databases](#supported-databases)
+  - [MariaDB](#mariadb)
+  - [MySql](#mysql)
+  - [Oracle](#oracle)
+  - [PostgreSql](#postgresql)
+  - [Sqlite](#sqlite)
+  - [SqlServer](#sqlserver)
+- [Supported databases with extended ts types](#supported-databases-with-extended-ts-types)
+  - [MariaDB](#mariadb-1)
+  - [MySql](#mysql-1)
+  - [Oracle](#oracle-1)
+  - [PostgreSql](#postgresql-1)
+  - [Sqlite](#sqlite-1)
+  - [SqlServer](#sqlserver-1)
+- [Query runners](#query-runners)
+  - [any-db (with connection pool)](#any-db-with-connection-pool)
+  - [any-db (with connection)](#any-db-with-connection)
+  - [better-sqlite3](#better-sqlite3)
+  - [ConsoleLogNoopQueryRunner](#consolelognoopqueryrunner)
+  - [ConsoleLogQueryRunner](#consolelogqueryrunner)
+  - [mariadb (with a connection pool)](#mariadb-with-a-connection-pool)
+  - [mariadb (with a connection)](#mariadb-with-a-connection)
+  - [MockQueryRunner](#mockqueryrunner)
+  - [msnodesqlv8](#msnodesqlv8)
+  - [mssql (with a connection pool promise)](#mssql-with-a-connection-pool-promise)
+  - [mssql (with a connection pool)](#mssql-with-a-connection-pool)
+  - [mysql (with a connection pool)](#mysql-with-a-connection-pool)
+  - [mysql (with a connection)](#mysql-with-a-connection)
+  - [mysql2 (with a connection pool)](#mysql2-with-a-connection-pool)
+  - [mysql2 (with a connection)](#mysql2-with-a-connection)
+  - [NoopQueryRunner](#noopqueryrunner)
+  - [oracledb (with a connection pool promise)](#oracledb-with-a-connection-pool-promise)
+  - [oracledb (with a connection pool)](#oracledb-with-a-connection-pool)
+  - [oracledb (with a connection)](#oracledb-with-a-connection)
+  - [pg (with a connection pool)](#pg-with-a-connection-pool)
+  - [pg (with a connection)](#pg-with-a-connection)
+  - [sqlite3](#sqlite3)
+  - [tedious (with a connection poll)](#tedious-with-a-connection-poll)
+  - [tedious (with a connection)](#tedious-with-a-connection)
+- [License](#license)
+
 ## Install
 
 Install with [npm](https://www.npmjs.com/):
@@ -374,6 +447,8 @@ The result type is a promise with the number of deleted rows:
 ```ts
 const deleteCustomer: Promise<number>
 ```
+
+## Connection, tables & views
 
 ### Defining the connection object
 
@@ -1197,7 +1272,7 @@ type InsertSets = { [columnName: string]: any }
 type OptionalInsertSets = { [columnName: string]: any }
 ```
 
-## Update definition
+### Update definition
 
 ```ts
 interface UpdateExpression {

@@ -101,7 +101,7 @@ export class SelectQueryBuilder extends SelectExpression<any, any, any> implemen
                 return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns['result']
                     if (value === undefined) {
-                        throw attachSource(new Error('No result returned by the database'), source)
+                        throw new Error('No result returned by the database')
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
@@ -112,7 +112,7 @@ export class SelectQueryBuilder extends SelectExpression<any, any, any> implemen
                     if (row) {
                         return this.__transformRow(row)
                     } else {
-                        throw attachSource(new Error('No result returned by the database'), source)
+                        throw new Error('No result returned by the database')
                     }
                 }).catch((e) => {
                     throw attachSource(new ChainedError(e), source)

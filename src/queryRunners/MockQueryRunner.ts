@@ -1,6 +1,6 @@
 import { QueryRunner, DatabaseType } from "./QueryRunner"
 
-export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback'
+export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
 
 export type QueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
 
@@ -121,6 +121,13 @@ export class MockQueryRunner implements QueryRunner {
     executeRollback(): Promise<void> {
         try {
             return Promise.resolve(this.queryExecutor('rollback', 'rollback', [], this.count++))
+        } catch (e) {
+            return Promise.reject(e)
+        }
+    }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        try {
+            return Promise.resolve(this.queryExecutor('executeDatabaseSchemaModification', query, params, this.count++))
         } catch (e) {
             return Promise.reject(e)
         }

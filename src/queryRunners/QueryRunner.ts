@@ -15,6 +15,7 @@ export interface QueryRunner {
     executeBeginTransaction(): Promise<void>
     executeCommit(): Promise<void>
     executeRollback(): Promise<void>
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void>
     addParam(params: any[], value: any): string
     addOutParam(params: any[], name: string): string
 }

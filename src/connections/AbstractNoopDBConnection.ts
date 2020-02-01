@@ -104,4 +104,9 @@ class NoopIterceptQueryRunner<T extends QueryRunner & QueryRunnerSupportedDB> ex
         this.lastParams = []
         return this.queryRunner.executeRollback()
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        this.lastQuery = query
+        this.lastParams = params
+        return this.queryRunner.executeDatabaseSchemaModification(query, params)
+    }
 }

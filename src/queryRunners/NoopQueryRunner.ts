@@ -61,6 +61,9 @@ export class NoopQueryRunner implements QueryRunner {
     executeRollback(): Promise<void> {
         return Promise.resolve()
     }
+    executeDatabaseSchemaModification(_query: string, _params: any[]): Promise<void> {
+        return Promise.resolve()
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         let result

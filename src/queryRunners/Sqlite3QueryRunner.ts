@@ -203,6 +203,17 @@ export class Sqlite3QueryRunner implements QueryRunner {
             })
         })
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.connection.run(query, params, function (error) {
+                if (error) {
+                    reject(error)
+                } else {
+                    resolve(undefined)
+                }
+            })
+        })
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         params.push(value)

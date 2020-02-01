@@ -184,6 +184,9 @@ export class AnyDBQueryRunner implements QueryRunner {
             })
         })
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        return this.query(query, params).then(() => undefined)
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         let result

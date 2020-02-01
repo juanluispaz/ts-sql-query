@@ -113,6 +113,9 @@ export class PgQueryRunner implements QueryRunner {
     executeRollback(): Promise<void> {
         return this.connection.query('rollback').then(() => undefined)
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        return this.connection.query(query, params).then(() => undefined)
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         params.push(value)

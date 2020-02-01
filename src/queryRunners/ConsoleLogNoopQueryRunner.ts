@@ -75,6 +75,10 @@ export class ConsoleLogNoopQueryRunner implements QueryRunner {
         console.log('executeRollback:', undefined, undefined)
         return Promise.resolve()
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        console.log('executeDatabaseSchemaModification:', query, params)
+        return Promise.resolve()
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         let result

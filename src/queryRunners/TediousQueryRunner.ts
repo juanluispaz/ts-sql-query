@@ -304,6 +304,21 @@ export class TediousQueryRunner implements QueryRunner {
             })
         })
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            const req = new Request(query, (error) => {
+                if (error) {
+                    reject(error)
+                } else {
+                    resolve(undefined)
+                }
+            })
+            for (var i = 0, length = params.length; i < length; i++) {
+                req.addParameter('' + i, this.getType(params, i), params[i])
+            }
+            this.connection.execSql(req)
+        })
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         params.push(value)

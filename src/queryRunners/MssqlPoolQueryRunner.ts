@@ -205,6 +205,13 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             this.transaction = undefined
         })
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        const req = this.request()
+        for (var i = 0, length = params.length; i < length; i++) {
+            req.input('' + i, { type: this.getType(params, i) }, params[i])
+        }
+        return req.batch(query).then(() => undefined)
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         params.push(value)

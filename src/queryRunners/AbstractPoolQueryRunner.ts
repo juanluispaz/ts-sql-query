@@ -127,6 +127,14 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             }
         }
     }
+    async executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        try {
+            const queryRunner = await this.getQueryRunner()
+            return await queryRunner.executeDatabaseSchemaModification(query, params)
+        } finally {
+            this.releaseIfNeeded()
+        }
+    }
     abstract addParam(params: any[], value: any): string
     abstract addOutParam(params: any[], name: string): string
 

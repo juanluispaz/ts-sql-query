@@ -71,6 +71,9 @@ export class ChainedQueryRunner<T extends QueryRunner & QueryRunnerSupportedDB> 
     executeRollback(): Promise<void> {
         return this.queryRunner.executeRollback()
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        return this.queryRunner.executeDatabaseSchemaModification(query, params)
+    }
     addParam(params: any[], value: any): string {
         return this.queryRunner.addParam(params, value)
     }

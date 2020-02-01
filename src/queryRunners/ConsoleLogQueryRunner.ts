@@ -67,4 +67,8 @@ export class ConsoleLogQueryRunner<T extends QueryRunner & QueryRunnerSupportedD
         console.log('executeRollback:', undefined, undefined)
         return this.queryRunner.executeRollback()
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        console.log('executeDatabaseSchemaModification:', query, params)
+        return this.executeDatabaseSchemaModification(query, params)
+    }
 }

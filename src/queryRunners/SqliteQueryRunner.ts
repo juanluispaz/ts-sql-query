@@ -96,6 +96,9 @@ export class SqliteQueryRunner implements QueryRunner {
     executeRollback(): Promise<void> {
         return this.connection.run('rollback').then(() => undefined)
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        return this.connection.run(query, params).then(() => undefined)
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         params.push(value)

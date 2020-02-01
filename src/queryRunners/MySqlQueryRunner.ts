@@ -204,6 +204,17 @@ export class MySqlQueryRunner implements QueryRunner {
             })
         })
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.connection.query(query, params, (error) => {
+                if (error) {
+                    reject(error)
+                } else {
+                    resolve(undefined)
+                }
+            })
+        })
+    }
     addParam(params: any[], value: any): string {
         params.push(value)
         return '?'

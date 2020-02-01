@@ -118,6 +118,9 @@ export class OracleDBQueryRunner implements QueryRunner {
     executeRollback(): Promise<void> {
         return this.connection.rollback()
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        return this.connection.execute(query, params).then(() => undefined)
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         params.push(value)

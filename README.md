@@ -1797,7 +1797,8 @@ The `MockQueryRunner` receives a function as argument to the constructor, this f
     type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
     'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 
     'executeProcedure' | 'executeFunction' | 
-    'beginTransaction' | 'commit' | 'rollback'
+    'beginTransaction' | 'commit' | 'rollback' |
+    'executeDatabaseSchemaModification'
     ```
 
 - **`query: string`**: query required to be executed

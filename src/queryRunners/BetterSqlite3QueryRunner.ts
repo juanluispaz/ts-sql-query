@@ -162,6 +162,14 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
             return Promise.reject(e)
         }
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        try {
+            this.connection.prepare(query).run(params)
+            return Promise.resolve(undefined)
+        } catch (e) {
+            return Promise.reject(e)
+        }
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         params.push(value)

@@ -94,6 +94,9 @@ export class MariaDBQueryRunner implements QueryRunner {
     executeRollback(): Promise<void> {
         return this.connection.rollback()
     }
+    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+        return this.connection.query({ sql: query, bigNumberStrings: true }, params).then(() => undefined)
+    }
     addParam(params: any[], value: any): string {
         params.push(value)
         return '?'

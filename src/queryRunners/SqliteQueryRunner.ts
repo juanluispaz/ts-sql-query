@@ -15,7 +15,7 @@ export class SqliteQueryRunner implements QueryRunner {
         return this.connection
     }
 
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return this.connection.all(query, params).then((rows) => {
             if (rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -23,10 +23,10 @@ export class SqliteQueryRunner implements QueryRunner {
             return rows[0]
         })
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         return this.connection.all(query, params)
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         return this.connection.all(query, params).then((rows) => {
             if (rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -42,7 +42,7 @@ export class SqliteQueryRunner implements QueryRunner {
             return undefined
         })
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         return this.connection.all(query, params).then((rows) => {
             return rows.map((row: any) => {
                 const columns = Object.getOwnPropertyNames(row)
@@ -53,25 +53,25 @@ export class SqliteQueryRunner implements QueryRunner {
             })
         })
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         return this.connection.run(query, params).then((result) => result.changes)
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return this.connection.run(query, params).then((result) => result.lastID)
     }
-    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
         throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         return this.connection.run(query, params).then((result) => result.changes)
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         return this.connection.run(query, params).then((result) => result.changes)
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         return this.connection.run(query, params).then(() => undefined)
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         return this.connection.all(query, params).then((rows) => {
             if (rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -96,7 +96,7 @@ export class SqliteQueryRunner implements QueryRunner {
     executeRollback(): Promise<void> {
         return this.connection.run('rollback').then(() => undefined)
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.connection.run(query, params).then(() => undefined)
     }
     addParam(params: any[], value: any): string {

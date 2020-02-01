@@ -16,7 +16,7 @@ export class MySqlQueryRunner implements QueryRunner {
         return this.connection
     }
 
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error, results) => {
                 if (error) {
@@ -31,7 +31,7 @@ export class MySqlQueryRunner implements QueryRunner {
             })
         })
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error, results) => {
                 if (error) {
@@ -42,7 +42,7 @@ export class MySqlQueryRunner implements QueryRunner {
             })
         })
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error, results) => {
                 if (error) {
@@ -67,7 +67,7 @@ export class MySqlQueryRunner implements QueryRunner {
             })
         })
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error, results) => {
                 if (error) {
@@ -88,7 +88,7 @@ export class MySqlQueryRunner implements QueryRunner {
             })
         })
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error, results) => {
                 if (error) {
@@ -99,7 +99,7 @@ export class MySqlQueryRunner implements QueryRunner {
             })
         })
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error, results) => {
                 if (error) {
@@ -110,10 +110,10 @@ export class MySqlQueryRunner implements QueryRunner {
             })
         })
     }
-    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
         throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error, results) => {
                 if (error) {
@@ -124,7 +124,7 @@ export class MySqlQueryRunner implements QueryRunner {
             })
         })
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error, results) => {
                 if (error) {
@@ -135,7 +135,7 @@ export class MySqlQueryRunner implements QueryRunner {
             })
         })
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error) => {
                 if (error) {
@@ -146,7 +146,7 @@ export class MySqlQueryRunner implements QueryRunner {
             })
         })
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error, results) => {
                 if (error) {
@@ -204,7 +204,7 @@ export class MySqlQueryRunner implements QueryRunner {
             })
         })
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error) => {
                 if (error) {

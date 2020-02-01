@@ -6,7 +6,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     abstract readonly database: DatabaseType
 
     abstract getNativeConnection(): unknown
-    async executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    async executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         try {
             const queryRunner = await this.getQueryRunner()
             return await queryRunner.executeSelectOneRow(query, params)
@@ -14,7 +14,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             this.releaseIfNeeded()
         }
     }
-    async executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    async executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         try {
             const queryRunner = await this.getQueryRunner()
             return await queryRunner.executeSelectManyRows(query, params)
@@ -22,7 +22,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             this.releaseIfNeeded()
         }
     }
-    async executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    async executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         try {
             const queryRunner = await this.getQueryRunner()
             return await queryRunner.executeSelectOneColumnOneRow(query, params)
@@ -30,7 +30,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             this.releaseIfNeeded()
         }
     }
-    async executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    async executeSelectOneColumnManyRows(query: string, params: any[] =[]): Promise<any[]> {
         try {
             const queryRunner = await this.getQueryRunner()
             return await queryRunner.executeSelectOneColumnManyRows(query, params)
@@ -38,7 +38,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             this.releaseIfNeeded()
         }
     }
-    async executeInsert(query: string, params: any[]): Promise<number> {
+    async executeInsert(query: string, params: any[] = []): Promise<number> {
         try {
             const queryRunner = await this.getQueryRunner()
             return await queryRunner.executeInsert(query, params)
@@ -46,7 +46,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             this.releaseIfNeeded()
         }
     }
-    async executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    async executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         try {
             const queryRunner = await this.getQueryRunner()
             return await queryRunner.executeInsertReturningLastInsertedId(query, params)
@@ -54,7 +54,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             this.releaseIfNeeded()
         }
     }
-    async executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any[]> {
+    async executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any[]> {
         try {
             const queryRunner = await this.getQueryRunner()
             return await queryRunner.executeInsertReturningMultipleLastInsertedId(query, params)
@@ -62,7 +62,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             this.releaseIfNeeded()
         }
     }
-    async executeUpdate(query: string, params: any[]): Promise<number> {
+    async executeUpdate(query: string, params: any[] = []): Promise<number> {
         try {
             const queryRunner = await this.getQueryRunner()
             return await queryRunner.executeUpdate(query, params)
@@ -70,7 +70,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             this.releaseIfNeeded()
         }
     }
-    async executeDelete(query: string, params: any[]): Promise<number> {
+    async executeDelete(query: string, params: any[] = []): Promise<number> {
         try {
             const queryRunner = await this.getQueryRunner()
             return await queryRunner.executeDelete(query, params)
@@ -78,7 +78,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             this.releaseIfNeeded()
         }
     }
-    async executeProcedure(query: string, params: any[]): Promise<void> {
+    async executeProcedure(query: string, params: any[] = []): Promise<void> {
         try {
             const queryRunner = await this.getQueryRunner()
             return await queryRunner.executeProcedure(query, params)
@@ -86,7 +86,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             this.releaseIfNeeded()
         }
     }
-    async executeFunction(query: string, params: any[]): Promise<any> {
+    async executeFunction(query: string, params: any[] = []): Promise<any> {
         try {
             const queryRunner = await this.getQueryRunner()
             return await queryRunner.executeFunction(query, params)
@@ -127,7 +127,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             }
         }
     }
-    async executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    async executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         try {
             const queryRunner = await this.getQueryRunner()
             return await queryRunner.executeDatabaseSchemaModification(query, params)

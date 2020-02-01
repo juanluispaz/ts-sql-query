@@ -34,57 +34,57 @@ class NoopIterceptQueryRunner<T extends QueryRunner & QueryRunnerSupportedDB> ex
     getNativeConnection(): unknown {
         return this.queryRunner.getNativeConnection()
     }
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         this.lastQuery = query
         this.lastParams = params
         return this.queryRunner.executeSelectOneRow(query, params)
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         this.lastQuery = query
         this.lastParams = params
         return this.queryRunner.executeSelectManyRows(query, params)
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         this.lastQuery = query
         this.lastParams = params
         return this.queryRunner.executeSelectOneColumnOneRow(query, params)
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         this.lastQuery = query
         this.lastParams = params
         return this.queryRunner.executeSelectOneColumnManyRows(query, params)
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         this.lastQuery = query
         this.lastParams = params
         return this.queryRunner.executeInsert(query, params)
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         this.lastQuery = query
         this.lastParams = params
         return this.queryRunner.executeInsertReturningLastInsertedId(query, params)
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         this.lastQuery = query
         this.lastParams = params
         return this.queryRunner.executeInsertReturningMultipleLastInsertedId(query, params)
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         this.lastQuery = query
         this.lastParams = params
         return this.queryRunner.executeUpdate(query, params)
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         this.lastQuery = query
         this.lastParams = params
         return this.queryRunner.executeDelete(query, params)
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         this.lastQuery = query
         this.lastParams = params
         return this.queryRunner.executeProcedure(query, params)
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         this.lastQuery = query
         this.lastParams = params
         return this.queryRunner.executeFunction(query, params)
@@ -104,7 +104,7 @@ class NoopIterceptQueryRunner<T extends QueryRunner & QueryRunnerSupportedDB> ex
         this.lastParams = []
         return this.queryRunner.executeRollback()
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         this.lastQuery = query
         this.lastParams = params
         return this.queryRunner.executeDatabaseSchemaModification(query, params)

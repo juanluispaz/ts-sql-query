@@ -11,47 +11,47 @@ export class ConsoleLogQueryRunner<T extends QueryRunner & QueryRunnerSupportedD
         return this.queryRunner.getNativeConnection()
     }
 
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         console.log('executeSelectOneRow:', query, params)
         return this.queryRunner.executeSelectOneRow(query, params)
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         console.log('executeSelectManyRows:', query, params)
         return this.queryRunner.executeSelectManyRows(query, params)
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         console.log('executeSelectOneColumnOneRow:', query, params)
         return this.queryRunner.executeSelectOneColumnOneRow(query, params)
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         console.log('executeSelectOneColumnManyRows:', query, params)
         return this.queryRunner.executeSelectOneColumnManyRows(query, params)
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         console.log('executeInsert:', query, params)
         return this.queryRunner.executeInsert(query, params)
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         console.log('executeInsertReturningLastInsertedId:', query, params)
         return this.queryRunner.executeInsertReturningLastInsertedId(query, params)
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         console.log('executeInsertReturningMultipleLastInsertedId:', query, params)
         return this.queryRunner.executeInsertReturningMultipleLastInsertedId(query, params)
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         console.log('executeUpdate:', query, params)
         return this.queryRunner.executeUpdate(query, params)
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         console.log('executeDelete:', query, params)
         return this.queryRunner.executeDelete(query, params)
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         console.log('executeProcedure:', query, params)
         return this.queryRunner.executeProcedure(query, params)
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         console.log('executeFunction:', query, params)
         return this.queryRunner.executeFunction(query, params)
     }
@@ -67,7 +67,7 @@ export class ConsoleLogQueryRunner<T extends QueryRunner & QueryRunnerSupportedD
         console.log('executeRollback:', undefined, undefined)
         return this.queryRunner.executeRollback()
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         console.log('executeDatabaseSchemaModification:', query, params)
         return this.executeDatabaseSchemaModification(query, params)
     }

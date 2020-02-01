@@ -38,7 +38,7 @@ export class AnyDBQueryRunner implements QueryRunner {
         return this.connection
     }
 
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return this.query(query, params).then((result) => {
             if (result.rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -46,10 +46,10 @@ export class AnyDBQueryRunner implements QueryRunner {
             result.rows[0]
         })
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         return this.query(query, params).then((result) => result.rows)
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         return this.query(query, params).then((result) => {
             if (result.rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -65,7 +65,7 @@ export class AnyDBQueryRunner implements QueryRunner {
             return undefined
         })
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         return this.query(query, params).then((result) => result.rows.map((row) => {
             const columns = Object.getOwnPropertyNames(row)
             if (columns.length > 1) {
@@ -74,10 +74,10 @@ export class AnyDBQueryRunner implements QueryRunner {
             return row[columns[0]]
         }))
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         return this.query(query, params).then((result) => result.rowCount)
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         const adapterName = this.connection.adapter.name
         if (adapterName !== 'mssql' && adapterName !== 'postgreSql') {
             throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
@@ -92,7 +92,7 @@ export class AnyDBQueryRunner implements QueryRunner {
             })
         })
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return this.query(query, params).then((result) => {
             if (result.lastInsertId !== undefined) {
                 return result.lastInsertId
@@ -111,16 +111,16 @@ export class AnyDBQueryRunner implements QueryRunner {
             throw new Error('Unable to find the last inserted id')
         })
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         return this.query(query, params).then((result) => result.rowCount)
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         return this.query(query, params).then((result) => result.rowCount)
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         return this.query(query, params).then(() => undefined)
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         return this.query(query, params).then((result) => {
             if (result.rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -184,7 +184,7 @@ export class AnyDBQueryRunner implements QueryRunner {
             })
         })
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.query(query, params).then(() => undefined)
     }
     addParam(params: any[], value: any): string {

@@ -15,7 +15,7 @@ export class Sqlite3QueryRunner implements QueryRunner {
         return this.connection
     }
 
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.all(query, params, function (error, rows) {
                 if (error) {
@@ -30,7 +30,7 @@ export class Sqlite3QueryRunner implements QueryRunner {
             })
         })
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         return new Promise((resolve, reject) => {
             this.connection.all(query, params, function (error, rows) {
                 if (error) {
@@ -41,7 +41,7 @@ export class Sqlite3QueryRunner implements QueryRunner {
             })
         })
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.all(query, params, function (error, rows) {
                 if (error) {
@@ -66,7 +66,7 @@ export class Sqlite3QueryRunner implements QueryRunner {
             })
         })
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         return new Promise((resolve, reject) => {
             this.connection.all(query, params, function (error, rows) {
                 if (error) {
@@ -87,7 +87,7 @@ export class Sqlite3QueryRunner implements QueryRunner {
             })
         })
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         return new Promise((resolve, reject) => {
             this.connection.run(query, params, function (error) {
                 if (error) {
@@ -98,7 +98,7 @@ export class Sqlite3QueryRunner implements QueryRunner {
             })
         })
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.run(query, params, function (error) {
                 if (error) {
@@ -109,10 +109,10 @@ export class Sqlite3QueryRunner implements QueryRunner {
             })
         })
     }
-    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
         throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         return new Promise((resolve, reject) => {
             this.connection.run(query, params, function (error) {
                 if (error) {
@@ -123,7 +123,7 @@ export class Sqlite3QueryRunner implements QueryRunner {
             })
         })
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         return new Promise((resolve, reject) => {
             this.connection.run(query, params, function (error) {
                 if (error) {
@@ -134,7 +134,7 @@ export class Sqlite3QueryRunner implements QueryRunner {
             })
         })
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         return new Promise((resolve, reject) => {
             this.connection.run(query, params, function (error) {
                 if (error) {
@@ -145,7 +145,7 @@ export class Sqlite3QueryRunner implements QueryRunner {
             })
         })
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.all(query, params, function (error, rows) {
                 if (error) {
@@ -203,7 +203,7 @@ export class Sqlite3QueryRunner implements QueryRunner {
             })
         })
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return new Promise((resolve, reject) => {
             this.connection.run(query, params, function (error) {
                 if (error) {

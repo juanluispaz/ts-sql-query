@@ -16,7 +16,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
         return this.pool
     }
 
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
@@ -31,7 +31,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             return result.recordset[0]
         })
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
@@ -43,7 +43,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             return result.recordset
         })
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
@@ -66,7 +66,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             return undefined
         })
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
@@ -84,7 +84,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             })
         })
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
@@ -93,7 +93,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             return result.rowsAffected[0]
         })
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
@@ -116,7 +116,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             throw new Error('Unable to find the last inserted id')
         })
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
@@ -134,7 +134,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             })
         })
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
@@ -143,7 +143,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             return result.rowsAffected[0]
         })
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
@@ -152,14 +152,14 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             return result.rowsAffected[0]
         })
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
         }
         return req.query(query).then(() => undefined)
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
@@ -205,7 +205,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             this.transaction = undefined
         })
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])

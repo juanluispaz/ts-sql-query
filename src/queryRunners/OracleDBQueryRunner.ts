@@ -15,7 +15,7 @@ export class OracleDBQueryRunner implements QueryRunner {
         return this.connection
     }
 
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return this.connection.execute(query, params, { outFormat: OBJECT }).then((result) => {
             if (result.rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -23,10 +23,10 @@ export class OracleDBQueryRunner implements QueryRunner {
             result.rows[0]
         })
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         return this.connection.execute(query, params, {outFormat: OBJECT}).then((result) => result.rows)
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         return this.connection.execute(query, params, { outFormat: ARRAY }).then((result) => {
             if (result.rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -42,7 +42,7 @@ export class OracleDBQueryRunner implements QueryRunner {
             }
         })
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         return this.connection.execute(query, params, { outFormat: ARRAY }).then((result) => result.rows.map((row) => {
             if ((row as Array<any>).length > 1) {
                 throw new Error('Too many columns, expected only one column')
@@ -50,10 +50,10 @@ export class OracleDBQueryRunner implements QueryRunner {
             return (row as Array<any>)[0]
         }))
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         return this.connection.execute(query, params).then((result) => result.rowsAffected)
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return this.connection.execute(query, params).then((result) => {
             const outBinds = result.outBinds
             if (!outBinds) {
@@ -68,7 +68,7 @@ export class OracleDBQueryRunner implements QueryRunner {
             throw new Error('Unable to find the last inserted id')
         })
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return this.connection.execute(query, params).then((result) => {
             const outBinds = result.outBinds
             if (!outBinds) {
@@ -84,16 +84,16 @@ export class OracleDBQueryRunner implements QueryRunner {
             }
         })
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         return this.connection.execute(query, params).then((result) => result.rowsAffected)
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         return this.connection.execute(query, params).then((result) => result.rowsAffected)
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         return this.connection.execute(query, params).then(() => undefined)
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         return this.connection.execute(query, params).then((result) => {
             const outBinds = result.outBinds
             if (!outBinds) {
@@ -118,7 +118,7 @@ export class OracleDBQueryRunner implements QueryRunner {
     executeRollback(): Promise<void> {
         return this.connection.rollback()
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.connection.execute(query, params).then(() => undefined)
     }
     addParam(params: any[], value: any): string {

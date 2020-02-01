@@ -19,37 +19,37 @@ export class NoopQueryRunner implements QueryRunner {
         return null
     }
 
-    executeSelectOneRow(_query: string, _params: any[]): Promise<any> {
+    executeSelectOneRow(_query: string, _params: any[] = []): Promise<any> {
         return Promise.resolve(undefined)
     }
-    executeSelectManyRows(_query: string, _params: any[]): Promise<any[]> {
+    executeSelectManyRows(_query: string, _params: any[] = []): Promise<any[]> {
         return Promise.resolve([])
     }
-    executeSelectOneColumnOneRow(_query: string, _params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(_query: string, _params: any[] = []): Promise<any> {
         return Promise.resolve(undefined)
     }
-    executeSelectOneColumnManyRows(_query: string, _params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(_query: string, _params: any[] = []): Promise<any[]> {
         return Promise.resolve([])
     }
-    executeInsert(_query: string, _params: any[]): Promise<number> {
+    executeInsert(_query: string, _params: any[] = []): Promise<number> {
         return Promise.resolve(0)
     }
-    executeInsertReturningLastInsertedId(_query: string, _params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
         return Promise.resolve(undefined)
     }
-    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
         return Promise.resolve([])
     }
-    executeUpdate(_query: string, _params: any[]): Promise<number> {
+    executeUpdate(_query: string, _params: any[] = []): Promise<number> {
         return Promise.resolve(0)
     }
-    executeDelete(_query: string, _params: any[]): Promise<number> {
+    executeDelete(_query: string, _params: any[] = []): Promise<number> {
         return Promise.resolve(0)
     }
-    executeProcedure(_query: string, _params: any[]): Promise<void> {
+    executeProcedure(_query: string, _params: any[] = []): Promise<void> {
         return Promise.resolve()
     }
-    executeFunction(_query: string, _params: any[]): Promise<any> {
+    executeFunction(_query: string, _params: any[] = []): Promise<any> {
         return Promise.resolve(undefined)
     }
     executeBeginTransaction(): Promise<void> {
@@ -61,7 +61,7 @@ export class NoopQueryRunner implements QueryRunner {
     executeRollback(): Promise<void> {
         return Promise.resolve()
     }
-    executeDatabaseSchemaModification(_query: string, _params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(_query: string, _params: any[] = []): Promise<void> {
         return Promise.resolve()
     }
     addParam(params: any[], value: any): string {

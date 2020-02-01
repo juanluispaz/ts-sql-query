@@ -15,7 +15,7 @@ export class PgQueryRunner implements QueryRunner {
         return this.connection
     }
 
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return this.connection.query(query, params).then((result) => {
             if (result.rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -23,10 +23,10 @@ export class PgQueryRunner implements QueryRunner {
             result.rows[0]
         })
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         return this.connection.query(query, params).then((result) => result.rows)
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         return this.connection.query({ text: query, values: params, rowMode: 'array' }).then((result) => {
             if (result.rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -42,7 +42,7 @@ export class PgQueryRunner implements QueryRunner {
             }
         })
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         return this.connection.query({ text: query, values: params, rowMode: 'array' }).then((result) => result.rows.map((row) => {
             if (row.length > 1) {
                 throw new Error('Too many columns, expected only one column')
@@ -50,10 +50,10 @@ export class PgQueryRunner implements QueryRunner {
             return row[0]
         }))
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         return this.connection.query(query, params).then((result) => result.rowCount)
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return this.connection.query({ text: query, values: params, rowMode: 'array' }).then((result) => {
             if (result.rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -69,7 +69,7 @@ export class PgQueryRunner implements QueryRunner {
             }
         })
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return this.connection.query({ text: query, values: params, rowMode: 'array' }).then((result) => {
             return result.rows.map((row) => {
                 if (row.length > 1) {
@@ -79,16 +79,16 @@ export class PgQueryRunner implements QueryRunner {
             })
         })
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         return this.connection.query(query, params).then((result) => result.rowCount)
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         return this.connection.query(query, params).then((result) => result.rowCount)
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         return this.connection.query(query, params).then(() => undefined)
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         return this.connection.query({ text: query, values: params, rowMode: 'array' }).then((result) => {
             if (result.rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -113,7 +113,7 @@ export class PgQueryRunner implements QueryRunner {
     executeRollback(): Promise<void> {
         return this.connection.query('rollback').then(() => undefined)
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.connection.query(query, params).then(() => undefined)
     }
     addParam(params: any[], value: any): string {

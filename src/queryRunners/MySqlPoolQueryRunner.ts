@@ -25,7 +25,7 @@ export class MySqlPoolQueryRunner extends AbstractPoolQueryRunner {
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')
     }
-    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
         throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
     }
     protected async createQueryRunner(): Promise<QueryRunner> {

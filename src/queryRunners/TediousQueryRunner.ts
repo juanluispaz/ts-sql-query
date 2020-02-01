@@ -15,7 +15,7 @@ export class TediousQueryRunner implements QueryRunner {
         return this.connection
     }
 
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             let result: any = null
             const req = new Request(query, (error) => {
@@ -41,7 +41,7 @@ export class TediousQueryRunner implements QueryRunner {
             this.connection.execSql(req)
         })
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         return new Promise((resolve, reject) => {
             let result: any[] = []
             const req = new Request(query, (error) => {
@@ -65,7 +65,7 @@ export class TediousQueryRunner implements QueryRunner {
             this.connection.execSql(req)
         })
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             let result: any = undefined
             const req = new Request(query, (error) => {
@@ -95,7 +95,7 @@ export class TediousQueryRunner implements QueryRunner {
             this.connection.execSql(req)
         })
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         return new Promise((resolve, reject) => {
             let result: any[] = []
             const req = new Request(query, (error) => {
@@ -122,7 +122,7 @@ export class TediousQueryRunner implements QueryRunner {
             this.connection.execSql(req)
         })
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         return new Promise((resolve, reject) => {
             const req = new Request(query, (error, rowCount) => {
                 if (error) {
@@ -137,7 +137,7 @@ export class TediousQueryRunner implements QueryRunner {
             this.connection.execSql(req)
         })
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             let result: any = undefined
             const req = new Request(query, (error) => {
@@ -171,7 +171,7 @@ export class TediousQueryRunner implements QueryRunner {
             this.connection.execSql(req)
         })
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             let result: any[] = []
             const req = new Request(query, (error) => {
@@ -196,7 +196,7 @@ export class TediousQueryRunner implements QueryRunner {
             this.connection.execSql(req)
         })
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         return new Promise((resolve, reject) => {
             const req = new Request(query, (error, rowCount) => {
                 if (error) {
@@ -211,7 +211,7 @@ export class TediousQueryRunner implements QueryRunner {
             this.connection.execSql(req)
         })
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         return new Promise((resolve, reject) => {
             const req = new Request(query, (error, rowCount) => {
                 if (error) {
@@ -226,7 +226,7 @@ export class TediousQueryRunner implements QueryRunner {
             this.connection.execSql(req)
         })
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         return new Promise((resolve, reject) => {
             const req = new Request(query, (error) => {
                 if (error) {
@@ -241,7 +241,7 @@ export class TediousQueryRunner implements QueryRunner {
             this.connection.execSql(req)
         })
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             let result: any = undefined
             const req = new Request(query, (error) => {
@@ -304,7 +304,7 @@ export class TediousQueryRunner implements QueryRunner {
             })
         })
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return new Promise((resolve, reject) => {
             const req = new Request(query, (error) => {
                 if (error) {

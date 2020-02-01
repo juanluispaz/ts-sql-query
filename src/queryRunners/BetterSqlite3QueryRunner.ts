@@ -15,7 +15,7 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
         return this.connection
     }
 
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         try {
             const rows = this.connection.prepare(query).safeIntegers(true).all(params)
             if (rows.length > 1) {
@@ -30,7 +30,7 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
             return Promise.reject(e)
         }
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         try {
             const rows = this.connection.prepare(query).safeIntegers(true).all(params)
             for (var i = 0, length = rows.length; i < length; i++) {
@@ -44,7 +44,7 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
             return Promise.reject(e)
         }
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         try {
             const rows = this.connection.prepare(query).safeIntegers(true).all(params)
             if (rows.length > 1) {
@@ -63,7 +63,7 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
             return Promise.reject(e)
         }
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         try {
             const rows = this.connection.prepare(query).safeIntegers(true).all(params)
             const result = []
@@ -80,38 +80,38 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
             return Promise.reject(e)
         }
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         try {
             return Promise.resolve(this.connection.prepare(query).run(params).changes)
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         try {
             return Promise.resolve(toStringInt(this.connection.prepare(query).safeIntegers(true).run(params).lastInsertRowid))
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
         throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         try {
             return Promise.resolve(this.connection.prepare(query).run(params).changes)
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         try {
             return Promise.resolve(this.connection.prepare(query).run(params).changes)
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         try {
             this.connection.prepare(query).run(params)
             return Promise.resolve(undefined)
@@ -119,7 +119,7 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
             return Promise.reject(e)
         }
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         try {
             const rows = this.connection.prepare(query).safeIntegers(true).all(params)
             if (rows.length > 1) {
@@ -162,7 +162,7 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
             return Promise.reject(e)
         }
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         try {
             this.connection.prepare(query).run(params)
             return Promise.resolve(undefined)

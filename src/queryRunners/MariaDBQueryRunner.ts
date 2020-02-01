@@ -16,7 +16,7 @@ export class MariaDBQueryRunner implements QueryRunner {
         return this.connection
     }
 
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: any[]) => {
             if (result.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -24,10 +24,10 @@ export class MariaDBQueryRunner implements QueryRunner {
             return result[0]
         })
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params)
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         return this.connection.query({ sql: query, rowsAsArray: true, bigNumberStrings: true }, params).then((result: any[][]) => {
             if (result.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -43,7 +43,7 @@ export class MariaDBQueryRunner implements QueryRunner {
             }
         })
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         return this.connection.query({ sql: query, rowsAsArray: true, bigNumberStrings: true }, params).then((result: any[][]) => result.map((row) => {
             if (row.length > 1) {
                 throw new Error('Too many columns, expected only one column')
@@ -51,25 +51,25 @@ export class MariaDBQueryRunner implements QueryRunner {
             return row[0]
         }))
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.affectedRows)
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.insertId)
     }
-    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
         throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.affectedRows)
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.affectedRows)
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then(() => undefined)
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         return this.connection.query({ sql: query, rowsAsArray: true, bigNumberStrings: true }, params).then((result: any[][]) => {
             if (result.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -94,7 +94,7 @@ export class MariaDBQueryRunner implements QueryRunner {
     executeRollback(): Promise<void> {
         return this.connection.rollback()
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then(() => undefined)
     }
     addParam(params: any[], value: any): string {

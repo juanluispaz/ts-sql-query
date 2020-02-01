@@ -41,7 +41,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
         return this.connection
     }
 
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, function (error, rows) {
                 if (error) {
@@ -56,7 +56,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
             })
         })
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, function (error, rows) {
                 if (error) {
@@ -69,7 +69,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
             })
         })
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, function (error, rows) {
                 if (error) {
@@ -93,7 +93,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
             })
         })
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, function (error, rows) {
                 if (error) {
@@ -116,7 +116,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
             })
         })
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         return new Promise((resolve, reject) => {
             let rowCount = 0
             this.connection.query(query, params, function (error) {
@@ -130,7 +130,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
              })
         })
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, function (error, rows) {
                 if (error) {
@@ -154,7 +154,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
             })
         })
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, function (error, rows) {
                 if (error) {
@@ -174,7 +174,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
             })
         })
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         return new Promise((resolve, reject) => {
             let rowCount = 0
             this.connection.query(query, params, function (error) {
@@ -188,7 +188,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
              })
         })
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         return new Promise((resolve, reject) => {
             let rowCount = 0
             this.connection.query(query, params, function (error) {
@@ -202,7 +202,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
              })
         })
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, function (error) {
                 if (error) {
@@ -213,7 +213,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
             })
         })
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, function (error, rows) {
                 if (error) {
@@ -270,7 +270,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
             })
         })
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, function (error) {
                 if (error) {

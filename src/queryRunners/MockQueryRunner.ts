@@ -27,77 +27,77 @@ export class MockQueryRunner implements QueryRunner {
         return null
     }
 
-    executeSelectOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         try {
             return Promise.resolve(this.queryExecutor('selectOneRow', query, params, this.count++))
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeSelectManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         try {
             return Promise.resolve(this.queryExecutor('selectManyRows', query, params, this.count++) || [])
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeSelectOneColumnOneRow(query: string, params: any[]): Promise<any> {
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         try {
             return Promise.resolve(this.queryExecutor('selectOneColumnOneRow', query, params, this.count++))
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeSelectOneColumnManyRows(query: string, params: any[]): Promise<any[]> {
+    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         try {
             return Promise.resolve(this.queryExecutor('selectOneColumnManyRows', query, params, this.count++) || [])
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeInsert(query: string, params: any[]): Promise<number> {
+    executeInsert(query: string, params: any[] = []): Promise<number> {
         try {
             return Promise.resolve(this.queryExecutor('insert', query, params, this.count++))
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         try {
             return Promise.resolve(this.queryExecutor('insertReturningLastInsertedId', query, params, this.count++))
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         try {
             return Promise.resolve(this.queryExecutor('insertReturningMultipleLastInsertedId', query, params, this.count++))
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeUpdate(query: string, params: any[]): Promise<number> {
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
         try {
             return Promise.resolve(this.queryExecutor('update', query, params, this.count++))
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeDelete(query: string, params: any[]): Promise<number> {
+    executeDelete(query: string, params: any[] = []): Promise<number> {
         try {
             return Promise.resolve(this.queryExecutor('delete', query, params, this.count++))
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeProcedure(query: string, params: any[]): Promise<void> {
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
         try {
             return Promise.resolve(this.queryExecutor('executeProcedure', query, params, this.count++))
         } catch (e) {
             return Promise.reject(e)
         }
     }
-    executeFunction(query: string, params: any[]): Promise<any> {
+    executeFunction(query: string, params: any[] = []): Promise<any> {
         try {
             return Promise.resolve(this.queryExecutor('executeFunction', query, params, this.count++))
         } catch (e) {
@@ -125,7 +125,7 @@ export class MockQueryRunner implements QueryRunner {
             return Promise.reject(e)
         }
     }
-    executeDatabaseSchemaModification(query: string, params: any[]): Promise<void> {
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         try {
             return Promise.resolve(this.queryExecutor('executeDatabaseSchemaModification', query, params, this.count++))
         } catch (e) {

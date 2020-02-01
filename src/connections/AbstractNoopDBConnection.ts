@@ -64,6 +64,11 @@ class NoopIterceptQueryRunner<T extends QueryRunner & QueryRunnerSupportedDB> ex
         this.lastParams = params
         return this.queryRunner.executeInsertReturningLastInsertedId(query, params)
     }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[]): Promise<any> {
+        this.lastQuery = query
+        this.lastParams = params
+        return this.queryRunner.executeInsertReturningMultipleLastInsertedId(query, params)
+    }
     executeUpdate(query: string, params: any[]): Promise<number> {
         this.lastQuery = query
         this.lastParams = params

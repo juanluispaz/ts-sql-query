@@ -82,6 +82,23 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         return ' order by ' + orderByColumns
     }
+    _buildSelectLimitOffset(query: SelectData, params: any[]): string {
+        let result = ''
+
+        const limit = query.__limit
+        const offset = query.__offset
+        if (offset !== null && offset !== undefined) {
+            result += ' offset ' + this._appendValue(offset, params, 'int', undefined) + ' rows'
+        } 
+        
+        if (limit !== null && limit !== undefined) {
+            if (!result) {
+                result += ' offset 0 rows'
+            }
+            result += ' fetch next ' + this._appendValue(limit, params, 'int', undefined) + ' rows only'
+        }
+        return result
+    }
     _buildInsertOutput(query: InsertData, params: any[]): string {
         const idColumn = query.__idColumn
         if (!idColumn) {

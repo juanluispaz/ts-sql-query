@@ -20,7 +20,7 @@ export class PgQueryRunner implements QueryRunner {
             if (result.rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
             }
-            result.rows[0]
+            return result.rows[0]
         })
     }
     executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {

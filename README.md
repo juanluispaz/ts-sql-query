@@ -2251,6 +2251,8 @@ async function main() {
 
 It allows to execute the queries using a [tedious](https://www.npmjs.com/package/tedious) connection and a [tedious-connection-pool](https://www.npmjs.com/package/tedious-connection-pool) pool.
 
+**Note**: This is not working due the bug https://github.com/tediousjs/tedious-connection-pool/issues/60
+
 **Supported databases**: sqlServer
 
 ```ts

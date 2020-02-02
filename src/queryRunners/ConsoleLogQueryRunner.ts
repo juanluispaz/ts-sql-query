@@ -69,6 +69,6 @@ export class ConsoleLogQueryRunner<T extends QueryRunner & QueryRunnerSupportedD
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         console.log('executeDatabaseSchemaModification:', query, params)
-        return this.executeDatabaseSchemaModification(query, params)
+        return this.queryRunner.executeDatabaseSchemaModification(query, params)
     }
 }

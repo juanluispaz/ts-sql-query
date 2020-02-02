@@ -45,7 +45,25 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // How to index it: http://www.sqlines.com/oracle/function_based_indexes
         const orderBy = query.__orderBy
         if (!orderBy) {
-            return ''
+            const limit = query.__limit
+            const offset = query.__offset
+            if ((offset !== null && offset !== undefined) || (limit !== null && limit !== undefined)) {
+                // Add fake order by to allow a limit and offset without order by
+                const columns = query.__columns
+                let index = 0
+                for (const property in columns) {
+                    index++
+                    const column = columns[property]
+                    if (column instanceof ColumnImpl) {
+                        if (column.__isPrimaryKey) {
+                            return ' order by ' + index
+                        }
+                    }
+                }
+                return ' order by 1'
+            } else {
+                return ''
+            }
         }
         let orderByColumns = ''
         for (const property in orderBy) {

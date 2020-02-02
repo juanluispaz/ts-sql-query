@@ -12,7 +12,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         super()
         this._operationsThatNeedParenthesis._getDate = true
         this._operationsThatNeedParenthesis._getMilliseconds = false
-        this._operationsThatNeedParenthesis._currentSequenceValue = true
     }
 
     _forceAsIdentifier(identifier: string): string {
@@ -25,7 +24,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 'next value for ' + this._escape(sequenceName)
     }
     _currentSequenceValue(_params: any[], sequenceName: string): string {
-        return "select current_value from sys.sequences where name = '" + sequenceName + "'"
+        return "(select current_value from sys.sequences where name = '" + sequenceName + "')"
     }
     _trueValue = 'convert(bit, 1)'
     _falseValue = 'convert(bit, 0)'

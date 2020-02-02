@@ -2182,7 +2182,7 @@ It allows to execute the queries using a [pg](https://www.npmjs.com/package/pg) 
 **Supported databases**: postgreSql
 
 ```ts
-const { Pool } = require('pg');
+import { Pool, PoolClient } from 'pg';
 import { PgPoolQueryRunner } from "ts-sql-query/queryRunners/PgPoolQueryRunner";
 
 const pool = new Pool({
@@ -2206,7 +2206,7 @@ It allows to execute the queries using a [pg](https://www.npmjs.com/package/pg) 
 **Supported databases**: postgreSql
 
 ```ts
-const { Pool } = require('pg');
+import { Pool, PoolClient } from 'pg';
 import { PgQueryRunner } from "ts-sql-query/queryRunners/PgQueryRunner";
 
 const pool = new Pool({

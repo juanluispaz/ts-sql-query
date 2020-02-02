@@ -278,7 +278,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _getMilliseconds(params: any[], valueSource: ToSql): string {
         return 'datepart(millisecond, ' + this._appendSql(valueSource, params) + ')'
     }
-    _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any, any>[]): string {
+    _buildCallProcedure(params: any[], functionName: string, functionParams: ValueSource<any, any, any>[]): string {
         let result = 'exec ' + this._escape(functionName)
         for (let i = 0, length = functionParams.length; i < length; i++) {
             result += ' ' + this._appendSql(functionParams[i], params)

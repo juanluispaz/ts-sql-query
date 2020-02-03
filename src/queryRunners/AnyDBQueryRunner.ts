@@ -78,23 +78,8 @@ export class AnyDBQueryRunner implements QueryRunner {
         return this.query(query, params).then((result) => result.rowCount)
     }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        const adapterName = this.connection.adapter.name
-        if (adapterName !== 'mssql' && adapterName !== 'postgreSql') {
-            throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
-        }
         return this.query(query, params).then((result) => {
-            return result.rows.map((row) => {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]]
-            })
-        })
-    }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((result) => {
-            if (result.lastInsertId !== undefined) {
+            if (result.lastInsertId !== undefined && result.lastInsertId !== null) {
                 return result.lastInsertId
             }
             if (result.rows.length > 1) {
@@ -109,6 +94,21 @@ export class AnyDBQueryRunner implements QueryRunner {
                 return row[columns[0]]
             }
             throw new Error('Unable to find the last inserted id')
+        })
+    }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
+        const adapterName = this.connection.adapter.name
+        if (adapterName !== 'mssql' && adapterName !== 'postgres') {
+            throw new Error('Unsupported executeInsertReturningMultipleLastInsertedId for this database')
+        }
+        return this.query(query, params).then((result) => {
+            return result.rows.map((row) => {
+                const columns = Object.getOwnPropertyNames(row)
+                if (columns.length > 1) {
+                    throw new Error('Too many columns, expected only one column')
+                }
+                return row[columns[0]]
+            })
         })
     }
     executeUpdate(query: string, params: any[] = []): Promise<number> {

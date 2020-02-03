@@ -1858,10 +1858,10 @@ It internally uses:
 **Note**: All of these implementations have a direct implementation here as alternative.
 
 ```ts
-const sql = require('mssql');
+import { ConnectionPool } from 'mssql'
 import { MssqlPoolPromiseQueryRunner } from "./queryRunners/MssqlPoolPromiseQueryRunner";
 
-const poolPromise = new sql.ConnectionPool({
+const poolPromise = new ConnectionPool({
     user: '...',
     password: '...',
     server: 'localhost',
@@ -1887,10 +1887,10 @@ It internally uses:
 **Note**: All of these implementations have a direct implementation here as alternative.
 
 ```ts
-const sql = require('mssql');
+import { ConnectionPool } from 'mssql'
 import { MssqlPoolQueryRunner } from "./queryRunners/MssqlPoolQueryRunner";
 
-const poolPromise = new sql.ConnectionPool({
+const poolPromise = new ConnectionPool({
     user: '...',
     password: '...',
     server: 'localhost',

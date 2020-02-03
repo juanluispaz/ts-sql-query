@@ -1599,7 +1599,7 @@ It allows to execute the queries using an [any-db](https://www.npmjs.com/package
 
 It internally uses:
 - [tedious](https://www.npmjs.com/package/tedious) for connections to SqlServer
-- [mysql](https://www.npmjs.com/package/mysql) for connections to MariaDB and MySql
+- [mysql](https://www.npmjs.com/package/mysql) for connections to MariaDB and MySql. It is not working properly due the bug https://github.com/Hypermediaisobar-admin/node-any-db-mssql/issues/1
 - [pg](https://www.npmjs.com/package/pg) for connections to PostgreSql
 - [sqlite3](https://www.npmjs.com/package/sqlite3) for connections to SqlLite
 
@@ -1631,7 +1631,7 @@ It allows to execute the queries using an [any-db](https://www.npmjs.com/package
 
 It internally uses:
 - [tedious](https://www.npmjs.com/package/tedious) for connections to SqlServer
-- [mysql](https://www.npmjs.com/package/mysql) for connections to MariaDB and MySql
+- [mysql](https://www.npmjs.com/package/mysql) for connections to MariaDB and MySql. It is not working properly due the bug https://github.com/Hypermediaisobar-admin/node-any-db-mssql/issues/1
 - [pg](https://www.npmjs.com/package/pg) for connections to PostgreSql
 - [sqlite3](https://www.npmjs.com/package/sqlite3) for connections to SqlLite
 

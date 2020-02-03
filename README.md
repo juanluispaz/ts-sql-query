@@ -1606,15 +1606,12 @@ It internally uses:
 **Note**: All of these implementations have a direct implementation here as alternative.
 
 ```ts
-const anyDB = require('any-db');
+import { createPool } from 'any-db'
 import { AnyDBPoolQueryRunner } from "ts-sql-query/queryRunners/AnyDBPoolQueryRunner";
 
-const pool = anyDB.createPool('postgres://user:pass@localhost/dbname', {
+const pool = createPool('postgres://user:pass@localhost/dbname', {
   min: 5,
-  max: 15,
-  reset: function(conn, done) {
-    conn.query('ROLLBACK', done)
-  },
+  max: 15
 });
 
 async function main() {
@@ -1638,15 +1635,12 @@ It internally uses:
 **Note**: All of these implementations have a direct implementation here as alternative.
 
 ```ts
-const anyDB = require('any-db');
+import { createPool } from 'any-db'
 import { AnyDBQueryRunner } from "ts-sql-query/queryRunners/AnyDBQueryRunner";
 
-const pool = anyDB.createPool('postgres://user:pass@localhost/dbname', {
+const pool = createPool('postgres://user:pass@localhost/dbname', {
   min: 5,
-  max: 15,
-  reset: function(conn, done) {
-    conn.query('ROLLBACK', done)
-  },
+  max: 15
 });
 
 function main() {

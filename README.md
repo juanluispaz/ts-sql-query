@@ -2052,10 +2052,10 @@ It allows to execute the queries using an [oracledb](https://www.npmjs.com/packa
 **Supported databases**: oracle
 
 ```ts
-const oracledb = require('oracledb');
+import { createPool } from 'oracledb';
 import { OracleDBPoolPromiseQueryRunner } from "ts-sql-query/queryRunners/OracleDBPoolPromiseQueryRunner";
 
-const poolPromise = oracledb.createPool({
+const poolPromise = createPool({
     user: 'user',
     password: 'pwd',
     connectString: 'localhost/XEPDB1'
@@ -2074,7 +2074,7 @@ async function closePoolAndExit() {
 process
   .once('SIGTERM', closePoolAndExit)
   .once('SIGINT',  closePoolAndExit)
-  .once('beforeExit',  closePoolAndExit);;
+  .once('beforeExit',  closePoolAndExit);
 
 async function main() {
     const connection = new DBConection(new OracleDBPoolPromiseQueryRunner(poolPromise));
@@ -2089,10 +2089,10 @@ It allows to execute the queries using an [oracledb](https://www.npmjs.com/packa
 **Supported databases**: oracle
 
 ```ts
-const oracledb = require('oracledb');
+import { createPool } from 'oracledb';
 import { OracleDBPoolQueryRunner } from "ts-sql-query/queryRunners/OracleDBPoolQueryRunner";
 
-const poolPromise = oracledb.createPool({
+const poolPromise = createPool({
     user: 'user',
     password: 'pwd',
     connectString: 'localhost/XEPDB1'
@@ -2111,7 +2111,7 @@ async function closePoolAndExit() {
 process
   .once('SIGTERM', closePoolAndExit)
   .once('SIGINT',  closePoolAndExit)
-  .once('beforeExit',  closePoolAndExit);;
+  .once('beforeExit',  closePoolAndExit);
 
 async function main() {
     const pool = await poolPromise;
@@ -2127,12 +2127,12 @@ It allows to execute the queries using an [oracledb](https://www.npmjs.com/packa
 **Supported databases**: oracle
 
 ```ts
-const oracledb = require('oracledb');
+import { createPool } from 'oracledb';
 import { OracleDBQueryRunner } from "ts-sql-query/queryRunners/OracleDBQueryRunner";
 
 async function init() {
     try {
-        await oracledb.createPool({
+        await createPool({
             user: 'user',
             password: 'pwd',
             connectString: 'localhost/XEPDB1'
@@ -2154,7 +2154,8 @@ async function closePoolAndExit() {
 
 process
   .once('SIGTERM', closePoolAndExit)
-  .once('SIGINT',  closePoolAndExit);
+  .once('SIGINT',  closePoolAndExit)
+  .once('beforeExit',  closePoolAndExit);
 
 init();
 

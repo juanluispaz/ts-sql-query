@@ -29,6 +29,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _valuePlaceholder(index: number, _columnType: string): string {
         return ':' + index
     }
+    _appendColumnAlias(name: string, _params: any[]): string {
+        return '"' + name + '"'
+    }
     _buildInsertMultiple(query: InsertData, params: any[]): string {
         const multiple = query.__multiple
         if (!multiple) {

@@ -189,6 +189,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _valuePlaceholder(index: number, _columnType: string): string {
         return '$' + index
     }
+    _appendColumnAlias(name: string, _params: any[]): string {
+        return this._escape(name)
+    }
     _buildSelect(query: SelectData, params: any[]): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 
@@ -217,7 +220,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
             selectQuery += this._appendSql(columns[property], params)
             if (property) {
-                selectQuery += ' as ' + this._escape(property)
+                selectQuery += ' as ' + this._appendColumnAlias(property, params)
             }
             requireComma = true
         }
@@ -299,7 +302,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _fromNoTable() {
         return ''
     }
-    _buildSelectOrderBy(query: SelectData, _params: any[]): string {
+    _buildSelectOrderBy(query: SelectData, params: any[]): string {
         const orderBy = query.__orderBy
         if (!orderBy) {
             return ''
@@ -309,7 +312,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            orderByColumns += this._escape(property)
+            orderByColumns += this._appendColumnAlias(property, params)
             const order = orderBy[property]
             if (order) {
                 orderByColumns += ' ' + order

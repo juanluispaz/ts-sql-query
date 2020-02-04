@@ -75,7 +75,7 @@ export class OracleDBQueryRunner implements QueryRunner {
                 throw new Error('Unable to find the last inserted id, no outBinds')
             } else if (Array.isArray(outBinds)) {
                 const result = []
-                for (var i = outBinds.length - 1; i >= 0; i--) {
+                for (let i = 0, length = outBinds.length; i < length; i++) {
                     result.push(getOnlyOneValue(outBinds[i]))
                 }
                 return result

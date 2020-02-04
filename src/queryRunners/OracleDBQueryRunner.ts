@@ -94,18 +94,19 @@ export class OracleDBQueryRunner implements QueryRunner {
         return this.connection.execute(query, params).then(() => undefined)
     }
     executeFunction(query: string, params: any[] = []): Promise<any> {
-        return this.connection.execute(query, params).then((result) => {
-            const outBinds = result.outBinds
-            if (!outBinds) {
-                throw new Error('Unable to find the function output')
-            } else if (Array.isArray(outBinds)) {
-                if (outBinds.length === 1) {
-                    return outBinds[0]
-                }
-            } else {
-                throw new Error('Invalid outBinds returned by the database')
+        return this.connection.execute(query, params, { outFormat: ARRAY }).then((result) => {
+            if (result.rows.length !== 1) {
+                throw new Error('Invalid number of rows, expected only one row')
             }
-            throw new Error('Unable to find the function output')
+            const row = result.rows[0] as Array<any>
+            if (row) {
+                if (row.length !== 1) {
+                    throw new Error('Invalid number of columns, expected only one column')
+                }
+                return row[0]
+            } else {
+                throw new Error('No row found')
+            }
         })
     }
     executeBeginTransaction(): Promise<void> {

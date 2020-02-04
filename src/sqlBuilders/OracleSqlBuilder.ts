@@ -199,9 +199,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return result + '); end;'
     }
     _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any, any>[]): string {
-        let result = 'begin :' + params.length + ' := ' + this._escape(functionName) + '('
-        params.push({dir: 3003 /*oracledb.BIND_OUT*/}) // See https://github.com/oracle/node-oracledb/blob/master/lib/oracledb.js
-        if (params.length > 0) {
+        let result = 'select ' + this._escape(functionName) + '('
+        if (functionParams.length > 0) {
             result += this._appendSql(functionParams[0], params)
 
             for (let i = 1, length = functionParams.length; i < length; i++) {
@@ -209,7 +208,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
         }
 
-        return result + '); end;'
+        return result + ') from dual'
     }
     _stringConcat(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {

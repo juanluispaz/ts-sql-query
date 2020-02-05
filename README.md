@@ -1969,10 +1969,10 @@ It allows to execute the queries using a [mysql2](https://www.npmjs.com/package/
 **Supported databases**: mariaDB, mySql
 
 ```ts
-const mysql = require('mysql2');
+import { createPool } from "mysql2";
 import { MySql2PoolQueryRunner } from "ts-sql-query/queryRunners/MySql2PoolQueryRunner";
 
-const pool = mysql.createPool({
+const pool = createPool({
   host: 'localhost',
   user: 'user',
   password: 'secret',
@@ -1995,10 +1995,10 @@ It allows to execute the queries using a [mysql2](https://www.npmjs.com/package/
 **Supported databases**: mariaDB, mySql
 
 ```ts
-const mysql = require('mysql2');
+import { createPool } from "mysql2";
 import { MySql2QueryRunner } from "ts-sql-query/queryRunners/MySql2QueryRunner";
 
-const pool = mysql.createPool({
+const pool = createPool({
   host: 'localhost',
   user: 'user',
   password: 'secret',

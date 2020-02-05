@@ -76,6 +76,7 @@ Type-safe sql means the mistakes writting a query will be detected during the co
   - [oracledb (with a connection)](#oracledb-with-a-connection)
   - [pg (with a connection pool)](#pg-with-a-connection-pool)
   - [pg (with a connection)](#pg-with-a-connection)
+  - [sqlite](#sqlite-2)
   - [sqlite3](#sqlite3)
   - [tedious (with a connection poll)](#tedious-with-a-connection-poll)
   - [tedious (with a connection)](#tedious-with-a-connection)
@@ -2223,6 +2224,25 @@ async function main() {
 }
 ```
 
+### sqlite
+
+It allows to execute the queries using an [sqlite](https://www.npmjs.com/package/sqlite) connection.
+
+**Supported databases**: sqlite
+
+```ts
+import { open } from 'sqlite';
+import { SqliteQueryRunner } from "ts-sql-query/queryRunners/SqliteQueryRunner";
+
+const dbPromise = open('./database.sqlite');
+
+async function main() {
+    const db = await dbPromise;
+    const connection = new DBConection(new SqliteQueryRunner(db));
+    // Do your queries here
+}
+```
+
 ### sqlite3
 
 It allows to execute the queries using an [sqlite3](https://www.npmjs.com/package/sqlite3) connection.
@@ -2230,14 +2250,13 @@ It allows to execute the queries using an [sqlite3](https://www.npmjs.com/packag
 **Supported databases**: sqlite
 
 ```ts
-import sqlite from 'sqlite';
-import { SqliteQueryRunner } from "ts-sql-query/queryRunners/SqliteQueryRunner";
+const sqlite3 = require('sqlite3')
+import { Sqlite3QueryRunner } from "ts-sql-query/queryRunners/Sqlite3QueryRunner";
 
-const dbPromise = sqlite.open('./database.sqlite', { Promise });
+const db = new sqlite3.Database('./database.sqlite');
 
 async function main() {
-    const db = await dbPromise;
-    const connection = new DBConection(new SqliteQueryRunner(db));
+    const connection = new DBConection(new Sqlite3QueryRunner(db));
     // Do your queries here
 }
 ```

@@ -1718,10 +1718,10 @@ It allows to execute the queries using a [mariadb](https://www.npmjs.com/package
 **Supported databases**: mariaDB, mySql
 
 ```ts
-const mariadb = require('mariadb');
+import { createPool } from "mariadb";
 import { MariaDBPoolQueryRunner } from "ts-sql-query/queryRunners/MariaDBPoolQueryRunner";
 
-const pool = mariadb.createPool({
+const pool = createPool({
     host: 'mydb.com', 
     user: 'myUser', 
     password: 'myPwd',
@@ -1742,10 +1742,10 @@ It allows to execute the queries using a [mariadb](https://www.npmjs.com/package
 **Supported databases**: mariaDB, mySql
 
 ```ts
-const mariadb = require('mariadb');
+import { createPool } from "mariadb";
 import { MariaDBQueryRunner } from "ts-sql-query/queryRunners/MariaDBQueryRunner";
 
-const pool = mariadb.createPool({
+const pool = createPool({
     host: 'mydb.com', 
     user: 'myUser', 
     password: 'myPwd',

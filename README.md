@@ -1905,10 +1905,10 @@ It allows to execute the queries using a [mysql](https://www.npmjs.com/package/m
 **Supported databases**: mariaDB, mySql
 
 ```ts
-var mysql = require('mysql');
+import { createPool } from "mysql";
 import { MySqlPoolQueryRunner } from "ts-sql-query/queryRunners/MySqlPoolQueryRunner";
 
-const pool  = mysql.createPool({
+const pool  = createPool({
   connectionLimit : 10,
   host            : 'example.org',
   user            : 'bob',
@@ -1929,10 +1929,10 @@ It allows to execute the queries using a [mysql](https://www.npmjs.com/package/m
 **Supported databases**: mariaDB, mySql
 
 ```ts
-var mysql = require('mysql');
+import { createPool } from "mysql";
 import { MySqlQueryRunner } from "ts-sql-query/queryRunners/MySqlQueryRunner";
 
-const pool  = mysql.createPool({
+const pool  = createPool({
   connectionLimit : 10,
   host            : 'example.org',
   user            : 'bob',

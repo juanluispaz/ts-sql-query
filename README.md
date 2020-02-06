@@ -1674,7 +1674,9 @@ It allows to execute the queries using a [better-sqlite3](https://www.npmjs.com/
 
 ```ts
 import { BetterSqlite3QueryRunner } from "ts-sql-query/queryRunners/BetterSqlite3QueryRunner";
-const db = require('better-sqlite3')('foobar.db', options);
+import * as betterSqlite3 from "better-sqlite3";
+
+const db = betterSqlite3('foobar.db', options);
 
 async function main() {
     const connection = new DBConection(new BetterSqlite3QueryRunner(db));

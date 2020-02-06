@@ -56,7 +56,7 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     return Promise.reject(new Error('Too many columns, expected only one column'))
                 }
-                return Promise.resolve(row[columns[0]])
+                return Promise.resolve(toStringInt(row[columns[0]]))
             }
             return Promise.resolve(undefined)
         } catch (e) {
@@ -131,7 +131,7 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     return Promise.reject(new Error('Too many columns, expected only one column'))
                 }
-                return Promise.resolve(row[columns[0]])
+                return Promise.resolve(toStringInt(row[columns[0]]))
             }
             return Promise.resolve(undefined)
         } catch (e) {

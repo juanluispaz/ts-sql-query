@@ -1808,6 +1808,8 @@ It allows to execute the queries using an [msnodesqlv8](https://www.npmjs.com/pa
 
 **Supported databases**: sqlServer (only on Windows)
 
+**Note**: If you are going to use msnodesqlv8, please, let me know.
+
 ```ts
 const sql = require("msnodesqlv8");
 import { MsNodeSqlV8QueryRunner } from "ts-sql-query/queryRunners/MsNodeSqlV8QueryRunner";

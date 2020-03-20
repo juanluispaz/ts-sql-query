@@ -19,17 +19,7 @@ interface EqualableValueSource extends NullableValueSource {
     is(value: this): boolean
     isNotIfValue(value: this | null | undefined): boolean
     isNot(value: this): boolean
-}
 
-interface ComparableValueSource extends EqualableValueSource {
-    smallerIfValue(value: this | null | undefined): boolean
-    smaller(value: this): boolean
-    largerIfValue(value: this | null | undefined): boolean
-    larger(value: this): boolean
-    smallAsIfValue(value: this | null | undefined): boolean
-    smallAs(value: this): boolean
-    largeAsIfValue(value: this | null | undefined): boolean
-    largeAs(value: this): boolean
     inIfValue(values: this[] | null | undefined): boolean
     inIfValue(value: this | null | undefined): boolean
     in(values: this[]): boolean
@@ -42,6 +32,17 @@ interface ComparableValueSource extends EqualableValueSource {
     notIn(select: Subquery): boolean
     inN(...value: this[]): boolean
     notInN(...value: this[]): boolean
+}
+
+interface ComparableValueSource extends EqualableValueSource {
+    smallerIfValue(value: this | null | undefined): boolean
+    smaller(value: this): boolean
+    largerIfValue(value: this | null | undefined): boolean
+    larger(value: this): boolean
+    smallAsIfValue(value: this | null | undefined): boolean
+    smallAs(value: this): boolean
+    largeAsIfValue(value: this | null | undefined): boolean
+    largeAs(value: this): boolean
     between(value: this, value2: this): boolean
     notBetween(value: this, value2: this): boolean
 }

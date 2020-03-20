@@ -56,6 +56,28 @@ export abstract class EqualableValueSource<DB extends AnyDB, TABLE_OR_VIEW exten
     abstract isNot(value: TYPE): BooleanValueSource<DB, TABLE_OR_VIEW, boolean>
     abstract isNot<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, TYPE>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     abstract isNot<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+
+    abstract inIfValue(values: TYPE[] | null | undefined): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    abstract inIfValue(value: TYPE | null | undefined): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    abstract in(values: TYPE[]): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    abstract in(value: TYPE): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    abstract in<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, TYPE>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    abstract in<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    abstract in<TABLE_OR_VIEW2 extends ITableOrView<DB>>(select: ExecutableSelect<DB, TYPE | null | undefined, TABLE_OR_VIEW2>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
+    abstract notInIfValue(values: TYPE[] | null | undefined): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    abstract notInIfValue(value: TYPE | null | undefined): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    abstract notIn(values: TYPE[]): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    abstract notIn(value: TYPE): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    abstract notIn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, TYPE>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    abstract notIn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    abstract notIn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(select: ExecutableSelect<DB, TYPE | null | undefined, TABLE_OR_VIEW2>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
+    abstract inN(...value: TYPE[]): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    abstract inN<TABLE_OR_VIEW2 extends ITableOrView<DB>>(...value: (TYPE | ValueSource<DB, TABLE_OR_VIEW2, TYPE>)[]): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>> // limitation: only one source table
+    abstract inN<TABLE_OR_VIEW2 extends ITableOrView<DB>>(...value: (TYPE | ValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>)[]): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>> // limitation: only one source table
+    abstract notInN(...value: TYPE[]): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    abstract notInN<TABLE_OR_VIEW2 extends ITableOrView<DB>>(...value: (TYPE | ValueSource<DB, TABLE_OR_VIEW2, TYPE>)[]): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>> // limitation: only one source table
+    abstract notInN<TABLE_OR_VIEW2 extends ITableOrView<DB>>(...value: (TYPE | ValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>)[]): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>> // limitation: only one source table
+
     // Redefined methods
     abstract valueWhenNull(value: MandatoryTypeOf<TYPE>): EqualableValueSource<DB, TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
     abstract valueWhenNull<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): EqualableValueSource<DB, TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
@@ -80,26 +102,6 @@ export abstract class ComparableValueSource<DB extends AnyDB, TABLE_OR_VIEW exte
     abstract largeAs(value: TYPE): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     abstract largeAs<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, TYPE>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     abstract largeAs<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
-    abstract inIfValue(values: TYPE[] | null | undefined): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    abstract inIfValue(value: TYPE | null | undefined): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    abstract in(values: TYPE[]): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    abstract in(value: TYPE): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    abstract in<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, TYPE>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    abstract in<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
-    abstract in<TABLE_OR_VIEW2 extends ITableOrView<DB>>(select: ExecutableSelect<DB, TYPE | null | undefined, TABLE_OR_VIEW2>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
-    abstract notInIfValue(values: TYPE[] | null | undefined): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    abstract notInIfValue(value: TYPE | null | undefined): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    abstract notIn(values: TYPE[]): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    abstract notIn(value: TYPE): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    abstract notIn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, TYPE>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    abstract notIn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
-    abstract notIn<TABLE_OR_VIEW2 extends ITableOrView<DB>>(select: ExecutableSelect<DB, TYPE | null | undefined, TABLE_OR_VIEW2>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
-    abstract inN(...value: TYPE[]): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    abstract inN<TABLE_OR_VIEW2 extends ITableOrView<DB>>(...value: (TYPE | ValueSource<DB, TABLE_OR_VIEW2, TYPE>)[]): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>> // limitation: only one source table
-    abstract inN<TABLE_OR_VIEW2 extends ITableOrView<DB>>(...value: (TYPE | ValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>)[]): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>> // limitation: only one source table
-    abstract notInN(...value: TYPE[]): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    abstract notInN<TABLE_OR_VIEW2 extends ITableOrView<DB>>(...value: (TYPE | ValueSource<DB, TABLE_OR_VIEW2, TYPE>)[]): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>> // limitation: only one source table
-    abstract notInN<TABLE_OR_VIEW2 extends ITableOrView<DB>>(...value: (TYPE | ValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>)[]): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>> // limitation: only one source table
     abstract between(value: TYPE, value2: TYPE): BooleanValueSource<DB, TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     abstract between<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: TYPE, value2: ValueSource<DB, TABLE_OR_VIEW2, TYPE>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     abstract between<TABLE_OR_VIEW2 extends ITableOrView<DB>>(value: TYPE, value2: ValueSource<DB, TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>

@@ -4,7 +4,7 @@ import { AbstractConnection } from "./AbstractConnection"
 import { TypeAdapter } from "../TypeAdapter"
 import { TypeSafeDB } from "../databases/TypeSafeDB"
 import { NoTableOrViewRequired } from "../utils/NoTableOrViewRequired"
-import { BooleanValueSource, StringIntValueSource, StringNumberValueSource, IntValueSource, NumberValueSource, StringDoubleValueSource, DoubleValueSource, TypeSafeStringValueSource, StringValueSource, LocalDateValueSource, DateValueSource, LocalTimeValueSource, TimeValueSource, LocalDateTimeValueSource, DateTimeValueSource, EqualableValueSource } from "../expressions/values"
+import { BooleanValueSource, StringIntValueSource, StringNumberValueSource, IntValueSource, NumberValueSource, StringDoubleValueSource, DoubleValueSource, TypeSafeStringValueSource, StringValueSource, LocalDateValueSource, DateValueSource, LocalTimeValueSource, TimeValueSource, LocalDateTimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource } from "../expressions/values"
 import { stringInt, int, stringDouble, double, LocalDate, LocalTime, LocalDateTime } from "ts-extended-types"
 import { SequenceQueryBuilder } from "../queryBuilders/SequenceQueryBuilder"
 import { QueryRunner } from "../queryRunners/QueryRunner"
@@ -36,6 +36,7 @@ export abstract class AbstractAdvancedConnection<DB extends AnyDB, NAME, SQL_BUI
     protected sequence(name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<DateTimeValueSource<DB, NoTableOrViewRequired, Date>>
     protected sequence<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<DB, NoTableOrViewRequired, T>>
     protected sequence<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<DB, NoTableOrViewRequired, T>>
+    protected sequence<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource<DB, NoTableOrViewRequired, T>>
     protected sequence<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Sequence<any> {
         if (typeof adapter === 'string') {
             return new SequenceQueryBuilder(name, adapter, adapter2)

@@ -20,7 +20,7 @@ import { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDoub
 import { QueryRunner } from "../queryRunners/QueryRunner"
 import ChainedError from "chained-error"
 import { IConnection } from "../utils/IConnection"
-import { BooleanFragmentExpression, StringIntFragmentExpression, StringNumberFragmentExpression, IntFragmentExpression, NumberFragmentExpression, StringDoubleFragmentExpression, DoubleFragmentExpression, TypeSafeStringFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, DateFragmentExpression, LocalTimeFragmentExpression, TimeFragmentExpression, LocalDateTimeFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression } from "../expressions/fragment"
+import { BooleanFragmentExpression, StringIntFragmentExpression, StringNumberFragmentExpression, IntFragmentExpression, NumberFragmentExpression, StringDoubleFragmentExpression, DoubleFragmentExpression, TypeSafeStringFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, DateFragmentExpression, LocalTimeFragmentExpression, TimeFragmentExpression, LocalDateTimeFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression } from "../expressions/fragment"
 import { FragmentQueryBuilder } from "../queryBuilders/FragmentQueryBuilder"
 
 export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER extends SqlBuilder> extends IConnection<DB, NAME> {
@@ -156,6 +156,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
     const(this: IConnection<TypeUnsafeDB, NAME>, value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<DB, NoTableOrViewRequired, Date | null | undefined>
     const<T>(value: T, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<DB, NoTableOrViewRequired, T>
     const<T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<DB, NoTableOrViewRequired, T>
+    const<T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<DB, NoTableOrViewRequired, T>
     const<_T>(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<DB, NoTableRequired, T> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return new SqlOperationStatic1ValueSource('_const', value, adapter, adapter2)
@@ -231,6 +232,8 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
     protected executeFunction<T>(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
     protected executeFunction<T>(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
     protected executeFunction<T>(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T>(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T>(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
     protected executeFunction<_T>(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Promise<any> {
         try {
             if (typeof adapter === 'string') {
@@ -308,6 +311,8 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
     fragmentWithType<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T | null | undefined>
     fragmentWithType<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T>
     fragmentWithType<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T | null | undefined>
+    fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T>
+    fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T | null | undefined>
     fragmentWithType<_T>(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
             type = required

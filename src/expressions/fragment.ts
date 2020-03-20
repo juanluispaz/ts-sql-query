@@ -1,6 +1,6 @@
 import { AnyDB } from "../databases/AnyDB"
 import { ITableOrView } from "../utils/ITableOrView"
-import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource } from "../expressions/values"
+import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, ComparableValueSource } from "../expressions/values"
 
 import { NoTableOrViewRequired } from "../utils/NoTableOrViewRequired"
 
@@ -53,6 +53,8 @@ export abstract class FragmentExpression<DB extends AnyDB, TABLE_OR_VIEW extends
     abstract withType<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableValueSource<DB, TABLE_OR_VIEW, T | null | undefined>
     abstract withType<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableValueSource<DB, TABLE_OR_VIEW, T>
     abstract withType<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableValueSource<DB, TABLE_OR_VIEW, T | null | undefined>
+    abstract withType<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): ComparableValueSource<DB, TABLE_OR_VIEW, T>
+    abstract withType<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): ComparableValueSource<DB, TABLE_OR_VIEW, T | null | undefined>
 }
 */
 
@@ -246,4 +248,16 @@ export abstract class EqualableFragmentExpression<DB extends AnyDB, TYPE> {
     abstract sql<T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>, T6 extends ITableOrView<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>, p3: ValueSource<DB, T3, any>, p4: ValueSource<DB, T4, any>, p5: ValueSource<DB, T5, any>, p6: ValueSource<DB, T6, any>): EqualableValueSource<DB, T1 | T2 | T3 | T4 | T5 | T6, TYPE>
     abstract sql<T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>, T6 extends ITableOrView<DB>, T7 extends ITableOrView<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>, p3: ValueSource<DB, T3, any>, p4: ValueSource<DB, T4, any>, p5: ValueSource<DB, T5, any>, p6: ValueSource<DB, T6, any>, p7: ValueSource<DB, T7, any>): EqualableValueSource<DB, T1 | T2 | T3 | T4 | T5 | T6 | T7, TYPE>
     abstract sql<T extends ITableOrView<DB>>(sql: TemplateStringsArray, ...p: ValueSource<DB, T, any>[]): EqualableValueSource<DB, T, TYPE>
+}
+
+export abstract class ComparableFragmentExpression<DB extends AnyDB, TYPE> {
+    abstract sql(sql: TemplateStringsArray):  ComparableValueSource<DB, NoTableOrViewRequired, TYPE>
+    abstract sql<T1 extends ITableOrView<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>): ComparableValueSource<DB, T1, TYPE>
+    abstract sql<T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>): ComparableValueSource<DB, T1 | T2, TYPE>
+    abstract sql<T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>, p3: ValueSource<DB, T3, any>): ComparableValueSource<DB, T1 | T2 | T3, TYPE>
+    abstract sql<T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>, p3: ValueSource<DB, T3, any>, p4: ValueSource<DB, T4, any>): ComparableValueSource<DB, T1 | T2 | T3 | T4, TYPE>
+    abstract sql<T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>, p3: ValueSource<DB, T3, any>, p4: ValueSource<DB, T4, any>, p5: ValueSource<DB, T5, any>): ComparableValueSource<DB, T1 | T2 | T3 | T4 | T5, TYPE>
+    abstract sql<T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>, T6 extends ITableOrView<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>, p3: ValueSource<DB, T3, any>, p4: ValueSource<DB, T4, any>, p5: ValueSource<DB, T5, any>, p6: ValueSource<DB, T6, any>): ComparableValueSource<DB, T1 | T2 | T3 | T4 | T5 | T6, TYPE>
+    abstract sql<T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>, T6 extends ITableOrView<DB>, T7 extends ITableOrView<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>, p3: ValueSource<DB, T3, any>, p4: ValueSource<DB, T4, any>, p5: ValueSource<DB, T5, any>, p6: ValueSource<DB, T6, any>, p7: ValueSource<DB, T7, any>): ComparableValueSource<DB, T1 | T2 | T3 | T4 | T5 | T6 | T7, TYPE>
+    abstract sql<T extends ITableOrView<DB>>(sql: TemplateStringsArray, ...p: ValueSource<DB, T, any>[]): ComparableValueSource<DB, T, TYPE>
 }

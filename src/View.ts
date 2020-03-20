@@ -1,4 +1,4 @@
-import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource } from "./expressions/values"
+import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource } from "./expressions/values"
 import { ColumnImpl } from "./internal/ColumnImpl"
 import { OptionalColumn } from "./utils/OptionalColumn"
 import { AnyDB } from "./databases/AnyDB"
@@ -54,6 +54,7 @@ export class View<DB extends AnyDB> extends IView<DB> {
     protected column(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<DB, this, Date> & Column
     protected column<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<DB, this, T> & Column
     protected column<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<DB, this, T> & Column
+    protected column<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<DB, this, T> & Column
     protected column<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<DB, this, T> & Column */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return new ColumnImpl(this, name, adapter, adapter2)
@@ -80,6 +81,7 @@ export class View<DB extends AnyDB> extends IView<DB> {
     protected optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<DB, this, Date | null | undefined> & OptionalColumn
     protected optionalColumn<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<DB, this, T | null | undefined> & OptionalColumn
     protected optionalColumn<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<DB, this, T | null | undefined> & OptionalColumn
+    protected optionalColumn<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<DB, this, T | null | undefined> & OptionalColumn
     protected optionalColumn<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<DB, this, T | null | undefined> & OptionalColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return (new ColumnImpl(this, name, adapter, adapter2)).__asOptionalColumn()

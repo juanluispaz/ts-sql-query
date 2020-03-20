@@ -53,6 +53,8 @@ export class FragmentQueryBuilder extends FragmentExpression<any, any> {
     withType<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableValueSource<any, any, T | null | undefined>
     withType<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableValueSource<any, any, T>
     withType<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableValueSource<any, any, T | null | undefined>
+    withType<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): ComparableValueSource<any, any, T>
+    withType<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): ComparableValueSource<any, any, T | null | undefined>
     withType<_T>(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): ValueSource<any, any, any> {
         if (typeof adapter === 'string') {
             type = required

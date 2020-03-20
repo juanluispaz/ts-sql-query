@@ -673,7 +673,7 @@ interface EqualableValueSource extends NullableValueSource {
     is(value: this): boolean
     isNotIfValue(value: this | null | undefined): boolean
     isNot(value: this): boolean
-    
+
     inIfValue(values: this[] | null | undefined): boolean
     inIfValue(value: this | null | undefined): boolean
     in(values: this[]): boolean
@@ -942,6 +942,7 @@ interface Connection {
     const(value: Date, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
     const<T>(value: T, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     const<T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    const<T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
     
     // allows to use the exits function on a subquery
     exists(select: Subquery): BooleanValueSource
@@ -987,6 +988,7 @@ interface Connection {
     fragmentWithType(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType<T>(type: 'enum', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType<T>(type: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     
     // Protected methods that allows call a stored procedure
     executeProcedure(procedureName: string, params: ValueSource[]): Promise<void>
@@ -1003,6 +1005,7 @@ interface Connection {
     executeFunction(functionName: string, params: ValueSource[], returnType: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
     executeFunction<T>(functionName: string, params: ValueSource[], returnType: 'enum', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
     executeFunction<T>(functionName: string, params: ValueSource[], returnType: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
+    executeFunction<T>(functionName: string, params: ValueSource[], returnType: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
 
     // Protected methods to define a sequence (only available in oracle, postgreSql and sqlServer)
     sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource>
@@ -1016,6 +1019,7 @@ interface Connection {
     sequence(name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<DateTimeValueSource>
     sequence<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource>
     sequence<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource>
+    sequence<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource>
 
     /*
      * Configurations
@@ -1089,6 +1093,7 @@ interface Table {
     column(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
     column<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     column<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    column<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
 
     // Protected methods that allow to create an optional column that admits null
     optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
@@ -1102,6 +1107,7 @@ interface Table {
     optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
     optionalColumn<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     optionalColumn<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    optionalColumn<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
     
     // Protected methods that allow to create a required column that doesn't admits null but have a default value when insert
     columnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
@@ -1115,6 +1121,7 @@ interface Table {
     columnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
     columnWithDefaultValue<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     columnWithDefaultValue<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    columnWithDefaultValue<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
     
     // Protected methods that allow to create an optional column that admits null and have a default value when insert
     optionalColumnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
@@ -1128,6 +1135,7 @@ interface Table {
     optionalColumnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
     optionalColumnWithDefaultValue<T>(name: string, type: 'enum', typeNme: string, adapter?: TypeAdapter): EqualableValueSource
     optionalColumnWithDefaultValue<T>(name: string, type: 'custom', typeNme: string, adapter?: TypeAdapter): EqualableValueSource
+    optionalColumnWithDefaultValue<T>(name: string, type: 'customComparable', typeNme: string, adapter?: TypeAdapter): ComparableValueSource
     
     // Protected methods that allow to create a primary key column autogenerated in the database
     // When you insert you don't need specify this column
@@ -1142,6 +1150,7 @@ interface Table {
     autogeneratedPrimaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
     autogeneratedPrimaryKey<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     autogeneratedPrimaryKey<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    autogeneratedPrimaryKey<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
 
     // Protected methods that allow to create a primary key column not automatically generated
     // When you insert you must specify this column
@@ -1156,6 +1165,7 @@ interface Table {
     primaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
     primaryKey<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     primaryKey<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    primaryKey<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
       
     // Protected methods that allow to create a primary key column generated by a sequence
     // When you insert you don't need specify this column, it will be added automatically by ts-sql-query
@@ -1171,6 +1181,7 @@ interface Table {
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
     autogeneratedPrimaryKeyBySequence<T>(name: string, sequenceName: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     autogeneratedPrimaryKeyBySequence<T>(name: string, sequenceName: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    autogeneratedPrimaryKeyBySequence<T>(name: string, sequenceName: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
 }
 ```
 
@@ -1197,6 +1208,7 @@ interface View {
     column(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
     column<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     column<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    column<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
 
     // Protected methods that allow to create an optional column that admits null
     optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
@@ -1210,6 +1222,7 @@ interface View {
     optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
     optionalColumn<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     optionalColumn<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    optionalColumn<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
 }
 ```
 

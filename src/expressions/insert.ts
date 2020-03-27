@@ -1,4 +1,4 @@
-import { ColumnsOf, InputTypeOfColumn, ValueSource } from "./values"
+import { ColumnsOf, InputTypeOfColumn, ValueSource, TypeOfColumn } from "./values"
 import { ITableOrView } from "../utils/ITableOrView"
 import { OptionalColumn } from "../utils/OptionalColumn"
 import { ColumnWithDefaultValue } from "../utils/ColumnWithDefaultValue"
@@ -10,6 +10,8 @@ import { NoopDB } from "../databases/NoopDB"
 import { PostgreSql } from "../databases/PostgreSql"
 import { SqlServer } from "../databases/SqlServer"
 import { Oracle } from "../databases/Oracle"
+import { ExecutableSelect } from "./select"
+import { NoTableOrViewRequired } from "../utils/NoTableOrViewRequired"
 
 export abstract class InsertExpressionBase<DB extends AnyDB> {
     // @ts-ignore
@@ -18,6 +20,13 @@ export abstract class InsertExpressionBase<DB extends AnyDB> {
 
 export abstract class ExecutableInsertReturning<DB extends AnyDB, RESULT> extends InsertExpressionBase<DB> {
     abstract executeInsert(): Promise<RESULT>
+    abstract query(): string
+    abstract params(): any[]
+}
+
+export abstract class ExecutableInsertFromSelect<DB extends AnyDB> extends InsertExpressionBase<DB> {
+    abstract executeInsert(this: InsertExpressionBase<TypeSafeDB>): Promise<int>
+    abstract executeInsert(): Promise<number>
     abstract query(): string
     abstract params(): any[]
 }
@@ -68,6 +77,7 @@ export abstract class InsertExpression<DB extends AnyDB, TABLE extends ITableOrV
     abstract values(columns: InsertSets<DB, TABLE> & RequiredInsertSets<DB, TABLE>): ExecutableInsertExpression<DB, TABLE>
     abstract values(columns: Array<InsertSets<DB, TABLE> & RequiredInsertSets<DB, TABLE>>): ExecutableMultipleInsert<DB, TABLE>
     abstract defaultValues: DefaultValueType<DB, TABLE>
+    abstract from(select: ExecutableSelect<DB, SelectForInsertResultType<DB, TABLE>, NoTableOrViewRequired>): ExecutableInsertFromSelect<DB>
 }
 
 type ReturningMultipleLastInsertedIdType<DB extends AnyDB, TABLE extends ITableOrView<DB>> =
@@ -84,6 +94,12 @@ type DefaultValueType<DB extends AnyDB, TABLE extends ITableOrView<DB>> =
 type MissingKeys<KEYS> = KEYS extends never ? never : 'yes'
 type MaybeExecutableInsertExpression<DB extends AnyDB, TABLE extends ITableOrView<DB>, MISSING_KEYS> = 
     'yes' extends MissingKeys<MISSING_KEYS> ? MissingKeysInsertExpression<DB, TABLE, MISSING_KEYS> : ExecutableInsertExpression<DB, TABLE>
+
+export type SelectForInsertResultType<DB extends AnyDB, TABLE extends ITableOrView<DB>> = {
+    [P in ColumnsOf<DB, TABLE>]?: TypeOfColumn<DB, TABLE, P>
+} & {
+    [P in RequiredColumnsForInsertOf<DB, TABLE>]: TypeOfColumn<DB, TABLE, P>
+}
 
 export type InsertSets<DB extends AnyDB, TABLE extends ITableOrView<DB>> = {
     [P in ColumnsOf<DB, TABLE>]?: InputTypeOfColumn<DB, TABLE, P>

@@ -20,6 +20,7 @@ Type-safe sql means the mistakes writting a query will be detected during the co
   - [Select with custom sql fragment](#select-with-custom-sql-fragment)
   - [Insert](#insert)
   - [Insert multiple values](#insert-multiple-values)
+  - [Insert from select](#insert-from-select)
   - [Update](#update)
   - [Delete](#delete)
 - [Connection, tables & views](#connection-tables--views)
@@ -401,6 +402,39 @@ const insertMultipleCustomers: Promise<number[]>
 ```
 
 **Note**: Return the last inserted id of an insert with multiple rows is only supported by **PostgreSql**, **SqlServer** and **Oracle**. If you try to use it with other database you will get a compilation error.
+
+### Insert from select
+
+```ts
+const insertCustomersFromSelect = connection.insertInto(tCustomer)
+    .from(
+        connection.selectFrom(tCustomer)
+        .where(
+            tCustomer.companyId.equals(1)
+        )
+        .select({
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            companyId: tCustomer.companyId
+        })
+    )
+    .executeInsert();
+```
+
+The executed query is:
+```sql
+insert into customer (first_name, last_name, company_id) 
+select first_name as firstName, last_name as lastName, company_id as companyId 
+from customer 
+where company_id = $1 
+```
+
+The parameters are: `[ 1 ]`
+
+The result type is a promise with the number of inserted rows:
+```ts
+const insertCustomer: Promise<number>
+```
 
 ### Update
 
@@ -1266,6 +1300,9 @@ interface InsertExpression {
 
     /** Insert the default values in the table */
     defaultValues(): this
+
+    /** Insert from a select */
+    from(select: Subquery): this
 
     /** 
      * Indicate that the query must return the last inserted id 

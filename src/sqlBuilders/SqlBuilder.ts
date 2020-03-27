@@ -31,6 +31,7 @@ export interface InsertData {
     __sets: { [property: string]: any }
     __multiple?: { [property: string]: any }[]
     __idColumn?: Column
+    __from?: SelectData
 }
 
 export interface UpdateData {
@@ -57,6 +58,7 @@ export interface SqlBuilder extends SqlOperation {
     _buildSelect(query: SelectData, params: any[]): string
     _buildInsertDefaultValues(query: InsertData, params: any[]): string
     _buildInsert(query: InsertData, params: any[]): string
+    _buildInsertFromSelect(query: InsertData, params: any[]): string
     _buildInsertMultiple(query: InsertData, params: any[]): string
     _buildUpdate(query: UpdateData, params: any[]): string
     _buildDelete(query: DeleteData, params: any[]): string

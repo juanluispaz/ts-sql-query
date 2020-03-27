@@ -1,11 +1,12 @@
-import { SqlBuilder, InsertData } from "../sqlBuilders/SqlBuilder"
+import { SqlBuilder, InsertData, SelectData } from "../sqlBuilders/SqlBuilder"
 import { ITable } from "../utils/ITableOrView"
-import { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, ExecutableMultipleInsert } from "../expressions/insert"
+import { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, ExecutableMultipleInsert, ExecutableInsertFromSelect } from "../expressions/insert"
 import ChainedError from "chained-error"
 import { __getColumnOfTable, Column, __getColumnPrivate } from "../utils/Column"
 import { attachSource } from "../utils/attachSource"
+import { ExecutableSelect } from "../expressions/select"
 
-export class InsertQueryBuilder extends InsertExpression<any, any> implements ExecutableInsertReturning<any, any>, ExecutableInsert<any, any>, ExecutableInsertExpression<any, any>, ExecutableMultipleInsert<any, any>, InsertData {
+export class InsertQueryBuilder extends InsertExpression<any, any> implements ExecutableInsertReturning<any, any>, ExecutableInsert<any, any>, ExecutableInsertExpression<any, any>, ExecutableMultipleInsert<any, any>, ExecutableInsertFromSelect<any>, InsertData {
     __sqlBuilder: SqlBuilder
 
     __table: ITable<any>
@@ -13,6 +14,7 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
     __multiple?: { [property: string]: any }[]
     __isMultiple: boolean = false
     __idColumn?: Column
+    __from?: SelectData
 
     // cache
     __query = ''
@@ -91,7 +93,9 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
         }
 
         try {
-            if (this.__multiple) {
+            if (this.__from) {
+                this.__query = this.__sqlBuilder._buildInsertFromSelect(this, this.__params)
+            } else if (this.__multiple) {
                 this.__query = this.__sqlBuilder._buildInsertMultiple(this, this.__params)
             } else if (this.__sets === DEFAULT_VALUES) {
                 this.__query = this.__sqlBuilder._buildInsertDefaultValues(this, this.__params)
@@ -245,6 +249,10 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
         } else {
             return this.set(columns)
         }
+    }
+    from(select: ExecutableSelect<any, any, any>): this {
+        this.__from = select as any as SelectData
+        return this
     }
     defaultValues: never
     returningLastInsertedId: never

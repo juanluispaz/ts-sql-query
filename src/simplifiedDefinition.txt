@@ -598,6 +598,9 @@ interface InsertExpression {
     /** Insert the default values in the table */
     defaultValues(): this
 
+    /** Insert from a select */
+    from(select: Subquery): this
+
     /** 
      * Indicate that the query must return the last inserted id 
      * Note: If you are inserting multiple rows, only PostgreSql, SqlServer and Oracle support it

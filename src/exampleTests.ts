@@ -570,6 +570,23 @@ const insertMultipleCustomers = connection.insertInto(tCustomer)
 // Query: insert into customer (first_name, last_name, company_id) values ($1, $2, $3), ($4, $5, $6) returning id
 // Params: [ 'John', 'Smith', 1, 'Other', 'Person', 1 ]
 
+const insertCustomersFromSelect = connection.insertInto(tCustomer)
+    .from(
+        connection.selectFrom(tCustomer)
+        .where(
+            tCustomer.companyId.equals(1)
+        )
+        .select({
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            companyId: tCustomer.companyId
+        })
+    )
+    .executeInsert();
+
+// Query: insert into customer (first_name, last_name, company_id) select first_name as firstName, last_name as lastName, company_id as companyId from customer where company_id = $1 
+// Params: [ 1 ]
+
 const updateCustomer = connection.update(tCustomer).set({
         firstName: 'John',
         lastName: 'Smith',
@@ -595,6 +612,7 @@ customerCountPerCompany.finally(() => undefined)
 customerCountPerCompany2.finally(() => undefined)
 insertCustomer.finally(() => undefined)
 insertMultipleCustomers.finally(() => undefined)
+insertCustomersFromSelect.finally(() => undefined)
 updateCustomer.finally(() => undefined)
 deleteCustomer.finally(() => undefined)
 customersUsingCustomFragment.finally(() => undefined)
@@ -649,7 +667,7 @@ Things that I want to implement:
 
 3rd to implement:
 + insert multiple
-- insert from select
++ insert from select
 
 4th to implement:
 - with

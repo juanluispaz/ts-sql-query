@@ -5,6 +5,7 @@ import { __getColumnOfTable, __getColumnPrivate, Column } from "../utils/Column"
 import { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { QueryRunner } from "../queryRunners/QueryRunner"
 import { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
+import { SequenceValueSource } from "../internal/ValueSourceImpl"
 
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
@@ -531,6 +532,63 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         const insertQuery = 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
+
+        this._setSafeTableOrView(params, oldSafeTableOrView)
+        return insertQuery
+    }
+    _buildInsertFromSelect(query: InsertData, params: any[]): string {
+        const from = query.__from
+        if (!from) {
+            throw new Error('Exepected an insert from a subquery')
+        }
+
+        const oldSafeTableOrView = this._getSafeTableOrView(params)
+
+        const table = query.__table
+        const selectColumns = from.__columns
+
+        this._setSafeTableOrView(params, table)
+
+        let columns = ''
+        const addedColumns: string[] = []
+        for (var columnName in table) {
+            if (columnName in selectColumns) {
+                continue
+            }
+            const column = __getColumnOfTable(table, columnName)
+            if (!column) {
+                continue
+            }
+            const columnPrivate = __getColumnPrivate(column)
+            if (!columnPrivate.__sequenceName) {
+                continue
+            }
+
+            addedColumns.push(columnName)
+            selectColumns[columnName] = new SequenceValueSource('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__columnType, columnPrivate.__typeAdapter)
+        }
+
+        const properties = Object.getOwnPropertyNames(selectColumns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            if (columns) {
+                columns += ', '
+            }
+
+            const property = properties[i]
+            const column = __getColumnOfTable(table, property)
+            if (column) {
+                columns += this._appendSql(column, params)
+            } else {
+                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
+            }
+        }
+
+        const insertQuery = 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' ' + this._buildSelect(from, params) + this._buildInsertReturning(query, params)
+
+        for (let i = 0, length = addedColumns.length; i < length; i++) {
+            const columnName = addedColumns[i]
+            delete selectColumns[columnName]
+        }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
         return insertQuery

@@ -15,9 +15,6 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     _forceAsIdentifier(identifier: string): string {
         return '`' + identifier + '`'
     }
-    _valuePlaceholder(_index: number, _columnType: string): string {
-        return '?'
-    }
     _buildSelectOrderBy(query: SelectData, _params: any[]): string {
         const orderBy = query.__orderBy
         if (!orderBy) {

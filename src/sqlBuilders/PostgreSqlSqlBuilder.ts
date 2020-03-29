@@ -7,9 +7,6 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
-    _valuePlaceholder(index: number, _columnType: string): string {
-        return '$' + (index + 1)
-    }
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = ''
 

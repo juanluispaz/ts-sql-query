@@ -26,9 +26,6 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     _trueValue = 'cast(1 as boolean)'
     _falseValue = 'cast(0 as boolean)'
-    _valuePlaceholder(index: number, _columnType: string): string {
-        return ':' + index
-    }
     _appendColumnAlias(name: string, _params: any[]): string {
         return '"' + name + '"'
     }
@@ -127,10 +124,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (!idColumn) {
             return ''
         }
-        const result = ' returning ' + this._appendSql(idColumn, params) + ' into :' + params.length
-        params.push({dir: 3003 /*oracledb.BIND_OUT*/}) // See https://github.com/oracle/node-oracledb/blob/master/lib/oracledb.js
-        return result
-
+        return ' returning ' + this._appendSql(idColumn, params) + ' into ' + this._queryRunner.addOutParam(params, '') // Empty name for the out params, no special name is requiered
     }
     _is(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'decode(' + this._appendSqlParenthesis(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', 1, 0 ) = 1'

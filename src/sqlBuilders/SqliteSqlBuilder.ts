@@ -63,9 +63,6 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     _trueValue = '1'
     _falseValue = '0'
-    _valuePlaceholder(_index: number, _columnType: string): string {
-        return '?'
-    }
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''
     }

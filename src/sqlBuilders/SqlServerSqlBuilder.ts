@@ -28,7 +28,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     _trueValue = 'convert(bit, 1)'
     _falseValue = 'convert(bit, 0)'
-    _appendValueToQueryParams(value: any, params: any[], columnType: string): void {
+    _appendParam(value: any, params: any[], columnType: string): string {
         // keep the data type to use in the query runner
         Object.defineProperty(params, '@' + params.length, {
             value: columnType,
@@ -36,10 +36,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             enumerable: false,
             configurable: true
         })
-        params.push(value)
-    }
-    _valuePlaceholder(index: number, _columnType: string): string {
-        return '@' + index
+        return this._queryRunner.addParam(params, value)
     }
     _buildSelectOrderBy(query: SelectData, _params: any[]): string {
         // How to index it: http://www.sqlines.com/oracle/function_based_indexes

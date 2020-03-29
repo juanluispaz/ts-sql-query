@@ -160,10 +160,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
             return arrayResult + ')'
         }
-        const result = this._valuePlaceholder(params.length, columnType)
         const adaptedValue = this._transformParamToDB(value, columnType, typeAdapter)
-        this._appendValueToQueryParams(adaptedValue, params, columnType)
-        return result
+        return this._appendParam(adaptedValue, params, columnType)
     }
     _appendValueParenthesis(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (this._needParenthesis(value)) {
@@ -184,11 +182,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return this._defaultTypeAdapter.transformValueToDB(value, columnType)
         }
     }
-    _appendValueToQueryParams(value: any, params: any[], _columnType: string): void {
-        params.push(value)
-    }
-    _valuePlaceholder(index: number, _columnType: string): string {
-        return '$' + index
+    _appendParam(value: any, params: any[], _columnType: string): string {
+        return this._queryRunner.addParam(params, value)
     }
     _appendColumnAlias(name: string, _params: any[]): string {
         return this._escape(name)

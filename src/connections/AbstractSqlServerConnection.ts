@@ -8,8 +8,9 @@ import { QueryRunner } from "../queryRunners/QueryRunner"
 export abstract class AbstractSqlServerConnection<DB extends SqlServer & (TypeUnsafeDB | TypeSafeDB), NAME, SQL_BUILDER extends SqlServerSqlBuilder> extends AbstractAdvancedConnection<DB & SqlServer, NAME, SQL_BUILDER> implements SqlServer {
     __SqlServer: 'SqlServer' = 'SqlServer'
 
-    constructor(queryRunner: QueryRunner & {sqlServer: true}, sqlBuilder: SQL_BUILDER) {
+    constructor(queryRunner: QueryRunner, sqlBuilder: SQL_BUILDER) {
         super(queryRunner, sqlBuilder)
+        queryRunner.useDatabase('sqlServer')
     }
 
 }

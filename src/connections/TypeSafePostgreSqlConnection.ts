@@ -6,7 +6,7 @@ import { QueryRunner } from "../queryRunners/QueryRunner"
 
 export abstract class TypeSafePostgreSqlConnection<DB extends PostgreSql & TypeSafeDB, NAME> extends AbstractPostgreSqlConnection<DB, NAME, PostgreSqlSqlBuilder> implements PostgreSql, TypeSafeDB {
     __TypeSafe : 'TypeSafe' = 'TypeSafe'
-    constructor(queryRunner: QueryRunner & {postgreSql: true}, sqlBuilder = new PostgreSqlSqlBuilder()) {
+    constructor(queryRunner: QueryRunner, sqlBuilder = new PostgreSqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }
 }

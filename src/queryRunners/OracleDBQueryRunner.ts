@@ -2,13 +2,18 @@ import { QueryRunner, DatabaseType } from "./QueryRunner"
 import { Connection, OBJECT, ARRAY } from 'oracledb'
 
 export class OracleDBQueryRunner implements QueryRunner {
-    readonly oracle: true = true
     readonly database: DatabaseType
     readonly connection: Connection
 
     constructor(connection: Connection) {
         this.connection = connection
         this.database = 'oracle'
+    }
+
+    useDatabase(database: DatabaseType): void {
+        if (database !== 'oracle') {
+            throw new Error('Unsupported database: ' + database + '. OracleDBQueryRunner only supports oracle databases')
+        }
     }
 
     getNativeConnection(): Connection {

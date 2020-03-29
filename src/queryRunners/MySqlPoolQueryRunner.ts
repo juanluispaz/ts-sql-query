@@ -4,9 +4,7 @@ import { Pool, PoolConnection } from "mysql"
 import { MySqlQueryRunner } from "./MySqlQueryRunner"
 
 export class MySqlPoolQueryRunner extends AbstractPoolQueryRunner {
-    readonly mySql: true = true
-    readonly mariaDB: true = true
-    database: DatabaseType
+    readonly database: DatabaseType
     readonly pool: Pool
 
     constructor(pool: Pool, database: 'mariaDB' | 'mySql' = 'mySql') {
@@ -15,6 +13,14 @@ export class MySqlPoolQueryRunner extends AbstractPoolQueryRunner {
         this.database = database
     }
 
+    useDatabase(database: DatabaseType): void {
+        if (database !== 'mariaDB' && database !== 'mySql') {
+            throw new Error('Unsupported database: ' + database + '. MySqlPoolQueryRunner only supports mySql or mariaDB databases')
+        } else {
+            // @ts-ignore
+            this.database = database
+        }
+    }
     getNativeConnection(): unknown {
         return this.pool
     }

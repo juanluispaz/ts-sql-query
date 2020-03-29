@@ -6,7 +6,7 @@ import { QueryRunner } from "../queryRunners/QueryRunner"
 
 export abstract class TypeSafeSqliteConnection<DB extends Sqlite & TypeSafeDB, NAME> extends AbstractSqliteConnection<DB, NAME, SqliteSqlBuilder> implements Sqlite, TypeSafeDB {
     __TypeSafe : 'TypeSafe' = 'TypeSafe'
-    constructor(queryRunner: QueryRunner & {sqlite: true}, sqlBuilder = new SqliteSqlBuilder()) {
+    constructor(queryRunner: QueryRunner, sqlBuilder = new SqliteSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }
 }

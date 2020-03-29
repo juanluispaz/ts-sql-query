@@ -2,13 +2,18 @@ import { QueryRunner, DatabaseType } from "./QueryRunner"
 import { Database } from 'sqlite'
 
 export class SqliteQueryRunner implements QueryRunner {
-    readonly sqlite: true = true
     readonly database: DatabaseType
     readonly connection: Database
 
     constructor(connection: Database) {
         this.connection = connection
         this.database = 'sqlite'
+    }
+
+    useDatabase(database: DatabaseType): void {
+        if (database !== 'sqlite') {
+            throw new Error('Unsupported database: ' + database + '. SqliteQueryRunner only supports sqlite databases')
+        }
     }
 
     getNativeConnection(): Database {

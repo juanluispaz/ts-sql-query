@@ -6,7 +6,7 @@ import { QueryRunner } from "../queryRunners/QueryRunner"
 
 export abstract class TypeSafeMySqlConnection<DB extends MySql & TypeSafeDB, NAME> extends AbstractMySqlConnection<DB, NAME, MySqlSqlBuilder> implements MySql, TypeSafeDB {
     __TypeSafe : 'TypeSafe' = 'TypeSafe'
-    constructor(queryRunner: QueryRunner & {mySql: true}, sqlBuilder = new MySqlSqlBuilder()) {
+    constructor(queryRunner: QueryRunner, sqlBuilder = new MySqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }
 }

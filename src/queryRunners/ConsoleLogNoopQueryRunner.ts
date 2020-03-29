@@ -1,17 +1,14 @@
 import { QueryRunner, DatabaseType } from "./QueryRunner"
 
 export class ConsoleLogNoopQueryRunner implements QueryRunner {
-    // Supported databases
-    readonly mariaDB: true = true
-    readonly mySql: true = true
-    readonly noopDB: true = true
-    readonly oracle: true = true
-    readonly postgreSql: true = true
-    readonly sqlite: true = true
-    readonly sqlServer: true = true
     readonly database: DatabaseType
 
     constructor(database: DatabaseType = 'noopDB') {
+        this.database = database
+    }
+
+    useDatabase(database: DatabaseType): void {
+        // @ts-ignore
         this.database = database
     }
 

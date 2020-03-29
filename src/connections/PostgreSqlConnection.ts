@@ -6,7 +6,7 @@ import { QueryRunner } from "../queryRunners/QueryRunner"
 
 export abstract class PostgreSqlConnection<DB extends PostgreSql & TypeUnsafeDB, NAME> extends AbstractPostgreSqlConnection<DB, NAME, PostgreSqlSqlBuilder> implements PostgreSql, TypeUnsafeDB {
     __TypeUnsafe : 'TypeUnsafe' = 'TypeUnsafe'
-    constructor(queryRunner: QueryRunner & {postgreSql: true}, sqlBuilder = new PostgreSqlSqlBuilder()) {
+    constructor(queryRunner: QueryRunner, sqlBuilder = new PostgreSqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }
 }

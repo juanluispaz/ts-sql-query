@@ -8,8 +8,9 @@ import { QueryRunner } from "../queryRunners/QueryRunner"
 export abstract class AbstractPostgreSqlConnection<DB extends PostgreSql & (TypeUnsafeDB | TypeSafeDB), NAME, SQL_BUILDER extends PostgreSqlSqlBuilder> extends AbstractAdvancedConnection<DB & PostgreSql, NAME, SQL_BUILDER> implements PostgreSql {
     __PostgreSql: 'PostgreSql' = 'PostgreSql'
 
-    constructor(queryRunner: QueryRunner & {postgreSql: true}, sqlBuilder: SQL_BUILDER) {
+    constructor(queryRunner: QueryRunner, sqlBuilder: SQL_BUILDER) {
         super(queryRunner, sqlBuilder)
+        queryRunner.useDatabase('postgreSql')
     }
 
 }

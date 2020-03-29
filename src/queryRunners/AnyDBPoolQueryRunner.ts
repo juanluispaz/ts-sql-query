@@ -4,13 +4,7 @@ import { ConnectionPool, Connection } from 'any-db'
 import { AnyDBQueryRunner } from "./AnyDBQueryRunner"
 
 export class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {
-    // Supported databases
-    readonly mariaDB: true = true
-    readonly mySql: true = true
-    readonly postgreSql: true = true
-    readonly sqlite: true = true
-    readonly sqlServer: true = true
-    database: DatabaseType
+    readonly database: DatabaseType
     readonly pool: ConnectionPool
 
     constructor(pool: ConnectionPool) {
@@ -34,6 +28,21 @@ export class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {
         }
     }
 
+    useDatabase(database: DatabaseType): void {
+        if (database !== this.database) {
+            if (this.database === 'mySql' && database === 'mariaDB') {
+                // @ts-ignore
+                this.database = database
+            } else if (this.database === 'mariaDB' && database === 'mySql') {
+                // @ts-ignore
+                this.database = database
+            } else if (this.database === 'mySql' || this.database === 'mariaDB') {
+                throw new Error('Unsupported database: ' + database + '. The current connection used in AnyDBQueryRunner only supports mySql or mariaDB databases')
+            } else {
+                throw new Error('Unsupported database: ' + database + '. The current connection used in AnyDBQueryRunner only supports ' + this.database + ' databases')
+            }
+        }
+    }
     getNativeConnection(): unknown {
         return this.pool
     }

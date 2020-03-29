@@ -5,6 +5,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     private transactionLevel = 0
     abstract readonly database: DatabaseType
 
+    abstract useDatabase(database: DatabaseType): void
     abstract getNativeConnection(): unknown
     async executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         try {

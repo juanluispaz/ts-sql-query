@@ -4,8 +4,7 @@ import * as ConnectionPool from 'tedious-connection-pool'
 import { TediousQueryRunner } from "./TediousQueryRunner"
 
 export class TediousPoolQueryRunner extends AbstractPoolQueryRunner {
-    readonly sqlServer: true = true
-    database: DatabaseType
+    readonly database: DatabaseType
     readonly pool: ConnectionPool
 
     constructor(pool: ConnectionPool) {
@@ -14,6 +13,11 @@ export class TediousPoolQueryRunner extends AbstractPoolQueryRunner {
         this.database = 'sqlServer'
     }
 
+    useDatabase(database: DatabaseType): void {
+        if (database !== 'sqlServer') {
+            throw new Error('Unsupported database: ' + database + '. TediousPoolQueryRunner only supports sqlServer databases')
+        }
+    }
     getNativeConnection(): unknown {
         return this.pool
     }

@@ -2,13 +2,18 @@ import { QueryRunner, DatabaseType } from "./QueryRunner"
 import { ClientBase } from 'pg'
 
 export class PgQueryRunner implements QueryRunner {
-    readonly postgreSql: true = true
     readonly database: DatabaseType
     readonly connection: ClientBase
 
     constructor(connection: ClientBase) {
         this.connection = connection
         this.database = 'postgreSql'
+    }
+
+    useDatabase(database: DatabaseType): void {
+        if (database !== 'postgreSql') {
+            throw new Error('Unsupported database: ' + database + '. PgQueryRunner only supports postgreSql databases')
+        }
     }
 
     getNativeConnection(): ClientBase {

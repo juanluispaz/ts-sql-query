@@ -6,7 +6,7 @@ import { QueryRunner } from "../queryRunners/QueryRunner"
 
 export abstract class SqliteConnection<DB extends Sqlite & TypeUnsafeDB, NAME> extends AbstractSqliteConnection<DB, NAME, SqliteSqlBuilder> implements Sqlite, TypeUnsafeDB {
     __TypeUnsafe : 'TypeUnsafe' = 'TypeUnsafe'
-    constructor(queryRunner: QueryRunner & {sqlite: true}, sqlBuilder = new SqliteSqlBuilder()) {
+    constructor(queryRunner: QueryRunner, sqlBuilder = new SqliteSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }
 }

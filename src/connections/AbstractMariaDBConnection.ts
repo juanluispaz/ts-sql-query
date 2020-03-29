@@ -8,8 +8,9 @@ import { AbstractMySqlMariaDBConnection } from "./AbstractMySqlMariaDBConnection
 export abstract class AbstractMariaDBConnection<DB extends MariaDB & (TypeUnsafeDB | TypeSafeDB), NAME, SQL_BUILDER extends MariaDBSqlBuilder> extends AbstractMySqlMariaDBConnection<DB & MariaDB, NAME, SQL_BUILDER> implements MariaDB {
     __MariaDB: 'MariaDB' = 'MariaDB'
 
-    constructor(queryRunner: QueryRunner & {mariaDB: true}, sqlBuilder: SQL_BUILDER) {
+    constructor(queryRunner: QueryRunner, sqlBuilder: SQL_BUILDER) {
         super(queryRunner, sqlBuilder)
+        queryRunner.useDatabase('mariaDB')
     }
 
 }

@@ -2,13 +2,18 @@ import { QueryRunner, DatabaseType } from "./QueryRunner"
 import { Connection, Request, TYPES, TediousType } from 'tedious'
 
 export class TediousQueryRunner implements QueryRunner {
-    readonly sqlServer: true = true
     readonly database: DatabaseType
     readonly connection: Connection
 
     constructor(connection: Connection) {
         this.connection = connection
         this.database = 'sqlServer'
+    }
+
+    useDatabase(database: DatabaseType): void {
+        if (database !== 'sqlServer') {
+            throw new Error('Unsupported database: ' + database + '. TediousQueryRunner only supports sqlServer databases')
+        }
     }
 
     getNativeConnection(): Connection {

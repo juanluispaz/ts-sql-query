@@ -1,28 +1,17 @@
 import { QueryRunner, DatabaseType } from "./QueryRunner"
-import { QueryRunnerSupportedDB } from "./QueryRunnerSupportedDB"
 
-export class ChainedQueryRunner<T extends QueryRunner & QueryRunnerSupportedDB> implements QueryRunner {
+export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     queryRunner: T
-    // Supported databases
-    readonly mariaDB: T['mariaDB']
-    readonly mySql: T['mySql']
-    readonly noopDB: T['noopDB']
-    readonly oracle: T['oracle']
-    readonly postgreSql: T['postgreSql']
-    readonly sqlite: T['sqlite']
-    readonly sqlServer: T['sqlServer']
-    readonly database: DatabaseType
+    get database(): DatabaseType {
+        return this.queryRunner.database
+    }
 
     constructor(queryRunner: T) {
         this.queryRunner = queryRunner
-        this.mariaDB = queryRunner.mariaDB
-        this.mySql = queryRunner.mySql
-        this.noopDB = queryRunner.noopDB
-        this.oracle = queryRunner.oracle
-        this.postgreSql = queryRunner.postgreSql
-        this.sqlite = queryRunner.sqlite
-        this.sqlServer = queryRunner.sqlServer
-        this.database = queryRunner.database
+    }
+
+    useDatabase(database: DatabaseType): void {
+        return this.queryRunner.useDatabase(database)
     }
 
     getNativeConnection(): unknown {

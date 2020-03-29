@@ -3,12 +3,6 @@ import { Connection, ResultSet } from 'any-db'
 import * as begin  from 'any-db-transaction'
 
 export class AnyDBQueryRunner implements QueryRunner {
-    // Supported databases
-    readonly mariaDB: true = true
-    readonly mySql: true = true
-    readonly postgreSql: true = true
-    readonly sqlite: true = true
-    readonly sqlServer: true = true
     readonly database: DatabaseType
 
     readonly connection: Connection
@@ -31,6 +25,22 @@ export class AnyDBQueryRunner implements QueryRunner {
                 break
             default:
                 throw new Error('Unknown any-db adapter of name ' + this.connection.adapter.name)
+        }
+    }
+
+    useDatabase(database: DatabaseType): void {
+        if (database !== this.database) {
+            if (this.database === 'mySql' && database === 'mariaDB') {
+                // @ts-ignore
+                this.database = database
+            } else if (this.database === 'mariaDB' && database === 'mySql') {
+                // @ts-ignore
+                this.database = database
+            } else if (this.database === 'mySql' || this.database === 'mariaDB') {
+                throw new Error('Unsupported database: ' + database + '. The current connection used in AnyDBQueryRunner only supports mySql or mariaDB databases')
+            } else {
+                throw new Error('Unsupported database: ' + database + '. The current connection used in AnyDBQueryRunner only supports ' + this.database + ' databases')
+            }
         }
     }
 

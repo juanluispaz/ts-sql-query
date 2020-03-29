@@ -2,7 +2,6 @@ import { QueryRunner, DatabaseType } from "./QueryRunner"
 import { ConnectionPool, TYPES, ISqlTypeFactory, Transaction, Request } from 'mssql'
 
 export class MssqlPoolQueryRunner implements QueryRunner {
-    readonly sqlServer: true = true
     readonly database: DatabaseType
     readonly pool: ConnectionPool
     transaction?: Transaction
@@ -10,6 +9,12 @@ export class MssqlPoolQueryRunner implements QueryRunner {
     constructor(pool: ConnectionPool) {
         this.pool = pool
         this.database = 'sqlServer'
+    }
+
+    useDatabase(database: DatabaseType): void {
+        if (database !== 'sqlServer') {
+            throw new Error('Unsupported database: ' + database + '. MssqlPoolQueryRunner only supports sqlServer databases')
+        }
     }
 
     getNativeConnection(): ConnectionPool {

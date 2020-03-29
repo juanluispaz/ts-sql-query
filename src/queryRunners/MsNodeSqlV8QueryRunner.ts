@@ -28,13 +28,18 @@ export interface EventColumnCb { (colIndex: number, data:any, more:boolean): voi
 }
 
 export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements QueryRunner {
-    readonly sqlite: true = true
     readonly database: DatabaseType
     readonly connection: CONNECTION
 
     constructor(connection: CONNECTION) {
         this.connection = connection
         this.database = 'sqlServer'
+    }
+
+    useDatabase(database: DatabaseType): void {
+        if (database !== 'sqlServer') {
+            throw new Error('Unsupported database: ' + database + '. MsNodeSqlV8QueryRunner only supports sqlServer databases')
+        }
     }
 
     getNativeConnection(): CONNECTION {

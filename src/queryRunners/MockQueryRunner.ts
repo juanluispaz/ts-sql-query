@@ -8,18 +8,15 @@ export class MockQueryRunner implements QueryRunner {
     private count = 0
     readonly queryExecutor: QueryExecutor
 
-    // Supported databases
-    readonly mariaDB: true = true
-    readonly mySql: true = true
-    readonly noopDB: true = true
-    readonly oracle: true = true
-    readonly postgreSql: true = true
-    readonly sqlite: true = true
-    readonly sqlServer: true = true
     readonly database: DatabaseType
 
     constructor(queryExecutor: QueryExecutor, database: DatabaseType = 'noopDB') {
         this.queryExecutor = queryExecutor
+        this.database = database
+    }
+
+    useDatabase(database: DatabaseType): void {
+        // @ts-ignore
         this.database = database
     }
 

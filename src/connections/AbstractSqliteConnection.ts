@@ -8,8 +8,9 @@ import { QueryRunner } from "../queryRunners/QueryRunner"
 export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB | TypeSafeDB), NAME, SQL_BUILDER extends SqliteSqlBuilder> extends AbstractConnection<DB & Sqlite, NAME, SQL_BUILDER> implements Sqlite {
     __Sqlite: 'Sqlite' = 'Sqlite'
 
-    constructor(queryRunner: QueryRunner & {sqlite: true}, sqlBuilder: SQL_BUILDER) {
+    constructor(queryRunner: QueryRunner, sqlBuilder: SQL_BUILDER) {
         super(queryRunner, sqlBuilder)
+        queryRunner.useDatabase('sqlite')
     }
 
 }

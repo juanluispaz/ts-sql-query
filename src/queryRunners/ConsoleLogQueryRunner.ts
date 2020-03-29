@@ -1,14 +1,9 @@
 import { QueryRunner } from "./QueryRunner"
 import { ChainedQueryRunner } from "./ChainedQueryRunner"
-import { QueryRunnerSupportedDB } from "./QueryRunnerSupportedDB"
 
-export class ConsoleLogQueryRunner<T extends QueryRunner & QueryRunnerSupportedDB> extends ChainedQueryRunner<T> {
+export class ConsoleLogQueryRunner<T extends QueryRunner> extends ChainedQueryRunner<T> {
     constructor(queryRunner: T) {
         super(queryRunner)
-    }
-
-    getNativeConnection(): unknown {
-        return this.queryRunner.getNativeConnection()
     }
 
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {

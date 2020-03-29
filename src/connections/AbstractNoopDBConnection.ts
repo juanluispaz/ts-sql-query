@@ -4,14 +4,14 @@ import { TypeUnsafeDB } from "../databases/TypeUnsafeDB"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
 import { TypeSafeDB } from "../databases/TypeSafeDB"
 import { QueryRunner } from "../queryRunners/QueryRunner"
-import { ChainedQueryRunner } from "../queryRunners/ChainedQueryRunner";
-import { QueryRunnerSupportedDB } from "../queryRunners/QueryRunnerSupportedDB"
+import { ChainedQueryRunner } from "../queryRunners/ChainedQueryRunner"
 
 export abstract class AbstractNoopDBConnection<DB extends NoopDB & (TypeUnsafeDB | TypeSafeDB), NAME, SQL_BUILDER extends NoopDBSqlBuilder> extends AbstractAdvancedConnection<DB & NoopDB, NAME, SQL_BUILDER> implements NoopDB {
     __NoopDB: 'NoopDB' = 'NoopDB'
 
-    constructor(queryRunner: QueryRunner & {noopDB: true}, sqlBuilder: SQL_BUILDER) {
+    constructor(queryRunner: QueryRunner, sqlBuilder: SQL_BUILDER) {
         super(new NoopIterceptQueryRunner(queryRunner), sqlBuilder)
+        queryRunner.useDatabase('noopDB')
     }
 
     get lastQuery(): string {
@@ -23,17 +23,10 @@ export abstract class AbstractNoopDBConnection<DB extends NoopDB & (TypeUnsafeDB
 
 }
 
-class NoopIterceptQueryRunner<T extends QueryRunner & QueryRunnerSupportedDB> extends ChainedQueryRunner<T> {
+class NoopIterceptQueryRunner<T extends QueryRunner> extends ChainedQueryRunner<T> {
     lastQuery: string = ''
     lastParams: any[] = []
-    readonly noopDB: true = true
 
-    constructor(queryRunner: T) {
-        super(queryRunner)
-    }
-    getNativeConnection(): unknown {
-        return this.queryRunner.getNativeConnection()
-    }
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         this.lastQuery = query
         this.lastParams = params

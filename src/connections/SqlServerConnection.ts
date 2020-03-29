@@ -6,7 +6,7 @@ import { QueryRunner } from "../queryRunners/QueryRunner"
 
 export abstract class SqlServerConnection<DB extends SqlServer & TypeUnsafeDB, NAME> extends AbstractSqlServerConnection<DB, NAME, SqlServerSqlBuilder> implements SqlServer, TypeUnsafeDB {
     __TypeUnsafe : 'TypeUnsafe' = 'TypeUnsafe'
-    constructor(queryRunner: QueryRunner & {sqlServer: true}, sqlBuilder = new SqlServerSqlBuilder()) {
+    constructor(queryRunner: QueryRunner, sqlBuilder = new SqlServerSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }
 }

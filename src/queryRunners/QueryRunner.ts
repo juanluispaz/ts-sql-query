@@ -1,5 +1,6 @@
 export interface QueryRunner {
     readonly database: DatabaseType
+    useDatabase(database: DatabaseType): void
     getNativeConnection(): unknown
     executeSelectOneRow(query: string, params?: any[]): Promise<any>
     executeSelectManyRows(query: string, params?: any[]): Promise<any[]>

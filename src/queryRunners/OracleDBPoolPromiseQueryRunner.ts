@@ -4,8 +4,7 @@ import { Pool, Connection } from 'oracledb'
 import { OracleDBQueryRunner } from "./OracleDBQueryRunner"
 
 export class OracleDBPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
-    readonly oracle: true = true
-    database: DatabaseType
+    readonly database: DatabaseType
     readonly promisePool: Promise<Pool>
 
     constructor(promisePool: Promise<Pool>) {
@@ -14,6 +13,11 @@ export class OracleDBPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
         this.database = 'oracle'
     }
 
+    useDatabase(database: DatabaseType): void {
+        if (database !== 'oracle') {
+            throw new Error('Unsupported database: ' + database + '. OracleDBPoolPromiseQueryRunner only supports oracle databases')
+        }
+    }
     getNativeConnection(): unknown {
         return this.promisePool
     }

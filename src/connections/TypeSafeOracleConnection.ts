@@ -6,7 +6,7 @@ import { QueryRunner } from "../queryRunners/QueryRunner"
 
 export abstract class TypeSafeOracleConnection<DB extends Oracle & TypeSafeDB, NAME> extends AbstractOracleConnection<DB, NAME, OracleSqlBuilder> implements Oracle, TypeSafeDB {
     __TypeSafe : 'TypeSafe' = 'TypeSafe'
-    constructor(queryRunner: QueryRunner & {oracle: true}, sqlBuilder = new OracleSqlBuilder()) {
+    constructor(queryRunner: QueryRunner, sqlBuilder = new OracleSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }
 }

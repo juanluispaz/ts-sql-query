@@ -4,8 +4,7 @@ import { Pool, PoolClient } from 'pg'
 import { PgQueryRunner } from "./PgQueryRunner"
 
 export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
-    readonly postgreSql: true = true
-    database: DatabaseType
+    readonly database: DatabaseType
     readonly pool: Pool
 
     constructor(pool: Pool) {
@@ -14,6 +13,11 @@ export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
         this.database = 'postgreSql'
     }
 
+    useDatabase(database: DatabaseType): void {
+        if (database !== 'postgreSql') {
+            throw new Error('Unsupported database: ' + database + '. PgPoolQueryRunner only supports postgreSql databases')
+        }
+    }
     getNativeConnection(): unknown {
         return this.pool
     }

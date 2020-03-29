@@ -4,8 +4,7 @@ import { ConnectionPool } from 'mssql'
 import { MssqlPoolQueryRunner } from "./MssqlPoolQueryRunner"
 
 export class MssqlPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
-    readonly sqlServer: true = true
-    database: DatabaseType
+    readonly database: DatabaseType
     readonly promisePool: Promise<ConnectionPool>
 
     constructor(promisePool: Promise<ConnectionPool>) {
@@ -14,6 +13,11 @@ export class MssqlPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
         this.database = 'sqlServer'
     }
 
+    useDatabase(database: DatabaseType): void {
+        if (database !== 'sqlServer') {
+            throw new Error('Unsupported database: ' + database + '. MssqlPoolPromiseQueryRunner only supports sqlServer databases')
+        }
+    }
     getNativeConnection(): unknown {
         return this.promisePool
     }

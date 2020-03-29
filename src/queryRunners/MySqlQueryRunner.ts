@@ -2,14 +2,21 @@ import { QueryRunner, DatabaseType } from "./QueryRunner"
 import { Connection } from "mysql"
 
 export class MySqlQueryRunner implements QueryRunner {
-    readonly mySql: true = true
-    readonly mariaDB: true = true
     readonly database: DatabaseType
     readonly connection: Connection
 
     constructor(connection: Connection, database: 'mariaDB' | 'mySql' = 'mySql') {
         this.connection = connection
         this.database = database
+    }
+
+    useDatabase(database: DatabaseType): void {
+        if (database !== 'mariaDB' && database !== 'mySql') {
+            throw new Error('Unsupported database: ' + database + '. MySqlQueryRunner only supports mySql or mariaDB databases')
+        } else {
+            // @ts-ignore
+            this.database = database
+        }
     }
 
     getNativeConnection(): Connection {

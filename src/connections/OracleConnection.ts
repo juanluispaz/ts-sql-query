@@ -6,7 +6,7 @@ import { QueryRunner } from "../queryRunners/QueryRunner"
 
 export abstract class OracleConnection<DB extends Oracle & TypeUnsafeDB, NAME> extends AbstractOracleConnection<DB, NAME, OracleSqlBuilder> implements Oracle, TypeUnsafeDB {
     __TypeUnsafe : 'TypeUnsafe' = 'TypeUnsafe'
-    constructor(queryRunner: QueryRunner & {oracle: true}, sqlBuilder = new OracleSqlBuilder()) {
+    constructor(queryRunner: QueryRunner, sqlBuilder = new OracleSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }
 }

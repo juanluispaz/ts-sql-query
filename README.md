@@ -1682,7 +1682,7 @@ It internally uses:
 - [tedious](https://www.npmjs.com/package/tedious) for connections to SqlServer
 - [mysql](https://www.npmjs.com/package/mysql) for connections to MariaDB and MySql. It is not working properly due the bug https://github.com/Hypermediaisobar-admin/node-any-db-mssql/issues/1
 - [pg](https://www.npmjs.com/package/pg) for connections to PostgreSql
-- [sqlite3](https://www.npmjs.com/package/sqlite3) for connections to SqlLite
+- [sqlite3](https://www.npmjs.com/package/sqlite3) for connections to SqlLite. It is not working properly due the bug https://github.com/grncdr/node-any-db/issues/83
 
 **Note**: All of these implementations have a direct implementation here as alternative.
 

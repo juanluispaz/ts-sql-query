@@ -60,7 +60,7 @@ export class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {
                 result = '$' + (index + 1)
                 break
             case 'sqlite3':
-                result = '$' + index
+                result = '?'
                 break
             default:
                 throw new Error('Unknown any-db adapter of name ' + this.pool.adapter.name)

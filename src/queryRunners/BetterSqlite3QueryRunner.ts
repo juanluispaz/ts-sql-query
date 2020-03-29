@@ -176,9 +176,8 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
         }
     }
     addParam(params: any[], value: any): string {
-        const index = params.length
         params.push(value)
-        return '$' + index
+        return '?'
     }
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')

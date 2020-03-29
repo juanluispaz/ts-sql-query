@@ -105,9 +105,8 @@ export class SqliteQueryRunner implements QueryRunner {
         return this.connection.run(query, params).then(() => undefined)
     }
     addParam(params: any[], value: any): string {
-        const index = params.length
         params.push(value)
-        return '$' + index
+        return '?'
     }
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')

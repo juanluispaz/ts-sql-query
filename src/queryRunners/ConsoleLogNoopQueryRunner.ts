@@ -96,7 +96,7 @@ export class ConsoleLogNoopQueryRunner implements QueryRunner {
                 result = '$' + (index + 1)
                 break
             case 'sqlite':
-                result = '$' + index
+                result = '?'
                 break
             case 'sqlServer':
                 result = '@' + index

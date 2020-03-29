@@ -1,7 +1,7 @@
 import { QueryRunner, DatabaseType } from "./QueryRunner"
 
 export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
-    queryRunner: T
+    readonly queryRunner: T
     get database(): DatabaseType {
         return this.queryRunner.database
     }

@@ -22,9 +22,8 @@ export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
         return this.pool
     }
     addParam(params: any[], value: any): string {
-        const index = params.length
         params.push(value)
-        return '$' + (index + 1)
+        return '$' + params.length
     }
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')

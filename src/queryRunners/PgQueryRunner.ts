@@ -122,9 +122,8 @@ export class PgQueryRunner implements QueryRunner {
         return this.connection.query(query, params).then(() => undefined)
     }
     addParam(params: any[], value: any): string {
-        const index = params.length
         params.push(value)
-        return '$' + (index + 1)
+        return '$' + params.length
     }
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')

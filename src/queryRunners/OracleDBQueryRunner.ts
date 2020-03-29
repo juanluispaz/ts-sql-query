@@ -1,5 +1,5 @@
 import { QueryRunner, DatabaseType } from "./QueryRunner"
-import { Connection, OBJECT, ARRAY } from 'oracledb'
+import { Connection, OBJECT, ARRAY, BIND_OUT } from 'oracledb'
 
 export class OracleDBQueryRunner implements QueryRunner {
     readonly database: DatabaseType
@@ -134,7 +134,11 @@ export class OracleDBQueryRunner implements QueryRunner {
     }
     addOutParam(params: any[], name: string): string {
         const index = params.length
-        params.push({dir: 3003 /*oracledb.BIND_OUT*/, as: name}) // See https://github.com/oracle/node-oracledb/blob/master/lib/oracledb.js
+        if (name) {
+            params.push({dir: BIND_OUT, as: name})
+        } else {
+            params.push({dir: BIND_OUT})
+        }
         return ':' + index
     }
 }

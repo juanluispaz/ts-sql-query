@@ -32,6 +32,7 @@
     ],
     "scripts": {
         "example": "npm run build && node dist/exampleTests.js",
+        "all-examples": "npm run build && sh ./scripts/run-all-examples.sh",
         "build": "rm -rf dist/*; tsc",
         "dist": "npm run build && cp -t dist LICENSE.md package.json README.md && cd dist && rm exampleTests* && rm -Rf examples && npm publish"
     },

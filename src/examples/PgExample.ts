@@ -152,6 +152,25 @@ async function main() {
         assertEquals(names, ['ACME', 'FOO'])
 
         i = await connection
+            .insertInto(tCompany)
+            .from(
+                connection
+                .selectFrom(tCompany)
+                .select({
+                    name: tCompany.name.concat(' 2')
+                })
+            )
+            .executeInsert()
+        assertEquals(i, 2)
+
+        names = await connection
+            .selectFrom(tCompany)
+            .selectOneColumn(tCompany.name)
+            .orderBy('result')
+            .executeSelectMany()
+        assertEquals(names, ['ACME', 'ACME 2', 'FOO', 'FOO 2'])
+
+        i = await connection
             .update(tCompany)
             .set({
                 name: tCompany.name.concat(tCompany.name)

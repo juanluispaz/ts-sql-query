@@ -61,6 +61,7 @@ Type-safe sql means the mistakes writting a query will be detected during the co
   - [better-sqlite3](#better-sqlite3)
   - [ConsoleLogNoopQueryRunner](#consolelognoopqueryrunner)
   - [ConsoleLogQueryRunner](#consolelogqueryrunner)
+  - [LoopBack DataSource](#loopback-datasource)
   - [mariadb (with a connection pool)](#mariadb-with-a-connection-pool)
   - [mariadb (with a connection)](#mariadb-with-a-connection)
   - [MockQueryRunner](#mockqueryrunner)
@@ -1761,6 +1762,48 @@ import { ConsoleLogQueryRunner } from "ts-sql-query/queryRunners/ConsoleLogQuery
 
 async function main() {
     const connection = new DBConection(new ConsoleLogQueryRunner(otherQueryRunner));
+    // Do your queries here
+}
+```
+
+### LoopBack DataSource
+
+It allows to execute the queries using a [LoopBack](https://loopback.io/) data source.
+
+**Supported databases**: mariaDB, mySql, postgreSql, sqlite, sqlServer, oracle
+
+It internally uses:
+- [mysql](https://www.npmjs.com/package/mysql) for connections to MariaDB and MySql.
+- [pg](https://www.npmjs.com/package/pg) for connections to PostgreSql.
+- [sqlite3](https://www.npmjs.com/package/sqlite3) for connections to SqlLite.
+- [tedious](https://www.npmjs.com/package/tedious) for connections to SqlServer.
+- [oracledb](https://www.npmjs.com/package/oracledb) for connections to Oracle.
+
+**Note**: All of these implementations have a direct implementation here as alternative.
+
+**Only the following connectors are supported**:
+- **mysql**, using `loopback-connector-mysql` package
+- **postgresql**, using `loopback-connector-postgresql` package
+- **sqlite3**, using `loopback-connector-sqlite3` package
+- **mssql**, using `loopback-connector-mssql` package
+- **oracle**, using `loopback-connector-oracle` package
+
+```ts
+import {juggler} from '@loopback/repository';
+import { createLoopBackQueryRunner } from "ts-sql-query/queryRunners/LoopBackQueryRunner";
+
+const db = new juggler.DataSource({
+    name: 'db',
+    connector: "postgresql",
+    host: 'localhost',
+    port: 5432,
+    database: 'dbname',
+    user: 'user',
+    password: 'pass'
+});
+
+async function main() {
+    const connection = new DBConection(createLoopBackQueryRunner(db));
     // Do your queries here
 }
 ```

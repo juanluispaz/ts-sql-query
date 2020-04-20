@@ -22,6 +22,7 @@ import ChainedError from "chained-error"
 import { IConnection } from "../utils/IConnection"
 import { BooleanFragmentExpression, StringIntFragmentExpression, StringNumberFragmentExpression, IntFragmentExpression, NumberFragmentExpression, StringDoubleFragmentExpression, DoubleFragmentExpression, TypeSafeStringFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, DateFragmentExpression, LocalTimeFragmentExpression, TimeFragmentExpression, LocalDateTimeFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression } from "../expressions/fragment"
 import { FragmentQueryBuilder } from "../queryBuilders/FragmentQueryBuilder"
+import { attachSource } from "../utils/attachSource"
 
 export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER extends SqlBuilder> extends IConnection<DB, NAME> {
     protected __sqlBuilder: SQL_BUILDER
@@ -40,13 +41,34 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
     }
 
     beginTransaction(): Promise<void> {
-        return this.queryRunner.executeBeginTransaction()
+        const source = new Error('Query executed at')
+        try {
+            return this.queryRunner.executeBeginTransaction().catch((e) => {
+                throw attachSource(new ChainedError(e), source)
+            })
+        } catch (e) {
+            throw new ChainedError(e)
+        }
     }
     commit(): Promise<void> {
-        return this.queryRunner.executeCommit()
+        const source = new Error('Query executed at')
+        try {
+            return this.queryRunner.executeCommit().catch((e) => {
+                throw attachSource(new ChainedError(e), source)
+            })
+        } catch (e) {
+            throw new ChainedError(e)
+        }
     }
     rollback(): Promise<void> {
-        return this.queryRunner.executeRollback()
+        const source = new Error('Query executed at')
+        try {
+            return this.queryRunner.executeRollback().catch((e) => {
+                throw attachSource(new ChainedError(e), source)
+            })
+        } catch (e) {
+            throw new ChainedError(e)
+        }
     }
 
     insertInto<DBT extends DB, TABLE extends ITable<DBT>>(table: TABLE): InsertExpression<DBT, TABLE> {

@@ -559,14 +559,14 @@ const customersUsingCustomFragment = connection.selectFrom(tCustomer)
 // Query: select id::varchar as idAsString, first_name || $1 || last_name as name from customer where !!id = !!$2
 // Params: [ ' ', 10 ]
 
-const bitwiseMovenets = 1
+const bitwiseMovements = 1
 const multiplier = 2
 const companiesUsingCustomFunctionFragment = connection.selectFrom(tCompany)
-    .where(tCompany.id.multiply(multiplier).equals(connection.bitwiseShiftLeft(tCompany.id, bitwiseMovenets)))
+    .where(tCompany.id.multiply(multiplier).equals(connection.bitwiseShiftLeft(tCompany.id, bitwiseMovements)))
     .select({
         id: tCompany.id,
         name: tCompany.name,
-        idMultiplyBy2: connection.bitwiseShiftLeft(tCompany.id, bitwiseMovenets)
+        idMultiplyBy2: connection.bitwiseShiftLeft(tCompany.id, bitwiseMovements)
     })
     .executeSelectMany()
 

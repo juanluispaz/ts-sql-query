@@ -363,15 +363,15 @@ class DBConection extends PostgreSqlConnection<DBConection, 'DBConnection'> {
 You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; this arguments can be numbers or elements in the database that represents integer numbers. You can use the defined function as a regular database function in your query.
 
 ```ts
-const bitwiseMovenets = 1;
+const bitwiseMovements = 1;
 const multiplier = 2;
 
 const companiesUsingCustomFunctionFragment = connection.selectFrom(tCompany)
-    .where(tCompany.id.multiply(multiplier).equals(connection.bitwiseShiftLeft(tCompany.id, bitwiseMovenets)))
+    .where(tCompany.id.multiply(multiplier).equals(connection.bitwiseShiftLeft(tCompany.id, bitwiseMovements)))
     .select({
         id: tCompany.id,
         name: tCompany.name,
-        idMultiplyBy2: connection.bitwiseShiftLeft(tCompany.id, bitwiseMovenets)
+        idMultiplyBy2: connection.bitwiseShiftLeft(tCompany.id, bitwiseMovements)
     })
     .executeSelectMany();
 ```

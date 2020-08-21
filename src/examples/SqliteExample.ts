@@ -6,6 +6,7 @@ import { Table } from "../Table";
 import { assertEquals } from "./assertEquals";
 import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
 import { open } from 'sqlite';
+import { Database } from 'sqlite3';
 import { SqliteQueryRunner } from "../queryRunners/SqliteQueryRunner";
 import { SqliteConnection } from "../connections/SqliteConnection";
 
@@ -31,7 +32,10 @@ const tCustomer = new class TCustomer extends Table<DBConection> {
     }
 }()
 
-const dbPromise = open(':memory:')
+const dbPromise = open({ 
+    filename: ':memory:',
+    driver: Database
+})
 
 async function main() {
     const db = await dbPromise

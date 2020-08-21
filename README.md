@@ -2329,10 +2329,14 @@ It allows to execute the queries using an [sqlite](https://www.npmjs.com/package
 **Supported databases**: sqlite
 
 ```ts
+import { Database } from 'sqlite3';
 import { open } from 'sqlite';
 import { SqliteQueryRunner } from "ts-sql-query/queryRunners/SqliteQueryRunner";
 
-const dbPromise = open('./database.sqlite');
+const dbPromise = open({ 
+    filename: './database.sqlite',
+    driver: sqlite3.Database
+});
 
 async function main() {
     const db = await dbPromise;
@@ -2348,10 +2352,10 @@ It allows to execute the queries using an [sqlite3](https://www.npmjs.com/packag
 **Supported databases**: sqlite
 
 ```ts
-const sqlite3 = require('sqlite3')
+import { Database } from 'sqlite3';
 import { Sqlite3QueryRunner } from "ts-sql-query/queryRunners/Sqlite3QueryRunner";
 
-const db = new sqlite3.Database('./database.sqlite');
+const db = new Database('./database.sqlite');
 
 async function main() {
     const connection = new DBConection(new Sqlite3QueryRunner(db));

@@ -5,7 +5,7 @@
 import { Table } from "../Table";
 import { assertEquals } from "./assertEquals";
 import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
-const sqlite3 = require('sqlite3');
+import { Database } from 'sqlite3';
 import { Sqlite3QueryRunner } from "../queryRunners/Sqlite3QueryRunner";
 import { SqliteConnection } from "../connections/SqliteConnection";
 
@@ -31,7 +31,7 @@ const tCustomer = new class TCustomer extends Table<DBConection> {
     }
 }()
 
-const db = new sqlite3.Database(':memory:')
+const db = new Database(':memory:')
 
 async function main() {
     const connection = new DBConection(new ConsoleLogQueryRunner(new Sqlite3QueryRunner(db)))

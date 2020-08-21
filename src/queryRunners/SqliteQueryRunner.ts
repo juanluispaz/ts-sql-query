@@ -59,7 +59,7 @@ export class SqliteQueryRunner implements QueryRunner {
         })
     }
     executeInsert(query: string, params: any[] = []): Promise<number> {
-        return this.connection.run(query, params).then((result) => result.changes)
+        return this.connection.run(query, params).then((result) => result.changes!)
     }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return this.connection.run(query, params).then((result) => result.lastID)
@@ -68,10 +68,10 @@ export class SqliteQueryRunner implements QueryRunner {
         throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
     }
     executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.connection.run(query, params).then((result) => result.changes)
+        return this.connection.run(query, params).then((result) => result.changes!)
     }
     executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.connection.run(query, params).then((result) => result.changes)
+        return this.connection.run(query, params).then((result) => result.changes!)
     }
     executeProcedure(query: string, params: any[] = []): Promise<void> {
         return this.connection.run(query, params).then(() => undefined)

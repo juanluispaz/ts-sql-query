@@ -19,16 +19,16 @@ export abstract class FragmentExpression<DB extends AnyDB, TABLE_OR_VIEW extends
     abstract withType(type: 'boolean', required: 'optional', adapter?: TypeAdapter): BooleanValueSource<DB, TABLE_OR_VIEW, boolean | null | undefined>
     abstract withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): StringIntValueSource<DB, TABLE_OR_VIEW, stringInt>
     abstract withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): StringIntValueSource<DB, TABLE_OR_VIEW, stringInt | null | undefined>
-    abstract withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): StringNumberValueSource<DB, TABLE_OR_VIEW, number>
-    abstract withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): StringNumberValueSource<DB, TABLE_OR_VIEW, number | null | undefined>
+    abstract withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): StringNumberValueSource<DB, TABLE_OR_VIEW, number | string>
+    abstract withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>
     abstract withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'int', required: 'required', adapter?: TypeAdapter): IntValueSource<DB, TABLE_OR_VIEW, int>
     abstract withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'int', required: 'optional', adapter?: TypeAdapter): IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>
     abstract withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'int', required: 'required', adapter?: TypeAdapter): NumberValueSource<DB, TABLE_OR_VIEW, number>
     abstract withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'int', required: 'optional', adapter?: TypeAdapter): NumberValueSource<DB, TABLE_OR_VIEW, number | null | undefined>
     abstract withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): StringDoubleValueSource<DB, TABLE_OR_VIEW, stringDouble>
     abstract withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): StringDoubleValueSource<DB, TABLE_OR_VIEW, stringDouble | null | undefined>
-    abstract withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): StringNumberValueSource<DB, TABLE_OR_VIEW, number>
-    abstract withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): StringNumberValueSource<DB, TABLE_OR_VIEW, number | null | undefined>
+    abstract withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): StringNumberValueSource<DB, TABLE_OR_VIEW, number | string>
+    abstract withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>
     abstract withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'double', required: 'required', adapter?: TypeAdapter): DoubleValueSource<DB, TABLE_OR_VIEW, double>
     abstract withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'double', required: 'optional', adapter?: TypeAdapter): DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>
     abstract withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'double', required: 'required', adapter?: TypeAdapter): NumberValueSource<DB, TABLE_OR_VIEW, number>

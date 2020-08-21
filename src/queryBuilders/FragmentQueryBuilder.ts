@@ -19,16 +19,16 @@ export class FragmentQueryBuilder extends FragmentExpression<any, any> {
     withType(type: 'boolean', required: 'optional', adapter?: TypeAdapter): BooleanValueSource<any, any, boolean | null | undefined>
     withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): StringIntValueSource<any, any, stringInt>
     withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): StringIntValueSource<any, any, stringInt | null | undefined>
-    withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): StringNumberValueSource<any, any, number>
-    withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): StringNumberValueSource<any, any, number | null | undefined>
+    withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): StringNumberValueSource<any, any, number | string>
+    withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): StringNumberValueSource<any, any, number | string | null | undefined>
     withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'int', required: 'required', adapter?: TypeAdapter): IntValueSource<any, any, int>
     withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'int', required: 'optional', adapter?: TypeAdapter): IntValueSource<any, any, int | null | undefined>
     withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'int', required: 'required', adapter?: TypeAdapter): NumberValueSource<any, any, number>
     withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'int', required: 'optional', adapter?: TypeAdapter): NumberValueSource<any, any, number | null | undefined>
     withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): StringDoubleValueSource<any, any, stringDouble>
     withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): StringDoubleValueSource<any, any, stringDouble | null | undefined>
-    withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): StringNumberValueSource<any, any, number>
-    withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): StringNumberValueSource<any, any, number | null | undefined>
+    withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): StringNumberValueSource<any, any, number | string>
+    withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): StringNumberValueSource<any, any, number | string | null | undefined>
     withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'double', required: 'required', adapter?: TypeAdapter): DoubleValueSource<any, any, double>
     withType(this: AbstractFragmentExpression<TypeSafeDB, any>, type: 'double', required: 'optional', adapter?: TypeAdapter): DoubleValueSource<any, any, double | null | undefined>
     withType(this: AbstractFragmentExpression<TypeUnsafeDB, any>, type: 'double', required: 'required', adapter?: TypeAdapter): NumberValueSource<any, any, number>

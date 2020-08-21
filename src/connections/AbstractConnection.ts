@@ -5,7 +5,7 @@ import { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import { InsertExpression } from "../expressions/insert"
 import { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expressions/update"
 import { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
-import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, RemapValueSourceTypeAsOptional, ComparableValueSource, __getValueSourcePrivate } from "../expressions/values"
+import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, RemapValueSourceTypeAsOptional, ComparableValueSource, __getValueSourcePrivate, Argument } from "../expressions/values"
 import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource } from "../internal/ValueSourceImpl"
 import { NoTableOrViewRequired } from "../utils/NoTableOrViewRequired"
 import { Default, DefaultImpl } from "../expressions/Default"
@@ -20,8 +20,8 @@ import { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDoub
 import { QueryRunner } from "../queryRunners/QueryRunner"
 import ChainedError from "chained-error"
 import { IConnection } from "../utils/IConnection"
-import { BooleanFragmentExpression, StringIntFragmentExpression, StringNumberFragmentExpression, IntFragmentExpression, NumberFragmentExpression, StringDoubleFragmentExpression, DoubleFragmentExpression, TypeSafeStringFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, DateFragmentExpression, LocalTimeFragmentExpression, TimeFragmentExpression, LocalDateTimeFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression } from "../expressions/fragment"
-import { FragmentQueryBuilder } from "../queryBuilders/FragmentQueryBuilder"
+import { BooleanFragmentExpression, StringIntFragmentExpression, StringNumberFragmentExpression, IntFragmentExpression, NumberFragmentExpression, StringDoubleFragmentExpression, DoubleFragmentExpression, TypeSafeStringFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, DateFragmentExpression, LocalTimeFragmentExpression, TimeFragmentExpression, LocalDateTimeFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder1TypeSafe, FragmentBuilder0, FragmentBuilder1TypeUnsafe, FragmentBuilder2TypeSafe, FragmentBuilder2TypeUnsafe, FragmentBuilder3TypeSafe, FragmentBuilder3TypeUnsafe, FragmentBuilder4TypeSafe, FragmentBuilder4TypeUnsafe, FragmentBuilder5TypeSafe, FragmentBuilder5TypeUnsafe } from "../expressions/fragment"
+import { FragmentQueryBuilder, FragmentFunctionBuilder } from "../queryBuilders/FragmentQueryBuilder"
 import { attachSource } from "../utils/attachSource"
 
 export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER extends SqlBuilder> extends IConnection<DB, NAME> {
@@ -342,6 +342,67 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
             adapter2 = adapter
         }
         return new FragmentQueryBuilder(type, adapter2)
+    }
+
+    protected arg(type: 'boolean', required: 'required', adapter?: TypeAdapter): Argument<'boolean', 'required', boolean>
+    protected arg(type: 'boolean', required: 'optional', adapter?: TypeAdapter): Argument<'boolean', 'optional', boolean>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): Argument<'stringInt', 'required', stringInt>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): Argument<'stringInt', 'optional', stringInt>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): Argument<'stringInt', 'required', number | string>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): Argument<'stringInt', 'optional', number | string>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'int', required: 'required', adapter?: TypeAdapter): Argument<'int', 'required', int>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', int>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'int', required: 'required', adapter?: TypeAdapter): Argument<'int', 'required', number>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', number>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): Argument<'stringDouble', 'required', stringDouble>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Argument<'stringDouble', 'optional', stringDouble>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): Argument<'stringDouble', 'required', number | string>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Argument<'stringDouble', 'optional', number | string>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'double', required: 'required', adapter?: TypeAdapter): Argument<'double', 'required', double>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', double>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'double', required: 'required', adapter?: TypeAdapter): Argument<'double', 'required', number>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', number>
+    protected arg(type: 'string', required: 'required', adapter?: TypeAdapter): Argument<'string', 'required', string>
+    protected arg(type: 'string', required: 'optional', adapter?: TypeAdapter): Argument<'string', 'optional', string>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', LocalDate>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', LocalDate>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', Date>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', Date>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'localTime', required: 'required', adapter?: TypeAdapter): Argument<'localTime', 'required', LocalTime>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'localTime', required: 'optional', adapter?: TypeAdapter): Argument<'localTime', 'optional', LocalTime>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'localTime', required: 'required', adapter?: TypeAdapter): Argument<'localTime', 'required', Date>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'localTime', required: 'optional', adapter?: TypeAdapter): Argument<'localTime', 'optional', Date>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'localDateTime', required: 'required', adapter?: TypeAdapter): Argument<'localDateTime', 'required', LocalDateTime>
+    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Argument<'localDateTime', 'optional', LocalDateTime>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'localDateTime', required: 'required', adapter?: TypeAdapter): Argument<'localDateTime', 'required', Date>
+    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Argument<'localDateTime', 'optional', Date>
+    protected arg<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'enum', 'required', T>
+    protected arg<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'enum', 'optional', T>
+    protected arg<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'custom', 'required', T>
+    protected arg<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'custom', 'optional', T>
+    protected arg<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customComparable', 'required', T>
+    protected arg<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', T>
+    protected arg<_T>(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
+        if (typeof adapter === 'string') {
+            return new Argument(type as any, adapter, required as any, adapter2)
+        } else {
+            return new Argument(type as any, type, required as any, adapter)
+        }
+    }
+
+    protected buildFragmentWithArgs(): FragmentBuilder0<DB>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB, NAME>, a1: A1): FragmentBuilder1TypeSafe<DB, A1>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB, NAME>, a1: A1): FragmentBuilder1TypeUnsafe<DB, A1>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB, NAME>, a1: A1, a2: A2): FragmentBuilder2TypeSafe<DB, A1, A2>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB, NAME>, a1: A1, a2: A2): FragmentBuilder2TypeUnsafe<DB, A1, A2>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB, NAME>, a1: A1, a2: A2, a3: A3): FragmentBuilder3TypeSafe<DB, A1, A2, A3>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB, NAME>, a1: A1, a2: A2, a3: A3): FragmentBuilder3TypeUnsafe<DB, A1, A2, A3>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>, A4 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB, NAME>, a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4TypeSafe<DB, A1, A2, A3, A4>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>, A4 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB, NAME>, a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4TypeUnsafe<DB, A1, A2, A3, A4>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>, A4 extends Argument<any, any, any>, A5 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB, NAME>, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5TypeSafe<DB, A1, A2, A3, A4, A5>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>, A4 extends Argument<any, any, any>, A5 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB, NAME>, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5TypeUnsafe<DB, A1, A2, A3, A4, A5>
+    protected buildFragmentWithArgs(...args: Argument<any, any, any>[]): any {
+        return new FragmentFunctionBuilder(args)
     }
 
     // Agregate functions

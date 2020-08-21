@@ -18,6 +18,7 @@ Type-safe sql means the mistakes writting a query will be detected during the co
   - [Select with aggregate functions and group by](#select-with-aggregate-functions-and-group-by)
   - [Select page](#select-page)
   - [Select with custom sql fragment](#select-with-custom-sql-fragment)
+  - [Select with custom reusable sql fragment](#select-with-custom-reusable-sql-fragment)
   - [Insert](#insert)
   - [Insert multiple values](#insert-multiple-values)
   - [Insert from select](#insert-from-select)
@@ -335,6 +336,62 @@ const customersUsingCustomFragment: Promise<{
     idAsString: string;
     name: string;
 } | null>
+```
+
+### Select with custom reusable sql fragment
+
+You can define functions in your connection that create custom reusable sql fragments, that give you the possibility to do some operations or functions not included in ts-sql-query.
+
+If you define your connection like:
+
+```ts
+import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+class DBConection extends PostgreSqlConnection<DBConection, 'DBConnection'> { 
+
+    bitwiseShiftLeft = this.buildFragmentWithArgs(
+        this.arg('int', 'required'),
+        this.arg('int', 'required')
+    ).as((left, right) => {
+        // The fragment here is: ${left} << ${right}
+        // Could be another fragment like a function call: myFunction(${left}, ${right})
+        return this.fragmentWithType('int', 'required').sql`${left} << ${right}`
+    })
+}
+```
+
+You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; this arguments can be numbers or elements in the database that represents integer numbers. You can use the defined function as a regular database function in your query.
+
+```ts
+const bitwiseMovenets = 1;
+const multiplier = 2;
+
+const companiesUsingCustomFunctionFragment = connection.selectFrom(tCompany)
+    .where(tCompany.id.multiply(multiplier).equals(connection.bitwiseShiftLeft(tCompany.id, bitwiseMovenets)))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        idMultiplyBy2: connection.bitwiseShiftLeft(tCompany.id, bitwiseMovenets)
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+```sql
+select id as id, name as name, id << $1 as idMultiplyBy2 
+from company 
+where (id * $2) = (id << $3)
+```
+
+The parameters are: `[ 1, 2, 1 ]`
+
+The result type is:
+```ts
+const companiesUsingCustomFunctionFragment: Promise<{
+    id: number;
+    name: string;
+    idMultiplyBy2: number;
+}[]>
 ```
 
 ### Insert
@@ -942,7 +999,7 @@ interface Connection {
     deleteAllowingNoWhereFrom(table: Table): DeleteExpression
     selectFrom(table: Table | View): SelectExpression
     selectDistinctFrom(table: Table | View): SelectExpression
-    selectFromNoTable(): SelectExpressionFromNoTable
+    selectFromNoTable(): SelectExpression
 
     // These methods allows to create a subquery that depends of a outer table defined in the main query 
     subSelectUsing(table: Table | View): SelectExpression
@@ -1056,6 +1113,26 @@ interface Connection {
     sequence<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource>
     sequence<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource>
 
+    // Protected methods to define reusable fragments
+    arg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg<T>(type: 'enum', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg<T>(type: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg<T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+
+    /*
+     * This function receive the argument definition that you can create calling the arg function.
+     * You can specify up to 5 argument definitions
+     */
+    buildFragmentWithArgs(...argumentDefinitions: Argument[]): FragmentBuilder
+
     /*
      * Configurations
      */
@@ -1085,8 +1162,19 @@ interface Connection {
 }
 
 interface FragmentExpression {
-    /** This is a template, you can call as: .sql`sql text with ${valueSourceParam}` */
+    /** 
+     * This is a template, you can call as: .sql`sql text with ${valueSourceParam}` 
+     * You can specify up to 7 parameters.
+     */
     sql(sql: TemplateStringsArray, ...p: ValueSource[]): ValueSource
+}
+
+interface FragmentBuilder {
+    /*
+     * The impl function will receive the proper ValueSource type according to the argument definition.
+     * The nunber of arguments is the same specified in the function buildFragmentWithArgs (up to 5 arguments).
+     */
+    as(impl: (...args: ValueSource[]) => ValueSource): () => ValueSource
 }
 
 interface TypeAdapter {
@@ -1268,7 +1356,7 @@ interface InsertExpression {
     /** Alias to set method: Set the values for insert */
     values(columns: InsertSets): this
     /** Allow to insert multiple registers in the database */
-    values(columns: InsertSets<DB, TABLE>[]): this
+    values(columns: InsertSets[]): this
     /** Set the values for insert */
     set(columns: InsertSets): this
     /** 

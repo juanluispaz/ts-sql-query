@@ -1179,3 +1179,57 @@ export type RemapValueSourceTypeAsMandatory<DB extends AnyDB, TABLE_OR_VIEW exte
 export type MandatoryTypeOf<T> = T extends null | undefined ? never : T
 export type OptionalTypeOf<T> = T extends null ? null : T extends undefined ? undefined : never
 export type AsType<T, TYPE> = TYPE | OptionalTypeOf<T>
+
+export type ArgumentType = 'boolean' | 'stringInt' | 'int' | 'stringDouble' | 'double' | 'string' | 'localDateTime' | 'localDate' | 'localTime' | 'customComparable' | 'enum' | 'custom'
+export type ArgumentRequire = 'required' | 'optional'
+export class Argument<T extends ArgumentType, REQUIRED extends ArgumentRequire, TYPE> {
+    readonly type: T
+    readonly typeName: string
+    readonly required: REQUIRED
+    readonly adapter?: TypeAdapter
+    // @ts-ignore
+    protected readonly ___type: TYPE
+    constructor (type: T, typeName: string, required: REQUIRED, adapter?: TypeAdapter,) {
+        this.type = type
+        this.typeName = typeName
+        this.required = required
+        this.adapter = adapter
+    }
+}
+
+export type TypeOf<R extends ArgumentRequire, T> = R extends 'required' ? T : (T | null | undefined)
+export type TypeOfArgument<ARG> = ARG extends Argument<any, any, infer T> ? T : never
+
+export type MapArgumentToTypeSafe<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, ARG> =
+    ARG extends Argument<infer TYPE, infer REQUIRED, infer T> ? (
+        TYPE extends 'boolean' ? BooleanValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'stringInt' ? StringIntValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'int' ? IntValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'stringDouble' ? StringDoubleValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'double' ? DoubleValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'string' ? TypeSafeStringValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'localDateTime' ? LocalDateTimeValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'localDate' ? LocalDateValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'localTime' ? LocalTimeValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'customComparable'? ComparableValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'enum' ? EqualableValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'custom' ? EqualableValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        never
+    ): never
+
+export type MapArgumentToTypeUnsafe<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, ARG> =
+    ARG extends Argument<infer TYPE, infer REQUIRED, infer T> ? (
+        TYPE extends 'boolean' ? BooleanValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'stringInt' ? StringNumberValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'int' ? NumberValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'stringDouble' ? StringDoubleValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'double' ? NumberValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'string' ? StringValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'localDateTime' ? DateTimeValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'localDate' ? DateValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'localTime' ? TimeValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'customComparable' ? ComparableValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'enum' ? EqualableValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'custom' ? EqualableValueSource<DB, TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        never
+    ): never

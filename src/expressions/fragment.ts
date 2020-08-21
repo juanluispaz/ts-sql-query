@@ -1,6 +1,6 @@
 import { AnyDB } from "../databases/AnyDB"
 import { ITableOrView } from "../utils/ITableOrView"
-import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, ComparableValueSource } from "../expressions/values"
+import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, ComparableValueSource, MapArgumentToTypeSafe, RemapValueSourceType, TypeOfArgument, MapArgumentToTypeUnsafe } from "../expressions/values"
 
 import { NoTableOrViewRequired } from "../utils/NoTableOrViewRequired"
 
@@ -261,3 +261,210 @@ export abstract class ComparableFragmentExpression<DB extends AnyDB, TYPE> {
     abstract sql<T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>, T6 extends ITableOrView<DB>, T7 extends ITableOrView<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>, p3: ValueSource<DB, T3, any>, p4: ValueSource<DB, T4, any>, p5: ValueSource<DB, T5, any>, p6: ValueSource<DB, T6, any>, p7: ValueSource<DB, T7, any>): ComparableValueSource<DB, T1 | T2 | T3 | T4 | T5 | T6 | T7, TYPE>
     abstract sql<T extends ITableOrView<DB>>(sql: TemplateStringsArray, ...p: ValueSource<DB, T, any>[]): ComparableValueSource<DB, T, TYPE>
 }
+
+export interface FragmentBuilder0<DB extends AnyDB> {
+    as<RESULT extends ValueSource<DB, NoTableOrViewRequired, any>>(impl: () => RESULT): () => RESULT
+}
+
+export interface FragmentBuilder1TypeSafe<DB extends AnyDB, A1> {
+    as<RESULT extends ValueSource<DB, NoTableOrViewRequired, any>>(impl: (a1: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A1>) => RESULT): FargmentFunction1TypeSafe<DB, A1, RESULT>
+}
+
+export interface FargmentFunction1TypeSafe<DB extends AnyDB, A1, RESULT> {
+    (a1: TypeOfArgument<A1>): RemapValueSourceType<DB, NoTableOrViewRequired, RESULT>
+    <T1 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>): RemapValueSourceType<DB, T1, RESULT>
+}
+
+export interface FragmentBuilder1TypeUnsafe<DB extends AnyDB, A1> {
+    as<RESULT extends ValueSource<DB, NoTableOrViewRequired, any>>(impl: (a1: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A1>) => RESULT): FargmentFunction1TypeUnsafe<DB, A1, RESULT>
+}
+
+export interface FargmentFunction1TypeUnsafe<DB extends AnyDB, A1, RESULT> {
+    (a1: TypeOfArgument<A1>): RemapValueSourceType<DB, NoTableOrViewRequired, RESULT>
+    <T1 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>): RemapValueSourceType<DB, T1, RESULT>
+}
+
+export interface FragmentBuilder2TypeSafe<DB extends AnyDB, A1, A2> {
+    as<RESULT extends ValueSource<DB, NoTableOrViewRequired, any>>(impl: (a1: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A1>, a2: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A2>) => RESULT): FargmentFunction2TypeSafe<DB, A1, A2, RESULT>
+}
+
+export interface FargmentFunction2TypeSafe<DB extends AnyDB, A1, A2, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>): RemapValueSourceType<DB, NoTableOrViewRequired, RESULT>
+    <T1 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>): RemapValueSourceType<DB, T1, RESULT>
+
+    <T2 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>): RemapValueSourceType<DB, T2, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>): RemapValueSourceType<DB, T1 | T2, RESULT>
+}
+
+export interface FragmentBuilder2TypeUnsafe<DB extends AnyDB, A1, A2> {
+    as<RESULT extends ValueSource<DB, NoTableOrViewRequired, any>>(impl: (a1: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A1>, a2: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A2>) => RESULT): FargmentFunction2TypeUnsafe<DB, A1, A2, RESULT>
+}
+
+export interface FargmentFunction2TypeUnsafe<DB extends AnyDB, A1, A2, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>): RemapValueSourceType<DB, NoTableOrViewRequired, RESULT>
+    <T1 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>): RemapValueSourceType<DB, T1, RESULT>
+
+    <T2 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>): RemapValueSourceType<DB, T2, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>): RemapValueSourceType<DB, T1 | T2, RESULT>
+}
+
+export interface FragmentBuilder3TypeSafe<DB extends AnyDB, A1, A2, A3> {
+    as<RESULT extends ValueSource<DB, NoTableOrViewRequired, any>>(impl: (a1: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A1>, a2: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A2>, a3: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A3>) => RESULT): FargmentFunction3TypeSafe<DB, A1, A2, A3, RESULT>
+}
+
+export interface FargmentFunction3TypeSafe<DB extends AnyDB, A1, A2, A3, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<DB, NoTableOrViewRequired, RESULT>
+    <T1 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<DB, T1, RESULT>
+    <T2 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<DB, T2, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<DB, T1 | T2, RESULT>
+
+    <T3 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>): RemapValueSourceType<DB, T3, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>): RemapValueSourceType<DB, T1 | T3, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>): RemapValueSourceType<DB, T2 | T3, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>): RemapValueSourceType<DB, T1 | T2 | T3, RESULT>
+}
+
+export interface FragmentBuilder3TypeUnsafe<DB extends AnyDB, A1, A2, A3> {
+    as<RESULT extends ValueSource<DB, NoTableOrViewRequired, any>>(impl: (a1: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A1>, a2: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A2>, a3: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A3>) => RESULT): FargmentFunction3TypeUnsafe<DB, A1, A2, A3, RESULT>
+}
+
+export interface FargmentFunction3TypeUnsafe<DB extends AnyDB, A1, A2, A3, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<DB, NoTableOrViewRequired, RESULT>
+    <T1 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<DB, T1, RESULT>
+    <T2 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<DB, T2, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<DB, T1 | T2, RESULT>
+
+    <T3 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>): RemapValueSourceType<DB, T3, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>): RemapValueSourceType<DB, T1 | T3, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>): RemapValueSourceType<DB, T2 | T3, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>): RemapValueSourceType<DB, T1 | T2 | T3, RESULT>
+}
+
+export interface FragmentBuilder4TypeSafe<DB extends AnyDB, A1, A2, A3, A4> {
+    as<RESULT extends ValueSource<DB, NoTableOrViewRequired, any>>(impl: (a1: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A1>, a2: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A2>, a3: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A3>, a4: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A4>) => RESULT): FargmentFunction4TypeSafe<DB, A1, A2, A3, A4, RESULT>
+}
+
+export interface FargmentFunction4TypeSafe<DB extends AnyDB, A1, A2, A3, A4, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, NoTableOrViewRequired, RESULT>
+    <T1 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T1, RESULT>
+    <T2 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T2, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T1 | T2, RESULT>
+    <T3 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T3, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T1 | T3, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T2 | T3, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T1 | T2 | T3, RESULT>
+
+    <T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>): RemapValueSourceType<DB, T4, RESULT>
+    <T1 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>): RemapValueSourceType<DB, T1 | T4, RESULT>
+    <T2 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>): RemapValueSourceType<DB, T2 | T4, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>): RemapValueSourceType<DB, T1 | T2 | T4, RESULT>
+    <T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>): RemapValueSourceType<DB, T3 | T4, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>): RemapValueSourceType<DB, T1 | T3 | T4, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>): RemapValueSourceType<DB, T2 | T3 | T4, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>): RemapValueSourceType<DB, T1 | T2 | T3 | T4, RESULT>
+}
+
+export interface FragmentBuilder4TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4> {
+    as<RESULT extends ValueSource<DB, NoTableOrViewRequired, any>>(impl: (a1: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A1>, a2: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A2>, a3: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A3>, a4: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A4>) => RESULT): FargmentFunction4TypeUnsafe<DB, A1, A2, A3, A4, RESULT>
+}
+
+export interface FargmentFunction4TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, NoTableOrViewRequired, RESULT>
+    <T1 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T1, RESULT>
+    <T2 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T2, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T1 | T2, RESULT>
+    <T3 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T3, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T1 | T3, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T2 | T3, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<DB, T1 | T2 | T3, RESULT>
+
+    <T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>): RemapValueSourceType<DB, T4, RESULT>
+    <T1 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>): RemapValueSourceType<DB, T1 | T4, RESULT>
+    <T2 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>): RemapValueSourceType<DB, T2 | T4, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>): RemapValueSourceType<DB, T1 | T2 | T4, RESULT>
+    <T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>): RemapValueSourceType<DB, T3 | T4, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>): RemapValueSourceType<DB, T1 | T3 | T4, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>): RemapValueSourceType<DB, T2 | T3 | T4, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>): RemapValueSourceType<DB, T1 | T2 | T3 | T4, RESULT>
+}
+
+export interface FragmentBuilder5TypeSafe<DB extends AnyDB, A1, A2, A3, A4, A5> {
+    as<RESULT extends ValueSource<DB, NoTableOrViewRequired, any>>(impl: (a1: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A1>, a2: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A2>, a3: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A3>, a4: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A4>, a5: MapArgumentToTypeSafe<DB, NoTableOrViewRequired, A5>) => RESULT): FargmentFunction5TypeSafe<DB, A1, A2, A3, A4, A5, RESULT>
+}
+
+export interface FargmentFunction5TypeSafe<DB extends AnyDB, A1, A2, A3, A4, A5, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, NoTableOrViewRequired, RESULT>
+    <T1 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1, RESULT>
+    <T2 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T2, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T2, RESULT>
+    <T3 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T3, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T3, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T2 | T3, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T2 | T3, RESULT>
+    <T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T4, RESULT>
+    <T1 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T4, RESULT>
+    <T2 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T2 | T4, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T2 | T4, RESULT>
+    <T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T3 | T4, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T3 | T4, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T2 | T3 | T4, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T2 | T3 | T4, RESULT>
+
+    <T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T5, RESULT>
+    <T1 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T5, RESULT>
+    <T2 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T2 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T2 | T5, RESULT>
+    <T3 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T3 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T3 | T5, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T2 | T3 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T2 | T3 | T5, RESULT>
+    <T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T4 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T4 | T5, RESULT>
+    <T2 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T2 | T4 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T2 | T4 | T5, RESULT>
+    <T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T3 | T4 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T3 | T4 | T5, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T2 | T3 | T4 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeSafe<DB, T1, A1>, a2: MapArgumentToTypeSafe<DB, T2, A2>, a3: MapArgumentToTypeSafe<DB, T3, A3>, a4: MapArgumentToTypeSafe<DB, T4, A4>, a5: MapArgumentToTypeSafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T2 | T3 | T4 | T5, RESULT>
+}
+
+export interface FragmentBuilder5TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, A5> {
+    as<RESULT extends ValueSource<DB, NoTableOrViewRequired, any>>(impl: (a1: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A1>, a2: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A2>, a3: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A3>, a4: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A4>, a5: MapArgumentToTypeUnsafe<DB, NoTableOrViewRequired, A5>) => RESULT): FargmentFunction5TypeUnsafe<DB, A1, A2, A3, A4, A5, RESULT>
+}
+
+export interface FargmentFunction5TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, A5, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, NoTableOrViewRequired, RESULT>
+    <T1 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1, RESULT>
+    <T2 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T2, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T2, RESULT>
+    <T3 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T3, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T3, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T2 | T3, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T2 | T3, RESULT>
+    <T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T4, RESULT>
+    <T1 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T4, RESULT>
+    <T2 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T2 | T4, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T2 | T4, RESULT>
+    <T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T3 | T4, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T3 | T4, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T2 | T3 | T4, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<DB, T1 | T2 | T3 | T4, RESULT>
+
+    <T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T5, RESULT>
+    <T1 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T5, RESULT>
+    <T2 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T2 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T2 | T5, RESULT>
+    <T3 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T3 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T3 | T5, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T2 | T3 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: TypeOfArgument<A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T2 | T3 | T5, RESULT>
+    <T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T4 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T4 | T5, RESULT>
+    <T2 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T2 | T4 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: TypeOfArgument<A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T2 | T4 | T5, RESULT>
+    <T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T3 | T4 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: TypeOfArgument<A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T3 | T4 | T5, RESULT>
+    <T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: TypeOfArgument<A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T2 | T3 | T4 | T5, RESULT>
+    <T1 extends ITableOrView<DB>, T2 extends ITableOrView<DB>, T3 extends ITableOrView<DB>, T4 extends ITableOrView<DB>, T5 extends ITableOrView<DB>>(a1: MapArgumentToTypeUnsafe<DB, T1, A1>, a2: MapArgumentToTypeUnsafe<DB, T2, A2>, a3: MapArgumentToTypeUnsafe<DB, T3, A3>, a4: MapArgumentToTypeUnsafe<DB, T4, A4>, a5: MapArgumentToTypeUnsafe<DB, T5, A5>): RemapValueSourceType<DB, T1 | T2 | T3 | T4 | T5, RESULT>
+}
+

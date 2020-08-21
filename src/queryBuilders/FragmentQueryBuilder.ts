@@ -1,6 +1,6 @@
 import { TypeAdapter } from "../TypeAdapter"
-import { FragmentValueSource } from "../internal/ValueSourceImpl"
-import { ValueSource } from "../expressions/values"
+import { FragmentValueSource, ValueSourceImpl, SqlOperationStatic1ValueSource } from "../internal/ValueSourceImpl"
+import { ValueSource, Argument } from "../expressions/values"
 
 /*
 // Alternative implementation but doen't work in TS 3.5.3 because 'Type instantiation is excessively deep and possibly infinite.' on AbstractConnection
@@ -78,5 +78,30 @@ export class FragmentQueryBuilder {
 
     sql(sql: TemplateStringsArray, ...params: ValueSource<any, any, any>[]): ValueSource<any, any, any> {
         return new FragmentValueSource(sql, params, this.__type, this.__adapter)
+    }
+}
+
+export class FragmentFunctionBuilder {
+    definitions: Argument<any, any, any>[]
+
+    constructor(definitions: Argument<any, any, any>[]) {
+        this.definitions = definitions
+    }
+    
+    as(impl: (...vs: ValueSource<any, any, any>[]) => ValueSource<any, any, any>): ((...args: any[]) => ValueSource<any, any, any>) {
+        return (...args: any[]): ValueSource<any, any, any> => {
+            const newArgs: ValueSource<any, any, any>[] = []
+            for (let i = 0, length = args.length; i < length; i++) {
+                const arg = args[i]
+                if (arg instanceof ValueSourceImpl) {
+                    newArgs.push(arg)
+                } else {
+                    const definition = this.definitions[i]
+                    const newArg = new SqlOperationStatic1ValueSource('_const', arg, definition.typeName, definition.adapter)
+                    newArgs.push(newArg)
+                }
+            }
+            return impl.apply(undefined, newArgs)
+        }
     }
 }

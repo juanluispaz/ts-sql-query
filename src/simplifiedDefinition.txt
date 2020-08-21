@@ -348,6 +348,26 @@ interface Connection {
     sequence<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource>
     sequence<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource>
 
+    // Protected methods to define reusable fragments
+    arg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg<T>(type: 'enum', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg<T>(type: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg<T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+
+    /*
+     * This function receive the argument definition that you can create calling the arg function.
+     * You can specify up to 5 argument definitions
+     */
+    buildFragmentWithArgs(...argumentDefinitions: Argument[]): FragmentBuilder
+
     /*
      * Configurations
      */
@@ -377,8 +397,19 @@ interface Connection {
 }
 
 interface FragmentExpression {
-    /** This is a template, you can call as: .sql`sql text with ${valueSourceParam}` */
+    /** 
+     * This is a template, you can call as: .sql`sql text with ${valueSourceParam}` 
+     * You can specify up to 7 parameters.
+     */
     sql(sql: TemplateStringsArray, ...p: ValueSource[]): ValueSource
+}
+
+interface FragmentBuilder {
+    /*
+     * The impl function will receive the proper ValueSource type according to the argument definition.
+     * The nunber of arguments is the same specified in the function buildFragmentWithArgs (up to 5 arguments).
+     */
+    as(impl: (...args: ValueSource[]) => ValueSource): () => ValueSource
 }
 
 interface TypeAdapter {
@@ -564,7 +595,7 @@ interface InsertExpression {
     /** Alias to set method: Set the values for insert */
     values(columns: InsertSets): this
     /** Allow to insert multiple registers in the database */
-    values(columns: InsertSets<DB, TABLE>[]): this
+    values(columns: InsertSets[]): this
     /** Set the values for insert */
     set(columns: InsertSets): this
     /** 
@@ -851,3 +882,4 @@ type RESULT = any
 type Default = any
 type QueryRunner = any
 type OuterJoinSource = any
+type Argument = any

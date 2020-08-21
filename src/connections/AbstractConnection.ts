@@ -183,13 +183,6 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
         if (typeof adapter === 'string') {
             return new SqlOperationStatic1ValueSource('_const', value, adapter, adapter2)
         }
-        if (type === 'boolean') {
-            if (value === true) {
-                return new SqlOperationStatic0ValueSource('_true', type, adapter)
-            } else if (value === false) {
-                return new SqlOperationStatic0ValueSource('_false', type, adapter)
-            }
-        }
         return new SqlOperationStatic1ValueSource('_const', value, type, adapter)
     }
 

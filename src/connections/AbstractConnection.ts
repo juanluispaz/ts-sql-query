@@ -491,11 +491,14 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
         }
         switch (type) {
             case 'boolean':
+                if (typeof value === 'boolean') {
+                    return value
+                }
                 if (typeof value === 'number') {
                     return !!value
                 }
-                if (typeof value === 'boolean') {
-                    return value
+                if (typeof value === 'bigint') {
+                    return !!value
                 }
                 throw new Error('Invalid boolean value received from the db: ' + value)
             case 'int':
@@ -509,6 +512,13 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                     const result = +value
                     if (isNaN(result)) {
                         throw new Error('Invalid int value received from the db: ' + value)
+                    }
+                    return result
+                }
+                if (typeof value === 'bigint') {
+                    const result = Number(value)
+                    if (!Number.isSafeInteger(result)) {
+                        throw new Error('Unnoticed precition lost transforming a bigint to int number. Value: ' + value)
                     }
                     return result
                 }
@@ -526,6 +536,13 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                     }
                     return value
                 }
+                if (typeof value === 'bigint') {
+                    const result = Number(value)
+                    if (!Number.isSafeInteger(result)) {
+                        return '' + value
+                    }
+                    return result
+                }
                 throw new Error('Invalid stringInt value received from the db: ' + value)
             case 'double':
                 if (typeof value === 'number') {
@@ -538,6 +555,9 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                     }
                     return result
                 }
+                if (typeof value === 'bigint') {
+                    return Number(value)
+                }
                 throw new Error('Invalid double value received from the db: ' + value)
             case 'stringDouble':
                 if (typeof value === 'number') {
@@ -548,6 +568,13 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
                         throw new Error('Invalid stringDouble value received from the db: ' + value)
                     }
                     return value
+                }
+                if (typeof value === 'bigint') {
+                    const result = Number(value)
+                    if (!Number.isSafeInteger(result)) {
+                        return '' + value
+                    }
+                    return result
                 }
                 throw new Error('Invalid stringDouble value received from the db: ' + value)
             case 'string':

@@ -192,7 +192,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             return Promise.reject(new Error('Already in an transaction, you can only use one transaction'))
         }
         this.transaction = this.pool.transaction()
-        return this.transaction.begin()
+        return this.transaction.begin().then(() => undefined)
     }
     executeCommit(): Promise<void> {
         if (!this.transaction) {

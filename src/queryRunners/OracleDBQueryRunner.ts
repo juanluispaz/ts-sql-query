@@ -1,5 +1,5 @@
 import { QueryRunner, DatabaseType } from "./QueryRunner"
-import { Connection, OBJECT, ARRAY, BIND_OUT } from 'oracledb'
+import { Connection, OUT_FORMAT_OBJECT, OUT_FORMAT_ARRAY, BIND_OUT } from 'oracledb'
 
 export class OracleDBQueryRunner implements QueryRunner {
     readonly database: DatabaseType
@@ -21,19 +21,23 @@ export class OracleDBQueryRunner implements QueryRunner {
     }
 
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.connection.execute(query, params, { outFormat: OBJECT }).then((result) => {
-            if (result.rows.length > 1) {
+        return this.connection.execute(query, params, { outFormat: OUT_FORMAT_OBJECT }).then((result) => {
+            if (!result.rows) {
+                return undefined
+            } else if (result.rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
             }
             return result.rows[0]
         })
     }
     executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.connection.execute(query, params, {outFormat: OBJECT}).then((result) => result.rows)
+        return this.connection.execute(query, params, {outFormat: OUT_FORMAT_OBJECT}).then((result) => result.rows || [])
     }
     executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.connection.execute(query, params, { outFormat: ARRAY }).then((result) => {
-            if (result.rows.length > 1) {
+        return this.connection.execute(query, params, { outFormat: OUT_FORMAT_ARRAY }).then((result) => {
+            if (!result.rows) {
+                return undefined
+            } else if (result.rows.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
             }
             const row = result.rows[0] as Array<any>
@@ -48,7 +52,7 @@ export class OracleDBQueryRunner implements QueryRunner {
         })
     }
     executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.connection.execute(query, params, { outFormat: ARRAY }).then((result) => result.rows.map((row) => {
+        return this.connection.execute(query, params, { outFormat: OUT_FORMAT_ARRAY }).then((result) => (result.rows || []).map((row) => {
             if ((row as Array<any>).length > 1) {
                 throw new Error('Too many columns, expected only one column')
             }
@@ -56,7 +60,7 @@ export class OracleDBQueryRunner implements QueryRunner {
         }))
     }
     executeInsert(query: string, params: any[] = []): Promise<number> {
-        return this.connection.execute(query, params).then((result) => result.rowsAffected)
+        return this.connection.execute(query, params).then((result) => result.rowsAffected || 0)
     }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         return this.connection.execute(query, params).then((result) => {
@@ -90,17 +94,19 @@ export class OracleDBQueryRunner implements QueryRunner {
         })
     }
     executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.connection.execute(query, params).then((result) => result.rowsAffected)
+        return this.connection.execute(query, params).then((result) => result.rowsAffected || 0)
     }
     executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.connection.execute(query, params).then((result) => result.rowsAffected)
+        return this.connection.execute(query, params).then((result) => result.rowsAffected || 0)
     }
     executeProcedure(query: string, params: any[] = []): Promise<void> {
         return this.connection.execute(query, params).then(() => undefined)
     }
     executeFunction(query: string, params: any[] = []): Promise<any> {
-        return this.connection.execute(query, params, { outFormat: ARRAY }).then((result) => {
-            if (result.rows.length !== 1) {
+        return this.connection.execute(query, params, { outFormat: OUT_FORMAT_ARRAY }).then((result) => {
+            if (!result.rows) {
+                throw new Error('No row found')
+            } else if (result.rows.length !== 1) {
                 throw new Error('Invalid number of rows, expected only one row')
             }
             const row = result.rows[0] as Array<any>

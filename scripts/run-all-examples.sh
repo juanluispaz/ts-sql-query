@@ -1,11 +1,11 @@
 #!/bin/bash
 set -x #echo on
 
-npm install any-db any-db-transaction any-db-mssql any-db-mysql any-db-postgres any-db-sqlite3 better-sqlite3 mssql mysql2 mysql oracledb pg sqlite3 tedious loopback-connector-sqlite3 loopback-connector-postgresql loopback-connector-mysql loopback-connector-mssql loopback-connector-oracle
+#npm install any-db-transaction any-db-mssql any-db-mysql any-db-postgres any-db-sqlite3 better-sqlite3 mssql mysql2 mysql oracledb pg sqlite3 tedious loopback-connector-sqlite3 loopback-connector-postgresql loopback-connector-mysql loopback-connector-mssql loopback-connector-oracle
 
 # Download and uncompress instantclient-basic-linux: https://www.oracle.com/es/database/technologies/instant-client/linux-x86-64-downloads.html
-# sudo apt-get build-essential install libaio1
-export LD_LIBRARY_PATH="$HOME/Downloads/instantclient_19_5/"
+# sudo apt-get install build-essential libaio1
+export LD_LIBRARY_PATH="$HOME/Descargas/instantclient_19_6/"
 
 node ./dist/examples/SqliteExample.js || exit 1
 node ./dist/examples/Sqlite3Example.js || exit 1
@@ -46,7 +46,7 @@ docker stop ts-sql-query-sqlserver
 docker rm ts-sql-query-sqlserver
 
 docker run --name ts-sql-query-oracle -d -p 1521:1521 quillbuilduser/oracle-18-xe
-sleep 30
+sleep 40
 node ./dist/examples/OracleDBExample.js || { docker stop ts-sql-query-oracle; docker rm ts-sql-query-oracle; exit 1; }
 node ./dist/examples/LoopBackOracleDBExample.js || { docker stop ts-sql-query-oracle; docker rm ts-sql-query-oracle; exit 1; }
 docker stop ts-sql-query-oracle

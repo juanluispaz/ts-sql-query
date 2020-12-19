@@ -46,7 +46,7 @@ docker stop ts-sql-query-sqlserver
 docker rm ts-sql-query-sqlserver
 
 docker run --name ts-sql-query-oracle -d -p 1521:1521 quillbuilduser/oracle-18-xe
-sleep 40
+sleep 50
 node ./dist/examples/OracleDBExample.js || { docker stop ts-sql-query-oracle; docker rm ts-sql-query-oracle; exit 1; }
 node ./dist/examples/LoopBackOracleDBExample.js || { docker stop ts-sql-query-oracle; docker rm ts-sql-query-oracle; exit 1; }
 docker stop ts-sql-query-oracle

@@ -185,7 +185,7 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
 }
 
 function toStringInt(value: any) {
-    if (Integer.isInstance(value)) {
+    if (Integer && Integer.isInstance(value)) {
         if (value.isSafe()) {
             return value.toNumber()
         } else {

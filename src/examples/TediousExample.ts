@@ -48,6 +48,9 @@ var connectionConfig = {
             userName: 'sa', //update me
             password: 'yourStrong(!)Password'  //update me
         }
+    },
+    options: {
+        trustServerCertificate: true
     }
 }
 
@@ -261,3 +264,4 @@ conn.on('connect', function(err) {
     })
 })
 
+conn.connect()

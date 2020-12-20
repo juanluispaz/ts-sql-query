@@ -46,6 +46,10 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
         return this.connection
     }
 
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(this.connection)
+    }
+
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, function (error, rows) {

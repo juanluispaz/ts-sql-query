@@ -20,6 +20,10 @@ export class SqliteQueryRunner implements QueryRunner {
         return this.connection
     }
 
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(this.connection)
+    }
+
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return this.connection.all(query, params).then((rows) => {
             if (rows.length > 1) {

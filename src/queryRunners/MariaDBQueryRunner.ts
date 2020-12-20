@@ -23,6 +23,10 @@ export class MariaDBQueryRunner implements QueryRunner {
         return this.connection
     }
 
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(this.connection)
+    }
+
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: any[]) => {
             if (result.length > 1) {

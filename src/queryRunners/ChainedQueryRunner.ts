@@ -18,6 +18,10 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
         return this.queryRunner.getNativeRunner()
     }
 
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return this.execute(fn)
+    }
+
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return this.queryRunner.executeSelectOneRow(query, params)
     }

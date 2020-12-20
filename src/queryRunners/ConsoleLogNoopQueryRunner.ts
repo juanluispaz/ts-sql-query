@@ -16,6 +16,10 @@ export class ConsoleLogNoopQueryRunner implements QueryRunner {
         return null
     }
 
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(null)
+    }
+
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         console.log('executeSelectOneRow:', query, params)
         return Promise.resolve(undefined)

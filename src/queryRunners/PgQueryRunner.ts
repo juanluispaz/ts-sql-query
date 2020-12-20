@@ -20,6 +20,10 @@ export class PgQueryRunner implements QueryRunner {
         return this.connection
     }
 
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(this.connection)
+    }
+
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return this.connection.query(query, params).then((result) => {
             if (result.rows.length > 1) {

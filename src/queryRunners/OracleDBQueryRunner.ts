@@ -20,6 +20,10 @@ export class OracleDBQueryRunner implements QueryRunner {
         return this.connection
     }
 
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(this.connection)
+    }
+
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return this.connection.execute(query, params, { outFormat: OUT_FORMAT_OBJECT }).then((result) => {
             if (!result.rows) {

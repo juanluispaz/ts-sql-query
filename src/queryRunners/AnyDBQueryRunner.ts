@@ -48,6 +48,10 @@ export class AnyDBQueryRunner implements QueryRunner {
         return this.connection
     }
 
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(this.connection, this.transaction)
+    }
+
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return this.query(query, params).then((result) => {
             if (result.rows.length > 1) {

@@ -24,6 +24,10 @@ export class MockQueryRunner implements QueryRunner {
         return null
     }
 
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(null)
+    }
+
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         try {
             return Promise.resolve(this.queryExecutor('selectOneRow', query, params, this.count++))

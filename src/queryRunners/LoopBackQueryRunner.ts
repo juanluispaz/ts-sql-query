@@ -55,6 +55,9 @@ export abstract class LoopBackAbstractQueryRunner implements LoopbackQueryRunner
     getNativeRunner(): DataSource {
         return this.datasource
     }
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(this.datasource, this.transaction)
+    }
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         return this.query(query, params).then((rows) => {
             if (rows.length > 1) {

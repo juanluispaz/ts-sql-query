@@ -16,6 +16,10 @@ export class NoopQueryRunner implements QueryRunner {
         return null
     }
 
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(null)
+    }
+
     executeSelectOneRow(_query: string, _params: any[] = []): Promise<any> {
         return Promise.resolve(undefined)
     }

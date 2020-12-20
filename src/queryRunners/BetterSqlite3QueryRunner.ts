@@ -20,6 +20,10 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
         return this.connection
     }
 
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(this.connection)
+    }
+
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         try {
             const rows = this.connection.prepare(query).safeIntegers(true).all(params)

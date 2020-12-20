@@ -21,6 +21,10 @@ export class MssqlPoolQueryRunner implements QueryRunner {
         return this.pool
     }
 
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return fn(this.pool, this.transaction)
+    }
+
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {

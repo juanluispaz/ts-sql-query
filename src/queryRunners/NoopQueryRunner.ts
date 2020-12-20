@@ -12,7 +12,7 @@ export class NoopQueryRunner implements QueryRunner {
         this.database = database
     }
 
-    getNativeConnection(): unknown {
+    getNativeRunner(): unknown {
         return null
     }
 

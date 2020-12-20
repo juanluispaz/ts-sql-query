@@ -43,7 +43,7 @@ export class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {
             }
         }
     }
-    getNativeConnection(): unknown {
+    getNativeRunner(): unknown {
         return this.pool
     }
     addParam(params: any[], value: any): string {
@@ -91,7 +91,7 @@ export class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {
         })
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
-        this.pool.release(queryRunner.getNativeConnection() as Connection)
+        this.pool.release(queryRunner.getNativeRunner() as Connection)
     }
 
 }

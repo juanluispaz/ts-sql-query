@@ -44,7 +44,7 @@ export class AnyDBQueryRunner implements QueryRunner {
         }
     }
 
-    getNativeConnection(): Connection {
+    getNativeRunner(): Connection {
         return this.connection
     }
 

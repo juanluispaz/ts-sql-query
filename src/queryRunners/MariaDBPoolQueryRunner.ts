@@ -21,7 +21,7 @@ export class MariaDBPoolQueryRunner extends AbstractPoolQueryRunner {
             this.database = database
         }
     }
-    getNativeConnection(): unknown {
+    getNativeRunner(): unknown {
         return this.pool
     }
     addParam(params: any[], value: any): string {
@@ -39,7 +39,7 @@ export class MariaDBPoolQueryRunner extends AbstractPoolQueryRunner {
         return new MariaDBQueryRunner(mariaDBConnection, this.database as any)
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
-        (queryRunner.getNativeConnection() as PoolConnection).release()
+        (queryRunner.getNativeRunner() as PoolConnection).release()
     }
 
 }

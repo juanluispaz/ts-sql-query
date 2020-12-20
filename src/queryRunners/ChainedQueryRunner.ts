@@ -14,8 +14,8 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
         return this.queryRunner.useDatabase(database)
     }
 
-    getNativeConnection(): unknown {
-        return this.queryRunner.getNativeConnection()
+    getNativeRunner(): unknown {
+        return this.queryRunner.getNativeRunner()
     }
 
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {

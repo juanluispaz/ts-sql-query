@@ -21,7 +21,7 @@ export class MySql2PoolQueryRunner extends AbstractPoolQueryRunner {
             this.database = database
         }
     }
-    getNativeConnection(): unknown {
+    getNativeRunner(): unknown {
         return this.pool
     }
     addParam(params: any[], value: any): string {
@@ -46,7 +46,7 @@ export class MySql2PoolQueryRunner extends AbstractPoolQueryRunner {
         })
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
-        (queryRunner.getNativeConnection() as PoolConnection).release()
+        (queryRunner.getNativeRunner() as PoolConnection).release()
     }
 
 }

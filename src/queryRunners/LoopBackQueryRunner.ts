@@ -52,7 +52,7 @@ export abstract class LoopBackAbstractQueryRunner implements LoopbackQueryRunner
             throw new Error('Unsupported database: ' + database + '. The current datasource used in LoopbackQueryRunner only supports ' + this.database + ' databases')
         }
     }
-    getNativeConnection(): DataSource {
+    getNativeRunner(): DataSource {
         return this.datasource
     }
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {

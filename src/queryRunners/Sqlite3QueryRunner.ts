@@ -16,7 +16,7 @@ export class Sqlite3QueryRunner implements QueryRunner {
         }
     }
 
-    getNativeConnection(): Database {
+    getNativeRunner(): Database {
         return this.connection
     }
 

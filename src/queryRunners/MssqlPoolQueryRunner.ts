@@ -17,7 +17,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
         }
     }
 
-    getNativeConnection(): ConnectionPool {
+    getNativeRunner(): ConnectionPool {
         return this.pool
     }
 

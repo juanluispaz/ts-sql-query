@@ -18,7 +18,7 @@ export class TediousPoolQueryRunner extends AbstractPoolQueryRunner {
             throw new Error('Unsupported database: ' + database + '. TediousPoolQueryRunner only supports sqlServer databases')
         }
     }
-    getNativeConnection(): unknown {
+    getNativeRunner(): unknown {
         return this.pool
     }
     addParam(params: any[], value: any): string {
@@ -41,7 +41,7 @@ export class TediousPoolQueryRunner extends AbstractPoolQueryRunner {
         })
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
-        (queryRunner.getNativeConnection() as ConnectionPool.PooledConnection).release()
+        (queryRunner.getNativeRunner() as ConnectionPool.PooledConnection).release()
     }
 
 }

@@ -18,7 +18,7 @@ export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
             throw new Error('Unsupported database: ' + database + '. PgPoolQueryRunner only supports postgreSql databases')
         }
     }
-    getNativeConnection(): unknown {
+    getNativeRunner(): unknown {
         return this.pool
     }
     addParam(params: any[], value: any): string {
@@ -33,7 +33,7 @@ export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
         return new PgQueryRunner(connection)
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
-        (queryRunner.getNativeConnection() as PoolClient).release()
+        (queryRunner.getNativeRunner() as PoolClient).release()
     }
 
 }

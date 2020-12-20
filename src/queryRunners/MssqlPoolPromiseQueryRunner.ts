@@ -18,7 +18,7 @@ export class MssqlPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
             throw new Error('Unsupported database: ' + database + '. MssqlPoolPromiseQueryRunner only supports sqlServer databases')
         }
     }
-    getNativeConnection(): unknown {
+    getNativeRunner(): unknown {
         return this.promisePool
     }
     addParam(params: any[], value: any): string {

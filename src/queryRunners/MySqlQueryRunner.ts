@@ -19,7 +19,7 @@ export class MySqlQueryRunner implements QueryRunner {
         }
     }
 
-    getNativeConnection(): Connection {
+    getNativeRunner(): Connection {
         return this.connection
     }
 

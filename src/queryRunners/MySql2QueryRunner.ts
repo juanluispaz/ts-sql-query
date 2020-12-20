@@ -18,7 +18,7 @@ export class MySql2QueryRunner implements QueryRunner {
             this.database = database
         }
     }
-    getNativeConnection(): Connection {
+    getNativeRunner(): Connection {
         return this.connection
     }
 

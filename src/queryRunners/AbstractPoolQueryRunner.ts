@@ -6,7 +6,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     abstract readonly database: DatabaseType
 
     abstract useDatabase(database: DatabaseType): void
-    abstract getNativeConnection(): unknown
+    abstract getNativeRunner(): unknown
     async executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         try {
             const queryRunner = await this.getQueryRunner()

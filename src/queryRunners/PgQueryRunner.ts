@@ -16,7 +16,7 @@ export class PgQueryRunner implements QueryRunner {
         }
     }
 
-    getNativeConnection(): ClientBase {
+    getNativeRunner(): ClientBase {
         return this.connection
     }
 

@@ -18,7 +18,7 @@ export class OracleDBPoolQueryRunner extends AbstractPoolQueryRunner {
             throw new Error('Unsupported database: ' + database + '. OracleDBPoolQueryRunner only supports oracle databases')
         }
     }
-    getNativeConnection(): unknown {
+    getNativeRunner(): unknown {
         return this.pool
     }
     addParam(params: any[], value: any): string {
@@ -40,7 +40,7 @@ export class OracleDBPoolQueryRunner extends AbstractPoolQueryRunner {
         return new OracleDBQueryRunner(connection)
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
-        (queryRunner.getNativeConnection() as Connection).close()
+        (queryRunner.getNativeRunner() as Connection).close()
     }
 
 }

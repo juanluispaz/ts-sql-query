@@ -42,7 +42,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
         }
     }
 
-    getNativeConnection(): CONNECTION {
+    getNativeRunner(): CONNECTION {
         return this.connection
     }
 

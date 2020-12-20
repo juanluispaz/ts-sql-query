@@ -19,7 +19,7 @@ export class MariaDBQueryRunner implements QueryRunner {
         }
     }
 
-    getNativeConnection(): Connection {
+    getNativeRunner(): Connection {
         return this.connection
     }
 

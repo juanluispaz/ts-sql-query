@@ -20,7 +20,7 @@ export class MockQueryRunner implements QueryRunner {
         this.database = database
     }
 
-    getNativeConnection(): unknown {
+    getNativeRunner(): unknown {
         return null
     }
 

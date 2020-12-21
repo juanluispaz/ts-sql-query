@@ -1,8 +1,8 @@
-import { AnyDB } from "../databases/AnyDB"
+import type { AnyDB } from "../databases"
+import type { database, noTableOrViewRequired, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, tableOrView, tableOrViewAlias, type } from "./symbols"
 
-export class ITableOrView<DB extends AnyDB> {
-    // @ts-ignore
-    protected ___database: DB
+export interface ITableOrView<DB extends AnyDB> {
+    [database]: DB
 }
 
 export interface __ITableOrViewPrivate {
@@ -15,12 +15,26 @@ export function __getTableOrViewPrivate(table: ITableOrView<any>): __ITableOrVie
     return table as any
 }
 
-export class ITable<DB extends AnyDB> extends ITableOrView<DB>{
-    // @ts-ignore
-    protected ___table: 'table'
+export interface ITable<DB extends AnyDB> extends ITableOrView<DB>{
+    [type]: 'table'
 }
 
-export class IView<DB extends AnyDB> extends ITableOrView<DB>{
-    // @ts-ignore
-    protected ___view: 'view'
+export interface IView<DB extends AnyDB> extends ITableOrView<DB>{
+    [type]: 'view'
+}
+
+export interface NoTableOrViewRequired extends ITableOrView<any> {
+    [database]: any
+    [noTableOrViewRequired]: 'NoTableRequired'
+}
+
+export interface TableOrViewAlias<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, ALIAS> extends ITableOrView<DB> {
+    [tableOrView]: TABLE_OR_VIEW
+    [tableOrViewAlias]: ALIAS
+}
+
+export interface OuterJoinSource<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, ALIAS> {
+    [outerJoinDatabase]: DB
+    [outerJoinTableOrView]: TABLE_OR_VIEW
+    [outerJoinAlias]: ALIAS
 }

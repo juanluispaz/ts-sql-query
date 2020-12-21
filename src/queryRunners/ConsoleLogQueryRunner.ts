@@ -1,4 +1,4 @@
-import { QueryRunner } from "./QueryRunner"
+import type { QueryRunner } from "./QueryRunner"
 import { ChainedQueryRunner } from "./ChainedQueryRunner"
 
 export class ConsoleLogQueryRunner<T extends QueryRunner> extends ChainedQueryRunner<T> {

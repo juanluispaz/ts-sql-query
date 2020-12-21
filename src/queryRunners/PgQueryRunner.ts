@@ -1,5 +1,5 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
-import { ClientBase } from 'pg'
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { ClientBase } from 'pg'
 
 export class PgQueryRunner implements QueryRunner {
     readonly database: DatabaseType

@@ -1,5 +1,6 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
-import { Connection, OUT_FORMAT_OBJECT, OUT_FORMAT_ARRAY, BIND_OUT } from 'oracledb'
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { Connection } from 'oracledb'
+import { OUT_FORMAT_OBJECT, OUT_FORMAT_ARRAY, BIND_OUT } from 'oracledb'
 
 export class OracleDBQueryRunner implements QueryRunner {
     readonly database: DatabaseType

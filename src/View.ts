@@ -1,15 +1,16 @@
-import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource } from "./expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource } from "./expressions/values"
+import type { ITableOrView, IView } from "./utils/ITableOrView"
+import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
+import type { TypeAdapter } from "./TypeAdapter"
+import type { AliasedTableOrView, OuterJoinSourceOf } from "./utils/tableOrViewUtils"
+import type { Column, OptionalColumn } from "./utils/Column"
+import type { AnyDB, TypeSafeDB } from "./databases"
 import { ColumnImpl } from "./internal/ColumnImpl"
-import { OptionalColumn } from "./utils/OptionalColumn"
-import { AnyDB } from "./databases/AnyDB"
-import { ITableOrView, IView } from "./utils/ITableOrView"
-import { TypeSafeDB } from "./databases/TypeSafeDB"
-import { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
-import { TypeAdapter } from "./TypeAdapter"
-import { AliasedTableOrView, OuterJoinSourceOf } from "./utils/tableOrViewUtils"
-import { Column } from "./utils/Column"
+import { database, type } from "./utils/symbols"
 
-export class View<DB extends AnyDB> extends IView<DB> {
+export class View<DB extends AnyDB> implements IView<DB> {
+    [database]: DB
+    [type]: 'view'
     /* implements __ITableOrViewPrivate as private members*/
     // @ts-ignore
     private __name: string
@@ -19,7 +20,6 @@ export class View<DB extends AnyDB> extends IView<DB> {
     private __type: 'view' = 'view'
 
     constructor(name: string) {
-        super()
         this.__name = name
     }
 

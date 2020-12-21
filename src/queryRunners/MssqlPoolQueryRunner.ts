@@ -1,5 +1,6 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
-import { ConnectionPool, TYPES, ISqlTypeFactory, Transaction, Request } from 'mssql'
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { ConnectionPool, ISqlTypeFactory, Transaction, Request } from 'mssql'
+import { TYPES } from 'mssql'
 
 export class MssqlPoolQueryRunner implements QueryRunner {
     readonly database: DatabaseType
@@ -70,7 +71,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             return undefined
         })
@@ -89,7 +90,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             })
         })
     }
@@ -99,7 +100,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
         }
         return req.query(query).then((result) => {
-            return result.rowsAffected[0]
+            return result.rowsAffected[0]!
         })
     }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
@@ -120,7 +121,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             throw new Error('Unable to find the last inserted id')
         })
@@ -139,7 +140,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             })
         })
     }
@@ -149,7 +150,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
         }
         return req.query(query).then((result) => {
-            return result.rowsAffected[0]
+            return result.rowsAffected[0]!
         })
     }
     executeDelete(query: string, params: any[] = []): Promise<number> {
@@ -158,7 +159,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
         }
         return req.query(query).then((result) => {
-            return result.rowsAffected[0]
+            return result.rowsAffected[0]!
         })
     }
     executeProcedure(query: string, params: any[] = []): Promise<void> {
@@ -186,7 +187,7 @@ export class MssqlPoolQueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             return undefined
         })

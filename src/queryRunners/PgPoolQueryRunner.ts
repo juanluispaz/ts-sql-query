@@ -1,6 +1,6 @@
+import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { Pool, PoolClient } from 'pg'
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
-import { DatabaseType, QueryRunner } from "./QueryRunner"
-import { Pool, PoolClient } from 'pg'
 import { PgQueryRunner } from "./PgQueryRunner"
 
 export class PgPoolQueryRunner extends AbstractPoolQueryRunner {

@@ -1,12 +1,11 @@
-import { OracleSqlBuilder } from "../sqlBuilders/OracleSqlBuilder"
-import { Oracle } from "../databases/Oracle"
-import { TypeUnsafeDB } from "../databases/TypeUnsafeDB"
+import type { OracleSqlBuilder } from "../sqlBuilders/OracleSqlBuilder"
+import type { QueryRunner } from "../queryRunners/QueryRunner"
+import type { Oracle, TypeSafeDB, TypeUnsafeDB } from "../databases"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
-import { TypeSafeDB } from "../databases/TypeSafeDB"
-import { QueryRunner } from "../queryRunners/QueryRunner"
+import { oracleType } from "../utils/symbols"
 
 export abstract class AbstractOracleConnection<DB extends Oracle & (TypeUnsafeDB | TypeSafeDB), NAME, SQL_BUILDER extends OracleSqlBuilder> extends AbstractAdvancedConnection<DB & Oracle, NAME, SQL_BUILDER> implements Oracle {
-    __Oracle: 'Oracle' = 'Oracle'
+    [oracleType]: 'Oracle'
 
     constructor(queryRunner: QueryRunner, sqlBuilder: SQL_BUILDER) {
         super(queryRunner, sqlBuilder)

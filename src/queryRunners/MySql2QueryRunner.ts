@@ -1,5 +1,5 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
-import { Connection, QueryError, OkPacket, RowDataPacket } from "mysql2"
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { Connection, QueryError, OkPacket, RowDataPacket } from "mysql2"
 
 export class MySql2QueryRunner implements QueryRunner {
     readonly database: DatabaseType
@@ -69,7 +69,7 @@ export class MySql2QueryRunner implements QueryRunner {
                             reject(Error('Too many columns, expected only one column'))
                             return
                         }
-                        resolve(row[columns[0]])
+                        resolve(row[columns[0]!]) // Value in the row of the first column without care about the name
                         return
                     }
                     resolve(undefined)
@@ -85,13 +85,13 @@ export class MySql2QueryRunner implements QueryRunner {
                 } else {
                     const result = []
                     for (let i = 0, length = results.length; i < length; i++) {
-                        const row = results[i]
+                        const row = results[i]!
                         const columns = Object.getOwnPropertyNames(row)
                         if (columns.length > 1) {
                             reject(new Error('Too many columns, expected only one column'))
                             return
                         }
-                        result.push(row[columns[0]])
+                        result.push(row[columns[0]!]) // Value in the row of the first column without care about the name
                     }
                     resolve(result)
                 }
@@ -173,7 +173,7 @@ export class MySql2QueryRunner implements QueryRunner {
                             reject(Error('Too many columns, expected only one column'))
                             return
                         }
-                        resolve(row[columns[0]])
+                        resolve(row[columns[0]!]) // Value in the row of the first column without care about the name
                         return
                     }
                     resolve(undefined)

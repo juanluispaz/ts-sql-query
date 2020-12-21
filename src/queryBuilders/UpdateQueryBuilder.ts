@@ -1,12 +1,14 @@
-import { SqlBuilder, UpdateData } from "../sqlBuilders/SqlBuilder"
-import { ITable } from "../utils/ITableOrView"
-import { BooleanValueSource } from "../expressions/values"
-import { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression } from "../expressions/update"
-import { int } from "ts-extended-types"
+import type { SqlBuilder, UpdateData } from "../sqlBuilders/SqlBuilder"
+import type { ITable } from "../utils/ITableOrView"
+import type { BooleanValueSource } from "../expressions/values"
+import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression } from "../expressions/update"
+import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
+import { database } from "../utils/symbols"
 
-export class UpdateQueryBuilder extends UpdateExpression<any, any> implements UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any>, ExecutableUpdateExpression<any, any>, NotExecutableUpdateExpression<any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData {
+export class UpdateQueryBuilder implements UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any>, ExecutableUpdateExpression<any, any>, NotExecutableUpdateExpression<any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData {
+    [database]: any
     __sqlBuilder: SqlBuilder
 
     __table: ITable<any>
@@ -19,7 +21,6 @@ export class UpdateQueryBuilder extends UpdateExpression<any, any> implements Up
     __query = ''
 
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>, allowNoWhere: boolean) {
-        super()
         this.__sqlBuilder = sqlBuilder
         this.__table = table
         this.__allowNoWhere = allowNoWhere
@@ -79,7 +80,7 @@ export class UpdateQueryBuilder extends UpdateExpression<any, any> implements Up
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]
+            const property = properties[i]!
             const value = columns[property]
             sets[property] = value
         }
@@ -94,7 +95,7 @@ export class UpdateQueryBuilder extends UpdateExpression<any, any> implements Up
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]
+            const property = properties[i]!
             const value = columns[property]
             if (value === null || value === undefined) {
                 continue
@@ -112,7 +113,7 @@ export class UpdateQueryBuilder extends UpdateExpression<any, any> implements Up
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]
+            const property = properties[i]!
             if (!(property in sets)) {
                 continue
             }
@@ -130,7 +131,7 @@ export class UpdateQueryBuilder extends UpdateExpression<any, any> implements Up
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]
+            const property = properties[i]!
             if (!(property in sets)) {
                 continue
             }
@@ -151,7 +152,7 @@ export class UpdateQueryBuilder extends UpdateExpression<any, any> implements Up
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]
+            const property = properties[i]!
             if (property in sets) {
                 continue
             }
@@ -169,7 +170,7 @@ export class UpdateQueryBuilder extends UpdateExpression<any, any> implements Up
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]
+            const property = properties[i]!
             if (property in sets) {
                 continue
             }

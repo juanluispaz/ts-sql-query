@@ -1,6 +1,6 @@
+import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { ConnectionPool } from 'mssql'
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
-import { DatabaseType, QueryRunner } from "./QueryRunner"
-import { ConnectionPool } from 'mssql'
 import { MssqlPoolQueryRunner } from "./MssqlPoolQueryRunner"
 
 export class MssqlPoolPromiseQueryRunner extends AbstractPoolQueryRunner {

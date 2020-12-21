@@ -1,4 +1,4 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
 
 export class NoopQueryRunner implements QueryRunner {
     readonly database: DatabaseType

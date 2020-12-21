@@ -1,5 +1,6 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
-import { Database, Integer } from 'better-sqlite3'
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { Database } from 'better-sqlite3'
+import { Integer } from 'better-sqlite3'
 
 export class BetterSqlite3QueryRunner implements QueryRunner {
     readonly database: DatabaseType
@@ -65,7 +66,7 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     return Promise.reject(new Error('Too many columns, expected only one column'))
                 }
-                return Promise.resolve(toStringInt(row[columns[0]]))
+                return Promise.resolve(toStringInt(row[columns[0]!])) // Value in the row of the first column without care about the name
             }
             return Promise.resolve(undefined)
         } catch (e) {
@@ -82,7 +83,7 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     return Promise.reject(new Error('Too many columns, expected only one column'))
                 }
-                result.push(toStringInt(row[columns[0]]))
+                result.push(toStringInt(row[columns[0]!])) // Value in the row of the first column without care about the name
             }
             return Promise.resolve(result)
         } catch (e) {
@@ -140,7 +141,7 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     return Promise.reject(new Error('Too many columns, expected only one column'))
                 }
-                return Promise.resolve(toStringInt(row[columns[0]]))
+                return Promise.resolve(toStringInt(row[columns[0]!])) // Value in the row of the first column without care about the name
             }
             return Promise.resolve(undefined)
         } catch (e) {

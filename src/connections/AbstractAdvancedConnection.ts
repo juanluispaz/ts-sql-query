@@ -1,15 +1,14 @@
-import { AnyDB } from "../databases/AnyDB"
-import { SqlBuilder } from "../sqlBuilders/SqlBuilder"
+import type { AnyDB, TypeSafeDB } from "../databases"
+import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
+import type { TypeAdapter } from "../TypeAdapter"
+import type { BooleanValueSource, StringIntValueSource, StringNumberValueSource, IntValueSource, NumberValueSource, StringDoubleValueSource, DoubleValueSource, TypeSafeStringValueSource, StringValueSource, LocalDateValueSource, DateValueSource, LocalTimeValueSource, TimeValueSource, LocalDateTimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource } from "../expressions/values"
+import type { stringInt, int, stringDouble, double, LocalDate, LocalTime, LocalDateTime } from "ts-extended-types"
+import type { QueryRunner } from "../queryRunners/QueryRunner"
+import type { IConnection } from "../utils/IConnection"
+import type { Sequence } from "../expressions/sequence";
+import type { NoTableOrViewRequired } from "../utils/ITableOrView"
 import { AbstractConnection } from "./AbstractConnection"
-import { TypeAdapter } from "../TypeAdapter"
-import { TypeSafeDB } from "../databases/TypeSafeDB"
-import { NoTableOrViewRequired } from "../utils/NoTableOrViewRequired"
-import { BooleanValueSource, StringIntValueSource, StringNumberValueSource, IntValueSource, NumberValueSource, StringDoubleValueSource, DoubleValueSource, TypeSafeStringValueSource, StringValueSource, LocalDateValueSource, DateValueSource, LocalTimeValueSource, TimeValueSource, LocalDateTimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource } from "../expressions/values"
-import { stringInt, int, stringDouble, double, LocalDate, LocalTime, LocalDateTime } from "ts-extended-types"
 import { SequenceQueryBuilder } from "../queryBuilders/SequenceQueryBuilder"
-import { QueryRunner } from "../queryRunners/QueryRunner"
-import { IConnection } from "../utils/IConnection"
-import { Sequence } from "../expressions/sequence";
 
 export abstract class AbstractAdvancedConnection<DB extends AnyDB, NAME, SQL_BUILDER extends SqlBuilder> extends AbstractConnection<DB, NAME, SQL_BUILDER> {
 

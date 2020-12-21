@@ -1,6 +1,6 @@
+import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { Pool, PoolConnection } from "mysql"
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
-import { DatabaseType, QueryRunner } from "./QueryRunner"
-import { Pool, PoolConnection } from "mysql"
 import { MySqlQueryRunner } from "./MySqlQueryRunner"
 
 export class MySqlPoolQueryRunner extends AbstractPoolQueryRunner {

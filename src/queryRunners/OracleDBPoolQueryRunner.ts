@@ -1,7 +1,8 @@
-import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
-import { DatabaseType, QueryRunner } from "./QueryRunner"
-import { Pool, Connection, BIND_OUT } from 'oracledb'
+import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { Pool, Connection } from 'oracledb'
+import { BIND_OUT } from 'oracledb'
 import { OracleDBQueryRunner } from "./OracleDBQueryRunner"
+import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
 
 export class OracleDBPoolQueryRunner extends AbstractPoolQueryRunner {
     readonly database: DatabaseType

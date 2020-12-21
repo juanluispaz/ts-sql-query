@@ -1,4 +1,4 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
 
 export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     readonly queryRunner: T

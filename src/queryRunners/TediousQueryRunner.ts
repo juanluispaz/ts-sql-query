@@ -1,5 +1,6 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
-import { Connection, Request, TYPES, TediousType } from 'tedious'
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { Connection, TediousType } from 'tedious'
+import { Request, TYPES } from 'tedious'
 
 export class TediousQueryRunner implements QueryRunner {
     readonly database: DatabaseType
@@ -43,7 +44,7 @@ export class TediousQueryRunner implements QueryRunner {
                 }
                 result = {}
                 for (var i = 0, length = columns.length; i < length; i++) {
-                    const column = columns[i]
+                    const column = columns[i]!
                     result[column.metadata.colName] = column.value
                 }
             })
@@ -66,7 +67,7 @@ export class TediousQueryRunner implements QueryRunner {
             req.on('row', function (columns) {
                 const obj: any = {}
                 for (var i = 0, length = columns.length; i < length; i++) {
-                    const column = columns[i]
+                    const column = columns[i]!
                     obj[column.metadata.colName] = column.value
                 }
                 result.push(obj)

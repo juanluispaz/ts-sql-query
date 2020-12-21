@@ -1,12 +1,11 @@
-import { SqliteSqlBuilder } from "../sqlBuilders/SqliteSqlBuilder"
-import { Sqlite } from "../databases/Sqlite"
-import { TypeUnsafeDB } from "../databases/TypeUnsafeDB"
+import type { SqliteSqlBuilder } from "../sqlBuilders/SqliteSqlBuilder"
+import type { QueryRunner } from "../queryRunners/QueryRunner"
+import type { Sqlite, TypeSafeDB, TypeUnsafeDB } from "../databases"
 import { AbstractConnection } from "./AbstractConnection"
-import { TypeSafeDB } from "../databases/TypeSafeDB"
-import { QueryRunner } from "../queryRunners/QueryRunner"
+import { sqliteType } from "../utils/symbols"
 
 export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB | TypeSafeDB), NAME, SQL_BUILDER extends SqliteSqlBuilder> extends AbstractConnection<DB & Sqlite, NAME, SQL_BUILDER> implements Sqlite {
-    __Sqlite: 'Sqlite' = 'Sqlite'
+    [sqliteType]: 'Sqlite'
 
     constructor(queryRunner: QueryRunner, sqlBuilder: SQL_BUILDER) {
         super(queryRunner, sqlBuilder)

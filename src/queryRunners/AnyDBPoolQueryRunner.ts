@@ -1,6 +1,6 @@
+import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { ConnectionPool, Connection } from 'any-db'
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
-import { DatabaseType, QueryRunner } from "./QueryRunner"
-import { ConnectionPool, Connection } from 'any-db'
 import { AnyDBQueryRunner } from "./AnyDBQueryRunner"
 
 export class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {

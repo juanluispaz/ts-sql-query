@@ -1,4 +1,4 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
 
 export abstract class AbstractPoolQueryRunner implements QueryRunner {
     private currentQueryRunner?: QueryRunner

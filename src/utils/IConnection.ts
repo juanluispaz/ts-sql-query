@@ -1,9 +1,7 @@
-import { AnyDB } from "../databases/AnyDB"
+import type { AnyDB } from "../databases"
+import type { database, databaseName } from "./symbols"
 
-export abstract class IConnection<DB extends AnyDB, NAME> implements AnyDB {
-    __AnyDB: 'AnyDB' = 'AnyDB'
-    // @ts-ignore
-    protected ___database_name: NAME
-    // @ts-ignore
-    protected ___database: DB
+export interface IConnection<DB extends AnyDB, NAME> extends AnyDB {
+    [databaseName]: NAME
+    [database]: DB
 }

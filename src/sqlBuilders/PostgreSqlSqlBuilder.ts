@@ -1,6 +1,6 @@
+import type { ToSql, SelectData } from "./SqlBuilder"
+import type { TypeAdapter } from "../TypeAdapter"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { ToSql, SelectData } from "./SqlBuilder"
-import { TypeAdapter } from "../TypeAdapter"
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true

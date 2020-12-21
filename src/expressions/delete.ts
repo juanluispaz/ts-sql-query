@@ -1,33 +1,31 @@
-import { BooleanValueSource } from "./values"
-import { NoTableOrViewRequired } from "../utils/NoTableOrViewRequired"
-import { ITableOrView } from "../utils/ITableOrView"
-import { AnyDB } from "../databases/AnyDB"
-import { TypeSafeDB } from "../databases/TypeSafeDB"
-import { int } from "ts-extended-types"
+import type { BooleanValueSource } from "./values"
+import type { ITableOrView, NoTableOrViewRequired } from "../utils/ITableOrView"
+import type { AnyDB, TypeSafeDB } from "../databases"
+import type { int } from "ts-extended-types"
+import type { database } from "../utils/symbols"
 
-export abstract class DeleteExpressionBase<DB extends AnyDB> {
-    // @ts-ignore
-    protected ___database: DB
+export interface DeleteExpressionBase<DB extends AnyDB> {
+    [database]: DB
 }
 
-export abstract class ExecutableDelete<DB extends AnyDB> extends DeleteExpressionBase<DB> {
-    abstract executeDelete(this: DeleteExpressionBase<TypeSafeDB>, min?: number, max?: number): Promise<int>
-    abstract executeDelete(min?: number, max?: number): Promise<number>
-    abstract query(): string
-    abstract params(): any[]
+export interface ExecutableDelete<DB extends AnyDB> extends DeleteExpressionBase<DB> {
+    executeDelete(this: DeleteExpressionBase<TypeSafeDB>, min?: number, max?: number): Promise<int>
+    executeDelete(min?: number, max?: number): Promise<number>
+    query(): string
+    params(): any[]
 }
 
-export abstract class DynamicExecutableDeleteExpression<DB extends AnyDB, TABLE extends ITableOrView<DB>> extends ExecutableDelete<DB> {
-    abstract and(condition: BooleanValueSource<DB, TABLE | NoTableOrViewRequired, boolean | null | undefined>): DynamicExecutableDeleteExpression<DB, TABLE>
-    abstract or(condition: BooleanValueSource<DB, TABLE | NoTableOrViewRequired, boolean | null | undefined>): DynamicExecutableDeleteExpression<DB, TABLE>
+export interface DynamicExecutableDeleteExpression<DB extends AnyDB, TABLE extends ITableOrView<DB>> extends ExecutableDelete<DB> {
+    and(condition: BooleanValueSource<DB, TABLE | NoTableOrViewRequired, boolean | null | undefined>): DynamicExecutableDeleteExpression<DB, TABLE>
+    or(condition: BooleanValueSource<DB, TABLE | NoTableOrViewRequired, boolean | null | undefined>): DynamicExecutableDeleteExpression<DB, TABLE>
 }
 
-export abstract class DeleteExpression<DB extends AnyDB, TABLE extends ITableOrView<DB>> extends DeleteExpressionBase<DB> {
-    abstract dynamicWhere() : DynamicExecutableDeleteExpression<DB, TABLE>
-    abstract where(condition: BooleanValueSource<DB, TABLE | NoTableOrViewRequired, boolean | null | undefined>): DynamicExecutableDeleteExpression<DB, TABLE>
+export interface DeleteExpression<DB extends AnyDB, TABLE extends ITableOrView<DB>> extends DeleteExpressionBase<DB> {
+    dynamicWhere() : DynamicExecutableDeleteExpression<DB, TABLE>
+    where(condition: BooleanValueSource<DB, TABLE | NoTableOrViewRequired, boolean | null | undefined>): DynamicExecutableDeleteExpression<DB, TABLE>
 }
 
-export abstract class DeleteExpressionAllowingNoWhere<DB extends AnyDB, TABLE extends ITableOrView<DB>> extends ExecutableDelete<DB> {
-    abstract dynamicWhere() : DynamicExecutableDeleteExpression<DB, TABLE>
-    abstract where(condition: BooleanValueSource<DB, TABLE | NoTableOrViewRequired, boolean | null | undefined>): DynamicExecutableDeleteExpression<DB, TABLE>
+export interface DeleteExpressionAllowingNoWhere<DB extends AnyDB, TABLE extends ITableOrView<DB>> extends ExecutableDelete<DB> {
+    dynamicWhere() : DynamicExecutableDeleteExpression<DB, TABLE>
+    where(condition: BooleanValueSource<DB, TABLE | NoTableOrViewRequired, boolean | null | undefined>): DynamicExecutableDeleteExpression<DB, TABLE>
 }

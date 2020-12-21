@@ -1,11 +1,11 @@
-import { PostgreSql } from "../databases/PostgreSql"
-import { TypeUnsafeDB } from "../databases/TypeUnsafeDB"
+import type { QueryRunner } from "../queryRunners/QueryRunner"
+import type { PostgreSql, TypeUnsafeDB } from "../databases"
 import { AbstractPostgreSqlConnection } from "./AbstractPostgreSqlConnection"
 import { PostgreSqlSqlBuilder } from "../sqlBuilders/PostgreSqlSqlBuilder"
-import { QueryRunner } from "../queryRunners/QueryRunner"
+import { typeUnsafeDBType } from "../utils/symbols"
 
 export abstract class PostgreSqlConnection<DB extends PostgreSql & TypeUnsafeDB, NAME> extends AbstractPostgreSqlConnection<DB, NAME, PostgreSqlSqlBuilder> implements PostgreSql, TypeUnsafeDB {
-    __TypeUnsafe : 'TypeUnsafe' = 'TypeUnsafe'
+    [typeUnsafeDBType] : 'TypeUnsafe'
     constructor(queryRunner: QueryRunner, sqlBuilder = new PostgreSqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }

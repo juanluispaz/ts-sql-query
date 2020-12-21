@@ -1,5 +1,5 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
-import { Connection, UpsertResult } from 'mariadb'
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { Connection, UpsertResult } from 'mariadb'
 
 export class MariaDBQueryRunner implements QueryRunner {
     readonly database: DatabaseType

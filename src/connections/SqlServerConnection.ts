@@ -1,11 +1,11 @@
-import { SqlServer } from "../databases/SqlServer"
-import { TypeUnsafeDB } from "../databases/TypeUnsafeDB"
+import type { QueryRunner } from "../queryRunners/QueryRunner"
+import type { SqlServer, TypeUnsafeDB } from "../databases"
 import { AbstractSqlServerConnection } from "./AbstractSqlServerConnection"
 import { SqlServerSqlBuilder } from "../sqlBuilders/SqlServerSqlBuilder"
-import { QueryRunner } from "../queryRunners/QueryRunner"
+import { typeUnsafeDBType } from "../utils/symbols"
 
 export abstract class SqlServerConnection<DB extends SqlServer & TypeUnsafeDB, NAME> extends AbstractSqlServerConnection<DB, NAME, SqlServerSqlBuilder> implements SqlServer, TypeUnsafeDB {
-    __TypeUnsafe : 'TypeUnsafe' = 'TypeUnsafe'
+    [typeUnsafeDBType] : 'TypeUnsafe'
     constructor(queryRunner: QueryRunner, sqlBuilder = new SqlServerSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }

@@ -1,11 +1,11 @@
-import { ITableOrView, ITable } from "../utils/ITableOrView"
-import { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource } from "../expressions/values"
-import { int } from "ts-extended-types"
-import { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { OrderByMode } from "../expressions/select"
-import { Column } from "../utils/Column"
-import { QueryRunner } from "../queryRunners/QueryRunner"
-import { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
+import type { ITableOrView, ITable } from "../utils/ITableOrView"
+import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource } from "../expressions/values"
+import type { int } from "ts-extended-types"
+import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
+import type { OrderByMode } from "../expressions/select"
+import type { Column } from "../utils/Column"
+import type { QueryRunner } from "../queryRunners/QueryRunner"
+import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 
 export interface JoinData {
     __joinType: 'join' | 'innerJoin' | 'leftJoin' | 'leftOuterJoin'

@@ -1,6 +1,6 @@
+import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type * as ConnectionPool from 'tedious-connection-pool'
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
-import { DatabaseType, QueryRunner } from "./QueryRunner"
-import * as ConnectionPool from 'tedious-connection-pool'
 import { TediousQueryRunner } from "./TediousQueryRunner"
 
 export class TediousPoolQueryRunner extends AbstractPoolQueryRunner {

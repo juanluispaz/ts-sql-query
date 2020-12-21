@@ -1,12 +1,14 @@
-import { SqlBuilder, DeleteData } from "../sqlBuilders/SqlBuilder"
-import { ITable } from "../utils/ITableOrView"
-import { BooleanValueSource } from "../expressions/values"
-import { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
-import { int } from "ts-extended-types"
+import type { SqlBuilder, DeleteData } from "../sqlBuilders/SqlBuilder"
+import type { ITable } from "../utils/ITableOrView"
+import type { BooleanValueSource } from "../expressions/values"
+import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
+import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
+import { database } from "../utils/symbols"
 
-export class DeleteQueryBuilder extends DeleteExpression<any, any> implements DeleteExpressionAllowingNoWhere<any, any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any, any>, DeleteData {
+export class DeleteQueryBuilder implements DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any, any>, DeleteData {
+    [database]: any
     __sqlBuilder: SqlBuilder
 
     __table: ITable<any>
@@ -18,7 +20,6 @@ export class DeleteQueryBuilder extends DeleteExpression<any, any> implements De
     __params: any[] = []
 
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>, allowNoWhere: boolean) {
-        super()
         this.__sqlBuilder = sqlBuilder
         this.__table = table
         this.__allowNoWhere = allowNoWhere

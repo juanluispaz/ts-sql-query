@@ -1,13 +1,17 @@
-import { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation0, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2 } from "../sqlBuilders/SqlBuilder"
-import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, ValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate } from "../expressions/values"
-import { TypeAdapter } from "../TypeAdapter"
+import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation0, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2 } from "../sqlBuilders/SqlBuilder"
+import type { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, ValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate } from "../expressions/values"
+import type { TypeAdapter } from "../TypeAdapter"
+import { database, tableOrView, valueType as valueType_ } from "../utils/symbols"
 
-export abstract class ValueSourceImpl extends ValueSource<any, any, any> implements NullableValueSource<any, any, any>, BooleanValueSource<any, any, any>, IntValueSource<any, any, any>, StringIntValueSource<any, any, any>, DoubleValueSource<any, any, any>, StringDoubleValueSource<any, any, any>, NumberValueSource<any, any, any>, StringNumberValueSource<any, any, any>, StringValueSource<any, any, any>, TypeSafeStringValueSource<any, any, any>, LocalDateValueSource<any, any, any>, LocalTimeValueSource<any, any, any>, LocalDateTimeValueSource<any, any, any>, DateValueSource<any, any, any>, TimeValueSource<any, any, any>, DateTimeValueSource<any, any, any>, ToSql, __ValueSourcePrivate {
-    __columnType: string
+export abstract class ValueSourceImpl implements ValueSource<any, any, any>, NullableValueSource<any, any, any>, BooleanValueSource<any, any, any>, IntValueSource<any, any, any>, StringIntValueSource<any, any, any>, DoubleValueSource<any, any, any>, StringDoubleValueSource<any, any, any>, NumberValueSource<any, any, any>, StringNumberValueSource<any, any, any>, StringValueSource<any, any, any>, TypeSafeStringValueSource<any, any, any>, LocalDateValueSource<any, any, any>, LocalTimeValueSource<any, any, any>, LocalDateTimeValueSource<any, any, any>, DateValueSource<any, any, any>, TimeValueSource<any, any, any>, DateTimeValueSource<any, any, any>, ToSql, __ValueSourcePrivate {
+    [database]: any
+    [tableOrView]: any
+    [valueType_]: any
+
+    __valueType: string
     __typeAdapter?: TypeAdapter
-    constructor(columnType: string, typeAdapter: TypeAdapter | undefined) {
-        super()
-        this.__columnType = columnType
+    constructor(valueType: string, typeAdapter: TypeAdapter | undefined) {
+        this.__valueType = valueType
         this.__typeAdapter = typeAdapter
     }
     abstract __toSql(sqlBuilder: SqlBuilder, params: any[]): string
@@ -214,25 +218,25 @@ export abstract class ValueSourceImpl extends ValueSource<any, any, any> impleme
     }
     // String
     lower(): any {
-        return new SqlOperation0ValueSource('_lower', this, this.__columnType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_lower', this, this.__valueType, this.__typeAdapter)
     }
     upper(): any {
-        return new SqlOperation0ValueSource('_upper', this, this.__columnType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_upper', this, this.__valueType, this.__typeAdapter)
     }
     length(): any {
         return new SqlOperation0ValueSource('_length', this, 'int', this.__typeAdapter)
     }
     trim(): any {
-        return new SqlOperation0ValueSource('_trim', this, this.__columnType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_trim', this, this.__valueType, this.__typeAdapter)
     }
     ltrim(): any {
-        return new SqlOperation0ValueSource('_ltrim', this, this.__columnType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_ltrim', this, this.__valueType, this.__typeAdapter)
     }
     rtrim(): any {
-        return new SqlOperation0ValueSource('_rtrim', this, this.__columnType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_rtrim', this, this.__valueType, this.__typeAdapter)
     }
     reverse(): any {
-        return new SqlOperation0ValueSource('_reverse', this, this.__columnType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_reverse', this, this.__valueType, this.__typeAdapter)
     }
     // Number functions
     asDouble(): any {
@@ -251,75 +255,75 @@ export abstract class ValueSourceImpl extends ValueSource<any, any, any> impleme
         return new NoopValueSource(this, 'stringInt', this.__typeAdapter)
     }
     abs(): any {
-        return new SqlOperation0ValueSource('_abs', this, this.__columnType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_abs', this, this.__valueType, this.__typeAdapter)
     }
     ceil(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_ceil', this, 'stringInt', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_ceil', this, 'stringInt', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_ceil', this, 'int', this.__typeAdapter)
         }
     }
     floor(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_floor', this, 'stringInt', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_floor', this, 'stringInt', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_floor', this, 'int', this.__typeAdapter)
         }
     }
     round(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_round', this, 'stringInt', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_round', this, 'stringInt', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_round', this, 'int', this.__typeAdapter)
         }
     }
     exp(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_exp', this, 'stringDouble', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_exp', this, 'stringDouble', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_exp', this, 'double', this.__typeAdapter)
         }
     }
     ln(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_ln', this, 'stringDouble', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_ln', this, 'stringDouble', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_ln', this, 'double', this.__typeAdapter)
         }
     }
     log10(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_log10', this, 'stringDouble', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_log10', this, 'stringDouble', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_log10', this, 'double', this.__typeAdapter)
         }
     }
     sqrt(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_sqrt', this, 'stringDouble', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_sqrt', this, 'stringDouble', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_sqrt', this, 'double', this.__typeAdapter)
         }
     }
     cbrt(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_cbrt', this, 'stringDouble', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_cbrt', this, 'stringDouble', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_cbrt', this, 'double', this.__typeAdapter)
@@ -330,63 +334,63 @@ export abstract class ValueSourceImpl extends ValueSource<any, any, any> impleme
     }
     // Trigonometric Functions
     acos(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_acos', this, 'stringDouble', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_acos', this, 'stringDouble', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_acos', this, 'double', this.__typeAdapter)
         }
     }
     asin(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_asin', this, 'stringDouble', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_asin', this, 'stringDouble', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_asin', this, 'double', this.__typeAdapter)
         }
     }
     atan(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_atan', this, 'stringDouble', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_atan', this, 'stringDouble', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_atan', this, 'double', this.__typeAdapter)
         }
     }
     cos(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_cos', this, 'stringDouble', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_cos', this, 'stringDouble', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_cos', this, 'double', this.__typeAdapter)
         }
     }
     cot(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_cot', this, 'stringDouble', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_cot', this, 'stringDouble', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_cot', this, 'double', this.__typeAdapter)
         }
     }
     sin(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_sin', this, 'stringDouble', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_sin', this, 'stringDouble', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_sin', this, 'double', this.__typeAdapter)
         }
     }
     tan(): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation0ValueSource('_tan', this, 'stringDouble', this.__typeAdapter)
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_tan', this, 'stringDouble', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_tan', this, 'double', this.__typeAdapter)
@@ -422,7 +426,7 @@ export abstract class ValueSourceImpl extends ValueSource<any, any, any> impleme
     }
     // SqlFunction1
     valueWhenNull(value: any): any {
-        return new SqlOperation1ValueSource('_valueWhenNull', this, value, this.__columnType, getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSource('_valueWhenNull', this, value, this.__valueType, getTypeAdapter2(this, value))
     }
     and(value: any): any {
         return new SqlOperation1ValueSource('_and', this, value, 'boolean', getTypeAdapter2(this, value))
@@ -432,9 +436,9 @@ export abstract class ValueSourceImpl extends ValueSource<any, any, any> impleme
     }
     // Trigonometric Functions
     atan2(value: any): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation1ValueSource('_atan2', this, value, 'stringDouble', getTypeAdapter2(this, value))
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation1ValueSource('_atan2', this, value, 'stringDouble', getTypeAdapter2(this, value))
         } else {
             return new SqlOperation1ValueSource('_atan2', this, value, 'double', getTypeAdapter2(this, value))
@@ -442,37 +446,37 @@ export abstract class ValueSourceImpl extends ValueSource<any, any, any> impleme
     }
     // String Functions
     concat(value: any): any {
-        return new SqlOperation1ValueSource('_concat', this, value, this.__columnType, getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSource('_concat', this, value, this.__valueType, getTypeAdapter2(this, value))
     }
     concatIfValue(value: any): any {
-        return new SqlOperation1ValueSourceIfValueOrNoop('_concat', this, value, this.__columnType, getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrNoop('_concat', this, value, this.__valueType, getTypeAdapter2(this, value))
     }
     substringToEnd(start: any): any {
-        return new SqlOperation1ValueSource('_substringToEnd', this, start, this.__columnType, getTypeAdapter2(this, start))
+        return new SqlOperation1ValueSource('_substringToEnd', this, start, this.__valueType, getTypeAdapter2(this, start))
     }
     // Number
     power(value: any): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation1ValueSource('_power', this, value, 'stringDouble', getTypeAdapter2(this, value))
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation1ValueSource('_power', this, value, 'stringDouble', getTypeAdapter2(this, value))
         } else {
             return new SqlOperation1ValueSource('_power', this, value, 'double', getTypeAdapter2(this, value))
         }
     }
     logn(value: any): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation1ValueSource('_logn', this, value, 'stringDouble', getTypeAdapter2(this, value))
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation1ValueSource('_logn', this, value, 'stringDouble', getTypeAdapter2(this, value))
         } else {
             return new SqlOperation1ValueSource('_logn', this, value, 'double', getTypeAdapter2(this, value))
         }
     }
     roundn(value: any): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation1ValueSource('_roundn', this, value, 'stringDouble', getTypeAdapter2(this, value))
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation1ValueSource('_roundn', this, value, 'stringDouble', getTypeAdapter2(this, value))
         } else {
             return new SqlOperation1ValueSource('_roundn', this, value, 'double', getTypeAdapter2(this, value))
@@ -495,9 +499,9 @@ export abstract class ValueSourceImpl extends ValueSource<any, any, any> impleme
         return createSqlOperation1ofOverloadedNumber(this, value, '_multiply')
     }
     divide(value: any): any {
-        if (this.__columnType === 'stringInt') {
+        if (this.__valueType === 'stringInt') {
             return new SqlOperation1ValueSource('_divide', this, value, 'stringDouble', getTypeAdapter2(this, value))
-        } else if (this.__columnType === 'stringDouble') {
+        } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation1ValueSource('_divide', this, value, 'stringDouble', getTypeAdapter2(this, value))
         } else {
             return new SqlOperation1ValueSource('_divide', this, value, 'double', getTypeAdapter2(this, value))
@@ -508,21 +512,21 @@ export abstract class ValueSourceImpl extends ValueSource<any, any, any> impleme
     }
     // SqlFunction2
     substring(start: any, end: any): any {
-        return new SqlOperation2ValueSource('_substring', this, start, end, this.__columnType, getTypeAdapter3(this, start, end))
+        return new SqlOperation2ValueSource('_substring', this, start, end, this.__valueType, getTypeAdapter3(this, start, end))
     }
     replaceIfValue(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSourceIfValueOrIgnore('_replace', this, findString, replaceWith, this.__columnType, getTypeAdapter3(this, findString, replaceWith))
+        return new SqlOperation2ValueSourceIfValueOrIgnore('_replace', this, findString, replaceWith, this.__valueType, getTypeAdapter3(this, findString, replaceWith))
     }
     replace(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSource('_replace', this, findString, replaceWith, this.__columnType, getTypeAdapter3(this, findString, replaceWith))
+        return new SqlOperation2ValueSource('_replace', this, findString, replaceWith, this.__valueType, getTypeAdapter3(this, findString, replaceWith))
     }
 }
 
 export class SqlOperationStatic0ValueSource extends ValueSourceImpl implements HasOperation {
     __operation: keyof SqlOperationStatic0
 
-    constructor(operation: keyof SqlOperationStatic0, columnType: string, typeAdapter: TypeAdapter | undefined) {
-        super(columnType, typeAdapter)
+    constructor(operation: keyof SqlOperationStatic0, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
         this.__operation = operation
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
@@ -534,13 +538,13 @@ export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements H
     __operation: keyof SqlOperationStatic1
     __value: any
 
-    constructor(operation: keyof SqlOperationStatic1, value: any, columnType: string, typeAdapter: TypeAdapter | undefined) {
-        super(columnType, typeAdapter)
+    constructor(operation: keyof SqlOperationStatic1, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
         this.__operation = operation
         this.__value = value
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
-        return sqlBuilder[this.__operation](params, this.__value, this.__columnType, this.__typeAdapter)
+        return sqlBuilder[this.__operation](params, this.__value, this.__valueType, this.__typeAdapter)
     }
 }
 
@@ -548,8 +552,8 @@ export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOper
     __valueSource: ValueSourceImpl
     __operation: keyof SqlOperation0
 
-    constructor(operation: keyof SqlOperation0, valueSource: ValueSourceImpl, columnType: string, typeAdapter: TypeAdapter | undefined) {
-        super(columnType, typeAdapter)
+    constructor(operation: keyof SqlOperation0, valueSource: ValueSourceImpl, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
     }
@@ -563,14 +567,14 @@ export class SqlOperation1ValueSource extends ValueSourceImpl implements HasOper
     __operation: keyof SqlOperation1
     __value: any
 
-    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, columnType: string, typeAdapter: TypeAdapter | undefined) {
-        super(columnType, typeAdapter)
+    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
         this.__value = value
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
-        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__columnType, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
 }
 
@@ -579,8 +583,8 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
     __operation: keyof SqlOperation1
     __value: any
 
-    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, columnType: string, typeAdapter: TypeAdapter | undefined) {
-        super(columnType, typeAdapter)
+    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
         this.__value = value
@@ -589,7 +593,7 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
         if (!sqlBuilder._isValue(this.__value)) {
             return ''
         }
-        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__columnType, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
 }
 
@@ -599,15 +603,15 @@ export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOper
     __value: any
     __value2: any
 
-    constructor(operation: keyof SqlOperation2, valueSource: ValueSourceImpl, value: any, value2: any, columnType: string, typeAdapter?: TypeAdapter | undefined) {
-        super(columnType, typeAdapter)
+    constructor(operation: keyof SqlOperation2, valueSource: ValueSourceImpl, value: any, value2: any, valueType: string, typeAdapter?: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
         this.__value = value
         this.__value2 = value2
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
-        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__value2, this.__valueSource.__columnType, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
 }
 
@@ -617,8 +621,8 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
     __value: any
     __value2: any
 
-    constructor(operation: keyof SqlOperation2, valueSource: ValueSourceImpl, value: any, value2: any, columnType: string, typeAdapter?: TypeAdapter | undefined) {
-        super(columnType, typeAdapter)
+    constructor(operation: keyof SqlOperation2, valueSource: ValueSourceImpl, value: any, value2: any, valueType: string, typeAdapter?: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
         this.__value = value
@@ -631,15 +635,15 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         if (!sqlBuilder._isValue(this.__value2)) {
             return this.__valueSource.__toSql(sqlBuilder, params)
         }
-        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__value2, this.__valueSource.__columnType, this.__valueSource.__typeAdapter)
+        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
 }
 
 
 export class NoopValueSource extends ValueSourceImpl {
     __valueSource: ValueSourceImpl
-    constructor(valueSource: ValueSourceImpl, columnType: string, typeAdapter: TypeAdapter | undefined) {
-        super(columnType, typeAdapter)
+    constructor(valueSource: ValueSourceImpl, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
         this.__valueSource = valueSource
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
@@ -650,8 +654,8 @@ export class NoopValueSource extends ValueSourceImpl {
 export class SequenceValueSource extends ValueSourceImpl {
     __operation: keyof SqlSequenceOperation
     __sequenceName: string
-    constructor(operation: keyof SqlSequenceOperation, sequenceName: string, columnType: string, typeAdapter: TypeAdapter | undefined) {
-        super(columnType, typeAdapter)
+    constructor(operation: keyof SqlSequenceOperation, sequenceName: string, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
         this.__operation = operation
         this.__sequenceName = sequenceName
     }
@@ -665,8 +669,8 @@ export class FragmentValueSource extends ValueSourceImpl {
     __sql: TemplateStringsArray
     __sqlParams: ValueSource<any, any, any>[]
 
-    constructor(sql: TemplateStringsArray, sqlParams: ValueSource<any, any, any>[], columnType: string, typeAdapter: TypeAdapter | undefined) {
-        super(columnType, typeAdapter)
+    constructor(sql: TemplateStringsArray, sqlParams: ValueSource<any, any, any>[], valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
         this.__sql = sql
         this.__sqlParams = sqlParams
     }
@@ -679,8 +683,8 @@ export class FragmentValueSource extends ValueSourceImpl {
 export class AggregateFunctions0ValueSource extends ValueSourceImpl implements HasOperation {
     __operation: keyof AggregateFunctions0
 
-    constructor(operation: keyof AggregateFunctions0, columnType: string, typeAdapter: TypeAdapter | undefined) {
-        super(columnType, typeAdapter)
+    constructor(operation: keyof AggregateFunctions0, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
         this.__operation = operation
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
@@ -692,8 +696,8 @@ export class AggregateFunctions1ValueSource extends ValueSourceImpl implements H
     __operation: keyof AggregateFunctions1
     __value: any
 
-    constructor(operation: keyof AggregateFunctions1, value: any, columnType: string, typeAdapter: TypeAdapter | undefined) {
-        super(columnType, typeAdapter)
+    constructor(operation: keyof AggregateFunctions1, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
         this.__operation = operation
         this.__value = value
     }
@@ -707,8 +711,8 @@ export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implement
     __value: any
     __separator: string | undefined
 
-    constructor(operation: keyof AggregateFunctions1or2, separator: string | undefined, value: any, columnType: string, typeAdapter: TypeAdapter | undefined) {
-        super(columnType, typeAdapter)
+    constructor(operation: keyof AggregateFunctions1or2, separator: string | undefined, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
         this.__operation = operation
         this.__separator = separator
         this.__value = value
@@ -743,12 +747,12 @@ function getTypeAdapter3(a: ValueSourceImpl, b: any, c: any): TypeAdapter | unde
 }
 
 function createSqlOperation1ofOverloadedNumber(thiz: ValueSourceImpl, value: any, operation: keyof SqlOperation1) {
-    if (thiz.__columnType === 'double' || thiz.__columnType === 'stringDouble') {
-        return new SqlOperation1ValueSource(operation, thiz, value, thiz.__columnType, getTypeAdapter2(thiz, value))
+    if (thiz.__valueType === 'double' || thiz.__valueType === 'stringDouble') {
+        return new SqlOperation1ValueSource(operation, thiz, value, thiz.__valueType, getTypeAdapter2(thiz, value))
     }
-    if (thiz.__columnType === 'stringInt') {
+    if (thiz.__valueType === 'stringInt') {
         if (value instanceof ValueSourceImpl) {
-            if (value.__columnType === 'int' || value.__columnType === 'stringInt') {
+            if (value.__valueType === 'int' || value.__valueType === 'stringInt') {
                 return new SqlOperation1ValueSource(operation, thiz, value, 'stringInt', thiz.__typeAdapter)
             } else {
                 return new SqlOperation1ValueSource(operation, thiz, value, 'stringDouble', getTypeAdapter2(thiz, value))
@@ -761,11 +765,11 @@ function createSqlOperation1ofOverloadedNumber(thiz: ValueSourceImpl, value: any
         }
     } else {
         if (value instanceof ValueSourceImpl) {
-            if (value.__columnType === 'int') {
+            if (value.__valueType === 'int') {
                 return new SqlOperation1ValueSource(operation, thiz, value, 'int', thiz.__typeAdapter)
-            } else if (value.__columnType === 'stringInt') {
+            } else if (value.__valueType === 'stringInt') {
                 return new SqlOperation1ValueSource(operation, thiz, value, 'stringInt', thiz.__typeAdapter)
-            } else if (value.__columnType === 'stringDouble') {
+            } else if (value.__valueType === 'stringDouble') {
                 return new SqlOperation1ValueSource(operation, thiz, value, 'stringDouble', getTypeAdapter2(thiz, value))
             } else {
                 return new SqlOperation1ValueSource(operation, thiz, value, 'double', getTypeAdapter2(thiz, value))

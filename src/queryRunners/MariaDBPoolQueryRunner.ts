@@ -1,6 +1,6 @@
+import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { Pool, PoolConnection } from 'mariadb'
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
-import { DatabaseType, QueryRunner } from "./QueryRunner"
-import { Pool, PoolConnection } from 'mariadb'
 import { MariaDBQueryRunner } from "./MariaDBQueryRunner"
 
 export class MariaDBPoolQueryRunner extends AbstractPoolQueryRunner {

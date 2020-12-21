@@ -1,15 +1,13 @@
-import { ToSql, SqlBuilder } from "../sqlBuilders/SqlBuilder"
+import type { ToSql, SqlBuilder } from "../sqlBuilders/SqlBuilder"
+import { type } from "../utils/symbols"
 
-export abstract class Default  {
-    // @ts-ignore
-    protected ___default: 'default'
+export interface Default {
+    [type]: 'default'
 }
 
-export class DefaultImpl extends Default implements ToSql {
+export class DefaultImpl implements Default, ToSql {
+    [type]: 'default'
     __toSql(SqlBuilder: SqlBuilder, params: any[]): string {
         return SqlBuilder._default(params)
-    }
-    constructor() {
-        super()
     }
 }

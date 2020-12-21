@@ -1,5 +1,5 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
-import { Database } from 'sqlite'
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { Database } from 'sqlite'
 
 export class SqliteQueryRunner implements QueryRunner {
     readonly database: DatabaseType
@@ -46,7 +46,7 @@ export class SqliteQueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             return undefined
         })
@@ -58,7 +58,7 @@ export class SqliteQueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             })
         })
     }
@@ -91,7 +91,7 @@ export class SqliteQueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             return undefined
         })

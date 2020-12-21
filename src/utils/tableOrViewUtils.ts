@@ -1,8 +1,6 @@
-import { AnyDB } from "../databases/AnyDB"
-import { ITableOrView } from "./ITableOrView"
-import { TableOrViewAlias } from "./TableAlias"
-import { OuterJoinSource } from "./OuterJoinSource"
-import { ValueSource, RemapValueSourceType, RemapValueSourceTypeAsOptional } from "../expressions/values"
+import type { ITableOrView, OuterJoinSource, TableOrViewAlias } from "./ITableOrView"
+import type { ValueSource, RemapValueSourceType, RemapValueSourceTypeAsOptional } from "../expressions/values"
+import type { AnyDB } from "../databases"
 
 export type ColumnsOfTableOrView<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>> = ({ [K in keyof TABLE_OR_VIEW]-?: TABLE_OR_VIEW[K] extends ValueSource<DB, any, any> ? K : never })[keyof TABLE_OR_VIEW]
 

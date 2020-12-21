@@ -1,10 +1,10 @@
+import type { ToSql, SelectData, InsertData } from "./SqlBuilder"
+import type { TypeAdapter } from "../TypeAdapter"
+import type { ValueSource } from "../expressions/values"
+import type { OrderByMode } from "../expressions/select"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { ToSql, SelectData, InsertData } from "./SqlBuilder"
 import { ValueSourceImpl, SqlOperationStatic1ValueSource } from "../internal/ValueSourceImpl"
 import { ColumnImpl } from "../internal/ColumnImpl"
-import { TypeAdapter } from "../TypeAdapter"
-import { ValueSource } from "../expressions/values"
-import { OrderByMode } from "../expressions/select"
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
@@ -296,7 +296,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _buildCallProcedure(params: any[], functionName: string, functionParams: ValueSource<any, any, any>[]): string {
         let result = 'exec ' + this._escape(functionName)
         for (let i = 0, length = functionParams.length; i < length; i++) {
-            result += ' ' + this._appendSql(functionParams[i], params)
+            result += ' ' + this._appendSql(functionParams[i]!, params)
         }
 
         return result

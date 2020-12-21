@@ -6,6 +6,7 @@ import { View } from "./View"
 import { ConsoleLogQueryRunner } from "./queryRunners/ConsoleLogQueryRunner"
 import { NoopQueryRunner } from "./queryRunners/NoopQueryRunner"
 import { TypeSafeMySqlConnection } from "./connections/TypeSafeMySqlConnection"
+import { MockQueryRunner } from "./queryRunners/MockQueryRunner"
 // import { TypeSafeNoopConnection } from "./clients/TypeSafeNoopConnection"
 // import { int } from "ts-extended-types"
 
@@ -444,7 +445,21 @@ const vCustomerAndCompany = new class VCustomerAndCompany extends View<DBConecti
     }
 }()
 
-const connection = new DBConection(/*postgre pg connection*/ new ConsoleLogQueryRunner(new NoopQueryRunner()))
+const results: any[] = []
+const postResults: any[] = []
+const mockQueryRunner = new MockQueryRunner(
+    (_type, _query, _params, index) => {
+        return results[index]
+    }
+)
+
+const connection = new DBConection(/*postgre pg connection*/ new ConsoleLogQueryRunner(mockQueryRunner))
+
+results.push({
+    id: 1,
+    firstName: 'First Name',
+    lastName: 'Last Name'
+})
 
 const customerId = 10
 
@@ -460,6 +475,8 @@ const customersWithId = connection.selectFrom(tCustomer)
 
 // Query: select id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where id = $1
 // Params: [ 10 ]
+
+results.push([])
 
 const firstName = 'John'
 const lastName = ''
@@ -483,6 +500,8 @@ const customersWithCompanyName = connection.selectFrom(tCustomer)
 // Query: select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, comp.name as companyName from customer inner join company as comp on customer.company_id = comp.id where customer.first_name ilike ($1 || '%') order by firstName, lastName asc
 // Params: [ 'John' ]
 
+results.push([])
+
 const orderBy = 'customerFirstName asc nulls first, customerLastName'
 const customerWithSelectedCompanies = connection.selectFrom(tCustomer)
     .where(tCustomer.companyId.in(
@@ -499,6 +518,8 @@ const customerWithSelectedCompanies = connection.selectFrom(tCustomer)
 // Query: select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select id as result from company where name like ('%' || $1 || '%')) order by customerFirstName asc nulls first, customerLastName
 // Params: [ 'Cia.' ]
 
+results.push([])
+
 const customerCountPerCompany = connection.selectFrom(tCompany)
     .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
     .select({
@@ -510,6 +531,8 @@ const customerCountPerCompany = connection.selectFrom(tCompany)
 
 // Query: select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.name
 // Params: []
+
+results.push([])
 
 const customerCountPerCompany2 = connection.selectFrom(tCompany)
     .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
@@ -523,6 +546,9 @@ const customerCountPerCompany2 = connection.selectFrom(tCompany)
 
 // Query: select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.name
 // Params: []
+
+results.push([])
+postResults.push(0)
 
 const customerName = 'Smi'
 const customerPageWithName = connection.selectFrom(tCustomer)
@@ -547,6 +573,8 @@ const customerPageWithName = connection.selectFrom(tCustomer)
 // Query: select count(*) from customer where first_name ilike ($1 || '%') or last_name ilike ($2 || '%')
 // Params: [ 'Smi', 'Smi' ]
 
+results.push(null)
+
 const id = 10
 const customersUsingCustomFragment = connection.selectFrom(tCustomer)
     .where(connection.fragmentWithType('boolean', 'required').sql`!!${tCustomer.id} = !!${connection.const(id, 'int')}`)
@@ -558,6 +586,8 @@ const customersUsingCustomFragment = connection.selectFrom(tCustomer)
 
 // Query: select id::varchar as idAsString, first_name || $1 || last_name as name from customer where !!id = !!$2
 // Params: [ ' ', 10 ]
+
+results.push([])
 
 const bitwiseMovements = 1
 const multiplier = 2
@@ -573,6 +603,8 @@ const companiesUsingCustomFunctionFragment = connection.selectFrom(tCompany)
 // Query: select id as id, name as name, id << $1 as idMultiplyBy2 from company where (id * $2) = (id << $3)
 // Params: [ 1, 2, 1 ]
 
+results.push(1)
+
 const insertCustomer = connection.insertInto(tCustomer).set({
         firstName: 'John',
         lastName: 'Smith',
@@ -584,6 +616,8 @@ const insertCustomer = connection.insertInto(tCustomer).set({
 
 // Query: insert into customer (first_name, last_name, company_id, birthday) values ($1, $2, $3, $4) returning id
 // Params: [ 'John', 'Smith', 1, 2019-08-16T15:02:32.849Z ]
+
+results.push([2, 3])
 
 const valuesToInsert = [
     {
@@ -606,6 +640,8 @@ const insertMultipleCustomers = connection.insertInto(tCustomer)
 // Query: insert into customer (first_name, last_name, company_id) values ($1, $2, $3), ($4, $5, $6) returning id
 // Params: [ 'John', 'Smith', 1, 'Other', 'Person', 1 ]
 
+results.push(1)
+
 const insertCustomersFromSelect = connection.insertInto(tCustomer)
     .from(
         connection.selectFrom(tCustomer)
@@ -623,6 +659,8 @@ const insertCustomersFromSelect = connection.insertInto(tCustomer)
 // Query: insert into customer (first_name, last_name, company_id) select first_name as firstName, last_name as lastName, company_id as companyId from customer where company_id = $1 
 // Params: [ 1 ]
 
+results.push(1)
+
 const updateCustomer = connection.update(tCustomer).set({
         firstName: 'John',
         lastName: 'Smith',
@@ -634,12 +672,16 @@ const updateCustomer = connection.update(tCustomer).set({
 // Query: update customer set first_name = $1, last_name = $2 where id = $3
 // Params: [ 'John', 'Smith', 10 ]
 
+results.push(1)
+
 const deleteCustomer = connection.deleteFrom(tCustomer)
     .where(tCustomer.id.equals(10))
     .executeDelete()
 
 // Query: delete from customer where id = $1
 // Params: [ 10 ]
+
+results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
 customersWithCompanyName.finally(() => undefined)

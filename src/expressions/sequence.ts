@@ -1,4 +1,4 @@
-export abstract class Sequence<T> {
-    abstract nextValue(): T
-    abstract currentValue(): T
+export interface Sequence<T> {
+    nextValue(): T
+    currentValue(): T
 }

@@ -1,11 +1,11 @@
-import { Oracle } from "../databases/Oracle"
-import { TypeUnsafeDB } from "../databases/TypeUnsafeDB"
+import type { QueryRunner } from "../queryRunners/QueryRunner"
+import type { Oracle, TypeUnsafeDB } from "../databases"
 import { AbstractOracleConnection } from "./AbstractOracleConnection"
 import { OracleSqlBuilder } from "../sqlBuilders/OracleSqlBuilder"
-import { QueryRunner } from "../queryRunners/QueryRunner"
+import { typeUnsafeDBType } from "../utils/symbols"
 
 export abstract class OracleConnection<DB extends Oracle & TypeUnsafeDB, NAME> extends AbstractOracleConnection<DB, NAME, OracleSqlBuilder> implements Oracle, TypeUnsafeDB {
-    __TypeUnsafe : 'TypeUnsafe' = 'TypeUnsafe'
+    [typeUnsafeDBType] : 'TypeUnsafe'
     constructor(queryRunner: QueryRunner, sqlBuilder = new OracleSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }

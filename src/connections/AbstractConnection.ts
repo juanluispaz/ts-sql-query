@@ -1,37 +1,40 @@
+import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
+import type { InsertExpression } from "../expressions/insert"
+import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expressions/update"
+import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, RemapValueSourceTypeAsOptional, ComparableValueSource } from "../expressions/values"
+import type { Default } from "../expressions/Default"
+import type { ITableOrView, ITable, NoTableOrViewRequired } from "../utils/ITableOrView"
+import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery, ExecutableSelect } from "../expressions/select"
+import type { TypeAdapter, DefaultTypeAdapter } from "../TypeAdapter"
+import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
+import type { QueryRunner } from "../queryRunners/QueryRunner"
+import type { IConnection } from "../utils/IConnection"
+import type { BooleanFragmentExpression, StringIntFragmentExpression, StringNumberFragmentExpression, IntFragmentExpression, NumberFragmentExpression, StringDoubleFragmentExpression, DoubleFragmentExpression, TypeSafeStringFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, DateFragmentExpression, LocalTimeFragmentExpression, TimeFragmentExpression, LocalDateTimeFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder1TypeSafe, FragmentBuilder0, FragmentBuilder1TypeUnsafe, FragmentBuilder2TypeSafe, FragmentBuilder2TypeUnsafe, FragmentBuilder3TypeSafe, FragmentBuilder3TypeUnsafe, FragmentBuilder4TypeSafe, FragmentBuilder4TypeUnsafe, FragmentBuilder5TypeSafe, FragmentBuilder5TypeUnsafe } from "../expressions/fragment"
+import type { AnyDB, TypeSafeDB, TypeUnsafeDB } from "../databases"
 import { InsertQueryBuilder } from "../queryBuilders/InsertQueryBuilder"
 import { UpdateQueryBuilder } from "../queryBuilders/UpdateQueryBuilder"
 import { DeleteQueryBuilder } from "../queryBuilders/DeleteQueryBuilder"
-import { SqlBuilder } from "../sqlBuilders/SqlBuilder"
-import { InsertExpression } from "../expressions/insert"
-import { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expressions/update"
-import { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
-import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, RemapValueSourceTypeAsOptional, ComparableValueSource, __getValueSourcePrivate, Argument } from "../expressions/values"
+import { __getValueSourcePrivate, Argument } from "../expressions/values"
 import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource } from "../internal/ValueSourceImpl"
-import { NoTableOrViewRequired } from "../utils/NoTableOrViewRequired"
-import { Default, DefaultImpl } from "../expressions/Default"
-import { ITableOrView, ITable } from "../utils/ITableOrView"
-import { AnyDB } from "../databases/AnyDB"
+import { DefaultImpl } from "../expressions/Default"
 import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
-import { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery, ExecutableSelect } from "../expressions/select"
-import { TypeSafeDB } from "../databases/TypeSafeDB"
-import { TypeUnsafeDB } from "../databases/TypeUnsafeDB"
-import { TypeAdapter, DefaultTypeAdapter } from "../TypeAdapter"
-import { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
-import { QueryRunner } from "../queryRunners/QueryRunner"
 import ChainedError from "chained-error"
-import { IConnection } from "../utils/IConnection"
-import { BooleanFragmentExpression, StringIntFragmentExpression, StringNumberFragmentExpression, IntFragmentExpression, NumberFragmentExpression, StringDoubleFragmentExpression, DoubleFragmentExpression, TypeSafeStringFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, DateFragmentExpression, LocalTimeFragmentExpression, TimeFragmentExpression, LocalDateTimeFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder1TypeSafe, FragmentBuilder0, FragmentBuilder1TypeUnsafe, FragmentBuilder2TypeSafe, FragmentBuilder2TypeUnsafe, FragmentBuilder3TypeSafe, FragmentBuilder3TypeUnsafe, FragmentBuilder4TypeSafe, FragmentBuilder4TypeUnsafe, FragmentBuilder5TypeSafe, FragmentBuilder5TypeUnsafe } from "../expressions/fragment"
 import { FragmentQueryBuilder, FragmentFunctionBuilder } from "../queryBuilders/FragmentQueryBuilder"
 import { attachSource } from "../utils/attachSource"
+import { anyDBType, database, databaseName } from "../utils/symbols"
 
-export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER extends SqlBuilder> extends IConnection<DB, NAME> {
+export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER extends SqlBuilder> implements IConnection<DB, NAME> {
+    [databaseName]: NAME
+    [database]: DB
+    [anyDBType]: "AnyDB"
+    
     protected __sqlBuilder: SQL_BUILDER
     protected allowEmptyString: boolean = false
     readonly queryRunner: QueryRunner
     readonly defaultTypeAdapter: DefaultTypeAdapter
 
     constructor(queryRunner: QueryRunner, sqlBuilder: SQL_BUILDER) {
-        super()
         this.defaultTypeAdapter = this as any // transform protected methods to public
         sqlBuilder._defaultTypeAdapter = this.defaultTypeAdapter
         this.__sqlBuilder = sqlBuilder
@@ -272,22 +275,6 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
         }
     }
 
-    /*
-    // It doesn't work on TS 3.5.3 because 'Type instantiation is excessively deep and possibly infinite.'
-    fragment(sql: TemplateStringsArray):  FragmentExpression<DB, NoTableRequired>
-    fragment<T1 extends ITable<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>): FragmentExpression<DB, T1>
-    fragment<T1 extends ITable<DB>, T2 extends ITable<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>): FragmentExpression<DB, T1 | T2>
-    fragment<T1 extends ITable<DB>, T2 extends ITable<DB>, T3 extends ITable<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>, p3: ValueSource<DB, T3, any>): FragmentExpression<DB, T1 | T2 | T3>
-    fragment<T1 extends ITable<DB>, T2 extends ITable<DB>, T3 extends ITable<DB>, T4 extends ITable<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>, p3: ValueSource<DB, T3, any>, p4: ValueSource<DB, T4, any>): FragmentExpression<DB, T1 | T2 | T3 | T4>
-    fragment<T1 extends ITable<DB>, T2 extends ITable<DB>, T3 extends ITable<DB>, T4 extends ITable<DB>, T5 extends ITable<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>, p3: ValueSource<DB, T3, any>, p4: ValueSource<DB, T4, any>, p5: ValueSource<DB, T5, any>): FragmentExpression<DB, T1 | T2 | T3 | T4 | T5>
-    fragment<T1 extends ITable<DB>, T2 extends ITable<DB>, T3 extends ITable<DB>, T4 extends ITable<DB>, T5 extends ITable<DB>, T6 extends ITable<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>, p3: ValueSource<DB, T3, any>, p4: ValueSource<DB, T4, any>, p5: ValueSource<DB, T5, any>, p6: ValueSource<DB, T6, any>): FragmentExpression<DB, T1 | T2 | T3 | T4 | T5 | T6>
-    fragment<T1 extends ITable<DB>, T2 extends ITable<DB>, T3 extends ITable<DB>, T4 extends ITable<DB>, T5 extends ITable<DB>, T6 extends ITable<DB>, T7 extends ITable<DB>>(sql: TemplateStringsArray, p1: ValueSource<DB, T1, any>, p2: ValueSource<DB, T2, any>, p3: ValueSource<DB, T3, any>, p4: ValueSource<DB, T4, any>, p5: ValueSource<DB, T5, any>, p6: ValueSource<DB, T6, any>, p7: ValueSource<DB, T7, any>): FragmentExpression<DB, T1 | T2 | T3 | T4 | T5 | T6 | T7>
-    fragment<T extends ITable<DB>>(sql: TemplateStringsArray, ...p: ValueSource<DB, T, any>[]): FragmentExpression<DB, T>
-    fragment(sql: TemplateStringsArray, ...p: ValueSource<DB, any, any>[]): FragmentExpression<DB, any> {
-        return new FragmentQueryBuilder(sql, p) as any
-    }
-    */
-
     fragmentWithType(type: 'boolean', required: 'required', adapter?: TypeAdapter): BooleanFragmentExpression<DB, boolean>
     fragmentWithType(type: 'boolean', required: 'optional', adapter?: TypeAdapter): BooleanFragmentExpression<DB, boolean | null | undefined>
     fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): StringIntFragmentExpression<DB, stringInt>
@@ -416,11 +403,11 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
     }
     max<TABLE_OR_VIEW extends ITableOrView<DB>, TYPE extends ComparableValueSource<DB, TABLE_OR_VIEW, any>>(value: TYPE): RemapValueSourceTypeAsOptional<DB, TABLE_OR_VIEW, TYPE> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (new AggregateFunctions1ValueSource('_max', value, valuePrivate.__columnType, valuePrivate.__typeAdapter)) as any
+        return (new AggregateFunctions1ValueSource('_max', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)) as any
     }
     min<TABLE_OR_VIEW extends ITableOrView<DB>, TYPE extends ComparableValueSource<DB, TABLE_OR_VIEW, any>>(value: TYPE): RemapValueSourceTypeAsOptional<DB, TABLE_OR_VIEW, TYPE> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (new AggregateFunctions1ValueSource('_min', value, valuePrivate.__columnType, valuePrivate.__typeAdapter)) as any
+        return (new AggregateFunctions1ValueSource('_min', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)) as any
     }
     sum<TABLE_OR_VIEW extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>
     sum<TABLE_OR_VIEW extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>
@@ -430,7 +417,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
     sum<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>
     sum<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>): ValueSource<DB, TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_sum', value, valuePrivate.__columnType, valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_sum', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
     sumDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>
     sumDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>
@@ -440,7 +427,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
     sumDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>
     sumDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>): ValueSource<DB, TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_sumDistinct', value, valuePrivate.__columnType, valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_sumDistinct', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
     average<TABLE_OR_VIEW extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>
     average<TABLE_OR_VIEW extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>
@@ -450,7 +437,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
     average<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>
     average<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>): ValueSource<DB, TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_average', value, valuePrivate.__columnType, valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_average', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
     averageDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>
     averageDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>
@@ -460,7 +447,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
     averageDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>
     averageDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>): ValueSource<DB, TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_averageDistinct', value, valuePrivate.__columnType, valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_averageDistinct', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
     stringConcat<TABLE_OR_VIEW extends ITableOrView<DB>>(value: TypeSafeStringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>): TypeSafeStringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
     stringConcat<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>): StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
@@ -468,7 +455,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
     stringConcat<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>, separator: string): StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
     stringConcat<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>, separator?: string): ValueSource<DB, TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1or2ValueSource('_stringConcat', separator, value, valuePrivate.__columnType, valuePrivate.__typeAdapter)
+        return new AggregateFunctions1or2ValueSource('_stringConcat', separator, value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
     stringConcatDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: TypeSafeStringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>): TypeSafeStringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
     stringConcatDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>): StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
@@ -476,7 +463,7 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
     stringConcatDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>, separator: string): StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
     stringConcatDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>, separator?: string): ValueSource<DB, TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__columnType, valuePrivate.__typeAdapter)
+        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
 
     protected transformValueFromDB(value: any, type: string): any {

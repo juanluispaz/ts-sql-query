@@ -1,5 +1,5 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
-import { Connection } from "mysql"
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { Connection } from "mysql"
 
 export class MySqlQueryRunner implements QueryRunner {
     readonly database: DatabaseType
@@ -70,7 +70,7 @@ export class MySqlQueryRunner implements QueryRunner {
                             reject(Error('Too many columns, expected only one column'))
                             return
                         }
-                        resolve(row[columns[0]])
+                        resolve(row[columns[0]!]) // Value in the row of the first column without care about the name
                         return
                     }
                     resolve(undefined)
@@ -92,7 +92,7 @@ export class MySqlQueryRunner implements QueryRunner {
                             reject(new Error('Too many columns, expected only one column'))
                             return
                         }
-                        result.push(row[columns[0]])
+                        result.push(row[columns[0]!]) // Value in the row of the first column without care about the name
                     }
                     resolve(result)
                 }
@@ -174,7 +174,7 @@ export class MySqlQueryRunner implements QueryRunner {
                             reject(Error('Too many columns, expected only one column'))
                             return
                         }
-                        resolve(row[columns[0]])
+                        resolve(row[columns[0]!]) // Value in the row of the first column without care about the name
                         return
                     }
                     resolve(undefined)

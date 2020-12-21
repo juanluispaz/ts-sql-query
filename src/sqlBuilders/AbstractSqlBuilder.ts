@@ -1,11 +1,14 @@
-import { ToSql, SqlBuilder, hasToSql, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, operationOf } from "./SqlBuilder"
-import { __getTableOrViewPrivate, ITableOrView } from "../utils/ITableOrView"
-import { BooleanValueSource, ValueSource } from "../expressions/values"
-import { __getColumnOfTable, __getColumnPrivate, Column } from "../utils/Column"
-import { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { QueryRunner } from "../queryRunners/QueryRunner"
-import { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
+import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation } from "./SqlBuilder"
+import type { ITableOrView } from "../utils/ITableOrView"
+import type { BooleanValueSource, ValueSource } from "../expressions/values"
+import type { Column } from "../utils/Column"
+import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
+import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 import { SequenceValueSource } from "../internal/ValueSourceImpl"
+import { hasToSql, operationOf } from "./SqlBuilder"
+import { __getTableOrViewPrivate } from "../utils/ITableOrView"
+import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
+import { QueryRunner } from "../queryRunners/QueryRunner"
 
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
@@ -214,7 +217,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (requireComma) {
                 selectQuery += ', '
             }
-            selectQuery += this._appendSql(columns[property], params)
+            selectQuery += this._appendSql(columns[property]!, params)
             if (property) {
                 selectQuery += ' as ' + this._appendColumnAlias(property, params)
             }
@@ -230,14 +233,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (requireComma) {
                     selectQuery += ', '
                 }
-                selectQuery += this._getTableOrViewNameInSql(tables[i])
+                selectQuery += this._getTableOrViewNameInSql(tables[i]!)
                 requireComma = true
             }
         }
 
         if (joinsLength > 0) {
             for (let i = 0; i < joinsLength; i++) {
-                const join = joins[i]
+                const join = joins[i]!
                 switch (join.__joinType) {
                     case 'join':
                         selectQuery += ' join '
@@ -277,7 +280,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             } else {
                 selectQuery += ' group by '
             }
-            selectQuery += this._appendSql(groupBy[i], params)
+            selectQuery += this._appendSql(groupBy[i]!, params)
             requireComma = true
         }
 
@@ -351,7 +354,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const sets = multiple[i]
             const properties = Object.getOwnPropertyNames(sets)
             for (let j = 0, length = properties.length; j < length; j++) {
-                const columnName = properties[j]
+                const columnName = properties[j]!
                 usedColumns[columnName] = true
             }
         }
@@ -396,11 +399,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (values) {
                     values += ', '
                 }
-                const sequenceName = nextSequenceValues[j]
+                const sequenceName = nextSequenceValues[j]!
                 values += this._nextSequenceValue(params, sequenceName)
             }
 
-            const sets = multiple[i]
+            const sets = multiple[i]!
 
             for (let columnName in usedColumns) {
                 if (values) {
@@ -415,7 +418,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     if (!(columnName in sets) && sequenceName) {
                         values += this._nextSequenceValue(params, sequenceName)
                     } else {
-                        values += this._appendValue(value, params, columnPrivate.__columnType, columnPrivate.__typeAdapter)
+                        values += this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__typeAdapter)
                     }
                 } else {
                     throw new Error('Unable to find the column "' + columnName + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
@@ -514,13 +517,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 values += ', '
             }
 
-            const property = properties[i]
+            const property = properties[i]!
             const value = sets[property]
             const column = __getColumnOfTable(table, property)
             if (column) {
                 columns += this._appendSql(column, params)
                 const columnPrivate = __getColumnPrivate(column)
-                values += this._appendValue(value, params, columnPrivate.__columnType, columnPrivate.__typeAdapter)
+                values += this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__typeAdapter)
             } else {
                 throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
             }
@@ -560,7 +563,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
 
             addedColumns.push(columnName)
-            selectColumns[columnName] = new SequenceValueSource('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__columnType, columnPrivate.__typeAdapter)
+            selectColumns[columnName] = new SequenceValueSource('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__valueType, columnPrivate.__typeAdapter)
         }
 
         const properties = Object.getOwnPropertyNames(selectColumns)
@@ -569,7 +572,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 columns += ', '
             }
 
-            const property = properties[i]
+            const property = properties[i]!
             const column = __getColumnOfTable(table, property)
             if (column) {
                 columns += this._appendSql(column, params)
@@ -581,7 +584,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const insertQuery = 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' ' + this._buildSelect(from, params) + this._buildInsertReturning(query, params)
 
         for (let i = 0, length = addedColumns.length; i < length; i++) {
-            const columnName = addedColumns[i]
+            const columnName = addedColumns[i]!
             delete selectColumns[columnName]
         }
 
@@ -619,14 +622,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 columns += ', '
             }
 
-            const property = properties[i]
+            const property = properties[i]!
             const value = sets[property]
             const column = __getColumnOfTable(table, property)
             if (column) {
                 columns += this._appendSql(column, params)
                 columns += ' = '
                 const columnPrivate = __getColumnPrivate(column)
-                columns += this._appendValue(value, params, columnPrivate.__columnType, columnPrivate.__typeAdapter)
+                columns += this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__typeAdapter)
             } else {
                 throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
             }
@@ -1035,10 +1038,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any, any>[]): string {
         let result = 'call ' + this._escape(procedureName) + '('
         if (procedureParams.length > 0) {
-            result += this._appendSql(procedureParams[0], params)
+            result += this._appendSql(procedureParams[0]!, params)
 
             for (let i = 1, length = procedureParams.length; i < length; i++) {
-                result += ', ' + this._appendSql(procedureParams[i], params)
+                result += ', ' + this._appendSql(procedureParams[i]!, params)
             }
         }
 
@@ -1047,10 +1050,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any, any>[]): string {
         let result = 'select ' + this._escape(functionName) + '('
         if (functionParams.length > 0) {
-            result += this._appendSql(functionParams[0], params)
+            result += this._appendSql(functionParams[0]!, params)
 
             for (let i = 1, length = functionParams.length; i < length; i++) {
-                result += ', ' + this._appendSql(functionParams[i], params)
+                result += ', ' + this._appendSql(functionParams[i]!, params)
             }
         }
 
@@ -1058,12 +1061,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _fragment(params: any[], sql: TemplateStringsArray, sqlParams: ValueSource<any, any, any>[]): string {
         if (sqlParams.length <= 0) {
-            return sql[0]
+            return sql[0]!
         }
         let result = ''
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             result += sql[i]
-            result += this._appendSql(sqlParams[i], params)
+            result += this._appendSql(sqlParams[i]!, params)
         }
         result += sql[sql.length - 1]
         return result

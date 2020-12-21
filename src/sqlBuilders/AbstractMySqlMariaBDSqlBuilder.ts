@@ -1,7 +1,7 @@
-import { ToSql, SelectData, InsertData } from "./SqlBuilder"
+import type { ToSql, SelectData, InsertData } from "./SqlBuilder"
+import type { TypeAdapter } from "../TypeAdapter"
+import type { OrderByMode } from "../expressions/select"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { TypeAdapter } from "../TypeAdapter"
-import { OrderByMode } from "../expressions/select"
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     constructor() {

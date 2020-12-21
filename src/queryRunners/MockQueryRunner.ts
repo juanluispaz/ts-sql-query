@@ -1,4 +1,4 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
 
 export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
 

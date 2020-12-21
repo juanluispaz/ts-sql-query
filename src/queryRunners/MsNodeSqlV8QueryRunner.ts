@@ -1,4 +1,4 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
 
 // Depends of msnodesqlv8
 // Redefine type definitios to avoid depenedency problems in linux where this package is not available
@@ -94,7 +94,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
                         if (columns.length > 1) {
                             throw new Error('Too many columns, expected only one column')
                         }
-                        resolve(row[columns[0]])
+                        resolve(row[columns[0]!]) // Value in the row of the first column without care about the name
                         return
                     }
                     resolve(undefined)
@@ -118,7 +118,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
                             reject(new Error('Too many columns, expected only one column'))
                             return
                         }
-                        result.push(row[columns[0]])
+                        result.push(row[columns[0]!]) // Value in the row of the first column without care about the name
                     }
                     resolve(result)
                 }
@@ -155,7 +155,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
                         if (columns.length > 1) {
                             throw new Error('Too many columns, expected only one column')
                         }
-                        resolve(row[columns[0]])
+                        resolve(row[columns[0]!]) // Value in the row of the first column without care about the name
                         return
                     }
                     resolve(new Error('Unable to find the last inserted id'))
@@ -176,7 +176,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
                         if (columns.length > 1) {
                             throw new Error('Too many columns, expected only one column')
                         }
-                        return row[columns[0]]
+                        return row[columns[0]!] // Value in the row of the first column without care about the name
                     })
                     resolve(result)
                 }
@@ -238,7 +238,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
                         if (columns.length > 1) {
                             throw new Error('Too many columns, expected only one column')
                         }
-                        resolve(row[columns[0]])
+                        resolve(row[columns[0]!]) // Value in the row of the first column without care about the name
                         return
                     }
                     resolve(undefined)

@@ -1,18 +1,21 @@
-import { SqlBuilder, JoinData, ToSql, SelectData } from "../sqlBuilders/SqlBuilder"
-import { SelectExpression, SelectValues, OrderByMode, /*SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, ExecutableSelect, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ExecutableSelectWithoutGroupBy, OffsetExecutableSelectExpressionWithoutGroupBy, OrderByExecutableSelectExpressionWithoutGroupBy*/ } from "../expressions/select"
-import { ITableOrView } from "../utils/ITableOrView"
-import { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, __getValueSourcePrivate } from "../expressions/values"
-import { OuterJoinSource } from "../utils/OuterJoinSource"
-import { int } from "ts-extended-types"
+import type { SqlBuilder, JoinData, ToSql, SelectData } from "../sqlBuilders/SqlBuilder"
+import type { SelectExpression, SelectValues, OrderByMode, /*SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, ExecutableSelect, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ExecutableSelectWithoutGroupBy, OffsetExecutableSelectExpressionWithoutGroupBy, OrderByExecutableSelectExpressionWithoutGroupBy*/ } from "../expressions/select"
+import type { ITableOrView, OuterJoinSource } from "../utils/ITableOrView"
+import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource } from "../expressions/values"
+import type { int } from "ts-extended-types"
+import { __getValueSourcePrivate } from "../expressions/values"
 import ChainedError from "chained-error"
 import { AggregateFunctions0ValueSource } from "../internal/ValueSourceImpl"
 import { attachSource } from "../utils/attachSource"
+import { database, requiredTableOrView } from "../utils/symbols"
 
 /*
  * Code commented because 'Type instantiation is excessively deep and possibly infinite.' in ts 3.5.3
  */
 
-export class SelectQueryBuilder extends SelectExpression<any, any, any> implements ToSql, SelectData/*, SelectExpressionFromNoTable, ExecutableSelectExpressionWithoutWhere<any, any, any, any>, DynamicWhereExecutableSelectExpression<any, any, any, any>, DynamicWhereExpressionWithoutSelect<any, any, any>, GroupByOrderByExecutableSelectExpression<any, any, any, any>, OffsetExecutableSelectExpression<any, any, any, any>, ExecutableSelect<any, any, any>, SelectWhereJoinExpression<any, any, any>, DynamicOnExpression<any, any, any>, OnExpression<any, any, any>, SelectExpressionWithoutJoin<any, any, any>, SelectExpressionSubquery<any, any>, SelectWhereExpression<any, any, any>, OrderByExecutableSelectExpression<any,any,any,any>, GroupByOrderByHavingExecutableSelectExpression<any, any, any, any>, DynamicHavingExecutableSelectExpression<any, any, any, any>, GroupByOrderHavingByExpressionWithoutSelect<any, any, any>, DynamicHavingExpressionWithoutSelect<any, any, any>, ExecutableSelectWithoutGroupBy<any, any, any>, OffsetExecutableSelectExpressionWithoutGroupBy<any, any, any, any>, OrderByExecutableSelectExpressionWithoutGroupBy<any, any, any, any>*/ {
+export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<any, any, any>/*, SelectExpressionFromNoTable, ExecutableSelectExpressionWithoutWhere<any, any, any, any>, DynamicWhereExecutableSelectExpression<any, any, any, any>, DynamicWhereExpressionWithoutSelect<any, any, any>, GroupByOrderByExecutableSelectExpression<any, any, any, any>, OffsetExecutableSelectExpression<any, any, any, any>, ExecutableSelect<any, any, any>, SelectWhereJoinExpression<any, any, any>, DynamicOnExpression<any, any, any>, OnExpression<any, any, any>, SelectExpressionWithoutJoin<any, any, any>, SelectExpressionSubquery<any, any>, SelectWhereExpression<any, any, any>, OrderByExecutableSelectExpression<any,any,any,any>, GroupByOrderByHavingExecutableSelectExpression<any, any, any, any>, DynamicHavingExecutableSelectExpression<any, any, any, any>, GroupByOrderHavingByExpressionWithoutSelect<any, any, any>, DynamicHavingExpressionWithoutSelect<any, any, any>, ExecutableSelectWithoutGroupBy<any, any, any>, OffsetExecutableSelectExpressionWithoutGroupBy<any, any, any, any>, OrderByExecutableSelectExpressionWithoutGroupBy<any, any, any, any>*/ {
+    [database]: any
+    [requiredTableOrView]: any
     __sqlBuilder: SqlBuilder
 
     __distinct: boolean
@@ -35,7 +38,6 @@ export class SelectQueryBuilder extends SelectExpression<any, any, any> implemen
     __params: any[] = []
 
     constructor(sqlBuilder: SqlBuilder, tables: Array<ITableOrView<any>>, distinct: boolean) {
-        super()
         this.__sqlBuilder = sqlBuilder
         this.__tables_or_views = tables
         this.__distinct = distinct
@@ -45,9 +47,9 @@ export class SelectQueryBuilder extends SelectExpression<any, any, any> implemen
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const typeAdapter = valueSourcePrivate.__typeAdapter
         if (typeAdapter) {
-            return typeAdapter.transformValueFromDB(value, valueSourcePrivate.__columnType, this.__sqlBuilder._defaultTypeAdapter)
+            return typeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueType, this.__sqlBuilder._defaultTypeAdapter)
         } else {
-            return this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, valueSourcePrivate.__columnType)
+            return this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueType)
         }
     }
 
@@ -55,7 +57,7 @@ export class SelectQueryBuilder extends SelectExpression<any, any, any> implemen
         const columns = this.__columns
         const result: any = {}
         for (let prop in columns) {
-            const valueSource = columns[prop]
+            const valueSource = columns[prop]!
             let value = row[prop]
             if (value !== undefined && value !== null) {
                 result[prop] = this.__transformValueFromDB(valueSource, value)
@@ -70,7 +72,7 @@ export class SelectQueryBuilder extends SelectExpression<any, any, any> implemen
         try {
             if (this.__oneColumn) {
                 return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
-                    const valueSource = this.__columns['result']
+                    const valueSource = this.__columns['result']!
                     if (value === undefined) {
                         value = null
                     }
@@ -99,7 +101,7 @@ export class SelectQueryBuilder extends SelectExpression<any, any, any> implemen
         try {
             if (this.__oneColumn) {
                 return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
-                    const valueSource = this.__columns['result']
+                    const valueSource = this.__columns['result']!
                     if (value === undefined) {
                         throw new Error('No result returned by the database')
                     }
@@ -128,7 +130,7 @@ export class SelectQueryBuilder extends SelectExpression<any, any, any> implemen
         try {
             if (this.__oneColumn) {
                 return this.__sqlBuilder._queryRunner.executeSelectOneColumnManyRows(this.__query, this.__params).then((values) => {
-                    const valueSource = this.__columns['result']
+                    const valueSource = this.__columns['result']!
 
                     return values.map((value) => {
                         if (value === undefined) {
@@ -425,7 +427,7 @@ export class SelectQueryBuilder extends SelectExpression<any, any, any> implemen
 
         const split = orderBy.trim().toLowerCase().replace(/\s+/g, ' ').split(/\s*,\s*/)
         for (let i = 0, length = split.length; i < length; i++) {
-            const clause = split[i]
+            const clause = split[i]!
             const separatorIndex = clause.indexOf(' ')
             let column
             let ordering

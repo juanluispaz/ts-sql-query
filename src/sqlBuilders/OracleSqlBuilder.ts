@@ -1,7 +1,7 @@
+import type { ToSql, InsertData } from "./SqlBuilder"
+import type { TypeAdapter } from "../TypeAdapter"
+import type { ValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { ToSql, InsertData } from "./SqlBuilder"
-import { TypeAdapter } from "../TypeAdapter"
-import { ValueSource } from "../expressions/values"
 import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
@@ -59,7 +59,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         for (let i = 0, length = multiple.length; i < length; i++) {
 
-            const sets = multiple[i]
+            const sets = multiple[i]!
     
             let columns = ''
             let values = ''
@@ -93,13 +93,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     values += ', '
                 }
     
-                const property = properties[i]
+                const property = properties[i]!
                 const value = sets[property]
                 const column = __getColumnOfTable(table, property)
                 if (column) {
                     columns += this._appendSql(column, params)
                     const columnPrivate = __getColumnPrivate(column)
-                    values += this._appendValue(value, params, columnPrivate.__columnType, columnPrivate.__typeAdapter)
+                    values += this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__typeAdapter)
                 } else {
                     throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
                 }
@@ -183,10 +183,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any, any>[]): string {
         let result = 'begin ' + this._escape(procedureName) + '('
         if (procedureParams.length > 0) {
-            result += this._appendSql(procedureParams[0], params)
+            result += this._appendSql(procedureParams[0]!, params)
 
             for (let i = 1, length = procedureParams.length; i < length; i++) {
-                result += ', ' + this._appendSql(procedureParams[i], params)
+                result += ', ' + this._appendSql(procedureParams[i]!, params)
             }
         }
 
@@ -195,10 +195,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any, any>[]): string {
         let result = 'select ' + this._escape(functionName) + '('
         if (functionParams.length > 0) {
-            result += this._appendSql(functionParams[0], params)
+            result += this._appendSql(functionParams[0]!, params)
 
             for (let i = 1, length = functionParams.length; i < length; i++) {
-                result += ', ' + this._appendSql(functionParams[i], params)
+                result += ', ' + this._appendSql(functionParams[i]!, params)
             }
         }
 

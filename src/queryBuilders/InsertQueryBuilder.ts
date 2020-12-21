@@ -1,12 +1,15 @@
-import { SqlBuilder, InsertData, SelectData } from "../sqlBuilders/SqlBuilder"
-import { ITable } from "../utils/ITableOrView"
-import { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, ExecutableMultipleInsert, ExecutableInsertFromSelect } from "../expressions/insert"
+import type { SqlBuilder, InsertData, SelectData } from "../sqlBuilders/SqlBuilder"
+import type { ITable } from "../utils/ITableOrView"
+import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, ExecutableMultipleInsert, ExecutableInsertFromSelect } from "../expressions/insert"
+import type { Column } from "../utils/Column"
+import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
-import { __getColumnOfTable, Column, __getColumnPrivate } from "../utils/Column"
 import { attachSource } from "../utils/attachSource"
 import { ExecutableSelect } from "../expressions/select"
+import { database } from "../utils/symbols"
 
-export class InsertQueryBuilder extends InsertExpression<any, any> implements ExecutableInsertReturning<any, any>, ExecutableInsert<any, any>, ExecutableInsertExpression<any, any>, ExecutableMultipleInsert<any, any>, ExecutableInsertFromSelect<any>, InsertData {
+export class InsertQueryBuilder implements InsertExpression<any, any>, ExecutableInsertReturning<any, any>, ExecutableInsert<any, any>, ExecutableInsertExpression<any, any>, ExecutableMultipleInsert<any, any>, ExecutableInsertFromSelect<any>, InsertData {
+    [database]: any
     __sqlBuilder: SqlBuilder
 
     __table: ITable<any>
@@ -21,7 +24,6 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
     __params: any[] = []
 
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>) {
-        super()
         this.__sqlBuilder = sqlBuilder
         this.__table = table
     }
@@ -51,9 +53,9 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
                     const typeAdapter = idColumnPrivate.__typeAdapter
                     let result
                     if (typeAdapter) {
-                        result = typeAdapter.transformValueFromDB(value, idColumnPrivate.__columnType, this.__sqlBuilder._defaultTypeAdapter)
+                        result = typeAdapter.transformValueFromDB(value, idColumnPrivate.__valueType, this.__sqlBuilder._defaultTypeAdapter)
                     } else {
-                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__columnType)
+                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__valueType)
                     }
                     if (this.__isMultiple) {
                         return [result]
@@ -67,7 +69,7 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
                 return this.__sqlBuilder._queryRunner.executeInsertReturningMultipleLastInsertedId(this.__query, this.__params).then((rows) => {
                     const idColumnPrivate = __getColumnPrivate(idColumn)
                     const typeAdapter = idColumnPrivate.__typeAdapter
-                    const columnType = idColumnPrivate.__columnType
+                    const columnType = idColumnPrivate.__valueType
                     const defaultTypeAdapter = this.__sqlBuilder._defaultTypeAdapter
                     if (typeAdapter) {
                         return rows.map((row) => {
@@ -127,7 +129,7 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]
+            const property = properties[i]!
             const value = columns[property]
             sets[property] = value
         }
@@ -142,7 +144,7 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]
+            const property = properties[i]!
             const value = columns[property]
             if (value === null || value === undefined) {
                 continue
@@ -160,7 +162,7 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]
+            const property = properties[i]!
             if (!(property in sets)) {
                 continue
             }
@@ -178,7 +180,7 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]
+            const property = properties[i]!
             if (!(property in sets)) {
                 continue
             }
@@ -199,7 +201,7 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]
+            const property = properties[i]!
             if (property in sets) {
                 continue
             }
@@ -217,7 +219,7 @@ export class InsertQueryBuilder extends InsertExpression<any, any> implements Ex
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]
+            const property = properties[i]!
             if (property in sets) {
                 continue
             }

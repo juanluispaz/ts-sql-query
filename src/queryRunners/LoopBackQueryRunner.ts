@@ -1,5 +1,5 @@
-import { DatabaseType, QueryRunner } from "./QueryRunner"
-import { DataSource, Transaction } from 'loopback-datasource-juggler'
+import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { DataSource, Transaction } from 'loopback-datasource-juggler'
 
 export function createLoopBackQueryRunner(datasource: DataSource, transaction?: Transaction): LoopbackQueryRunner {
     const connector = datasource.connector
@@ -80,7 +80,7 @@ export abstract class LoopBackAbstractQueryRunner implements LoopbackQueryRunner
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             return undefined
         })
@@ -91,7 +91,7 @@ export abstract class LoopBackAbstractQueryRunner implements LoopbackQueryRunner
             if (columns.length > 1) {
                 throw new Error('Too many columns, expected only one column')
             }
-            return row[columns[0]]
+            return row[columns[0]!] // Value in the row of the first column without care about the name
         }))
     }
     abstract executeInsert(query: string, params?: any[]): Promise<number>
@@ -113,7 +113,7 @@ export abstract class LoopBackAbstractQueryRunner implements LoopbackQueryRunner
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             return undefined
         })
@@ -311,7 +311,7 @@ export class LoopBackPostgreSqlQueryRunner extends LoopBackAbstractQueryRunner {
                     if (columns.length > 1) {
                         throw new Error('Too many columns, expected only one column')
                     }
-                    return +row[columns[0]]
+                    return +row[columns[0]!] // Value in the row of the first column without care about the name
                 }
                 throw new Error('Unable to find the the affected row count')
             })
@@ -328,7 +328,7 @@ export class LoopBackPostgreSqlQueryRunner extends LoopBackAbstractQueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             throw new Error('Unable to find the last inserted id')
         })
@@ -340,7 +340,7 @@ export class LoopBackPostgreSqlQueryRunner extends LoopBackAbstractQueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             })
         })
     }
@@ -395,7 +395,7 @@ export class LoopBackSqlServerQueryRunner extends LoopBackAbstractQueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             throw new Error('Unable to find the affected row count')
         })
@@ -411,7 +411,7 @@ export class LoopBackSqlServerQueryRunner extends LoopBackAbstractQueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             throw new Error('Unable to find the last inserted id')
         })
@@ -423,7 +423,7 @@ export class LoopBackSqlServerQueryRunner extends LoopBackAbstractQueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             })
         })
     }
@@ -438,7 +438,7 @@ export class LoopBackSqlServerQueryRunner extends LoopBackAbstractQueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             throw new Error('Unable to find the affected row count')
         })
@@ -454,7 +454,7 @@ export class LoopBackSqlServerQueryRunner extends LoopBackAbstractQueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             throw new Error('Unable to find the affected row count')
         })

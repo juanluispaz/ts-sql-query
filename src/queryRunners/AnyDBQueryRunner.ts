@@ -1,5 +1,5 @@
-import { QueryRunner, DatabaseType } from "./QueryRunner"
-import { Connection, ResultSet } from 'any-db'
+import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { Connection, ResultSet } from 'any-db'
 import * as begin  from 'any-db-transaction'
 
 export class AnyDBQueryRunner implements QueryRunner {
@@ -74,7 +74,7 @@ export class AnyDBQueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             return undefined
         })
@@ -85,7 +85,7 @@ export class AnyDBQueryRunner implements QueryRunner {
             if (columns.length > 1) {
                 throw new Error('Too many columns, expected only one column')
             }
-            return row[columns[0]]
+            return row[columns[0]!] // Value in the row of the first column without care about the name
         }))
     }
     executeInsert(query: string, params: any[] = []): Promise<number> {
@@ -105,7 +105,7 @@ export class AnyDBQueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             throw new Error('Unable to find the last inserted id')
         })
@@ -121,7 +121,7 @@ export class AnyDBQueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             })
         })
     }
@@ -145,7 +145,7 @@ export class AnyDBQueryRunner implements QueryRunner {
                 if (columns.length > 1) {
                     throw new Error('Too many columns, expected only one column')
                 }
-                return row[columns[0]]
+                return row[columns[0]!] // Value in the row of the first column without care about the name
             }
             return undefined
         })

@@ -3,9 +3,14 @@ set -x #echo on
 
 #npm install any-db-transaction any-db-mssql any-db-mysql any-db-postgres any-db-sqlite3 better-sqlite3 mssql mysql2 mysql oracledb pg sqlite3 tedious loopback-connector-sqlite3 loopback-connector-postgresql loopback-connector-mysql loopback-connector-mssql loopback-connector-oracle
 
+# On Linux
 # Download and uncompress instantclient-basic-linux: https://www.oracle.com/es/database/technologies/instant-client/linux-x86-64-downloads.html
 # sudo apt-get install build-essential libaio1
-export LD_LIBRARY_PATH="$HOME/Descargas/instantclient_19_6/"
+#
+# On Mac OS
+# Download and uncompress instantclient-basic-macos: https://www.oracle.com/es/database/technologies/instant-client/macos-intel-x86-downloads.html
+# Execute the commmand in the uncompressed folder: xattr -d com.apple.quarantine *
+export LD_LIBRARY_PATH="$HOME/Downloads/instantclient_19_8/"
 
 node ./dist/examples/SqliteExample.js || exit 1
 node ./dist/examples/Sqlite3Example.js || exit 1

@@ -1,5 +1,5 @@
-import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation0, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2 } from "../sqlBuilders/SqlBuilder"
-import type { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, ValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate } from "../expressions/values"
+import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0 } from "../sqlBuilders/SqlBuilder"
+import type { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, ValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, __OptionalRule } from "../expressions/values"
 import type { TypeAdapter } from "../TypeAdapter"
 import { database, tableOrView, valueSourceType, valueType as valueType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType } from "../utils/symbols"
 
@@ -30,20 +30,29 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
 
     __valueType: string
     __typeAdapter?: TypeAdapter
+    __resultIsOptionalCache?: boolean
+
     constructor(valueType: string, typeAdapter: TypeAdapter | undefined) {
         this.__valueType = valueType
         this.__typeAdapter = typeAdapter
     }
     abstract __toSql(sqlBuilder: SqlBuilder, params: any[]): string
+    abstract __resultIsOptional(rule: __OptionalRule): boolean
+    __isResultOptional(rule: __OptionalRule): boolean {
+        if (this.__resultIsOptionalCache === undefined) {
+            this.__resultIsOptionalCache = this.__resultIsOptional(rule)
+        }
+        return this.__resultIsOptionalCache
+    }
     asOptional(): any {
-        return this
+        return new SqlOperationAsOptionalValueSource(this)
     }
     // SqlComparator0
     isNull(): any {
-        return new SqlOperation0ValueSource('_isNull', this, 'boolean', this.__typeAdapter)
+        return new SqlOperationIsNullValueSource('_isNull', this, 'boolean', this.__typeAdapter)
     }
     isNotNull(): any {
-        return new SqlOperation0ValueSource('_isNotNull', this, 'boolean', this.__typeAdapter)
+        return new SqlOperationIsNullValueSource('_isNotNull', this, 'boolean', this.__typeAdapter)
     }
     // SqlComparator1
     equalsIfValue(value: any): any {
@@ -62,13 +71,13 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
         return new SqlOperation1ValueSourceIfValueOrNoop('_is', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     is(value: any): any {
-        return new SqlOperation1ValueSource('_is', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1NotOptionalValueSource('_is', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     isNotIfValue(value: any): any {
         return new SqlOperation1ValueSourceIfValueOrNoop('_isNot', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     isNot(value: any): any {
-        return new SqlOperation1ValueSource('_isNot', this, value, 'boolean', getTypeAdapter2(this, value))
+        return new SqlOperation1NotOptionalValueSource('_isNot', this, value, 'boolean', getTypeAdapter2(this, value))
     }
     asString(): any { // test function
         return this
@@ -446,7 +455,7 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
     }
     // SqlFunction1
     valueWhenNull(value: any): any {
-        return new SqlOperation1ValueSource('_valueWhenNull', this, value, this.__valueType, getTypeAdapter2(this, value))
+        return new SqlOperationValueWhenNullValueSource(this, value, this.__valueType, getTypeAdapter2(this, value))
     }
     and(value: any): any {
         return new SqlOperation1ValueSource('_and', this, value, 'boolean', getTypeAdapter2(this, value))
@@ -544,41 +553,86 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
 
 export class SqlOperationStatic0ValueSource extends ValueSourceImpl implements HasOperation {
     __operation: keyof SqlOperationStatic0
+    __isOptional: boolean
 
-    constructor(operation: keyof SqlOperationStatic0, valueType: string, typeAdapter: TypeAdapter | undefined) {
+    constructor(optional: boolean, operation: keyof SqlOperationStatic0, valueType: string, typeAdapter: TypeAdapter | undefined) {
         super(valueType, typeAdapter)
         this.__operation = operation
+        this.__isOptional = optional
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params)
+    }
+    __resultIsOptional(_rule: __OptionalRule): boolean {
+        return this.__isOptional
     }
 }
 
 export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements HasOperation {
     __operation: keyof SqlOperationStatic1
     __value: any
+    __isOptional: boolean
 
-    constructor(operation: keyof SqlOperationStatic1, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+    constructor(optional: boolean, operation: keyof SqlOperationStatic1, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
         super(valueType, typeAdapter)
         this.__operation = operation
         this.__value = value
+        this.__isOptional = optional
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__value, this.__valueType, this.__typeAdapter)
+    }
+    __resultIsOptional(_rule: __OptionalRule): boolean {
+        return this.__isOptional
+    }
+}
+
+export class SqlOperationAsOptionalValueSource extends ValueSourceImpl {
+    __valueSource: ValueSourceImpl
+
+    constructor(valueSource: ValueSourceImpl) {
+        super(valueSource.__valueType, valueSource.__typeAdapter)
+        this.__valueSource = valueSource
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        return this.__valueSource.__toSql(sqlBuilder, params)
+    }
+    __resultIsOptional(_rule: __OptionalRule): boolean {
+        return true
     }
 }
 
 export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOperation {
     __valueSource: ValueSourceImpl
-    __operation: keyof SqlOperation0
+    __operation: keyof SqlFunction0
 
-    constructor(operation: keyof SqlOperation0, valueSource: ValueSourceImpl, valueType: string, typeAdapter: TypeAdapter | undefined) {
+    constructor(operation: keyof SqlFunction0, valueSource: ValueSourceImpl, valueType: string, typeAdapter: TypeAdapter | undefined) {
         super(valueType, typeAdapter)
         this.__valueSource = valueSource
         this.__operation = operation
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__valueSource)
+    }
+    __resultIsOptional(rule: __OptionalRule): boolean {
+        return this.__valueSource.__resultIsOptional(rule)
+    }
+}
+
+export class SqlOperationIsNullValueSource extends ValueSourceImpl implements HasOperation {
+    __valueSource: ValueSourceImpl
+    __operation: keyof SqlComparator0
+
+    constructor(operation: keyof SqlComparator0, valueSource: ValueSourceImpl, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
+        this.__valueSource = valueSource
+        this.__operation = operation
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        return sqlBuilder[this.__operation](params, this.__valueSource)
+    }
+    __resultIsOptional(_rule: __OptionalRule): boolean {
+        return false
     }
 }
 
@@ -595,6 +649,47 @@ export class SqlOperation1ValueSource extends ValueSourceImpl implements HasOper
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
+    }
+    __resultIsOptional(rule: __OptionalRule): boolean {
+        return this.__valueSource.__resultIsOptional(rule) || isOptional(this.__value, rule)
+    }
+}
+
+export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implements HasOperation {
+    __valueSource: ValueSourceImpl
+    __operation: keyof SqlOperation1
+    __value: any
+
+    constructor(valueSource: ValueSourceImpl, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
+        this.__valueSource = valueSource
+        this.__operation = '_valueWhenNull'
+        this.__value = value
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
+    }
+    __resultIsOptional(rule: __OptionalRule): boolean {
+        return isOptional(this.__value, rule)
+    }
+}
+
+export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl implements HasOperation {
+    __valueSource: ValueSourceImpl
+    __operation: keyof SqlOperation1
+    __value: any
+
+    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
+        this.__valueSource = valueSource
+        this.__operation = operation
+        this.__value = value
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
+    }
+    __resultIsOptional(_rule: __OptionalRule): boolean {
+        return false
     }
 }
 
@@ -615,6 +710,9 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
         }
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
+    __resultIsOptional(rule: __OptionalRule): boolean {
+        return this.__valueSource.__resultIsOptional(rule)
+    }
 }
 
 export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOperation {
@@ -632,6 +730,9 @@ export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOper
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
+    }
+    __resultIsOptional(rule: __OptionalRule): boolean {
+        return this.__valueSource.__resultIsOptional(rule) || isOptional(this.__value, rule) || isOptional(this.__value2, rule)
     }
 }
 
@@ -657,6 +758,9 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         }
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
+    __resultIsOptional(rule: __OptionalRule): boolean {
+        return this.__valueSource.__resultIsOptional(rule)
+    }
 }
 
 
@@ -668,6 +772,9 @@ export class NoopValueSource extends ValueSourceImpl {
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return this.__valueSource.__toSql(sqlBuilder, params)
+    }
+    __resultIsOptional(rule: __OptionalRule): boolean {
+        return this.__valueSource.__resultIsOptional(rule)
     }
 }
 
@@ -682,21 +789,28 @@ export class SequenceValueSource extends ValueSourceImpl {
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__sequenceName)
     }
+    __resultIsOptional(_rule: __OptionalRule): boolean {
+        return false
+    }
 }
 
 export class FragmentValueSource extends ValueSourceImpl {
     __operation: keyof SqlFragmentOperation = '_fragment' // Needed to detect if parenthesis is required
     __sql: TemplateStringsArray
     __sqlParams: ValueSource<any, any>[]
+    __isOptional: boolean
 
-    constructor(sql: TemplateStringsArray, sqlParams: ValueSource<any, any>[], valueType: string, typeAdapter: TypeAdapter | undefined) {
+    constructor(optional: boolean, sql: TemplateStringsArray, sqlParams: ValueSource<any, any>[], valueType: string, typeAdapter: TypeAdapter | undefined) {
         super(valueType, typeAdapter)
         this.__sql = sql
         this.__sqlParams = sqlParams
+        this.__isOptional = optional
     }
-
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder._fragment(params, this.__sql, this.__sqlParams)
+    }
+    __resultIsOptional(_rule: __OptionalRule): boolean {
+        return this.__isOptional
     }
 }
 
@@ -710,19 +824,27 @@ export class AggregateFunctions0ValueSource extends ValueSourceImpl implements H
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params)
     }
+    __resultIsOptional(_rule: __OptionalRule): boolean {
+        return false
+    }
 }
 
 export class AggregateFunctions1ValueSource extends ValueSourceImpl implements HasOperation {
     __operation: keyof AggregateFunctions1
     __value: any
+    __isOptional: boolean
 
-    constructor(operation: keyof AggregateFunctions1, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+    constructor(optional: boolean, operation: keyof AggregateFunctions1, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
         super(valueType, typeAdapter)
         this.__operation = operation
         this.__value = value
+        this.__isOptional = optional
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__value)
+    }
+    __resultIsOptional(_rule: __OptionalRule): boolean {
+        return this.__isOptional
     }
 }
 
@@ -730,15 +852,20 @@ export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implement
     __operation: keyof AggregateFunctions1or2
     __value: any
     __separator: string | undefined
+    __isOptional: boolean
 
-    constructor(operation: keyof AggregateFunctions1or2, separator: string | undefined, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+    constructor(optional: boolean, operation: keyof AggregateFunctions1or2, separator: string | undefined, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
         super(valueType, typeAdapter)
         this.__operation = operation
         this.__separator = separator
         this.__value = value
+        this.__isOptional = optional
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__separator, this.__value)
+    }
+    __resultIsOptional(_rule: __OptionalRule): boolean {
+        return this.__isOptional
     }
 }
 
@@ -801,4 +928,12 @@ function createSqlOperation1ofOverloadedNumber(thiz: ValueSourceImpl, value: any
             return new SqlOperation1ValueSource(operation, thiz, value, 'double', getTypeAdapter2(thiz, value))
         }
     }
+}
+
+
+function isOptional(value: any, rule: __OptionalRule): boolean {
+    if (value instanceof ValueSourceImpl) {
+        return value.__resultIsOptional(rule)
+    }
+    return !rule._isValue(value)
 }

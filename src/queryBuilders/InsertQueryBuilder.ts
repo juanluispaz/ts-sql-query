@@ -60,6 +60,11 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
                     } else {
                         result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__valueType)
                     }
+                    if (result === null || result === undefined) {
+                        if (!idColumnPrivate.__isResultOptional(this.__sqlBuilder)) {
+                            throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
+                        }
+                    }
                     if (this.__isMultiple) {
                         return [result]
                     } else {
@@ -75,12 +80,24 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
                     const columnType = idColumnPrivate.__valueType
                     const defaultTypeAdapter = this.__sqlBuilder._defaultTypeAdapter
                     if (typeAdapter) {
-                        return rows.map((row) => {
-                            return typeAdapter.transformValueFromDB(row, columnType, defaultTypeAdapter)
+                        return rows.map((row, index) => {
+                            const result = typeAdapter.transformValueFromDB(row, columnType, defaultTypeAdapter)
+                            if (result === null || result === undefined) {
+                                if (!idColumnPrivate.__isResultOptional(this.__sqlBuilder)) {
+                                    throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found at index ' + index)
+                                }
+                            }
+                            return result
                         })
                     } else {
-                        return rows.map((row) => {
-                            return defaultTypeAdapter.transformValueFromDB(row, columnType)
+                        return rows.map((row, index) => {
+                            const result = defaultTypeAdapter.transformValueFromDB(row, columnType)
+                            if (result === null || result === undefined) {
+                                if (!idColumnPrivate.__isResultOptional(this.__sqlBuilder)) {
+                                    throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found at index ' + index)
+                                }
+                            }
+                            return result
                         })
                     }
                 }).catch((e) => {

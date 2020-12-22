@@ -1,5 +1,5 @@
 import type { ITableOrView, ITable } from "../utils/ITableOrView"
-import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, __OptionalRule } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
@@ -47,7 +47,7 @@ export interface DeleteData {
     __allowNoWhere: boolean
 }
 
-export interface SqlBuilder extends SqlOperation {
+export interface SqlBuilder extends SqlOperation, __OptionalRule {
     _defaultTypeAdapter: DefaultTypeAdapter
     _queryRunner: QueryRunner
     _connectionConfiguration: ConnectionConfiguration

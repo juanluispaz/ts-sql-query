@@ -18,9 +18,14 @@ export interface ValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> 
     [valueType]: TYPE
 }
 
+export interface __OptionalRule {
+    _isValue(value: any): boolean // Implemented in the sql builders
+}
+
 export interface __ValueSourcePrivate {
     __valueType: string
     __typeAdapter?: TypeAdapter
+    __isResultOptional(rule: __OptionalRule): boolean
 }
 
 export function __getValueSourcePrivate(valueSource: ValueSource<any, any>): __ValueSourcePrivate {
@@ -54,13 +59,13 @@ export interface EqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
     notEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE  | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     isIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    is(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    is<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    is<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    is(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, boolean>
+    is<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
+    is<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
     isNotIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, boolean>
     isNot(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, boolean>
-    isNot<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    isNot<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    isNot<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
+    isNot<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
 
     inIfValue(values: TYPE[] | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     inIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>

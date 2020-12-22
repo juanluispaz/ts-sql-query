@@ -256,7 +256,7 @@ let query15 = cn.selectDistinctFrom(t).where(t.c.equals(10)).and(t.c.notIn(subqu
 console.log(query15.query(), query15.params())
 
 cn.procedure1(16)
-cn.function1(17)
+cn.function1(17).catch(_ => undefined) // ignore error
 
 //cn.fragment`${t.c} <|> ${cn.const(7, 'int')}`.withType('boolean', 'required')
 let query16 = cn.selectFrom(t).where(t.c.equals(9)).and(cn.fragmentWithType('boolean', 'required').sql`${t.c} <|> ${cn.const(7, 'int')}`).select({

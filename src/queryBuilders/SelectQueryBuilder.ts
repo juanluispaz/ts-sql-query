@@ -39,24 +39,44 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         this.__distinct = distinct
     }
 
-    __transformValueFromDB(valueSource: ValueSource<any, any>, value: any) {
+    __transformValueFromDB(valueSource: ValueSource<any, any>, value: any, column?: string, index?: number, count?: boolean) {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const typeAdapter = valueSourcePrivate.__typeAdapter
+        let result
         if (typeAdapter) {
-            return typeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueType, this.__sqlBuilder._defaultTypeAdapter)
+            result = typeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueType, this.__sqlBuilder._defaultTypeAdapter)
         } else {
-            return this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueType)
+            result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueType)
         }
+        if (result !== null && result !== undefined) {
+            return result
+        }
+        if (!valueSourcePrivate.__isResultOptional(this.__sqlBuilder)) {
+            let errorMessage = 'Expected a value as result'
+            if (column !== undefined) {
+                errorMessage += ' of the column `' + column
+            }
+            if (index !== undefined) {
+                errorMessage += ' at index `' + index + '`'
+            }
+            if (count) {
+                errorMessage += ' of the count number of rows query'
+            }
+            errorMessage += ', but null or undefined value was found'
+            throw new Error(errorMessage)
+        }
+        return result
     }
 
-    __transformRow(row: any): any {
+    __transformRow(row: any, index?: number): any {
         const columns = this.__columns
         const result: any = {}
         for (let prop in columns) {
             const valueSource = columns[prop]!
             let value = row[prop]
-            if (value !== undefined && value !== null) {
-                result[prop] = this.__transformValueFromDB(valueSource, value)
+            const transformed = this.__transformValueFromDB(valueSource, value, prop, index)
+            if (transformed !== undefined && transformed !== null) {
+                result[prop] = transformed
             }
         }
         return result
@@ -70,7 +90,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
                 return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns['result']!
                     if (value === undefined) {
-                        value = null
+                        return null
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
@@ -139,8 +159,8 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
                 })
             } else {
                 return this.__sqlBuilder._queryRunner.executeSelectManyRows(this.__query, this.__params).then((rows) => {
-                    return rows.map((row) => {
-                        return this.__transformRow(row)
+                    return rows.map((row, index) => {
+                        return this.__transformRow(row, index)
                     })
                 }).catch((e) => {
                     throw attachSource(new ChainedError(e), source)
@@ -165,10 +185,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
             const query = this.__sqlBuilder._buildSelect(selectCountData, params)
 
             return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(query, params).then((value) => {
-                if (!value || value < 0) {
-                    value = 0
-                }
-                return this.__transformValueFromDB(countAll, value)
+                return this.__transformValueFromDB(countAll, value, undefined, undefined, true)
             }).catch((e) => {
                 throw attachSource(new ChainedError(e), source)
             })

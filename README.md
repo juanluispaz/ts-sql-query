@@ -347,7 +347,7 @@ If you define your connection like:
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
-class DBConection extends PostgreSqlConnection<DBConection, 'DBConnection'> { 
+class DBConection extends PostgreSqlConnection<'DBConnection'> { 
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
         this.arg('int', 'required'),

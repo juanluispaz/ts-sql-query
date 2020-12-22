@@ -465,7 +465,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
 
-    protected transformValueFromDB(value: any, type: string): any {
+    protected transformValueFromDB(value: unknown, type: string): any {
         if (value === undefined) {
             return null
         }
@@ -622,7 +622,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                 return value
         }
     }
-    protected transformValueToDB(value: any, type: string): any {
+    protected transformValueToDB(value: unknown, type: string): any {
         if (value === undefined) {
             return null
         }

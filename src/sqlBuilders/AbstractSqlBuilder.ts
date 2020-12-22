@@ -118,34 +118,34 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
-    _appendCondition(condition: BooleanValueSource<any, any, any>, params: any[]): string {
+    _appendCondition(condition: BooleanValueSource<any, any>, params: any[]): string {
         if (hasToSql(condition)) {
             return condition.__toSql(this, params)
         }
         throw new Error('Conditions must have a __toSql method')
     }
-    _appendConditionParenthesis(condition: BooleanValueSource<any, any, any>, params: any[]): string {
+    _appendConditionParenthesis(condition: BooleanValueSource<any, any>, params: any[]): string {
         if (this._needParenthesis(condition)) {
             return '(' + this._appendCondition(condition, params) + ')'
         }
         return this._appendCondition(condition, params)
     }
-    _appendConditionParenthesisExcuding(condition: BooleanValueSource<any, any, any>, params: any[], excluding: keyof SqlOperation): string {
+    _appendConditionParenthesisExcuding(condition: BooleanValueSource<any, any>, params: any[], excluding: keyof SqlOperation): string {
         if (this._needParenthesisExcluding(condition, excluding)) {
             return '(' + this._appendCondition(condition, params) + ')'
         }
         return this._appendCondition(condition, params)
     }
-    _appendSql(value: ToSql | ValueSource<any, any, any> | Column, params: any[]): string {
+    _appendSql(value: ToSql | ValueSource<any, any> | Column, params: any[]): string {
         return (value as ToSql).__toSql(this, params) // All ValueSource or Column have a hidden implemetation of ToSql
     }
-    _appendSqlParenthesis(value: ToSql | ValueSource<any, any, any> | Column, params: any[]): string {
+    _appendSqlParenthesis(value: ToSql | ValueSource<any, any> | Column, params: any[]): string {
         if (this._needParenthesis(value)) {
             return '(' + this._appendSql(value, params) + ')'
         }
         return this._appendSql(value, params)
     }
-    _appendSqlParenthesisExcluding(value: ToSql | ValueSource<any, any, any> | Column, params: any[], excluding: keyof SqlOperation): string {
+    _appendSqlParenthesisExcluding(value: ToSql | ValueSource<any, any> | Column, params: any[], excluding: keyof SqlOperation): string {
         if (this._needParenthesisExcluding(value, excluding)) {
             return '(' + this._appendSql(value, params) + ')'
         }
@@ -1035,7 +1035,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _replace(params: any[], valueSource: ToSql, value: any, value2: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'replace(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(value2, params, columnType, typeAdapter) + ')'
     }
-    _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any, any>[]): string {
+    _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any>[]): string {
         let result = 'call ' + this._escape(procedureName) + '('
         if (procedureParams.length > 0) {
             result += this._appendSql(procedureParams[0]!, params)
@@ -1047,7 +1047,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         return result + ')'
     }
-    _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any, any>[]): string {
+    _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any>[]): string {
         let result = 'select ' + this._escape(functionName) + '('
         if (functionParams.length > 0) {
             result += this._appendSql(functionParams[0]!, params)
@@ -1059,7 +1059,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         return result + ')'
     }
-    _fragment(params: any[], sql: TemplateStringsArray, sqlParams: ValueSource<any, any, any>[]): string {
+    _fragment(params: any[], sql: TemplateStringsArray, sqlParams: ValueSource<any, any>[]): string {
         if (sqlParams.length <= 0) {
             return sql[0]!
         }

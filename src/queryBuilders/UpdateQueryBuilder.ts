@@ -5,15 +5,16 @@ import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, Dy
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
-import { database } from "../utils/symbols"
+import { database, tableOrView } from "../utils/symbols"
 
-export class UpdateQueryBuilder implements UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any>, ExecutableUpdateExpression<any, any>, NotExecutableUpdateExpression<any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData {
+export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressionAllowingNoWhere<any>, ExecutableUpdate<any>, ExecutableUpdateExpression<any>, NotExecutableUpdateExpression<any>, DynamicExecutableUpdateExpression<any>, UpdateData {
     [database]: any
+    [tableOrView]: any
     __sqlBuilder: SqlBuilder
 
     __table: ITable<any>
     __sets: { [property: string] : any} = {}
-    __where?: BooleanValueSource<any, any, any>
+    __where?: BooleanValueSource<any, any>
     __allowNoWhere: boolean
 
     // cache
@@ -195,7 +196,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any, any>, UpdateExp
         this.__query = ''
         return this
     }
-    where(condition: BooleanValueSource<any, any, any>): this {
+    where(condition: BooleanValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
             throw new Error('Illegal state')
@@ -203,7 +204,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any, any>, UpdateExp
         this.__where = condition
         return this
     }
-    and(condition: BooleanValueSource<any, any, any>): this {
+    and(condition: BooleanValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
             this.__where = this.__where.and(condition)
@@ -212,7 +213,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any, any>, UpdateExp
         }
         return this
     }
-    or(condition: BooleanValueSource<any, any, any>): this {
+    or(condition: BooleanValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
             this.__where = this.__where.or(condition)

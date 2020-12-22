@@ -1,5 +1,5 @@
 import type { SqlBuilder, JoinData, ToSql, SelectData } from "../sqlBuilders/SqlBuilder"
-import type { SelectExpression, SelectValues, OrderByMode, /*SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, ExecutableSelect, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ExecutableSelectWithoutGroupBy, OffsetExecutableSelectExpressionWithoutGroupBy, OrderByExecutableSelectExpressionWithoutGroupBy*/ } from "../expressions/select"
+import type { SelectExpression, SelectValues, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, ExecutableSelect, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ExecutableSelectWithoutGroupBy, OffsetExecutableSelectExpressionWithoutGroupBy, OrderByExecutableSelectExpressionWithoutGroupBy } from "../expressions/select"
 import type { ITableOrView, OuterJoinSource } from "../utils/ITableOrView"
 import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
@@ -9,25 +9,21 @@ import { AggregateFunctions0ValueSource } from "../internal/ValueSourceImpl"
 import { attachSource } from "../utils/attachSource"
 import { database, requiredTableOrView } from "../utils/symbols"
 
-/*
- * Code commented because 'Type instantiation is excessively deep and possibly infinite.' in ts 3.5.3
- */
-
-export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<any, any, any>/*, SelectExpressionFromNoTable, ExecutableSelectExpressionWithoutWhere<any, any, any, any>, DynamicWhereExecutableSelectExpression<any, any, any, any>, DynamicWhereExpressionWithoutSelect<any, any, any>, GroupByOrderByExecutableSelectExpression<any, any, any, any>, OffsetExecutableSelectExpression<any, any, any, any>, ExecutableSelect<any, any, any>, SelectWhereJoinExpression<any, any, any>, DynamicOnExpression<any, any, any>, OnExpression<any, any, any>, SelectExpressionWithoutJoin<any, any, any>, SelectExpressionSubquery<any, any>, SelectWhereExpression<any, any, any>, OrderByExecutableSelectExpression<any,any,any,any>, GroupByOrderByHavingExecutableSelectExpression<any, any, any, any>, DynamicHavingExecutableSelectExpression<any, any, any, any>, GroupByOrderHavingByExpressionWithoutSelect<any, any, any>, DynamicHavingExpressionWithoutSelect<any, any, any>, ExecutableSelectWithoutGroupBy<any, any, any>, OffsetExecutableSelectExpressionWithoutGroupBy<any, any, any, any>, OrderByExecutableSelectExpressionWithoutGroupBy<any, any, any, any>*/ {
+export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<any, any, any>, SelectExpressionFromNoTable<any>, ExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, DynamicWhereExecutableSelectExpression<any, any, any, any, any>, DynamicWhereExpressionWithoutSelect<any, any, any>, GroupByOrderByExecutableSelectExpression<any, any, any, any, any>, OffsetExecutableSelectExpression<any, any, any>, ExecutableSelect<any, any, any>, SelectWhereJoinExpression<any, any, any>, DynamicOnExpression<any, any, any>, OnExpression<any, any, any>, SelectExpressionWithoutJoin<any, any, any>, SelectExpressionSubquery<any, any>, SelectWhereExpression<any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any>, GroupByOrderByHavingExecutableSelectExpression<any, any, any, any, any>, DynamicHavingExecutableSelectExpression<any, any, any, any, any>, GroupByOrderHavingByExpressionWithoutSelect<any, any, any>, DynamicHavingExpressionWithoutSelect<any, any, any>, ExecutableSelectWithoutGroupBy<any, any, any>, OffsetExecutableSelectExpressionWithoutGroupBy<any, any, any>, OrderByExecutableSelectExpressionWithoutGroupBy<any, any, any, any, any> {
     [database]: any
     [requiredTableOrView]: any
     __sqlBuilder: SqlBuilder
 
     __distinct: boolean
-    __columns: { [property: string]: ValueSource<any, any, any> } = {}
+    __columns: { [property: string]: ValueSource<any, any> } = {}
     __tables_or_views: Array<ITableOrView<any>>
     __joins: Array<JoinData> = []
-    __where?: BooleanValueSource<any, any, any>
-    __having?: BooleanValueSource<any, any, any>
-    __groupBy:  Array<ValueSource<any, any, any>> = []
+    __where?: BooleanValueSource<any, any>
+    __having?: BooleanValueSource<any, any>
+    __groupBy:  Array<ValueSource<any, any>> = []
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
-    __limit?: int | number | NumberValueSource<any, any, any> | IntValueSource<any, any, any>
-    __offset?: int | number | NumberValueSource<any, any, any> | IntValueSource<any, any, any>
+    __limit?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
+    __offset?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
 
     __lastJoin?: JoinData
     __inHaving = false
@@ -43,7 +39,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         this.__distinct = distinct
     }
 
-    __transformValueFromDB(valueSource: ValueSource<any, any, any>, value: any) {
+    __transformValueFromDB(valueSource: ValueSource<any, any>, value: any) {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const typeAdapter = valueSourcePrivate.__typeAdapter
         if (typeAdapter) {
@@ -218,26 +214,26 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         return this.__params
     }
 
-    select(columns: SelectValues<any, any, any>): any /*this*/ {
+    select(columns: SelectValues<any, any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         this.__columns = columns
         return this
     }
-    selectOneColumn(column: ValueSource<any, any, any>): any /*this*/ {
+    selectOneColumn(column: ValueSource<any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         this.__oneColumn = true
         this.__columns = { 'result': column }
         return this
     }
-    from(table: ITableOrView<any>): any /*this*/ {
+    from(table: ITableOrView<any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         this.__tables_or_views.push(table)
         return this
     }
-    join(table: ITableOrView<any>): any /*this*/ {
+    join(table: ITableOrView<any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
@@ -249,7 +245,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         }
         return this
     }
-    innerJoin(table: ITableOrView<any>): any /*this*/ {
+    innerJoin(table: ITableOrView<any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
@@ -261,7 +257,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         }
         return this
     }
-    leftJoin(source: OuterJoinSource<any, any, any>): any /*this*/ {
+    leftJoin(source: OuterJoinSource<any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
@@ -273,7 +269,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         }
         return this
     }
-    leftOuterJoin(source: OuterJoinSource<any, any, any>): any /*this*/ {
+    leftOuterJoin(source: OuterJoinSource<any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
@@ -285,11 +281,11 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         }
         return this
     }
-    dynamicOn(): any /*this*/ {
+    dynamicOn(): this {
         this.__query = ''
         return this
     }
-    on(condition: BooleanValueSource<any, any, any>): any /*this*/ {
+    on(condition: BooleanValueSource<any, any>): this {
         this.__query = ''
         if (!this.__lastJoin) {
             throw new Error('Illegal state')
@@ -306,12 +302,12 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         }
         this.__inHaving = false
     }
-    dynamicWhere(): any /*this*/ {
+    dynamicWhere(): this {
         this.__finishJoinHaving()
         this.__query = ''
         return this
     }
-    where(condition: BooleanValueSource<any, any, any>): any /*this*/ {
+    where(condition: BooleanValueSource<any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__where) {
@@ -320,7 +316,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         this.__where = condition
         return this
     }
-    and(condition: BooleanValueSource<any, any, any>): any /*this*/ {
+    and(condition: BooleanValueSource<any, any>): this {
         this.__query = ''
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
@@ -346,7 +342,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         }
         return this
     }
-    or(condition: BooleanValueSource<any, any, any>): any /*this*/ {
+    or(condition: BooleanValueSource<any, any>): this {
         this.__query = ''
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
@@ -371,13 +367,13 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         }
         return this
     }
-    dynamicHaving(): any /*this*/ {
+    dynamicHaving(): this {
         this.__finishJoinHaving()
         this.__query = ''
         this.__inHaving = true
         return this
     }
-    having(condition: BooleanValueSource<any, any, any>): any /*this*/ {
+    having(condition: BooleanValueSource<any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         this.__inHaving = true
@@ -387,7 +383,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         this.__having = condition
         return this
     }
-    groupBy(...columns: Array<string| number | symbol | ValueSource<any, any, any>>): any /*this*/ {
+    groupBy(...columns: Array<string| number | symbol | ValueSource<any, any>>): this {
         this.__finishJoinHaving()
         this.__query = ''
         for (let i = 0, length = columns.length; i < length; i++) {
@@ -404,7 +400,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         }
         return this
     }
-    orderBy(column: any, mode?: OrderByMode): any /*this*/ {
+    orderBy(column: any, mode?: OrderByMode): this {
         this.__finishJoinHaving()
         this.__query = ''
         if (!this.__orderBy) {
@@ -416,7 +412,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         this.__orderBy[column] = mode || null
         return this
     }
-    orderByFromString(orderBy: string): any /*this*/ {
+    orderByFromString(orderBy: string): this {
         this.__finishJoinHaving()
         this.__query = ''
         const columnsInQuery: { [columnNameInLowerCase: string]: string | undefined } = {}
@@ -462,13 +458,13 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         }
         return this
     }
-    limit(limit: int | number | NumberValueSource<any, any, any> | IntValueSource<any, any, any>): any /*this*/ {
+    limit(limit: int | number | NumberValueSource<any, any> | IntValueSource<any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         this.__limit = limit
         return this
     }
-    offset(offset: int | number | NumberValueSource<any, any, any> | IntValueSource<any, any, any>): any /*this*/ {
+    offset(offset: int | number | NumberValueSource<any, any> | IntValueSource<any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         this.__offset = offset

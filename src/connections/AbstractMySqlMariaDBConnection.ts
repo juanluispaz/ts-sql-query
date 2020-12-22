@@ -3,9 +3,9 @@ import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { AnyDB } from "../databases"
 import { AbstractConnection } from "./AbstractConnection"
 
-export abstract class AbstractMySqlMariaDBConnection<DB extends AnyDB, NAME, SQL_BUILDER extends SqlBuilder> extends AbstractConnection<DB, NAME, SQL_BUILDER> {
+export abstract class AbstractMySqlMariaDBConnection<DB extends AnyDB> extends AbstractConnection<DB> {
 
-    constructor(queryRunner: QueryRunner, sqlBuilder: SQL_BUILDER) {
+    constructor(queryRunner: QueryRunner, sqlBuilder: SqlBuilder) {
         super(queryRunner, sqlBuilder)
     }
 

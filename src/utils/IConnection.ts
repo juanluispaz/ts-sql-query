@@ -1,7 +1,7 @@
 import type { AnyDB } from "../databases"
-import type { database, databaseName } from "./symbols"
+import type { database, type } from "./symbols"
 
-export interface IConnection<DB extends AnyDB, NAME> extends AnyDB {
-    [databaseName]: NAME
+export interface IConnection<DB extends AnyDB> {
     [database]: DB
+    [type]: 'Connection'
 }

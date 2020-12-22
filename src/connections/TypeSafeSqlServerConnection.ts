@@ -1,11 +1,14 @@
+import type { QueryRunner } from "../queryRunners/QueryRunner"
+import type { SqlServer, TypeSafeDB } from "../databases"
+import type { databaseName } from "../utils/symbols"
 import { AbstractSqlServerConnection } from "./AbstractSqlServerConnection"
 import { SqlServerSqlBuilder } from "../sqlBuilders/SqlServerSqlBuilder"
-import { QueryRunner } from "../queryRunners/QueryRunner"
-import { SqlServer, TypeSafeDB } from "../databases"
-import { typeSafeDBType } from "../utils/symbols"
 
-export abstract class TypeSafeSqlServerConnection<DB extends SqlServer & TypeSafeDB, NAME> extends AbstractSqlServerConnection<DB, NAME, SqlServerSqlBuilder> implements SqlServer, TypeSafeDB {
-    [typeSafeDBType] : 'TypeSafe'
+interface DB<NAME extends string> extends TypeSafeDB, SqlServer {
+    [databaseName]: NAME
+}
+
+export abstract class TypeSafeSqlServerConnection<NAME extends string> extends AbstractSqlServerConnection<DB<NAME>> {
     constructor(queryRunner: QueryRunner, sqlBuilder = new SqlServerSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }

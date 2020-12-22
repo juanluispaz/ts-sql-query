@@ -1,11 +1,14 @@
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { PostgreSql, TypeSafeDB } from "../databases"
+import type { databaseName } from "../utils/symbols"
 import { AbstractPostgreSqlConnection } from "./AbstractPostgreSqlConnection"
 import { PostgreSqlSqlBuilder } from "../sqlBuilders/PostgreSqlSqlBuilder"
-import { typeSafeDBType } from "../utils/symbols"
 
-export abstract class TypeSafePostgreSqlConnection<DB extends PostgreSql & TypeSafeDB, NAME> extends AbstractPostgreSqlConnection<DB, NAME, PostgreSqlSqlBuilder> implements PostgreSql, TypeSafeDB {
-    [typeSafeDBType] : 'TypeSafe'
+interface DB<NAME extends string> extends TypeSafeDB, PostgreSql {
+    [databaseName]: NAME
+}
+
+export abstract class TypeSafePostgreSqlConnection<NAME extends string> extends AbstractPostgreSqlConnection<DB<NAME>> {
     constructor(queryRunner: QueryRunner, sqlBuilder = new PostgreSqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }

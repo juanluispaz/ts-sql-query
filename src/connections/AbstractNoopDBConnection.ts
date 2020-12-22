@@ -3,12 +3,10 @@ import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { NoopDB, TypeSafeDB, TypeUnsafeDB } from "../databases"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
 import { ChainedQueryRunner } from "../queryRunners/ChainedQueryRunner"
-import { noopDBType } from "../utils/symbols"
 
-export abstract class AbstractNoopDBConnection<DB extends NoopDB & (TypeUnsafeDB | TypeSafeDB), NAME, SQL_BUILDER extends NoopDBSqlBuilder> extends AbstractAdvancedConnection<DB & NoopDB, NAME, SQL_BUILDER> implements NoopDB {
-    [noopDBType]: 'NoopDB'
+export abstract class AbstractNoopDBConnection<DB extends NoopDB & (TypeUnsafeDB | TypeSafeDB)> extends AbstractAdvancedConnection<DB> {
 
-    constructor(queryRunner: QueryRunner, sqlBuilder: SQL_BUILDER) {
+    constructor(queryRunner: QueryRunner, sqlBuilder: NoopDBSqlBuilder) {
         super(new NoopIterceptQueryRunner(queryRunner), sqlBuilder)
         queryRunner.useDatabase('noopDB')
     }

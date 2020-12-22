@@ -180,7 +180,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _getMilliseconds(params: any[], valueSource: ToSql): string {
         return 'extract(millisecond from ' + this._appendSql(valueSource, params) + ')'
     }
-    _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any, any>[]): string {
+    _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any>[]): string {
         let result = 'begin ' + this._escape(procedureName) + '('
         if (procedureParams.length > 0) {
             result += this._appendSql(procedureParams[0]!, params)
@@ -192,7 +192,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         return result + '); end;'
     }
-    _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any, any>[]): string {
+    _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any>[]): string {
         let result = 'select ' + this._escape(functionName) + '('
         if (functionParams.length > 0) {
             result += this._appendSql(functionParams[0]!, params)

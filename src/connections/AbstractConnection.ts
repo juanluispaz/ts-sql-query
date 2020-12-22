@@ -4,7 +4,7 @@ import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expre
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
 import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, RemapValueSourceTypeAsOptional, ComparableValueSource } from "../expressions/values"
 import type { Default } from "../expressions/Default"
-import type { ITableOrView, ITable, NoTableOrViewRequired } from "../utils/ITableOrView"
+import type { TableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf } from "../utils/ITableOrView"
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery, ExecutableSelect } from "../expressions/select"
 import type { TypeAdapter, DefaultTypeAdapter } from "../TypeAdapter"
 import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
@@ -22,19 +22,18 @@ import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
 import ChainedError from "chained-error"
 import { FragmentQueryBuilder, FragmentFunctionBuilder } from "../queryBuilders/FragmentQueryBuilder"
 import { attachSource } from "../utils/attachSource"
-import { anyDBType, database, databaseName } from "../utils/symbols"
+import { database, tableOrViewRef, type } from "../utils/symbols"
 
-export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER extends SqlBuilder> implements IConnection<DB, NAME> {
-    [databaseName]: NAME
+export abstract class AbstractConnection<DB extends AnyDB> implements IConnection<DB> {
     [database]: DB
-    [anyDBType]: "AnyDB"
+    [type]: 'Connection'
     
-    protected __sqlBuilder: SQL_BUILDER
+    protected __sqlBuilder: SqlBuilder
     protected allowEmptyString: boolean = false
     readonly queryRunner: QueryRunner
     readonly defaultTypeAdapter: DefaultTypeAdapter
 
-    constructor(queryRunner: QueryRunner, sqlBuilder: SQL_BUILDER) {
+    constructor(queryRunner: QueryRunner, sqlBuilder: SqlBuilder) {
         this.defaultTypeAdapter = this as any // transform protected methods to public
         sqlBuilder._defaultTypeAdapter = this.defaultTypeAdapter
         this.__sqlBuilder = sqlBuilder
@@ -74,135 +73,135 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
         }
     }
 
-    insertInto<DBT extends DB, TABLE extends ITable<DBT>>(table: TABLE): InsertExpression<DBT, TABLE> {
+    insertInto<TABLE extends ITableOf<DB, any>>(table: TABLE): InsertExpression<TABLE> {
         return new InsertQueryBuilder(this.__sqlBuilder, table)
     }
-    update<DBT extends DB, TABLE extends ITable<DBT>>(table: TABLE): UpdateExpression<DBT, TABLE> {
+    update<TABLE extends ITableOf<DB, any>>(table: TABLE): UpdateExpression<TABLE> {
         return new UpdateQueryBuilder(this.__sqlBuilder, table, false)
     }
-    updateAllowingNoWhere<DBT extends DB, TABLE extends ITable<DBT>>(table: TABLE): UpdateExpressionAllowingNoWhere<DBT, TABLE> {
+    updateAllowingNoWhere<TABLE extends ITableOf<DB, any>>(table: TABLE): UpdateExpressionAllowingNoWhere<TABLE> {
         return new UpdateQueryBuilder(this.__sqlBuilder, table, true)
     }
-    deleteFrom<DBT extends DB, TABLE extends ITable<DBT>>(table: TABLE): DeleteExpression<DBT, TABLE> {
+    deleteFrom<TABLE extends ITableOf<DB, any>>(table: TABLE): DeleteExpression<TABLE> {
         return new DeleteQueryBuilder(this.__sqlBuilder, table, false)
     }
-    deleteAllowingNoWhereFrom<DBT extends DB, TABLE extends ITable<DBT>>(table: TABLE): DeleteExpressionAllowingNoWhere<DBT, TABLE> {
+    deleteAllowingNoWhereFrom<TABLE extends ITableOf<DB, any>>(table: TABLE): DeleteExpressionAllowingNoWhere<TABLE> {
         return new DeleteQueryBuilder(this.__sqlBuilder, table, true)
     }
-    selectFrom<DBT extends DB, TABLE_OR_VIEW extends ITableOrView<DBT>>(table: TABLE_OR_VIEW): SelectExpression<DBT, TABLE_OR_VIEW, NoTableOrViewRequired> {
+    selectFrom<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpression<DB, TABLE_OR_VIEW, NoTableOrViewRequiredView<DB>> {
         return new SelectQueryBuilder(this.__sqlBuilder, [table], false) as any // cast to any to improve typescript performace
     }
-    selectDistinctFrom<DBT extends DB, TABLE_OR_VIEW extends ITableOrView<DBT>>(table: TABLE_OR_VIEW): SelectExpression<DBT, TABLE_OR_VIEW, NoTableOrViewRequired> {
+    selectDistinctFrom<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpression<DB, TABLE_OR_VIEW, NoTableOrViewRequiredView<DB>> {
         return new SelectQueryBuilder(this.__sqlBuilder, [table], true) as any // cast to any to improve typescript performace
     }
-    selectFromNoTable(): SelectExpressionFromNoTable {
+    selectFromNoTable(): SelectExpressionFromNoTable<DB> {
         return new SelectQueryBuilder(this.__sqlBuilder, [], false) as any // cast to any to improve typescript performace
     }
-    subSelectUsing<TABLE_OR_VIEW extends ITableOrView<DB>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW>
-    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrView<DB>, TABLE_OR_VIEW2 extends ITableOrView<DB>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2>
-    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrView<DB>, TABLE_OR_VIEW2 extends ITableOrView<DB>, TABLE_OR_VIEW3 extends ITableOrView<DB>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3>
-    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrView<DB>, TABLE_OR_VIEW2 extends ITableOrView<DB>, TABLE_OR_VIEW3 extends ITableOrView<DB>>(_table1: TABLE_OR_VIEW1, _table2?: TABLE_OR_VIEW2, _table3?: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3> {
+    subSelectUsing<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW>
+    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2>
+    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3>
+    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any>>(_table1: TABLE_OR_VIEW1, _table2?: TABLE_OR_VIEW2, _table3?: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3> {
         return new SelectQueryBuilder(this.__sqlBuilder, [], false) as any // cast to any to improve typescript performace
     }
-    subSelectDistinctUsing<TABLE_OR_VIEW extends ITableOrView<DB>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW>
-    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrView<DB>, TABLE_OR_VIEW2 extends ITableOrView<DB>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2>
-    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrView<DB>, TABLE_OR_VIEW2 extends ITableOrView<DB>, TABLE_OR_VIEW3 extends ITableOrView<DB>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3>
-    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrView<DB>, TABLE_OR_VIEW2 extends ITableOrView<DB>, TABLE_OR_VIEW3 extends ITableOrView<DB>>(_table1: TABLE_OR_VIEW1, _table2?: TABLE_OR_VIEW2, _table3?: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3> {
+    subSelectDistinctUsing<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW>
+    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2>
+    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3>
+    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any>>(_table1: TABLE_OR_VIEW1, _table2?: TABLE_OR_VIEW2, _table3?: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3> {
         return new SelectQueryBuilder(this.__sqlBuilder, [], true) as any // cast to any to improve typescript performace
     }
 
     default(): Default {
         return new DefaultImpl()
     }
-    pi(this: IConnection<TypeSafeDB, NAME>): DoubleValueSource<DB, NoTableOrViewRequired, double>
-    pi(): NumberValueSource<DB, NoTableOrViewRequired, number>
-    pi(): NumberValueSource<DB, NoTableOrViewRequired, number> & DoubleValueSource<DB, NoTableOrViewRequired, double> {
+    pi(this: IConnection<TypeSafeDB>): DoubleValueSource<NoTableOrViewRequired<DB>, double>
+    pi(): NumberValueSource<NoTableOrViewRequired<DB>, number>
+    pi(): NumberValueSource<NoTableOrViewRequired<DB>, number> & DoubleValueSource<NoTableOrViewRequired<DB>, double> {
         return new SqlOperationStatic0ValueSource('_pi', 'double', undefined)
     }
-    random(this: IConnection<TypeSafeDB, NAME>): DoubleValueSource<DB, NoTableOrViewRequired, double>
-    random(): NumberValueSource<DB, NoTableOrViewRequired, number>
-    random(): NumberValueSource<DB, NoTableOrViewRequired, number> & DoubleValueSource<DB, NoTableOrViewRequired, double> {
+    random(this: IConnection<TypeSafeDB>): DoubleValueSource<NoTableOrViewRequired<DB>, double>
+    random(): NumberValueSource<NoTableOrViewRequired<DB>, number>
+    random(): NumberValueSource<NoTableOrViewRequired<DB>, number> & DoubleValueSource<NoTableOrViewRequired<DB>, double> {
         return new SqlOperationStatic0ValueSource('_random', 'double', undefined)
     }
-    currentDate(this: IConnection<TypeSafeDB, NAME>): LocalDateValueSource<DB, NoTableOrViewRequired, LocalDate>
-    currentDate(): DateValueSource<DB, NoTableOrViewRequired, Date>
-    currentDate(): DateValueSource<DB, NoTableOrViewRequired, Date> & LocalDateValueSource<DB, NoTableOrViewRequired, LocalDate> {
+    currentDate(this: IConnection<TypeSafeDB>): LocalDateValueSource<NoTableOrViewRequired<DB>, LocalDate>
+    currentDate(): DateValueSource<NoTableOrViewRequired<DB>, Date>
+    currentDate(): DateValueSource<NoTableOrViewRequired<DB>, Date> & LocalDateValueSource<NoTableOrViewRequired<DB>, LocalDate> {
         return new SqlOperationStatic0ValueSource('_currentDate', 'localDate', undefined)
     }
-    currentTime(this: IConnection<TypeSafeDB, NAME>): LocalTimeValueSource<DB, NoTableOrViewRequired, LocalTime>
-    currentTime(): TimeValueSource<DB, NoTableOrViewRequired, Date>
-    currentTime(): TimeValueSource<DB, NoTableOrViewRequired, Date> & LocalTimeValueSource<DB, NoTableOrViewRequired, LocalTime> {
+    currentTime(this: IConnection<TypeSafeDB>): LocalTimeValueSource<NoTableOrViewRequired<DB>, LocalTime>
+    currentTime(): TimeValueSource<NoTableOrViewRequired<DB>, Date>
+    currentTime(): TimeValueSource<NoTableOrViewRequired<DB>, Date> & LocalTimeValueSource<NoTableOrViewRequired<DB>, LocalTime> {
         return new SqlOperationStatic0ValueSource('_currentTime', 'localTime', undefined)
     }
-    currentDateTime(this: IConnection<TypeSafeDB, NAME>): LocalDateTimeValueSource<DB, NoTableOrViewRequired, LocalDateTime>
-    currentDateTime(): DateTimeValueSource<DB, NoTableOrViewRequired, Date>
-    currentDateTime(): DateTimeValueSource<DB, NoTableOrViewRequired, Date> & LocalDateTimeValueSource<DB, NoTableOrViewRequired, LocalDateTime> {
+    currentDateTime(this: IConnection<TypeSafeDB>): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime>
+    currentDateTime(): DateTimeValueSource<NoTableOrViewRequired<DB>, Date>
+    currentDateTime(): DateTimeValueSource<NoTableOrViewRequired<DB>, Date> & LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime> {
         return new SqlOperationStatic0ValueSource('_currentTimestamp', 'localDateTime', undefined)
     }
-    currentTimestamp(this: IConnection<TypeSafeDB, NAME>): LocalDateTimeValueSource<DB, NoTableOrViewRequired, LocalDateTime>
-    currentTimestamp(): DateTimeValueSource<DB, NoTableOrViewRequired, Date>
-    currentTimestamp(): DateTimeValueSource<DB, NoTableOrViewRequired, Date> & LocalDateTimeValueSource<DB, NoTableOrViewRequired, LocalDateTime> {
+    currentTimestamp(this: IConnection<TypeSafeDB>): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime>
+    currentTimestamp(): DateTimeValueSource<NoTableOrViewRequired<DB>, Date>
+    currentTimestamp(): DateTimeValueSource<NoTableOrViewRequired<DB>, Date> & LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime> {
         return new SqlOperationStatic0ValueSource('_currentTimestamp', 'localDateTime', undefined)
     }
 
-    const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<DB, NoTableOrViewRequired, boolean>
-    const(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<DB, NoTableOrViewRequired, boolean | null | undefined>
-    const(this: IConnection<TypeSafeDB, NAME>, value: stringInt, type: 'stringInt', adapter?: TypeAdapter): StringIntValueSource<DB, NoTableOrViewRequired, stringInt>
-    const(this: IConnection<TypeSafeDB, NAME>, value: stringInt | null | undefined, type: 'stringInt', adapter?: TypeAdapter): StringIntValueSource<DB, NoTableOrViewRequired, stringInt | null | undefined>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: number | string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<DB, NoTableOrViewRequired, number | string>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: number | string | null | undefined, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<DB, NoTableOrViewRequired, number | string | null | undefined>
-    const(this: IConnection<TypeSafeDB, NAME>, value: int, type: 'int', adapter?: TypeAdapter): IntValueSource<DB, NoTableOrViewRequired, int>
-    const(this: IConnection<TypeSafeDB, NAME>, value: int | null | undefined, type: 'int', adapter?: TypeAdapter): IntValueSource<DB, NoTableOrViewRequired, int | null | undefined>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: number, type: 'int', adapter?: TypeAdapter): NumberValueSource<DB, NoTableOrViewRequired, number>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: number | null | undefined, type: 'int', adapter?: TypeAdapter): NumberValueSource<DB, NoTableOrViewRequired, number | null | undefined>
-    const(this: IConnection<TypeSafeDB, NAME>, value: stringDouble, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<DB, NoTableOrViewRequired, stringDouble>
-    const(this: IConnection<TypeSafeDB, NAME>, value: stringDouble | null | undefined, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<DB, NoTableOrViewRequired, stringDouble | null | undefined>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: number | string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<DB, NoTableOrViewRequired, number | string>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: number | string | null | undefined, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<DB, NoTableOrViewRequired, number | string | null | undefined>
-    const(this: IConnection<TypeSafeDB, NAME>, value: double, type: 'double', adapter?: TypeAdapter): DoubleValueSource<DB, NoTableOrViewRequired, double>
-    const(this: IConnection<TypeSafeDB, NAME>, value: double | null | undefined, type: 'double', adapter?: TypeAdapter): DoubleValueSource<DB, NoTableOrViewRequired, double | null | undefined>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource<DB, NoTableOrViewRequired, number>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource<DB, NoTableOrViewRequired, number | null | undefined>
-    const(this: IConnection<TypeSafeDB, NAME>, value: string, type: 'string', adapter?: TypeAdapter): TypeSafeStringValueSource<DB, NoTableOrViewRequired, string>
-    const(this: IConnection<TypeSafeDB, NAME>, value: string | null | undefined, type: 'string', adapter?: TypeAdapter): TypeSafeStringValueSource<DB, NoTableOrViewRequired, string | null | undefined>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: string, type: 'string', adapter?: TypeAdapter): StringValueSource<DB, NoTableOrViewRequired, string>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource<DB, NoTableOrViewRequired, string | null | undefined>
-    const(this: IConnection<TypeSafeDB, NAME>, value: LocalDate, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<DB, NoTableOrViewRequired, LocalDate>
-    const(this: IConnection<TypeSafeDB, NAME>, value: LocalDate | null | undefined, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<DB, NoTableOrViewRequired, LocalDate | null | undefined>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: Date, type: 'localDate', adapter?: TypeAdapter): DateValueSource<DB, NoTableOrViewRequired, Date>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): DateValueSource<DB, NoTableOrViewRequired, Date | null | undefined>
-    const(this: IConnection<TypeSafeDB, NAME>, value: LocalTime, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<DB, NoTableOrViewRequired, LocalTime>
-    const(this: IConnection<TypeSafeDB, NAME>, value: LocalTime | null | undefined, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<DB, NoTableOrViewRequired, LocalTime | null | undefined>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: Date, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<DB, NoTableOrViewRequired, Date>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<DB, NoTableOrViewRequired, Date | null | undefined>
-    const(this: IConnection<TypeSafeDB, NAME>, value: LocalDateTime, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<DB, NoTableOrViewRequired, LocalDateTime>
-    const(this: IConnection<TypeSafeDB, NAME>, value: LocalDateTime | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<DB, NoTableOrViewRequired, LocalDateTime | null | undefined>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: Date, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<DB, NoTableOrViewRequired, Date>
-    const(this: IConnection<TypeUnsafeDB, NAME>, value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<DB, NoTableOrViewRequired, Date | null | undefined>
-    const<T>(value: T, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<DB, NoTableOrViewRequired, T>
-    const<T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<DB, NoTableOrViewRequired, T>
-    const<T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<DB, NoTableOrViewRequired, T>
-    const<_T>(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<DB, NoTableRequired, T> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NoTableOrViewRequired<DB>, boolean>
+    const(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NoTableOrViewRequired<DB>, boolean | null | undefined>
+    const(this: IConnection<TypeSafeDB>, value: stringInt, type: 'stringInt', adapter?: TypeAdapter): StringIntValueSource<NoTableOrViewRequired<DB>, stringInt>
+    const(this: IConnection<TypeSafeDB>, value: stringInt | null | undefined, type: 'stringInt', adapter?: TypeAdapter): StringIntValueSource<NoTableOrViewRequired<DB>, stringInt | null | undefined>
+    const(this: IConnection<TypeUnsafeDB>, value: number | string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<NoTableOrViewRequired<DB>, number | string>
+    const(this: IConnection<TypeUnsafeDB>, value: number | string | null | undefined, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<NoTableOrViewRequired<DB>, number | string | null | undefined>
+    const(this: IConnection<TypeSafeDB>, value: int, type: 'int', adapter?: TypeAdapter): IntValueSource<NoTableOrViewRequired<DB>, int>
+    const(this: IConnection<TypeSafeDB>, value: int | null | undefined, type: 'int', adapter?: TypeAdapter): IntValueSource<NoTableOrViewRequired<DB>, int | null | undefined>
+    const(this: IConnection<TypeUnsafeDB>, value: number, type: 'int', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, number>
+    const(this: IConnection<TypeUnsafeDB>, value: number | null | undefined, type: 'int', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, number | null | undefined>
+    const(this: IConnection<TypeSafeDB>, value: stringDouble, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<NoTableOrViewRequired<DB>, stringDouble>
+    const(this: IConnection<TypeSafeDB>, value: stringDouble | null | undefined, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<NoTableOrViewRequired<DB>, stringDouble | null | undefined>
+    const(this: IConnection<TypeUnsafeDB>, value: number | string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<NoTableOrViewRequired<DB>, number | string>
+    const(this: IConnection<TypeUnsafeDB>, value: number | string | null | undefined, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<NoTableOrViewRequired<DB>, number | string | null | undefined>
+    const(this: IConnection<TypeSafeDB>, value: double, type: 'double', adapter?: TypeAdapter): DoubleValueSource<NoTableOrViewRequired<DB>, double>
+    const(this: IConnection<TypeSafeDB>, value: double | null | undefined, type: 'double', adapter?: TypeAdapter): DoubleValueSource<NoTableOrViewRequired<DB>, double | null | undefined>
+    const(this: IConnection<TypeUnsafeDB>, value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, number>
+    const(this: IConnection<TypeUnsafeDB>, value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, number | null | undefined>
+    const(this: IConnection<TypeSafeDB>, value: string, type: 'string', adapter?: TypeAdapter): TypeSafeStringValueSource<NoTableOrViewRequired<DB>, string>
+    const(this: IConnection<TypeSafeDB>, value: string | null | undefined, type: 'string', adapter?: TypeAdapter): TypeSafeStringValueSource<NoTableOrViewRequired<DB>, string | null | undefined>
+    const(this: IConnection<TypeUnsafeDB>, value: string, type: 'string', adapter?: TypeAdapter): StringValueSource<NoTableOrViewRequired<DB>, string>
+    const(this: IConnection<TypeUnsafeDB>, value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource<NoTableOrViewRequired<DB>, string | null | undefined>
+    const(this: IConnection<TypeSafeDB>, value: LocalDate, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<NoTableOrViewRequired<DB>, LocalDate>
+    const(this: IConnection<TypeSafeDB>, value: LocalDate | null | undefined, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<NoTableOrViewRequired<DB>, LocalDate | null | undefined>
+    const(this: IConnection<TypeUnsafeDB>, value: Date, type: 'localDate', adapter?: TypeAdapter): DateValueSource<NoTableOrViewRequired<DB>, Date>
+    const(this: IConnection<TypeUnsafeDB>, value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): DateValueSource<NoTableOrViewRequired<DB>, Date | null | undefined>
+    const(this: IConnection<TypeSafeDB>, value: LocalTime, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<NoTableOrViewRequired<DB>, LocalTime>
+    const(this: IConnection<TypeSafeDB>, value: LocalTime | null | undefined, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<NoTableOrViewRequired<DB>, LocalTime | null | undefined>
+    const(this: IConnection<TypeUnsafeDB>, value: Date, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<NoTableOrViewRequired<DB>, Date>
+    const(this: IConnection<TypeUnsafeDB>, value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<NoTableOrViewRequired<DB>, Date | null | undefined>
+    const(this: IConnection<TypeSafeDB>, value: LocalDateTime, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime>
+    const(this: IConnection<TypeSafeDB>, value: LocalDateTime | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime | null | undefined>
+    const(this: IConnection<TypeUnsafeDB>, value: Date, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<NoTableOrViewRequired<DB>, Date>
+    const(this: IConnection<TypeUnsafeDB>, value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<NoTableOrViewRequired<DB>, Date | null | undefined>
+    const<T>(value: T, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T>
+    const<T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T>
+    const<T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T>
+    const<_T>(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return new SqlOperationStatic1ValueSource('_const', value, adapter, adapter2)
         }
         return new SqlOperationStatic1ValueSource('_const', value, type, adapter)
     }
 
-    true<TABLE_OR_VIEW extends ITableOrView<DB> = NoTableOrViewRequired>(): BooleanValueSource<DB, TABLE_OR_VIEW, boolean> {
+    true<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> = NoTableOrViewRequiredView<DB>>(): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
         return new SqlOperationStatic0ValueSource('_true', 'boolean', undefined)
     }
-    false<TABLE_OR_VIEW extends ITableOrView<DB> = NoTableOrViewRequired>(): BooleanValueSource<DB, TABLE_OR_VIEW, boolean> {
+    false<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> = NoTableOrViewRequiredView<DB>>(): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
         return new SqlOperationStatic0ValueSource('_false', 'boolean', undefined)
     }
-    exists<TABLE_OR_VIEW extends ITableOrView<DB>>(select: ExecutableSelect<DB, any, TABLE_OR_VIEW>): BooleanValueSource<DB, TABLE_OR_VIEW, boolean> {
+    exists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: ExecutableSelect<DB, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
         return new SqlOperationStatic1ValueSource('_exists', select, 'boolean', undefined)
     }
-    notExists<TABLE_OR_VIEW extends ITableOrView<DB>>(select: ExecutableSelect<DB, any, TABLE_OR_VIEW>): BooleanValueSource<DB, TABLE_OR_VIEW, boolean> {
+    notExists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: ExecutableSelect<DB, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
         return new SqlOperationStatic1ValueSource('_notExists', select, 'boolean', undefined)
     }
 
-    protected executeProcedure(procedureName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[]): Promise<void> {
+    protected executeProcedure(procedureName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[]): Promise<void> {
         try {
             const queryParams: any[] = []
             const query = this.__sqlBuilder._buildCallProcedure(queryParams, procedureName, params)
@@ -214,45 +213,45 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
         }
     }
 
-    protected executeFunction(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'boolean', required: 'required', adapter?: TypeAdapter): Promise<boolean>
-    protected executeFunction(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'boolean', required: 'optional', adapter?: TypeAdapter): Promise<boolean | null>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'stringInt', required: 'required', adapter?: TypeAdapter): Promise<stringInt>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'stringInt', required: 'optional', adapter?: TypeAdapter): Promise<stringInt | null>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'stringInt', required: 'required', adapter?: TypeAdapter): Promise<number | string>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'stringInt', required: 'optional', adapter?: TypeAdapter): Promise<number | string | null>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'int', required: 'required', adapter?: TypeAdapter): Promise<int>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'int', required: 'optional', adapter?: TypeAdapter): Promise<int | null>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'int', required: 'required', adapter?: TypeAdapter): Promise<number>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'int', required: 'optional', adapter?: TypeAdapter): Promise<number | null>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'stringDouble', required: 'required', adapter?: TypeAdapter): Promise<stringDouble>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Promise<stringDouble | null>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'stringDouble', required: 'required', adapter?: TypeAdapter): Promise<number | string>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Promise<number | string | null>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'double', required: 'required', adapter?: TypeAdapter): Promise<double>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'double', required: 'optional', adapter?: TypeAdapter): Promise<double | null>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'double', required: 'required', adapter?: TypeAdapter): Promise<number>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'double', required: 'optional', adapter?: TypeAdapter): Promise<number | null>
-    protected executeFunction(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'string', required: 'required', adapter?: TypeAdapter): Promise<string>
-    protected executeFunction(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'string', required: 'optional', adapter?: TypeAdapter): Promise<string | null>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'localDate', required: 'required', adapter?: TypeAdapter): Promise<LocalDate>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'localDate', required: 'optional', adapter?: TypeAdapter): Promise<LocalDate | null>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'localDate', required: 'required', adapter?: TypeAdapter): Promise<Date>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'localDate', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'localTime', required: 'required', adapter?: TypeAdapter): Promise<LocalTime>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'localTime', required: 'optional', adapter?: TypeAdapter): Promise<LocalTime | null>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'localTime', required: 'required', adapter?: TypeAdapter): Promise<Date>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'localTime', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'localDateTime', required: 'required', adapter?: TypeAdapter): Promise<LocalDateTime>
-    protected executeFunction(this: IConnection<TypeSafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Promise<LocalDateTime | null>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'localDateTime', required: 'required', adapter?: TypeAdapter): Promise<Date>
-    protected executeFunction(this: IConnection<TypeUnsafeDB, NAME>, functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
-    protected executeFunction<T>(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T>(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T>(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T>(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T>(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T>(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<_T>(functionName: string, params: ValueSource<DB, NoTableOrViewRequired, any>[], returnType: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Promise<any> {
+    protected executeFunction(functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'boolean', required: 'required', adapter?: TypeAdapter): Promise<boolean>
+    protected executeFunction(functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'boolean', required: 'optional', adapter?: TypeAdapter): Promise<boolean | null>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'stringInt', required: 'required', adapter?: TypeAdapter): Promise<stringInt>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'stringInt', required: 'optional', adapter?: TypeAdapter): Promise<stringInt | null>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'stringInt', required: 'required', adapter?: TypeAdapter): Promise<number | string>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'stringInt', required: 'optional', adapter?: TypeAdapter): Promise<number | string | null>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'int', required: 'required', adapter?: TypeAdapter): Promise<int>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'int', required: 'optional', adapter?: TypeAdapter): Promise<int | null>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'int', required: 'required', adapter?: TypeAdapter): Promise<number>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'int', required: 'optional', adapter?: TypeAdapter): Promise<number | null>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'stringDouble', required: 'required', adapter?: TypeAdapter): Promise<stringDouble>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Promise<stringDouble | null>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'stringDouble', required: 'required', adapter?: TypeAdapter): Promise<number | string>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Promise<number | string | null>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'double', required: 'required', adapter?: TypeAdapter): Promise<double>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'double', required: 'optional', adapter?: TypeAdapter): Promise<double | null>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'double', required: 'required', adapter?: TypeAdapter): Promise<number>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'double', required: 'optional', adapter?: TypeAdapter): Promise<number | null>
+    protected executeFunction(functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'string', required: 'required', adapter?: TypeAdapter): Promise<string>
+    protected executeFunction(functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'string', required: 'optional', adapter?: TypeAdapter): Promise<string | null>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localDate', required: 'required', adapter?: TypeAdapter): Promise<LocalDate>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localDate', required: 'optional', adapter?: TypeAdapter): Promise<LocalDate | null>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localDate', required: 'required', adapter?: TypeAdapter): Promise<Date>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localDate', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localTime', required: 'required', adapter?: TypeAdapter): Promise<LocalTime>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localTime', required: 'optional', adapter?: TypeAdapter): Promise<LocalTime | null>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localTime', required: 'required', adapter?: TypeAdapter): Promise<Date>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localTime', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localDateTime', required: 'required', adapter?: TypeAdapter): Promise<LocalDateTime>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Promise<LocalDateTime | null>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localDateTime', required: 'required', adapter?: TypeAdapter): Promise<Date>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
+    protected executeFunction<T>(functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T>(functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T>(functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T>(functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T>(functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T>(functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<_T>(functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Promise<any> {
         try {
             if (typeof adapter === 'string') {
                 returnType = required
@@ -277,38 +276,38 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
 
     fragmentWithType(type: 'boolean', required: 'required', adapter?: TypeAdapter): BooleanFragmentExpression<DB, boolean>
     fragmentWithType(type: 'boolean', required: 'optional', adapter?: TypeAdapter): BooleanFragmentExpression<DB, boolean | null | undefined>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): StringIntFragmentExpression<DB, stringInt>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): StringIntFragmentExpression<DB, stringInt | null | undefined>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): StringNumberFragmentExpression<DB, number | string>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): StringNumberFragmentExpression<DB, number | string | null | undefined>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'int', required: 'required', adapter?: TypeAdapter): IntFragmentExpression<DB, int>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'int', required: 'optional', adapter?: TypeAdapter): IntFragmentExpression<DB, int | null | undefined>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'int', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<DB, number>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'int', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<DB, number | null | undefined>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): StringDoubleFragmentExpression<DB, stringDouble>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): StringDoubleFragmentExpression<DB, stringDouble | null | undefined>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): StringNumberFragmentExpression<DB, number | string>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): StringNumberFragmentExpression<DB, number | string | null | undefined>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'double', required: 'required', adapter?: TypeAdapter): DoubleFragmentExpression<DB, double>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'double', required: 'optional', adapter?: TypeAdapter): DoubleFragmentExpression<DB, double | null | undefined>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'double', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<DB, number>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'double', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<DB, number | null | undefined>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'string', required: 'required', adapter?: TypeAdapter): TypeSafeStringFragmentExpression<DB, string>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'string', required: 'optional', adapter?: TypeAdapter): TypeSafeStringFragmentExpression<DB, string | null | undefined>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'string', required: 'required', adapter?: TypeAdapter): StringFragmentExpression<DB, string>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'string', required: 'optional', adapter?: TypeAdapter): StringFragmentExpression<DB, string | null | undefined>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'localDate', required: 'required', adapter?: TypeAdapter): LocalDateFragmentExpression<DB, LocalDate>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'localDate', required: 'optional', adapter?: TypeAdapter): LocalDateFragmentExpression<DB, LocalDate | null | undefined>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'localDate', required: 'required', adapter?: TypeAdapter):  DateFragmentExpression<DB, Date>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'localDate', required: 'optional', adapter?: TypeAdapter):  DateFragmentExpression<DB, Date | null | undefined>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'localTime', required: 'required', adapter?: TypeAdapter): LocalTimeFragmentExpression<DB, LocalTime>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'localTime', required: 'optional', adapter?: TypeAdapter): LocalTimeFragmentExpression<DB, LocalTime | null | undefined>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'localTime', required: 'required', adapter?: TypeAdapter): TimeFragmentExpression<DB, Date>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'localTime', required: 'optional', adapter?: TypeAdapter): TimeFragmentExpression<DB, Date | null | undefined>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'localDateTime', required: 'required', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<DB, LocalDateTime>
-    fragmentWithType(this: IConnection<TypeSafeDB, NAME>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<DB, LocalDateTime | null | undefined>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'localDateTime', required: 'required', adapter?: TypeAdapter): DateTimeFragmentExpression<DB, Date>
-    fragmentWithType(this: IConnection<TypeUnsafeDB, NAME>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): DateTimeFragmentExpression<DB, Date | null | undefined>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): StringIntFragmentExpression<DB, stringInt>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): StringIntFragmentExpression<DB, stringInt | null | undefined>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): StringNumberFragmentExpression<DB, number | string>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): StringNumberFragmentExpression<DB, number | string | null | undefined>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'int', required: 'required', adapter?: TypeAdapter): IntFragmentExpression<DB, int>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'int', required: 'optional', adapter?: TypeAdapter): IntFragmentExpression<DB, int | null | undefined>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'int', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<DB, number>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'int', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<DB, number | null | undefined>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): StringDoubleFragmentExpression<DB, stringDouble>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): StringDoubleFragmentExpression<DB, stringDouble | null | undefined>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): StringNumberFragmentExpression<DB, number | string>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): StringNumberFragmentExpression<DB, number | string | null | undefined>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'double', required: 'required', adapter?: TypeAdapter): DoubleFragmentExpression<DB, double>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'double', required: 'optional', adapter?: TypeAdapter): DoubleFragmentExpression<DB, double | null | undefined>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'double', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<DB, number>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'double', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<DB, number | null | undefined>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'string', required: 'required', adapter?: TypeAdapter): TypeSafeStringFragmentExpression<DB, string>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'string', required: 'optional', adapter?: TypeAdapter): TypeSafeStringFragmentExpression<DB, string | null | undefined>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'string', required: 'required', adapter?: TypeAdapter): StringFragmentExpression<DB, string>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'string', required: 'optional', adapter?: TypeAdapter): StringFragmentExpression<DB, string | null | undefined>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter): LocalDateFragmentExpression<DB, LocalDate>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'optional', adapter?: TypeAdapter): LocalDateFragmentExpression<DB, LocalDate | null | undefined>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter):  DateFragmentExpression<DB, Date>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'localDate', required: 'optional', adapter?: TypeAdapter):  DateFragmentExpression<DB, Date | null | undefined>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'localTime', required: 'required', adapter?: TypeAdapter): LocalTimeFragmentExpression<DB, LocalTime>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'localTime', required: 'optional', adapter?: TypeAdapter): LocalTimeFragmentExpression<DB, LocalTime | null | undefined>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'localTime', required: 'required', adapter?: TypeAdapter): TimeFragmentExpression<DB, Date>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'localTime', required: 'optional', adapter?: TypeAdapter): TimeFragmentExpression<DB, Date | null | undefined>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'localDateTime', required: 'required', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<DB, LocalDateTime>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<DB, LocalDateTime | null | undefined>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'localDateTime', required: 'required', adapter?: TypeAdapter): DateTimeFragmentExpression<DB, Date>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): DateTimeFragmentExpression<DB, Date | null | undefined>
     fragmentWithType<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T>
     fragmentWithType<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T | null | undefined>
     fragmentWithType<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T>
@@ -326,36 +325,36 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
 
     protected arg(type: 'boolean', required: 'required', adapter?: TypeAdapter): Argument<'boolean', 'required', boolean>
     protected arg(type: 'boolean', required: 'optional', adapter?: TypeAdapter): Argument<'boolean', 'optional', boolean>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): Argument<'stringInt', 'required', stringInt>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): Argument<'stringInt', 'optional', stringInt>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): Argument<'stringInt', 'required', number | string>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): Argument<'stringInt', 'optional', number | string>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'int', required: 'required', adapter?: TypeAdapter): Argument<'int', 'required', int>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', int>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'int', required: 'required', adapter?: TypeAdapter): Argument<'int', 'required', number>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', number>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): Argument<'stringDouble', 'required', stringDouble>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Argument<'stringDouble', 'optional', stringDouble>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): Argument<'stringDouble', 'required', number | string>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Argument<'stringDouble', 'optional', number | string>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'double', required: 'required', adapter?: TypeAdapter): Argument<'double', 'required', double>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', double>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'double', required: 'required', adapter?: TypeAdapter): Argument<'double', 'required', number>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', number>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): Argument<'stringInt', 'required', stringInt>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): Argument<'stringInt', 'optional', stringInt>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'stringInt', required: 'required', adapter?: TypeAdapter): Argument<'stringInt', 'required', number | string>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'stringInt', required: 'optional', adapter?: TypeAdapter): Argument<'stringInt', 'optional', number | string>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'int', required: 'required', adapter?: TypeAdapter): Argument<'int', 'required', int>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', int>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'int', required: 'required', adapter?: TypeAdapter): Argument<'int', 'required', number>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', number>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): Argument<'stringDouble', 'required', stringDouble>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Argument<'stringDouble', 'optional', stringDouble>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): Argument<'stringDouble', 'required', number | string>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Argument<'stringDouble', 'optional', number | string>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'double', required: 'required', adapter?: TypeAdapter): Argument<'double', 'required', double>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', double>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'double', required: 'required', adapter?: TypeAdapter): Argument<'double', 'required', number>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', number>
     protected arg(type: 'string', required: 'required', adapter?: TypeAdapter): Argument<'string', 'required', string>
     protected arg(type: 'string', required: 'optional', adapter?: TypeAdapter): Argument<'string', 'optional', string>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', LocalDate>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', LocalDate>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', Date>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', Date>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'localTime', required: 'required', adapter?: TypeAdapter): Argument<'localTime', 'required', LocalTime>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'localTime', required: 'optional', adapter?: TypeAdapter): Argument<'localTime', 'optional', LocalTime>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'localTime', required: 'required', adapter?: TypeAdapter): Argument<'localTime', 'required', Date>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'localTime', required: 'optional', adapter?: TypeAdapter): Argument<'localTime', 'optional', Date>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'localDateTime', required: 'required', adapter?: TypeAdapter): Argument<'localDateTime', 'required', LocalDateTime>
-    protected arg(this: IConnection<TypeSafeDB, NAME>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Argument<'localDateTime', 'optional', LocalDateTime>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'localDateTime', required: 'required', adapter?: TypeAdapter): Argument<'localDateTime', 'required', Date>
-    protected arg(this: IConnection<TypeUnsafeDB, NAME>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Argument<'localDateTime', 'optional', Date>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', LocalDate>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', LocalDate>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', Date>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', Date>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'localTime', required: 'required', adapter?: TypeAdapter): Argument<'localTime', 'required', LocalTime>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'localTime', required: 'optional', adapter?: TypeAdapter): Argument<'localTime', 'optional', LocalTime>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'localTime', required: 'required', adapter?: TypeAdapter): Argument<'localTime', 'required', Date>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'localTime', required: 'optional', adapter?: TypeAdapter): Argument<'localTime', 'optional', Date>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'localDateTime', required: 'required', adapter?: TypeAdapter): Argument<'localDateTime', 'required', LocalDateTime>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Argument<'localDateTime', 'optional', LocalDateTime>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'localDateTime', required: 'required', adapter?: TypeAdapter): Argument<'localDateTime', 'required', Date>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Argument<'localDateTime', 'optional', Date>
     protected arg<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'enum', 'required', T>
     protected arg<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'enum', 'optional', T>
     protected arg<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'custom', 'required', T>
@@ -371,97 +370,97 @@ export abstract class AbstractConnection<DB extends AnyDB, NAME, SQL_BUILDER ext
     }
 
     protected buildFragmentWithArgs(): FragmentBuilder0<DB>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB, NAME>, a1: A1): FragmentBuilder1TypeSafe<DB, A1>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB, NAME>, a1: A1): FragmentBuilder1TypeUnsafe<DB, A1>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB, NAME>, a1: A1, a2: A2): FragmentBuilder2TypeSafe<DB, A1, A2>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB, NAME>, a1: A1, a2: A2): FragmentBuilder2TypeUnsafe<DB, A1, A2>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB, NAME>, a1: A1, a2: A2, a3: A3): FragmentBuilder3TypeSafe<DB, A1, A2, A3>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB, NAME>, a1: A1, a2: A2, a3: A3): FragmentBuilder3TypeUnsafe<DB, A1, A2, A3>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>, A4 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB, NAME>, a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4TypeSafe<DB, A1, A2, A3, A4>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>, A4 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB, NAME>, a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4TypeUnsafe<DB, A1, A2, A3, A4>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>, A4 extends Argument<any, any, any>, A5 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB, NAME>, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5TypeSafe<DB, A1, A2, A3, A4, A5>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>, A4 extends Argument<any, any, any>, A5 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB, NAME>, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5TypeUnsafe<DB, A1, A2, A3, A4, A5>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB>, a1: A1): FragmentBuilder1TypeSafe<DB, A1>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB>, a1: A1): FragmentBuilder1TypeUnsafe<DB, A1>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB>, a1: A1, a2: A2): FragmentBuilder2TypeSafe<DB, A1, A2>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB>, a1: A1, a2: A2): FragmentBuilder2TypeUnsafe<DB, A1, A2>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB>, a1: A1, a2: A2, a3: A3): FragmentBuilder3TypeSafe<DB, A1, A2, A3>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB>, a1: A1, a2: A2, a3: A3): FragmentBuilder3TypeUnsafe<DB, A1, A2, A3>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>, A4 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB>, a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4TypeSafe<DB, A1, A2, A3, A4>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>, A4 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB>, a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4TypeUnsafe<DB, A1, A2, A3, A4>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>, A4 extends Argument<any, any, any>, A5 extends Argument<any, any, any>>(this: IConnection<TypeSafeDB>, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5TypeSafe<DB, A1, A2, A3, A4, A5>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any>, A2 extends Argument<any, any, any>, A3 extends Argument<any, any, any>, A4 extends Argument<any, any, any>, A5 extends Argument<any, any, any>>(this: IConnection<TypeUnsafeDB>, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5TypeUnsafe<DB, A1, A2, A3, A4, A5>
     protected buildFragmentWithArgs(...args: Argument<any, any, any>[]): any {
         return new FragmentFunctionBuilder(args)
     }
 
     // Agregate functions
-    countAll(this: IConnection<TypeSafeDB, NAME>): IntValueSource<DB, NoTableOrViewRequired, int>
-    countAll(): NumberValueSource<DB, NoTableOrViewRequired, number>
+    countAll(this: IConnection<TypeSafeDB>): IntValueSource<NoTableOrViewRequired<DB>, int>
+    countAll(): NumberValueSource<NoTableOrViewRequired<DB>, number>
     countAll(): AggregateFunctions0ValueSource {
         return new AggregateFunctions0ValueSource('_countAll', 'int', undefined)
     }
-    count<TABLE_OR_VIEW extends ITableOrView<DB>>(this: IConnection<TypeSafeDB, NAME>, value: ValueSource<DB, TABLE_OR_VIEW, any>): IntValueSource<DB, TABLE_OR_VIEW, int>
-    count<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>): NumberValueSource<DB, TABLE_OR_VIEW, number>
-    count<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>): ValueSource<DB, TABLE_OR_VIEW, any> {
+    //count<TABLE_OR_VIEW extends TableOrViewRef<DB>>(this: IConnection<TypeSafeDB>, value: ValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, int>
+    count<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: any): NumberValueSource<TABLE_OR_VIEW, number>
+    count<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         return new AggregateFunctions1ValueSource('_count', value, 'int', undefined)
     }
-    countDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(this: IConnection<TypeSafeDB, NAME>, value: ValueSource<DB, TABLE_OR_VIEW, any>): IntValueSource<DB, TABLE_OR_VIEW, int>
-    countDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>): NumberValueSource<DB, TABLE_OR_VIEW, number>
-    countDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>): ValueSource<DB, TABLE_OR_VIEW, any> {
+    countDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(this: IConnection<TypeSafeDB>, value: ValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, int>
+    countDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, number>
+    countDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         return new AggregateFunctions1ValueSource('_countDistinct', value, 'int', undefined)
     }
-    max<TABLE_OR_VIEW extends ITableOrView<DB>, TYPE extends ComparableValueSource<DB, TABLE_OR_VIEW, any>>(value: TYPE): RemapValueSourceTypeAsOptional<DB, TABLE_OR_VIEW, TYPE> {
+    max<TABLE_OR_VIEW extends TableOrViewRef<DB>, TYPE extends ComparableValueSource<TABLE_OR_VIEW, any>>(value: TYPE): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW, TYPE> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource('_max', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)) as any
     }
-    min<TABLE_OR_VIEW extends ITableOrView<DB>, TYPE extends ComparableValueSource<DB, TABLE_OR_VIEW, any>>(value: TYPE): RemapValueSourceTypeAsOptional<DB, TABLE_OR_VIEW, TYPE> {
+    min<TABLE_OR_VIEW extends TableOrViewRef<DB>, TYPE extends ComparableValueSource<TABLE_OR_VIEW, any>>(value: TYPE): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW, TYPE> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource('_min', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)) as any
     }
-    sum<TABLE_OR_VIEW extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>
-    sum<TABLE_OR_VIEW extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>
-    sum<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<DB, TABLE_OR_VIEW, stringInt | null | undefined>
-    sum<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW, stringDouble | null | undefined>
-    sum<TABLE_OR_VIEW extends ITableOrView<DB>>(value: NumberValueSource<DB, TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<DB, TABLE_OR_VIEW, number | null | undefined>
-    sum<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>
-    sum<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>): ValueSource<DB, TABLE_OR_VIEW, any> {
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IntValueSource<TABLE_OR_VIEW, int | null | undefined>): IntValueSource<TABLE_OR_VIEW, int | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: NumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_sum', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
-    sumDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>
-    sumDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>
-    sumDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<DB, TABLE_OR_VIEW, stringInt | null | undefined>
-    sumDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW, stringDouble | null | undefined>
-    sumDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: NumberValueSource<DB, TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<DB, TABLE_OR_VIEW, number | null | undefined>
-    sumDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>
-    sumDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>): ValueSource<DB, TABLE_OR_VIEW, any> {
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IntValueSource<TABLE_OR_VIEW, int | null | undefined>): IntValueSource<TABLE_OR_VIEW, int | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: NumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_sumDistinct', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
-    average<TABLE_OR_VIEW extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>
-    average<TABLE_OR_VIEW extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>
-    average<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<DB, TABLE_OR_VIEW, stringInt | null | undefined>
-    average<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW, stringDouble | null | undefined>
-    average<TABLE_OR_VIEW extends ITableOrView<DB>>(value: NumberValueSource<DB, TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<DB, TABLE_OR_VIEW, number | null | undefined>
-    average<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>
-    average<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>): ValueSource<DB, TABLE_OR_VIEW, any> {
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IntValueSource<TABLE_OR_VIEW, int | null | undefined>): IntValueSource<TABLE_OR_VIEW, int | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: NumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_average', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
-    averageDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>): IntValueSource<DB, TABLE_OR_VIEW, int | null | undefined>
-    averageDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<DB, TABLE_OR_VIEW, double | null | undefined>
-    averageDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringIntValueSource<DB, TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<DB, TABLE_OR_VIEW, stringInt | null | undefined>
-    averageDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringDoubleValueSource<DB, TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<DB, TABLE_OR_VIEW, stringDouble | null | undefined>
-    averageDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: NumberValueSource<DB, TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<DB, TABLE_OR_VIEW, number | null | undefined>
-    averageDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<DB, TABLE_OR_VIEW, number | string | null | undefined>
-    averageDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>): ValueSource<DB, TABLE_OR_VIEW, any> {
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IntValueSource<TABLE_OR_VIEW, int | null | undefined>): IntValueSource<TABLE_OR_VIEW, int | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: NumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_averageDistinct', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
-    stringConcat<TABLE_OR_VIEW extends ITableOrView<DB>>(value: TypeSafeStringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>): TypeSafeStringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
-    stringConcat<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>): StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
-    stringConcat<TABLE_OR_VIEW extends ITableOrView<DB>>(value: TypeSafeStringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>, separator: string): TypeSafeStringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
-    stringConcat<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>, separator: string): StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
-    stringConcat<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>, separator?: string): ValueSource<DB, TABLE_OR_VIEW, any> {
+    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringValueSource<TABLE_OR_VIEW, string | null | undefined>): StringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>, separator: string): TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringValueSource<TABLE_OR_VIEW, string | null | undefined>, separator: string): StringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>, separator?: string): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcat', separator, value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
-    stringConcatDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: TypeSafeStringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>): TypeSafeStringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
-    stringConcatDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>): StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
-    stringConcatDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: TypeSafeStringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>, separator: string): TypeSafeStringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
-    stringConcatDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>, separator: string): StringValueSource<DB, TABLE_OR_VIEW, string | null | undefined>
-    stringConcatDistinct<TABLE_OR_VIEW extends ITableOrView<DB>>(value: ValueSource<DB, TABLE_OR_VIEW, any>, separator?: string): ValueSource<DB, TABLE_OR_VIEW, any> {
+    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringValueSource<TABLE_OR_VIEW, string | null | undefined>): StringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>, separator: string): TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringValueSource<TABLE_OR_VIEW, string | null | undefined>, separator: string): StringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>, separator?: string): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }

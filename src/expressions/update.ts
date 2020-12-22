@@ -2,66 +2,70 @@ import type { BooleanValueSource, ColumnsOf, InputTypeOfColumn } from "./values"
 import type { ITableOrView, NoTableOrViewRequired } from "../utils/ITableOrView"
 import type { AnyDB, TypeSafeDB } from "../databases"
 import type { int } from "ts-extended-types"
-import type { database } from "../utils/symbols"
+import type { database, tableOrView, tableOrViewRef } from "../utils/symbols"
 
-export interface UpdateExpressionBase<DB extends AnyDB> {
+export interface UpdateExpressionOf<DB extends AnyDB> {
     [database]: DB
 }
 
-export interface ExecutableUpdate<DB extends AnyDB> extends UpdateExpressionBase<DB> {
-    executeUpdate(this: UpdateExpressionBase<TypeSafeDB>, min?: number, max?: number): Promise<int>
+export interface UpdateExpressionBase<TABLE extends ITableOrView<any>> extends UpdateExpressionOf<TABLE[typeof database]> {
+    [tableOrView]: TABLE
+}
+
+export interface ExecutableUpdate<TABLE extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
+    executeUpdate(this: UpdateExpressionOf<TypeSafeDB>, min?: number, max?: number): Promise<int>
     executeUpdate(min?: number, max?: number): Promise<number>
     query(): string
     params(): any[]
 }
 
-export interface ExecutableUpdateExpression<DB extends AnyDB, TABLE extends ITableOrView<DB>> extends ExecutableUpdate<DB> {
-    set(columns: UpdateSets<DB, TABLE>): ExecutableUpdateExpression<DB, TABLE>
-    setIfValue(columns: OptionalUpdateSets<DB, TABLE>): ExecutableUpdateExpression<DB, TABLE>
-    setIfSet(columns: UpdateSets<DB, TABLE>): ExecutableUpdateExpression<DB, TABLE>
-    setIfSetIfValue(columns: OptionalUpdateSets<DB, TABLE>): ExecutableUpdateExpression<DB, TABLE>
-    setIfNotSet(columns: UpdateSets<DB, TABLE>): ExecutableUpdateExpression<DB, TABLE>
-    setIfNotSetIfValue(columns: OptionalUpdateSets<DB, TABLE>): ExecutableUpdateExpression<DB, TABLE>
-    ignoreIfSet(...columns: ColumnsOf<DB, TABLE>[]): ExecutableUpdateExpression<DB, TABLE>
+export interface ExecutableUpdateExpression<TABLE extends ITableOrView<any>> extends ExecutableUpdate<TABLE> {
+    set(columns: UpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
+    setIfValue(columns: OptionalUpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
+    setIfSet(columns: UpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
+    setIfSetIfValue(columns: OptionalUpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
+    setIfNotSet(columns: UpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
+    setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
+    ignoreIfSet(...columns: ColumnsOf<TABLE>[]): ExecutableUpdateExpression<TABLE>
 
-    dynamicWhere() : DynamicExecutableUpdateExpression<DB, TABLE>
-    where(condition: BooleanValueSource<DB, TABLE | NoTableOrViewRequired, boolean | null | undefined>): DynamicExecutableUpdateExpression<DB, TABLE>
+    dynamicWhere() : DynamicExecutableUpdateExpression<TABLE>
+    where(condition: BooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
 }
 
-export interface NotExecutableUpdateExpression<DB extends AnyDB, TABLE extends ITableOrView<DB>> extends UpdateExpressionBase<DB> {
-    set(columns: UpdateSets<DB, TABLE>): NotExecutableUpdateExpression<DB, TABLE>
-    setIfValue(columns: OptionalUpdateSets<DB, TABLE>): NotExecutableUpdateExpression<DB, TABLE>
-    setIfSet(columns: UpdateSets<DB, TABLE>): NotExecutableUpdateExpression<DB, TABLE>
-    setIfSetIfValue(columns: OptionalUpdateSets<DB, TABLE>): NotExecutableUpdateExpression<DB, TABLE>
-    setIfNotSet(columns: UpdateSets<DB, TABLE>): NotExecutableUpdateExpression<DB, TABLE>
-    setIfNotSetIfValue(columns: OptionalUpdateSets<DB, TABLE>): NotExecutableUpdateExpression<DB, TABLE>
-    ignoreIfSet(...columns: ColumnsOf<DB, TABLE>[]): NotExecutableUpdateExpression<DB, TABLE>
+export interface NotExecutableUpdateExpression<TABLE extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
+    set(columns: UpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
+    setIfValue(columns: OptionalUpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
+    setIfSet(columns: UpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
+    setIfSetIfValue(columns: OptionalUpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
+    setIfNotSet(columns: UpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
+    setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
+    ignoreIfSet(...columns: ColumnsOf<TABLE>[]): NotExecutableUpdateExpression<TABLE>
 
-    dynamicWhere() : DynamicExecutableUpdateExpression<DB, TABLE>
-    where(condition: BooleanValueSource<DB, TABLE | NoTableOrViewRequired, boolean | null | undefined>): DynamicExecutableUpdateExpression<DB, TABLE>
+    dynamicWhere() : DynamicExecutableUpdateExpression<TABLE>
+    where(condition: BooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
 }
 
-export interface DynamicExecutableUpdateExpression<DB extends AnyDB, TABLE extends ITableOrView<DB>> extends ExecutableUpdate<DB> {
-    and(condition: BooleanValueSource<DB, TABLE | NoTableOrViewRequired, boolean | null | undefined>): DynamicExecutableUpdateExpression<DB, TABLE>
-    or(condition: BooleanValueSource<DB, TABLE | NoTableOrViewRequired, boolean | null | undefined>): DynamicExecutableUpdateExpression<DB, TABLE>
+export interface DynamicExecutableUpdateExpression<TABLE extends ITableOrView<any>> extends ExecutableUpdate<TABLE> {
+    and(condition: BooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
+    or(condition: BooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
 }
 
-export interface UpdateExpression<DB extends AnyDB, TABLE extends ITableOrView<DB>> extends UpdateExpressionBase<DB> {
-    dynamicSet(): NotExecutableUpdateExpression<DB, TABLE>
-    set(columns: UpdateSets<DB, TABLE>): NotExecutableUpdateExpression<DB, TABLE>
-    setIfValue(columns: OptionalUpdateSets<DB, TABLE>): NotExecutableUpdateExpression<DB, TABLE>
+export interface UpdateExpression<TABLE extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
+    dynamicSet(): NotExecutableUpdateExpression<TABLE>
+    set(columns: UpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
+    setIfValue(columns: OptionalUpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
 }
 
-export interface UpdateExpressionAllowingNoWhere<DB extends AnyDB, TABLE extends ITableOrView<DB>> extends UpdateExpressionBase<DB> {
-    dynamicSet(): ExecutableUpdateExpression<DB, TABLE>
-    set(columns: UpdateSets<DB, TABLE>): ExecutableUpdateExpression<DB, TABLE>
-    setIfValue(columns: OptionalUpdateSets<DB, TABLE>): ExecutableUpdateExpression<DB, TABLE>
+export interface UpdateExpressionAllowingNoWhere<TABLE extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
+    dynamicSet(): ExecutableUpdateExpression<TABLE>
+    set(columns: UpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
+    setIfValue(columns: OptionalUpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
 }
 
-export type UpdateSets<DB extends AnyDB, TABLE extends ITableOrView<DB>> = {
-    [P in ColumnsOf<DB, TABLE>]?: InputTypeOfColumn<DB, TABLE, P>
+export type UpdateSets<TABLE extends ITableOrView<any>> = {
+    [P in ColumnsOf<TABLE>]?: InputTypeOfColumn<TABLE, P>
 }
 
-export type OptionalUpdateSets<DB extends AnyDB, TABLE extends ITableOrView<DB>> = {
-    [P in ColumnsOf<DB, TABLE>]?: InputTypeOfColumn<DB, TABLE, P> | null | undefined
+export type OptionalUpdateSets<TABLE extends ITableOrView<any>> = {
+    [P in ColumnsOf<TABLE>]?: InputTypeOfColumn<TABLE, P> | null | undefined
 }

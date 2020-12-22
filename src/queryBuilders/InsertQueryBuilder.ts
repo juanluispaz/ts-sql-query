@@ -1,15 +1,18 @@
 import type { SqlBuilder, InsertData, SelectData } from "../sqlBuilders/SqlBuilder"
 import type { ITable } from "../utils/ITableOrView"
-import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, ExecutableMultipleInsert, ExecutableInsertFromSelect } from "../expressions/insert"
+import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, ExecutableMultipleInsert, ExecutableInsertFromSelect/*, MissingKeysInsertExpression*/ } from "../expressions/insert"
 import type { Column } from "../utils/Column"
 import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { ExecutableSelect } from "../expressions/select"
-import { database } from "../utils/symbols"
+import { database, tableOrView } from "../utils/symbols"
 
-export class InsertQueryBuilder implements InsertExpression<any, any>, ExecutableInsertReturning<any, any>, ExecutableInsert<any, any>, ExecutableInsertExpression<any, any>, ExecutableMultipleInsert<any, any>, ExecutableInsertFromSelect<any>, InsertData {
+// one implement ommited intentionally to don't confuse TypeScript
+
+export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInsertReturning<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, ExecutableMultipleInsert<any>, ExecutableInsertFromSelect<any>, /*MissingKeysInsertExpression<any, any>,*/ InsertData {
     [database]: any
+    [tableOrView]: any
     __sqlBuilder: SqlBuilder
 
     __table: ITable<any>

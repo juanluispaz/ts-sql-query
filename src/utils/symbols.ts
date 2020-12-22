@@ -6,11 +6,15 @@
 export const type: unique symbol = Symbol('type')
 export const database: unique symbol = Symbol('database')
 export const tableOrView: unique symbol = Symbol('tableOrView')
+export const tableOrViewRef: unique symbol = Symbol('tableOrViewRef')
+export const tableOrViewRefType: unique symbol = Symbol('tableOrViewRef')
 
 // Expressions
 export const requiredTableOrView: unique symbol = Symbol('requiredTableOrView')
 
-// Tables
+// Tables or Views
+export const tableName: unique symbol = Symbol('tableName')
+export const viewName: unique symbol = Symbol('viewName')
 export const tableOrViewAlias: unique symbol = Symbol('tableOrViewAlias')
 export const noTableOrViewRequired: unique symbol = Symbol('noTableOrViewRequiredType')
 export const outerJoinDatabase: unique symbol = Symbol('outerJoinDatabase')
@@ -27,7 +31,7 @@ export const primaryKeyValue: unique symbol = Symbol('primaryKeyValue')
 // Connection
 export const databaseName: unique symbol = Symbol('databaseName')
 
-// Database type symbols
+// Database type
 export const anyDBType: unique symbol = Symbol('anyDBType')
 export const typeSafeDBType: unique symbol = Symbol('typeSafeDBType')
 export const typeUnsafeDBType: unique symbol = Symbol('typeUnsafeDBType')
@@ -41,3 +45,24 @@ export const sqliteType: unique symbol = Symbol('sqliteType')
 export const sqlServerType: unique symbol = Symbol('sqlServerType')
 
 export const nextMethodNotSupportedByThisConnection: unique symbol = Symbol('nextMethodNotSupportedByThisConnection') 
+
+// Value source type
+export const valueSourceType: unique symbol = Symbol('valueSourceType')
+export const nullableValueSourceType: unique symbol = Symbol('nullableValueSourceType')
+export const equalableValueSourceType: unique symbol = Symbol('equalableValueSourceType')
+export const comparableValueSourceType: unique symbol = Symbol('comparableValueSourceType')
+export const booleanValueSourceType: unique symbol = Symbol('valueSourceType')
+export const numberValueSourceType: unique symbol = Symbol('numberValueSourceType')
+export const stringNumberValueSourceType: unique symbol = Symbol('stringNumberValueSourceType')
+export const intValueSourceType: unique symbol = Symbol('intValueSourceType')
+export const doubleValueSourceType: unique symbol = Symbol('doubleValueSourceType')
+export const stringIntValueSourceType: unique symbol = Symbol('stringIntValueSourceType')
+export const stringDoubleValueSourceType: unique symbol = Symbol('stringDoubleValueSourceType')
+export const stringValueSourceType: unique symbol = Symbol('stringValueSourceType')
+export const typeSafeStringValueSourceType: unique symbol = Symbol('typeSafeStringValueSourceType')
+export const dateValueSourceType: unique symbol = Symbol('dateValueSourceType')
+export const timeValueSourceType: unique symbol = Symbol('timeValueSourceType')
+export const dateTimeValueSourceType: unique symbol = Symbol('dateTimeValueSourceType')
+export const localDateValueSourceType: unique symbol = Symbol('localDateValueSourceType')
+export const localTimeValueSourceType: unique symbol = Symbol('localTimeValueSourceType')
+export const localDateTimeValueSourceType: unique symbol = Symbol('localDateTimeValueSourceType')

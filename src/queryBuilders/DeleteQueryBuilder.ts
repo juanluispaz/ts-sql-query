@@ -5,14 +5,15 @@ import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpress
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
-import { database } from "../utils/symbols"
+import { database, tableOrView } from "../utils/symbols"
 
-export class DeleteQueryBuilder implements DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any, any>, DeleteData {
+export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressionAllowingNoWhere<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any>, DeleteData {
     [database]: any
+    [tableOrView]: any
     __sqlBuilder: SqlBuilder
 
     __table: ITable<any>
-    __where?: BooleanValueSource<any, any, any>
+    __where?: BooleanValueSource<any, any>
     __allowNoWhere: boolean
 
     // cache
@@ -70,7 +71,7 @@ export class DeleteQueryBuilder implements DeleteExpression<any, any>, DeleteExp
         this.__query = ''
         return this
     }
-    where(condition: BooleanValueSource<any, any, any>): this {
+    where(condition: BooleanValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
             throw new Error('Illegal state')
@@ -78,7 +79,7 @@ export class DeleteQueryBuilder implements DeleteExpression<any, any>, DeleteExp
         this.__where = condition
         return this
     }
-    and(condition: BooleanValueSource<any, any, any>): this {
+    and(condition: BooleanValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
             this.__where = this.__where.and(condition)
@@ -87,7 +88,7 @@ export class DeleteQueryBuilder implements DeleteExpression<any, any>, DeleteExp
         }
         return this
     }
-    or(condition: BooleanValueSource<any, any, any>): this {
+    or(condition: BooleanValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
             this.__where = this.__where.or(condition)

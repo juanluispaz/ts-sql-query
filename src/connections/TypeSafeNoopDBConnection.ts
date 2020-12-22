@@ -1,12 +1,15 @@
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { NoopDB, TypeSafeDB } from "../databases"
+import type { databaseName } from "../utils/symbols"
 import { AbstractNoopDBConnection } from "./AbstractNoopDBConnection"
 import { NoopDBSqlBuilder } from "../sqlBuilders/NoopDBSqlBuilder"
 import { NoopQueryRunner } from "../queryRunners/NoopQueryRunner"
-import { typeSafeDBType } from "../utils/symbols"
 
-export abstract class TypeSafeNoopDBConnection<DB extends NoopDB & TypeSafeDB, NAME> extends AbstractNoopDBConnection<DB, NAME, NoopDBSqlBuilder> implements NoopDB, TypeSafeDB {
-    [typeSafeDBType] : 'TypeSafe'
+interface DB<NAME extends string> extends TypeSafeDB, NoopDB {
+    [databaseName]: NAME
+}
+
+export abstract class TypeSafeNoopDBConnection<NAME extends string> extends AbstractNoopDBConnection<DB<NAME>> {
     constructor(queryRunner: QueryRunner = new NoopQueryRunner(), sqlBuilder = new NoopDBSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }

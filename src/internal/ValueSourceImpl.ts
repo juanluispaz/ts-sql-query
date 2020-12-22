@@ -1,9 +1,29 @@
 import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation0, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2 } from "../sqlBuilders/SqlBuilder"
 import type { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, ValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate } from "../expressions/values"
 import type { TypeAdapter } from "../TypeAdapter"
-import { database, tableOrView, valueType as valueType_ } from "../utils/symbols"
+import { database, tableOrView, valueSourceType, valueType as valueType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType } from "../utils/symbols"
 
-export abstract class ValueSourceImpl implements ValueSource<any, any, any>, NullableValueSource<any, any, any>, BooleanValueSource<any, any, any>, IntValueSource<any, any, any>, StringIntValueSource<any, any, any>, DoubleValueSource<any, any, any>, StringDoubleValueSource<any, any, any>, NumberValueSource<any, any, any>, StringNumberValueSource<any, any, any>, StringValueSource<any, any, any>, TypeSafeStringValueSource<any, any, any>, LocalDateValueSource<any, any, any>, LocalTimeValueSource<any, any, any>, LocalDateTimeValueSource<any, any, any>, DateValueSource<any, any, any>, TimeValueSource<any, any, any>, DateTimeValueSource<any, any, any>, ToSql, __ValueSourcePrivate {
+export abstract class ValueSourceImpl implements ValueSource<any, any>, NullableValueSource<any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, ToSql, __ValueSourcePrivate {
+    [valueSourceType]: 'ValueSource'
+    [nullableValueSourceType]: 'NullableValueSource'
+    [equalableValueSourceType]: 'EqualableValueSource'
+    [comparableValueSourceType]: 'ComparableValueSource'
+    [booleanValueSourceType]: 'BooleanValueSource'
+    [numberValueSourceType]: 'NumberValueSource'
+    [stringNumberValueSourceType]: 'StringNumberValueSource'
+    [intValueSourceType]: 'IntValueSource'
+    [doubleValueSourceType]: 'DoubleValueSource'
+    [stringIntValueSourceType]: 'StringIntValueSource'
+    [stringDoubleValueSourceType]: 'StringDoubleValueSource'
+    [stringValueSourceType]: 'StringValueSource'
+    [typeSafeStringValueSourceType]: 'TypeSafeStringValueSource'
+    [dateValueSourceType]: 'DateValueSource'
+    [timeValueSourceType]: 'TimeValueSource'
+    [dateTimeValueSourceType]: 'DateTimeValueSource'
+    [localDateValueSourceType]: 'LocalDateValueSource'
+    [localTimeValueSourceType]: 'LocalTimeValueSource'
+    [localDateTimeValueSourceType]: 'LocalDateTimeValueSource'
+
     [database]: any
     [tableOrView]: any
     [valueType_]: any
@@ -667,9 +687,9 @@ export class SequenceValueSource extends ValueSourceImpl {
 export class FragmentValueSource extends ValueSourceImpl {
     __operation: keyof SqlFragmentOperation = '_fragment' // Needed to detect if parenthesis is required
     __sql: TemplateStringsArray
-    __sqlParams: ValueSource<any, any, any>[]
+    __sqlParams: ValueSource<any, any>[]
 
-    constructor(sql: TemplateStringsArray, sqlParams: ValueSource<any, any, any>[], valueType: string, typeAdapter: TypeAdapter | undefined) {
+    constructor(sql: TemplateStringsArray, sqlParams: ValueSource<any, any>[], valueType: string, typeAdapter: TypeAdapter | undefined) {
         super(valueType, typeAdapter)
         this.__sql = sql
         this.__sqlParams = sqlParams

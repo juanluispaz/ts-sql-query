@@ -10,32 +10,32 @@ import type { NoTableOrViewRequired } from "../utils/ITableOrView"
 import { AbstractConnection } from "./AbstractConnection"
 import { SequenceQueryBuilder } from "../queryBuilders/SequenceQueryBuilder"
 
-export abstract class AbstractAdvancedConnection<DB extends AnyDB, NAME, SQL_BUILDER extends SqlBuilder> extends AbstractConnection<DB, NAME, SQL_BUILDER> {
+export abstract class AbstractAdvancedConnection<DB extends AnyDB> extends AbstractConnection<DB> {
 
-    constructor(queryRunner: QueryRunner, sqlBuilder: SQL_BUILDER) {
+    constructor(queryRunner: QueryRunner, sqlBuilder: SqlBuilder) {
         super(queryRunner, sqlBuilder)
     }
 
-    protected sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource<DB, NoTableOrViewRequired, boolean>>
-    protected sequence(this: IConnection<TypeSafeDB, NAME>, name: string, type: 'stringInt', adapter?: TypeAdapter): Sequence<StringIntValueSource<DB, NoTableOrViewRequired, stringInt>>
-    protected sequence(name: string, type: 'stringInt', adapter?: TypeAdapter): Sequence<StringNumberValueSource<DB, NoTableOrViewRequired, number | string>>
-    protected sequence(this: IConnection<TypeSafeDB, NAME>, name: string, type: 'int', adapter?: TypeAdapter): Sequence<IntValueSource<DB, NoTableOrViewRequired, int>>
-    protected sequence(name: string, type: 'int', adapter?: TypeAdapter): Sequence<NumberValueSource<DB, NoTableOrViewRequired, number>>
-    protected sequence(this: IConnection<TypeSafeDB, NAME>, name: string, type: 'stringDouble', adapter?: TypeAdapter): Sequence<StringDoubleValueSource<DB, NoTableOrViewRequired, stringDouble>>
-    protected sequence(name: string, type: 'stringDouble', adapter?: TypeAdapter): Sequence<StringNumberValueSource<DB, NoTableOrViewRequired, number | string>>
-    protected sequence(this: IConnection<TypeSafeDB, NAME>, name: string, type: 'double', adapter?: TypeAdapter): Sequence<DoubleValueSource<DB, NoTableOrViewRequired, double>>
-    protected sequence(name: string, type: 'double', adapter?: TypeAdapter): Sequence<NumberValueSource<DB, NoTableOrViewRequired, number>>
-    protected sequence(this: IConnection<TypeSafeDB, NAME>, name: string, type: 'string', adapter?: TypeAdapter): Sequence<TypeSafeStringValueSource<DB, NoTableOrViewRequired, string>>
-    protected sequence(name: string, type: 'string', adapter?: TypeAdapter): Sequence<StringValueSource<DB, NoTableOrViewRequired, string>>
-    protected sequence(this: IConnection<TypeSafeDB, NAME>, name: string, type: 'localDate', adapter?: TypeAdapter): Sequence<LocalDateValueSource<DB, NoTableOrViewRequired, LocalDate>>
-    protected sequence(name: string, type: 'localDate', adapter?: TypeAdapter): Sequence<DateValueSource<DB, NoTableOrViewRequired, Date>>
-    protected sequence(this: IConnection<TypeSafeDB, NAME>, name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<LocalTimeValueSource<DB, NoTableOrViewRequired, LocalTime>>
-    protected sequence(name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<TimeValueSource<DB, NoTableOrViewRequired, Date>>
-    protected sequence(this: IConnection<TypeSafeDB, NAME>, name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<LocalDateTimeValueSource<DB, NoTableOrViewRequired, LocalDateTime>>
-    protected sequence(name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<DateTimeValueSource<DB, NoTableOrViewRequired, Date>>
-    protected sequence<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<DB, NoTableOrViewRequired, T>>
-    protected sequence<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<DB, NoTableOrViewRequired, T>>
-    protected sequence<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource<DB, NoTableOrViewRequired, T>>
+    protected sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource<NoTableOrViewRequired<DB>, boolean>>
+    protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'stringInt', adapter?: TypeAdapter): Sequence<StringIntValueSource<NoTableOrViewRequired<DB>, stringInt>>
+    protected sequence(name: string, type: 'stringInt', adapter?: TypeAdapter): Sequence<StringNumberValueSource<NoTableOrViewRequired<DB>, number | string>>
+    protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): Sequence<IntValueSource<NoTableOrViewRequired<DB>, int>>
+    protected sequence(name: string, type: 'int', adapter?: TypeAdapter): Sequence<NumberValueSource<NoTableOrViewRequired<DB>, number>>
+    protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): Sequence<StringDoubleValueSource<NoTableOrViewRequired<DB>, stringDouble>>
+    protected sequence(name: string, type: 'stringDouble', adapter?: TypeAdapter): Sequence<StringNumberValueSource<NoTableOrViewRequired<DB>, number | string>>
+    protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): Sequence<DoubleValueSource<NoTableOrViewRequired<DB>, double>>
+    protected sequence(name: string, type: 'double', adapter?: TypeAdapter): Sequence<NumberValueSource<NoTableOrViewRequired<DB>, number>>
+    protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'string', adapter?: TypeAdapter): Sequence<TypeSafeStringValueSource<NoTableOrViewRequired<DB>, string>>
+    protected sequence(name: string, type: 'string', adapter?: TypeAdapter): Sequence<StringValueSource<NoTableOrViewRequired<DB>, string>>
+    protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'localDate', adapter?: TypeAdapter): Sequence<LocalDateValueSource<NoTableOrViewRequired<DB>, LocalDate>>
+    protected sequence(name: string, type: 'localDate', adapter?: TypeAdapter): Sequence<DateValueSource<NoTableOrViewRequired<DB>, Date>>
+    protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<LocalTimeValueSource<NoTableOrViewRequired<DB>, LocalTime>>
+    protected sequence(name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<TimeValueSource<NoTableOrViewRequired<DB>, Date>>
+    protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime>>
+    protected sequence(name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<DateTimeValueSource<NoTableOrViewRequired<DB>, Date>>
+    protected sequence<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T>>
+    protected sequence<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T>>
+    protected sequence<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource<NoTableOrViewRequired<DB>, T>>
     protected sequence<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Sequence<any> {
         if (typeof adapter === 'string') {
             return new SequenceQueryBuilder(name, adapter, adapter2)

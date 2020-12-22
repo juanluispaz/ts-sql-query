@@ -11,7 +11,7 @@ export class FragmentQueryBuilder {
         this.__adapter = adapter
     }
 
-    sql(sql: TemplateStringsArray, ...params: ValueSource<any, any, any>[]): ValueSource<any, any, any> {
+    sql(sql: TemplateStringsArray, ...params: ValueSource<any, any>[]): ValueSource<any, any> {
         return new FragmentValueSource(sql, params, this.__type, this.__adapter)
     }
 }
@@ -23,9 +23,9 @@ export class FragmentFunctionBuilder {
         this.definitions = definitions
     }
     
-    as(impl: (...vs: ValueSource<any, any, any>[]) => ValueSource<any, any, any>): ((...args: any[]) => ValueSource<any, any, any>) {
-        return (...args: any[]): ValueSource<any, any, any> => {
-            const newArgs: ValueSource<any, any, any>[] = []
+    as(impl: (...vs: ValueSource<any, any>[]) => ValueSource<any, any>): ((...args: any[]) => ValueSource<any, any>) {
+        return (...args: any[]): ValueSource<any, any> => {
+            const newArgs: ValueSource<any, any>[] = []
             for (let i = 0, length = args.length; i < length; i++) {
                 const arg = args[i]
                 if (arg instanceof ValueSourceImpl) {

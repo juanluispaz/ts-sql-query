@@ -10,20 +10,20 @@ import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 export interface JoinData {
     __joinType: 'join' | 'innerJoin' | 'leftJoin' | 'leftOuterJoin'
     __table_or_view: ITableOrView<any>
-    __on?: BooleanValueSource<any, any, any>
+    __on?: BooleanValueSource<any, any>
 }
 
 export interface SelectData {
     __distinct: boolean
-    __columns: { [property: string]: ValueSource<any, any, any> }
+    __columns: { [property: string]: ValueSource<any, any> }
     __tables_or_views: Array<ITableOrView<any>>
     __joins: Array<JoinData>
-    __where?: BooleanValueSource<any, any, any>
-    __having?: BooleanValueSource<any, any, any>
-    __groupBy:  Array<ValueSource<any, any, any>>
+    __where?: BooleanValueSource<any, any>
+    __having?: BooleanValueSource<any, any>
+    __groupBy:  Array<ValueSource<any, any>>
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
-    __limit?: int | number | NumberValueSource<any, any, any> | IntValueSource<any, any, any>
-    __offset?: int | number | NumberValueSource<any, any, any> | IntValueSource<any, any, any>
+    __limit?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
+    __offset?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
 }
 
 export interface InsertData {
@@ -37,13 +37,13 @@ export interface InsertData {
 export interface UpdateData {
     __table: ITable<any>
     __sets: { [property: string] : any}
-    __where?: BooleanValueSource<any, any, any>
+    __where?: BooleanValueSource<any, any>
     __allowNoWhere: boolean
 }
 
 export interface DeleteData {
     __table: ITable<any>,
-    __where?: BooleanValueSource<any, any, any>
+    __where?: BooleanValueSource<any, any>
     __allowNoWhere: boolean
 }
 
@@ -62,8 +62,8 @@ export interface SqlBuilder extends SqlOperation {
     _buildInsertMultiple(query: InsertData, params: any[]): string
     _buildUpdate(query: UpdateData, params: any[]): string
     _buildDelete(query: DeleteData, params: any[]): string
-    _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any, any>[]): string
-    _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any, any>[]): string
+    _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any>[]): string
+    _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any>[]): string
 }
 
 export interface ToSql {
@@ -231,7 +231,7 @@ export interface SqlSequenceOperation {
 }
 
 export interface SqlFragmentOperation {
-    _fragment(params: any[], sql: TemplateStringsArray, sqlParams: ValueSource<any, any, any>[]): string
+    _fragment(params: any[], sql: TemplateStringsArray, sqlParams: ValueSource<any, any>[]): string
 }
 
 export interface AggregateFunctions0 {

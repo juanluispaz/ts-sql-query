@@ -1,8 +1,21 @@
 import type { AnyDB } from "../databases"
-import type { database, noTableOrViewRequired, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, tableOrView, tableOrViewAlias, type } from "./symbols"
+import type { database, noTableOrViewRequired, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, tableOrView, tableOrViewAlias, tableOrViewRef, tableOrViewRefType, type } from "./symbols"
 
-export interface ITableOrView<DB extends AnyDB> {
+export interface TableOrViewRef<DB extends AnyDB> {
     [database]: DB
+    [tableOrViewRefType]: 'tableOrViewRef'
+}
+
+export interface TableOrViewOf<DB extends AnyDB> {
+    [database]: DB
+}
+
+export interface ITableOrView<REF extends TableOrViewRef<AnyDB>> extends TableOrViewOf<REF[typeof database]> {
+    [tableOrViewRef]: REF
+}
+
+export interface ITableOrViewOf<DB extends AnyDB, REF extends TableOrViewRef<DB>> extends ITableOrView<REF> {
+    
 }
 
 export interface __ITableOrViewPrivate {
@@ -15,26 +28,39 @@ export function __getTableOrViewPrivate(table: ITableOrView<any>): __ITableOrVie
     return table as any
 }
 
-export interface ITable<DB extends AnyDB> extends ITableOrView<DB>{
+export interface ITable<REF extends TableOrViewRef<AnyDB>> extends ITableOrView<REF>{
     [type]: 'table'
 }
 
-export interface IView<DB extends AnyDB> extends ITableOrView<DB>{
+export interface ITableOf<DB extends AnyDB, REF extends TableOrViewRef<DB>> extends ITable<REF> {
+    
+}
+
+export interface IView<REF extends TableOrViewRef<AnyDB>> extends ITableOrView<REF>{
     [type]: 'view'
 }
 
-export interface NoTableOrViewRequired extends ITableOrView<any> {
-    [database]: any
-    [noTableOrViewRequired]: 'NoTableRequired'
+export interface NoTableOrViewRequired<DB extends AnyDB> extends TableOrViewRef<DB> {
+    [database]: DB
+    [noTableOrViewRequired]: 'NoTableOrViewRequired'
 }
 
-export interface TableOrViewAlias<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, ALIAS> extends ITableOrView<DB> {
+export interface NoTableOrViewRequiredView<DB extends AnyDB> extends IView<NoTableOrViewRequired<DB>> {
+    [noTableOrViewRequired]: 'NoTableOrViewRequiredView'
+}
+
+export interface TableOrViewAliasRef<REF extends TableOrViewRef<AnyDB>, ALIAS> extends TableOrViewRef<REF[typeof database]> {
+    [tableOrViewAlias]: ALIAS
+    [tableOrViewRef]: REF
+}
+
+export interface TableOrViewAlias<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> extends ITableOrView<TableOrViewAliasRef<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>> {
     [tableOrView]: TABLE_OR_VIEW
     [tableOrViewAlias]: ALIAS
 }
 
-export interface OuterJoinSource<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, ALIAS> {
-    [outerJoinDatabase]: DB
+export interface OuterJoinSource<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> {
+    [outerJoinDatabase]: TABLE_OR_VIEW[typeof database]
     [outerJoinTableOrView]: TABLE_OR_VIEW
     [outerJoinAlias]: ALIAS
 }

@@ -1,12 +1,11 @@
-import type { ITableOrView, OuterJoinSource, TableOrViewAlias } from "./ITableOrView"
+import type { ITableOrView, OuterJoinSource, TableOrViewAlias, TableOrViewAliasRef } from "./ITableOrView"
 import type { ValueSource, RemapValueSourceType, RemapValueSourceTypeAsOptional } from "../expressions/values"
-import type { AnyDB } from "../databases"
+import { tableOrViewRef } from "./symbols"
 
-export type ColumnsOfTableOrView<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>> = ({ [K in keyof TABLE_OR_VIEW]-?: TABLE_OR_VIEW[K] extends ValueSource<DB, any, any> ? K : never })[keyof TABLE_OR_VIEW]
+export type ColumnsOfTableOrView<TABLE_OR_VIEW extends ITableOrView<any>> = ({ [K in keyof TABLE_OR_VIEW]-?: TABLE_OR_VIEW[K] extends ValueSource<any, any> ? K : never })[keyof TABLE_OR_VIEW]
 
-export type AliasedTableOrViewInternal<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, ALIAS> = { [K in ColumnsOfTableOrView<DB, TABLE_OR_VIEW>]: RemapValueSourceType<DB, any, TABLE_OR_VIEW[K]> } & TableOrViewAlias<DB, TABLE_OR_VIEW, ALIAS>
-export type AliasedTableOrView<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, ALIAS> = { [K in ColumnsOfTableOrView<DB, TABLE_OR_VIEW>]: RemapValueSourceType<DB, AliasedTableOrViewInternal<DB, TABLE_OR_VIEW, ALIAS>, TABLE_OR_VIEW[K]> } & TableOrViewAlias<DB, TABLE_OR_VIEW, ALIAS>
+export type AliasedTableOrView<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ColumnsOfTableOrView<TABLE_OR_VIEW>]: RemapValueSourceType<TableOrViewAliasRef<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>, TABLE_OR_VIEW[K]> } & TableOrViewAlias<TABLE_OR_VIEW, ALIAS>
 
-export type OuterTableOrViewInternal<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, ALIAS> = { [K in ColumnsOfTableOrView<DB, TABLE_OR_VIEW>]: OuterTableOrViewInternal<DB, any, TABLE_OR_VIEW[K]> } & TableOrViewAlias<DB, TABLE_OR_VIEW, ALIAS>
-export type OuterJoinSourceOf<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, ALIAS> = { [K in ColumnsOfTableOrView<DB, TABLE_OR_VIEW>]: RemapValueSourceTypeAsOptional<DB, AliasedTableOrViewInternal<DB, TABLE_OR_VIEW, ALIAS>, TABLE_OR_VIEW[K]> } & OuterJoinSource<DB, TABLE_OR_VIEW, ALIAS>
-export type OuterJoinTableOrView<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrView<DB>, ALIAS> = { [K in ColumnsOfTableOrView<DB, TABLE_OR_VIEW>]: RemapValueSourceTypeAsOptional<DB, AliasedTableOrViewInternal<DB, TABLE_OR_VIEW, ALIAS>, TABLE_OR_VIEW[K]> } & TableOrViewAlias<DB, TABLE_OR_VIEW, ALIAS>
+export type OuterTableOrViewInternal<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ColumnsOfTableOrView<TABLE_OR_VIEW>]: OuterTableOrViewInternal<any, TABLE_OR_VIEW[K]> } & TableOrViewAlias<TABLE_OR_VIEW, ALIAS>
+export type OuterJoinSourceOf<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ColumnsOfTableOrView<TABLE_OR_VIEW>]: RemapValueSourceTypeAsOptional<TableOrViewAliasRef<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>, TABLE_OR_VIEW[K]> } & OuterJoinSource<TABLE_OR_VIEW, ALIAS>
+export type OuterJoinTableOrView<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ColumnsOfTableOrView<TABLE_OR_VIEW>]: RemapValueSourceTypeAsOptional<TableOrViewAliasRef<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>, TABLE_OR_VIEW[K]> } & TableOrViewAlias<TABLE_OR_VIEW, ALIAS>

@@ -1,11 +1,14 @@
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { MySql, TypeSafeDB } from "../databases"
+import type { databaseName } from "../utils/symbols"
 import { AbstractMySqlConnection } from "./AbstractMySqlConnection"
 import { MySqlSqlBuilder } from "../sqlBuilders/MySqlSqlBuilder"
-import { typeSafeDBType } from "../utils/symbols"
 
-export abstract class TypeSafeMySqlConnection<DB extends MySql & TypeSafeDB, NAME> extends AbstractMySqlConnection<DB, NAME, MySqlSqlBuilder> implements MySql, TypeSafeDB {
-    [typeSafeDBType] : 'TypeSafe'
+interface DB<NAME extends string> extends TypeSafeDB, MySql {
+    [databaseName]: NAME
+}
+
+export abstract class TypeSafeMySqlConnection<NAME extends string> extends AbstractMySqlConnection<DB<NAME>> {
     constructor(queryRunner: QueryRunner, sqlBuilder = new MySqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)
     }

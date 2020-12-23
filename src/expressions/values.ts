@@ -1170,25 +1170,28 @@ export type AsType<T, TYPE> = TYPE | OptionalTypeOf<T>
 
 export type ArgumentType = 'boolean' | 'stringInt' | 'int' | 'stringDouble' | 'double' | 'string' | 'localDateTime' | 'localDate' | 'localTime' | 'customComparable' | 'enum' | 'custom'
 export type ArgumentRequire = 'required' | 'optional'
-export class Argument<T extends ArgumentType, REQUIRED extends ArgumentRequire, TYPE> {
+export type ArgumentMode = 'value' | 'combined'
+export class Argument<T extends ArgumentType, REQUIRED extends ArgumentRequire, MODE extends ArgumentMode, TYPE> {
     readonly type: T
     readonly typeName: string
     readonly required: REQUIRED
+    readonly mode: MODE
     readonly adapter?: TypeAdapter
     [valueType]: TYPE
-    constructor (argumentType: T, typeName: string, required: REQUIRED, adapter?: TypeAdapter,) {
+    constructor (argumentType: T, typeName: string, required: REQUIRED, mode: MODE, adapter?: TypeAdapter) {
         this.type = argumentType
         this.typeName = typeName
         this.required = required
+        this.mode = mode
         this.adapter = adapter
     }
 }
 
 export type TypeOf<R extends ArgumentRequire, T> = R extends 'required' ? T : (T | null | undefined)
-export type TypeOfArgument<ARG> = ARG extends Argument<any, any, infer T> ? T : never
+export type TypeOfArgument<ARG> = ARG extends Argument<any, any, any, infer T> ? T : never
 
 export type MapArgumentToTypeSafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, ARG> =
-    ARG extends Argument<infer TYPE, infer REQUIRED, infer T> ? (
+    ARG extends Argument<infer TYPE, infer REQUIRED, any, infer T> ? (
         TYPE extends 'boolean' ? BooleanValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'stringInt' ? StringIntValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'int' ? IntValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
@@ -1205,7 +1208,7 @@ export type MapArgumentToTypeSafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, A
     ): never
 
 export type MapArgumentToTypeUnsafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, ARG> =
-    ARG extends Argument<infer TYPE, infer REQUIRED, infer T> ? (
+    ARG extends Argument<infer TYPE, infer REQUIRED, any, infer T> ? (
         TYPE extends 'boolean' ? BooleanValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'stringInt' ? StringNumberValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'int' ? NumberValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
@@ -1219,4 +1222,14 @@ export type MapArgumentToTypeUnsafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>,
         TYPE extends 'enum' ? EqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'custom' ? EqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         never
+    ): never
+
+export type SafeArgForFn<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, ARG> =
+    ARG extends Argument<any, any, infer MODE, any> ? (
+        MODE extends 'value' ? never : MapArgumentToTypeSafe<TABLE_OR_VIEW, ARG>
+    ): never
+
+export type UnsafeArgForFn<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, ARG> =
+    ARG extends Argument<any, any, infer MODE, any> ? (
+        MODE extends 'value' ? never : MapArgumentToTypeUnsafe<TABLE_OR_VIEW, ARG>
     ): never

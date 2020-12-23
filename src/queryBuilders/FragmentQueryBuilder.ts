@@ -19,9 +19,9 @@ export class FragmentQueryBuilder {
 }
 
 export class FragmentFunctionBuilder {
-    definitions: Argument<any, any, any>[]
+    definitions: Argument<any, any, any, any>[]
 
-    constructor(definitions: Argument<any, any, any>[]) {
+    constructor(definitions: Argument<any, any, any, any>[]) {
         this.definitions = definitions
     }
     

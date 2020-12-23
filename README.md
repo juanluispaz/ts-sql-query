@@ -360,7 +360,7 @@ class DBConection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; this arguments can be numbers or elements in the database that represents integer numbers. You can use the defined function as a regular database function in your query.
+You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; this arguments can be numbers or elements in the database that represents integer numbers. If you create the argument using the function `valueArg` instead of the `arg` function, the defined function only will accept values but not elements of the database. You can use the defined function as a regular database function in your query.
 
 ```ts
 const bitwiseMovements = 1;
@@ -1119,6 +1119,9 @@ interface Connection {
     sequence<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource>
 
     // Protected methods to define reusable fragments
+    /**
+     * Allows to define arguments that acept the value or a value source of the type specified
+     */
     arg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
@@ -1132,8 +1135,24 @@ interface Connection {
     arg<T>(type: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg<T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument
 
+    /**
+     * Allows to define arguments that acept the value (but no a value source) of the type specified
+     */
+    valueArg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    valueArg(type: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    valueArg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    valueArg(type: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    valueArg(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    valueArg(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    valueArg(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    valueArg(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    valueArg(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    valueArg<T>(type: 'enum', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    valueArg<T>(type: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    valueArg<T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+
     /*
-     * This function receive the argument definition that you can create calling the arg function.
+     * This function receive the argument definition that you can create calling the arg function or the valueArg function.
      * You can specify up to 5 argument definitions
      */
     buildFragmentWithArgs(...argumentDefinitions: Argument[]): FragmentBuilder

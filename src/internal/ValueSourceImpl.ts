@@ -45,6 +45,12 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
         }
         return this.__resultIsOptionalCache
     }
+    isConstValue(): boolean {
+        return false
+    }
+    getConstValue(): any {
+        throw new Error('You are trying to access to the const value when the expression is not const')
+    }
     asOptional(): any {
         return new SqlOperationAsOptionalValueSource(this)
     }
@@ -585,6 +591,31 @@ export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements H
     }
     __resultIsOptional(_rule: __OptionalRule): boolean {
         return this.__isOptional
+    }
+}
+
+export class SqlOperationConstValueSource extends ValueSourceImpl implements HasOperation {
+    __operation: keyof SqlOperationStatic1
+    __value: any
+    __isOptional: boolean
+
+    constructor(optional: boolean,value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
+        this.__operation = '_const'
+        this.__value = value
+        this.__isOptional = optional
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        return sqlBuilder[this.__operation](params, this.__value, this.__valueType, this.__typeAdapter)
+    }
+    __resultIsOptional(_rule: __OptionalRule): boolean {
+        return this.__isOptional
+    }
+    isConstValue(): boolean {
+        return true
+    }
+    getConstValue(): any {
+        return this.__value
     }
 }
 

@@ -745,7 +745,12 @@ All the data manipulation operations are implemented as a methods inside the val
 
 ```ts
 interface ValueSource {
-
+    isConstValue(): boolean
+    /**
+     * It returns the proper type of the value, instead of the any type included here to simplify
+     * If the value source is not a const value it throws an error
+     */
+    getConstValue(): any
 }
 
 interface NullableValueSource extends ValueSource {

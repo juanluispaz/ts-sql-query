@@ -1,10 +1,9 @@
 import type { ToSql, SelectData, InsertData } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { ValueSource } from "../expressions/values"
+import { isValueSource, ValueSource } from "../expressions/values"
 import type { OrderByMode } from "../expressions/select"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { ValueSourceImpl, SqlOperationStatic1ValueSource } from "../internal/ValueSourceImpl"
-import { ColumnImpl } from "../internal/ColumnImpl"
+import { isColumn, __getColumnPrivate } from "../utils/Column"
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
@@ -51,8 +50,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 for (const property in columns) {
                     index++
                     const column = columns[property]
-                    if (column instanceof ColumnImpl) {
-                        if (column.__isPrimaryKey) {
+                    if (isColumn(column)) {
+                        if (__getColumnPrivate(column).__isPrimaryKey) {
                             return ' order by ' + index
                         }
                     }
@@ -125,44 +124,74 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return ''
     }
     _is(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        if (value === null || value === undefined) {
-            return this._appendSqlParenthesis(valueSource, params) + ' is null'
-        } else if (!(value instanceof ValueSourceImpl)) {
-            return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' = ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ')'
-        } else if (valueSource instanceof SqlOperationStatic1ValueSource && valueSource.__operation === '_const') {
-            if (valueSource.__value === null || valueSource.__value === undefined) {
-                return this._appendValueParenthesis(value, params, columnType, typeAdapter) + ' is null'
-            } else {
-                return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' = ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ')'
-            }
-        } else {
-            if (valueSource instanceof ColumnImpl || (valueSource instanceof SqlOperationStatic1ValueSource && valueSource.__operation === '_const')) {
-                if (value instanceof ColumnImpl || (value instanceof SqlOperationStatic1ValueSource && value.__operation === '_const') || !(value instanceof ValueSourceImpl)) {
-                    return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' = ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ') or (' + this._appendSqlParenthesis(valueSource, params) + ' is null and ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ' is null)'
-                }
-            }
+        if (!isValueSource(valueSource)) {
+            // this is very strange, we expect value source to be a ValueSource object, then, we can use the most general solution
             return 'exists(select ' + this._appendSqlParenthesis(valueSource, params) + ' intersect select ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ')'
         }
+
+        if (value === null || value === undefined) {
+            // We know value is null or undefined, then, whe need tu ensure the value source is null as well
+            return this._appendSqlParenthesis(valueSource, params) + ' is null'
+        }
+        if (!isValueSource(value)) {
+            // We know value is not null or undefined, then, we can use the sql that compare both values knowing one is not null
+            return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' = ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ')'
+        }
+        
+        if (valueSource.isConstValue()) {
+            const valueSourceValue = valueSource.getConstValue()
+            if (valueSourceValue === null || valueSourceValue === undefined) {
+                // We know value source is null or undefined, then, whe need tu ensure the value source is null as well
+                return this._appendValueParenthesis(value, params, columnType, typeAdapter) + ' is null'
+            } else {
+                // We know value source is not null or undefined, then, we can use the sql that compare both values knowing one is not null
+                return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' = ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ')'
+            }
+        }
+
+        if (isColumn(valueSource) || valueSource.isConstValue()) {
+            if (isColumn(value) || value.isConstValue()) {
+                // Both values are repeteables, then, we can use the sql that compare both values without knowing if one is not null, but it requires to repeat the solution
+                return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' = ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ') or (' + this._appendSqlParenthesis(valueSource, params) + ' is null and ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ' is null)'
+            }
+        }
+        // The arguments are not repeteables, then, we can use the most general solution
+        return 'exists(select ' + this._appendSqlParenthesis(valueSource, params) + ' intersect select ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ')'
     }
     _isNot(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        if (value === null || value === undefined) {
-            return this._appendSqlParenthesis(valueSource, params) + ' is not null'
-        } else if (!(value instanceof ValueSourceImpl)) {
-            return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' <> ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ')'
-        } if (valueSource instanceof SqlOperationStatic1ValueSource && valueSource.__operation === '_const') {
-            if (valueSource.__value === null || valueSource.__value === undefined) {
-                return this._appendValueParenthesis(value, params, columnType, typeAdapter) + ' is not null'
-            } else {
-                return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' <> ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ')'
-            }
-        } else {
-            if (valueSource instanceof ColumnImpl || (valueSource instanceof SqlOperationStatic1ValueSource && valueSource.__operation === '_const')) {
-                if (value instanceof ColumnImpl || (value instanceof SqlOperationStatic1ValueSource && value.__operation === '_const') || !(value instanceof ValueSourceImpl)) {
-                    return 'not (isnull(' + this._appendSqlParenthesis(valueSource, params) + ' = ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ') or (' + this._appendSqlParenthesis(valueSource, params) + ' is null and ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ' is null))'
-                }
-            }
+        if (!isValueSource(valueSource)) {
+            // this is very strange, we expect value source to be a ValueSource object, then, we can use the most general solution
             return 'not exists(select ' + this._appendSqlParenthesis(valueSource, params) + ' intersect select ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ')'
         }
+
+        if (value === null || value === undefined) {
+            // We know value is null or undefined, then, whe need tu ensure the value source is not null
+            return this._appendSqlParenthesis(valueSource, params) + ' is not null'
+        }
+        if (!isValueSource(value)) {
+            // We know value is not null or undefined, then, we can use the sql that compare both values knowing one is not null
+            return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' <> ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ')'
+        }
+        
+        if (valueSource.isConstValue()) {
+            const valueSourceValue = valueSource.getConstValue()
+            if (valueSourceValue === null || valueSourceValue === undefined) {
+                // We know value source is null or undefined, then, whe need tu ensure the value source is null as well
+                return this._appendValueParenthesis(value, params, columnType, typeAdapter) + ' is not null'
+            } else {
+                // We know value source is not null or undefined, then, we can use the sql that compare both values knowing one is not null
+                return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' <> ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ')'
+            }
+        }
+
+        if (isColumn(valueSource) || valueSource.isConstValue()) {
+            if (isColumn(value) || value.isConstValue()) {
+                // Both values are repeteables, then, we can use the sql that compare both values without knowing if one is not null, but it requires to repeat the solution
+                return 'not (isnull(' + this._appendSqlParenthesis(valueSource, params) + ' = ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ') or (' + this._appendSqlParenthesis(valueSource, params) + ' is null and ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ' is null))'
+            }
+        }
+        // The arguments are not repeteables, then, we can use the most general solution
+        return 'not exists(select ' + this._appendSqlParenthesis(valueSource, params) + ' intersect select ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ')'
     }
     _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'isnull(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
@@ -249,8 +278,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _minValue(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'iif(' + this._appendSql(valueSource, params) + ' < ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
         // Alternative implementation that avoid evaluate multiple times the arguments
-        // if (valueSource instanceof ColumnImpl || (valueSource instanceof SqlOperationStatic1ValueSource && valueSource.__operation === '_const')) {
-        //     if (value instanceof ColumnImpl || (value instanceof SqlOperationStatic1ValueSource && value.__operation === '_const') || !(value instanceof ValueSourceImpl)) {
+        // if (isColumn(valueSource) || !isValueSource(valueSource) || valueSource.isConstValue()) {
+        //     if (isColumn(value) || !isValueSource(value) || value.isConstValue()) {
+        //         // Both values are repeteables, then, we can use the sql that compare both values repeting them
         //         return 'iif(' + this._appendSql(valueSource, params) + ' < ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
         //     }
         // }
@@ -259,8 +289,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _maxValue(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'iif(' + this._appendSql(valueSource, params) + ' > ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
         // Alternative implementation that avoid evaluate multiple times the arguments
-        // if (valueSource instanceof ColumnImpl || (valueSource instanceof SqlOperationStatic1ValueSource && valueSource.__operation === '_const')) {
-        //     if (value instanceof ColumnImpl || (value instanceof SqlOperationStatic1ValueSource && value.__operation === '_const') || !(value instanceof ValueSourceImpl)) {
+        // if (isColumn(valueSource) || !isValueSource(valueSource) || valueSource.getConstValue()) {
+        //     if (isColumn(value) || !isValueSource(value) || value.isConstValue()) {
+        //         // Both values are repeteables, then, we can use the sql that compare both values repeting them
         //         return 'iif(' + this._appendSql(valueSource, params) + ' > ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
         //     }
         // }

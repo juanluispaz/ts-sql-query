@@ -16,6 +16,8 @@ export interface ValueSourceOf<DB extends AnyDB> {
 export interface ValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends ValueSourceOf<TABLE_OR_VIEW[typeof database]> {
     [tableOrView]: TABLE_OR_VIEW
     [valueType]: TYPE
+    isConstValue(): boolean
+    getConstValue(): TYPE
 }
 
 export interface __OptionalRule {
@@ -26,6 +28,16 @@ export interface __ValueSourcePrivate {
     __valueType: string
     __typeAdapter?: TypeAdapter
     __isResultOptional(rule: __OptionalRule): boolean
+}
+
+export function isValueSource(value: any): value is ValueSource<TableOrViewRef<AnyDB>, undefined> {
+    if (value === undefined || value === null) {
+        return false
+    }
+    if (typeof value === 'object') {
+        return typeof value.__isResultOptional === 'function'
+    }
+    return false
 }
 
 export function __getValueSourcePrivate(valueSource: ValueSource<any, any>): __ValueSourcePrivate {

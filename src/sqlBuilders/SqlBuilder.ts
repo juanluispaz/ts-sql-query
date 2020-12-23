@@ -74,7 +74,10 @@ export function hasToSql(value: any): value is ToSql {
     if (value === undefined || value === null) {
         return false
     }
-    return typeof value.__toSql === 'function'
+    if (typeof value === 'object') {
+        return typeof value.__toSql === 'function'
+    }
+    return false
 }
 
 export interface HasOperation {

@@ -16,7 +16,7 @@ import { InsertQueryBuilder } from "../queryBuilders/InsertQueryBuilder"
 import { UpdateQueryBuilder } from "../queryBuilders/UpdateQueryBuilder"
 import { DeleteQueryBuilder } from "../queryBuilders/DeleteQueryBuilder"
 import { __getValueSourcePrivate, Argument } from "../expressions/values"
-import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource } from "../internal/ValueSourceImpl"
+import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, SqlOperationConstValueSource } from "../internal/ValueSourceImpl"
 import { DefaultImpl } from "../expressions/Default"
 import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
 import ChainedError from "chained-error"
@@ -166,9 +166,9 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     const<T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T>
     const<_T>(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return new SqlOperationStatic1ValueSource(false, '_const', value, adapter, adapter2)
+            return new SqlOperationConstValueSource(false, value, adapter, adapter2)
         }
-        return new SqlOperationStatic1ValueSource(false, '_const', value, type, adapter)
+        return new SqlOperationConstValueSource(false, value, type, adapter)
     }
 
     optionalConst(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NoTableOrViewRequired<DB>, boolean | null | undefined>
@@ -193,9 +193,9 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     optionalConst<T>(value: T | null | undefined, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T | null | undefined>
     optionalConst<_T>(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return new SqlOperationStatic1ValueSource(true, '_const', value, adapter, adapter2)
+            return new SqlOperationConstValueSource(true, value, adapter, adapter2)
         }
-        return new SqlOperationStatic1ValueSource(true, '_const', value, type, adapter)
+        return new SqlOperationConstValueSource(true, value, type, adapter)
     }
 
     true<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> = NoTableOrViewRequiredView<DB>>(): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {

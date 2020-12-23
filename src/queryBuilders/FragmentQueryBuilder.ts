@@ -1,6 +1,6 @@
 import type { TypeAdapter } from "../TypeAdapter"
 import type { ValueSource, Argument } from "../expressions/values"
-import { FragmentValueSource, ValueSourceImpl, SqlOperationStatic1ValueSource } from "../internal/ValueSourceImpl"
+import { FragmentValueSource, ValueSourceImpl, SqlOperationConstValueSource } from "../internal/ValueSourceImpl"
 
 export class FragmentQueryBuilder {
     __type: string
@@ -35,7 +35,7 @@ export class FragmentFunctionBuilder {
                 } else {
                     const definition = this.definitions[i]!
                     const optional = definition.required === 'optional'
-                    const newArg = new SqlOperationStatic1ValueSource(optional, '_const', arg, definition.typeName, definition.adapter)
+                    const newArg = new SqlOperationConstValueSource(optional, arg, definition.typeName, definition.adapter)
                     newArgs.push(newArg)
                 }
             }

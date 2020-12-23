@@ -149,7 +149,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return this._appendSqlParenthesis(valueSource, params) + ' is not null'
         } else if (!(value instanceof ValueSourceImpl)) {
             return 'isnull(' + this._appendSqlParenthesis(valueSource, params) + ' <> ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', ' + this._falseValue + ')'
-        } else if (valueSource instanceof SqlOperationStatic1ValueSource && valueSource.__operation === '_const') {
+        } if (valueSource instanceof SqlOperationStatic1ValueSource && valueSource.__operation === '_const') {
             if (valueSource.__value === null || valueSource.__value === undefined) {
                 return this._appendValueParenthesis(value, params, columnType, typeAdapter) + ' is not null'
             } else {

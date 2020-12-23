@@ -1,6 +1,6 @@
 import type { SqlBuilder, DeleteData } from "../sqlBuilders/SqlBuilder"
 import type { ITable } from "../utils/ITableOrView"
-import type { BooleanValueSource } from "../expressions/values"
+import type { BooleanValueSource, IfValueSource } from "../expressions/values"
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
@@ -13,7 +13,7 @@ export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressi
     __sqlBuilder: SqlBuilder
 
     __table: ITable<any>
-    __where?: BooleanValueSource<any, any>
+    __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __allowNoWhere: boolean
 
     // cache
@@ -71,7 +71,7 @@ export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressi
         this.__query = ''
         return this
     }
-    where(condition: BooleanValueSource<any, any>): this {
+    where(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
             throw new Error('Illegal state')
@@ -79,7 +79,7 @@ export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressi
         this.__where = condition
         return this
     }
-    and(condition: BooleanValueSource<any, any>): this {
+    and(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
             this.__where = this.__where.and(condition)
@@ -88,7 +88,7 @@ export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressi
         }
         return this
     }
-    or(condition: BooleanValueSource<any, any>): this {
+    or(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
             this.__where = this.__where.or(condition)

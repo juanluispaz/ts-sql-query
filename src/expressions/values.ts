@@ -4,7 +4,7 @@ import type { AnyDB } from "../databases"
 import type { ExecutableSelect } from "./select"
 import type { int, double, /*LocalDate, LocalTime, LocalDateTime,*/ stringDouble, stringInt } from "ts-extended-types"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { booleanValueSourceType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, typeSafeStringValueSourceType, valueSourceType } from "../utils/symbols"
+import type { booleanValueSourceType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, typeSafeStringValueSourceType, valueSourceType } from "../utils/symbols"
 import type { ColumnWithDefaultValue } from "../utils/Column"
 import { valueType } from "../utils/symbols"
 
@@ -50,32 +50,32 @@ export interface NullableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
 
 export interface EqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends NullableValueSource<TABLE_OR_VIEW, TYPE> {
     [equalableValueSourceType]: 'EqualableValueSource'
-    equalsIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    equalsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     equals(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     equals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     equals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE  | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
-    notEqualsIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notEqualsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEquals(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE  | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
-    isIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    isIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     is(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, boolean>
     is<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
     is<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
-    isNotIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, boolean>
+    isNotIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, boolean>
     isNot(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, boolean>
     isNot<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
     isNot<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
 
-    inIfValue(values: TYPE[] | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    inIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    inIfValue(values: TYPE[] | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    inIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     in(values: TYPE[]): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     in(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     in<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     in<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     in<TABLE_OR_VIEW2 extends ITableOrView<any>>(select: ExecutableSelect<TABLE_OR_VIEW[typeof database], TYPE | null | undefined, TABLE_OR_VIEW2>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2[typeof tableOrViewRef], boolean>
-    notInIfValue(values: TYPE[] | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    notInIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notInIfValue(values: TYPE[] | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notInIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notIn(values: TYPE[]): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notIn(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notIn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
@@ -97,19 +97,19 @@ export interface EqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
 
 export interface ComparableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends EqualableValueSource<TABLE_OR_VIEW, TYPE> {
     [comparableValueSourceType]: 'ComparableValueSource'
-    smallerIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    smallerIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     smaller(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     smaller<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     smaller<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
-    largerIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    largerIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     larger(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     larger<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     larger<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
-    smallAsIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    smallAsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     smallAs(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     smallAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     smallAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
-    largeAsIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    largeAsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     largeAs(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     largeAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     largeAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
@@ -142,16 +142,37 @@ export interface BooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>,
     [booleanValueSourceType]: 'BooleanValueSource'
     negate(): BooleanValueSource<TABLE_OR_VIEW, TYPE>
     and(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IfValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IfValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
     and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
     or(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IfValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IfValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
     or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): BooleanValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
     valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): BooleanValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
     valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): BooleanValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+}
+
+export interface IfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends boolean | null | undefined = boolean*/> {
+    [database]: TABLE_OR_VIEW[typeof database]
+    [tableOrView]: TABLE_OR_VIEW
+    [valueType]: TYPE
+    [ifValueSourceType]: 'IfValueSource'
+    and(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IfValueSource<TABLE_OR_VIEW2, TYPE>): IfValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IfValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): IfValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
+    and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
+    or(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IfValueSource<TABLE_OR_VIEW2, TYPE>): IfValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IfValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): IfValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
+    or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
 }
 
 export interface NumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends number | null | undefined = number*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE> {
@@ -675,75 +696,75 @@ export interface StringDoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<An
 export interface StringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends string | null | undefined = string*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE> {
     [stringValueSourceType]: 'StringValueSource'
     // SqlComparator 1
-    equalsInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    equalsInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     equalsInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     equalsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     equalsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notEqualsInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notEqualsInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEqualsInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEqualsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notEqualsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    likeIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    likeIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     like(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     like<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     like<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notLikeIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notLikeIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notLike(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notLike<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notLike<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    likeInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    likeInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     likeInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     likeInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     likeInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notLikeInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notLikeInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notLikeInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notLikeInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notLikeInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    startWithIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    startWithIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     startWith(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     startWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     startWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notStartWithIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notStartWithIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notStartWith(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notStartWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notStartWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    endWithIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    endWithIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     endWith(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     endWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     endWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notEndWithIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notEndWithIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEndWith(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEndWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notEndWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    startWithInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    startWithInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     startWithInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     startWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     startWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notStartWithInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notStartWithInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notStartWithInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notStartWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notStartWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    endWithInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    endWithInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     endWithInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     endWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     endWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notEndWithInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notEndWithInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEndWithInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEndWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notEndWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    containsIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    containsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     contains(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     contains<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     contains<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notContainsIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notContainsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notContains(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notContains<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notContains<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    containsInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    containsInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     containsInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     containsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     containsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notContainsInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notContainsInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notContainsInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notContainsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notContainsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
@@ -799,75 +820,75 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     [typeSafeStringValueSourceType]: 'TypeSafeStringValueSource'
     // SqlComparator 1
     //asString(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE> // test function
-    equalsInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    equalsInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     equalsInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     equalsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     equalsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notEqualsInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notEqualsInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEqualsInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEqualsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notEqualsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    likeIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    likeIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     like(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     like<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     like<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notLikeIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notLikeIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notLike(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notLike<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notLike<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    likeInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    likeInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     likeInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     likeInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     likeInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notLikeInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notLikeInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notLikeInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notLikeInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notLikeInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    startWithIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    startWithIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     startWith(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     startWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     startWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notStartWithIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notStartWithIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notStartWith(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notStartWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notStartWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    endWithIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    endWithIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     endWith(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     endWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     endWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notEndWithIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notEndWithIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEndWith(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEndWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notEndWith<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    startWithInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    startWithInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     startWithInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     startWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     startWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notStartWithInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notStartWithInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notStartWithInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notStartWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notStartWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    endWithInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    endWithInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     endWithInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     endWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     endWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notEndWithInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notEndWithInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEndWithInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEndWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notEndWithInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    containsIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    containsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     contains(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     contains<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     contains<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notContainsIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notContainsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notContains(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notContains<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notContains<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    containsInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    containsInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     containsInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     containsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     containsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notContainsInsensitiveIfValue(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    notContainsInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notContainsInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notContainsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notContainsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>

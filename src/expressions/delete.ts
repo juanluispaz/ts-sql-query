@@ -1,4 +1,4 @@
-import type { BooleanValueSource } from "./values"
+import type { BooleanValueSource, IfValueSource } from "./values"
 import type { ITableOrView, NoTableOrViewRequired } from "../utils/ITableOrView"
 import type { AnyDB, TypeSafeDB } from "../databases"
 import type { int } from "ts-extended-types"
@@ -21,16 +21,20 @@ export interface ExecutableDelete<TABLE extends ITableOrView<any>> extends Delet
 }
 
 export interface DynamicExecutableDeleteExpression<TABLE extends ITableOrView<any>> extends ExecutableDelete<TABLE> {
+    and(condition: IfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
     and(condition: BooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
+    or(condition: IfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
     or(condition: BooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
 }
 
 export interface DeleteExpression<TABLE extends ITableOrView<any>> extends DeleteExpressionBase<TABLE> {
     dynamicWhere() : DynamicExecutableDeleteExpression<TABLE>
+    where(condition: IfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
     where(condition: BooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
 }
 
 export interface DeleteExpressionAllowingNoWhere<TABLE extends ITableOrView<any>> extends ExecutableDelete<TABLE> {
     dynamicWhere() : DynamicExecutableDeleteExpression<TABLE>
+    where(condition: IfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
     where(condition: BooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
 }

@@ -1,7 +1,7 @@
 import type { SqlBuilder, JoinData, ToSql, SelectData } from "../sqlBuilders/SqlBuilder"
 import type { SelectExpression, SelectValues, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, ExecutableSelect, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ExecutableSelectWithoutGroupBy, OffsetExecutableSelectExpressionWithoutGroupBy, OrderByExecutableSelectExpressionWithoutGroupBy } from "../expressions/select"
 import type { ITableOrView, OuterJoinSource } from "../utils/ITableOrView"
-import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, IfValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import { __getValueSourcePrivate } from "../expressions/values"
 import ChainedError from "chained-error"
@@ -18,8 +18,8 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
     __columns: { [property: string]: ValueSource<any, any> } = {}
     __tables_or_views: Array<ITableOrView<any>>
     __joins: Array<JoinData> = []
-    __where?: BooleanValueSource<any, any>
-    __having?: BooleanValueSource<any, any>
+    __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
+    __having?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __groupBy:  Array<ValueSource<any, any>> = []
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
     __limit?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
@@ -302,7 +302,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         this.__query = ''
         return this
     }
-    on(condition: BooleanValueSource<any, any>): this {
+    on(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
         this.__query = ''
         if (!this.__lastJoin) {
             throw new Error('Illegal state')
@@ -324,7 +324,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         this.__query = ''
         return this
     }
-    where(condition: BooleanValueSource<any, any>): this {
+    where(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__where) {
@@ -333,7 +333,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         this.__where = condition
         return this
     }
-    and(condition: BooleanValueSource<any, any>): this {
+    and(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
         this.__query = ''
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
@@ -359,7 +359,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         }
         return this
     }
-    or(condition: BooleanValueSource<any, any>): this {
+    or(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
         this.__query = ''
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
@@ -390,7 +390,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         this.__inHaving = true
         return this
     }
-    having(condition: BooleanValueSource<any, any>): this {
+    having(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         this.__inHaving = true

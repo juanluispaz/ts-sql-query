@@ -1,6 +1,6 @@
 import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation } from "./SqlBuilder"
 import type { ITableOrView } from "../utils/ITableOrView"
-import type { BooleanValueSource, ValueSource } from "../expressions/values"
+import type { BooleanValueSource, IfValueSource, ValueSource } from "../expressions/values"
 import type { Column } from "../utils/Column"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
@@ -118,19 +118,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
-    _appendCondition(condition: BooleanValueSource<any, any>, params: any[]): string {
+    _appendCondition(condition: BooleanValueSource<any, any> | IfValueSource<any, any>, params: any[]): string {
         if (hasToSql(condition)) {
             return condition.__toSql(this, params)
         }
         throw new Error('Conditions must have a __toSql method')
     }
-    _appendConditionParenthesis(condition: BooleanValueSource<any, any>, params: any[]): string {
+    _appendConditionParenthesis(condition: BooleanValueSource<any, any> | IfValueSource<any, any>, params: any[]): string {
         if (this._needParenthesis(condition)) {
             return '(' + this._appendCondition(condition, params) + ')'
         }
         return this._appendCondition(condition, params)
     }
-    _appendConditionParenthesisExcuding(condition: BooleanValueSource<any, any>, params: any[], excluding: keyof SqlOperation): string {
+    _appendConditionParenthesisExcuding(condition: BooleanValueSource<any, any> | IfValueSource<any, any>, params: any[], excluding: keyof SqlOperation): string {
         if (this._needParenthesisExcluding(condition, excluding)) {
             return '(' + this._appendCondition(condition, params) + ')'
         }

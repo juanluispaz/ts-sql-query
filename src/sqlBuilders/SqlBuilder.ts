@@ -1,5 +1,5 @@
 import type { ITableOrView, ITable } from "../utils/ITableOrView"
-import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, __OptionalRule } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, __OptionalRule, IfValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
@@ -10,7 +10,7 @@ import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 export interface JoinData {
     __joinType: 'join' | 'innerJoin' | 'leftJoin' | 'leftOuterJoin'
     __table_or_view: ITableOrView<any>
-    __on?: BooleanValueSource<any, any>
+    __on?: BooleanValueSource<any, any> | IfValueSource<any, any>
 }
 
 export interface SelectData {
@@ -18,8 +18,8 @@ export interface SelectData {
     __columns: { [property: string]: ValueSource<any, any> }
     __tables_or_views: Array<ITableOrView<any>>
     __joins: Array<JoinData>
-    __where?: BooleanValueSource<any, any>
-    __having?: BooleanValueSource<any, any>
+    __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
+    __having?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __groupBy:  Array<ValueSource<any, any>>
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
     __limit?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
@@ -37,13 +37,13 @@ export interface InsertData {
 export interface UpdateData {
     __table: ITable<any>
     __sets: { [property: string] : any}
-    __where?: BooleanValueSource<any, any>
+    __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __allowNoWhere: boolean
 }
 
 export interface DeleteData {
     __table: ITable<any>,
-    __where?: BooleanValueSource<any, any>
+    __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __allowNoWhere: boolean
 }
 

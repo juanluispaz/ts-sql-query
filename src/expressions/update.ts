@@ -1,4 +1,4 @@
-import type { BooleanValueSource, ColumnsOf, InputTypeOfColumn } from "./values"
+import type { BooleanValueSource, ColumnsOf, IfValueSource, InputTypeOfColumn } from "./values"
 import type { ITableOrView, NoTableOrViewRequired } from "../utils/ITableOrView"
 import type { AnyDB, TypeSafeDB } from "../databases"
 import type { int } from "ts-extended-types"
@@ -29,6 +29,7 @@ export interface ExecutableUpdateExpression<TABLE extends ITableOrView<any>> ext
     ignoreIfSet(...columns: ColumnsOf<TABLE>[]): ExecutableUpdateExpression<TABLE>
 
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE>
+    where(condition: IfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
     where(condition: BooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
 }
 
@@ -42,11 +43,14 @@ export interface NotExecutableUpdateExpression<TABLE extends ITableOrView<any>> 
     ignoreIfSet(...columns: ColumnsOf<TABLE>[]): NotExecutableUpdateExpression<TABLE>
 
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE>
+    where(condition: IfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
     where(condition: BooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
 }
 
 export interface DynamicExecutableUpdateExpression<TABLE extends ITableOrView<any>> extends ExecutableUpdate<TABLE> {
+    and(condition: IfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
     and(condition: BooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
+    or(condition: IfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
     or(condition: BooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
 }
 

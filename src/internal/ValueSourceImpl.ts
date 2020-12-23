@@ -478,7 +478,7 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
         return new SqlOperation1ValueSource('_concat', this, value, this.__valueType, getTypeAdapter2(this, value))
     }
     concatIfValue(value: any): any {
-        return new SqlOperation1ValueSourceIfValueOrNoop('_concat', this, value, this.__valueType, getTypeAdapter2(this, value))
+        return new SqlOperation1ValueSourceIfValueOrIgnore('_concat', this, value, this.__valueType, getTypeAdapter2(this, value))
     }
     substringToEnd(start: any): any {
         return new SqlOperation1ValueSource('_substringToEnd', this, start, this.__valueType, getTypeAdapter2(this, start))
@@ -707,6 +707,30 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         if (!sqlBuilder._isValue(this.__value)) {
             return ''
+        }
+        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
+    }
+    __resultIsOptional(rule: __OptionalRule): boolean {
+        return this.__valueSource.__resultIsOptional(rule)
+    }
+}
+
+
+
+export class SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl implements HasOperation {
+    __valueSource: ValueSourceImpl
+    __operation: keyof SqlOperation1
+    __value: any
+
+    constructor(operation: keyof SqlOperation1, valueSource: ValueSourceImpl, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
+        this.__valueSource = valueSource
+        this.__operation = operation
+        this.__value = value
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return this.__valueSource.__toSql(sqlBuilder, params)
         }
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }

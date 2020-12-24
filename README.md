@@ -1,4 +1,4 @@
-# ts-sql-query
+# ts-sql-query <!-- omit in toc -->
 
 [![npm](https://img.shields.io/npm/v/ts-sql-query.svg)](http://npm.im/ts-sql-query)
 
@@ -8,11 +8,12 @@ This package provides a way to build dynamic SQL queries in a type-safe way, tha
 
 Type-safe sql means the mistakes writting a query will be detected during the compilation time. With ts-sql-query you don't need to be affraid of change the database, the problems caused by the change will be detected during compilation time.
 
-# Summary
+# Summary <!-- omit in toc -->
 
 - [Install](#install)
 - [Basic queries](#basic-queries)
   - [Select one row](#select-one-row)
+  - [Dynamic queries](#dynamic-queries)
   - [Select with joins and order by](#select-with-joins-and-order-by)
   - [Select with subquery and dynamic order by](#select-with-subquery-and-dynamic-order-by)
   - [Select with aggregate functions and group by](#select-with-aggregate-functions-and-group-by)
@@ -100,7 +101,7 @@ $ npm install --save ts-sql-query
 ```ts
 const customerId = 10;
 
-const customersWithId = connection.selectFrom(tCustomer)
+const customerWithId = connection.selectFrom(tCustomer)
     .where(tCustomer.id.equals(customerId))
     .select({
         id: tCustomer.id,
@@ -122,7 +123,7 @@ The parameters are: `[ 10 ]`
 
 The result type is:
 ```ts
-const customersWithId: Promise<{
+const customerWithId: Promise<{
     id: number;
     firstName: string;
     lastName: string;
@@ -132,11 +133,62 @@ const customersWithId: Promise<{
 
 The `executeSelectOne` returns one result, but if it is not found in the database an exception will be thrown. If you want to return the result when it is found or null when it is not found you must use the `executeSelectNoneOrOne` method.
 
+### Dynamic queries
+
+ts-sql-query offers many commodity methods with name ended with `IfValue` to build dynamic queries; these methods allow to be ignored when the values specified by argument are `null` or `undefined` or empty string (only when the allowEmptyString flag in the connection is not set to true, that is the default behaviour). When these methods are used in operations that return booleans value, ts-sql-query is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
+
+When you realize an insert or update, you can:
+- set a column value conditionally using the method `setIfValue`
+- replace a previously set value during the construction of the query using  the method `setIfSet` or the method `setIfSetIfValue`
+- set a value if it was not previously set during the construction of the query using the method `setIfNotSet` or the method `setIfNotSetIfValue`
+- ignore a previously set value using the method `ignoreIfSet`
+- don't worry if you end with an update or delete with no where, you will get an error instead of update or delete all rows. You can allow explicitly having an update or delete with no where if you create it using the method `updateAllowingNoWhere` or `deleteAllowingNoWhereFrom` respectively
+
+```ts
+const firstNameContains = 'ohn';
+const lastNameContains = null;
+const birthdayIs = null;
+
+const searchedCustomers = connection.selectFrom(tCustomer)
+    .where(
+                tCustomer.firstName.containsIfValue(firstNameContains)
+            .or(tCustomer.lastName.containsIfValue(lastNameContains))
+        ).and(
+            tCustomer.birthday.equalsIfValue(birthdayIs)
+        )
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+```sql
+select id as id, first_name as firstName, last_name as lastName, birthday as birthday 
+from customer 
+where first_name like ('%' || $1 || '%')
+```
+
+The parameters are: `[ 'ohn' ]`
+
+The result type is:
+```ts
+const customerWithId: Promise<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    birthday?: Date;
+}[]>
+```
+
 ### Select with joins and order by
 
 ```ts
 const firstName = 'John';
-const lastName = '';
+const lastName = null;
 
 const company = tCompany.as('comp');
 const customersWithCompanyName = connection.selectFrom(tCustomer)

@@ -463,7 +463,7 @@ results.push({
 
 const customerId = 10
 
-const customersWithId = connection.selectFrom(tCustomer)
+const customerWithId = connection.selectFrom(tCustomer)
     .where(tCustomer.id.equals(customerId))
     .select({
         id: tCustomer.id,
@@ -478,8 +478,32 @@ const customersWithId = connection.selectFrom(tCustomer)
 
 results.push([])
 
+const firstNameContains = 'ohn'
+const lastNameContains = null
+const birthdayIs = null
+
+const searchedCustomers = connection.selectFrom(tCustomer)
+    .where(
+                tCustomer.firstName.containsIfValue(firstNameContains)
+            .or(tCustomer.lastName.containsIfValue(lastNameContains))
+        ).and(
+            tCustomer.birthday.equalsIfValue(birthdayIs)
+        )
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    })
+    .executeSelectMany()
+
+// Query: select id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where first_name like ('%' || $1 || '%')
+// Params: [ 'ohn' ]
+
+results.push([])
+
 const firstName = 'John'
-const lastName = ''
+const lastName = null
 
 const company = tCompany.as('comp')
 const customersWithCompanyName = connection.selectFrom(tCustomer)
@@ -684,6 +708,7 @@ const deleteCustomer = connection.deleteFrom(tCustomer)
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
+searchedCustomers.finally(() => undefined)
 customersWithCompanyName.finally(() => undefined)
 customerWithSelectedCompanies.finally(() => undefined)
 customerCountPerCompany.finally(() => undefined)
@@ -696,7 +721,7 @@ deleteCustomer.finally(() => undefined)
 customersUsingCustomFragment.finally(() => undefined)
 companiesUsingCustomFunctionFragment.finally(() => undefined)
 customerPageWithName.finally(() => undefined)
-customersWithId.finally(() => undefined)
+customerWithId.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

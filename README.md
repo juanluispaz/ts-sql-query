@@ -143,6 +143,7 @@ When you realize an insert or update, you can:
 - set a value if it was not previously set during the construction of the query using the method `setIfNotSet` or the method `setIfNotSetIfValue`
 - ignore a previously set value using the method `ignoreIfSet`
 - don't worry if you end with an update or delete with no where, you will get an error instead of update or delete all rows. You can allow explicitly having an update or delete with no where if you create it using the method `updateAllowingNoWhere` or `deleteAllowingNoWhereFrom` respectively
+- add a dynamic `order by` provided by the user without risk of SQL injection and without exposing the internal structure of the database. To build a dynamic `order by` use the method `orderByFromString` with the usual order by syntax, but using as column's name the name of the property in the resulting object
 
 ```ts
 const firstNameContains = 'ohn';

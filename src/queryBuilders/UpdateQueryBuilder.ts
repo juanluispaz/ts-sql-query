@@ -31,9 +31,15 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
         this.query()
         const source = new Error('Query executed at')
         try {
-            let result = this.__sqlBuilder._queryRunner.executeUpdate(this.__query, this.__params).catch((e) => {
-                throw attachSource(new ChainedError(e), source)
-            }) as Promise<int>
+            let result
+            if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
+                // Nothing to update, nothing to set
+                result = Promise.resolve(0) as Promise<int>
+            } else {
+                result = this.__sqlBuilder._queryRunner.executeUpdate(this.__query, this.__params).catch((e) => {
+                    throw attachSource(new ChainedError(e), source)
+                }) as Promise<int>
+            }
             if (min !== undefined) {
                 result = result.then((count) => {
                     if (count < min) {

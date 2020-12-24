@@ -481,6 +481,7 @@ results.push([])
 const firstNameContains = 'ohn'
 const lastNameContains = null
 const birthdayIs = null
+const searchOrderBy = 'name, birthday asc nulls last'
 
 const searchedCustomers = connection.selectFrom(tCustomer)
     .where(
@@ -491,14 +492,14 @@ const searchedCustomers = connection.selectFrom(tCustomer)
         )
     .select({
         id: tCustomer.id,
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName,
+        name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
         birthday: tCustomer.birthday
     })
+    .orderByFromString(searchOrderBy)
     .executeSelectMany()
 
-// Query: select id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where first_name like ('%' || $1 || '%')
-// Params: [ 'ohn' ]
+// Query: select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by name, birthday asc nulls last
+// Params: [ ' ', 'ohn' ]
 
 results.push([])
 

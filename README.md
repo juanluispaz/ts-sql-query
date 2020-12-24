@@ -149,6 +149,7 @@ When you realize an insert or update, you can:
 const firstNameContains = 'ohn';
 const lastNameContains = null;
 const birthdayIs = null;
+const searchOrderBy = 'name, birthday asc nulls last';
 
 const searchedCustomers = connection.selectFrom(tCustomer)
     .where(
@@ -159,28 +160,28 @@ const searchedCustomers = connection.selectFrom(tCustomer)
         )
     .select({
         id: tCustomer.id,
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName,
+        name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
         birthday: tCustomer.birthday
     })
+    .orderByFromString(searchOrderBy)
     .executeSelectMany();
 ```
 
 The executed query is:
 ```sql
-select id as id, first_name as firstName, last_name as lastName, birthday as birthday 
+select id as id, first_name || $1 || last_name as name, birthday as birthday 
 from customer 
-where first_name like ('%' || $1 || '%')
+where first_name like ('%' || $2 || '%') 
+order by name, birthday asc nulls last
 ```
 
-The parameters are: `[ 'ohn' ]`
+The parameters are: `[ ' ', 'ohn' ]`
 
 The result type is:
 ```ts
 const customerWithId: Promise<{
     id: number;
-    firstName: string;
-    lastName: string;
+    name: string;
     birthday?: Date;
 }[]>
 ```

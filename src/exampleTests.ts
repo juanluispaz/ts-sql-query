@@ -412,6 +412,15 @@ class DBConection extends PostgreSqlConnection<'DBConnection'> {
         // Could be another fragment like a function call: myFunction(${left}, ${right})
         return this.fragmentWithType('int', 'required').sql`${left} << ${right}`
     })
+
+    valuePlusOneEqualsIfValue = this.buildFragmentWithArgsIfValue(
+        this.arg('int', 'required'),
+        this.valueArg('int', 'optional')
+    ).as((left, right) => {
+        // The fragment here is: ${left} + 1 = ${right}
+        // Could be another fragment like a function call: myFunction(${left}, ${right})
+        return this.fragmentWithType('boolean', 'required').sql`${left} + 1 = ${right}`
+    })
 }
 
 const tCompany = new class TCompany extends Table<DBConection, 'TCompany'> {
@@ -628,6 +637,22 @@ const companiesUsingCustomFunctionFragment = connection.selectFrom(tCompany)
 // Query: select id as id, name as name, id << $1 as idMultiplyBy2 from company where (id * $2) = (id << $3)
 // Params: [ 1, 2, 1 ]
 
+results.push([])
+
+const noValue = null
+const withValue = 2
+const companiesUsingCustomFunctionFragmentIfValue = connection.selectFrom(tCompany)
+    .where(connection.valuePlusOneEqualsIfValue(tCompany.id, noValue))
+        .or(connection.valuePlusOneEqualsIfValue(tCompany.id, withValue))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+    })
+    .executeSelectMany()
+
+// Query: select id as id, name as name from company where id + 1 = $1
+// Params: [ 2 ]
+
 results.push(1)
 
 const insertCustomer = connection.insertInto(tCustomer).set({
@@ -721,6 +746,7 @@ updateCustomer.finally(() => undefined)
 deleteCustomer.finally(() => undefined)
 customersUsingCustomFragment.finally(() => undefined)
 companiesUsingCustomFunctionFragment.finally(() => undefined)
+companiesUsingCustomFunctionFragmentIfValue.finally(() => undefined)
 customerPageWithName.finally(() => undefined)
 customerWithId.finally(() => undefined)
 

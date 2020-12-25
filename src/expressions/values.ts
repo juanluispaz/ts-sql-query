@@ -1188,7 +1188,7 @@ export class Argument<T extends ArgumentType, REQUIRED extends ArgumentRequire, 
 }
 
 export type TypeOf<R extends ArgumentRequire, T> = R extends 'required' ? T : (T | null | undefined)
-export type TypeOfArgument<ARG> = ARG extends Argument<any, any, any, infer T> ? T : never
+export type TypeOfArgument<ARG> = ARG extends Argument<any, infer REQUIRED, any, infer T> ? TypeOf<REQUIRED, T> : never
 
 export type MapArgumentToTypeSafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, ARG> =
     ARG extends Argument<infer TYPE, infer REQUIRED, any, infer T> ? (
@@ -1233,3 +1233,14 @@ export type UnsafeArgForFn<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, ARG> =
     ARG extends Argument<any, any, infer MODE, any> ? (
         MODE extends 'value' ? never : MapArgumentToTypeUnsafe<TABLE_OR_VIEW, ARG>
     ): never
+
+export type RequiredArgumentWhenValueMode<ARG> =
+    ARG extends Argument<infer TYPE, any, infer MODE, infer T> ? (
+        MODE extends 'value' ? Argument<TYPE, 'required', MODE, T> : ARG
+    ): never
+
+export type SafeArgForBuilderIfValue<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, ARG> =
+    MapArgumentToTypeSafe<TABLE_OR_VIEW, RequiredArgumentWhenValueMode<ARG>>
+
+export type UnsafeArgForBuilderIfValue<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, ARG> =
+    MapArgumentToTypeUnsafe<TABLE_OR_VIEW, RequiredArgumentWhenValueMode<ARG>>

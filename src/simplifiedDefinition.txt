@@ -387,10 +387,11 @@ interface Connection {
     valueArg<T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument
 
     /*
-     * This function receive the argument definition that you can create calling the arg function or the valueArg function.
+     * This functions receive the argument definition that you can create calling the arg function or the valueArg function.
      * You can specify up to 5 argument definitions
      */
     buildFragmentWithArgs(...argumentDefinitions: Argument[]): FragmentBuilder
+    buildFragmentWithArgsIfValue(...argumentDefinitions: Argument[]): FragmentBuilderIfValue
 
     /*
      * Configurations
@@ -432,8 +433,20 @@ interface FragmentBuilder {
     /*
      * The impl function will receive the proper ValueSource type according to the argument definition.
      * The nunber of arguments is the same specified in the function buildFragmentWithArgs (up to 5 arguments).
+     * The arguments of the returned function will have the proper parameters type.
      */
-    as(impl: (...args: ValueSource[]) => ValueSource): () => ValueSource
+    as(impl: (...args: ValueSource[]) => ValueSource): (...args: any) => ValueSource
+}
+
+interface FragmentBuilderIfValue {
+    /*
+     * The impl function will receive the proper ValueSource type according to the argument definition.
+     * The nunber of arguments is the same specified in the function buildFragmentWithArgsIfValue (up to 5 arguments).
+     * Any optional valueArg will be treated as required, the function received as argument will be not called if
+     * that argument receives null or undefined.
+     * The arguments of the returned function will have the proper parameters type.
+     */
+    as(impl: (...args: ValueSource[]) => ValueSource): (...args: any) => BooleanValueSource
 }
 
 interface TypeAdapter {

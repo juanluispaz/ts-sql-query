@@ -1,6 +1,7 @@
 import type { AnyDB } from "../databases"
 import type { TableOrViewRef, NoTableOrViewRequired } from "../utils/ITableOrView"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, ComparableValueSource, MapArgumentToTypeSafe, RemapValueSourceType, TypeOfArgument, MapArgumentToTypeUnsafe, SafeArgForFn, UnsafeArgForFn } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, ComparableValueSource, MapArgumentToTypeSafe, RemapValueSourceType, TypeOfArgument, MapArgumentToTypeUnsafe, SafeArgForFn, UnsafeArgForFn, IfValueSource, SafeArgForBuilderIfValue, UnsafeArgForBuilderIfValue } from "../expressions/values"
+import { valueType } from "../utils/symbols"
 
 export interface BooleanFragmentExpression<DB extends AnyDB, TYPE> {
     sql(sql: TemplateStringsArray):  BooleanValueSource<NoTableOrViewRequired<DB>, TYPE>
@@ -410,4 +411,210 @@ export interface FargmentFunction5TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, A
     <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>, a5: UnsafeArgForFn<T5, A5>): RemapValueSourceType<T1 | T3 | T4 | T5, RESULT>
     <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>, a5: UnsafeArgForFn<T5, A5>): RemapValueSourceType<T2 | T3 | T4 | T5, RESULT>
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>, a5: UnsafeArgForFn<T5, A5>): RemapValueSourceType<T1 | T2 | T3 | T4 | T5, RESULT>
+}
+
+export interface FragmentBuilder0IfValue<DB extends AnyDB> {
+    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: () => RESULT): () => IfValueSource<NoTableOrViewRequired<DB>, RESULT[typeof valueType]>
+}
+
+export interface FragmentBuilder1IfValueTypeSafe<DB extends AnyDB, A1> {
+    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>) => RESULT): FargmentFunctionIfValue1TypeSafe<DB, A1, RESULT[typeof valueType]>
+}
+
+export interface FragmentBuilder2IfValueTypeSafe<DB extends AnyDB, A1, A2> {
+    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>) => RESULT): FargmentFunctionIfValue2TypeSafe<DB, A1, A2, RESULT[typeof valueType]>
+}
+
+export interface FragmentBuilder3IfValueTypeSafe<DB extends AnyDB, A1, A2, A3> {
+    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>) => RESULT): FargmentFunctionIfValue3TypeSafe<DB, A1, A2, A3, RESULT[typeof valueType]>
+}
+
+export interface FragmentBuilder4IfValueTypeSafe<DB extends AnyDB, A1, A2, A3, A4> {
+    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>) => RESULT): FargmentFunctionIfValue4TypeSafe<DB, A1, A2, A3, A4, RESULT[typeof valueType]>
+}
+
+export interface FragmentBuilder5IfValueTypeSafe<DB extends AnyDB, A1, A2, A3, A4, A5> {
+    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>, a5: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A5>) => RESULT): FargmentFunctionIfValue5TypeSafe<DB, A1, A2, A3, A4, A5, RESULT[typeof valueType]>
+}
+
+export interface FragmentBuilder1IfValueTypeUnsafe<DB extends AnyDB, A1> {
+    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>) => RESULT): FargmentFunctionIfValue1TypeUnsafe<DB, A1, RESULT[typeof valueType]>
+}
+
+export interface FragmentBuilder2IfValueTypeUnsafe<DB extends AnyDB, A1, A2> {
+    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>) => RESULT): FargmentFunctionIfValue2TypeUnsafe<DB, A1, A2, RESULT[typeof valueType]>
+}
+
+export interface FragmentBuilder3IfValueTypeUnsafe<DB extends AnyDB, A1, A2, A3> {
+    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>) => RESULT): FargmentFunctionIfValue3TypeUnsafe<DB, A1, A2, A3, RESULT[typeof valueType]>
+}
+
+export interface FragmentBuilder4IfValueTypeUnsafe<DB extends AnyDB, A1, A2, A3, A4> {
+    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>) => RESULT): FargmentFunctionIfValue4TypeUnsafe<DB, A1, A2, A3, A4, RESULT[typeof valueType]>
+}
+
+export interface FragmentBuilder5IfValueTypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, A5> {
+    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>, a5: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A5>) => RESULT): FargmentFunctionIfValue5TypeUnsafe<DB, A1, A2, A3, A4, A5, RESULT[typeof valueType]>
+}
+
+export interface FargmentFunctionIfValue1TypeSafe<DB extends AnyDB, A1, RESULT> {
+    (a1: TypeOfArgument<A1>): IfValueSource<NoTableOrViewRequired<DB>, RESULT>
+    <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>): IfValueSource<T1, RESULT>
+}
+
+export interface FargmentFunctionIfValue2TypeSafe<DB extends AnyDB, A1, A2, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>): IfValueSource<NoTableOrViewRequired<DB>, RESULT>
+    <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>): IfValueSource<T1, RESULT>
+
+    <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>): IfValueSource<T2, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>): IfValueSource<T1 | T2, RESULT>
+}
+
+export interface FargmentFunctionIfValue3TypeSafe<DB extends AnyDB, A1, A2, A3, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): IfValueSource<NoTableOrViewRequired<DB>, RESULT>
+    <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): IfValueSource<T1, RESULT>
+    <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>): IfValueSource<T2, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>): IfValueSource<T1 | T2, RESULT>
+
+    <T3 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>): IfValueSource<T3, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>): IfValueSource<T1 | T3, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>): IfValueSource<T2 | T3, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>): IfValueSource<T1 | T2 | T3, RESULT>
+}
+
+export interface FargmentFunctionIfValue4TypeSafe<DB extends AnyDB, A1, A2, A3, A4, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<NoTableOrViewRequired<DB>, RESULT>
+    <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<T1, RESULT>
+    <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<T2, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<T1 | T2, RESULT>
+    <T3 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>): IfValueSource<T3, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>): IfValueSource<T1 | T3, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>): IfValueSource<T2 | T3, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>): IfValueSource<T1 | T2 | T3, RESULT>
+
+    <T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: SafeArgForFn<T4, A4>): IfValueSource<T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: SafeArgForFn<T4, A4>): IfValueSource<T1 | T4, RESULT>
+    <T2 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: SafeArgForFn<T4, A4>): IfValueSource<T2 | T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: SafeArgForFn<T4, A4>): IfValueSource<T1 | T2 | T4, RESULT>
+    <T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>): IfValueSource<T3 | T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>): IfValueSource<T1 | T3 | T4, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>): IfValueSource<T2 | T3 | T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>): IfValueSource<T1 | T2 | T3 | T4, RESULT>
+}
+
+export interface FargmentFunctionIfValue5TypeSafe<DB extends AnyDB, A1, A2, A3, A4, A5, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<NoTableOrViewRequired<DB>, RESULT>
+    <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T1, RESULT>
+    <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T2, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T2, RESULT>
+    <T3 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T3, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T3, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T2 | T3, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T2 | T3, RESULT>
+    <T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: SafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: SafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T4, RESULT>
+    <T2 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: SafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T2 | T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: SafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T2 | T4, RESULT>
+    <T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T3 | T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T3 | T4, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T2 | T3 | T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T2 | T3 | T4, RESULT>
+
+    <T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T1 | T5, RESULT>
+    <T2 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T2 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T1 | T2 | T5, RESULT>
+    <T3 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T3 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T1 | T3 | T5, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T2 | T3 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T1 | T2 | T3 | T5, RESULT>
+    <T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: SafeArgForFn<T4, A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T4 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: SafeArgForFn<T4, A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T1 | T4 | T5, RESULT>
+    <T2 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: SafeArgForFn<T4, A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T2 | T4 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: SafeArgForFn<T4, A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T1 | T2 | T4 | T5, RESULT>
+    <T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T3 | T4 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T1 | T3 | T4 | T5, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T2 | T3 | T4 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T1 | T2 | T3 | T4 | T5, RESULT>
+}
+
+export interface FargmentFunctionIfValue1TypeUnsafe<DB extends AnyDB, A1, RESULT> {
+    (a1: TypeOfArgument<A1>): IfValueSource<NoTableOrViewRequired<DB>, RESULT>
+    <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>): IfValueSource<T1, RESULT>
+}
+
+export interface FargmentFunctionIfValue2TypeUnsafe<DB extends AnyDB, A1, A2, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>): IfValueSource<NoTableOrViewRequired<DB>, RESULT>
+    <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>): IfValueSource<T1, RESULT>
+
+    <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>): IfValueSource<T2, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>): IfValueSource<T1 | T2, RESULT>
+}
+
+export interface FargmentFunctionIfValue3TypeUnsafe<DB extends AnyDB, A1, A2, A3, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): IfValueSource<NoTableOrViewRequired<DB>, RESULT>
+    <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): IfValueSource<T1, RESULT>
+    <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>): IfValueSource<T2, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>): IfValueSource<T1 | T2, RESULT>
+
+    <T3 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>): IfValueSource<T3, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>): IfValueSource<T1 | T3, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>): IfValueSource<T2 | T3, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>): IfValueSource<T1 | T2 | T3, RESULT>
+}
+
+export interface FargmentFunctionIfValue4TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<NoTableOrViewRequired<DB>, RESULT>
+    <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<T1, RESULT>
+    <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<T2, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<T1 | T2, RESULT>
+    <T3 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>): IfValueSource<T3, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>): IfValueSource<T1 | T3, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>): IfValueSource<T2 | T3, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>): IfValueSource<T1 | T2 | T3, RESULT>
+
+    <T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: UnsafeArgForFn<T4, A4>): IfValueSource<T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: UnsafeArgForFn<T4, A4>): IfValueSource<T1 | T4, RESULT>
+    <T2 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: UnsafeArgForFn<T4, A4>): IfValueSource<T2 | T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: UnsafeArgForFn<T4, A4>): IfValueSource<T1 | T2 | T4, RESULT>
+    <T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>): IfValueSource<T3 | T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>): IfValueSource<T1 | T3 | T4, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>): IfValueSource<T2 | T3 | T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>): IfValueSource<T1 | T2 | T3 | T4, RESULT>
+}
+
+export interface FargmentFunctionIfValue5TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, A5, RESULT> {
+    (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<NoTableOrViewRequired<DB>, RESULT>
+    <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T1, RESULT>
+    <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T2, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T2, RESULT>
+    <T3 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T3, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T3, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T2 | T3, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T2 | T3, RESULT>
+    <T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: UnsafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: UnsafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T4, RESULT>
+    <T2 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: UnsafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T2 | T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: UnsafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T2 | T4, RESULT>
+    <T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T3 | T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T3 | T4, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T2 | T3 | T4, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>, a5: TypeOfArgument<A5>): IfValueSource<T1 | T2 | T3 | T4, RESULT>
+
+    <T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T1 | T5, RESULT>
+    <T2 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T2 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T1 | T2 | T5, RESULT>
+    <T3 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T3 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T1 | T3 | T5, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T2 | T3 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: TypeOfArgument<A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T1 | T2 | T3 | T5, RESULT>
+    <T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: UnsafeArgForFn<T4, A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T4 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: UnsafeArgForFn<T4, A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T1 | T4 | T5, RESULT>
+    <T2 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: UnsafeArgForFn<T4, A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T2 | T4 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: UnsafeArgForFn<T4, A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T1 | T2 | T4 | T5, RESULT>
+    <T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T3 | T4 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T1 | T3 | T4 | T5, RESULT>
+    <T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T2 | T3 | T4 | T5, RESULT>
+    <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>, a5: UnsafeArgForFn<T5, A5>): IfValueSource<T1 | T2 | T3 | T4 | T5, RESULT>
 }

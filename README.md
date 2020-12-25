@@ -20,6 +20,7 @@ Type-safe sql means the mistakes writting a query will be detected during the co
   - [Select page](#select-page)
   - [Select with custom sql fragment](#select-with-custom-sql-fragment)
   - [Select with custom reusable sql fragment](#select-with-custom-reusable-sql-fragment)
+  - [Select with custom reusable sql fragment if value](#select-with-custom-reusable-sql-fragment-if-value)
   - [Insert](#insert)
   - [Insert multiple values](#insert-multiple-values)
   - [Insert from select](#insert-from-select)
@@ -135,7 +136,7 @@ The `executeSelectOne` returns one result, but if it is not found in the databas
 
 ### Dynamic queries
 
-ts-sql-query offers many commodity methods with name ended with `IfValue` to build dynamic queries; these methods allow to be ignored when the values specified by argument are `null` or `undefined` or empty string (only when the allowEmptyString flag in the connection is not set to true, that is the default behaviour). When these methods are used in operations that return booleans value, ts-sql-query is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
+ts-sql-query offers many commodity methods with name ended with `IfValue` to build dynamic queries; these methods allow to be ignored when the values specified by argument are `null` or `undefined` or an empty string (only when the allowEmptyString flag in the connection is not set to true, that is the default behaviour). When these methods are used in operations that return booleans value, ts-sql-query is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
 
 When you realize an insert or update, you can:
 - set a column value conditionally using the method `setIfValue`
@@ -307,6 +308,7 @@ Select page execute the query twice, the first one to get the data from the data
 
 ```ts
 const customerName = 'Smi'
+
 const customerPageWithName = connection.selectFrom(tCustomer)
     .where(
         tCustomer.firstName.startWithInsensitive(customerName)
@@ -445,6 +447,65 @@ const companiesUsingCustomFunctionFragment: Promise<{
     id: number;
     name: string;
     idMultiplyBy2: number;
+}[]>
+```
+
+### Select with custom reusable sql fragment if value
+
+You can define functions in your connection that create custom reusable sql fragments that have the same behaviour of the functions with name ended with `IfValue`, that give you the possibility to do some operations or functions not included in ts-sql-query.
+
+ts-sql-query offers many commodity methods with name ended with `IfValue` to build dynamic queries; these methods allow to be ignored when the values specified by argument are `null` or `undefined` or an empty string (only when the allowEmptyString flag in the connection is not set to true, that is the default behaviour). When these methods are used in operations that return booleans value, ts-sql-query is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
+
+The method `buildFragmentWithArgsIfValue` allows you to create a function, where if any optional value argument receives `null` or `undefined` or an empty string, the execution of the provided function is omitted.
+
+If you define your connection like:
+
+```ts
+import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+class DBConection extends PostgreSqlConnection<'DBConnection'> { 
+
+    valuePlusOneEqualsIfValue = this.buildFragmentWithArgsIfValue(
+        this.arg('int', 'required'),
+        this.valueArg('int', 'optional')
+    ).as((left, right) => {
+        // The fragment here is: ${left} + 1 = ${right}
+        // Could be another fragment like a function call: myFunction(${left}, ${right})
+        return this.fragmentWithType('boolean', 'required').sql`${left} + 1 = ${right}`
+    })
+}
+```
+
+You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; this arguments can be numbers or elements in the database that represents integer numbers. If you create the argument using the function `valueArg` instead of the `arg` function, the defined function only will accept values but not elements of the database. You can use the defined function as a regular database function in your query.
+
+```ts
+const noValue = null
+const withValue = 2
+
+const companiesUsingCustomFunctionFragmentIfValue = connection.selectFrom(tCompany)
+    .where(connection.valuePlusOneEqualsIfValue(tCompany.id, noValue))
+        .or(connection.valuePlusOneEqualsIfValue(tCompany.id, withValue))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+    })
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select id as id, name as name 
+from company 
+where id + 1 = $1
+```
+
+The parameters are: `[ 2 ]`
+
+The result type is:
+```ts
+const companiesUsingCustomFunctionFragment: Promise<{
+    id: number;
+    name: string;
 }[]>
 ```
 
@@ -1206,10 +1267,11 @@ interface Connection {
     valueArg<T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Argument
 
     /*
-     * This function receive the argument definition that you can create calling the arg function or the valueArg function.
+     * This functions receive the argument definition that you can create calling the arg function or the valueArg function.
      * You can specify up to 5 argument definitions
      */
     buildFragmentWithArgs(...argumentDefinitions: Argument[]): FragmentBuilder
+    buildFragmentWithArgsIfValue(...argumentDefinitions: Argument[]): FragmentBuilderIfValue
 
     /*
      * Configurations
@@ -1251,8 +1313,20 @@ interface FragmentBuilder {
     /*
      * The impl function will receive the proper ValueSource type according to the argument definition.
      * The nunber of arguments is the same specified in the function buildFragmentWithArgs (up to 5 arguments).
+     * The arguments of the returned function will have the proper parameters type.
      */
-    as(impl: (...args: ValueSource[]) => ValueSource): () => ValueSource
+    as(impl: (...args: ValueSource[]) => ValueSource): (...args: any) => ValueSource
+}
+
+interface FragmentBuilderIfValue {
+    /*
+     * The impl function will receive the proper ValueSource type according to the argument definition.
+     * The nunber of arguments is the same specified in the function buildFragmentWithArgsIfValue (up to 5 arguments).
+     * Any optional valueArg will be treated as required, the function received as argument will be not called if
+     * that argument receives null or undefined.
+     * The arguments of the returned function will have the proper parameters type.
+     */
+    as(impl: (...args: ValueSource[]) => ValueSource): (...args: any) => BooleanValueSource
 }
 
 interface TypeAdapter {

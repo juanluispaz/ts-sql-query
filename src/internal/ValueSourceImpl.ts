@@ -747,6 +747,18 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
     }
 }
 
+export class SqlOperationValueSourceIfValueAlwaysNoop extends ValueSourceImpl {
+    
+    constructor() {
+        super('', undefined)
+    }
+    __toSql(_sqlBuilder: SqlBuilder, _params: any[]): string {
+        return ''
+    }
+    __resultIsOptional(_rule: __OptionalRule): boolean {
+        return false
+    }
+}
 
 
 export class SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl implements HasOperation {

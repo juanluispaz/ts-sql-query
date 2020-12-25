@@ -5,8 +5,8 @@ import type { Column } from "../utils/Column"
 import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
-import { ExecutableSelect } from "../expressions/select"
 import { database, tableOrView } from "../utils/symbols"
+import { IExecutableSelect } from "../expressions/values"
 
 // one implement ommited intentionally to don't confuse TypeScript
 
@@ -272,7 +272,7 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
             return this.set(columns)
         }
     }
-    from(select: ExecutableSelect<any, any, any>): this {
+    from(select: IExecutableSelect<any, any, any>): this {
         this.__from = select as any as SelectData
         return this
     }

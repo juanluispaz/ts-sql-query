@@ -8,6 +8,7 @@ export const database: unique symbol = Symbol('database')
 export const tableOrView: unique symbol = Symbol('tableOrView')
 export const tableOrViewRef: unique symbol = Symbol('tableOrViewRef')
 export const tableOrViewRefType: unique symbol = Symbol('tableOrViewRef')
+export const resultType: unique symbol = Symbol('resultType')
 
 // Expressions
 export const requiredTableOrView: unique symbol = Symbol('requiredTableOrView')

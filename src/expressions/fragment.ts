@@ -1,6 +1,6 @@
 import type { AnyDB } from "../databases"
 import type { TableOrViewRef, NoTableOrViewRequired } from "../utils/ITableOrView"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, ComparableValueSource, MapArgumentToTypeSafe, RemapValueSourceType, TypeOfArgument, MapArgumentToTypeUnsafe, SafeArgForFn, UnsafeArgForFn, IfValueSource, SafeArgForBuilderIfValue, UnsafeArgForBuilderIfValue } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, ComparableValueSource, MapArgumentToTypeSafe, RemapValueSourceType, TypeOfArgument, MapArgumentToTypeUnsafe, SafeArgForFn, UnsafeArgForFn, IfValueSource, SafeArgForBuilderIfValue, UnsafeArgForBuilderIfValue, IBooleanValueSource, IIfValueSource } from "../expressions/values"
 import { valueType } from "../utils/symbols"
 
 export interface BooleanFragmentExpression<DB extends AnyDB, TYPE> {
@@ -414,47 +414,47 @@ export interface FargmentFunction5TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, A
 }
 
 export interface FragmentBuilder0IfValue<DB extends AnyDB> {
-    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: () => RESULT): () => IfValueSource<NoTableOrViewRequired<DB>, RESULT[typeof valueType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: () => RESULT): () => IfValueSource<NoTableOrViewRequired<DB>, RESULT[typeof valueType]>
 }
 
 export interface FragmentBuilder1IfValueTypeSafe<DB extends AnyDB, A1> {
-    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>) => RESULT): FargmentFunctionIfValue1TypeSafe<DB, A1, RESULT[typeof valueType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>) => RESULT): FargmentFunctionIfValue1TypeSafe<DB, A1, RESULT[typeof valueType]>
 }
 
 export interface FragmentBuilder2IfValueTypeSafe<DB extends AnyDB, A1, A2> {
-    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>) => RESULT): FargmentFunctionIfValue2TypeSafe<DB, A1, A2, RESULT[typeof valueType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>) => RESULT): FargmentFunctionIfValue2TypeSafe<DB, A1, A2, RESULT[typeof valueType]>
 }
 
 export interface FragmentBuilder3IfValueTypeSafe<DB extends AnyDB, A1, A2, A3> {
-    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>) => RESULT): FargmentFunctionIfValue3TypeSafe<DB, A1, A2, A3, RESULT[typeof valueType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>) => RESULT): FargmentFunctionIfValue3TypeSafe<DB, A1, A2, A3, RESULT[typeof valueType]>
 }
 
 export interface FragmentBuilder4IfValueTypeSafe<DB extends AnyDB, A1, A2, A3, A4> {
-    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>) => RESULT): FargmentFunctionIfValue4TypeSafe<DB, A1, A2, A3, A4, RESULT[typeof valueType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>) => RESULT): FargmentFunctionIfValue4TypeSafe<DB, A1, A2, A3, A4, RESULT[typeof valueType]>
 }
 
 export interface FragmentBuilder5IfValueTypeSafe<DB extends AnyDB, A1, A2, A3, A4, A5> {
-    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>, a5: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A5>) => RESULT): FargmentFunctionIfValue5TypeSafe<DB, A1, A2, A3, A4, A5, RESULT[typeof valueType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>, a5: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A5>) => RESULT): FargmentFunctionIfValue5TypeSafe<DB, A1, A2, A3, A4, A5, RESULT[typeof valueType]>
 }
 
 export interface FragmentBuilder1IfValueTypeUnsafe<DB extends AnyDB, A1> {
-    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>) => RESULT): FargmentFunctionIfValue1TypeUnsafe<DB, A1, RESULT[typeof valueType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>) => RESULT): FargmentFunctionIfValue1TypeUnsafe<DB, A1, RESULT[typeof valueType]>
 }
 
 export interface FragmentBuilder2IfValueTypeUnsafe<DB extends AnyDB, A1, A2> {
-    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>) => RESULT): FargmentFunctionIfValue2TypeUnsafe<DB, A1, A2, RESULT[typeof valueType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>) => RESULT): FargmentFunctionIfValue2TypeUnsafe<DB, A1, A2, RESULT[typeof valueType]>
 }
 
 export interface FragmentBuilder3IfValueTypeUnsafe<DB extends AnyDB, A1, A2, A3> {
-    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>) => RESULT): FargmentFunctionIfValue3TypeUnsafe<DB, A1, A2, A3, RESULT[typeof valueType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>) => RESULT): FargmentFunctionIfValue3TypeUnsafe<DB, A1, A2, A3, RESULT[typeof valueType]>
 }
 
 export interface FragmentBuilder4IfValueTypeUnsafe<DB extends AnyDB, A1, A2, A3, A4> {
-    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>) => RESULT): FargmentFunctionIfValue4TypeUnsafe<DB, A1, A2, A3, A4, RESULT[typeof valueType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>) => RESULT): FargmentFunctionIfValue4TypeUnsafe<DB, A1, A2, A3, A4, RESULT[typeof valueType]>
 }
 
 export interface FragmentBuilder5IfValueTypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, A5> {
-    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>, a5: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A5>) => RESULT): FargmentFunctionIfValue5TypeUnsafe<DB, A1, A2, A3, A4, A5, RESULT[typeof valueType]>
+    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>, a5: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A5>) => RESULT): FargmentFunctionIfValue5TypeUnsafe<DB, A1, A2, A3, A4, A5, RESULT[typeof valueType]>
 }
 
 export interface FargmentFunctionIfValue1TypeSafe<DB extends AnyDB, A1, RESULT> {

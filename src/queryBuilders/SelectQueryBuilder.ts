@@ -1,17 +1,20 @@
 import type { SqlBuilder, JoinData, ToSql, SelectData } from "../sqlBuilders/SqlBuilder"
 import type { SelectExpression, SelectValues, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, ExecutableSelect, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ExecutableSelectWithoutGroupBy, OffsetExecutableSelectExpressionWithoutGroupBy, OrderByExecutableSelectExpressionWithoutGroupBy } from "../expressions/select"
 import type { ITableOrView, OuterJoinSource } from "../utils/ITableOrView"
-import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, IfValueSource } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, IfValueSource, IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import { __getValueSourcePrivate } from "../expressions/values"
 import ChainedError from "chained-error"
 import { AggregateFunctions0ValueSource } from "../internal/ValueSourceImpl"
 import { attachSource } from "../utils/attachSource"
-import { database, requiredTableOrView } from "../utils/symbols"
+import { database, requiredTableOrView, resultType, type } from "../utils/symbols"
+import { asValueSource } from "../expressions/values"
 
 export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<any, any, any>, SelectExpressionFromNoTable<any>, ExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, DynamicWhereExecutableSelectExpression<any, any, any, any, any>, DynamicWhereExpressionWithoutSelect<any, any, any>, GroupByOrderByExecutableSelectExpression<any, any, any, any, any>, OffsetExecutableSelectExpression<any, any, any>, ExecutableSelect<any, any, any>, SelectWhereJoinExpression<any, any, any>, DynamicOnExpression<any, any, any>, OnExpression<any, any, any>, SelectExpressionWithoutJoin<any, any, any>, SelectExpressionSubquery<any, any>, SelectWhereExpression<any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any>, GroupByOrderByHavingExecutableSelectExpression<any, any, any, any, any>, DynamicHavingExecutableSelectExpression<any, any, any, any, any>, GroupByOrderHavingByExpressionWithoutSelect<any, any, any>, DynamicHavingExpressionWithoutSelect<any, any, any>, ExecutableSelectWithoutGroupBy<any, any, any>, OffsetExecutableSelectExpressionWithoutGroupBy<any, any, any>, OrderByExecutableSelectExpressionWithoutGroupBy<any, any, any, any, any> {
     [database]: any
     [requiredTableOrView]: any
+    [type]: 'ExecutableSelect'
+    [resultType]: any
     __sqlBuilder: SqlBuilder
 
     __distinct: boolean
@@ -302,12 +305,12 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         this.__query = ''
         return this
     }
-    on(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
+    on(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__query = ''
         if (!this.__lastJoin) {
             throw new Error('Illegal state')
         }
-        this.__lastJoin.__on = condition
+        this.__lastJoin.__on = asValueSource(condition)
         this.__joins.push(this.__lastJoin)
         this.__lastJoin = undefined
         return this
@@ -324,22 +327,22 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         this.__query = ''
         return this
     }
-    where(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
+    where(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__where) {
             throw new Error('Illegal state')
         }
-        this.__where = condition
+        this.__where = asValueSource(condition)
         return this
     }
-    and(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
+    and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__query = ''
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.and(condition)
             } else {
-                this.__lastJoin.__on = condition
+                this.__lastJoin.__on = asValueSource(condition)
             }
             return this
         }
@@ -347,7 +350,7 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
             if (this.__having) {
                 this.__having = this.__having.and(condition)
             } else {
-                this.__having = condition
+                this.__having = asValueSource(condition)
             }
             return this
         }
@@ -355,17 +358,17 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         if (this.__where) {
             this.__where = this.__where.and(condition)
         } else {
-            this.__where = condition
+            this.__where = asValueSource(condition)
         }
         return this
     }
-    or(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
+    or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__query = ''
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.or(condition)
             } else {
-                this.__lastJoin.__on = condition
+                this.__lastJoin.__on = asValueSource(condition)
             }
             return this
         }
@@ -373,14 +376,14 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
             if (this.__having) {
                 this.__having = this.__having.or(condition)
             } else {
-                this.__having = condition
+                this.__having = asValueSource(condition)
             }
             return this
         }
         if (this.__where) {
             this.__where = this.__where.or(condition)
         } else {
-            this.__where = condition
+            this.__where = asValueSource(condition)
         }
         return this
     }
@@ -390,14 +393,14 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         this.__inHaving = true
         return this
     }
-    having(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
+    having(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
         this.__inHaving = true
         if (this.__having) {
             throw new Error('Illegal state')
         }
-        this.__having = condition
+        this.__having = asValueSource(condition)
         return this
     }
     groupBy(...columns: Array<string| number | symbol | ValueSource<any, any>>): this {
@@ -475,16 +478,16 @@ export class SelectQueryBuilder implements ToSql, SelectData, SelectExpression<a
         }
         return this
     }
-    limit(limit: int | number | NumberValueSource<any, any> | IntValueSource<any, any>): this {
+    limit(limit: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
-        this.__limit = limit
+        this.__limit = asValueSource(limit)
         return this
     }
-    offset(offset: int | number | NumberValueSource<any, any> | IntValueSource<any, any>): this {
+    offset(offset: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): this {
         this.__finishJoinHaving()
         this.__query = ''
-        this.__offset = offset
+        this.__offset = asValueSource(offset)
         return this
     }
 

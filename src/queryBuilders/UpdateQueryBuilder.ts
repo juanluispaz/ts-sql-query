@@ -1,11 +1,12 @@
 import type { SqlBuilder, UpdateData } from "../sqlBuilders/SqlBuilder"
 import type { ITable } from "../utils/ITableOrView"
-import type { BooleanValueSource, IfValueSource } from "../expressions/values"
+import type { BooleanValueSource, IBooleanValueSource, IfValueSource, IIfValueSource } from "../expressions/values"
 import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression } from "../expressions/update"
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { database, tableOrView } from "../utils/symbols"
+import { asValueSource } from "../expressions/values"
 
 export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressionAllowingNoWhere<any>, ExecutableUpdate<any>, ExecutableUpdateExpression<any>, NotExecutableUpdateExpression<any>, DynamicExecutableUpdateExpression<any>, UpdateData {
     [database]: any
@@ -202,29 +203,29 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
         this.__query = ''
         return this
     }
-    where(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
+    where(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
             throw new Error('Illegal state')
         }
-        this.__where = condition
+        this.__where = asValueSource(condition)
         return this
     }
-    and(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
+    and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
             this.__where = this.__where.and(condition)
         } else {
-            this.__where = condition
+            this.__where = asValueSource(condition)
         }
         return this
     }
-    or(condition: BooleanValueSource<any, any> | IfValueSource<any, any>): this {
+    or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
             this.__where = this.__where.or(condition)
         } else {
-            this.__where = condition
+            this.__where = asValueSource(condition)
         }
         return this
     }

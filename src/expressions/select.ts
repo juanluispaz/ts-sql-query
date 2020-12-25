@@ -1,4 +1,4 @@
-import type { BooleanValueSource, ValueSource, NumberValueSource, IntValueSource, IfValueSource } from "./values"
+import type { IBooleanValueSource, ValueSource, INumberValueSource, IIntValueSource, IIfValueSource, IExecutableSelect } from "./values"
 import type { ITableOrViewOf, NoTableOrViewRequired, NoTableOrViewRequiredView, OuterJoinSource } from "../utils/ITableOrView"
 import type { OuterJoinTableOrView } from "../utils/tableOrViewUtils"
 import type { AnyDB, TypeWhenSafeDB, TypeSafeDB } from "../databases"
@@ -12,7 +12,7 @@ export interface SelectExpressionBase<DB extends AnyDB, REQUIRED_TABLE_OR_VIEW e
     [requiredTableOrView]: REQUIRED_TABLE_OR_VIEW
 }
 
-export interface ExecutableSelect<DB extends AnyDB, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
+export interface ExecutableSelect<DB extends AnyDB, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW>, IExecutableSelect<DB, RESULT, REQUIRED_TABLE_OR_VIEW> {
     /*
      * Results of execute methods returns an anonymous type with a exact copy of the result
      * to allow see easily the type when you over (with the mouse) the variable with the
@@ -39,13 +39,13 @@ export interface ExecutableSelectWithoutGroupBy<DB extends AnyDB, RESULT, REQUIR
 export interface OffsetExecutableSelectExpression<DB extends AnyDB, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends ExecutableSelect<DB, RESULT, REQUIRED_TABLE_OR_VIEW> {
     offset(offset: int): ExecutableSelect<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
     offset(offset: number): ExecutableSelect<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
-    offset(offset: TypeWhenSafeDB<DB, IntValueSource<NoTableOrViewRequired<DB>, int | null | undefined>, NumberValueSource<NoTableOrViewRequired<DB>, number | null | undefined>>): ExecutableSelect<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
+    offset(offset: TypeWhenSafeDB<DB, IIntValueSource<NoTableOrViewRequired<DB>, int | null | undefined>, INumberValueSource<NoTableOrViewRequired<DB>, number | null | undefined>>): ExecutableSelect<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
 }
 
 export interface OffsetExecutableSelectExpressionWithoutGroupBy<DB extends AnyDB, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends ExecutableSelectWithoutGroupBy<DB, RESULT, REQUIRED_TABLE_OR_VIEW> {
     offset(offset: int): ExecutableSelectWithoutGroupBy<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
     offset(offset: number): ExecutableSelectWithoutGroupBy<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
-    offset(offset: TypeWhenSafeDB<DB, IntValueSource<NoTableOrViewRequired<DB>, int | null | undefined>, NumberValueSource<NoTableOrViewRequired<DB>, number | null | undefined>>): ExecutableSelectWithoutGroupBy<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
+    offset(offset: TypeWhenSafeDB<DB, IIntValueSource<NoTableOrViewRequired<DB>, int | null | undefined>, INumberValueSource<NoTableOrViewRequired<DB>, number | null | undefined>>): ExecutableSelectWithoutGroupBy<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
 }
 
 export interface OrderByExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, ORDER_BY_KEYS> extends ExecutableSelect<DB, RESULT, REQUIRED_TABLE_OR_VIEW> {
@@ -54,7 +54,7 @@ export interface OrderByExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VI
 
     limit(limit: int): OffsetExecutableSelectExpression<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
     limit(limit: number): OffsetExecutableSelectExpression<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
-    limit(limit: TypeWhenSafeDB<DB, IntValueSource<NoTableOrViewRequired<DB>, int | null | undefined>, NumberValueSource<NoTableOrViewRequired<DB>, number | null | undefined>>): OffsetExecutableSelectExpression<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
+    limit(limit: TypeWhenSafeDB<DB, IIntValueSource<NoTableOrViewRequired<DB>, int | null | undefined>, INumberValueSource<NoTableOrViewRequired<DB>, number | null | undefined>>): OffsetExecutableSelectExpression<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
 }
 
 export interface OrderByExecutableSelectExpressionWithoutGroupBy<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, ORDER_BY_KEYS> extends ExecutableSelectWithoutGroupBy<DB, RESULT, REQUIRED_TABLE_OR_VIEW> {
@@ -63,7 +63,7 @@ export interface OrderByExecutableSelectExpressionWithoutGroupBy<DB extends AnyD
 
     limit(limit: int): OffsetExecutableSelectExpressionWithoutGroupBy<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
     limit(limit: number): OffsetExecutableSelectExpressionWithoutGroupBy<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
-    limit(limit: TypeWhenSafeDB<DB, IntValueSource<NoTableOrViewRequired<DB>, int | null | undefined>, NumberValueSource<NoTableOrViewRequired<DB>, number | null | undefined>>): OffsetExecutableSelectExpressionWithoutGroupBy<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
+    limit(limit: TypeWhenSafeDB<DB, IIntValueSource<NoTableOrViewRequired<DB>, int | null | undefined>, INumberValueSource<NoTableOrViewRequired<DB>, number | null | undefined>>): OffsetExecutableSelectExpressionWithoutGroupBy<DB, RESULT, REQUIRED_TABLE_OR_VIEW>
 }
 
 export interface GroupByOrderByExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, ORDER_BY_KEYS> extends OrderByExecutableSelectExpressionWithoutGroupBy<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS> {
@@ -76,43 +76,43 @@ export interface GroupByOrderByHavingExecutableSelectExpression<DB extends AnyDB
     groupBy(...columns: ValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], any>[]): GroupByOrderByHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
 
     dynamicHaving(): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
-    having(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
-    having(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
+    having(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
+    having(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
 }
 
 export interface DynamicHavingExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, ORDER_BY_KEYS> extends OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS> {
-    and(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
-    and(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
-    or(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
-    or(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
+    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
+    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
+    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
+    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
 }
 
 export interface GroupByOrderHavingByExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
     groupBy(...columns: ValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], any>[]): GroupByOrderHavingByExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
 
     dynamicHaving(): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    having(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    having(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    having(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    having(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
 
     select<RESULT>(columns: SelectValues<DB, TABLE_OR_VIEW, RESULT>): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, SelectResult<RESULT>, REQUIRED_TABLE_OR_VIEW, keyof RESULT>
     selectOneColumn<RESULT>(column: ValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, RESULT>): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, FixSelectOneResult<RESULT>, REQUIRED_TABLE_OR_VIEW, 'result'>
 }
 
 export interface DynamicHavingExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
-    and(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    and(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    or(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    or(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
 
     select<RESULT>(columns: SelectValues<DB, TABLE_OR_VIEW, RESULT>): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, SelectResult<RESULT>, REQUIRED_TABLE_OR_VIEW, keyof RESULT>
     selectOneColumn<RESULT>(column: ValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, RESULT>): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, FixSelectOneResult<RESULT>, REQUIRED_TABLE_OR_VIEW, 'result'>
 }
 
 export interface DynamicWhereExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
-    and(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    and(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    or(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    or(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
 
     groupBy(...columns: ValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], any>[]): GroupByOrderHavingByExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
 
@@ -121,24 +121,24 @@ export interface DynamicWhereExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_
 }
 
 export interface DynamicWhereExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, ORDER_BY_KEYS> extends GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS> {
-    and(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
-    and(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
-    or(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
-    or(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
+    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
+    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
+    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
+    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
 }
 
 export interface ExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, ORDER_BY_KEYS> extends GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS> {
     dynamicWhere(): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
-    where(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
-    where(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
+    where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
+    where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, RESULT, REQUIRED_TABLE_OR_VIEW, ORDER_BY_KEYS>
 }
 
 export interface SelectWhereExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
     select<RESULT>(columns: SelectValues<DB, TABLE_OR_VIEW, RESULT>): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, SelectResult<RESULT>, REQUIRED_TABLE_OR_VIEW, keyof RESULT>
     selectOneColumn<RESULT>(column: ValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, RESULT>): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, FixSelectOneResult<RESULT>, REQUIRED_TABLE_OR_VIEW, 'result'>
     dynamicWhere(): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    where(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    where(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
     groupBy(...columns: ValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], any>[]): GroupByOrderHavingByExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
 }
 
@@ -150,16 +150,16 @@ export interface SelectWhereJoinExpression<DB extends AnyDB, TABLE_OR_VIEW exten
 }
 
 export interface DynamicOnExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends SelectWhereJoinExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW> {
-    and(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    and(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    or(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    or(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
 }
 
 export interface OnExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends SelectWhereJoinExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW> {
     dynamicOn(): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    on(condition: IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
-    on(condition: BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    on(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
+    on(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, boolean | null | undefined>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
 }
 
 export interface SelectExpressionWithoutJoin<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends SelectWhereExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW> {

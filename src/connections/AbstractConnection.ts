@@ -2,10 +2,10 @@ import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { InsertExpression } from "../expressions/insert"
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expressions/update"
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, RemapValueSourceTypeAsOptional, ComparableValueSource, IfValueSource } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, RemapValueSourceTypeAsOptional, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelect } from "../expressions/values"
 import type { Default } from "../expressions/Default"
 import type { TableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf } from "../utils/ITableOrView"
-import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery, ExecutableSelect } from "../expressions/select"
+import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from "../expressions/select"
 import type { TypeAdapter, DefaultTypeAdapter } from "../TypeAdapter"
 import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
@@ -204,10 +204,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     false<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> = NoTableOrViewRequiredView<DB>>(): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
         return new SqlOperationStatic0ValueSource(false, '_false', 'boolean', undefined)
     }
-    exists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: ExecutableSelect<DB, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
+    exists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: IExecutableSelect<DB, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
         return new SqlOperationStatic1ValueSource(false, '_exists', select, 'boolean', undefined)
     }
-    notExists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: ExecutableSelect<DB, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
+    notExists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: IExecutableSelect<DB, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
         return new SqlOperationStatic1ValueSource(false, '_notExists', select, 'boolean', undefined)
     }
 
@@ -491,66 +491,66 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     countDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         return new AggregateFunctions1ValueSource(false, '_countDistinct', value, 'int', undefined)
     }
-    max<TABLE_OR_VIEW extends TableOrViewRef<DB>, TYPE extends ComparableValueSource<TABLE_OR_VIEW, any>>(value: TYPE): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW, TYPE> {
+    max<TABLE_OR_VIEW extends TableOrViewRef<DB>, TYPE extends IComparableValueSource<TABLE_OR_VIEW, any>>(value: TYPE): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW, TYPE> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource(true, '_max', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)) as any
     }
-    min<TABLE_OR_VIEW extends TableOrViewRef<DB>, TYPE extends ComparableValueSource<TABLE_OR_VIEW, any>>(value: TYPE): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW, TYPE> {
+    min<TABLE_OR_VIEW extends TableOrViewRef<DB>, TYPE extends IComparableValueSource<TABLE_OR_VIEW, any>>(value: TYPE): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW, TYPE> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource(true, '_min', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)) as any
     }
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IntValueSource<TABLE_OR_VIEW, int | null | undefined>): IntValueSource<TABLE_OR_VIEW, int | null | undefined>
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: NumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, int | null | undefined>): IntValueSource<TABLE_OR_VIEW, int | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
     sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource(true, '_sum', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IntValueSource<TABLE_OR_VIEW, int | null | undefined>): IntValueSource<TABLE_OR_VIEW, int | null | undefined>
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: NumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, int | null | undefined>): IntValueSource<TABLE_OR_VIEW, int | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
     sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource(true, '_sumDistinct', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IntValueSource<TABLE_OR_VIEW, int | null | undefined>): IntValueSource<TABLE_OR_VIEW, int | null | undefined>
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: NumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, int | null | undefined>): IntValueSource<TABLE_OR_VIEW, int | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
     average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource(true, '_average', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IntValueSource<TABLE_OR_VIEW, int | null | undefined>): IntValueSource<TABLE_OR_VIEW, int | null | undefined>
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: NumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, int | null | undefined>): IntValueSource<TABLE_OR_VIEW, int | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, double | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, double | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, stringInt | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
     averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource(true, '_averageDistinct', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
-    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>
-    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringValueSource<TABLE_OR_VIEW, string | null | undefined>): StringValueSource<TABLE_OR_VIEW, string | null | undefined>
-    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>, separator: string): TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>
-    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringValueSource<TABLE_OR_VIEW, string | null | undefined>, separator: string): StringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, string | null | undefined>): StringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>, separator: string): TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, string | null | undefined>, separator: string): StringValueSource<TABLE_OR_VIEW, string | null | undefined>
     stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>, separator?: string): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource(true, '_stringConcat', separator, value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
     }
-    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>
-    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringValueSource<TABLE_OR_VIEW, string | null | undefined>): StringValueSource<TABLE_OR_VIEW, string | null | undefined>
-    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>, separator: string): TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>
-    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: StringValueSource<TABLE_OR_VIEW, string | null | undefined>, separator: string): StringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, string | null | undefined>): StringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>, separator: string): TypeSafeStringValueSource<TABLE_OR_VIEW, string | null | undefined>
+    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, string | null | undefined>, separator: string): StringValueSource<TABLE_OR_VIEW, string | null | undefined>
     stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>, separator?: string): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource(true, '_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__typeAdapter)

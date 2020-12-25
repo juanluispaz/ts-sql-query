@@ -1273,6 +1273,11 @@ interface Connection {
     buildFragmentWithArgs(...argumentDefinitions: Argument[]): FragmentBuilder
     buildFragmentWithArgsIfValue(...argumentDefinitions: Argument[]): FragmentBuilderIfValue
 
+    /**
+     * Return the same special boolean mark returned by the IfValue functions when there is no value
+     */
+    noValueBoolean(): BooleanValueSource
+
     /*
      * Configurations
      */

@@ -3,7 +3,7 @@ import type { Default } from "./Default"
 import type { AnyDB } from "../databases"
 import type { int, double, /*LocalDate, LocalTime, LocalDateTime,*/ stringDouble, stringInt } from "ts-extended-types"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { booleanValueSourceType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeStringValueSourceType, valueSourceType } from "../utils/symbols"
+import type { bigintValueSourceType, booleanValueSourceType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, valueSourceType } from "../utils/symbols"
 import type { ColumnWithDefaultValue } from "../utils/Column"
 import { valueType } from "../utils/symbols"
 
@@ -216,6 +216,7 @@ export interface NumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     // SqlFunction0
     // Number functions
     asStringNumber(): StringNumberValueSource<TABLE_OR_VIEW, TYPE | string>
+    asBigint(): BigintValueSource<TABLE_OR_VIEW, AsType<TYPE, bigint>> // Maybe unsafe cast, we round it when it is necesary
     abs(): NumberValueSource<TABLE_OR_VIEW, TYPE>
     ceil(): NumberValueSource<TABLE_OR_VIEW, TYPE>
     floor(): NumberValueSource<TABLE_OR_VIEW, TYPE>
@@ -284,6 +285,7 @@ export interface IStringNumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<A
 export interface StringNumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends number | string | null | undefined = number | string*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IStringNumberValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
+    asBigint(): BigintValueSource<TABLE_OR_VIEW, AsType<TYPE, bigint>> // Maybe unsafe cast, we round it when it is necesary
     abs(): StringNumberValueSource<TABLE_OR_VIEW, TYPE>
     ceil(): StringNumberValueSource<TABLE_OR_VIEW, TYPE>
     floor(): StringNumberValueSource<TABLE_OR_VIEW, TYPE>
@@ -353,6 +355,7 @@ export interface IntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYP
     // SqlFunction0
     // Number functions
     asStringInt(): StringIntValueSource<TABLE_OR_VIEW, AsType<TYPE, stringInt>>
+    asBigint(): BigintValueSource<TABLE_OR_VIEW, AsType<TYPE, bigint>>
     asDouble(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
     asStringDouble(): StringDoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
     abs(): IntValueSource<TABLE_OR_VIEW, TYPE>
@@ -546,6 +549,208 @@ export interface DoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     asOptional(): DoubleValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
+export interface IBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends int | null | undefined = int*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+    [bigintValueSourceType]: 'BigintValueSource'
+}
+
+// some methods are commented because there is no bigdouble yet
+export interface BigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends bigint | null | undefined = bigint*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IBigintValueSource<TABLE_OR_VIEW, TYPE> {
+    // SqlFunction0
+    // Number functions
+    asStringNumber(): StringNumberValueSource<TABLE_OR_VIEW, number | string>
+    abs(): BigintValueSource<TABLE_OR_VIEW, TYPE>
+    ceil(): BigintValueSource<TABLE_OR_VIEW, TYPE>
+    floor(): BigintValueSource<TABLE_OR_VIEW, TYPE>
+    round(): BigintValueSource<TABLE_OR_VIEW, TYPE>
+    // exp(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // ln(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // log10(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // sqrt(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // cbrt(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    sign(): NumberValueSource<TABLE_OR_VIEW, AsType<TYPE, number>>
+    // Trigonometric Functions
+    // acos(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // asin(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // atan(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // cos(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // cot(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // sin(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // tan(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // SqlFunction1
+    // power(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // power<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // power<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // power(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // power<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // power<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // logn(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // logn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // logn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // logn(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // logn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // logn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // roundn(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // roundn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // roundn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    minValue(value: TYPE): BigintValueSource<TABLE_OR_VIEW, TYPE>
+    minValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    minValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // minValue(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // minValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // minValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    maxValue(value: TYPE): BigintValueSource<TABLE_OR_VIEW, TYPE>
+    maxValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    maxValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // maxValue(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // maxValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // maxValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // Number operators
+    add(value: TYPE): BigintValueSource<TABLE_OR_VIEW, TYPE>
+    add<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    add<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // add(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // add<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // add<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    substract(value: TYPE): BigintValueSource<TABLE_OR_VIEW, TYPE>
+    substract<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    substract<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // substract(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // substract<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // substract<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    multiply(value: TYPE): BigintValueSource<TABLE_OR_VIEW, TYPE>
+    multiply<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    multiply<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // multiply(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // multiply<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // multiply<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // divide(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // divide(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    mod(value: TYPE): BigintValueSource<TABLE_OR_VIEW, TYPE>
+    mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // mod(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // Trigonometric Functions
+    // atan2(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // atan2(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // Redefined methods
+    valueWhenNull(value: MandatoryTypeOf<TYPE>): BigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): BigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BigintValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    asOptional(): BigintValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+}
+
+
+export interface ITypeSafeBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends int | null | undefined = int*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+    [typeSafeBigintValueSourceType]: 'TypeSafeBigintValueSource'
+}
+
+// some methods are commented because there is no bigdouble yet
+export interface TypeSafeBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends bigint | null | undefined = bigint*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, ITypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE> {
+    // SqlFunction0
+    // Number functions
+    asStringInt(): StringIntValueSource<TABLE_OR_VIEW, AsType<TYPE, stringInt>>
+    asStringDouble(): StringDoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    abs(): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE>
+    ceil(): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE>
+    floor(): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE>
+    round(): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE>
+    // exp(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // ln(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // log10(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // sqrt(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // cbrt(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    sign(): IntValueSource<TABLE_OR_VIEW, AsType<TYPE, int>>
+    // Trigonometric Functions
+    // acos(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // asin(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // atan(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // cos(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // cot(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // sin(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // tan(): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // SqlFunction1
+    // power(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // power<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // power<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // power(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // power<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // power<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // logn(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // logn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // logn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // logn(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // logn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // logn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // roundn(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // roundn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // roundn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    minValue(value: TYPE): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE>
+    minValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    minValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // minValue(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // minValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // minValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    maxValue(value: TYPE): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE>
+    maxValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    maxValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // maxValue(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // maxValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // maxValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // Number operators
+    add(value: TYPE): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE>
+    add<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    add<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // add(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // add<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // add<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    substract(value: TYPE): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE>
+    substract<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    substract<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // substract(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // substract<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // substract<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    multiply(value: TYPE): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE>
+    multiply<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    multiply<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // multiply(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // multiply<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // multiply<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // divide(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // divide(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    mod(value: TYPE): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE>
+    mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // mod(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // Trigonometric Functions
+    // atan2(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // atan2(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    // Redefined methods
+    valueWhenNull(value: MandatoryTypeOf<TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): TypeSafeBigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    asOptional(): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+}
+
 export interface IStringIntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends stringInt | null | undefined = stringInt*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
     [stringIntValueSourceType]: 'StringIntValueSource'
 }
@@ -554,6 +759,7 @@ export interface StringIntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
     // SqlFunction0
     // Number functions
     asStringDouble(): StringDoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    asBigint(): BigintValueSource<TABLE_OR_VIEW, AsType<TYPE, bigint>>
     abs(): StringIntValueSource<TABLE_OR_VIEW, TYPE>
     ceil(): StringIntValueSource<TABLE_OR_VIEW, TYPE>
     floor(): StringIntValueSource<TABLE_OR_VIEW, TYPE>
@@ -1162,6 +1368,8 @@ export type RemapValueSourceType<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TY
         TYPE extends IIntValueSource<any, any> ? IntValueSource<TABLE_OR_VIEW, T> :
         TYPE extends IStringDoubleValueSource<any, any> ? StringDoubleValueSource<TABLE_OR_VIEW, T> :
         TYPE extends IDoubleValueSource<any, any> ? DoubleValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends ITypeSafeBigintValueSource<any, any> ? TypeSafeBigintValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends IBigintValueSource<any, any> ? BigintValueSource<TABLE_OR_VIEW, T> :
         TYPE extends IStringNumberValueSource<any, any> ? StringNumberValueSource<TABLE_OR_VIEW, T> :
         TYPE extends INumberValueSource<any, any> ? NumberValueSource<TABLE_OR_VIEW, T> :
         TYPE extends ITypeSafeStringValueSource<any, any> ? TypeSafeStringValueSource<TABLE_OR_VIEW, T> :
@@ -1186,6 +1394,8 @@ export type RemapValueSourceTypeAsOptional<TABLE_OR_VIEW extends TableOrViewRef<
         TYPE extends IIntValueSource<any, any> ? IntValueSource<TABLE_OR_VIEW, T | null | undefined> :
         TYPE extends IStringDoubleValueSource<any, any> ? StringDoubleValueSource<TABLE_OR_VIEW, T | null | undefined> :
         TYPE extends IDoubleValueSource<any, any> ? DoubleValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends ITypeSafeBigintValueSource<any, any> ? TypeSafeBigintValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends IBigintValueSource<any, any> ? BigintValueSource<TABLE_OR_VIEW, T | null | undefined> :
         TYPE extends IStringNumberValueSource<any, any> ? StringNumberValueSource<TABLE_OR_VIEW, T | null | undefined> :
         TYPE extends INumberValueSource<any, any> ? NumberValueSource<TABLE_OR_VIEW, T | null | undefined> :
         TYPE extends ITypeSafeStringValueSource<any, any> ? TypeSafeStringValueSource<TABLE_OR_VIEW, T | null | undefined> :
@@ -1210,6 +1420,8 @@ export type RemapValueSourceTypeAsMandatory<TABLE_OR_VIEW extends TableOrViewRef
         TYPE extends IIntValueSource<any, any> ? IntValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         TYPE extends IStringDoubleValueSource<any, any> ? StringDoubleValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         TYPE extends IDoubleValueSource<any, any> ? DoubleValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends ITypeSafeBigintValueSource<any, any> ? TypeSafeBigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends IBigintValueSource<any, any> ? BigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         TYPE extends IStringNumberValueSource<any, any> ? StringNumberValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         TYPE extends INumberValueSource<any, any> ? NumberValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         TYPE extends ITypeSafeStringValueSource<any, any> ? TypeSafeStringValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
@@ -1231,7 +1443,7 @@ export type MandatoryTypeOf<T> = T extends null | undefined ? never : T
 export type OptionalTypeOf<T> = T extends null ? null : T extends undefined ? undefined : never
 export type AsType<T, TYPE> = TYPE | OptionalTypeOf<T>
 
-export type ArgumentType = 'boolean' | 'stringInt' | 'int' | 'stringDouble' | 'double' | 'string' | 'localDateTime' | 'localDate' | 'localTime' | 'customComparable' | 'enum' | 'custom'
+export type ArgumentType = 'boolean' | 'stringInt' | 'int' | 'stringDouble' | 'double' | 'bigint' | 'string' | 'localDateTime' | 'localDate' | 'localTime' | 'customComparable' | 'enum' | 'custom'
 export type ArgumentRequire = 'required' | 'optional'
 export type ArgumentMode = 'value' | 'combined'
 export class Argument<T extends ArgumentType, REQUIRED extends ArgumentRequire, MODE extends ArgumentMode, TYPE> {
@@ -1260,6 +1472,7 @@ export type MapArgumentToTypeSafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, A
         TYPE extends 'int' ? IntValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'stringDouble' ? StringDoubleValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'double' ? DoubleValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'bigint' ? TypeSafeBigintValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'string' ? TypeSafeStringValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localDateTime' ? LocalDateTimeValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localDate' ? LocalDateValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
@@ -1277,6 +1490,7 @@ export type MapArgumentToTypeUnsafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>,
         TYPE extends 'int' ? NumberValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'stringDouble' ? StringDoubleValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'double' ? NumberValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'bigint' ? BigintValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'string' ? StringValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localDateTime' ? DateTimeValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localDate' ? DateValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
@@ -1294,6 +1508,7 @@ export type MapArgumentToITypeSafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
         TYPE extends 'int' ? IIntValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'stringDouble' ? IStringDoubleValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'double' ? IDoubleValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'bigint' ? ITypeSafeBigintValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'string' ? ITypeSafeStringValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localDateTime' ? ILocalDateTimeValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localDate' ? ILocalDateValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
@@ -1311,6 +1526,7 @@ export type MapArgumentToITypeUnsafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
         TYPE extends 'int' ? INumberValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'stringDouble' ? IStringDoubleValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'double' ? INumberValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'bigint' ? IBigintValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'string' ? IStringValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localDateTime' ? IDateTimeValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localDate' ? IDateValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :

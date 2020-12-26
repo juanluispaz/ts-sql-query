@@ -1,4 +1,4 @@
-import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource } from "./expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource } from "./expressions/values"
 import type { IView, TableOrViewOf, TableOrViewRef } from "./utils/ITableOrView"
 import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
 import type { TypeAdapter } from "./TypeAdapter"
@@ -48,6 +48,8 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     protected column(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & Column
     protected column(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, int> & Column
     protected column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, number> & Column
+    protected column(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, bigint> & Column
+    protected column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, bigint> & Column
     protected column(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, stringDouble> & Column
     protected column(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & Column
     protected column(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, double> & Column
@@ -75,6 +77,8 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     protected optionalColumn(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string | null | undefined> & OptionalColumn
     protected optionalColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, int | null | undefined> & OptionalColumn
     protected optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, number | null | undefined> & OptionalColumn
+    protected optionalColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, bigint | null | undefined> & OptionalColumn
+    protected optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, bigint | null | undefined> & OptionalColumn
     protected optionalColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, stringDouble | null | undefined> & OptionalColumn
     protected optionalColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string | null | undefined> & OptionalColumn
     protected optionalColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, double | null | undefined> & OptionalColumn

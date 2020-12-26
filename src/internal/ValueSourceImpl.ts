@@ -1,9 +1,9 @@
 import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0 } from "../sqlBuilders/SqlBuilder"
-import type { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, ValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, __OptionalRule, IfValueSource } from "../expressions/values"
+import type { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, ValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, __OptionalRule, IfValueSource, BigintValueSource, TypeSafeBigintValueSource } from "../expressions/values"
 import type { TypeAdapter } from "../TypeAdapter"
-import { database, tableOrView, valueSourceType, valueType as valueType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType } from "../utils/symbols"
+import { database, tableOrView, valueSourceType, valueType as valueType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType } from "../utils/symbols"
 
-export abstract class ValueSourceImpl implements ValueSource<any, any>, NullableValueSource<any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, ToSql, __ValueSourcePrivate {
+export abstract class ValueSourceImpl implements ValueSource<any, any>, NullableValueSource<any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, BigintValueSource<any, any>, TypeSafeBigintValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, ToSql, __ValueSourcePrivate {
     [valueSourceType]: 'ValueSource'
     [nullableValueSourceType]: 'NullableValueSource'
     [equalableValueSourceType]: 'EqualableValueSource'
@@ -14,6 +14,8 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
     [stringNumberValueSourceType]: 'StringNumberValueSource'
     [intValueSourceType]: 'IntValueSource'
     [doubleValueSourceType]: 'DoubleValueSource'
+    [bigintValueSourceType]: 'BigintValueSource'
+    [typeSafeBigintValueSourceType]: 'TypeSafeBigintValueSource'
     [stringIntValueSourceType]: 'StringIntValueSource'
     [stringDoubleValueSourceType]: 'StringDoubleValueSource'
     [stringValueSourceType]: 'StringValueSource'
@@ -290,6 +292,16 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
     asStringNumber(): any {
         return new NoopValueSource(this, 'stringInt', this.__typeAdapter)
     }
+    asBigint(): any {
+        if (this.__valueType === 'double') {
+            // Unsafe cast, it happens when TypeSafe is not in use, we round the value
+            return new SqlOperation0ValueSource('_round', this, 'bigint', this.__typeAdapter)
+        } else if (this.__valueType === 'stringDouble') {
+            // Unsafe cast, it happens when TypeSafe is not in use, we round the value
+            return new SqlOperation0ValueSource('_round', this, 'bigint', this.__typeAdapter)
+        } 
+        return new NoopValueSource(this, 'bigint', this.__typeAdapter)
+    }
     abs(): any {
         return new SqlOperation0ValueSource('_abs', this, this.__valueType, this.__typeAdapter)
     }
@@ -298,6 +310,8 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
             return new SqlOperation0ValueSource('_ceil', this, 'stringInt', this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_ceil', this, 'stringInt', this.__typeAdapter)
+        } else if (this.__valueType === 'bigint') {
+            return new SqlOperation0ValueSource('_ceil', this, 'bigint', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_ceil', this, 'int', this.__typeAdapter)
         }
@@ -307,6 +321,8 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
             return new SqlOperation0ValueSource('_floor', this, 'stringInt', this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_floor', this, 'stringInt', this.__typeAdapter)
+        } else if (this.__valueType === 'bigint') {
+            return new SqlOperation0ValueSource('_floor', this, 'bigint', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_floor', this, 'int', this.__typeAdapter)
         }
@@ -316,6 +332,8 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
             return new SqlOperation0ValueSource('_round', this, 'stringInt', this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_round', this, 'stringInt', this.__typeAdapter)
+        } else if (this.__valueType === 'bigint') {
+            return new SqlOperation0ValueSource('_round', this, 'bigint', this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_round', this, 'int', this.__typeAdapter)
         }
@@ -962,7 +980,7 @@ function getTypeAdapter3(a: ValueSourceImpl, b: any, c: any): TypeAdapter | unde
 }
 
 function createSqlOperation1ofOverloadedNumber(thiz: ValueSourceImpl, value: any, operation: keyof SqlOperation1) {
-    if (thiz.__valueType === 'double' || thiz.__valueType === 'stringDouble') {
+    if (thiz.__valueType === 'double' || thiz.__valueType === 'stringDouble' || thiz.__valueType === 'bigint') {
         return new SqlOperation1ValueSource(operation, thiz, value, thiz.__valueType, getTypeAdapter2(thiz, value))
     }
     if (thiz.__valueType === 'stringInt') {

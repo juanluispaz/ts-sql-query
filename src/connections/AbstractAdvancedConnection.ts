@@ -1,7 +1,7 @@
 import type { AnyDB, TypeSafeDB } from "../databases"
 import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { BooleanValueSource, StringIntValueSource, StringNumberValueSource, IntValueSource, NumberValueSource, StringDoubleValueSource, DoubleValueSource, TypeSafeStringValueSource, StringValueSource, LocalDateValueSource, DateValueSource, LocalTimeValueSource, TimeValueSource, LocalDateTimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource } from "../expressions/values"
+import type { BooleanValueSource, StringIntValueSource, StringNumberValueSource, IntValueSource, NumberValueSource, StringDoubleValueSource, DoubleValueSource, TypeSafeStringValueSource, StringValueSource, LocalDateValueSource, DateValueSource, LocalTimeValueSource, TimeValueSource, LocalDateTimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource } from "../expressions/values"
 import type { stringInt, int, stringDouble, double, LocalDate, LocalTime, LocalDateTime } from "ts-extended-types"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { IConnection } from "../utils/IConnection"
@@ -21,6 +21,8 @@ export abstract class AbstractAdvancedConnection<DB extends AnyDB> extends Abstr
     protected sequence(name: string, type: 'stringInt', adapter?: TypeAdapter): Sequence<StringNumberValueSource<NoTableOrViewRequired<DB>, number | string>>
     protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): Sequence<IntValueSource<NoTableOrViewRequired<DB>, int>>
     protected sequence(name: string, type: 'int', adapter?: TypeAdapter): Sequence<NumberValueSource<NoTableOrViewRequired<DB>, number>>
+    protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): Sequence<TypeSafeBigintValueSource<NoTableOrViewRequired<DB>, bigint>>
+    protected sequence(name: string, type: 'bigint', adapter?: TypeAdapter): Sequence<BigintValueSource<NoTableOrViewRequired<DB>, bigint>>
     protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): Sequence<StringDoubleValueSource<NoTableOrViewRequired<DB>, stringDouble>>
     protected sequence(name: string, type: 'stringDouble', adapter?: TypeAdapter): Sequence<StringNumberValueSource<NoTableOrViewRequired<DB>, number | string>>
     protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): Sequence<DoubleValueSource<NoTableOrViewRequired<DB>, double>>

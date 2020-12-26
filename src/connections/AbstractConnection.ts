@@ -2,7 +2,7 @@ import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { InsertExpression } from "../expressions/insert"
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expressions/update"
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, RemapValueSourceTypeAsOptional, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelect } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, RemapValueSourceTypeAsOptional, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelect, BigintValueSource, IBigintValueSource, TypeSafeBigintValueSource, ITypeSafeBigintValueSource } from "../expressions/values"
 import type { Default } from "../expressions/Default"
 import type { TableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf } from "../utils/ITableOrView"
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from "../expressions/select"
@@ -10,7 +10,7 @@ import type { TypeAdapter, DefaultTypeAdapter } from "../TypeAdapter"
 import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { IConnection } from "../utils/IConnection"
-import type { BooleanFragmentExpression, StringIntFragmentExpression, StringNumberFragmentExpression, IntFragmentExpression, NumberFragmentExpression, StringDoubleFragmentExpression, DoubleFragmentExpression, TypeSafeStringFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, DateFragmentExpression, LocalTimeFragmentExpression, TimeFragmentExpression, LocalDateTimeFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder1TypeSafe, FragmentBuilder0, FragmentBuilder1TypeUnsafe, FragmentBuilder2TypeSafe, FragmentBuilder2TypeUnsafe, FragmentBuilder3TypeSafe, FragmentBuilder3TypeUnsafe, FragmentBuilder4TypeSafe, FragmentBuilder4TypeUnsafe, FragmentBuilder5TypeSafe, FragmentBuilder5TypeUnsafe, FragmentBuilder0IfValue, FragmentBuilder1IfValueTypeSafe, FragmentBuilder1IfValueTypeUnsafe, FragmentBuilder2IfValueTypeSafe, FragmentBuilder2IfValueTypeUnsafe, FragmentBuilder3IfValueTypeSafe, FragmentBuilder3IfValueTypeUnsafe, FragmentBuilder4IfValueTypeSafe, FragmentBuilder4IfValueTypeUnsafe, FragmentBuilder5IfValueTypeSafe, FragmentBuilder5IfValueTypeUnsafe } from "../expressions/fragment"
+import type { BooleanFragmentExpression, StringIntFragmentExpression, StringNumberFragmentExpression, IntFragmentExpression, NumberFragmentExpression, StringDoubleFragmentExpression, DoubleFragmentExpression, TypeSafeStringFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, DateFragmentExpression, LocalTimeFragmentExpression, TimeFragmentExpression, LocalDateTimeFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder1TypeSafe, FragmentBuilder0, FragmentBuilder1TypeUnsafe, FragmentBuilder2TypeSafe, FragmentBuilder2TypeUnsafe, FragmentBuilder3TypeSafe, FragmentBuilder3TypeUnsafe, FragmentBuilder4TypeSafe, FragmentBuilder4TypeUnsafe, FragmentBuilder5TypeSafe, FragmentBuilder5TypeUnsafe, FragmentBuilder0IfValue, FragmentBuilder1IfValueTypeSafe, FragmentBuilder1IfValueTypeUnsafe, FragmentBuilder2IfValueTypeSafe, FragmentBuilder2IfValueTypeUnsafe, FragmentBuilder3IfValueTypeSafe, FragmentBuilder3IfValueTypeUnsafe, FragmentBuilder4IfValueTypeSafe, FragmentBuilder4IfValueTypeUnsafe, FragmentBuilder5IfValueTypeSafe, FragmentBuilder5IfValueTypeUnsafe, BigintFragmentExpression, TypeSafeBigintFragmentExpression } from "../expressions/fragment"
 import type { AnyDB, TypeSafeDB, TypeUnsafeDB } from "../databases"
 import { InsertQueryBuilder } from "../queryBuilders/InsertQueryBuilder"
 import { UpdateQueryBuilder } from "../queryBuilders/UpdateQueryBuilder"
@@ -149,6 +149,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     const(this: IConnection<TypeUnsafeDB>, value: number | string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<NoTableOrViewRequired<DB>, number | string>
     const(this: IConnection<TypeSafeDB>, value: int, type: 'int', adapter?: TypeAdapter): IntValueSource<NoTableOrViewRequired<DB>, int>
     const(this: IConnection<TypeUnsafeDB>, value: number, type: 'int', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, number>
+    const(this: IConnection<TypeSafeDB>, value: bigint, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<NoTableOrViewRequired<DB>, bigint>
+    const(this: IConnection<TypeUnsafeDB>, value: bigint, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<NoTableOrViewRequired<DB>, bigint>
     const(this: IConnection<TypeSafeDB>, value: stringDouble, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<NoTableOrViewRequired<DB>, stringDouble>
     const(this: IConnection<TypeUnsafeDB>, value: number | string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<NoTableOrViewRequired<DB>, number | string>
     const(this: IConnection<TypeSafeDB>, value: double, type: 'double', adapter?: TypeAdapter): DoubleValueSource<NoTableOrViewRequired<DB>, double>
@@ -176,6 +178,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     optionalConst(this: IConnection<TypeUnsafeDB>, value: number | string | null | undefined, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<NoTableOrViewRequired<DB>, number | string | null | undefined>
     optionalConst(this: IConnection<TypeSafeDB>, value: int | null | undefined, type: 'int', adapter?: TypeAdapter): IntValueSource<NoTableOrViewRequired<DB>, int | null | undefined>
     optionalConst(this: IConnection<TypeUnsafeDB>, value: number | null | undefined, type: 'int', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, number | null | undefined>
+    optionalConst(this: IConnection<TypeSafeDB>, value: bigint | null | undefined, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<NoTableOrViewRequired<DB>, bigint | null | undefined>
+    optionalConst(this: IConnection<TypeUnsafeDB>, value: bigint | null | undefined, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<NoTableOrViewRequired<DB>, bigint | null | undefined>
     optionalConst(this: IConnection<TypeSafeDB>, value: stringDouble | null | undefined, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<NoTableOrViewRequired<DB>, stringDouble | null | undefined>
     optionalConst(this: IConnection<TypeUnsafeDB>, value: number | string | null | undefined, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<NoTableOrViewRequired<DB>, number | string | null | undefined>
     optionalConst(this: IConnection<TypeSafeDB>, value: double | null | undefined, type: 'double', adapter?: TypeAdapter): DoubleValueSource<NoTableOrViewRequired<DB>, double | null | undefined>
@@ -236,6 +240,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'int', required: 'optional', adapter?: TypeAdapter): Promise<int | null>
     protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'int', required: 'required', adapter?: TypeAdapter): Promise<number>
     protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'int', required: 'optional', adapter?: TypeAdapter): Promise<number | null>
+    protected executeFunction(functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'bigint', required: 'required', adapter?: TypeAdapter): Promise<bigint>
+    protected executeFunction(functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'bigint', required: 'optional', adapter?: TypeAdapter): Promise<bigint | null>
     protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'stringDouble', required: 'required', adapter?: TypeAdapter): Promise<stringDouble>
     protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Promise<stringDouble | null>
     protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'stringDouble', required: 'required', adapter?: TypeAdapter): Promise<number | string>
@@ -308,6 +314,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     fragmentWithType(this: IConnection<TypeSafeDB>, type: 'int', required: 'optional', adapter?: TypeAdapter): IntFragmentExpression<DB, int | null | undefined>
     fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'int', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<DB, number>
     fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'int', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<DB, number | null | undefined>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'bigint', required: 'required', adapter?: TypeAdapter): TypeSafeBigintFragmentExpression<DB, bigint>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'bigint', required: 'optional', adapter?: TypeAdapter): TypeSafeBigintFragmentExpression<DB, bigint | null | undefined>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'bigint', required: 'required', adapter?: TypeAdapter): BigintFragmentExpression<DB, bigint>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'bigint', required: 'optional', adapter?: TypeAdapter): BigintFragmentExpression<DB, bigint | null | undefined>
     fragmentWithType(this: IConnection<TypeSafeDB>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): StringDoubleFragmentExpression<DB, stringDouble>
     fragmentWithType(this: IConnection<TypeSafeDB>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): StringDoubleFragmentExpression<DB, stringDouble | null | undefined>
     fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): StringNumberFragmentExpression<DB, number | string>
@@ -359,6 +369,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected arg(this: IConnection<TypeSafeDB>, type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', 'combined', int>
     protected arg(this: IConnection<TypeUnsafeDB>, type: 'int', required: 'required', adapter?: TypeAdapter): Argument<'int', 'required', 'combined', number>
     protected arg(this: IConnection<TypeUnsafeDB>, type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', 'combined', number>
+    protected arg(type: 'bigint', required: 'required', adapter?: TypeAdapter): Argument<'bigint', 'required', 'combined', bigint>
+    protected arg(type: 'bigint', required: 'optional', adapter?: TypeAdapter): Argument<'bigint', 'optional', 'combined', bigint>
     protected arg(this: IConnection<TypeSafeDB>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): Argument<'stringDouble', 'required', 'combined', stringDouble>
     protected arg(this: IConnection<TypeSafeDB>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Argument<'stringDouble', 'optional', 'combined', stringDouble>
     protected arg(this: IConnection<TypeUnsafeDB>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): Argument<'stringDouble', 'required', 'combined', number | string>
@@ -405,6 +417,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected valueArg(this: IConnection<TypeSafeDB>, type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', 'value', int>
     protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'int', required: 'required', adapter?: TypeAdapter): Argument<'int', 'required', 'value', number>
     protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', 'value', number>
+    protected valueArg(type: 'bigint', required: 'required', adapter?: TypeAdapter): Argument<'bigint', 'required', 'value', bigint>
+    protected valueArg(type: 'bigint', required: 'optional', adapter?: TypeAdapter): Argument<'bigint', 'optional', 'value', bigint>
     protected valueArg(this: IConnection<TypeSafeDB>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): Argument<'stringDouble', 'required', 'value', stringDouble>
     protected valueArg(this: IConnection<TypeSafeDB>, type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Argument<'stringDouble', 'optional', 'value', stringDouble>
     protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'stringDouble', required: 'required', adapter?: TypeAdapter): Argument<'stringDouble', 'required', 'value', number | string>
@@ -478,11 +492,11 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     // Agregate functions
     countAll(this: IConnection<TypeSafeDB>): IntValueSource<NoTableOrViewRequired<DB>, int>
     countAll(): NumberValueSource<NoTableOrViewRequired<DB>, number>
-    countAll(): AggregateFunctions0ValueSource {
+    countAll(): ValueSource<NoTableOrViewRequired<DB>, number> {
         return new AggregateFunctions0ValueSource('_countAll', 'int', undefined)
     }
     count<TABLE_OR_VIEW extends TableOrViewRef<DB>>(this: IConnection<TypeSafeDB>, value: ValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, int>
-    count<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: any): NumberValueSource<TABLE_OR_VIEW, number>
+    count<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, number>
     count<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         return new AggregateFunctions1ValueSource(false, '_count', value, 'int', undefined)
     }
@@ -505,6 +519,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
     sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
     sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>
+    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>): BigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>
     sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource(true, '_sum', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
@@ -515,6 +531,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
     sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
     sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>
+    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>): BigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>
     sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource(true, '_sumDistinct', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
@@ -525,6 +543,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
     average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
     average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>
+    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>): BigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>
     average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource(true, '_average', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
@@ -535,6 +555,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, stringDouble | null | undefined>
     averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, number | null | undefined>): NumberValueSource<TABLE_OR_VIEW, number | null | undefined>
     averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, number | string | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>
+    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>): BigintValueSource<TABLE_OR_VIEW, bigint | null | undefined>
     averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource(true, '_averageDistinct', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
@@ -621,6 +643,24 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                     return result
                 }
                 throw new Error('Invalid stringInt value received from the db: ' + value)
+            case 'bigint':
+                if (typeof value === 'number') {
+                    if (!Number.isInteger(value)) {
+                        throw new Error('Invalid bigint value received from the db: ' + value)
+                    }
+                    return value
+                }
+                if (typeof value === 'string') {
+                    try {
+                        return BigInt(value)
+                    } catch {
+                        throw new Error('Invalid bigint value received from the db: ' + value)
+                    }
+                }
+                if (typeof value === 'bigint') {
+                    return value
+                }
+                throw new Error('Invalid int value received from the db: ' + value)
             case 'double':
                 if (typeof value === 'number') {
                     return value
@@ -734,6 +774,11 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                     if (!Number.isInteger(value)) {
                         throw new Error('Invalid int value to send to the db: ' + value)
                     }
+                    return value
+                }
+                throw new Error('Invalid int value to send to the db: ' + value)
+            case 'bigint':
+                if (typeof value === 'bigint') {
                     return value
                 }
                 throw new Error('Invalid int value to send to the db: ' + value)

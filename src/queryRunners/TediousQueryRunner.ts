@@ -342,6 +342,7 @@ export class TediousQueryRunner implements QueryRunner {
         boolean: TYPES.Bit,
         stringInt: TYPES.BigInt,
         int: TYPES.Int,
+        bigint: TYPES.BigInt,
         stringDouble: TYPES.Float,
         double: TYPES.Real,
         string: TYPES.NVarChar,
@@ -371,6 +372,8 @@ export class TediousQueryRunner implements QueryRunner {
             } else {
                 return TYPES.Real
             }
+        } else if (typeof value === 'bigint') {
+            return TYPES.BigInt
         } else if (typeof value === 'boolean') {
             return TYPES.Bit
         } else if (value instanceof Array) {

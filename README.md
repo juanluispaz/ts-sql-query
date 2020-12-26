@@ -923,10 +923,11 @@ interface BooleanValueSource extends EqualableValueSource {
 }
 
 /**
- * Represents a stringInt or a stringDouble
+ * Represents an int or a double
  */
 interface NumberValueSource extends ComparableValueSource {
     asStringNumber(): number|string
+    asBigint(): bigint
     abs(): number
     ceil(): number
     floor(): number
@@ -958,9 +959,10 @@ interface NumberValueSource extends ComparableValueSource {
 }
 
 /**
- * Represents a int or a double
+ * Represents a stringInt or a stringDouble
  */
 interface StringNumberValueSource extends ComparableValueSource {
+    asBigint(): bigint
     abs(): number|string
     ceil(): number|string
     floor(): number|string
@@ -989,6 +991,24 @@ interface StringNumberValueSource extends ComparableValueSource {
     divide(value: number|string): number|string
     mod(value: number|string): number|string
     atan2(value: number|string): number|string
+}
+
+/**
+ * Represents a bigint
+ */
+interface BigintValueSource extends ComparableValueSource {
+    asStringNumber(): number|string
+    abs(): bigint
+    ceil(): bigint
+    floor(): bigint
+    round(): bigint
+    sign(): number
+    minValue(value: bigint): bigint
+    maxValue(value: bigint): bigint
+    add(value: bigint): bigint
+    substract(value: bigint): bigint
+    multiply(value: bigint): bigint
+    mod(value: bigint): bigint
 }
 
 /**
@@ -1146,6 +1166,7 @@ interface Connection {
     const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     const(value: number | string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     const(value: number, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    const(value: number, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     const(value: number | string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     const(value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource
     const(value: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1192,6 +1213,7 @@ interface Connection {
     fragmentWithType(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
@@ -1209,6 +1231,7 @@ interface Connection {
     executeFunction(functionName: string, params: ValueSource[], returnType: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<boolean>
     executeFunction(functionName: string, params: ValueSource[], returnType: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
     executeFunction(functionName: string, params: ValueSource[], returnType: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
+    executeFunction(functionName: string, params: ValueSource[], returnType: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<bigint>
     executeFunction(functionName: string, params: ValueSource[], returnType: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
     executeFunction(functionName: string, params: ValueSource[], returnType: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
     executeFunction(functionName: string, params: ValueSource[], returnType: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
@@ -1223,6 +1246,7 @@ interface Connection {
     sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource>
     sequence(name: string, type: 'stringInt', adapter?: TypeAdapter): Sequence<StringNumberValueSource>
     sequence(name: string, type: 'int', adapter?: TypeAdapter): Sequence<NumberValueSource>
+    sequence(name: string, type: 'bigint', adapter?: TypeAdapter): Sequence<BigintValueSource>
     sequence(name: string, type: 'stringDouble', adapter?: TypeAdapter): Sequence<StringNumberValueSource>
     sequence(name: string, type: 'double', adapter?: TypeAdapter): Sequence<NumberValueSource>
     sequence(name: string, type: 'string', adapter?: TypeAdapter): Sequence<StringValueSource>
@@ -1240,6 +1264,7 @@ interface Connection {
     arg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
@@ -1256,6 +1281,7 @@ interface Connection {
     valueArg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    valueArg(type: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
@@ -1365,6 +1391,7 @@ interface Table {
     column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     column(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     column(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1379,6 +1406,7 @@ interface Table {
     optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     optionalColumn(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     optionalColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1393,6 +1421,7 @@ interface Table {
     columnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     columnWithDefaultValue(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     columnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    columnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     columnWithDefaultValue(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     columnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     columnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1407,6 +1436,7 @@ interface Table {
     optionalColumnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     optionalColumnWithDefaultValue(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    optionalColumnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     optionalColumnWithDefaultValue(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1422,6 +1452,7 @@ interface Table {
     autogeneratedPrimaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     autogeneratedPrimaryKey(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     autogeneratedPrimaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    autogeneratedPrimaryKey(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     autogeneratedPrimaryKey(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     autogeneratedPrimaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     autogeneratedPrimaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1437,6 +1468,7 @@ interface Table {
     primaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     primaryKey(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     primaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    primaryKey(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     primaryKey(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     primaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     primaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1453,6 +1485,7 @@ interface Table {
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1480,6 +1513,7 @@ interface View {
     column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     column(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     column(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1494,6 +1528,7 @@ interface View {
     optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
     optionalColumn(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
     optionalColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource

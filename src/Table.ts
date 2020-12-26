@@ -1,4 +1,4 @@
-import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource } from "./expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource } from "./expressions/values"
 import type { ITable, TableOrViewRef, TableOrViewOf } from "./utils/ITableOrView"
 import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
 import type { TypeAdapter } from "./TypeAdapter"
@@ -48,6 +48,8 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected column(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & Column
     protected column(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, int> & Column
     protected column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, number> & Column
+    protected column(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, bigint> & Column
+    protected column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, bigint> & Column
     protected column(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, stringDouble> & Column
     protected column(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & Column
     protected column(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, double> & Column
@@ -75,6 +77,8 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected optionalColumn(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string | null | undefined> & OptionalColumn
     protected optionalColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, int | null | undefined> & OptionalColumn
     protected optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, number | null | undefined> & OptionalColumn
+    protected optionalColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, bigint | null | undefined> & OptionalColumn
+    protected optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, bigint | null | undefined> & OptionalColumn
     protected optionalColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, stringDouble | null | undefined> & OptionalColumn
     protected optionalColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string | null | undefined> & OptionalColumn
     protected optionalColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, double | null | undefined> & OptionalColumn
@@ -102,6 +106,8 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected columnWithDefaultValue(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & ColumnWithDefaultValue
     protected columnWithDefaultValue(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, int> & ColumnWithDefaultValue
     protected columnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, number> & ColumnWithDefaultValue
+    protected columnWithDefaultValue(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, bigint> & ColumnWithDefaultValue
+    protected columnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, bigint> & ColumnWithDefaultValue
     protected columnWithDefaultValue(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, stringDouble> & ColumnWithDefaultValue
     protected columnWithDefaultValue(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & ColumnWithDefaultValue
     protected columnWithDefaultValue(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, double> & ColumnWithDefaultValue
@@ -129,6 +135,8 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected optionalColumnWithDefaultValue(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & OptionalColumn & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, int> & OptionalColumn & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, number> & OptionalColumn & ColumnWithDefaultValue
+    protected optionalColumnWithDefaultValue(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, bigint> & OptionalColumn & ColumnWithDefaultValue
+    protected optionalColumnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, bigint> & OptionalColumn & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, stringDouble> & OptionalColumn & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & OptionalColumn & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, double> & OptionalColumn & ColumnWithDefaultValue
@@ -156,6 +164,8 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected autogeneratedPrimaryKey(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, int> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, number> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKey(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, bigint> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKey(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, bigint> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, stringDouble> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, double> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
@@ -183,6 +193,8 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected primaryKey(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & PrimaryKeyColumn
     protected primaryKey(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, int> & PrimaryKeyColumn
     protected primaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, number> & PrimaryKeyColumn
+    protected primaryKey(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, bigint> & PrimaryKeyColumn
+    protected primaryKey(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, bigint> & PrimaryKeyColumn
     protected primaryKey(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, stringDouble> & PrimaryKeyColumn
     protected primaryKey(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & PrimaryKeyColumn
     protected primaryKey(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, double> & PrimaryKeyColumn
@@ -210,6 +222,8 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected autogeneratedPrimaryKeyBySequence(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: TableOrViewOf<TypeSafeDB & (Oracle | PostgreSql | SqlServer)>, name: string, sequenceName: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, int> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, number> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKeyBySequence(this: TableOrViewOf<TypeSafeDB & (Oracle | PostgreSql | SqlServer)>, name: string, sequenceName: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, bigint> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKeyBySequence(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, bigint> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: TableOrViewOf<TypeSafeDB & (Oracle | PostgreSql | SqlServer)>, name: string, sequenceName: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, stringDouble> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, number | string> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: TableOrViewOf<TypeSafeDB & (Oracle | PostgreSql | SqlServer)>, name: string, sequenceName: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, double> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn

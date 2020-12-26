@@ -1,4 +1,4 @@
-import { anyDBType, mariaDBType, mySqlType, nextMethodNotSupportedByThisConnection, noopDBType, oracleType, postgreSqlType, sqliteType, sqlServerType, typeSafeDBType, typeUnsafeDBType } from "./utils/symbols";
+import type { anyDBType, mariaDBType, mySqlType, nextMethodNotSupportedByThisConnection, noopDBType, oracleType, postgreSqlType, sqliteType, sqlServerType, typeSafeDBType, typeUnsafeDBType } from "./utils/symbols";
 
 export interface AnyDB {
     [anyDBType] : 'AnyDB'

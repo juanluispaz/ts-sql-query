@@ -410,9 +410,9 @@ interface Connection {
     allowEmptyString: boolean
 
     /** Protected method that allows to transform the values received from the database */
-    transformValueFromDB(value: any, type: string): any
+    transformValueFromDB(value: unknown, type: string): unknown
     /** Protected method that allows to transform the values that will be send to the database */
-    transformValueToDB(value: any, type: string): any
+    transformValueToDB(value: unknown, type: string): unknown
 
     /** Protected method that returns true if the provided string is a reserved keyword, otherwise return false */
     isReservedWord(word: string): boolean

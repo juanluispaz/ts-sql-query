@@ -215,7 +215,10 @@ export interface INumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>,
 export interface NumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends number | null | undefined = number*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, INumberValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
-    asStringNumber(): StringNumberValueSource<TABLE_OR_VIEW, TYPE | string>
+    asInt(): NumberValueSource<TABLE_OR_VIEW, TYPE> // Maybe unsafe cast, we round it when it is necesary
+    asDouble(): NumberValueSource<TABLE_OR_VIEW, TYPE>
+    asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, TYPE | string> // Maybe unsafe cast, we round it when it is necesary
+    asStringDouble(): StringNumberValueSource<TABLE_OR_VIEW, TYPE | string>
     asBigint(): BigintValueSource<TABLE_OR_VIEW, AsType<TYPE, bigint>> // Maybe unsafe cast, we round it when it is necesary
     abs(): NumberValueSource<TABLE_OR_VIEW, TYPE>
     ceil(): NumberValueSource<TABLE_OR_VIEW, TYPE>
@@ -285,6 +288,8 @@ export interface IStringNumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<A
 export interface StringNumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends number | string | null | undefined = number | string*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IStringNumberValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
+    asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, TYPE | string> // Maybe unsafe cast, we round it when it is necesary
+    asStringDouble(): StringNumberValueSource<TABLE_OR_VIEW, TYPE | string>
     asBigint(): BigintValueSource<TABLE_OR_VIEW, AsType<TYPE, bigint>> // Maybe unsafe cast, we round it when it is necesary
     abs(): StringNumberValueSource<TABLE_OR_VIEW, TYPE>
     ceil(): StringNumberValueSource<TABLE_OR_VIEW, TYPE>
@@ -456,7 +461,6 @@ export interface IDoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>,
 export interface DoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends double | null | undefined = double*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IDoubleValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
-    //asInt(): IntValueSource<TABLE_OR_VIEW, AsType<TYPE, int>> // test function
     asStringDouble(): StringDoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
     abs(): DoubleValueSource<TABLE_OR_VIEW, TYPE>
     ceil(): IntValueSource<TABLE_OR_VIEW, AsType<TYPE, int>>
@@ -557,7 +561,8 @@ export interface IBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>,
 export interface BigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends bigint | null | undefined = bigint*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IBigintValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
-    asStringNumber(): StringNumberValueSource<TABLE_OR_VIEW, number | string>
+    asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, AsType<TYPE, number | string>>
+    asStringDouble(): StringNumberValueSource<TABLE_OR_VIEW, AsType<TYPE, number | string>>
     abs(): BigintValueSource<TABLE_OR_VIEW, TYPE>
     ceil(): BigintValueSource<TABLE_OR_VIEW, TYPE>
     floor(): BigintValueSource<TABLE_OR_VIEW, TYPE>

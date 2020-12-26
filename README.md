@@ -926,7 +926,10 @@ interface BooleanValueSource extends EqualableValueSource {
  * Represents an int or a double
  */
 interface NumberValueSource extends ComparableValueSource {
-    asStringNumber(): number|string
+    asInt(): number
+    asDouble(): number
+    asStringInt(): number|string
+    asStringDouble(): number|string
     asBigint(): bigint
     abs(): number
     ceil(): number
@@ -962,6 +965,8 @@ interface NumberValueSource extends ComparableValueSource {
  * Represents a stringInt or a stringDouble
  */
 interface StringNumberValueSource extends ComparableValueSource {
+    asStringInt(): number|string
+    asStringDouble(): number|string
     asBigint(): bigint
     abs(): number|string
     ceil(): number|string

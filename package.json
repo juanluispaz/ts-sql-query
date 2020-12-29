@@ -81,6 +81,6 @@
     },
     "dependencies": {
         "chained-error": "^1.0.0",
-        "ts-extended-types": "^0.10.0"
+        "ts-extended-types": "^1.0.0"
     }
 }

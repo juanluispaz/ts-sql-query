@@ -11,6 +11,7 @@ Type-safe sql means the mistakes writting a query will be detected during the co
 # Summary <!-- omit in toc -->
 
 - [Install](#install)
+- [Examples](#examples)
 - [Basic queries](#basic-queries)
   - [Select one row](#select-one-row)
   - [Dynamic queries](#dynamic-queries)
@@ -94,6 +95,10 @@ Install with [npm](https://www.npmjs.com/):
 ```sh
 $ npm install --save ts-sql-query
 ```
+
+## Examples
+
+You can find a complete example using ts-sql-query with PostgreSQL in the file [PgExample.ts](https://github.com/juanluispaz/ts-sql-query/blob/master/src/examples/PgExample.ts). You can browse the [examples folder](https://github.com/juanluispaz/ts-sql-query/tree/master/src/examples) to see an example for each supported database using different ways to connect to it.
 
 ## Basic queries
 

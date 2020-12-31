@@ -105,7 +105,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
             const value = columns[property]
-            if (value === null || value === undefined) {
+            if (!this.__sqlBuilder._isValue(value)) {
                 continue
             }
             sets[property] = value
@@ -144,7 +144,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
                 continue
             }
             const value = columns[property]
-            if (value === null || value === undefined) {
+            if (!this.__sqlBuilder._isValue(value)) {
                 continue
             }
             sets[property] = value
@@ -183,7 +183,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
                 continue
             }
             const value = columns[property]
-            if (value === null || value === undefined) {
+            if (!this.__sqlBuilder._isValue(value)) {
                 continue
             }
             sets[property] = value

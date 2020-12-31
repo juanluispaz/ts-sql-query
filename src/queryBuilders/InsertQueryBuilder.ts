@@ -166,7 +166,7 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
             const value = columns[property]
-            if (value === null || value === undefined) {
+            if (!this.__sqlBuilder._isValue(value)) {
                 continue
             }
             sets[property] = value
@@ -205,7 +205,7 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
                 continue
             }
             const value = columns[property]
-            if (value === null || value === undefined) {
+            if (!this.__sqlBuilder._isValue(value)) {
                 continue
             }
             sets[property] = value
@@ -244,7 +244,7 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
                 continue
             }
             const value = columns[property]
-            if (value === null || value === undefined) {
+            if (!this.__sqlBuilder._isValue(value)) {
                 continue
             }
             sets[property] = value

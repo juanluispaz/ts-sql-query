@@ -7,6 +7,13 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
+    _appendColumnAlias(name: string, params: any[]): string {
+        if (name.toLocaleLowerCase() !== name) {
+            // Avoid automatically lowercase identifiers by postgresql when it contains uppercase characters
+            return this._forceAsIdentifier(name)
+        }
+        return this._escape(name)
+    }
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = ''
 

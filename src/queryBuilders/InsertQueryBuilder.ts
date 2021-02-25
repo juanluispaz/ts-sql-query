@@ -1,5 +1,5 @@
 import type { SqlBuilder, InsertData, SelectData } from "../sqlBuilders/SqlBuilder"
-import type { ITable } from "../utils/ITableOrView"
+import type{ ITable, IWithView } from "../utils/ITableOrView"
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, ExecutableMultipleInsert, ExecutableInsertFromSelect/*, MissingKeysInsertExpression*/ } from "../expressions/insert"
 import type { Column } from "../utils/Column"
 import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
@@ -7,6 +7,7 @@ import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { database, tableOrView } from "../utils/symbols"
 import { IExecutableSelect } from "../expressions/values"
+import { __addWiths } from "../utils/ITableOrView"
 
 // one implement ommited intentionally to don't confuse TypeScript
 
@@ -21,6 +22,7 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
     __isMultiple: boolean = false
     __idColumn?: Column
     __from?: SelectData
+    __withs: Array<IWithView<any>> = []
 
     // cache
     __query = ''
@@ -274,6 +276,7 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
     }
     from(select: IExecutableSelect<any, any, any>): this {
         this.__from = select as any as SelectData
+        __addWiths(select, this.__withs)
         return this
     }
     defaultValues: never

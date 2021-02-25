@@ -22,6 +22,7 @@ Type-safe sql means the mistakes writting a query will be detected during the co
   - [Select with custom sql fragment](#select-with-custom-sql-fragment)
   - [Select with custom reusable sql fragment](#select-with-custom-reusable-sql-fragment)
   - [Select with custom reusable sql fragment if value](#select-with-custom-reusable-sql-fragment-if-value)
+  - [Using a select as a view in another select query (SQL with clause)](#using-a-select-as-a-view-in-another-select-query-sql-with-clause)
   - [Insert](#insert)
   - [Insert multiple values](#insert-multiple-values)
   - [Insert from select](#insert-from-select)
@@ -511,6 +512,54 @@ The result type is:
 const companiesUsingCustomFunctionFragment: Promise<{
     id: number;
     name: string;
+}[]>
+```
+
+### Using a select as a view in another select query (SQL with clause)
+
+You can define a select query and use it as it were a view in another select query. To allow ait you must call the `forUseInQueryAs` instead of executing the query; this will return a view representation of the query as it were a view, and the query will be included as a `with` clause in the final sql query with the name indicated by argument to the `forUseInQueryAs` method.
+
+```ts
+const customerCountPerCompanyWith = connection.selectFrom(tCompany)
+    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+    .select({
+        companyId: tCompany.id,
+        companyName: tCompany.name,
+        customerCount: connection.count(tCustomer.id)
+    }).groupBy('companyId', 'companyName')
+    .forUseInQueryAs('customerCountPerCompany');
+
+const customerCountPerAcmeCompanies = connection.selectFrom(customerCountPerCompanyWith)
+    .where(customerCountPerCompanyWith.companyName.containsInsensitive('ACME'))
+    .select({
+        acmeCompanyId: customerCountPerCompanyWith.companyId,
+        acmeCompanyName: customerCountPerCompanyWith.companyName,
+        acmeCustomerCount: customerCountPerCompanyWith.customerCount
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+```sql
+with
+    customerCountPerCompany as (
+        select company.id as companyId, company.name as companyName, count(customer.id) as customerCount
+        from company inner join customer on customer.company_id = company.id
+        group by company.id, company.name
+    )
+select companyId as "acmeCompanyId", companyName as "acmeCompanyName", customerCount as "acmeCustomerCount"
+from customerCountPerCompany
+where companyName ilike ('%' || $1 || '%')
+```
+
+The parameters are: `[ 'ACME' ]`
+
+The result type is:
+```ts
+const customerCountPerAcmeCompanies: Promise<{
+    acmeCompanyId: number;
+    acmeCompanyName: string;
+    acmeCustomerCount: number;
 }[]>
 ```
 
@@ -1816,6 +1865,14 @@ interface SelectExpression {
      * the data will be omitted and this value will be used.
      */
     executeSelectPage<EXTRAS extends {}>(extras: EXTRAS): Promise<{ data: RESULT[], count: number } & EXTRAS>
+    
+    /**
+     * Allows to use a select query as a view in another select. 
+     * This select will be included as a clause with in the final sql.
+     * 
+     * @param as name of the clause with in the final query (must be unique per final query)
+     */
+    forUseInQueryAs(as: string): View
     
     /** Returns the sql query to be executed in the database */
     query(): string

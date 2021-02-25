@@ -1,5 +1,5 @@
 import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource } from "./expressions/values"
-import type { IView, TableOrViewOf, TableOrViewRef } from "./utils/ITableOrView"
+import type { IView, IWithView, TableOrViewOf, TableOrViewRef } from "./utils/ITableOrView"
 import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
 import type { TypeAdapter } from "./TypeAdapter"
 import type { AliasedTableOrView, OuterJoinSourceOf } from "./utils/tableOrViewUtils"
@@ -99,6 +99,11 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
             return (new ColumnImpl(this, name, adapter, adapter2)).__asOptionalColumn()
         }
         return (new ColumnImpl(this, name, type, adapter)).__asOptionalColumn()
+    }
+
+    // @ts-ignore
+    private __addWiths(_withs: Array<IWithView<any>>): void {
+        // Do nothing
     }
 }
 

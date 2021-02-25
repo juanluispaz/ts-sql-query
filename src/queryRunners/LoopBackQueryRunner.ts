@@ -491,12 +491,12 @@ class LoopBackSqliteQueryRunner extends LoopBackAbstractQueryRunner {
     }
 
     executeInsert(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => {
+        return this.queryNoSelect(query, params).then((result) => {
             return result.count
         })
     }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((result) => {
+        return this.queryNoSelect(query, params).then((result) => {
             return result.lastID
         })
     }
@@ -504,17 +504,27 @@ class LoopBackSqliteQueryRunner extends LoopBackAbstractQueryRunner {
         throw new Error('Unsupported executeInsertReturningMultipleLastInsertedId for this database')
     }
     executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => {
+        return this.queryNoSelect(query, params).then((result) => {
             return result.count
         })
     }
     executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => {
+        return this.queryNoSelect(query, params).then((result) => {
             return result.count
         })
     }
     addParam(params: any[], value: any): string {
         params.push(value)
         return '?'
+    }
+    protected query(query: string, params?: any[]): Promise<any> {
+        if (query.startsWith('with ')) {
+            // Work-around to loopback limitation
+            query = 'select * from (' + query + ')'
+        }
+        return this.datasource.execute(query, params, {transaction: this.transaction})
+    }
+    protected queryNoSelect(query: string, params?: any[]): Promise<any> {
+        return this.datasource.execute(query, params, {transaction: this.transaction})
     }
 }

@@ -1,5 +1,5 @@
 import type { SqlBuilder, UpdateData } from "../sqlBuilders/SqlBuilder"
-import type { ITable } from "../utils/ITableOrView"
+import type { ITable, IWithView } from "../utils/ITableOrView"
 import type { BooleanValueSource, IBooleanValueSource, IfValueSource, IIfValueSource } from "../expressions/values"
 import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression } from "../expressions/update"
 import type { int } from "ts-extended-types"
@@ -7,6 +7,8 @@ import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { database, tableOrView } from "../utils/symbols"
 import { asValueSource } from "../expressions/values"
+import { __addWiths } from "../utils/ITableOrView"
+import { __getValueSourcePrivate } from "../expressions/values"
 
 export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressionAllowingNoWhere<any>, ExecutableUpdate<any>, ExecutableUpdateExpression<any>, NotExecutableUpdateExpression<any>, DynamicExecutableUpdateExpression<any>, UpdateData {
     [database]: any
@@ -17,6 +19,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
     __sets: { [property: string] : any} = {}
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __allowNoWhere: boolean
+    __withs: Array<IWithView<any>> = []
 
     // cache
     __params: any[] = []
@@ -91,6 +94,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
             const property = properties[i]!
             const value = columns[property]
             sets[property] = value
+            __addWiths(value, this.__withs)
         }
         return this
     }
@@ -127,6 +131,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
             }
             const value = columns[property]
             sets[property] = value
+            __addWiths(value, this.__withs)
         }
         return this
     }
@@ -166,6 +171,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
             }
             const value = columns[property]
             sets[property] = value
+            __addWiths(value, this.__withs)
         }
         return this
     }
@@ -209,6 +215,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
             throw new Error('Illegal state')
         }
         this.__where = asValueSource(condition)
+        __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
     and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
@@ -218,6 +225,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
         } else {
             this.__where = asValueSource(condition)
         }
+        __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
     or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
@@ -227,6 +235,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
         } else {
             this.__where = asValueSource(condition)
         }
+        __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
 }

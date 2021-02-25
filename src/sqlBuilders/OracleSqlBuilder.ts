@@ -26,8 +26,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     _trueValue = 'cast(1 as boolean)'
     _falseValue = 'cast(0 as boolean)'
-    _appendColumnAlias(name: string, _params: any[]): string {
-        return '"' + name + '"'
+    _appendColumnAlias(name: string, params: any[]): string {
+        if (!this._isWithGeneratedFinished(params)) {
+            // Avoid quote identifiers when the with clause is generated
+            return this._escape(name)
+        }
+        // Avoid automatically uppercase identifiers by oracle
+        return this._forceAsIdentifier(name)
     }
     _buildInsertMultiple(query: InsertData, params: any[]): string {
         const multiple = query.__multiple

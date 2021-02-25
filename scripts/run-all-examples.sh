@@ -29,9 +29,14 @@ docker rm ts-sql-query-postgres
 docker run --name ts-sql-query-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mysql:5.7.29
 sleep 20
 node ./dist/examples/MySqlExample.js || { docker stop ts-sql-query-mysql; docker rm ts-sql-query-mysql; exit 1; }
-node ./dist/examples/MySql2Example.js || { docker stop ts-sql-query-mysql; docker rm ts-sql-query-mysql; exit 1; }
 node ./dist/examples/AnyDBMySqlExample.js || { docker stop ts-sql-query-mysql; docker rm ts-sql-query-mysql; exit 1; }
 node ./dist/examples/LoopBackMySqlExample.js || { docker stop ts-sql-query-mysql; docker rm ts-sql-query-mysql; exit 1; }
+docker stop ts-sql-query-mysql
+docker rm ts-sql-query-mysql
+
+docker run --name ts-sql-query-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mysql
+sleep 20
+node ./dist/examples/MySql2Example.js || { docker stop ts-sql-query-mysql; docker rm ts-sql-query-mysql; exit 1; }
 docker stop ts-sql-query-mysql
 docker rm ts-sql-query-mysql
 

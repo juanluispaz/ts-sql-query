@@ -1,5 +1,5 @@
 import type { SqlBuilder, DeleteData } from "../sqlBuilders/SqlBuilder"
-import type { ITable } from "../utils/ITableOrView"
+import type { ITable, IWithView } from "../utils/ITableOrView"
 import type { BooleanValueSource, IfValueSource, IBooleanValueSource, IIfValueSource } from "../expressions/values"
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
 import type { int } from "ts-extended-types"
@@ -7,6 +7,7 @@ import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { database, tableOrView } from "../utils/symbols"
 import { asValueSource } from "../expressions/values"
+import { __getValueSourcePrivate } from "../expressions/values"
 
 export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressionAllowingNoWhere<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any>, DeleteData {
     [database]: any
@@ -16,6 +17,7 @@ export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressi
     __table: ITable<any>
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __allowNoWhere: boolean
+    __withs: Array<IWithView<any>> = []
 
     // cache
     __query = ''
@@ -78,6 +80,7 @@ export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressi
             throw new Error('Illegal state')
         }
         this.__where = asValueSource(condition)
+        __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
     and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
@@ -87,6 +90,7 @@ export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressi
         } else {
             this.__where = asValueSource(condition)
         }
+        __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
     or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
@@ -96,6 +100,7 @@ export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressi
         } else {
             this.__where = asValueSource(condition)
         }
+        __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
 }

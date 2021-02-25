@@ -197,6 +197,27 @@ async function main() {
             ]
         })
 
+        const customerCountPerCompanyWith = connection.selectFrom(tCompany)
+            .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+            .select({
+                companyId: tCompany.id,
+                companyName: tCompany.name,
+                customerCount: connection.count(tCustomer.id)
+            }).groupBy('companyId', 'companyName')
+            .forUseInQueryAs('customerCountPerCompany')
+
+        const customerCountPerAcmeCompanies = await connection.selectFrom(customerCountPerCompanyWith)
+            .where(customerCountPerCompanyWith.companyName.containsInsensitive('ACME'))
+            .select({
+                acmeCompanyId: customerCountPerCompanyWith.companyId,
+                acmeCompanyName: customerCountPerCompanyWith.companyName,
+                acmeCustomerCount: customerCountPerCompanyWith.customerCount
+            })
+            .executeSelectMany()
+        assertEquals(customerCountPerAcmeCompanies, [
+            { acmeCompanyId: 1, acmeCompanyName: 'ACME', acmeCustomerCount: 3 }
+        ])
+
         commit = true
     } finally {
         if (commit) {

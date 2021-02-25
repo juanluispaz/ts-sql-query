@@ -731,6 +731,29 @@ const deleteCustomer = connection.deleteFrom(tCustomer)
 // Query: delete from customer where id = $1
 // Params: [ 10 ]
 
+results.push([])
+
+const customerCountPerCompanyWith = connection.selectFrom(tCompany)
+    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+    .select({
+        companyId: tCompany.id,
+        companyName: tCompany.name,
+        customerCount: connection.count(tCustomer.id)
+    }).groupBy('companyId', 'companyName')
+    .forUseInQueryAs('customerCountPerCompany')
+
+const customerCountPerAcmeCompanies = connection.selectFrom(customerCountPerCompanyWith)
+    .where(customerCountPerCompanyWith.companyName.containsInsensitive('ACME'))
+    .select({
+        acmeCompanyId: customerCountPerCompanyWith.companyId,
+        acmeCompanyName: customerCountPerCompanyWith.companyName,
+        acmeCustomerCount: customerCountPerCompanyWith.customerCount
+    })
+    .executeSelectMany()
+
+// Query: with customerCountPerCompany as (select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.name) select companyId as "acmeCompanyId", companyName as "acmeCompanyName", customerCount as "acmeCustomerCount" from customerCountPerCompany where companyName ilike ('%' || $1 || '%')
+// Params: [ 'ACME' ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -749,6 +772,7 @@ companiesUsingCustomFunctionFragment.finally(() => undefined)
 companiesUsingCustomFunctionFragmentIfValue.finally(() => undefined)
 customerPageWithName.finally(() => undefined)
 customerWithId.finally(() => undefined)
+customerCountPerAcmeCompanies.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

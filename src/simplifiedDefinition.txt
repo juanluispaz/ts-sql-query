@@ -954,6 +954,14 @@ interface SelectExpression {
      */
     executeSelectPage<EXTRAS extends {}>(extras: EXTRAS): Promise<{ data: RESULT[], count: number } & EXTRAS>
     
+    /**
+     * Allows to use a select query as a view in another select. 
+     * This select will be included as a clause with in the final sql.
+     * 
+     * @param as name of the clause with in the final query (must be unique per final query)
+     */
+    forUseInQueryAs(as: string): View
+    
     /** Returns the sql query to be executed in the database */
     query(): string
     /** Returns the required parameters by the sql query */

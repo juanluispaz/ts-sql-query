@@ -18,13 +18,26 @@ export interface ITableOrViewOf<DB extends AnyDB, REF extends TableOrViewRef<DB>
     
 }
 
-export interface __ITableOrViewPrivate {
-    __name: string
-    __as?: string
-    __type: 'table' | 'view'
+export interface HasAddWiths {
+    __addWiths(withs: Array<IWithView<any>>): void
 }
 
-export function __getTableOrViewPrivate(table: ITableOrView<any>): __ITableOrViewPrivate {
+export function __addWiths(value: any, withs: Array<IWithView<any>>): void {
+    if (value === undefined || value === null) {
+        return
+    }
+    if (typeof value === 'object' && typeof value.__addWiths === 'function') {
+        (value as HasAddWiths).__addWiths(withs)
+    }
+}
+
+export interface __ITableOrViewPrivate extends HasAddWiths {
+    __name: string
+    __as?: string
+    __type: 'table' | 'view' | 'with'
+}
+
+export function __getTableOrViewPrivate(table: ITableOrView<any> | OuterJoinSource<any, any>): __ITableOrViewPrivate {
     return table as any
 }
 
@@ -38,6 +51,10 @@ export interface ITableOf<DB extends AnyDB, REF extends TableOrViewRef<DB>> exte
 
 export interface IView<REF extends TableOrViewRef<AnyDB>> extends ITableOrView<REF>{
     [type]: 'view'
+}
+
+export interface IWithView<REF extends TableOrViewRef<AnyDB>> extends ITableOrView<REF>{
+    [type]: 'with'
 }
 
 export interface NoTableOrViewRequired<DB extends AnyDB> extends TableOrViewRef<DB> {

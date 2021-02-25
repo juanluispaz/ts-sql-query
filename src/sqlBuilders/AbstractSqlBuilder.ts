@@ -1,4 +1,4 @@
-import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation } from "./SqlBuilder"
+import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData } from "./SqlBuilder"
 import type { ITableOrView } from "../utils/ITableOrView"
 import type { BooleanValueSource, IfValueSource, ValueSource } from "../expressions/values"
 import type { Column } from "../utils/Column"
@@ -9,6 +9,7 @@ import { hasToSql, operationOf } from "./SqlBuilder"
 import { __getTableOrViewPrivate } from "../utils/ITableOrView"
 import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 import { QueryRunner } from "../queryRunners/QueryRunner"
+import { getWithData } from "./SqlBuilder"
 
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
@@ -48,6 +49,28 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _setSafeTableOrView(params: any[], tableOrView: ITableOrView<any> | undefined): void {
         Object.defineProperty(params, '_safeTableOrView', {
             value: tableOrView,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    _isWithGenerated(params: any[]): boolean {
+        return !!(params as any)._withGenerated
+    }
+    _setWithGenerated(params: any[], value: boolean): void {
+        Object.defineProperty(params, '_withGenerated', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    _isWithGeneratedFinished(params: any[]): boolean {
+        return !!(params as any)._withGeneratedFinished
+    }
+    _setWithGeneratedFinished(params: any[], value: boolean): void {
+        Object.defineProperty(params, '_withGeneratedFinished', {
+            value: value,
             writable: true,
             enumerable: false,
             configurable: true
@@ -191,6 +214,30 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendColumnAlias(name: string, _params: any[]): string {
         return this._escape(name)
     }
+    _buildWith(withData: WithQueryData, params: any[]): string {
+        if (this._isWithGenerated(params)) {
+            return ''
+        }
+        this._setWithGenerated(params, true)
+        const withs = withData.__withs
+        if (withs.length <= 0) {
+            this._setWithGeneratedFinished(params, true)
+            return ''
+        }
+        let result = ''
+        for (let i = 0, length = withs.length; i < length; i++) {
+            if (result) {
+                result += ', '
+            }
+            const withView = getWithData(withs[i]!)
+            result += withView.__name
+            result += ' as ('
+            result += this._buildSelect(withView.__selectData, params)
+            result += ')'
+        }
+        this._setWithGeneratedFinished(params, true)
+        return 'with ' + result + ' '
+    }
     _buildSelect(query: SelectData, params: any[]): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 
@@ -205,8 +252,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             this._setSafeTableOrView(params, undefined)
         }
 
-
-        let selectQuery = 'select '
+        const withClause = this._buildWith(query, params)
+        let selectQuery = withClause + 'select '
         if (query.__distinct) {
             selectQuery += 'distinct '
         }
@@ -444,6 +491,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         this._setSafeTableOrView(params, table)
 
+        const withClause = this._buildWith(query, params)
+
         let columns = ''
         let values = ''
 
@@ -469,9 +518,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const tableName = this._getTableOrViewNameInSql(table)
         let insertQuery: string
         if (columns) {
-            insertQuery = 'insert into ' + tableName + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
+            insertQuery = withClause + 'insert into ' + tableName + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
         } else {
-            insertQuery = 'insert into ' + tableName + this._buildInsertOutput(query, params) + ' default values' + this._buildInsertReturning(query, params)
+            insertQuery = withClause + 'insert into ' + tableName + this._buildInsertOutput(query, params) + ' default values' + this._buildInsertReturning(query, params)
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
@@ -484,6 +533,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const sets = query.__sets
 
         this._setSafeTableOrView(params, table)
+
+        const withClause = this._buildWith(query, params)
 
         let columns = ''
         let values = ''
@@ -529,7 +580,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        const insertQuery = 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
+        const insertQuery = withClause + 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
         return insertQuery
@@ -546,6 +597,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const selectColumns = from.__columns
 
         this._setSafeTableOrView(params, table)
+
+        const withClause = this._buildWith(query, params)
 
         let columns = ''
         const addedColumns: string[] = []
@@ -581,7 +634,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        const insertQuery = 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' ' + this._buildSelect(from, params) + this._buildInsertReturning(query, params)
+        const insertQuery = withClause + 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' ' + this._buildSelect(from, params) + this._buildInsertReturning(query, params)
 
         for (let i = 0, length = addedColumns.length; i < length; i++) {
             const columnName = addedColumns[i]!
@@ -615,6 +668,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         this._setSafeTableOrView(params, table)
 
+        const withClause = this._buildWith(query, params)
+
         let columns = ''
         const properties = Object.getOwnPropertyNames(sets)
         for (let i = 0, length = properties.length; i < length; i++) {
@@ -635,7 +690,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        let updateQuery = 'update ' + this._getTableOrViewNameInSql(table) + ' set ' + columns
+        let updateQuery = withClause + 'update ' + this._getTableOrViewNameInSql(table) + ' set ' + columns
         if (query.__where) {
             const whereCondition = this._appendCondition(query.__where, params)
             if (whereCondition) {
@@ -653,10 +708,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildDelete(query: DeleteData, params: any[]): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 
+        const withClause = this._buildWith(query, params)
+
         const table = query.__table
         this._setSafeTableOrView(params, table)
 
-        let deleteQuery = 'delete from ' + this._getTableOrViewNameInSql(table)
+        let deleteQuery = withClause + 'delete from ' + this._getTableOrViewNameInSql(table)
         if (query.__where) {
             const whereCondition = this._appendCondition(query.__where, params)
             if (whereCondition) {

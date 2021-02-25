@@ -1,4 +1,4 @@
-import type { ITableOrView, ITableOrViewOf, TableOrViewRef } from "../utils/ITableOrView"
+import type { ITableOrView, ITableOrViewOf, TableOrViewRef, HasAddWiths } from "../utils/ITableOrView"
 import type { Default } from "./Default"
 import type { AnyDB } from "../databases"
 import type { int, double, /*LocalDate, LocalTime, LocalDateTime,*/ stringDouble, stringInt } from "ts-extended-types"
@@ -23,7 +23,7 @@ export interface __OptionalRule {
     _isValue(value: any): boolean // Implemented in the sql builders
 }
 
-export interface __ValueSourcePrivate {
+export interface __ValueSourcePrivate extends HasAddWiths {
     __valueType: string
     __typeAdapter?: TypeAdapter
     __isResultOptional(rule: __OptionalRule): boolean
@@ -39,7 +39,7 @@ export function isValueSource(value: any): value is ValueSource<TableOrViewRef<A
     return false
 }
 
-export function __getValueSourcePrivate(valueSource: ValueSource<any, any>): __ValueSourcePrivate {
+export function __getValueSourcePrivate(valueSource: ValueSource<any, any> | IIfValueSource<any, any>): __ValueSourcePrivate {
     return valueSource as any
 }
 

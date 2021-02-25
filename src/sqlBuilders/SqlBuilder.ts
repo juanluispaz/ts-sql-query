@@ -1,4 +1,4 @@
-import type { ITableOrView, ITable } from "../utils/ITableOrView"
+import type { ITableOrView, ITable, IWithView } from "../utils/ITableOrView"
 import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, __OptionalRule, IfValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
@@ -7,13 +7,28 @@ import type { Column } from "../utils/Column"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 
+export interface WithData {
+    __name: string
+    __as?: string
+    __selectData: SelectData
+    __optionalRule: __OptionalRule
+}
+
+export function getWithData(withView: IWithView<any>): WithData {
+    return withView as any
+}
+
 export interface JoinData {
     __joinType: 'join' | 'innerJoin' | 'leftJoin' | 'leftOuterJoin'
     __table_or_view: ITableOrView<any>
     __on?: BooleanValueSource<any, any> | IfValueSource<any, any>
 }
 
-export interface SelectData {
+export interface WithQueryData {
+    __withs: Array<IWithView<any>>
+}
+
+export interface SelectData extends WithQueryData {
     __distinct: boolean
     __columns: { [property: string]: ValueSource<any, any> }
     __tables_or_views: Array<ITableOrView<any>>
@@ -26,7 +41,7 @@ export interface SelectData {
     __offset?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
 }
 
-export interface InsertData {
+export interface InsertData extends WithQueryData {
     __table: ITable<any>
     __sets: { [property: string]: any }
     __multiple?: { [property: string]: any }[]
@@ -34,14 +49,14 @@ export interface InsertData {
     __from?: SelectData
 }
 
-export interface UpdateData {
+export interface UpdateData extends WithQueryData {
     __table: ITable<any>
     __sets: { [property: string] : any}
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __allowNoWhere: boolean
 }
 
-export interface DeleteData {
+export interface DeleteData extends WithQueryData {
     __table: ITable<any>,
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __allowNoWhere: boolean

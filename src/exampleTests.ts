@@ -825,7 +825,7 @@ Things that I want to implement:
 + insert from select
 
 4th to implement:
-- with
++ with
 - with recursive
 - from select
 - union, intersect

@@ -35,7 +35,7 @@ docker stop ts-sql-query-mysql
 docker rm ts-sql-query-mysql
 
 docker run --name ts-sql-query-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mysql
-sleep 20
+sleep 40
 node ./dist/examples/MySql2Example.js || { docker stop ts-sql-query-mysql; docker rm ts-sql-query-mysql; exit 1; }
 docker stop ts-sql-query-mysql
 docker rm ts-sql-query-mysql

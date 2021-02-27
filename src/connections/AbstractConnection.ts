@@ -30,6 +30,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     
     protected __sqlBuilder: SqlBuilder
     protected allowEmptyString: boolean = false
+    protected insesitiveCollation?: string
     readonly queryRunner: QueryRunner
     readonly defaultTypeAdapter: DefaultTypeAdapter
 

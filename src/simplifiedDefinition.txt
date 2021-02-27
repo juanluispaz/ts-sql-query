@@ -972,7 +972,9 @@ interface SelectExpression {
  * Modes of sorting in an order by.
  * If the database don't support one of then it will be emulated.
  */
-type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last'
+type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last' | 'insensitive' |
+                   'asc insensitive' | 'desc insensitive' | 'asc nulls first insensitive' | 'asc nulls last insensitive' | 
+                   'desc nulls first insensitive' | 'desc nulls last insensitive'
 /**
  * Select projection of the value that vill be retreived from the database.
  * 

@@ -498,6 +498,20 @@ export class SelectQueryBuilder implements ToSql, HasAddWiths, SelectData, Selec
                 this.orderBy(realColumnName, 'asc nulls last')
             } else if (ordering === 'desc nulls last') {
                 this.orderBy(realColumnName, 'desc nulls last')
+            } else if (ordering === 'insensitive') {
+                this.orderBy(realColumnName, 'insensitive')
+            } else if (ordering === 'asc insensitive') {
+                this.orderBy(realColumnName, 'asc insensitive')
+            } else if (ordering === 'desc insensitive') {
+                this.orderBy(realColumnName, 'desc insensitive')
+            } else if (ordering === 'asc nulls first insensitive') {
+                this.orderBy(realColumnName, 'asc nulls first insensitive')
+            } else if (ordering === 'desc nulls first insensitive') {
+                this.orderBy(realColumnName, 'desc nulls first insensitive')
+            } else if (ordering === 'asc nulls last insensitive') {
+                this.orderBy(realColumnName, 'asc nulls last insensitive')
+            } else if (ordering === 'desc nulls last insensitive') {
+                this.orderBy(realColumnName, 'desc nulls last insensitive')
             } else if (!ordering) {
                 this.orderBy(realColumnName)
             } else {

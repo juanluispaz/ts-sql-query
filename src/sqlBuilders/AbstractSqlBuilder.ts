@@ -10,6 +10,7 @@ import { __getTableOrViewPrivate } from "../utils/ITableOrView"
 import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 import { QueryRunner } from "../queryRunners/QueryRunner"
 import { getWithData } from "./SqlBuilder"
+import { __getValueSourcePrivate } from "../expressions/values"
 
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
@@ -353,21 +354,62 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!orderBy) {
             return ''
         }
+        const columns = query.__columns
         let orderByColumns = ''
         for (const property in orderBy) {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            orderByColumns += this._appendColumnAlias(property, params)
+            const column = columns[property]
+            if (!column) {
+                throw new Error('Column ' + property + ' included in the order by not found in the select clause')
+            }
+            const columnAlias = this._appendColumnAlias(property, params)
             const order = orderBy[property]
-            if (order) {
-                orderByColumns += ' ' + order
+            if (!order) {
+                orderByColumns += columnAlias
+            } else switch (order) {
+                case 'asc':
+                case 'desc': 
+                case 'asc nulls first':
+                case 'asc nulls last':
+                case 'desc nulls first':
+                case 'desc nulls last' :
+                    orderByColumns += columnAlias + ' ' + order
+                    break
+                case 'insensitive':
+                case 'asc insensitive':
+                case 'desc insensitive':
+                case 'asc nulls first insensitive':
+                case 'asc nulls last insensitive':
+                case 'desc nulls first insensitive':
+                case 'desc nulls last insensitive': {
+                    let sqlOrder = order.substring(0, order.length - 12)
+                    if (sqlOrder) {
+                        sqlOrder = ' ' + sqlOrder
+                    }
+                    const collation = this._connectionConfiguration.insesitiveCollation
+                    const columnType = __getValueSourcePrivate(column).__valueType
+                    if (columnType != 'string') {
+                        // Ignore the insensitive term, it do nothing
+                        orderByColumns += columnAlias + ' ' + sqlOrder
+                    } else if (collation) {
+                        orderByColumns += columnAlias + ' collate ' + collation + sqlOrder
+                    } else if (collation === '') {
+                        orderByColumns += columnAlias + sqlOrder
+                    } else {
+                        orderByColumns += 'lower(' + columnAlias + ')' + sqlOrder
+                    }
+                    break
+                }
+                default:
+                    throw new Error('Invalid order by: ' + property + ' ' + order)
             }
         }
+
         if (!orderByColumns) {
             return ''
         }
-
         return ' order by ' + orderByColumns
     }
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {

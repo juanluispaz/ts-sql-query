@@ -5,7 +5,9 @@ import type { AnyDB, TypeWhenSafeDB, TypeSafeDB } from "../databases"
 import type { int } from "ts-extended-types"
 import type { columnsType, database, requiredTableOrView, tableOrViewRef } from "../utils/symbols"
 
-export type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last'
+export type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last' | 'insensitive' |
+                          'asc insensitive' | 'desc insensitive' | 'asc nulls first insensitive' | 'asc nulls last insensitive' | 
+                          'desc nulls first insensitive' | 'desc nulls last insensitive'
 
 export interface SelectExpressionBase<DB extends AnyDB, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> {
     [database]: DB

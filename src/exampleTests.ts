@@ -403,6 +403,7 @@ console.log(querya, parmsa);
 /********************************************************************************************** */
 
 class DBConection extends PostgreSqlConnection<'DBConnection'> { 
+    // insesitiveCollation = 'acs'
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
         this.arg('int', 'required'),
@@ -490,7 +491,7 @@ results.push([])
 const firstNameContains = 'ohn'
 const lastNameContains = null
 const birthdayIs = null
-const searchOrderBy = 'name, birthday asc nulls last'
+const searchOrderBy = 'name insensitive, birthday asc nulls last'
 
 const searchedCustomers = connection.selectFrom(tCustomer)
     .where(
@@ -507,7 +508,7 @@ const searchedCustomers = connection.selectFrom(tCustomer)
     .orderByFromString(searchOrderBy)
     .executeSelectMany()
 
-// Query: select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by name, birthday asc nulls last
+// Query: select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(name), birthday asc nulls last
 // Params: [ ' ', 'ohn' ]
 
 results.push([])
@@ -527,11 +528,11 @@ const customersWithCompanyName = connection.selectFrom(tCustomer)
         birthday: tCustomer.birthday,
         companyName: company.name
     })
-    .orderBy('firstName')
-    .orderBy('lastName', 'asc')
+    .orderBy('firstName', 'insensitive')
+    .orderBy('lastName', 'asc insensitive')
     .executeSelectMany()
 
-// Query: select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, comp.name as companyName from customer inner join company as comp on customer.company_id = comp.id where customer.first_name ilike ($1 || '%') order by firstName, lastName asc
+// Query: select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, comp.name as companyName from customer inner join company as comp on customer.company_id = comp.id where customer.first_name ilike ($1 || '%') order by lower(firstName), lower(lastName) asc
 // Params: [ 'John' ]
 
 results.push([])

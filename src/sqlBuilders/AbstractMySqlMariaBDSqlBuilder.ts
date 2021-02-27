@@ -1,7 +1,9 @@
 import type { ToSql, SelectData, InsertData } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
+import type { ValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
+import { __getValueSourcePrivate } from "../expressions/values"
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     constructor() {
@@ -20,40 +22,75 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         if (!orderBy) {
             return ''
         }
+        const columns = query.__columns
         let orderByColumns = ''
         for (const property in orderBy) {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
+            const column = columns[property]
+            if (!column) {
+                throw new Error('Column ' + property + ' included in the order by not found in the select clause')
+            }
             const order = orderBy[property]
-            if (order) {
-                switch (order as OrderByMode) {
-                    case 'asc':
-                    case 'asc nulls first':
-                        orderByColumns += this._escape(property) + ' asc'
-                        break
-                    case 'desc':
-                    case 'desc nulls last':
-                        orderByColumns += this._escape(property) + ' desc'
-                        break
-                    case 'asc nulls last':
-                        orderByColumns += this._escape(property) + ' is null, ' + this._escape(property) + ' asc'
-                        break
-                    case 'desc nulls first':
-                        orderByColumns += this._escape(property) + ' is not null, ' + this._escape(property) + ' desc'
-                        break
-                }
-                orderByColumns += this._escape(property) + ' ' + order
-            } else {
+            if (!order) {
                 orderByColumns += this._escape(property)
+            } else switch (order as OrderByMode) {
+                case 'asc':
+                case 'asc nulls first':
+                    orderByColumns += this._escape(property) + ' asc'
+                    break
+                case 'desc':
+                case 'desc nulls last':
+                    orderByColumns += this._escape(property) + ' desc'
+                    break
+                case 'asc nulls last':
+                    orderByColumns += this._escape(property) + ' is null, ' + this._escape(property) + ' asc'
+                    break
+                case 'desc nulls first':
+                    orderByColumns += this._escape(property) + ' is not null, ' + this._escape(property) + ' desc'
+                    break
+                case 'insensitive':
+                    orderByColumns += this._escapeInsensitive(property, column)
+                    break
+                case 'asc insensitive':
+                case 'asc nulls first insensitive':
+                    orderByColumns += this._escapeInsensitive(property, column) + ' asc'
+                    break
+                case 'desc insensitive':
+                case 'desc nulls last insensitive':
+                    orderByColumns += this._escapeInsensitive(property, column) + ' desc'
+                    break
+                case 'asc nulls last insensitive':
+                    orderByColumns += this._escape(property) + ' is null, ' + this._escapeInsensitive(property, column) + ' asc'
+                    break
+                case 'desc nulls first insensitive':
+                    orderByColumns += this._escape(property) + ' is not null, ' + this._escapeInsensitive(property, column) + ' desc'
+                    break
+                default:
+                    throw new Error('Invalid order by: ' + property + ' ' + order)
             }
         }
+        
         if (!orderByColumns) {
             return ''
         }
-
         return ' order by ' + orderByColumns
     }
+    _escapeInsensitive(identifier: string, column: ValueSource<any, any>) {
+        const collation = this._connectionConfiguration.insesitiveCollation
+        const columnType = __getValueSourcePrivate(column).__valueType
+        if (columnType != 'string') {
+            // Ignore the insensitive term, it do nothing
+            return this._escape(identifier)
+        } else if (collation) {
+            return this._escape(identifier) + ' collate ' + collation
+        } else if (collation === '') {
+            return this._escape(identifier)
+        } else {
+            return 'lower(' + this._escape(identifier) + ')'
+        }
+    } 
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = ''
 

@@ -151,13 +151,16 @@ When you realize an insert or update, you can:
 - set a value if it was not previously set during the construction of the query using the method `setIfNotSet` or the method `setIfNotSetIfValue`
 - ignore a previously set value using the method `ignoreIfSet`
 - don't worry if you end with an update or delete with no where, you will get an error instead of update or delete all rows. You can allow explicitly having an update or delete with no where if you create it using the method `updateAllowingNoWhere` or `deleteAllowingNoWhereFrom` respectively
-- add a dynamic `order by` provided by the user without risk of SQL injection and without exposing the internal structure of the database. To build a dynamic `order by` use the method `orderByFromString` with the usual order by syntax, but using as column's name the name of the property in the resulting object
+
+When you realize a select, you can:
+- specify in your order by clause that the order must be case insensitive when the column type is string (ignored otherwise). To do it, add `insensitive` at the end of the ordering criteria/mode
+- add a dynamic `order by` provided by the user without risk of SQL injection and without exposing the internal structure of the database. To build a dynamic `order by` use the method `orderByFromString` with the usual order by syntax (and with the possibility to use the insensitive extension), but using as column's name the name of the property in the resulting object
 
 ```ts
 const firstNameContains = 'ohn';
 const lastNameContains = null;
 const birthdayIs = null;
-const searchOrderBy = 'name, birthday asc nulls last';
+const searchOrderBy = 'name insensitive, birthday asc nulls last';
 
 const searchedCustomers = connection.selectFrom(tCustomer)
     .where(
@@ -180,7 +183,7 @@ The executed query is:
 select id as id, first_name || $1 || last_name as name, birthday as birthday 
 from customer 
 where first_name like ('%' || $2 || '%') 
-order by name, birthday asc nulls last
+order by lower(name), birthday asc nulls last
 ```
 
 The parameters are: `[ ' ', 'ohn' ]`
@@ -212,8 +215,8 @@ const customersWithCompanyName = connection.selectFrom(tCustomer)
         birthday: tCustomer.birthday,
         companyName: company.name
     })
-    .orderBy('firstName')
-    .orderBy('lastName', 'asc')
+    .orderBy('firstName', 'insensitive')
+    .orderBy('lastName', 'asc insensitive')
     .executeSelectMany();
 ```
 
@@ -222,7 +225,7 @@ The executed query is:
 select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, comp.name as companyName
 from customer inner join company as comp on customer.company_id = comp.id 
 where customer.first_name ilike ($1 || '%') 
-order by firstName, lastName asc
+order by lower(firstName), lower(lastName) asc
 ```
 
 The parameters are: `[ 'John' ]`
@@ -1933,6 +1936,22 @@ interface SelectExpression {
     /** Returns the required parameters by the sql query */
     params(): any[]
 }
+
+/**
+ * Modes of sorting in an order by.
+ * If the database don't support one of then it will be emulated.
+ */
+type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last' | 'insensitive' |
+                   'asc insensitive' | 'desc insensitive' | 'asc nulls first insensitive' | 'asc nulls last insensitive' | 
+                   'desc nulls first insensitive' | 'desc nulls last insensitive'
+
+/**
+ * Select projection of the value that vill be retreived from the database.
+ * 
+ * It must be an object where the name of the property is the name of the resulting property
+ * and the value is the ValueSource where the value will be obtained.
+ */
+type SelectValues = { [columnName: string]: ValueSource }
 ```
 
 ## Supported databases

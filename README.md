@@ -47,6 +47,7 @@ Type-safe sql means the mistakes writting a query will be detected during the co
   - [Update definition](#update-definition)
   - [Delete definition](#delete-definition)
   - [Select definition](#select-definition)
+  - [Type adpaters](#type-adpaters)
 - [Supported databases](#supported-databases)
   - [MariaDB](#mariadb)
   - [MySql](#mysql)
@@ -88,6 +89,8 @@ Type-safe sql means the mistakes writting a query will be detected during the co
   - [sqlite3](#sqlite3)
   - [tedious (with a connection poll)](#tedious-with-a-connection-poll)
   - [tedious (with a connection)](#tedious-with-a-connection)
+- [Advanced](#advanced)
+  - [Custom booleans values](#custom-booleans-values)
 - [License](#license)
 
 ## Install
@@ -1476,16 +1479,6 @@ interface FragmentBuilderIfValue {
     as(impl: (...args: ValueSource[]) => ValueSource): (...args: any) => BooleanValueSource
 }
 
-interface TypeAdapter {
-    transformValueFromDB(value: any, type: string, next: DefaultTypeAdapter): any
-    transformValueToDB(value: any, type: string, next: DefaultTypeAdapter): any
-}
-
-interface DefaultTypeAdapter {
-    transformValueFromDB(value: any, type: string): any
-    transformValueToDB(value: any, type: string): any
-}
-
 interface Sequence<T> {
     nextValue(): T
     currentValue(): T
@@ -1954,6 +1947,37 @@ type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc
 type SelectValues = { [columnName: string]: ValueSource }
 ```
 
+### Type adpaters
+
+Type adapters allow customising how the values are sent and recovered from the database allowing transform them. You can specify the type adapter per field when you define at the table or view; or, you can define general rules overriding the `transformValueFromDB` and `transformValueToDB`.
+
+The `CustomBooleanTypeAdapter` allows defining custom values to express a boolean when they don't match the database's default values. For example, when you have a field in the database that is a boolean; but, the true value is represented with the string `yes`, and the false value is represented with the string `no`. See [Custom booleans values](#custom-booleans-values) for more information.
+
+Type adapter definitions are in the file `ts-sql-query/TypeAdapter`.
+
+```ts
+interface TypeAdapter {
+    transformValueFromDB(value: any, type: string, next: DefaultTypeAdapter): any
+    transformValueToDB(value: any, type: string, next: DefaultTypeAdapter): any
+}
+
+interface DefaultTypeAdapter {
+    transformValueFromDB(value: any, type: string): any
+    transformValueToDB(value: any, type: string): any
+}
+
+class CustomBooleanTypeAdapter implements TypeAdapter {
+    readonly trueValue: number | string
+    readonly falseValue: number | string
+
+    constructor(trueValue: number, falseValue: number)
+    constructor(trueValue: string, falseValue: string)
+
+    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+}
+```
+
 ## Supported databases
 
 The way to define what database to use is when you define the connection and extends the proper database connection. You need to choose the proper database in order to generate the queries in the sql dialect handled by that database.
@@ -1982,6 +2006,8 @@ import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
 class DBConection extends OracleConnection<'DBConnection'> { }
 ```
 
+**Note**: Oracle doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a number where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](#custom-booleans-values) for more information.
+
 ### PostgreSql
 
 ```ts
@@ -2000,13 +2026,15 @@ class DBConection extends SqliteConnection<'DBConnection'> { }
 
 ### SqlServer
 
-**Note**: An empty string will be treated as a null value; if you need to allow empty string set the allowEmptyString property to true in the connection object.
-
 ```ts
 import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
 
 class DBConection extends SqlServerConnection<'DBConnection'> { }
 ```
+
+**Note**: An empty string will be treated as a null value; if you need to allow empty string set the allowEmptyString property to true in the connection object.
+
+**Note**: Sql Server doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a bit where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](#custom-booleans-values) for more information.
 
 ## Supported databases with extended ts types
 
@@ -2036,6 +2064,8 @@ import { TypeSafeOracleConnection } from "ts-sql-query/connections/TypeSafeOracl
 class DBConection extends TypeSafeOracleConnection<'DBConnection'> { }
 ```
 
+**Note**: Oracle doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a number where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](#custom-booleans-values) for more information.
+
 ### PostgreSql
 
 ```ts
@@ -2054,13 +2084,15 @@ class DBConection extends TypeSafeSqliteConnection<'DBConnection'> { }
 
 ### SqlServer
 
-**Note**: An empty string will be treated as a null value; if you need to allow empty string set the allowEmptyString property to true in the connection object.
-
 ```ts
 import { TypeSafeSqlServerConnection } from "ts-sql-query/connections/TypeSafeSqlServerConnection";
 
 class DBConection extends TypeSafeSqlServerConnection<'DBConnection'> { }
 ```
+
+**Note**: An empty string will be treated as a null value; if you need to allow empty string set the allowEmptyString property to true in the connection object.
+
+**Note**: Sql Server doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a bit where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](#custom-booleans-values) for more information.
 
 ## Query runners
 
@@ -2859,6 +2891,84 @@ function main() {
 async doYourLogic(connection: DBConection) {
     // Do your queries here
 }
+```
+
+## Advanced
+
+### Custom booleans values
+
+Sometimes, especially in Oracle databases, you need to represent a boolean with other values except true or false. For example, if your field in the database represents the true value with the char `Y` and the false value with the char `N`.
+
+For example:
+
+```ts
+import { Table } from "ts-sql-query/Table";
+import { CustomBooleanTypeAdapter } from "ts-sql-query/TypeAdapter";
+
+const tCustomCompany = new class TCustomCompany extends Table<DBConection, 'TCustomCompany'> {
+    id = this.autogeneratedPrimaryKey('id', 'int');
+    name = this.column('name', 'string');
+    isBig = this.column('is_big', 'boolean', new CustomBooleanTypeAdapter('Y', 'N'));
+    constructor() {
+        super('custom_company'); // table name in the database
+    }
+}();
+```
+
+The table `custom_company` the field `is_big` accepts the values `Y` and `N`. This field represents a boolean type, and on the JavaScript side, it will be mapped as boolean. But, on the database side, the field will be treated with appropriated values. The conversion between values will be performed by ts-sql-query automatically; you don't need to be worried about the type mismatching even if you try to assign the value to another field with a different way of representing booleans.
+
+You can perform an insert in this way:
+
+```ts
+const insertCustomCompany = connection.insertInto(tCustomCompany).set({
+        name: 'My Big Company',
+        isBig: true
+    }).returningLastInsertedId()
+    .executeInsert();
+```
+
+The executed query is:
+```sql
+insert into custom_company (name, is_big) 
+values ($1, case when $2 then 'Y' else 'N' end) 
+returning id
+```
+
+The parameters are: `[ 'My Big Company', true ]`
+
+The result type is:
+```ts
+const insertCustomCompany: Promise<number>
+```
+
+Or a select:
+
+```ts
+const selectAllBigCompanies = connection.selectFrom(tCustomCompany)
+    .where(tCustomCompany.isBig)
+    .select({
+        id: tCustomCompany.id,
+        name: tCustomCompany.name,
+        isBig: tCustomCompany.isBig
+    }).executeSelectMany();
+```
+
+The executed query is:
+```sql
+select id as id, name as name, (is_big = 'Y') as isBig 
+from custom_company 
+where (is_big = 'Y')
+```
+
+The parameters are: `[]`
+
+The result type is:
+```ts
+const selectAllBigCompanies: Promise<{
+    id: number;
+    name: string;
+    isBig: boolean;
+}[]>
 ```
 
 ## License

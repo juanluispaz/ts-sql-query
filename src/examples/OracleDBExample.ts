@@ -238,8 +238,9 @@ async function main() {
             .select({
                 companyId: tCompany.id,
                 companyName: tCompany.name,
+                endsWithME: tCompany.name.endWithInsensitive('me'),
                 customerCount: connection.count(tCustomer.id)
-            }).groupBy('companyId', 'companyName')
+            }).groupBy('companyId', 'companyName', 'endsWithME')
             .forUseInQueryAs('customerCountPerCompany')
 
         const customerCountPerAcmeCompanies = await connection.selectFrom(customerCountPerCompanyWith)
@@ -247,11 +248,12 @@ async function main() {
             .select({
                 acmeCompanyId: customerCountPerCompanyWith.companyId,
                 acmeCompanyName: customerCountPerCompanyWith.companyName,
+                acmeEndsWithME: customerCountPerCompanyWith.endsWithME,
                 acmeCustomerCount: customerCountPerCompanyWith.customerCount
             })
             .executeSelectMany()
         assertEquals(customerCountPerAcmeCompanies, [
-            { acmeCompanyId: 1, acmeCompanyName: 'ACME', acmeCustomerCount: 3 }
+            { acmeCompanyId: 1, acmeCompanyName: 'ACME', acmeEndsWithME: true, acmeCustomerCount: 3 }
         ])
 
         i = await connection.increment(10)

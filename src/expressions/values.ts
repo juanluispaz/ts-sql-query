@@ -27,6 +27,7 @@ export interface __ValueSourcePrivate extends HasAddWiths {
     __valueType: string
     __typeAdapter?: TypeAdapter
     __isResultOptional(rule: __OptionalRule): boolean
+    __isBooleanForCondition?: boolean
 }
 
 export function isValueSource(value: any): value is ValueSource<TableOrViewRef<AnyDB>, undefined> {

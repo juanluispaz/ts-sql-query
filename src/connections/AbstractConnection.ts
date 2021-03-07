@@ -16,7 +16,7 @@ import { InsertQueryBuilder } from "../queryBuilders/InsertQueryBuilder"
 import { UpdateQueryBuilder } from "../queryBuilders/UpdateQueryBuilder"
 import { DeleteQueryBuilder } from "../queryBuilders/DeleteQueryBuilder"
 import { __getValueSourcePrivate, Argument } from "../expressions/values"
-import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop } from "../internal/ValueSourceImpl"
+import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop, SqlOperationStaticBooleanValueSource } from "../internal/ValueSourceImpl"
 import { DefaultImpl } from "../expressions/Default"
 import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
 import ChainedError from "chained-error"
@@ -204,10 +204,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     }
 
     true<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> = NoTableOrViewRequiredView<DB>>(): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
-        return new SqlOperationStatic0ValueSource(false, '_true', 'boolean', undefined)
+        return new SqlOperationStaticBooleanValueSource('_true')
     }
     false<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> = NoTableOrViewRequiredView<DB>>(): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
-        return new SqlOperationStatic0ValueSource(false, '_false', 'boolean', undefined)
+        return new SqlOperationStaticBooleanValueSource('_false')
     }
     exists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: IExecutableSelect<DB, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
         return new SqlOperationStatic1ValueSource(false, '_exists', select, 'boolean', undefined)

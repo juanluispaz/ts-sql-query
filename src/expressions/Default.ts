@@ -10,4 +10,7 @@ export class DefaultImpl implements Default, ToSql {
     __toSql(SqlBuilder: SqlBuilder, params: any[]): string {
         return SqlBuilder._default(params)
     }
+    __toSqlForCondition(SqlBuilder: SqlBuilder, params: any[]): string {
+        return SqlBuilder._default(params)
+    }
 }

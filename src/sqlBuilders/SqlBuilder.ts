@@ -69,7 +69,8 @@ export interface SqlBuilder extends SqlOperation, __OptionalRule {
     _isValue(value: any): boolean
     _isReservedKeyword(word: string): boolean
     _forceAsIdentifier(identifier: string): string
-    _appendColumnNameInSql(column: Column, params: any[]): string
+    _appendColumnName(column: Column, params: any[]): string
+    _appendColumnNameForCondition(column: Column, params: any[]): string
     _buildSelect(query: SelectData, params: any[]): string
     _buildInsertDefaultValues(query: InsertData, params: any[]): string
     _buildInsert(query: InsertData, params: any[]): string
@@ -82,7 +83,8 @@ export interface SqlBuilder extends SqlOperation, __OptionalRule {
 }
 
 export interface ToSql {
-    __toSql(_SqlBuilder: SqlBuilder, _params: any[]): string
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string
 }
 
 export function hasToSql(value: any): value is ToSql {
@@ -159,10 +161,13 @@ export interface SqlFunctionStatic0 {
     _default(params: any): string
     _true(params: any): string
     _false(params: any): string
+    _trueForCondition(params: any): string
+    _falseForCondition(params: any): string
 }
 
 export interface SqlFunctionStatic1 {
     _const(params: any[], value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
+    _constForCondition(params: any[], value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
     _exists(params: any[], value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
     _notExists(params: any[], value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
     _escapeLikeWildcard(params: any[], value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string

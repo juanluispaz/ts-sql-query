@@ -1,8 +1,8 @@
 import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData } from "./SqlBuilder"
-import type { ITableOrView } from "../utils/ITableOrView"
-import type { BooleanValueSource, IfValueSource, ValueSource } from "../expressions/values"
-import type { Column } from "../utils/Column"
-import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
+import type { ITableOrView, __ITableOrViewPrivate } from "../utils/ITableOrView"
+import { BooleanValueSource, IfValueSource, ValueSource, __ValueSourcePrivate } from "../expressions/values"
+import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
+import { CustomBooleanTypeAdapter, DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 import { SequenceValueSource } from "../internal/ValueSourceImpl"
 import { hasToSql, operationOf } from "./SqlBuilder"
@@ -121,7 +121,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return false
     }
-    _appendColumnNameInSql(column: Column, params: any[]): string {
+    _appendColumnName(column: Column, params: any[]): string {
+        const columnPrivate = __getColumnPrivate(column)
+        const typeAdapter = columnPrivate.__typeAdapter
+        if (columnPrivate.__valueType === 'boolean' && typeAdapter instanceof CustomBooleanTypeAdapter) {
+            return '(' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ')'
+        }
+        return this._appendRawColumnName(column, params)
+    }
+    _appendColumnNameForCondition(column: Column, params: any[]): string {
+        const columnPrivate = __getColumnPrivate(column)
+        const typeAdapter = columnPrivate.__typeAdapter
+        if (columnPrivate.__valueType === 'boolean' && typeAdapter instanceof CustomBooleanTypeAdapter) {
+            return this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params)
+        }
+        return this._appendRawColumnName(column, params)
+    }
+    _appendRawColumnName(column: Column, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const tableOrView = columnPrivate.__table_or_view
         const tablePrivate = __getTableOrViewPrivate(tableOrView)
@@ -134,6 +150,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return this._escape(tablePrivate.__name) + '.' + this._escape(columnPrivate.__name)
         }
     }
+    _appendLiteralValue(value: number | string, _params: any[]) {
+        if (typeof value === 'number') {
+            return '' + value
+        } else {
+            return "'" + value + "'"
+        }
+    }
     _getTableOrViewNameInSql(table: ITableOrView<any>): string {
         const t = __getTableOrViewPrivate(table)
         let result = this._escape(t.__name)
@@ -144,9 +167,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _appendCondition(condition: BooleanValueSource<any, any> | IfValueSource<any, any>, params: any[]): string {
         if (hasToSql(condition)) {
-            return condition.__toSql(this, params)
+            return condition.__toSqlForCondition(this, params)
         }
-        throw new Error('Conditions must have a __toSql method')
+        throw new Error('Conditions must have a __toSqlForCondition method')
     }
     _appendConditionParenthesis(condition: BooleanValueSource<any, any> | IfValueSource<any, any>, params: any[]): string {
         if (this._needParenthesis(condition)) {
@@ -202,6 +225,48 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendValue(value, params, columnType, typeAdapter)
     }
+    _appendConditionSql(value: ToSql | ValueSource<any, any> | Column, params: any[]): string {
+        return (value as ToSql).__toSqlForCondition(this, params) // All ValueSource or Column have a hidden implemetation of ToSql
+    }
+    _appendConditionSqlParenthesis(value: ToSql | ValueSource<any, any> | Column, params: any[]): string {
+        if (this._needParenthesis(value)) {
+            return '(' + this._appendConditionSql(value, params) + ')'
+        }
+        return this._appendConditionSql(value, params)
+    }
+    _appendConditionSqlParenthesisExcluding(value: ToSql | ValueSource<any, any> | Column, params: any[], excluding: keyof SqlOperation): string {
+        if (this._needParenthesisExcluding(value, excluding)) {
+            return '(' + this._appendConditionSql(value, params) + ')'
+        }
+        return this._appendConditionSql(value, params)
+    }
+    _appendConditionValue(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (hasToSql(value)) {
+            return this._appendConditionSql(value, params)
+        }
+        if (Array.isArray(value) && value.length > 0) {
+            let arrayResult = '(' + this._appendConditionValue(value[0], params, columnType, typeAdapter)
+
+            for (let i = 1, length = value.length; i < length; i++) {
+                arrayResult += ', ' + this._appendConditionValue(value[i], params, columnType, typeAdapter)
+            }
+            return arrayResult + ')'
+        }
+        const adaptedValue = this._transformParamToDB(value, columnType, typeAdapter)
+        return this._appendConditionParam(adaptedValue, params, columnType)
+    }
+    _appendConditionValueParenthesis(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (this._needParenthesis(value)) {
+            return '(' + this._appendConditionValue(value, params, columnType, typeAdapter) + ')'
+        }
+        return this._appendConditionValue(value, params, columnType, typeAdapter)
+    }
+    _appendConditionValueParenthesisExcluding(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, excluding: keyof SqlOperation): string {
+        if (this._needParenthesisExcluding(value, excluding)) {
+            return '(' + this._appendConditionValue(value, params, columnType, typeAdapter) + ')'
+        }
+        return this._appendConditionValue(value, params, columnType, typeAdapter)
+    }
     _transformParamToDB(value: any, columnType: string, typeAdapter: TypeAdapter | undefined): any {
         if (typeAdapter) {
             return typeAdapter.transformValueToDB(value, columnType, this._defaultTypeAdapter)
@@ -211,6 +276,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _appendParam(value: any, params: any[], _columnType: string): string {
         return this._queryRunner.addParam(params, value)
+    }
+    _appendConditionParam(value: any, params: any[], columnType: string): string {
+        return this._appendParam(value, params, columnType)
     }
     _appendColumnAlias(name: string, _params: any[]): string {
         return this._escape(name)
@@ -240,6 +308,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'with ' + result + ' '
     }
     _buildSelect(query: SelectData, params: any[]): string {
+        return this._buildSelectWithColumnsInfo(query, params, {})
+    }
+    _buildSelectWithColumnsInfo(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 
         const tables = query.__tables_or_views
@@ -265,7 +336,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (requireComma) {
                 selectQuery += ', '
             }
-            selectQuery += this._appendSql(columns[property]!, params)
+            const columnForInsert = columnsForInsert[property]
+            selectQuery += this._appendSelectColumn(columns[property]!, params, columnForInsert)
             if (property) {
                 selectQuery += ' as ' + this._appendColumnAlias(property, params)
             }
@@ -328,7 +400,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             } else {
                 selectQuery += ' group by '
             }
-            selectQuery += this._appendSql(groupBy[i]!, params)
+            selectQuery += this._appendSelectColumn(groupBy[i]!, params, undefined)
             requireComma = true
         }
 
@@ -345,6 +417,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
         return selectQuery
+    }
+    _appendSelectColumn(value: ValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
+        if (columnForInsert) {
+            const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)
+            if (sql) {
+                return sql
+            }
+        }
+        return this._appendSql(value, params)
     }
     _fromNoTable() {
         return ''
@@ -466,7 +547,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 columns += ', '
             }
 
-            columns += this._appendSql(column, params)
+            columns += this._appendRawColumnName(column, params)
             nextSequenceValues.push(columnPrivate.__sequenceName)
         }
 
@@ -476,7 +557,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
             const column = __getColumnOfTable(table, columnName)
             if (column) {
-                columns += this._appendSql(column, params)
+                columns += this._appendRawColumnName(column, params)
             } else {
                 throw new Error('Unable to find the column "' + columnName + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
             }
@@ -507,7 +588,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     if (!(columnName in sets) && sequenceName) {
                         values += this._nextSequenceValue(params, sequenceName)
                     } else {
-                        values += this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__typeAdapter)
+                        values += this._appendValueForColumn(column, value, params)
                     }
                 } else {
                     throw new Error('Unable to find the column "' + columnName + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
@@ -525,6 +606,56 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
         return insertQuery
+    }
+    _appendCustomBooleanRemapForColumnIfRequired(column: Column, value: any, params: any[]): string | null {
+        const columnPrivate = __getColumnPrivate(column)
+        const columnTypeAdapter = columnPrivate.__typeAdapter
+        const columnType = columnPrivate.__valueType
+
+        if (columnType !== 'boolean') {
+            return null // non-boolean
+        }
+        
+        if (columnTypeAdapter instanceof CustomBooleanTypeAdapter) {
+            if (isColumn(value)) {
+                const valuePrivate = __getColumnPrivate(value)
+                const valueTypeAdapter = valuePrivate.__typeAdapter
+
+                if (valueTypeAdapter instanceof CustomBooleanTypeAdapter) {
+                    if (columnTypeAdapter.trueValue === valueTypeAdapter.trueValue && columnTypeAdapter.falseValue === valueTypeAdapter.falseValue) {
+                        return this._appendRawColumnName(value, params) // same boolean as column
+                    }
+
+                    if (!columnPrivate.__isOptional) {
+                        // remapped
+                        return 'case when ' + this._appendRawColumnName(value, params) + ' = ' + this._appendLiteralValue(valueTypeAdapter.trueValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                    } else {
+                        // remapped
+                        return 'case when ' + this._appendRawColumnName(value, params) + ' = ' + this._appendLiteralValue(valueTypeAdapter.trueValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._appendRawColumnName(value, params) + ' = ' + this._appendLiteralValue(valueTypeAdapter.falseValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                    }
+                }
+            }
+
+            if (!columnPrivate.__isOptional) {
+                // remapped
+                return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+            } else {
+                // remapped
+                return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when not ' + this._appendValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+            }
+        }
+
+        // if value is column and its type adapter is CustomBooleanTypeAdapter append value will be required to normalize value
+        // if not it is same boolean, nothing to transform here
+        return null
+    }
+    _appendValueForColumn(column: Column, value: any, params: any[]): string {
+        const sql = this._appendCustomBooleanRemapForColumnIfRequired(column, value, params)
+        if (sql) {
+            return sql
+        }
+        const columnPrivate = __getColumnPrivate(column)
+        return this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__typeAdapter)
     }
     _buildInsertDefaultValues(query: InsertData, params: any[]): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
@@ -553,7 +684,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 values += ', '
             }
 
-            columns += this._appendSql(column, params)
+            columns += this._appendRawColumnName(column, params)
             values += this._nextSequenceValue(params, columnPrivate.__sequenceName)
         }
 
@@ -599,7 +730,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 values += ', '
             }
 
-            columns += this._appendSql(column, params)
+            columns += this._appendRawColumnName(column, params)
             values += this._nextSequenceValue(params, columnPrivate.__sequenceName)
         }
 
@@ -614,9 +745,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const value = sets[property]
             const column = __getColumnOfTable(table, property)
             if (column) {
-                columns += this._appendSql(column, params)
-                const columnPrivate = __getColumnPrivate(column)
-                values += this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__typeAdapter)
+                columns += this._appendRawColumnName(column, params)
+                values += this._appendValueForColumn(column, value, params)
             } else {
                 throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
             }
@@ -642,6 +772,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const withClause = this._buildWith(query, params)
 
+        const columnsForInsert: { [name: string]: Column | undefined } = {}
+
         let columns = ''
         const addedColumns: string[] = []
         for (var columnName in table) {
@@ -658,6 +790,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
 
             addedColumns.push(columnName)
+            columnsForInsert[columnName] = column
             selectColumns[columnName] = new SequenceValueSource('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__valueType, columnPrivate.__typeAdapter)
         }
 
@@ -670,13 +803,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const property = properties[i]!
             const column = __getColumnOfTable(table, property)
             if (column) {
-                columns += this._appendSql(column, params)
+                columns += this._appendRawColumnName(column, params)
+                columnsForInsert[property] = column
             } else {
                 throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
             }
         }
 
-        const insertQuery = withClause + 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' ' + this._buildSelect(from, params) + this._buildInsertReturning(query, params)
+        const insertQuery = withClause + 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' ' + this._buildSelectWithColumnsInfo(from, params, columnsForInsert) + this._buildInsertReturning(query, params)
 
         for (let i = 0, length = addedColumns.length; i < length; i++) {
             const columnName = addedColumns[i]!
@@ -723,10 +857,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const value = sets[property]
             const column = __getColumnOfTable(table, property)
             if (column) {
-                columns += this._appendSql(column, params)
+                columns += this._appendRawColumnName(column, params)
                 columns += ' = '
-                const columnPrivate = __getColumnPrivate(column)
-                columns += this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__typeAdapter)
+                columns += this._appendValueForColumn(column, value, params)
             } else {
                 throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
             }
@@ -781,17 +914,43 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _isNotNull(params: any[], valueSource: ToSql): string {
         return this._appendSqlParenthesis(valueSource, params) + ' is not null'
     }
+    _hasSameBooleanTypeAdapter(valueSource: Column, value: Column): valueSource is Column  {
+        if (isColumn(valueSource) && isColumn(value)) {
+            const valueSourcePrivate = __getColumnPrivate(valueSource)
+            const valuePrivate = __getColumnPrivate(value)
+            if (valueSourcePrivate.__valueType === 'boolean' && valuePrivate.__valueType === 'boolean') {
+                const valueSourceTypeAdapter = valueSourcePrivate.__typeAdapter
+                const valueTypeAdapter = valuePrivate.__typeAdapter
+                if (valueSourceTypeAdapter instanceof CustomBooleanTypeAdapter && valueTypeAdapter instanceof CustomBooleanTypeAdapter) {
+                    return valueSourceTypeAdapter.trueValue === valueTypeAdapter.trueValue && valueSourceTypeAdapter.falseValue === valueTypeAdapter.falseValue
+                }
+            }
+        }
+        return false
+    }
     // SqlComparator1
     _equals(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+            return this._appendRawColumnName(valueSource, params) + ' = ' + this._appendRawColumnName(value, params)
+        }
         return this._appendSqlParenthesis(valueSource, params) + ' = ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
     _notEquals(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+            return this._appendRawColumnName(valueSource, params) + ' <> ' + this._appendRawColumnName(value, params)
+        }
         return this._appendSqlParenthesis(valueSource, params) + ' <> ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
     _is(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+            return this._appendRawColumnName(valueSource, params) + ' is not distinct from ' + this._appendRawColumnName(value, params)
+        }
         return this._appendSqlParenthesis(valueSource, params) + ' is not distinct from ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
     _isNot(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+            return this._appendRawColumnName(valueSource, params) + ' is distinct from ' + this._appendRawColumnName(value, params)
+        }
         return this._appendSqlParenthesis(valueSource, params) + ' is distinct from ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
     _equalsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
@@ -974,13 +1133,24 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _true(_params: any): string {
         return this._trueValue
     }
+    _trueValueForCondition = 'true'
+    _trueForCondition(_params: any): string {
+        return this._trueValueForCondition
+    }
     _falseValue = 'false'
     _false(_params: any): string {
         return this._falseValue
     }
+    _falseValueForCondition = 'false'
+    _falseForCondition(_params: any): string {
+        return this._falseValueForCondition
+    }
     // SqlOperationStatic01
     _const(params: any[], value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendValue(value, params, columnType, typeAdapter)
+    }
+    _constForCondition(params: any[], value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendConditionValue(value, params, columnType, typeAdapter)
     }
     _exists(params: any[], value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'exists(' + this._appendValue(value, params, columnType, typeAdapter) + ')'
@@ -1000,7 +1170,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     // SqlFunctions0
     _negate(params: any[], valueSource: ToSql): string {
-        return 'not ' + this._appendSqlParenthesis(valueSource, params)
+        return 'not ' + this._appendConditionSqlParenthesis(valueSource, params)
     }
     _lower(params: any[], valueSource: ToSql): string {
         return 'lower(' + this._appendSql(valueSource, params) + ')'
@@ -1109,13 +1279,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'coalesce(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
     }
     _and(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        const sql = valueSource.__toSql(this, params)
-        const sql2 = this._appendValue(value, params, columnType, typeAdapter)
-        if (!sql || sql === this._trueValue) {
-            // sql === this._trueValue reduce unnecesary ands allowing dynamic queries
+        const sql = valueSource.__toSqlForCondition(this, params)
+        const sql2 = this._appendConditionValue(value, params, columnType, typeAdapter)
+        if (!sql || sql === this._trueValueForCondition) {
+            // sql === this._trueValueForCondition reduce unnecesary ands allowing dynamic queries
             return sql2
-        } else if (!sql2 || sql2 === this._trueValue) {
-            // sql2 === this._trueValue reduce unnecesary ands allowing dynamic queries
+        } else if (!sql2 || sql2 === this._trueValueForCondition) {
+            // sql2 === this._trueValueForCondition reduce unnecesary ands allowing dynamic queries
             return sql
         } else {
             let result
@@ -1134,13 +1304,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
     }
     _or(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        const sql = valueSource.__toSql(this, params)
-        const sql2 = this._appendValue(value, params, columnType, typeAdapter)
-        if (!sql || sql === this._falseValue) {
-            // !sql || sql === this._falseValue reduce unnecesary ors allowing dynamic queries
+        const sql = valueSource.__toSqlForCondition(this, params)
+        const sql2 = this._appendConditionValue(value, params, columnType, typeAdapter)
+        if (!sql || sql === this._falseValueForCondition) {
+            // !sql || sql === this._falseValueForCondition reduce unnecesary ors allowing dynamic queries
             return sql2
-        } else if (!sql2 || sql2 === this._falseValue) {
-            // !sql2 || sql2 === this._falseValue reduce unnecesary ors allowing dynamic queries
+        } else if (!sql2 || sql2 === this._falseValueForCondition) {
+            // !sql2 || sql2 === this._falseValueForCondition reduce unnecesary ors allowing dynamic queries
             return sql
         } else {
             let result
@@ -1235,7 +1405,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let result = ''
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             result += sql[i]
-            result += this._appendSql(sqlParams[i]!, params)
+            result += this._appendConditionSql(sqlParams[i]!, params)
         }
         result += sql[sql.length - 1]
         return result

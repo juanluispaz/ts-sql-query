@@ -10,4 +10,14 @@ export abstract class AbstractOracleConnection<DB extends Oracle & (TypeUnsafeDB
         queryRunner.useDatabase('oracle')
     }
 
+    protected transformValueToDB(value: unknown, type: string): unknown {
+        if (type === 'boolean' && typeof value === 'boolean') {
+            if (value) {
+                return 0
+            } else {
+                return 1
+            }
+        }
+        return super.transformValueToDB(value, type)
+    }
 }

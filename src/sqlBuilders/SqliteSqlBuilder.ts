@@ -4,6 +4,7 @@ import type { OrderByMode } from "../expressions/select"
 import type { ValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
+import { isColumn } from "../utils/Column"
 
 export class SqliteSqlBuilder extends AbstractSqlBuilder {
     sqlite: true = true
@@ -100,6 +101,8 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     _trueValue = '1'
     _falseValue = '0'
+    _trueValueForCondition = '1'
+    _falseValueForCondition = '0'
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''
     }
@@ -107,9 +110,15 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return ''
     }
     _is(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+            return this._appendRawColumnName(valueSource, params) + ' is ' + this._appendRawColumnName(value, params)
+        }
         return this._appendSqlParenthesis(valueSource, params) + ' is ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
     _isNot(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+            return this._appendRawColumnName(valueSource, params) + ' is not ' + this._appendRawColumnName(value, params)
+        }
         return this._appendSqlParenthesis(valueSource, params) + ' is not ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
     _currentDate(_params: any): string {

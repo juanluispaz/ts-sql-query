@@ -4,6 +4,7 @@ import type { OrderByMode } from "../expressions/select"
 import type { ValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
+import { isColumn } from "../utils/Column"
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     constructor() {
@@ -115,9 +116,15 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return ''
     }
     _is(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+            return this._appendRawColumnName(valueSource, params) + ' <=>' + this._appendRawColumnName(value, params)
+        }
         return this._appendSqlParenthesis(valueSource, params) + ' <=> ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
     _isNot(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+            return 'not (' + this._appendRawColumnName(valueSource, params) + ' <=> ' + this._appendRawColumnName(value, params) + ')'
+        }
         return 'not (' + this._appendSqlParenthesis(valueSource, params) + ' <=> ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ')'
     }
     _divide(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
@@ -277,7 +284,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     _in(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (Array.isArray(value)) {
             if (value.length <= 0) {
-                return this._falseValue
+                return this._falseValueForCondition
             } else {
                 return this._appendSqlParenthesis(valueSource, params) + ' in ' + this._appendValue(value, params, columnType, typeAdapter)
             }
@@ -288,7 +295,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     _notIn(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (Array.isArray(value)) {
             if (value.length <= 0) {
-                return this._trueValue
+                return this._trueValueForCondition
             } else {
                 return this._appendSqlParenthesis(valueSource, params) + ' not in ' + this._appendValue(value, params, columnType, typeAdapter)
             }

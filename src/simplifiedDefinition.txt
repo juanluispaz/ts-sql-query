@@ -516,6 +516,17 @@ interface DefaultTypeAdapter {
     transformValueToDB(value: any, type: string): any
 }
 
+declare class CustomBooleanTypeAdapter implements TypeAdapter {
+    readonly trueValue: number | string
+    readonly falseValue: number | string
+
+    constructor(trueValue: number, falseValue: number)
+    constructor(trueValue: string, falseValue: string)
+
+    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+}
+
 interface Sequence<T> {
     nextValue(): T
     currentValue(): T

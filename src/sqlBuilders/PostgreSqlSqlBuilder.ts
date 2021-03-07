@@ -125,7 +125,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     _in(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (Array.isArray(value)) {
             if (value.length <= 0) {
-                return this._falseValue
+                return this._falseValueForCondition
             } else {
                 return this._appendSqlParenthesis(valueSource, params) + ' in ' + this._appendValue(value, params, columnType, typeAdapter)
             }
@@ -136,7 +136,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     _notIn(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (Array.isArray(value)) {
             if (value.length <= 0) {
-                return this._trueValue
+                return this._trueValueForCondition
             } else {
                 return this._appendSqlParenthesis(valueSource, params) + ' not in ' + this._appendValue(value, params, columnType, typeAdapter)
             }

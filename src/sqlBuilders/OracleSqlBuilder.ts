@@ -1,8 +1,9 @@
 import type { ToSql, InsertData } from "./SqlBuilder"
-import type { TypeAdapter } from "../TypeAdapter"
-import type { ValueSource } from "../expressions/values"
+import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
+import { isValueSource, ValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
+import { Column, isColumn, __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
+import { __getValueSourcePrivate } from "../expressions/values"
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     oracle: true = true
@@ -24,8 +25,77 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _fromNoTable() {
         return ' from dual'
     }
-    _trueValue = 'cast(1 as boolean)'
-    _falseValue = 'cast(0 as boolean)'
+    _trueValue = '1'
+    _falseValue = '0'
+    _trueValueForCondition = '(1=1)'
+    _falseValueForCondition = '(0=1)'
+    _nullValueForCondition = '(0=null)'
+    _appendSql(value: ToSql | ValueSource<any, any> | Column, params: any[]): string {
+        if (isValueSource(value)) {
+            const valueSourcePrivate = __getValueSourcePrivate(value)
+            if (valueSourcePrivate.__isBooleanForCondition) {
+                if (!valueSourcePrivate.__isResultOptional(this)) {
+                    return 'case when ' + super._appendConditionSql(value, params) + ' then 1 else 0 end'
+                } else {
+                    return 'case when ' + super._appendConditionSql(value, params) + ' then 1 when not ' + super._appendConditionSql(value, params) + ' then 0 else null end'
+                }
+            }
+        }
+        return super._appendSql(value, params)
+    }
+    _appendConditionParam(value: any, params: any[], columnType: string): string {
+        if (columnType === 'boolean') {
+            return '(' + this._appendParam(value, params, columnType) + ' = 1)'
+        }
+        return this._appendParam(value, params, columnType)
+    }
+    _appendColumnName(column: Column, params: any[]): string {
+        const columnPrivate = __getColumnPrivate(column)
+        const typeAdapter = columnPrivate.__typeAdapter
+        if (columnPrivate.__valueType === 'boolean') {
+            if (typeAdapter instanceof CustomBooleanTypeAdapter) {
+                if (!columnPrivate.__isOptional) {
+                    return 'case when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ' then 1 else 0 end'
+                } else {
+                    return 'case when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) +  ' then 1 when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.falseValue, params) + ' then 0 else null end'
+                }
+            }
+        }
+
+        return this._appendRawColumnName(column, params)
+    }
+    _appendColumnNameForCondition(column: Column, params: any[]): string {
+        const columnPrivate = __getColumnPrivate(column)
+        const typeAdapter = columnPrivate.__typeAdapter
+        if (columnPrivate.__valueType === 'boolean') {
+            if (typeAdapter instanceof CustomBooleanTypeAdapter) {
+                return '(' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ')'
+            } else {
+                return '(' + this._appendRawColumnName(column, params) + ' = 1)'
+            }
+        }
+
+        return this._appendRawColumnName(column, params)
+    }
+    _appendSelectColumn(value: ValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
+        if (columnForInsert) {
+            const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)
+            if (sql) {
+                return sql
+            }
+        }
+
+        const valueSourcePrivate = __getValueSourcePrivate(value)
+        if (valueSourcePrivate.__isBooleanForCondition) {
+            if (!valueSourcePrivate.__isResultOptional(this)) {
+                return 'case when ' + this._appendConditionSql(value, params) + ' then 1 else 0 end'
+            } else {
+                return 'case when ' + this._appendConditionSql(value, params) + ' then 1 when not ' + this._appendConditionSql(value, params) + ' then 0 else null end'
+            }
+        }
+
+        return this._appendSql(value, params)
+    }
     _appendColumnAlias(name: string, params: any[]): string {
         if (!this._isWithGeneratedFinished(params)) {
             // Avoid quote identifiers when the with clause is generated
@@ -131,10 +201,48 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return ' returning ' + this._appendSql(idColumn, params) + ' into ' + this._queryRunner.addOutParam(params, '') // Empty name for the out params, no special name is requiered
     }
+    _isNull(params: any[], valueSource: ToSql): string {
+        if (isColumn(valueSource)) {
+            this._appendRawColumnName(valueSource, params) + ' is null'
+        }
+        if (isValueSource(valueSource)) {
+            const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+            if (valueSourcePrivate.__isBooleanForCondition) {
+                if (!valueSourcePrivate.__isResultOptional(this)) {
+                    return this._falseValueForCondition
+                } else {
+                    return '(case when ' + this._appendSqlParenthesis(valueSource, params) + ' then 0 when not ' + this._appendSqlParenthesis(valueSource, params) + ' then 0 else 1 end = 1)'
+                }
+            }
+        }
+        return this._appendSqlParenthesis(valueSource, params) + ' is null'
+    }
+    _isNotNull(params: any[], valueSource: ToSql): string {
+        if (isColumn(valueSource)) {
+            this._appendRawColumnName(valueSource, params) + ' is not null'
+        }
+        if (isValueSource(valueSource)) {
+            const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+            if (valueSourcePrivate.__isBooleanForCondition) {
+                if (!valueSourcePrivate.__isResultOptional(this)) {
+                    return this._trueValueForCondition
+                } else {
+                    return '(case when ' + this._appendSqlParenthesis(valueSource, params) + ' then 1 when not ' + this._appendSqlParenthesis(valueSource, params) + ' then 1 else 0 end = 1)'
+                }
+            }
+        }
+        return this._appendSqlParenthesis(valueSource, params) + ' is not null'
+    }
     _is(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+            return 'decode(' + this._appendRawColumnName(valueSource, params) + ', ' + this._appendRawColumnName(value, params) + ', 1, 0 ) = 1'
+        }
         return 'decode(' + this._appendSqlParenthesis(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', 1, 0 ) = 1'
     }
     _isNot(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
+            return 'decode(' + this._appendRawColumnName(valueSource, params) + ', ' + this._appendRawColumnName(value, params) + ', 1, 0 ) = 0'
+        }
         return 'decode(' + this._appendSqlParenthesis(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ', 1, 0 ) = 0'
     }
     _random(_params: any): string {
@@ -344,7 +452,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _in(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (Array.isArray(value)) {
             if (value.length <= 0) {
-                return this._falseValue
+                return this._falseValueForCondition
             } else {
                 return this._appendSqlParenthesis(valueSource, params) + ' in ' + this._appendValue(value, params, columnType, typeAdapter)
             }
@@ -355,7 +463,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _notIn(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (Array.isArray(value)) {
             if (value.length <= 0) {
-                return this._trueValue
+                return this._trueValueForCondition
             } else {
                 return this._appendSqlParenthesis(valueSource, params) + ' not in ' + this._appendValue(value, params, columnType, typeAdapter)
             }

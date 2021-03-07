@@ -535,9 +535,13 @@ export class SelectQueryBuilder implements ToSql, HasAddWiths, SelectData, Selec
         return this
     }
 
-    __toSql(SqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         this.__finishJoinHaving()
-        return SqlBuilder._buildSelect(this, params)
+        return sqlBuilder._buildSelect(this, params)
+    }
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+        this.__finishJoinHaving()
+        return sqlBuilder._buildSelect(this, params)
     }
 
     __addWiths(withs: Array<IWithView<any>>): void {

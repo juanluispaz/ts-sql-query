@@ -232,4 +232,7 @@ export class MySql2QueryRunner implements QueryRunner {
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')
     }
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return Promise.resolve(result) 
+    }
 }

@@ -209,7 +209,7 @@ export class SelectQueryBuilder implements ToSql, HasAddWiths, SelectData, Selec
     executeSelectPage(extras?: any) {
         let dataPromise
         if (extras && extras.data) {
-            dataPromise = Promise.resolve(extras.data)
+            dataPromise = this.__sqlBuilder._queryRunner.createResolvedPromise(extras.data)
         } else {
             dataPromise = this.executeSelectMany()
         }

@@ -1,10 +1,21 @@
+import type { PromiseProvider } from "../utils/PromiseProvider"
 import type { QueryRunner, DatabaseType } from "./QueryRunner"
+
+export interface ConsoleLogNoopQueryRunnerConfig {
+    database?: DatabaseType
+    promise?: PromiseProvider
+}
 
 export class ConsoleLogNoopQueryRunner implements QueryRunner {
     readonly database: DatabaseType
+    readonly promise: PromiseProvider
 
-    constructor(database: DatabaseType = 'noopDB') {
-        this.database = database
+    constructor(databaseOrConfig: DatabaseType | ConsoleLogNoopQueryRunnerConfig = 'noopDB') {
+        if (typeof databaseOrConfig === 'string') {
+            databaseOrConfig = { database: databaseOrConfig }
+        }
+        this.database = databaseOrConfig.database || 'noopDB'
+        this.promise = databaseOrConfig.promise || Promise
     }
 
     useDatabase(database: DatabaseType): void {
@@ -22,63 +33,63 @@ export class ConsoleLogNoopQueryRunner implements QueryRunner {
 
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         console.log('executeSelectOneRow:', query, params)
-        return Promise.resolve(undefined)
+        return this.promise.resolve(undefined)
     }
     executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         console.log('executeSelectManyRows:', query, params)
-        return Promise.resolve([])
+        return this.promise.resolve([])
     }
     executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         console.log('executeSelectOneColumnOneRow:', query, params)
-        return Promise.resolve(undefined)
+        return this.promise.resolve(undefined)
     }
     executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         console.log('executeSelectOneColumnManyRows:', query, params)
-        return Promise.resolve([])
+        return this.promise.resolve([])
     }
     executeInsert(query: string, params: any[] = []): Promise<number> {
         console.log('executeInsert:', query, params)
-        return Promise.resolve(0)
+        return this.promise.resolve(0)
     }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         console.log('executeInsertReturningLastInsertedId:', query, params)
-        return Promise.resolve(undefined)
+        return this.promise.resolve(undefined)
     }
     executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         console.log('executeInsertReturningMultipleLastInsertedId:', query, params)
-        return Promise.resolve([])
+        return this.promise.resolve([])
     }
     executeUpdate(query: string, params: any[] = []): Promise<number> {
         console.log('executeUpdate:', query, params)
-        return Promise.resolve(0)
+        return this.promise.resolve(0)
     }
     executeDelete(query: string, params: any[] = []): Promise<number> {
         console.log('executeDelete:', query, params)
-        return Promise.resolve(0)
+        return this.promise.resolve(0)
     }
     executeProcedure(query: string, params: any[] = []): Promise<void> {
         console.log('executeProcedure:', query, params)
-        return Promise.resolve()
+        return this.promise.resolve()
     }
     executeFunction(query: string, params: any[] = []): Promise<any> {
         console.log('executeFunction:', query, params)
-        return Promise.resolve(undefined)
+        return this.promise.resolve(undefined)
     }
     executeBeginTransaction(): Promise<void> {
         console.log('executeBeginTransaction:', undefined, undefined)
-        return Promise.resolve()
+        return this.promise.resolve()
     }
     executeCommit(): Promise<void> {
         console.log('executeCommit:', undefined, undefined)
-        return Promise.resolve()
+        return this.promise.resolve()
     }
     executeRollback(): Promise<void> {
         console.log('executeRollback:', undefined, undefined)
-        return Promise.resolve()
+        return this.promise.resolve()
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         console.log('executeDatabaseSchemaModification:', query, params)
-        return Promise.resolve()
+        return this.promise.resolve()
     }
     addParam(params: any[], value: any): string {
         const index = params.length
@@ -115,5 +126,8 @@ export class ConsoleLogNoopQueryRunner implements QueryRunner {
         const index = params.length
         params.push({out_param_with_name: name})
         return ':' + index
+    }
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return this.promise.resolve(result) 
     }
 }

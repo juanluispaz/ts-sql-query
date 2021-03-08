@@ -230,6 +230,9 @@ export class MssqlPoolQueryRunner implements QueryRunner {
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')
     }
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return Promise.resolve(result) 
+    }
 
     protected request(): Request {
         if (this.transaction) {

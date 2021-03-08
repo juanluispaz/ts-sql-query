@@ -79,7 +79,10 @@ export class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {
         }
         return super.executeInsertReturningMultipleLastInsertedId(query, params)
     }
-    protected async createQueryRunner(): Promise<QueryRunner> {
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return Promise.resolve(result) 
+    }
+    protected createQueryRunner(): Promise<QueryRunner> {
         return new Promise((resolve, reject) => {
             this.pool.acquire((error, anyDBConnection) => {
                 if (error) {

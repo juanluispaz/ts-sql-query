@@ -34,7 +34,10 @@ export class MySql2PoolQueryRunner extends AbstractPoolQueryRunner {
     executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
         throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
     }
-    protected async createQueryRunner(): Promise<QueryRunner> {
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return Promise.resolve(result) 
+    }
+    protected createQueryRunner(): Promise<QueryRunner> {
         return new Promise((resolve, reject) => {
             this.pool.getConnection((error, mysql2Connection) => {
                 if (error) {

@@ -227,6 +227,9 @@ export class AnyDBQueryRunner implements QueryRunner {
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')
     }
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return Promise.resolve(result) 
+    }
     protected query(query: string, params?: any[]): Promise<ResultSet> {
         let queryParams: any = params
         if (params && this.connection.adapter.name === 'mssql') {

@@ -152,6 +152,9 @@ export class OracleDBQueryRunner implements QueryRunner {
         }
         return ':' + index
     }
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return Promise.resolve(result) 
+    }
 }
 
 function getOnlyOneValue(values: any): any {

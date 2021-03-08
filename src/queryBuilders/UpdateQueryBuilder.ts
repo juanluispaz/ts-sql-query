@@ -37,7 +37,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
         try {
             if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
                 // Nothing to update, nothing to set
-                return Promise.resolve(0) as Promise<int>
+                return this.__sqlBuilder._queryRunner.createResolvedPromise(0) as Promise<int>
             }
 
             let result = this.__sqlBuilder._queryRunner.executeUpdate(this.__query, this.__params).catch((e) => {

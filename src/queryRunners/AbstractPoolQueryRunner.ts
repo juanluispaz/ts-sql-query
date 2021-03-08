@@ -8,154 +8,90 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     abstract useDatabase(database: DatabaseType): void
     abstract getNativeRunner(): unknown
 
-    async execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
-        try {
-            const queryRunner = await this.getQueryRunner()
-            return await queryRunner.execute(fn)
-        } finally {
-            this.releaseIfNeeded()
-        }
+    execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.execute(fn)).finally(() => this.releaseIfNeeded())
     }
-    async executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        try {
-            const queryRunner = await this.getQueryRunner()
-            return await queryRunner.executeSelectOneRow(query, params)
-        } finally {
-            this.releaseIfNeeded()
-        }
+    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeSelectOneRow(query, params)).finally(() => this.releaseIfNeeded())
     }
-    async executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
-        try {
-            const queryRunner = await this.getQueryRunner()
-            return await queryRunner.executeSelectManyRows(query, params)
-        } finally {
-            this.releaseIfNeeded()
-        }
+    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeSelectManyRows(query, params)).finally(() => this.releaseIfNeeded())
     }
-    async executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        try {
-            const queryRunner = await this.getQueryRunner()
-            return await queryRunner.executeSelectOneColumnOneRow(query, params)
-        } finally {
-            this.releaseIfNeeded()
-        }
+    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeSelectOneColumnOneRow(query, params)).finally(() => this.releaseIfNeeded())
     }
-    async executeSelectOneColumnManyRows(query: string, params: any[] =[]): Promise<any[]> {
-        try {
-            const queryRunner = await this.getQueryRunner()
-            return await queryRunner.executeSelectOneColumnManyRows(query, params)
-        } finally {
-            this.releaseIfNeeded()
-        }
+    executeSelectOneColumnManyRows(query: string, params: any[] =[]): Promise<any[]> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeSelectOneColumnManyRows(query, params)).finally(() => this.releaseIfNeeded())
     }
-    async executeInsert(query: string, params: any[] = []): Promise<number> {
-        try {
-            const queryRunner = await this.getQueryRunner()
-            return await queryRunner.executeInsert(query, params)
-        } finally {
-            this.releaseIfNeeded()
-        }
+    executeInsert(query: string, params: any[] = []): Promise<number> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsert(query, params)).finally(() => this.releaseIfNeeded())
     }
-    async executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        try {
-            const queryRunner = await this.getQueryRunner()
-            return await queryRunner.executeInsertReturningLastInsertedId(query, params)
-        } finally {
-            this.releaseIfNeeded()
-        }
+    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsertReturningLastInsertedId(query, params)).finally(() => this.releaseIfNeeded())
     }
-    async executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any[]> {
-        try {
-            const queryRunner = await this.getQueryRunner()
-            return await queryRunner.executeInsertReturningMultipleLastInsertedId(query, params)
-        } finally {
-            this.releaseIfNeeded()
-        }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any[]> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsertReturningMultipleLastInsertedId(query, params)).finally(() => this.releaseIfNeeded())
     }
-    async executeUpdate(query: string, params: any[] = []): Promise<number> {
-        try {
-            const queryRunner = await this.getQueryRunner()
-            return await queryRunner.executeUpdate(query, params)
-        } finally {
-            this.releaseIfNeeded()
-        }
+    executeUpdate(query: string, params: any[] = []): Promise<number> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeUpdate(query, params)).finally(() => this.releaseIfNeeded())
     }
-    async executeDelete(query: string, params: any[] = []): Promise<number> {
-        try {
-            const queryRunner = await this.getQueryRunner()
-            return await queryRunner.executeDelete(query, params)
-        } finally {
-            this.releaseIfNeeded()
-        }
+    executeDelete(query: string, params: any[] = []): Promise<number> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeDelete(query, params)).finally(() => this.releaseIfNeeded())
     }
-    async executeProcedure(query: string, params: any[] = []): Promise<void> {
-        try {
-            const queryRunner = await this.getQueryRunner()
-            return await queryRunner.executeProcedure(query, params)
-        } finally {
-            this.releaseIfNeeded()
-        }
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeProcedure(query, params)).finally(() => this.releaseIfNeeded())
     }
-    async executeFunction(query: string, params: any[] = []): Promise<any> {
-        try {
-            const queryRunner = await this.getQueryRunner()
-            return await queryRunner.executeFunction(query, params)
-        } finally {
-            this.releaseIfNeeded()
-        }
+    executeFunction(query: string, params: any[] = []): Promise<any> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeFunction(query, params)).finally(() => this.releaseIfNeeded())
     }
-    async executeBeginTransaction(): Promise<void> {
+    executeBeginTransaction(): Promise<void> {
         if (this.transactionLevel <= 0) {
             this.transactionLevel = 1
+            return this.createResolvedPromise(undefined)
         } else {
-            const queryRunner = await this.getQueryRunner()
-            await queryRunner.executeBeginTransaction()
-            this.transactionLevel++
+            return this.getQueryRunner().then(queryRunner => queryRunner.executeBeginTransaction()).then(() => {
+                this.transactionLevel++
+            })
         }
     }
-    async executeCommit(): Promise<void> {
+    executeCommit(): Promise<void> {
         if (this.transactionLevel <= 0) {
             throw new Error('You are not in a transaction')
         } else if (this.currentQueryRunner) {
             this.transactionLevel--
-            try {
-                await this.currentQueryRunner.executeCommit()
-            } finally {
-                this.releaseIfNeeded()
-            }
+            return this.currentQueryRunner.executeCommit().finally(() => this.releaseIfNeeded())
         }
+        return this.createResolvedPromise(undefined)
     }
-    async executeRollback(): Promise<void> {
+    executeRollback(): Promise<void> {
         if (this.transactionLevel <= 0) {
             throw new Error('You are not in a transaction')
         } else if (this.currentQueryRunner) {
             this.transactionLevel--
-            try {
-                await this.currentQueryRunner.executeRollback()
-            } finally {
-                this.releaseIfNeeded()
-            }
+            return this.currentQueryRunner.executeRollback().finally(() => this.releaseIfNeeded())
         }
+        return this.createResolvedPromise(undefined)
     }
-    async executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
-        try {
-            const queryRunner = await this.getQueryRunner()
-            return await queryRunner.executeDatabaseSchemaModification(query, params)
-        } finally {
-            this.releaseIfNeeded()
-        }
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeDatabaseSchemaModification(query, params)).finally(() => this.releaseIfNeeded())
     }
     abstract addParam(params: any[], value: any): string
     abstract addOutParam(params: any[], name: string): string
+    abstract createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
 
-    private async getQueryRunner(): Promise<QueryRunner> {
+    private getQueryRunner(): Promise<QueryRunner> {
         if (!this.currentQueryRunner) {
-            this.currentQueryRunner = await this.createQueryRunner()
-            if (this.transactionLevel > 0) {
-                await this.currentQueryRunner.executeBeginTransaction()
-            }
+            return this.createQueryRunner().then(queryRunner => {
+                this.currentQueryRunner = queryRunner
+                if (this.transactionLevel > 0) {
+                    return this.currentQueryRunner.executeBeginTransaction().then(() => {
+                        return queryRunner
+                    })
+                }
+                return queryRunner
+            })
         }
-        return this.currentQueryRunner
+        return this.createResolvedPromise(this.currentQueryRunner)
     }
     private releaseIfNeeded() {
         if (this.transactionLevel <= 0 && this.currentQueryRunner) {

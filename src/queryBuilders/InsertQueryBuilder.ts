@@ -41,9 +41,9 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
             const multiple = this.__multiple
             if (multiple && multiple.length <= 0) {
                 if (idColumn) {
-                    return Promise.resolve([])
+                    return this.__sqlBuilder._queryRunner.createResolvedPromise([])
                 } else {
-                    return Promise.resolve(0)
+                    return this.__sqlBuilder._queryRunner.createResolvedPromise(0)
                 }
             } else if (!idColumn) {
                 return this.__sqlBuilder._queryRunner.executeInsert(this.__query, this.__params).catch((e) => {

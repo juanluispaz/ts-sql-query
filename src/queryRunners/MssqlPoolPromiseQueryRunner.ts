@@ -29,9 +29,11 @@ export class MssqlPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')
     }
-    protected async createQueryRunner(): Promise<QueryRunner> {
-        const pool = await this.promisePool
-        return new MssqlPoolQueryRunner(pool)
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return Promise.resolve(result) 
+    }
+    protected createQueryRunner(): Promise<QueryRunner> {
+        return this.promisePool.then(pool => new MssqlPoolQueryRunner(pool))
     }
     protected releaseQueryRunner(_queryRunner: QueryRunner): void {
         // Do nothing

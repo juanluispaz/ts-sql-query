@@ -298,4 +298,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')
     }
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return Promise.resolve(result) 
+    }
 }

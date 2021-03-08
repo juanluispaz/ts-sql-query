@@ -36,9 +36,11 @@ export class OracleDBPoolQueryRunner extends AbstractPoolQueryRunner {
         }
         return ':' + index
     }
-    protected async createQueryRunner(): Promise<QueryRunner> {
-        const connection = await this.pool.getConnection()
-        return new OracleDBQueryRunner(connection)
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return Promise.resolve(result) 
+    }
+    protected createQueryRunner(): Promise<QueryRunner> {
+        return this.pool.getConnection().then(connection => new OracleDBQueryRunner(connection))
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
         (queryRunner.getNativeRunner() as Connection).close()

@@ -28,9 +28,11 @@ export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')
     }
-    protected async createQueryRunner(): Promise<QueryRunner> {
-        const connection = await this.pool.connect()
-        return new PgQueryRunner(connection)
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return Promise.resolve(result) 
+    }
+    protected createQueryRunner(): Promise<QueryRunner> {
+        return this.pool.connect().then(connection => new PgQueryRunner(connection))
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
         (queryRunner.getNativeRunner() as PoolClient).release()

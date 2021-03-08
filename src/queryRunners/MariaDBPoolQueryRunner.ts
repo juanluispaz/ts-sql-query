@@ -34,9 +34,11 @@ export class MariaDBPoolQueryRunner extends AbstractPoolQueryRunner {
     executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
         throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
     }
-    protected async createQueryRunner(): Promise<QueryRunner> {
-        const mariaDBConnection = await this.pool.getConnection()
-        return new MariaDBQueryRunner(mariaDBConnection, this.database as any)
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return Promise.resolve(result) 
+    }
+    protected createQueryRunner(): Promise<QueryRunner> {
+        return this.pool.getConnection().then(mariaDBConnection => new MariaDBQueryRunner(mariaDBConnection, this.database as any))
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
         (queryRunner.getNativeRunner() as PoolConnection).release()

@@ -146,6 +146,9 @@ export abstract class LoopBackAbstractQueryRunner implements LoopbackQueryRunner
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')
     }
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return Promise.resolve(result) 
+    }
     protected query(query: string, params?: any[]): Promise<any> {
         return this.datasource.execute(query, params, {transaction: this.transaction})
     }

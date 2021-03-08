@@ -1,14 +1,21 @@
 import type { QueryRunner, DatabaseType } from "./QueryRunner"
 import type { Database } from 'better-sqlite3'
+import type { PromiseProvider } from "../utils/PromiseProvider"
 import { Integer } from 'better-sqlite3'
+
+export interface BetterSqlite3QueryRunnerConfig {
+    promise?: PromiseProvider
+}
 
 export class BetterSqlite3QueryRunner implements QueryRunner {
     readonly database: DatabaseType
     readonly connection: Database
+    readonly promise: PromiseProvider
 
-    constructor(connection: Database) {
+    constructor(connection: Database, config?: BetterSqlite3QueryRunnerConfig) {
         this.connection = connection
         this.database = 'sqlite'
+        this.promise = config?.promise || Promise
     }
 
     useDatabase(database: DatabaseType): void {
@@ -29,15 +36,15 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
         try {
             const rows = this.connection.prepare(query).safeIntegers(true).all(params)
             if (rows.length > 1) {
-                Promise.reject(new Error('Too many rows, expected only zero or one row'))
+                this.promise.reject(new Error('Too many rows, expected only zero or one row'))
             }
             const row = rows[0]
             for (var prop in row) {
                 row[prop] = toStringInt(row[prop])
             }
-            return Promise.resolve(row)
+            return this.promise.resolve(row)
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
@@ -49,28 +56,28 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
                     row[prop] = toStringInt(row[prop])
                 }
             }
-            return Promise.resolve(rows)
+            return this.promise.resolve(rows)
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         try {
             const rows = this.connection.prepare(query).safeIntegers(true).all(params)
             if (rows.length > 1) {
-                return Promise.reject(new Error('Too many rows, expected only zero or one row'))
+                return this.promise.reject(new Error('Too many rows, expected only zero or one row'))
             }
             const row = rows[0]
             if (row) {
                 const columns = Object.getOwnPropertyNames(row)
                 if (columns.length > 1) {
-                    return Promise.reject(new Error('Too many columns, expected only one column'))
+                    return this.promise.reject(new Error('Too many columns, expected only one column'))
                 }
-                return Promise.resolve(toStringInt(row[columns[0]!])) // Value in the row of the first column without care about the name
+                return this.promise.resolve(toStringInt(row[columns[0]!])) // Value in the row of the first column without care about the name
             }
-            return Promise.resolve(undefined)
+            return this.promise.resolve(undefined)
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
@@ -81,27 +88,27 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
                 const row = rows[i]
                 const columns = Object.getOwnPropertyNames(row)
                 if (columns.length > 1) {
-                    return Promise.reject(new Error('Too many columns, expected only one column'))
+                    return this.promise.reject(new Error('Too many columns, expected only one column'))
                 }
                 result.push(toStringInt(row[columns[0]!])) // Value in the row of the first column without care about the name
             }
-            return Promise.resolve(result)
+            return this.promise.resolve(result)
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     executeInsert(query: string, params: any[] = []): Promise<number> {
         try {
-            return Promise.resolve(this.connection.prepare(query).run(params).changes)
+            return this.promise.resolve(this.connection.prepare(query).run(params).changes)
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         try {
-            return Promise.resolve(toStringInt(this.connection.prepare(query).safeIntegers(true).run(params).lastInsertRowid))
+            return this.promise.resolve(toStringInt(this.connection.prepare(query).safeIntegers(true).run(params).lastInsertRowid))
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
@@ -109,75 +116,75 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
     }
     executeUpdate(query: string, params: any[] = []): Promise<number> {
         try {
-            return Promise.resolve(this.connection.prepare(query).run(params).changes)
+            return this.promise.resolve(this.connection.prepare(query).run(params).changes)
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     executeDelete(query: string, params: any[] = []): Promise<number> {
         try {
-            return Promise.resolve(this.connection.prepare(query).run(params).changes)
+            return this.promise.resolve(this.connection.prepare(query).run(params).changes)
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     executeProcedure(query: string, params: any[] = []): Promise<void> {
         try {
             this.connection.prepare(query).run(params)
-            return Promise.resolve(undefined)
+            return this.promise.resolve(undefined)
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     executeFunction(query: string, params: any[] = []): Promise<any> {
         try {
             const rows = this.connection.prepare(query).safeIntegers(true).all(params)
             if (rows.length > 1) {
-                return Promise.reject(new Error('Too many rows, expected only zero or one row'))
+                return this.promise.reject(new Error('Too many rows, expected only zero or one row'))
             }
             const row = rows[0]
             if (row) {
                 const columns = Object.getOwnPropertyNames(row)
                 if (columns.length > 1) {
-                    return Promise.reject(new Error('Too many columns, expected only one column'))
+                    return this.promise.reject(new Error('Too many columns, expected only one column'))
                 }
-                return Promise.resolve(toStringInt(row[columns[0]!])) // Value in the row of the first column without care about the name
+                return this.promise.resolve(toStringInt(row[columns[0]!])) // Value in the row of the first column without care about the name
             }
-            return Promise.resolve(undefined)
+            return this.promise.resolve(undefined)
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     executeBeginTransaction(): Promise<void> {
         try {
             this.connection.prepare('begin').run()
-            return Promise.resolve(undefined)
+            return this.promise.resolve(undefined)
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     executeCommit(): Promise<void> {
         try {
             this.connection.prepare('commit').run()
-            return Promise.resolve(undefined)
+            return this.promise.resolve(undefined)
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     executeRollback(): Promise<void> {
         try {
             this.connection.prepare('rollback').run()
-            return Promise.resolve(undefined)
+            return this.promise.resolve(undefined)
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         try {
             this.connection.prepare(query).run(params)
-            return Promise.resolve(undefined)
+            return this.promise.resolve(undefined)
         } catch (e) {
-            return Promise.reject(e)
+            return this.promise.reject(e)
         }
     }
     addParam(params: any[], value: any): string {
@@ -186,6 +193,9 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
     }
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')
+    }
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return this.promise.resolve(result) 
     }
 }
 

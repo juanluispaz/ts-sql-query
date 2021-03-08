@@ -91,6 +91,7 @@ Type-safe sql means the mistakes writting a query will be detected during the co
   - [tedious (with a connection)](#tedious-with-a-connection)
 - [Advanced](#advanced)
   - [Custom booleans values](#custom-booleans-values)
+  - [Synchronous query runners](#synchronous-query-runners)
 - [License](#license)
 
 ## Install
@@ -2024,6 +2025,8 @@ import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
 class DBConection extends SqliteConnection<'DBConnection'> { }
 ```
 
+**Note**: If you use [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) to connect to the database you can run your queries synchronously. See [BetterSqlite3QueryRunner](#better-sqlite3) and [Synchronous query runners](#synchronous-query-runners) for more information.
+
 ### SqlServer
 
 ```ts
@@ -2081,6 +2084,8 @@ import { TypeSafeSqliteConnection } from "ts-sql-query/connections/TypeSafeSqlit
 
 class DBConection extends TypeSafeSqliteConnection<'DBConnection'> { }
 ```
+
+**Note**: If you use [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) to connect to the database you can run your queries synchronously. See [BetterSqlite3QueryRunner](#better-sqlite3) and [Synchronous query runners](#synchronous-query-runners) for more information.
 
 ### SqlServer
 
@@ -2188,6 +2193,8 @@ async function main() {
 }
 ```
 
+**Note**: better-sqlite3 supports synchronous query execution. See [Synchronous query runners](#synchronous-query-runners) for more information.
+
 ### ConsoleLogNoopQueryRunner
 
 A fake connections that write all the queries to the standard output using `console.log` and returns an empty result.
@@ -2202,6 +2209,8 @@ async function main() {
     // Do your queries here
 }
 ```
+
+**Note**: `ConsoleLogNoopQueryRunner` supports synchronous query execution. See [Synchronous query runners](#synchronous-query-runners) for more information.
 
 ### ConsoleLogQueryRunner
 
@@ -2347,6 +2356,8 @@ The `MockQueryRunner` receives a function as argument to the constructor, this f
 - **`query: string`**: query required to be executed
 - **`params: any[]`**: parameters received by the query
 - **`index: number`**: this is a counter of queries executed by the connection; that means, when the first query is executed the value is 0, when the second query is executed the value is 1, etc.
+
+**Note**: `MockQueryRunner` supports synchronous query execution. See [Synchronous query runners](#synchronous-query-runners) for more information.
 
 ### msnodesqlv8
 
@@ -2595,6 +2606,8 @@ async function main() {
     // Do your queries here
 }
 ```
+
+**Note**: `NoopQueryRunner` supports synchronous query execution. See [Synchronous query runners](#synchronous-query-runners) for more information.
 
 ### oracledb (with a connection pool promise)
 
@@ -2969,6 +2982,69 @@ const selectAllBigCompanies: Promise<{
     name: string;
     isBig: boolean;
 }[]>
+```
+
+### Synchronous query runners
+
+Some query runners support to execute the queries synchronously if you provide a Promise implementation that supports it, like [synchronous-promise](https://www.npmjs.com/package/synchronous-promise).
+
+The query runners that support execute queries synchronously if you specify a synchronous Promise implementation are:
+- [BetterSqlite3QueryRunner](#better-sqlite3)
+- [ConsoleLogNoopQueryRunner](#consolelognoopqueryrunner)
+- [MockQueryRunner](#mockqueryrunner)
+- [NoopQueryRunner](#noopqueryrunner)
+
+For example:
+
+```ts
+import { BetterSqlite3QueryRunner } from "ts-sql-query/queryRunners/BetterSqlite3QueryRunner";
+import * as betterSqlite3 from "better-sqlite3";
+import { SynchronousPromise } from "synchronous-promise";
+
+const db = betterSqlite3('foobar.db', options);
+
+async function main() {
+    const connection = new DBConection(new BetterSqlite3QueryRunner(db, { promise: SynchronousPromise }));
+    // Do your queries here,  surrounding it by the sync function. For example:
+    const selectCompanies = sync(connection.selectFrom(tCompany)
+    .where(tCustomCompany.isBig)
+    .select({
+        id: tCompany.id,
+        name: tCompany.name
+    }).executeSelectMany());
+
+    var result = sync(connection.insertInto...)
+    result = sync(connection.update...)
+    result = sync(connection.delete...)
+}
+```
+
+In the case of [synchronous-promise](https://www.npmjs.com/package/synchronous-promise), you will need this utility function that transforms a promise in a synchronous output:
+
+```ts
+/**
+ * This function unwraps the synchronous promise in a synchronous way returning the result.
+ */
+function sync<T>(promise: Promise<T>): T {
+    let returned = false
+    let result: any
+    let error: any
+    promise.then(r => {
+        returned = true
+        result = r
+    }, e => {
+        returned = true
+        error = e
+    })
+
+    if (!returned) {
+        throw new Error('You performed a real async operation, not a database operation, inside the function dedicated to calling the database')
+    }
+    if (error) {
+        throw error
+    }
+    return result
+}
 ```
 
 ## License

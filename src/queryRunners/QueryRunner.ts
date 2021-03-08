@@ -20,6 +20,7 @@ export interface QueryRunner {
     executeDatabaseSchemaModification(query: string, params?: any[]): Promise<void>
     addParam(params: any[], value: any): string
     addOutParam(params: any[], name: string): string
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
 }
 
 export type DatabaseType = 'mariaDB' | 'mySql' | 'noopDB' | 'oracle' | 'postgreSql' | 'sqlite' | 'sqlServer'

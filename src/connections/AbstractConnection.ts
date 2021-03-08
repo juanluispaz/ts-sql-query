@@ -649,7 +649,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                     if (!Number.isInteger(value)) {
                         throw new Error('Invalid bigint value received from the db: ' + value)
                     }
-                    return value
+                    return BigInt(value)
                 }
                 if (typeof value === 'string') {
                     try {

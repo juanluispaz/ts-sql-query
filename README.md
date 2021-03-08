@@ -93,6 +93,7 @@ Type-safe sql means the mistakes writting a query will be detected during the co
   - [Custom booleans values](#custom-booleans-values)
   - [Synchronous query runners](#synchronous-query-runners)
   - [Encrypted ID](#encrypted-id)
+- [Examples](#examples-1)
 - [License](#license)
 
 ## Install
@@ -3175,6 +3176,10 @@ let company = await connection
 The id used in the query will be sent to the database decrypted.
 
 See [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/extras/IDEncrypter.ts) for more information to know how the password is encrypted.
+
+## Examples
+
+See the [examples folder](https://github.com/juanluispaz/ts-sql-query/tree/master/src/examples) to see different usages of ts-sql-query.
 
 ## License
 

@@ -51,7 +51,6 @@
         "@types/geojson": "^7946.0.7",
         "@types/mssql": "^6.0.7",
         "@types/mysql": "^2.15.6",
-        "@types/mysql2": "github:types/mysql2",
         "@types/oracledb": "^5.0.0",
         "@types/pg": "^7.4.14",
         "@types/sqlite3": "^3.1.5",

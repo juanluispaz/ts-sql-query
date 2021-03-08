@@ -21,6 +21,7 @@ node ./dist/examples/LoopBackSqlite3Example.js || exit 1
 docker run --name ts-sql-query-postgres -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
 sleep 20
 node ./dist/examples/PgExample.js || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
+node ./dist/examples/EncriptedIDPgExample.js || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 node ./dist/examples/AnyDBPostgresExample.js || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 node ./dist/examples/LoopBackPostgresqlExample.js || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 docker stop ts-sql-query-postgres

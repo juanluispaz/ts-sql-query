@@ -1,4 +1,4 @@
-import type { IBooleanValueSource, ColumnsOf, IIfValueSource, InputTypeOfColumn } from "./values"
+import type { IBooleanValueSource, ColumnsForSetOf, IIfValueSource, InputTypeOfColumn } from "./values"
 import type { ITableOrView, NoTableOrViewRequired } from "../utils/ITableOrView"
 import type { AnyDB, TypeSafeDB } from "../databases"
 import type { int } from "ts-extended-types"
@@ -26,7 +26,7 @@ export interface ExecutableUpdateExpression<TABLE extends ITableOrView<any>> ext
     setIfSetIfValue(columns: OptionalUpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
     setIfNotSet(columns: UpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
     setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
-    ignoreIfSet(...columns: ColumnsOf<TABLE>[]): ExecutableUpdateExpression<TABLE>
+    ignoreIfSet(...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE>
 
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE>
     where(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
@@ -40,7 +40,7 @@ export interface NotExecutableUpdateExpression<TABLE extends ITableOrView<any>> 
     setIfSetIfValue(columns: OptionalUpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
     setIfNotSet(columns: UpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
     setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
-    ignoreIfSet(...columns: ColumnsOf<TABLE>[]): NotExecutableUpdateExpression<TABLE>
+    ignoreIfSet(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE>
 
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE>
     where(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
@@ -67,9 +67,9 @@ export interface UpdateExpressionAllowingNoWhere<TABLE extends ITableOrView<any>
 }
 
 export type UpdateSets<TABLE extends ITableOrView<any>> = {
-    [P in ColumnsOf<TABLE>]?: InputTypeOfColumn<TABLE, P>
+    [P in ColumnsForSetOf<TABLE>]?: InputTypeOfColumn<TABLE, P>
 }
 
 export type OptionalUpdateSets<TABLE extends ITableOrView<any>> = {
-    [P in ColumnsOf<TABLE>]?: InputTypeOfColumn<TABLE, P> | null | undefined
+    [P in ColumnsForSetOf<TABLE>]?: InputTypeOfColumn<TABLE, P> | null | undefined
 }

@@ -4,7 +4,7 @@ import type { AnyDB } from "../databases"
 import type { int, double, /*LocalDate, LocalTime, LocalDateTime,*/ stringDouble, stringInt } from "ts-extended-types"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { bigintValueSourceType, booleanValueSourceType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, valueSourceType } from "../utils/symbols"
-import type { ColumnWithDefaultValue } from "../utils/Column"
+import type { Column, ColumnWithDefaultValue, ComputedColumn } from "../utils/Column"
 import { valueType } from "../utils/symbols"
 
 export interface ValueSourceOf<DB extends AnyDB> {
@@ -1349,7 +1349,13 @@ export interface LocalDateTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<A
     asOptional(): LocalDateTimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export type ColumnsOf<TYPE extends ITableOrView<any>> = ({ [K in keyof TYPE]-?: TYPE[K] extends ValueSource<TYPE[typeof tableOrViewRef], any> ? K : never })[keyof TYPE]
+export type ColumnsOf<TYPE extends ITableOrView<any>> = ({ [K in keyof TYPE]-?: TYPE[K] extends ValueSource<TYPE[typeof tableOrViewRef], any> & Column ? K : never })[keyof TYPE]
+
+export type ColumnsForSetOf<TYPE extends ITableOrView<any>> = ({ [K in keyof TYPE]-?: 
+    TYPE[K] extends ValueSource<TYPE[typeof tableOrViewRef], any> & Column
+    ? (TYPE[K] extends ComputedColumn ? never : K)
+    : never 
+})[keyof TYPE]
 
 export type TypeOfColumn<TABLE_OR_VIEW extends ITableOrView<any>, K extends ColumnsOf<TABLE_OR_VIEW>> =
     TABLE_OR_VIEW[K] extends ValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], infer Q> ? Q

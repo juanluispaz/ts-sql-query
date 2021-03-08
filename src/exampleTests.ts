@@ -41,6 +41,8 @@ class MyTable extends Table<MyConection, 'MyTable'> {
     bool = this.optionalColumn('bool', 'boolean')
     customBool = this.column('custom_boolean', 'boolean', new CustomBooleanTypeAdapter('t', 'f'))
     optCustomBool = this.optionalColumn('opt_custom_boolean', 'boolean', new CustomBooleanTypeAdapter('Y', 'N'))
+    computed = this.computedColumn('computed', 'string')
+    optComputed = this.optionalComputedColumn('opt_computed', 'string')
     constructor() {
         super('t')
     }

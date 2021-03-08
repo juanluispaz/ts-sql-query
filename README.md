@@ -818,6 +818,8 @@ async function main() {
 }
 ```
 
+**Important**: A ts-sql-query connection object represents a dedicated connection; consequently, don't share connections between requests when you are handling HTTP requests; create one connection object per request.
+
 ### Instantiating the connection with a mock database connection
 
 Have a mock database connection is useful when you want to make unit tests. Using a mock connection allows you to test your code against the generated query instead of run the query in the database.

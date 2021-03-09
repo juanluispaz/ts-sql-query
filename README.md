@@ -3071,20 +3071,21 @@ In the case of [synchronous-promise](https://www.npmjs.com/package/synchronous-p
  */
 function sync<T>(promise: Promise<T>): T {
     let returned = false
+    let errorReturned = false
     let result: any
     let error: any
     promise.then(r => {
         returned = true
         result = r
     }, e => {
-        returned = true
+        errorReturned = true
         error = e
     })
 
-    if (!returned) {
+    if (!returned && !errorReturned) {
         throw new Error('You performed a real async operation, not a database operation, inside the function dedicated to calling the database')
     }
-    if (error) {
+    if (errorReturned) {
         throw error
     }
     return result

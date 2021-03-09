@@ -242,20 +242,21 @@ try {
  */
 function sync<T>(promise: Promise<T>): T {
     let returned = false
+    let errorReturned = false
     let result: any
     let error: any
     promise.then(r => {
         returned = true
         result = r
     }, e => {
-        returned = true
+        errorReturned = true
         error = e
     })
 
-    if (!returned) {
-        throw new Error('You performed an real async operation, not a database operation, inside the function dedicated to call the database')
+    if (!returned && !errorReturned) {
+        throw new Error('You performed a real async operation, not a database operation, inside the function dedicated to calling the database')
     }
-    if (error) {
+    if (errorReturned) {
         throw error
     }
     return result

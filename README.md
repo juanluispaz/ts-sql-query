@@ -103,6 +103,17 @@ Install with [npm](https://www.npmjs.com/):
 $ npm install --save ts-sql-query
 ```
 
+ts-sql-query doesn't expose a global export; instead, you need import specific files refered in this documentation according to the functionality you need. Only the files included in this documentation are considered public; then, don't reference explicitly files outside of the following:
+- ts-sql-query/Connection.ts
+- ts-sql-query/Table
+- ts-sql-query/TypeAdapter
+- ts-sql-query/View
+- ts-sql-query/connections/*
+- ts-sql-query/extras/*
+- ts-sql-query/queryRunners/*
+
+Any reference to a file outside of the previous list can change at any moment.
+
 ## Examples
 
 You can find a complete example using ts-sql-query with PostgreSQL in the file [PgExample.ts](https://github.com/juanluispaz/ts-sql-query/blob/master/src/examples/PgExample.ts). You can browse the [examples folder](https://github.com/juanluispaz/ts-sql-query/tree/master/src/examples) to see an example for each supported database using different ways to connect to it.

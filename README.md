@@ -891,6 +891,8 @@ const tCustomer = new class TCustomer extends Table<DBConection, 'TCustomer'> {
 }();
 ```
 
+**Important**: The constructor of a table must expect no arguments.
+
 ### Mapping the views
 
 In order to use the views in queries, you need to map it in your system. To do it, you need to extend the view class that receives two generic arguments, the first one is the connection class, and the second one is a unique name for the view in your system.
@@ -910,6 +912,8 @@ const vCustomerAndCompany = new class VCustomerAndCompany extends View<DBConecti
     }
 }();
 ```
+
+**Important**: The constructor of a view must expect no arguments.
 
 ### Creating methods that allows to call a procedure
 

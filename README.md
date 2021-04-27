@@ -2264,6 +2264,8 @@ async function main() {
 
 A query runner that write all the queries to the standard output using `console.log` and delegate the execution of the queries to the query runner received as argument in the constructor.
 
+If you don't want to use `console.log`, you can also pass in your own logging function as second constructor argument.
+
 **Supported databases**: mariaDB, mySql, oracle, postgreSql, sqlite, sqlServer
 
 ```ts

@@ -6,7 +6,7 @@ Type-safe SQL query builder like QueryDSL or JOOQ in Java for TypeScript with Ma
 
 This package provides a way to build dynamic SQL queries in a type-safe way, that means, the TypeScript compiler verifies the queries. Note: this is not an ORM, and the most probably is you don't need one.
 
-Type-safe sql means the mistakes writting a query will be detected during the compilation time. With ts-sql-query you don't need to be affraid of change the database, the problems caused by the change will be detected during compilation time.
+Type-safe SQL means the mistakes writting a query will be detected during the compilation time. With ts-sql-query you don't need to be affraid of change the database, the problems caused by the change will be detected during compilation time.
 
 # Summary <!-- omit in toc -->
 
@@ -19,9 +19,9 @@ Type-safe sql means the mistakes writting a query will be detected during the co
   - [Select with subquery and dynamic order by](#select-with-subquery-and-dynamic-order-by)
   - [Select with aggregate functions and group by](#select-with-aggregate-functions-and-group-by)
   - [Select page](#select-page)
-  - [Select with custom sql fragment](#select-with-custom-sql-fragment)
-  - [Select with custom reusable sql fragment](#select-with-custom-reusable-sql-fragment)
-  - [Select with custom reusable sql fragment if value](#select-with-custom-reusable-sql-fragment-if-value)
+  - [Select with custom SQL fragment](#select-with-custom-sql-fragment)
+  - [Select with custom reusable SQL fragment](#select-with-custom-reusable-sql-fragment)
+  - [Select with custom reusable SQL fragment if value](#select-with-custom-reusable-sql-fragment-if-value)
   - [Using a select as a view in another select query (SQL with clause)](#using-a-select-as-a-view-in-another-select-query-sql-with-clause)
   - [Insert](#insert)
   - [Insert multiple values](#insert-multiple-values)
@@ -159,7 +159,7 @@ The `executeSelectOne` returns one result, but if it is not found in the databas
 
 ### Dynamic queries
 
-ts-sql-query offers many commodity methods with name ended with `IfValue` to build dynamic queries; these methods allow to be ignored when the values specified by argument are `null` or `undefined` or an empty string (only when the allowEmptyString flag in the connection is not set to true, that is the default behaviour). When these methods are used in operations that return booleans value, ts-sql-query is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
+ts-sql-query offers many commodity methods with name ended with `IfValue` to build dynamic queries; these methods allow to be ignored when the values specified by argument are `null` or `undefined` or an empty string (only when the `allowEmptyString` flag in the connection is not set to true, that is the default behaviour). When these methods are used in operations that return booleans value, ts-sql-query is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
 
 When you realize an insert or update, you can:
 - set a column value conditionally using the method `setIfValue`
@@ -387,9 +387,9 @@ const customerPageWithName: Promise<{
 }>
 ```
 
-### Select with custom sql fragment
+### Select with custom SQL fragment
 
-Sql fragments allows to include sql in your query, that give you the possibility to do some operations not included in ts-sql-query.
+SQL fragments allows to include sql in your query, that give you the possibility to do some operations not included in ts-sql-query.
 
 ```ts
 const id = 10;
@@ -420,9 +420,9 @@ const customersUsingCustomFragment: Promise<{
 } | null>
 ```
 
-### Select with custom reusable sql fragment
+### Select with custom reusable SQL fragment
 
-You can define functions in your connection that create custom reusable sql fragments, that give you the possibility to do some operations or functions not included in ts-sql-query.
+You can define functions in your connection that create custom reusable SQL fragments, that give you the possibility to do some operations or functions not included in ts-sql-query.
 
 If you define your connection like:
 
@@ -476,11 +476,11 @@ const companiesUsingCustomFunctionFragment: Promise<{
 }[]>
 ```
 
-### Select with custom reusable sql fragment if value
+### Select with custom reusable SQL fragment if value
 
-You can define functions in your connection that create custom reusable sql fragments that have the same behaviour of the functions with name ended with `IfValue`, that give you the possibility to do some operations or functions not included in ts-sql-query.
+You can define functions in your connection that create custom reusable SQL fragments that have the same behaviour of the functions with name ended with `IfValue`, that give you the possibility to do some operations or functions not included in ts-sql-query.
 
-ts-sql-query offers many commodity methods with name ended with `IfValue` to build dynamic queries; these methods allow to be ignored when the values specified by argument are `null` or `undefined` or an empty string (only when the allowEmptyString flag in the connection is not set to true, that is the default behaviour). When these methods are used in operations that return booleans value, ts-sql-query is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
+ts-sql-query offers many commodity methods with name ended with `IfValue` to build dynamic queries; these methods allow to be ignored when the values specified by argument are `null` or `undefined` or an empty string (only when the `allowEmptyString` flag in the connection is not set to true, that is the default behaviour). When these methods are used in operations that return booleans value, ts-sql-query is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
 
 The method `buildFragmentWithArgsIfValue` allows you to create a function, where if any optional value argument receives `null` or `undefined` or an empty string, the execution of the provided function is omitted.
 
@@ -744,7 +744,7 @@ class DBConection extends PostgreSqlConnection<'DBConnection'> { }
 
 ### Allowing empty string
 
-By default empty string as treated as null, if you want to allow to send and receive empty string to the database set the allowEmptyString property in the connection to true.
+By default empty string as treated as null, if you want to allow to send and receive empty string to the database set the `allowEmptyString` property in the connection to true.
 
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
@@ -985,7 +985,7 @@ Here is shown a simplified version of the ts-sql-query APIs.
 
 All values managed by the database are represented as a subclass of `ValueSource`, almost all methods listed here support the TypeScript value and the database value (as overload).
 
-The methods which name ends with `IfValue` do the same that the one without `IfValue` but only if the provided value(s) are different to undefined, null, empty string (only when the allowEmptyString flag in the connection is not set to true, that is the default behaviour) or an empty array, otherwise it is ignored.
+The methods which name ends with `IfValue` do the same that the one without `IfValue` but only if the provided value(s) are different to undefined, null, empty string (only when the `allowEmptyString` flag in the connection is not set to true, that is the default behaviour) or an empty array, otherwise it is ignored.
 
 Be aware, in the database, when null is part of an operation the result of the operation is null (It is not represented in the following definition but it is implemented)
 
@@ -1347,7 +1347,7 @@ interface Connection {
     /** group_concat(distinct value, separator) sometimes called string_agg or listagg. The default separator is ',' */
     stringConcatDistinct(value: StringValueSource, separator?: string): StringValueSource
 
-    // Methods that allows create sql fragments
+    // Methods that allows create SQL fragments
     fragmentWithType(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
@@ -1998,7 +1998,7 @@ type SelectValues = { [columnName: string]: ValueSource }
 
 ### Type adpaters
 
-Type adapters allow customising how the values are sent and recovered from the database allowing transform them. You can specify the type adapter per field when you define at the table or view; or, you can define general rules overriding the `transformValueFromDB` and `transformValueToDB`.
+Type adapters allow customising how the values are sent and retrieved from the database, allowing to transform them. You can specify the type adapter per field when you define at the table or view; or, you can define general rules overriding the `transformValueFromDB` and `transformValueToDB`.
 
 The `CustomBooleanTypeAdapter` allows defining custom values to express a boolean when they don't match the database's default values. For example, when you have a field in the database that is a boolean; but, the true value is represented with the string `yes`, and the false value is represented with the string `no`. See [Custom booleans values](#custom-booleans-values) for more information.
 
@@ -2083,7 +2083,7 @@ import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnectio
 class DBConection extends SqlServerConnection<'DBConnection'> { }
 ```
 
-**Note**: An empty string will be treated as a null value; if you need to allow empty string set the allowEmptyString property to true in the connection object.
+**Note**: An empty string will be treated as a null value; if you need to allow empty string set the `allowEmptyString` property to true in the connection object.
 
 **Note**: Sql Server doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a bit where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](#custom-booleans-values) for more information.
 
@@ -2143,7 +2143,7 @@ import { TypeSafeSqlServerConnection } from "ts-sql-query/connections/TypeSafeSq
 class DBConection extends TypeSafeSqlServerConnection<'DBConnection'> { }
 ```
 
-**Note**: An empty string will be treated as a null value; if you need to allow empty string set the allowEmptyString property to true in the connection object.
+**Note**: An empty string will be treated as a null value; if you need to allow empty string set the `allowEmptyString` property to true in the connection object.
 
 **Note**: Sql Server doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a bit where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](#custom-booleans-values) for more information.
 

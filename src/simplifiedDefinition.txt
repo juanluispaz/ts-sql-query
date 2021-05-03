@@ -322,6 +322,21 @@ interface Connection {
     const<T>(value: T, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     const<T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     const<T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+
+    // methods that allows to create a value source with an optional constant value
+    optionalConst(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    optionalConst(value: number | string | null | undefined, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
+    optionalConst(value: number | null | undefined, type: 'int', adapter?: TypeAdapter): NumberValueSource
+    optionalConst(value: number | null | undefined, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    optionalConst(value: number | string | null | undefined, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
+    optionalConst(value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource
+    optionalConst(value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource
+    optionalConst(value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): DateValueSource
+    optionalConst(value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
+    optionalConst(value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
+    optionalConst<T>(value: T | null | undefined, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    optionalConst<T>(value: T | null | undefined, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
+    optionalConst<T>(value: T | null | undefined, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
     
     // allows to use the exits function on a subquery
     exists(select: Subquery): BooleanValueSource

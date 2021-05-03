@@ -68,6 +68,7 @@ Type-safe SQL means the mistakes writting a query will be detected during the co
   - [better-sqlite3](#better-sqlite3)
   - [ConsoleLogNoopQueryRunner](#consolelognoopqueryrunner)
   - [ConsoleLogQueryRunner](#consolelogqueryrunner)
+  - [LoggingQueryRunner](#loggingqueryrunner)
   - [LoopBack DataSource](#loopback-datasource)
   - [mariadb (with a connection pool)](#mariadb-with-a-connection-pool)
   - [mariadb (with a connection)](#mariadb-with-a-connection)
@@ -2274,6 +2275,54 @@ async function main() {
     // Do your queries here
 }
 ```
+
+### LoggingQueryRunner
+
+A query runner that intercept all the queries allowing you to log it and delegate the execution of the queries to the query runner received as second argument in the constructor.
+
+**Supported databases**: mariaDB, mySql, oracle, postgreSql, sqlite, sqlServer
+
+```ts
+import { LoggingQueryRunner } from "ts-sql-query/queryRunners/LoggingQueryRunner";
+
+async function main() {
+    const connection = new DBConection(new LoggingQueryRunner({
+        onQuery(queryType, query, params) {
+            console.log('onQuery', queryType, query, params)
+        },
+        onQueryResult(queryType, query, params, result) {
+            console.log('onQueryResult', queryType, query, params, result)
+        },
+        onQueryError(queryType, query, params, error) {
+            console.log('onQueryError', queryType, query, params, error)
+        }
+    }, otherQueryRunner));
+    // Do your queries here
+}
+```
+
+The `LoggingQueryRunner` receives an object as first argument of the constructor that can define the following functions:
+- **`onQuery`**: Executed before the query.
+- **`onQueryResult`**: Executed after the successful execution of the query.
+- **`onQueryError`**: Executed after the query in case of error.
+
+All these functions receive as argument:
+- **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
+
+    ```ts
+    type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
+    'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 
+    'executeProcedure' | 'executeFunction' | 
+    'beginTransaction' | 'commit' | 'rollback' |
+    'executeDatabaseSchemaModification'
+    ```
+
+- **`query: string`**: query required to be executed, empty in the case of `beginTransaction`, `commit` or `rollback`
+- **`params: any[]`**: parameters received by the query.
+- **`result: any`**: (only in `onQueryResult`) result of the execution of the query.
+- **`error: any`**: (only in `onQueryError`) error that happens executiong the query.
+
+**Note**: `onQuery`, `onQueryResult` and `onQueryError` are optionals; you can defined only the method that you needs.
 
 ### LoopBack DataSource
 

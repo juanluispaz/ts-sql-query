@@ -2934,7 +2934,7 @@ The consequence of this limitation is you cannot call the low level transaction 
 - `commit`
 - `rollback`
 
-But, you can use `connection.transaction` method to perform a transaction in Prisma (under the hood it call to `prismaClient.$transaction`). When you use `connection.transaction` method you can combine ts-sql-query and Prisma operations.
+But, you can use `connection.transaction` method to perform a transaction in Prisma (under the hood it calls `prismaClient.$transaction`). When you use `connection.transaction` method you can combine ts-sql-query and Prisma operations.
 
 ```ts
 const [prismaCompany, otherCompanyID] = await connection.transaction(() => [

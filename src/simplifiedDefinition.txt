@@ -276,8 +276,8 @@ interface Connection {
     beginTransaction(): Promise<void>
     commit(): Promise<void>
     rollback(): Promise<void>
+    transaction<T>(fn: () => Promise<T>[]): Promise<T[]>
     transaction<T>(fn: () => Promise<T>): Promise<T>
-    transaction<T>(fn: () => Promise<T>[]): Promise<T>
 
     // Querying
     insertInto(table: Table): InsertExpression

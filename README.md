@@ -2909,7 +2909,7 @@ async function main() {
 
 ### prisma
 
-It allows to execute the queries using an [prisma](https://www.prisma.io) client.
+It allows to execute the queries using a [Prisma](https://www.prisma.io) client.
 
 **Supported databases**: mariaDB, mySql, postgreSql, sqlite, sqlServer
 
@@ -2934,7 +2934,7 @@ The consequence of this limitation is you cannot call the low level transaction 
 - `commit`
 - `rollback`
 
-But, you can use `connection.transaction` method to perform a transaction in prisma (under the hood it call to `prismaClient.$transaction`). When you use `connection.transaction` method you can combine ts-sql-query and prisma operations.
+But, you can use `connection.transaction` method to perform a transaction in Prisma (under the hood it call to `prismaClient.$transaction`). When you use `connection.transaction` method you can combine ts-sql-query and Prisma operations.
 
 ```ts
 const [prismaCompany, otherCompanyID] = await connection.transaction(() => [
@@ -2951,7 +2951,7 @@ const [prismaCompany, otherCompanyID] = await connection.transaction(() => [
 ])
 ```
 
-**Note**: `connection.transaction` have the same limitations that `prismaClient.$transaction`. Ensure the transaction method receives directly the promises returned by prisma or ts-sql-query; and don't use async/await in the function received by `connection.transaction` as argument.
+**Note**: `connection.transaction` have the same limitations that `prismaClient.$transaction`. Ensure the transaction method receives directly the promises returned by Prisma or ts-sql-query; and don't use async/await in the function received by `connection.transaction` as argument.
 
 ### sqlite
 

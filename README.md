@@ -86,6 +86,7 @@ Type-safe SQL means the mistakes writting a query will be detected during the co
   - [oracledb (with a connection)](#oracledb-with-a-connection)
   - [pg (with a connection pool)](#pg-with-a-connection-pool)
   - [pg (with a connection)](#pg-with-a-connection)
+  - [prisma](#prisma)
   - [sqlite](#sqlite-2)
   - [sqlite3](#sqlite3)
   - [tedious (with a connection poll)](#tedious-with-a-connection-poll)
@@ -2898,6 +2899,33 @@ async function main() {
     }
 }
 ```
+
+### prisma
+
+It allows to execute the queries using an [prisma](https://www.prisma.io) client.
+
+**Supported databases**: mariaDB, mySql, postgreSql, sqlite, sqlServer
+
+```ts
+import { PrismaClient } from '@prisma/client'
+import { PrismaQueryRunner } from "ts-sql-query/queryRunners/PrismaQueryRunner";
+
+const prisma = new PrismaClient()
+
+async function main() {
+    const connection = new DBConection(new PrismaQueryRunner(prisma));
+    // Do your queries here
+}
+```
+
+***Limitation**:
+
+Long running transactions are not supported by Prisma and they are not likely to be supported in a future. For more information see the [limitations](https://www.prisma.io/docs/about/limitations#long-running-transactions), the [blog page](https://www.prisma.io/blog/how-prisma-supports-transactions-x45s1d5l0ww1) expaining it more, the [transactions guide](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide/) and the [bug report](https://github.com/prisma/prisma/issues/1844).
+
+The consequence of this limitation is you cannot call the methods:
+- `beginTransaction`
+- `commit`
+- `rollback`
 
 ### sqlite
 

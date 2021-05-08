@@ -1,0 +1,28 @@
+datasource db {
+    provider = "sqlite"
+    url      = "file:./prismasqlitetest.db"
+}
+
+generator client {
+    provider = "prisma-client-js"
+    output   = "./generated/sqlite"
+}
+
+model Company {
+    id       Int        @id @default(autoincrement())
+    name     String
+    Customer Customer[]
+
+    @@map("company")
+}
+
+model Customer {
+    id        Int      @id @default(autoincrement())
+    firstName String   @map("first_name")
+    lastName  String   @map("last_name")
+    birthday  DateTime
+    company   Company  @relation(fields: [companyId], references: [id])
+    companyId Int      @map("company_id")
+
+    @@map("customer")
+}

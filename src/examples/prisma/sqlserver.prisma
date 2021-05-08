@@ -1,0 +1,29 @@
+datasource db {
+    provider = "sqlserver"
+    url      = "sqlserver://localhost:1433;user=sa;password=yourStrong(!)Password;TrustServerCertificate=true"
+}
+
+generator client {
+    provider = "prisma-client-js"
+    previewFeatures = ["microsoftSqlServer"]
+    output   = "./generated/sqlserver"
+}
+
+model Company {
+    id       Int        @id @default(autoincrement()) @db.Int
+    name     String     @db.VarChar(100)
+    Customer Customer[]
+
+    @@map("company")
+}
+
+model Customer {
+    id        Int      @id @default(autoincrement()) @db.Int
+    firstName String   @map("first_name") @db.VarChar(100)
+    lastName  String   @map("last_name") @db.VarChar(100)
+    birthday  DateTime @db.Date
+    company   Company  @relation(fields: [companyId], references: [id])
+    companyId Int      @map("company_id")
+
+    @@map("customer")
+}

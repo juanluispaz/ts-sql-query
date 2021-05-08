@@ -31,9 +31,11 @@
         "linq"
     ],
     "scripts": {
+        "generate-prisma": "prisma generate --schema src/examples/prisma/postgresql.prisma; prisma generate --schema src/examples/prisma/mysql.prisma; prisma generate --schema src/examples/prisma/mariadb.prisma; prisma generate --schema src/examples/prisma/sqlite.prisma; prisma generate --schema src/examples/prisma/sqlserver.prisma",
+        "copy-prisma": "cp -R ./src/examples/prisma ./dist/examples/prisma",
         "example": "npm run build && node dist/exampleTests.js",
         "all-examples": "npm run build && sh ./scripts/run-all-examples.sh",
-        "build": "rm -rf dist/*; tsc",
+        "build": "rm -rf dist/*; tsc && npm run copy-prisma",
         "dist": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm exampleTests* && rm -Rf examples && npm publish",
         "dist-beta": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm exampleTests* && rm -Rf examples && npm publish --tag beta"
     },
@@ -45,6 +47,7 @@
         "url": "https://github.com/juanluispaz/ts-sql-query/issues"
     },
     "devDependencies": {
+        "@prisma/client": "^2.22.1",
         "@types/any-db": "^2.1.30",
         "@types/any-db-transaction": "^2.2.30",
         "@types/better-sqlite3": "^5.4.0",
@@ -74,6 +77,7 @@
         "mysql2": "^2.2.5",
         "oracledb": "^5.1.0",
         "pg": "^8.5.1",
+        "prisma": "^2.22.1",
         "sqlite": "^4.0.14",
         "sqlite3": "^5.0.0",
         "synchronous-promise": "^2.0.15",

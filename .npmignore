@@ -8,3 +8,4 @@ test
 .travis.yml
 src
 tsconfig.json
+generated

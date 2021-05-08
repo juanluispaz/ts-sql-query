@@ -1,18 +1,20 @@
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { DatabaseType } from "./QueryRunner"
 import type { Database } from 'better-sqlite3'
-import type { PromiseProvider } from "../utils/PromiseProvider"
+import type { PromiseProvider, UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { Integer } from 'better-sqlite3'
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
 
 export interface BetterSqlite3QueryRunnerConfig {
     promise?: PromiseProvider
 }
 
-export class BetterSqlite3QueryRunner implements QueryRunner {
+export class BetterSqlite3QueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType
     readonly connection: Database
     readonly promise: PromiseProvider
 
     constructor(connection: Database, config?: BetterSqlite3QueryRunnerConfig) {
+        super()
         this.connection = connection
         this.database = 'sqlite'
         this.promise = config?.promise || Promise
@@ -196,6 +198,9 @@ export class BetterSqlite3QueryRunner implements QueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return this.promise.all(promises) as any
     }
 }
 

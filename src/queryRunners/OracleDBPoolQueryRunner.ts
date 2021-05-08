@@ -3,6 +3,7 @@ import type { Pool, Connection } from 'oracledb'
 import { BIND_OUT } from 'oracledb'
 import { OracleDBQueryRunner } from "./OracleDBQueryRunner"
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
 export class OracleDBPoolQueryRunner extends AbstractPoolQueryRunner {
     readonly database: DatabaseType
@@ -38,6 +39,9 @@ export class OracleDBPoolQueryRunner extends AbstractPoolQueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.pool.getConnection().then(connection => new OracleDBQueryRunner(connection))

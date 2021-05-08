@@ -1,11 +1,14 @@
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { DatabaseType } from "./QueryRunner"
 import type { Connection, UpsertResult } from 'mariadb'
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
-export class MariaDBQueryRunner implements QueryRunner {
+export class MariaDBQueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
 
     constructor(connection: Connection, database: 'mariaDB' | 'mySql' = 'mariaDB') {
+        super()
         this.connection = connection
         this.database = database
     }
@@ -117,5 +120,8 @@ export class MariaDBQueryRunner implements QueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
 }

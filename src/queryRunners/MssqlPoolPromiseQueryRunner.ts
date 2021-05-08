@@ -2,6 +2,7 @@ import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { ConnectionPool } from 'mssql'
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
 import { MssqlPoolQueryRunner } from "./MssqlPoolQueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
 export class MssqlPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
     readonly database: DatabaseType
@@ -31,6 +32,9 @@ export class MssqlPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.promisePool.then(pool => new MssqlPoolQueryRunner(pool))

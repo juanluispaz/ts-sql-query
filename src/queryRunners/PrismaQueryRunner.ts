@@ -1,3 +1,4 @@
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider";
 import { DatabaseType, QueryRunner } from "./QueryRunner"
 
 interface RawPrismaClient {
@@ -166,6 +167,12 @@ export class PrismaQueryRunner implements QueryRunner {
     }
     executeRollback(): Promise<void> {
         return Promise.reject(new Error('Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844'))
+    } 
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
+    executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
+    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
+    executeInTransaction(_fn: () => Promise<any>[] | Promise<any>, _outermostQueryRunner: QueryRunner): Promise<any> {
+        return Promise.reject(new Error('Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844'))
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.executeRaw(query, params).then(() => undefined)
@@ -206,6 +213,9 @@ export class PrismaQueryRunner implements QueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result)
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
     combineOperation<R1, R2>(p1: Promise<R1>, p2: Promise<R2>): Promise<[R1, R2]> {
         return this.connection.$transaction([

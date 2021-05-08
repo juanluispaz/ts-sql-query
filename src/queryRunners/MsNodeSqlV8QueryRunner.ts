@@ -1,4 +1,6 @@
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import type { DatabaseType } from "./QueryRunner"
 
 // Depends of msnodesqlv8
 // Redefine type definitios to avoid depenedency problems in linux where this package is not available
@@ -27,11 +29,12 @@ export interface SubmittedEventCb { (sql: string, params:any[]): void
 export interface EventColumnCb { (colIndex: number, data:any, more:boolean): void
 }
 
-export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements QueryRunner {
+export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends AbstractQueryRunner {
     readonly database: DatabaseType
     readonly connection: CONNECTION
 
     constructor(connection: CONNECTION) {
+        super()
         this.connection = connection
         this.database = 'sqlServer'
     }
@@ -300,5 +303,8 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> implements Qu
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
 }

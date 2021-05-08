@@ -1,13 +1,16 @@
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { DatabaseType } from "./QueryRunner"
 import type { ConnectionPool, ISqlTypeFactory, Transaction, Request } from 'mssql'
 import { TYPES } from 'mssql'
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
 
-export class MssqlPoolQueryRunner implements QueryRunner {
+export class MssqlPoolQueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType
     readonly pool: ConnectionPool
     transaction?: Transaction
 
     constructor(pool: ConnectionPool) {
+        super()
         this.pool = pool
         this.database = 'sqlServer'
     }
@@ -232,6 +235,9 @@ export class MssqlPoolQueryRunner implements QueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
 
     protected request(): Request {

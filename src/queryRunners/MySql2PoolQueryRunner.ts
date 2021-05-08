@@ -2,6 +2,7 @@ import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { Pool, PoolConnection } from "mysql2"
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
 import { MySql2QueryRunner } from "./MySql2QueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
 export class MySql2PoolQueryRunner extends AbstractPoolQueryRunner {
     readonly database: DatabaseType
@@ -36,6 +37,9 @@ export class MySql2PoolQueryRunner extends AbstractPoolQueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return new Promise((resolve, reject) => {

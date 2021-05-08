@@ -1,5 +1,7 @@
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { DataSource, Transaction } from 'loopback-datasource-juggler'
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
 export function createLoopBackQueryRunner(datasource: DataSource, transaction?: Transaction): LoopbackQueryRunner {
     const connector = datasource.connector
@@ -29,7 +31,7 @@ export interface LoopbackQueryRunner extends QueryRunner {
     transaction?: Transaction
 }
 
-export abstract class LoopBackAbstractQueryRunner implements LoopbackQueryRunner {
+export abstract class LoopBackAbstractQueryRunner extends AbstractQueryRunner implements LoopbackQueryRunner {
     // @ts-ignore
     readonly database: DatabaseType
     readonly datasource: DataSource
@@ -37,6 +39,7 @@ export abstract class LoopBackAbstractQueryRunner implements LoopbackQueryRunner
     transaction?: Transaction
 
     constructor(database: DatabaseType, datasource: DataSource, transaction?: Transaction) {
+        super()
         this.database = database
         this.datasource = datasource
         this.transaction = transaction
@@ -148,6 +151,9 @@ export abstract class LoopBackAbstractQueryRunner implements LoopbackQueryRunner
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
     protected query(query: string, params?: any[]): Promise<any> {
         return this.datasource.execute(query, params, {transaction: this.transaction})

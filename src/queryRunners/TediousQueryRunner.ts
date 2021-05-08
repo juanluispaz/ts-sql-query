@@ -1,12 +1,15 @@
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { DatabaseType } from "./QueryRunner"
 import type { Connection, TediousType } from 'tedious'
 import { Request, TYPES } from 'tedious'
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
-export class TediousQueryRunner implements QueryRunner {
+export class TediousQueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
 
     constructor(connection: Connection) {
+        super()
         this.connection = connection
         this.database = 'sqlServer'
     }
@@ -339,6 +342,9 @@ export class TediousQueryRunner implements QueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
 
     protected predefinedTypes: {[type: string]: TediousType | undefined} = {

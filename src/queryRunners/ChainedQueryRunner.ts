@@ -1,3 +1,4 @@
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import type { QueryRunner, DatabaseType } from "./QueryRunner"
 
 export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
@@ -64,6 +65,12 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     executeRollback(): Promise<void> {
         return this.queryRunner.executeRollback()
     }
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
+    executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
+    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
+    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any> {
+        return this.queryRunner.executeInTransaction(fn, outermostQueryRunner)
+    }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.queryRunner.executeDatabaseSchemaModification(query, params)
     }
@@ -75,5 +82,8 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.queryRunner.createResolvedPromise(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return this.queryRunner.createAllPromise(promises) 
     }
 }

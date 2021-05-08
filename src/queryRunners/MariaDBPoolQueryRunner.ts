@@ -2,6 +2,7 @@ import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { Pool, PoolConnection } from 'mariadb'
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
 import { MariaDBQueryRunner } from "./MariaDBQueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
 export class MariaDBPoolQueryRunner extends AbstractPoolQueryRunner {
     readonly database: DatabaseType
@@ -36,6 +37,9 @@ export class MariaDBPoolQueryRunner extends AbstractPoolQueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.pool.getConnection().then(mariaDBConnection => new MariaDBQueryRunner(mariaDBConnection, this.database as any))

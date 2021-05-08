@@ -1,11 +1,14 @@
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { DatabaseType } from "./QueryRunner"
 import type { ClientBase } from 'pg'
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
-export class PgQueryRunner implements QueryRunner {
+export class PgQueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType
     readonly connection: ClientBase
 
     constructor(connection: ClientBase) {
+        super()
         this.connection = connection
         this.database = 'postgreSql'
     }
@@ -134,5 +137,8 @@ export class PgQueryRunner implements QueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
 }

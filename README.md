@@ -823,7 +823,12 @@ async function main() {
     const connection = new DBConection(new PgPoolQueryRunner(pool));
     // Do your queries here
     /*
-     * Maybe you want to call:
+     * Maybe you want to perform the queries in a transaction:
+     * await connection.transaction(async () => {
+     *     // Do your queries here
+     * })
+     * 
+     * You also can manage the transaction at low level:
      * await connection.beginTransaction();
      * await connection.commit();
      * await connection.rollback();
@@ -1270,6 +1275,8 @@ interface Connection {
     beginTransaction(): Promise<void>
     commit(): Promise<void>
     rollback(): Promise<void>
+    transaction<T>(fn: () => Promise<T>): Promise<T>
+    transaction<T>(fn: () => Promise<T>[]): Promise<T>
 
     // Querying
     insertInto(table: Table): InsertExpression

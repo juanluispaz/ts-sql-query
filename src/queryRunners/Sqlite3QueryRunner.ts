@@ -1,11 +1,14 @@
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { DatabaseType } from "./QueryRunner"
 import type { Database } from 'sqlite3'
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
-export class Sqlite3QueryRunner implements QueryRunner {
+export class Sqlite3QueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType
     readonly connection: Database
 
     constructor(connection: Database) {
+        super()
         this.connection = connection
         this.database = 'sqlite'
     }
@@ -232,5 +235,8 @@ export class Sqlite3QueryRunner implements QueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
 }

@@ -40,10 +40,8 @@ const dbPromise = open({
 async function main() {
     const db = await dbPromise
     const connection = new DBConection(new ConsoleLogQueryRunner(new SqliteQueryRunner(db)))
-    await connection.beginTransaction()
 
-    let commit = false
-    try {
+    await connection.transaction(async () => {
         await connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists customer`)
         await connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists company`)
 
@@ -219,15 +217,7 @@ async function main() {
         assertEquals(customerCountPerAcmeCompanies, [
             { acmeCompanyId: 1, acmeCompanyName: 'ACME', acmeEndsWithME: true, acmeCustomerCount: 3 }
         ])
-
-        commit = true
-    } finally {
-        if (commit) {
-            connection.commit()
-        } else {
-            connection.rollback()
-        }
-    }
+    })
 }
 
 main().then(() => {

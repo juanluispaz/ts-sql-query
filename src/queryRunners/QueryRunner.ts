@@ -1,3 +1,5 @@
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider";
+
 export interface QueryRunner {
     readonly database: DatabaseType
     useDatabase(database: DatabaseType): void
@@ -17,10 +19,14 @@ export interface QueryRunner {
     executeBeginTransaction(): Promise<void>
     executeCommit(): Promise<void>
     executeRollback(): Promise<void>
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
+    executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
+    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
     executeDatabaseSchemaModification(query: string, params?: any[]): Promise<void>
     addParam(params: any[], value: any): string
     addOutParam(params: any[], name: string): string
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>>
 }
 
 export type DatabaseType = 'mariaDB' | 'mySql' | 'noopDB' | 'oracle' | 'postgreSql' | 'sqlite' | 'sqlServer'

@@ -1,14 +1,17 @@
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { DatabaseType } from "./QueryRunner"
 import type { Connection, ResultSet } from 'any-db'
 import * as begin  from 'any-db-transaction'
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
-export class AnyDBQueryRunner implements QueryRunner {
+export class AnyDBQueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType
 
     readonly connection: Connection
     transaction?: begin.Transaction
 
     constructor(connection: Connection) {
+        super()
         this.connection = connection
         switch (this.connection.adapter.name) {
             case 'mssql':
@@ -229,6 +232,9 @@ export class AnyDBQueryRunner implements QueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
     protected query(query: string, params?: any[]): Promise<ResultSet> {
         let queryParams: any = params

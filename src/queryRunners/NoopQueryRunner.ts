@@ -1,16 +1,18 @@
-import type { PromiseProvider } from "../utils/PromiseProvider"
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { PromiseProvider, UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import type { DatabaseType } from "./QueryRunner"
 
 export interface NoopQueryRunnerConfig {
     database?: DatabaseType
     promise?: PromiseProvider
 }
 
-export class NoopQueryRunner implements QueryRunner {
+export class NoopQueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType
     readonly promise: PromiseProvider
 
     constructor(databaseOrConfig: DatabaseType | NoopQueryRunnerConfig = 'noopDB') {
+        super()
         if (typeof databaseOrConfig === 'string') {
             databaseOrConfig = { database: databaseOrConfig }
         }
@@ -114,5 +116,8 @@ export class NoopQueryRunner implements QueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return this.promise.all(promises) as any
     }
 }

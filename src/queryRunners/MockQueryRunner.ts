@@ -1,5 +1,6 @@
-import type { PromiseProvider } from "../utils/PromiseProvider"
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { PromiseProvider, UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import type { DatabaseType } from "./QueryRunner"
 
 export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
 
@@ -10,7 +11,7 @@ export interface MockQueryRunnerConfig {
     promise?: PromiseProvider
 }
 
-export class MockQueryRunner implements QueryRunner {
+export class MockQueryRunner extends AbstractQueryRunner {
     private count = 0
     readonly queryExecutor: QueryExecutor
 
@@ -18,6 +19,7 @@ export class MockQueryRunner implements QueryRunner {
     readonly promise: PromiseProvider
 
     constructor(queryExecutor: QueryExecutor, databaseOrConfig: DatabaseType | MockQueryRunnerConfig = 'noopDB') {
+        super()
         this.queryExecutor = queryExecutor
         if (typeof databaseOrConfig === 'string') {
             databaseOrConfig = { database: databaseOrConfig }
@@ -182,5 +184,8 @@ export class MockQueryRunner implements QueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return this.promise.all(promises) as any
     }
 }

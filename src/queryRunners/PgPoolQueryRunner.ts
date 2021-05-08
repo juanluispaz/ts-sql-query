@@ -2,6 +2,7 @@ import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { Pool, PoolClient } from 'pg'
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
 import { PgQueryRunner } from "./PgQueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
 export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
     readonly database: DatabaseType
@@ -30,6 +31,9 @@ export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.pool.connect().then(connection => new PgQueryRunner(connection))

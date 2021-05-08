@@ -1,11 +1,14 @@
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { DatabaseType } from "./QueryRunner"
 import type { Connection, QueryError, OkPacket, RowDataPacket } from "mysql2"
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
-export class MySql2QueryRunner implements QueryRunner {
+export class MySql2QueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
 
     constructor(connection: Connection, database: 'mariaDB' | 'mySql' = 'mySql') {
+        super()
         this.connection = connection
         this.database = database
     }
@@ -234,5 +237,8 @@ export class MySql2QueryRunner implements QueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
 }

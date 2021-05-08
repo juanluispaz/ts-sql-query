@@ -1,12 +1,9 @@
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import type { QueryRunner } from "./QueryRunner"
 
-export abstract class AbstractPoolQueryRunner implements QueryRunner {
+export abstract class AbstractPoolQueryRunner extends AbstractQueryRunner {
     private currentQueryRunner?: QueryRunner
     private transactionLevel = 0
-    abstract readonly database: DatabaseType
-
-    abstract useDatabase(database: DatabaseType): void
-    abstract getNativeRunner(): unknown
 
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
         return this.getQueryRunner().then(queryRunner => queryRunner.execute(fn)).finally(() => this.releaseIfNeeded())
@@ -75,9 +72,6 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.getQueryRunner().then(queryRunner => queryRunner.executeDatabaseSchemaModification(query, params)).finally(() => this.releaseIfNeeded())
     }
-    abstract addParam(params: any[], value: any): string
-    abstract addOutParam(params: any[], name: string): string
-    abstract createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
 
     private getQueryRunner(): Promise<QueryRunner> {
         if (!this.currentQueryRunner) {

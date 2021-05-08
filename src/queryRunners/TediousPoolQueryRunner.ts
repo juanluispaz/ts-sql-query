@@ -2,6 +2,7 @@ import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type * as ConnectionPool from 'tedious-connection-pool'
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
 import { TediousQueryRunner } from "./TediousQueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
 export class TediousPoolQueryRunner extends AbstractPoolQueryRunner {
     readonly database: DatabaseType
@@ -31,6 +32,9 @@ export class TediousPoolQueryRunner extends AbstractPoolQueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return new Promise((resolve, reject) => {

@@ -21,8 +21,9 @@ import { DefaultImpl } from "../expressions/Default"
 import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
 import ChainedError from "chained-error"
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue } from "../queryBuilders/FragmentQueryBuilder"
-import { attachSource } from "../utils/attachSource"
+import { attachSource, attachTransactionSource } from "../utils/attachSource"
 import { database, tableOrViewRef, type } from "../utils/symbols"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
 export abstract class AbstractConnection<DB extends AnyDB> implements IConnection<DB> {
     [database]: DB
@@ -41,6 +42,19 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         this.queryRunner = queryRunner
         sqlBuilder._queryRunner = queryRunner
         sqlBuilder._connectionConfiguration = this as any // transform protected methods to public
+    }
+
+    transaction<T>(fn: () => Promise<T>): Promise<T>
+    transaction<P extends Promise<any>[]>(fn: () => [...P]): Promise<UnwrapPromiseTuple<P>>
+    transaction(fn: () => Promise<any>[] | Promise<any>): Promise<any> {
+        const source = new Error('Transaction executed at')
+        try {
+            return this.queryRunner.executeInTransaction(fn, this.queryRunner).catch((e) => {
+                throw attachTransactionSource(new ChainedError(e), source)
+            })
+        } catch (e) {
+            throw new ChainedError(e)
+        }
     }
 
     beginTransaction(): Promise<void> {

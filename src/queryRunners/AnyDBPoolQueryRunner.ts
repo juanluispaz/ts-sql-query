@@ -2,6 +2,7 @@ import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { ConnectionPool, Connection } from 'any-db'
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
 import { AnyDBQueryRunner } from "./AnyDBQueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
 export class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {
     readonly database: DatabaseType
@@ -81,6 +82,9 @@ export class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
+    }
+    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+        return Promise.all(promises) as any
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return new Promise((resolve, reject) => {

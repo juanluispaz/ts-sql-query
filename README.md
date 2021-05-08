@@ -2929,10 +2929,29 @@ async function main() {
 
 Long running transactions are not supported by Prisma and they are not likely to be supported in a future. For more information see the [limitations](https://www.prisma.io/docs/about/limitations#long-running-transactions), the [blog page](https://www.prisma.io/blog/how-prisma-supports-transactions-x45s1d5l0ww1) expaining it more, the [transactions guide](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide/) and the [bug report](https://github.com/prisma/prisma/issues/1844).
 
-The consequence of this limitation is you cannot call the methods:
+The consequence of this limitation is you cannot call the low level transaction methods:
 - `beginTransaction`
 - `commit`
 - `rollback`
+
+But, you can use `connection.transaction` method to perform a transaction in prisma (under the hood it call to `prismaClient.$transaction`). When you use `connection.transaction` method you can combine ts-sql-query and prisma operations.
+
+```ts
+const [prismaCompany, otherCompanyID] = await connection.transaction(() => [
+    prisma.company.create({
+        data: {
+            name: 'Prisma Company'
+        }
+    }),
+    connection
+        .insertInto(tCompany)
+        .values({ name: 'Other Company' })
+        .returningLastInsertedId()
+        .executeInsert()
+])
+```
+
+**Note**: `connection.transaction` have the same limitations that `prismaClient.$transaction`. Ensure the transaction method receives directly the promises returned by prisma or ts-sql-query; and don't use async/await in the function received by `connection.transaction` as argument.
 
 ### sqlite
 

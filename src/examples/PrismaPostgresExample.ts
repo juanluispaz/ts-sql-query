@@ -16,7 +16,7 @@ class DBConection extends PostgreSqlConnection<'DBConnection'> {
     appendToAllCompaniesName(aditional: string) {
         return this.executeProcedure('append_to_all_companies_name', [this.const(aditional, 'string')])
     }
-    //customerSeq = this.sequence('customer_seq', 'int')
+    customerSeq = this.sequence('customer_seq', 'int')
 }
 
 const tCompany = new class TCompany extends Table<DBConection, 'TCompany'> {
@@ -99,22 +99,23 @@ async function main() {
             .executeInsert()
         assertEquals(i, 1)
 
-        let ii = await connection
-            .insertInto(tCustomer)
-            .values([
-                { firstName: 'John', lastName: 'Smith', companyId: 1 },
-                { firstName: 'Other', lastName: 'Person', companyId: 1 },
-                { firstName: 'Jane', lastName: 'Doe', companyId: 1 }
-            ])
-            .returningLastInsertedId()
-            .executeInsert()
+        let [ii, iii] = await connection.transaction(() => [
+            connection
+                .insertInto(tCustomer)
+                .values([
+                    { firstName: 'John', lastName: 'Smith', companyId: 1 },
+                    { firstName: 'Other', lastName: 'Person', companyId: 1 },
+                    { firstName: 'Jane', lastName: 'Doe', companyId: 1 }
+                ])
+                .returningLastInsertedId()
+                .executeInsert(),
+            connection
+                .selectFromNoTable()
+                .selectOneColumn(connection.customerSeq.currentValue())
+                .executeSelectOne()
+        ])
         assertEquals(ii, [1, 2, 3])
-
-        // i = await connection
-        //     .selectFromNoTable()
-        //     .selectOneColumn(connection.customerSeq.currentValue())
-        //     .executeSelectOne()
-        // assertEquals(i, 3)
+        assertEquals(iii, 3)
 
         let company = await connection
             .selectFrom(tCompany)

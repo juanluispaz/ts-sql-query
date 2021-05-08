@@ -83,7 +83,7 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.queryRunner.createResolvedPromise(result) 
     }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return this.queryRunner.createAllPromise(promises) 
+    executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
+        return this.queryRunner.executeCombined(fn1, fn2)
     }
 }

@@ -75,12 +75,14 @@ async function main() {
             .returningLastInsertedId()
             .executeInsert()
         assertEquals(i, 1)
-                
-        i = await connection
-            .insertInto(tCustomer)
-            .values({ firstName: 'Other', lastName: 'Person', companyId: 1 })
-            .returningLastInsertedId()
-            .executeInsert()
+        
+        i = await connection.transaction(() => {
+            return connection
+                .insertInto(tCustomer)
+                .values({ firstName: 'Other', lastName: 'Person', companyId: 1 })
+                .returningLastInsertedId()
+                .executeInsert()
+        })
         assertEquals(i, 2)
 
         i = await connection
@@ -165,22 +167,25 @@ async function main() {
             .executeDelete()
         assertEquals(i, 1)
 
-        let maybe = await connection
-            .selectFrom(tCompany)
-            .where(tCompany.id.equals(2))
-            .selectOneColumn(tCompany.name)
-            .executeSelectNoneOrOne()
+        let [maybe, page] = await connection.transaction(() => [
+            connection
+                .selectFrom(tCompany)
+                .where(tCompany.id.equals(2))
+                .selectOneColumn(tCompany.name)
+                .executeSelectNoneOrOne(),
+            connection
+                .selectFrom(tCustomer)
+                .select({
+                    id: tCustomer.id,
+                    name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName)
+                })
+                .orderBy('id')
+                .limit(2)
+                .executeSelectPage()
+        ])
+
         assertEquals(maybe, null)
 
-        let page = await connection
-            .selectFrom(tCustomer)
-            .select({
-                id: tCustomer.id,
-                name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName)
-            })
-            .orderBy('id')
-            .limit(2)
-            .executeSelectPage()
         assertEquals(page, {
             count: 3,
             data: [

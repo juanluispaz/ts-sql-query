@@ -48,4 +48,11 @@ export abstract class AbstractQueryRunner implements QueryRunner {
             })
         })
     }
+    executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
+        return fn1().then((r1) => {
+            return fn2().then((r2) => {
+                return [r1, r2]
+            })
+        })
+    }
 }

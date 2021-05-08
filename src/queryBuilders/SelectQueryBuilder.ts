@@ -152,9 +152,8 @@ export class SelectQueryBuilder implements ToSql, HasAddWiths, SelectData, Selec
             throw new ChainedError(e)
         }
     }
-    executeSelectMany(): Promise<any> {
+    __executeSelectMany(source: Error): Promise<any> {
         this.query()
-        const source = new Error('Query executed at')
         try {
             if (this.__oneColumn) {
                 return this.__sqlBuilder._queryRunner.executeSelectOneColumnManyRows(this.__query, this.__params).then((values) => {
@@ -182,6 +181,10 @@ export class SelectQueryBuilder implements ToSql, HasAddWiths, SelectData, Selec
             throw new ChainedError(e)
         }
     }
+    executeSelectMany(): Promise<any> {
+        const source = new Error('Query executed at')
+        return this.__executeSelectMany(source)
+    }
     __executeSelectCount(source: Error): Promise<any> {
         try {
             const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', undefined)
@@ -207,21 +210,32 @@ export class SelectQueryBuilder implements ToSql, HasAddWiths, SelectData, Selec
         }
     }
     executeSelectPage(extras?: any) {
-        let dataPromise
-        if (extras && extras.data) {
-            dataPromise = this.__sqlBuilder._queryRunner.createResolvedPromise(extras.data)
-        } else {
-            dataPromise = this.executeSelectMany()
-        }
         const source = new Error('Query executed at')
-        return dataPromise.then((data) => {
-            if (extras && (extras.count !== undefined && extras.count !== null)) {
-                return {...extras, data, count: extras.count}
-            } else {
-                return this.__executeSelectCount(source).then((count) => {
-                    return {...extras, data, count}
-                })
+
+        if (extras && (extras.count !== undefined && extras.count !== null)) {
+            if (extras.data) {
+                return this.__sqlBuilder._queryRunner.createResolvedPromise({...extras, data: extras.data, count: extras.count})
             }
+            return this.__executeSelectMany(source).then((data) => {
+                return {...extras, data, count: extras.count}
+            })
+        }
+        if (extras && extras.data) {
+            return this.__executeSelectCount(source).then((count) => {
+                return {...extras, data: extras.data, count}
+            })
+        }
+
+        const getDataFn = () => {
+            return this.__executeSelectMany(source)
+        }
+
+        const getCountFn = () => {
+            return this.__executeSelectCount(source)
+        }
+
+        return this.__sqlBuilder._queryRunner.executeCombined(getDataFn, getCountFn).then(([data, count]) => {
+            return {...extras, data, count}
         })
     }
     query(): string {

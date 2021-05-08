@@ -26,7 +26,7 @@ export interface QueryRunner {
     addParam(params: any[], value: any): string
     addOutParam(params: any[], name: string): string
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>>
+    executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
 }
 
 export type DatabaseType = 'mariaDB' | 'mySql' | 'noopDB' | 'oracle' | 'postgreSql' | 'sqlite' | 'sqlServer'

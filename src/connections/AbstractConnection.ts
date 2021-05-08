@@ -44,8 +44,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         sqlBuilder._connectionConfiguration = this as any // transform protected methods to public
     }
 
-    transaction<T>(fn: () => Promise<T>): Promise<T>
     transaction<P extends Promise<any>[]>(fn: () => [...P]): Promise<UnwrapPromiseTuple<P>>
+    transaction<T>(fn: () => Promise<T>): Promise<T>
     transaction(fn: () => Promise<any>[] | Promise<any>): Promise<any> {
         const source = new Error('Transaction executed at')
         try {

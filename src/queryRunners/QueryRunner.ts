@@ -19,8 +19,8 @@ export interface QueryRunner {
     executeBeginTransaction(): Promise<void>
     executeCommit(): Promise<void>
     executeRollback(): Promise<void>
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
     executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
     executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
     executeDatabaseSchemaModification(query: string, params?: any[]): Promise<void>
     addParam(params: any[], value: any): string

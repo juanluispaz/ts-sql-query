@@ -629,7 +629,7 @@ const customersWithDynamicCondition = connection.selectFrom(tCustomer)
 
 The executed query is:
 ```sql
-select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, company.name as "companyName" 
+select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, company.name as companyName 
 from customer inner join company on customer.company_id = company.id 
 where 
     (   
@@ -639,7 +639,7 @@ where
                 and customer.last_name like ('%' || $3)
             )
     ) and company.name = $4 
-order by lower("firstName"), lower("lastName") asc
+order by lower(firstName), lower(lastName) asc
 ```
 
 The parameters are: `[ 'John', 'Smi', 'th', 'ACME' ]`

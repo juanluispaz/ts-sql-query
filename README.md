@@ -224,8 +224,8 @@ const lastName = null;
 const company = tCompany.as('comp');
 const customersWithCompanyName = connection.selectFrom(tCustomer)
     .innerJoin(company).on(tCustomer.companyId.equals(company.id))
-    .where(tCustomer.firstName.startWithInsensitive(firstName))
-        .and(tCustomer.lastName.startWithInsensitiveIfValue(lastName))
+    .where(tCustomer.firstName.startsWithInsensitive(firstName))
+        .and(tCustomer.lastName.startsWithInsensitiveIfValue(lastName))
     .select({
         id: tCustomer.id,
         firstName: tCustomer.firstName,
@@ -339,9 +339,9 @@ const customerName = 'Smi'
 
 const customerPageWithName = connection.selectFrom(tCustomer)
     .where(
-        tCustomer.firstName.startWithInsensitive(customerName)
+        tCustomer.firstName.startsWithInsensitive(customerName)
     ).or(
-        tCustomer.lastName.startWithInsensitive(customerName)
+        tCustomer.lastName.startsWithInsensitive(customerName)
     ).select({
         id: tCustomer.id,
         firstName: tCustomer.firstName,
@@ -760,7 +760,7 @@ class DBConection extends PostgreSqlConnection<'DBConnection'> {
 
 ### Insensitive strategies
 
-By default, when you specify that you want to perform an insensitive operation (like `startWithInsensitive`) the operation is performed calling the function `lower` on the affected parts. But, another way to perform it is changing the collation of the text by one insensitive. If you set the insesitiveCollation in the connection, the provided collate will be used instead of calling the `lower` function.
+By default, when you specify that you want to perform an insensitive operation (like `startsWithInsensitive`) the operation is performed calling the function `lower` on the affected parts. But, another way to perform it is changing the collation of the text by one insensitive. If you set the insesitiveCollation in the connection, the provided collate will be used instead of calling the `lower` function.
 
 Providing the collation allows you to perform more advanced insensitive operations like case insensitive and accent insensitive, or even more in some languages (like manage some letter composition alternatives). Some databases offer general collations that are case insensitive and accent insensitive. But it is expected you want to use a collated specific for the language used by the user.
 
@@ -809,7 +809,7 @@ The following collations are case insensitive and accent insensitive:
   - `spanish_m_ai` for a specific case insensitive and accent insensitive extended with the Spanish language rules
   - To see the collations list visit the [Oracle 11g](https://docs.oracle.com/cd/B28359_01/server.111/b28298/applocaledata.htm#i637232) or [Oracle 19](https://docs.oracle.com/en/database/oracle/oracle-database/19/nlspg/appendix-A-locale-data.html#GUID-CC85A33C-81FC-4E93-BAAB-1B3DB9036060) documentation webpage
 
-**Note**: If you set the startWithInsensitive property to an empty string (''), the function `lower` will not be called, neither a collated will be specified. It is useful when you already defined the insensitive collate rules at the database level.
+**Note**: If you set the startsWithInsensitive property to an empty string (''), the function `lower` will not be called, neither a collated will be specified. It is useful when you already defined the insensitive collate rules at the database level.
 
 ### Instantiating the connection with the database connection
 
@@ -1172,22 +1172,22 @@ interface StringValueSource extends ComparableValueSource {
     likeInsensitive(value: string): boolean
     notLikeInsensitiveIfValue(value: string | null | undefined): boolean
     notLikeInsensitive(value: string): boolean
-    startWithIfValue(value: string | null | undefined): boolean
-    startWith(value: string): boolean
-    notStartWithIfValue(value: string | null | undefined): boolean
-    notStartWith(value: string): boolean
-    endWithIfValue(value: string | null | undefined): boolean
-    endWith(value: string): boolean
-    notEndWithIfValue(value: string | null | undefined): boolean
-    notEndWith(value: string): boolean
-    startWithInsensitiveIfValue(value: string | null | undefined): boolean
-    startWithInsensitive(value: string): boolean
-    notStartWithInsensitiveIfValue(value: string | null | undefined): boolean
-    notStartWithInsensitive(value: string): boolean
-    endWithInsensitiveIfValue(value: string | null | undefined): boolean
-    endWithInsensitive(value: string): boolean
-    notEndWithInsensitiveIfValue(value: string | null | undefined): boolean
-    notEndWithInsensitive(value: string): boolean
+    startsWithIfValue(value: string | null | undefined): boolean
+    startsWith(value: string): boolean
+    notStartsWithIfValue(value: string | null | undefined): boolean
+    notStartsWith(value: string): boolean
+    endsWithIfValue(value: string | null | undefined): boolean
+    endsWith(value: string): boolean
+    notEndsWithIfValue(value: string | null | undefined): boolean
+    notEndsWith(value: string): boolean
+    startsWithInsensitiveIfValue(value: string | null | undefined): boolean
+    startsWithInsensitive(value: string): boolean
+    notStartsWithInsensitiveIfValue(value: string | null | undefined): boolean
+    notStartsWithInsensitive(value: string): boolean
+    endsWithInsensitiveIfValue(value: string | null | undefined): boolean
+    endsWithInsensitive(value: string): boolean
+    notEndsWithInsensitiveIfValue(value: string | null | undefined): boolean
+    notEndsWithInsensitive(value: string): boolean
     containsIfValue(value: string | null | undefined): boolean
     contains(value: string): boolean
     notContainsIfValue(value: string | null | undefined): boolean

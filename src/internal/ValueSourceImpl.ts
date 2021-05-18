@@ -180,53 +180,53 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
     notLikeInsensitive(value: any): any {
         return condition(new SqlOperation1ValueSource('_notLikeInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    startWithIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_startWith', this, value, 'boolean', getTypeAdapter2(this, value)))
+    startsWithIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_startsWith', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    startWith(value: any): any {
-        return condition(new SqlOperation1ValueSource('_startWith', this, value, 'boolean', getTypeAdapter2(this, value)))
+    startsWith(value: any): any {
+        return condition(new SqlOperation1ValueSource('_startsWith', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    notStartWithIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notStartWith', this, value, 'boolean', getTypeAdapter2(this, value)))
+    notStartsWithIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notStartsWith', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    notStartWith(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notStartWith', this, value, 'boolean', getTypeAdapter2(this, value)))
+    notStartsWith(value: any): any {
+        return condition(new SqlOperation1ValueSource('_notStartsWith', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    endWithIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_endWith', this, value, 'boolean', getTypeAdapter2(this, value)))
+    endsWithIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_endsWith', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    endWith(value: any): any {
-        return condition(new SqlOperation1ValueSource('_endWith', this, value, 'boolean', getTypeAdapter2(this, value)))
+    endsWith(value: any): any {
+        return condition(new SqlOperation1ValueSource('_endsWith', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    notEndWithIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEndWith', this, value, 'boolean', getTypeAdapter2(this, value)))
+    notEndsWithIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEndsWith', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    notEndWith(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notEndWith', this, value, 'boolean', getTypeAdapter2(this, value)))
+    notEndsWith(value: any): any {
+        return condition(new SqlOperation1ValueSource('_notEndsWith', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    startWithInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_startWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
+    startsWithInsensitiveIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_startsWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    startWithInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_startWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
+    startsWithInsensitive(value: any): any {
+        return condition(new SqlOperation1ValueSource('_startsWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    notStartWithInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notStartWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
+    notStartsWithInsensitiveIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notStartsWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    notStartWithInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notStartWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
+    notStartsWithInsensitive(value: any): any {
+        return condition(new SqlOperation1ValueSource('_notStartsWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    endWithInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_endWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
+    endsWithInsensitiveIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_endsWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    endWithInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_endWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
+    endsWithInsensitive(value: any): any {
+        return condition(new SqlOperation1ValueSource('_endsWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    notEndWithInsensitiveIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEndWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
+    notEndsWithInsensitiveIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notEndsWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
-    notEndWithInsensitive(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notEndWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
+    notEndsWithInsensitive(value: any): any {
+        return condition(new SqlOperation1ValueSource('_notEndsWithInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
     containsIfValue(value: any): any {
         return condition(new SqlOperation1ValueSourceIfValueOrNoop('_contains', this, value, 'boolean', getTypeAdapter2(this, value)))

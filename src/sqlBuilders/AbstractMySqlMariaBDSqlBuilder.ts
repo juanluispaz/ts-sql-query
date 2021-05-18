@@ -146,19 +146,19 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return "replace(replace(replace(" + this._appendValue(value, params, columnType, typeAdapter) + ", '\\\\', '\\\\\\\\\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')"
         }
     }
-    _startWith(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _startsWith(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + ' like concat(' +  this._escapeLikeWildcard(params, value, columnType, typeAdapter) + ", '%')"
     }
-    _notStartWith(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _notStartsWith(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + ' not like concat(' +  this._escapeLikeWildcard(params, value, columnType, typeAdapter) + ", '%')"
     }
-    _endWith(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _endsWith(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + " like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, typeAdapter) + ')'
     }
-    _notEndWith(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _notEndsWith(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + " like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, typeAdapter) + ')'
     }
-    _startWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params) + ' like concat(' +  this._escapeLikeWildcard(params, value, columnType, typeAdapter) + ", '%') collate " + collation
@@ -168,7 +168,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params) + ') like concat(lower(' +  this._escapeLikeWildcard(params, value, columnType, typeAdapter) + "), '%')"
         }
     }
-    _notStartWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params) + ' not like concat(' +  this._escapeLikeWildcard(params, value, columnType, typeAdapter) + ", '%') collate " + collation
@@ -178,7 +178,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params) + ') not like concat(lower(' +  this._escapeLikeWildcard(params, value, columnType, typeAdapter) + "), '%')"
         }
     }
-    _endWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params) + " like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, typeAdapter) + ') collate ' + collation
@@ -188,7 +188,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params) + ") like concat('%', lower(" +  this._escapeLikeWildcard(params, value, columnType, typeAdapter) + '))'
         }
     }
-    _notEndWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params) + " not like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, typeAdapter) + ') collate ' + collation

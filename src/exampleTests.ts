@@ -542,8 +542,8 @@ const lastName = null
 const company = tCompany.as('comp')
 const customersWithCompanyName = connection.selectFrom(tCustomer)
     .innerJoin(company).on(tCustomer.companyId.equals(company.id))
-    .where(tCustomer.firstName.startWithInsensitive(firstName))
-        .and(tCustomer.lastName.startWithInsensitiveIfValue(lastName))
+    .where(tCustomer.firstName.startsWithInsensitive(firstName))
+        .and(tCustomer.lastName.startsWithInsensitiveIfValue(lastName))
     .select({
         id: tCustomer.id,
         firstName: tCustomer.firstName,
@@ -611,9 +611,9 @@ postResults.push(0)
 const customerName = 'Smi'
 const customerPageWithName = connection.selectFrom(tCustomer)
     .where(
-        tCustomer.firstName.startWithInsensitive(customerName)
+        tCustomer.firstName.startsWithInsensitive(customerName)
     ).or(
-        tCustomer.lastName.startWithInsensitive(customerName)
+        tCustomer.lastName.startsWithInsensitive(customerName)
     ).select({
         id: tCustomer.id,
         firstName: tCustomer.firstName,

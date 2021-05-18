@@ -198,7 +198,7 @@ async function main() {
             .select({
                 companyId: tCompany.id,
                 companyName: tCompany.name,
-                endsWithME: tCompany.name.endWithInsensitive('me'),
+                endsWithME: tCompany.name.endsWithInsensitive('me'),
                 customerCount: connection.count(tCustomer.id)
             }).groupBy('companyId', 'companyName', 'endsWithME')
             .forUseInQueryAs('customerCountPerCompany')

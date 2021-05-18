@@ -171,22 +171,22 @@ interface StringValueSource extends ComparableValueSource {
     likeInsensitive(value: string): boolean
     notLikeInsensitiveIfValue(value: string | null | undefined): boolean
     notLikeInsensitive(value: string): boolean
-    startWithIfValue(value: string | null | undefined): boolean
-    startWith(value: string): boolean
-    notStartWithIfValue(value: string | null | undefined): boolean
-    notStartWith(value: string): boolean
-    endWithIfValue(value: string | null | undefined): boolean
-    endWith(value: string): boolean
-    notEndWithIfValue(value: string | null | undefined): boolean
-    notEndWith(value: string): boolean
-    startWithInsensitiveIfValue(value: string | null | undefined): boolean
-    startWithInsensitive(value: string): boolean
-    notStartWithInsensitiveIfValue(value: string | null | undefined): boolean
-    notStartWithInsensitive(value: string): boolean
-    endWithInsensitiveIfValue(value: string | null | undefined): boolean
-    endWithInsensitive(value: string): boolean
-    notEndWithInsensitiveIfValue(value: string | null | undefined): boolean
-    notEndWithInsensitive(value: string): boolean
+    startsWithIfValue(value: string | null | undefined): boolean
+    startsWith(value: string): boolean
+    notStartsWithIfValue(value: string | null | undefined): boolean
+    notStartsWith(value: string): boolean
+    endsWithIfValue(value: string | null | undefined): boolean
+    endsWith(value: string): boolean
+    notEndsWithIfValue(value: string | null | undefined): boolean
+    notEndsWith(value: string): boolean
+    startsWithInsensitiveIfValue(value: string | null | undefined): boolean
+    startsWithInsensitive(value: string): boolean
+    notStartsWithInsensitiveIfValue(value: string | null | undefined): boolean
+    notStartsWithInsensitive(value: string): boolean
+    endsWithInsensitiveIfValue(value: string | null | undefined): boolean
+    endsWithInsensitive(value: string): boolean
+    notEndsWithInsensitiveIfValue(value: string | null | undefined): boolean
+    notEndsWithInsensitive(value: string): boolean
     containsIfValue(value: string | null | undefined): boolean
     contains(value: string): boolean
     notContainsIfValue(value: string | null | undefined): boolean

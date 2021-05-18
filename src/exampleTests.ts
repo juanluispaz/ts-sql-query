@@ -8,6 +8,7 @@ import { NoopQueryRunner } from "./queryRunners/NoopQueryRunner"
 import { TypeSafeMySqlConnection } from "./connections/TypeSafeMySqlConnection"
 import { MockQueryRunner } from "./queryRunners/MockQueryRunner"
 import { CustomBooleanTypeAdapter } from "./TypeAdapter"
+import { DynamicCondition } from "./expressions/dynamicConditionUsingFilters"
 // import { TypeSafeNoopConnection } from "./clients/TypeSafeNoopConnection"
 // import { int } from "ts-extended-types"
 
@@ -811,7 +812,50 @@ const selectAllBigCompanies = connection.selectFrom(tCustomCompany)
 // Query: select id as id, name as name, (is_big = 'Y') as isBig from custom_company where (is_big = 'Y')
 // Params: []
 
+results.push([])
 
+type FilterType = DynamicCondition<{
+    id: 'int',
+    firstName: 'string',
+    lastName: 'string',
+    birthday: 'localDate',
+    companyName: 'string'
+}>
+
+const filter: FilterType = {
+    or: [
+        { firstName: { startsWithInsensitive: 'John' } },
+        { lastName: { startsWithInsensitiveIfValue: 'Smi', endsWith: 'th' } }
+    ],
+    companyName: {equals: 'ACME'}
+}
+
+const selectFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday,
+    companyName: tCompany.name
+}
+
+const dynamicWhere = connection.dynamicConditionFor(selectFields).withValues(filter)
+
+const customersWithDynamicCondition = connection.selectFrom(tCustomer)
+    .innerJoin(tCompany).on(tCustomer.companyId.equals(tCompany.id))
+    .where(dynamicWhere)
+    .select(selectFields)
+    .orderBy('firstName', 'insensitive')
+    .orderBy('lastName', 'asc insensitive')
+    .executeSelectMany()
+
+// Query: select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, company.name as "companyName" from customer inner join company on customer.company_id = company.id where (customer.first_name ilike ($1 || '%') or (customer.last_name ilike ($2 || '%') and customer.last_name like ('%' || $3))) and company.name = $4 order by lower("firstName"), lower("lastName") asc
+// Params: [ 'John', 'Smi', 'th', 'ACME' ]
+
+/*
+select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, company.name as "companyName" 
+from customer inner join company on customer.company_id = company.id 
+where (customer.first_name ilike ($1 || '%') or (customer.last_name ilike ($2 || '%') and customer.last_name like ('%' || $3))) and company.name = $4 order by lower("firstName"), lower("lastName") asc
+*/
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -833,6 +877,7 @@ customerWithId.finally(() => undefined)
 customerCountPerAcmeCompanies.finally(() => undefined)
 insertCustomCompany.finally(() => undefined)
 selectAllBigCompanies.finally(() => undefined)
+customersWithDynamicCondition.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

@@ -77,6 +77,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
             configurable: true
         })
     }
+    _getResultingOperation(params: any[]): '_and' | '_or' | undefined {
+        return (params as any)._resultingOperation
+    }
+    _setResultingOperation(params: any[], value: '_and' | '_or' | undefined): void {
+        Object.defineProperty(params, '_resultingOperation', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
     _isValue(value: any): boolean {
         if (value === null || undefined) {
             return false
@@ -1279,52 +1290,68 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'coalesce(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
     }
     _and(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        this._setResultingOperation(params, undefined)
         const sql = valueSource.__toSqlForCondition(this, params)
+        const op = this._getResultingOperation(params)
+        this._setResultingOperation(params, undefined)
         const sql2 = this._appendConditionValue(value, params, columnType, typeAdapter)
+        const op2 = this._getResultingOperation(params)
+        this._setResultingOperation(params, undefined)
         if (!sql || sql === this._trueValueForCondition) {
             // sql === this._trueValueForCondition reduce unnecesary ands allowing dynamic queries
+            this._setResultingOperation(params, op2)
             return sql2
         } else if (!sql2 || sql2 === this._trueValueForCondition) {
             // sql2 === this._trueValueForCondition reduce unnecesary ands allowing dynamic queries
+            this._setResultingOperation(params, op)
             return sql
         } else {
             let result
-            if (operationOf(valueSource) === '_or') {
+            if (op === '_or') {
                 result = '(' + sql + ')'
             } else {
                 result = sql
             }
             result += ' and '
-            if (operationOf(value) === '_or') {
+            if (op2 === '_or') {
                 result += '(' + sql2 + ')'
             } else {
                 result += sql2
             }
+            this._setResultingOperation(params, '_and')
             return result
         }
     }
     _or(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        this._setResultingOperation(params, undefined)
         const sql = valueSource.__toSqlForCondition(this, params)
+        const op = this._getResultingOperation(params)
+        this._setResultingOperation(params, undefined)
         const sql2 = this._appendConditionValue(value, params, columnType, typeAdapter)
+        const op2 = this._getResultingOperation(params)
+        this._setResultingOperation(params, undefined)
         if (!sql || sql === this._falseValueForCondition) {
             // !sql || sql === this._falseValueForCondition reduce unnecesary ors allowing dynamic queries
+            this._setResultingOperation(params, op2)
             return sql2
         } else if (!sql2 || sql2 === this._falseValueForCondition) {
             // !sql2 || sql2 === this._falseValueForCondition reduce unnecesary ors allowing dynamic queries
+            this._setResultingOperation(params, op)
             return sql
         } else {
             let result
-            if (operationOf(valueSource) === '_and') {
+            if (op === '_and') {
                 result = '(' + sql + ')'
             } else {
                 result = sql
             }
             result += ' or '
-            if (operationOf(value) === '_and') {
+            if (op2 === '_and') {
                 result += '(' + sql2 + ')'
             } else {
                 result += sql2
             }
+            this._setResultingOperation(params, '_or')
             return result
         }
     }

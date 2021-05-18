@@ -467,6 +467,11 @@ interface Connection {
      */
     noValueBoolean(): BooleanValueSource
 
+    /**
+     * Allows to create a condition where the criteria is provided by an external system
+     */
+    dynamicConditionFor(definition: { [key: string ]: ValueSource }): DynamicConditionExpression
+
     /*
      * Configurations
      */
@@ -549,6 +554,9 @@ interface Sequence<T> {
     currentValue(): T
 }
 
+interface DynamicConditionExpression {
+    withValues(filter: DynamicFilter): BooleanValueSource
+}
 
 
 
@@ -1054,3 +1062,4 @@ type Default = any
 type QueryRunner = any
 type OuterJoinSource = any
 type Argument = any
+type DynamicFilter = any

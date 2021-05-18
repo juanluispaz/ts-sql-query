@@ -24,6 +24,8 @@ import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderI
 import { attachSource, attachTransactionSource } from "../utils/attachSource"
 import { database, tableOrViewRef, type } from "../utils/symbols"
 import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
+import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilder"
 
 export abstract class AbstractConnection<DB extends AnyDB> implements IConnection<DB> {
     [database]: DB
@@ -591,6 +593,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSource<TABLE_OR_VIEW, any>, separator?: string): ValueSource<TABLE_OR_VIEW, any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource(true, '_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__typeAdapter)
+    }
+
+    dynamicConditionFor<DEFINITION extends Filterable>(definition: DEFINITION): DynamicConditionExpression<DEFINITION> {
+        return new DynamicConditionBuilder(definition)
     }
 
     protected transformValueFromDB(value: unknown, type: string): unknown {

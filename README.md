@@ -23,6 +23,7 @@ Type-safe SQL means the mistakes writting a query will be detected during the co
   - [Select with custom reusable SQL fragment](#select-with-custom-reusable-sql-fragment)
   - [Select with custom reusable SQL fragment if value](#select-with-custom-reusable-sql-fragment-if-value)
   - [Using a select as a view in another select query (SQL with clause)](#using-a-select-as-a-view-in-another-select-query-sql-with-clause)
+  - [Select using a dynamic filter](#select-using-a-dynamic-filter)
   - [Insert](#insert)
   - [Insert multiple values](#insert-multiple-values)
   - [Insert from select](#insert-from-select)
@@ -48,6 +49,7 @@ Type-safe SQL means the mistakes writting a query will be detected during the co
   - [Delete definition](#delete-definition)
   - [Select definition](#select-definition)
   - [Type adpaters](#type-adpaters)
+  - [Dynamic conditions](#dynamic-conditions)
 - [Supported databases](#supported-databases)
   - [MariaDB](#mariadb)
   - [MySql](#mysql)
@@ -584,6 +586,78 @@ const customerCountPerAcmeCompanies: Promise<{
     acmeCustomerCount: number;
 }[]>
 ```
+
+### Select using a dynamic filter
+
+You can create a dynamic condition for use in a where (for example). In this dynamic conditions the criteria is provided as an objeto (maybe filled by another system like the user interface). The provided criteria object is translated to the corresponding SQL. For use this feature you must call the method `dynamicConditionFor` from the connection; this method receives a map where the key is the name that the external system is going to use to refer to the field and the value is the correspondind value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the criteria provided to the external system.
+
+```ts
+type FilterType = DynamicCondition<{
+    id: 'int',
+    firstName: 'string',
+    lastName: 'string',
+    birthday: 'localDate',
+    companyName: 'string'
+}>
+
+const filter: FilterType = {
+    or: [
+        { firstName: { startsWithInsensitive: 'John' } },
+        { lastName: { startsWithInsensitiveIfValue: 'Smi', endsWith: 'th' } }
+    ],
+    companyName: {equals: 'ACME'}
+}
+
+const selectFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday,
+    companyName: tCompany.name
+}
+
+const dynamicWhere = connection.dynamicConditionFor(selectFields).withValues(filter)
+
+const customersWithDynamicCondition = connection.selectFrom(tCustomer)
+    .innerJoin(tCompany).on(tCustomer.companyId.equals(tCompany.id))
+    .where(dynamicWhere)
+    .select(selectFields)
+    .orderBy('firstName', 'insensitive')
+    .orderBy('lastName', 'asc insensitive')
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, company.name as "companyName" 
+from customer inner join company on customer.company_id = company.id 
+where 
+    (   
+        customer.first_name ilike ($1 || '%') 
+        or (
+                    customer.last_name ilike ($2 || '%') 
+                and customer.last_name like ('%' || $3)
+            )
+    ) and company.name = $4 
+order by lower("firstName"), lower("lastName") asc
+```
+
+The parameters are: `[ 'John', 'Smi', 'th', 'ACME' ]`
+
+The result type is:
+```ts
+const customersWithCompanyName: Promise<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    companyName: string;
+    birthday?: Date;
+}[]>
+```
+
+The utility type `DynamicCondition` and `TypeSafeDynamicCondition` (when the extended types are used with type safe connections) from `ts-sql-query/dynamicCondition` allows you to create a type definition for the dynamic criteria.
+
+See [Dynamic conditions](#dynamic-conditions) for more information.
 
 ### Insert
 
@@ -1466,6 +1540,11 @@ interface Connection {
      */
     noValueBoolean(): BooleanValueSource
 
+    /**
+     * Allows to create a condition where the criteria is provided by an external system
+     */
+    dynamicConditionFor(definition: { [key: string ]: ValueSource }): DynamicConditionExpression
+
     /*
      * Configurations
      */
@@ -1525,6 +1604,10 @@ interface FragmentBuilderIfValue {
 interface Sequence<T> {
     nextValue(): T
     currentValue(): T
+}
+
+interface DynamicConditionExpression {
+    withValues(filter: DynamicFilter): BooleanValueSource
 }
 ```
 
@@ -2048,6 +2131,135 @@ class CustomBooleanTypeAdapter implements TypeAdapter {
 
     transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
     transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+}
+```
+
+### Dynamic conditions
+
+See [Select using a dynamic filter](#select-using-a-dynamic-filter) for more information.
+
+A dynamic condition allows you to create a condition which definition is provided in runtime. For create a dynamic condition you must call the method `dynamicConditionFor` from the connection; this method receives a map where the key is the name with which is going to be referred the field and the value is the correspondind value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the dynamic criteria and returns a boolean value source that you can use in any place where a boolean can be used in the query (like the where).
+
+```ts
+const dynamicCondition = connection.dynamicConditionFor(selectFields).withValues(filter)
+```
+
+The utility type `DynamicCondition` and `TypeSafeDynamicCondition` (when the extended types are used with type safe connections) from `ts-sql-query/dynamicCondition` allows you to create a type definition for the dynamic criteria. These object receives a map with the name for the field and as value the name of the type.
+
+
+For the filter definition:
+
+```ts
+type FilterType = DynamicCondition<{
+    myBoolean: 'boolean',
+    myStringInt: 'stringInt',
+    myInt: 'int',
+    myBigint: 'bigint',
+    myStringDouble: 'stringDouble',
+    myDouble: 'double',
+    myString: 'string',
+    myLocalDate: 'localDate',
+    myLocalTime: 'localTime',
+    myLocalDateTime: 'localDateTime',
+    myEnum: ['enum', MyEnumType],
+    myCustom: ['custom', MyCustomType],
+    myCustomComparable: ['customComparable', MyCustomComparableType]
+}>
+```
+
+The `FilterType` definition looks like:
+
+```ts
+type FilterType = {
+    not?: FilterType
+    and?: FilterType[]
+    or?: FilterType[]
+    myBoolean: EqualableFilter<boolean>,
+    myStringInt: ComparableFilter<string | number>,
+    myInt: ComparableFilter<number>,
+    myBigint: ComparableFilter<bigint>,
+    myStringDouble: ComparableFilter<string | number>,
+    myDouble: ComparableFilter<number>,
+    myString: StringFilter,
+    myLocalDate: ComparableFilter<Date>,
+    myLocalTime: ComparableFilter<Date>,
+    myLocalDateTime: ComparableFilter<Date>,
+    myEnum: EqualableFilter<MyEnumType>,
+    myCustom: EqualableFilter<MyCustomType>,
+    myCustomComparable: ComparableFilter<MyCustomComparableType>
+}
+
+```
+
+You can use the properties `and`, `or`and `not`to perform the logical operations. If you specify multiple elements to the `FilterType` all of them will be joined using the and operator; the same happens with the elements specified in the `and` array; but, in the case of the `or` array the elements will be joined using the or operator.
+
+The definition of the different types are:
+
+```ts
+export interface EqualableFilter<TYPE> {
+    isNull?: boolean
+    isNotNull?: boolean
+    equalsIfValue?: TYPE | null | undefined
+    equals?: TYPE
+    notEqualsIfValue?: TYPE | null | undefined
+    notEquals?: TYPE
+    isIfValue?: TYPE | null | undefined
+    is?: TYPE | null | undefined
+    isNotIfValue?: TYPE | null | undefined
+    isNot?: TYPE | null | undefined
+    inIfValue?: TYPE | TYPE[] | null | undefined
+    in?: TYPE | TYPE[]
+    notInIfValue?: TYPE | TYPE[] | null | undefined
+    notIn?: TYPE | TYPE[]
+}
+
+export interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
+    smallerIfValue?: TYPE | null | undefined
+    smaller?: TYPE
+    largerIfValue?: TYPE | null | undefined
+    larger?: TYPE
+    smallAsIfValue?: TYPE | null | undefined
+    smallAs?: TYPE
+    largeAsIfValue?: TYPE | null | undefined
+    largeAs?: TYPE
+}
+
+export interface StringFilter extends ComparableFilter<string> {
+    equalsInsensitiveIfValue?: string | null | undefined
+    equalsInsensitive?: string
+    notEqualsInsensitiveIfValue?: string | null | undefined
+    likeIfValue?: string | null | undefined
+    like?: string
+    notLikeIfValue?: string | null | undefined
+    notLike?: string
+    likeInsensitiveIfValue?: string | null | undefined
+    likeInsensitive?: string
+    notLikeInsensitiveIfValue?: string | null | undefined
+    notLikeInsensitive?: string
+    startsWithIfValue?: string | null | undefined
+    startsWith?: string
+    notStartsWithIfValue?: string | null | undefined
+    notStartsWith?: string
+    endsWithIfValue?: string | null | undefined
+    endsWith?: string
+    notEndsWithIfValue?: string | null | undefined
+    notEndsWith?: string
+    startsWithInsensitiveIfValue?: string | null | undefined
+    startsWithInsensitive?: string
+    notStartsWithInsensitiveIfValue?: string | null | undefined
+    notStartsWithInsensitive?: string
+    endsWithInsensitiveIfValue?: string | null | undefined
+    endsWithInsensitive?: string
+    notEndsWithInsensitiveIfValue?: string | null | undefined
+    notEndsWithInsensitive?: string
+    containsIfValue?: string | null | undefined
+    contains?: string
+    notContainsIfValue?: string | null | undefined
+    notContains?: string
+    containsInsensitiveIfValue?: string | null | undefined
+    containsInsensitive?: string
+    notContainsInsensitiveIfValue?: string | null | undefined
+    notContainsInsensitive?: string
 }
 ```
 

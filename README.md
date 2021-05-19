@@ -115,6 +115,7 @@ ts-sql-query doesn't expose a global export; instead, you need import specific f
 - `ts-sql-query/connections/*`
 - `ts-sql-query/extras/*`
 - `ts-sql-query/queryRunners/*`
+- `ts-sql-query/dynamicCondition`
 
 Any reference to a file outside of the previous list can change at any moment.
 

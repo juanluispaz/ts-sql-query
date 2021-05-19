@@ -589,7 +589,7 @@ const customerCountPerAcmeCompanies: Promise<{
 
 ### Select using a dynamic filter
 
-You can create a dynamic condition for use in a where (for example). In this dynamic conditions the criteria is provided as an objeto (maybe filled by another system like the user interface). The provided criteria object is translated to the corresponding SQL. For use this feature you must call the method `dynamicConditionFor` from the connection; this method receives a map where the key is the name that the external system is going to use to refer to the field and the value is the correspondind value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the criteria provided to the external system.
+You can create a dynamic condition for use in a where (for example). In these dynamic conditions, the criteria are provided as an object. Another system like the user interface may fill the criteria object. The provided criteria object is translated to the corresponding SQL. To use this feature, you must call the method `dynamicConditionFor` from the connection; this method receives a map where the key is the name that the external system is going to use to refer to the field and the value is the corresponding value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the criteria provided to the external system.
 
 ```ts
 type FilterType = DynamicCondition<{
@@ -655,7 +655,7 @@ const customersWithCompanyName: Promise<{
 }[]>
 ```
 
-The utility type `DynamicCondition` and `TypeSafeDynamicCondition` (when the extended types are used with type safe connections) from `ts-sql-query/dynamicCondition` allows you to create a type definition for the dynamic criteria.
+The utility type `DynamicCondition` and `TypeSafeDynamicCondition` (when the extended types are used with type-safe connections) from `ts-sql-query/dynamicCondition` allows you to create a type definition for the dynamic criteria.
 
 See [Dynamic conditions](#dynamic-conditions) for more information.
 
@@ -2138,13 +2138,13 @@ class CustomBooleanTypeAdapter implements TypeAdapter {
 
 See [Select using a dynamic filter](#select-using-a-dynamic-filter) for more information.
 
-A dynamic condition allows you to create a condition which definition is provided in runtime. For create a dynamic condition you must call the method `dynamicConditionFor` from the connection; this method receives a map where the key is the name with which is going to be referred the field and the value is the correspondind value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the dynamic criteria and returns a boolean value source that you can use in any place where a boolean can be used in the query (like the where).
+A dynamic condition allows you to create a condition which definition is provided in runtime. To create a dynamic condition, you must call the method `dynamicConditionFor` from the connection; this method receives a map where the key is the name with which is going to be referred the field, and the value is the corresponding value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the dynamic criteria and returns a boolean value source that you can use in any place where a boolean can be used in the query (like the where).
 
 ```ts
 const dynamicCondition = connection.dynamicConditionFor(selectFields).withValues(filter)
 ```
 
-The utility type `DynamicCondition` and `TypeSafeDynamicCondition` (when the extended types are used with type safe connections) from `ts-sql-query/dynamicCondition` allows you to create a type definition for the dynamic criteria. These object receives a map with the name for the field and as value the name of the type.
+The utility type `DynamicCondition` and `TypeSafeDynamicCondition` (when the extended types are used with type-safe connections) from `ts-sql-query/dynamicCondition` allows you to create a type definition for the dynamic criteria. This object receives a map with the name for the field and as value the name of the type.
 
 
 For the filter definition:
@@ -2167,7 +2167,7 @@ type FilterType = DynamicCondition<{
 }>
 ```
 
-The `FilterType` definition looks like:
+The `FilterType` definition looks like this:
 
 ```ts
 type FilterType = {
@@ -2191,7 +2191,7 @@ type FilterType = {
 
 ```
 
-You can use the properties `and`, `or`and `not`to perform the logical operations. If you specify multiple elements to the `FilterType` all of them will be joined using the and operator; the same happens with the elements specified in the `and` array; but, in the case of the `or` array the elements will be joined using the or operator.
+You can use the properties `and`, `or` and `not` to perform the logical operations. If you specify multiple elements to the `FilterType`, all of them will be joined using the and operator. The same happens with the elements specified in the `and` array. But the elements will be joined using the or operator in the case of the `or` array.
 
 The definition of the different types are:
 

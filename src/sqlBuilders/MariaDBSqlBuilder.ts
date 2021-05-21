@@ -1,9 +1,32 @@
 import { AbstractMySqlMariaDBSqlBuilder } from "./AbstractMySqlMariaBDSqlBuilder"
+import { CompoundOperator } from "./SqlBuilder"
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mariaDB: true = true
     _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
+    }
+    _appendCompoundOperator(compoundOperator: CompoundOperator, _params: any[]): string {
+        switch(compoundOperator) {
+            case 'union':
+                return ' union '
+            case 'unionAll':
+                return ' union all '
+            case 'intersect':
+                return ' intersect '
+            case 'intersectAll':
+                return ' intersect all '
+            case 'except':
+                return ' except '
+            case 'exceptAll':
+                return ' except all '
+            case 'minus':
+                return ' minus '
+            case 'minusAll':
+                return ' minus all '
+            default:
+                throw new Error('Invalid compound operator: ' + compoundOperator)
+        }   
     }
 }
 

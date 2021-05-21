@@ -28,7 +28,10 @@ export interface WithQueryData {
     __withs: Array<IWithView<any>>
 }
 
-export interface SelectData extends WithQueryData {
+export type SelectData = PlainSelectData | CompoundSelectData
+
+export interface PlainSelectData extends WithQueryData {
+    __type: 'plain'
     __distinct: boolean
     __columns: { [property: string]: ValueSource<any, any> }
     __tables_or_views: Array<ITableOrView<any>>
@@ -36,6 +39,19 @@ export interface SelectData extends WithQueryData {
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __having?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __groupBy:  Array<ValueSource<any, any>>
+    __orderBy?: { [property: string]: OrderByMode | null | undefined }
+    __limit?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
+    __offset?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
+}
+
+export type CompoundOperator = 'union' | 'unionAll' | 'intersect' | 'intersectAll' | 'except' | 'exceptAll' | 'minus' | 'minusAll'
+
+export interface CompoundSelectData extends WithQueryData {
+    __type: 'compound'
+    __firstQuery: SelectData
+    __compoundOperator: CompoundOperator
+    __secondQuery: SelectData
+    __columns: { [property: string]: ValueSource<any, any> }
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
     __limit?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
     __offset?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>

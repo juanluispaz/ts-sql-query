@@ -18,6 +18,7 @@ Type-safe SQL means the mistakes writting a query will be detected during the co
   - [Select with joins and order by](#select-with-joins-and-order-by)
   - [Select with subquery and dynamic order by](#select-with-subquery-and-dynamic-order-by)
   - [Select with aggregate functions and group by](#select-with-aggregate-functions-and-group-by)
+  - [Select with a compound operator (union, intersect, except)](#select-with-a-compound-operator-union-intersect-except)
   - [Select page](#select-page)
   - [Select with custom SQL fragment](#select-with-custom-sql-fragment)
   - [Select with custom reusable SQL fragment](#select-with-custom-reusable-sql-fragment)
@@ -332,6 +333,48 @@ const customerCountPerCompany: Promise<{
     customerCount: number;
 }[]>
 ```
+
+### Select with a compound operator (union, intersect, except)
+
+```ts
+const allDataWithName = connection.selectFrom(tCustomer)
+    .select({
+        id: tCustomer.id,
+        name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
+        type: connection.const<'customer' | 'company'>('customer', 'enum', 'customerOrCompany')
+    }).unionAll(
+        connection.selectFrom(tCompany)
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            type: connection.const<'customer' | 'company'>('company', 'enum', 'customerOrCompany')
+        })
+    ).executeSelectMany();
+```
+
+The executed query is:
+```sql
+select id as id, first_name || $1 || last_name as name, $2 as type 
+from customer 
+
+union all 
+
+select id as id, name as name, $3 as type 
+from company
+```
+
+The parameters are: `[ ' ', 'customer', 'company' ]`
+
+The result type is:
+```ts
+const allDataWithName: Promise<{
+    id: number;
+    name: string;
+    type: "customer" | "company";
+}[]>
+```
+
+**Note**: depending on your database, the supported compound operators are: `union`, `unionAll`, `intersect`, `intersectAll`, `except`,  `exceptAll`, `minus` (alias for `except`), `minusAll` (alias for `exceptAll`)
 
 ### Select page
 
@@ -2048,6 +2091,16 @@ interface SelectExpression {
     and(condition: BooleanValueSource): this
     /** Allows to extends the where, or the on clause of a join, or the having clause using an or */
     or(condition: BooleanValueSource): this
+
+    /* Query compound operators */
+    union(select: CompoundableSubquery): this
+    unionAll(select: CompoundableSubquery): this
+    intersect(select: CompoundableSubquery): this
+    intersectAll(select: CompoundableSubquery): this
+    except(select: CompoundableSubquery): this
+    exceptAll(select: CompoundableSubquery): this
+    minus(select: CompoundableSubquery): this // alias to except
+    minusAll(select: CompoundableSubquery): this // alias to exceptAll
 
     /** Execute the select query that returns one o no result from the database */
     executeSelectNoneOrOne(): Promise<RESULT | null>

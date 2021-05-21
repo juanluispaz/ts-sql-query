@@ -1,4 +1,4 @@
-import type { ToSql, InsertData } from "./SqlBuilder"
+import type { ToSql, InsertData, CompoundOperator } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { isValueSource, ValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
@@ -103,6 +103,28 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         // Avoid automatically uppercase identifiers by oracle
         return this._forceAsIdentifier(name)
+    }
+    _appendCompoundOperator(compoundOperator: CompoundOperator, _params: any[]): string {
+        switch(compoundOperator) {
+            case 'union':
+                return ' union '
+            case 'unionAll':
+                return ' union all '
+            case 'intersect':
+                return ' intersect '
+            case 'intersectAll':
+                return ' intersect all '
+            case 'except':
+                return ' minus '
+            case 'exceptAll':
+                return ' minus all '
+            case 'minus':
+                return ' except '
+            case 'minusAll':
+                return ' except all '
+            default:
+                throw new Error('Invalid compound operator: ' + compoundOperator)
+        }   
     }
     _buildInsertMultiple(query: InsertData, params: any[]): string {
         const multiple = query.__multiple

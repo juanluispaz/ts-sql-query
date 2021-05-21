@@ -1,4 +1,4 @@
-import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData } from "./SqlBuilder"
+import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator } from "./SqlBuilder"
 import type { ITableOrView, __ITableOrViewPrivate } from "../utils/ITableOrView"
 import { BooleanValueSource, IfValueSource, ValueSource, __ValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
@@ -321,8 +321,46 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildSelect(query: SelectData, params: any[]): string {
         return this._buildSelectWithColumnsInfo(query, params, {})
     }
+    _appendCompoundOperator(compoundOperator: CompoundOperator, _params: any[]): string {
+        switch(compoundOperator) {
+            case 'union':
+                return ' union '
+            case 'unionAll':
+                return ' union all '
+            case 'intersect':
+                return ' intersect '
+            case 'intersectAll':
+                return ' intersect all '
+            case 'except':
+                return ' except '
+            case 'exceptAll':
+                return ' except all '
+            case 'minus':
+                return ' except '
+            case 'minusAll':
+                return ' except all '
+            default:
+                throw new Error('Invalid compound operator: ' + compoundOperator)
+        }   
+    }
     _buildSelectWithColumnsInfo(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
+
+        if (query.__type === 'compound') {
+            this._setSafeTableOrView(params, undefined)
+
+            const withClause = this._buildWith(query, params)
+            let selectQuery = withClause
+            selectQuery += this._buildSelectWithColumnsInfo(query.__firstQuery, params, columnsForInsert)
+            selectQuery += this._appendCompoundOperator(query.__compoundOperator, params)
+            selectQuery += this._buildSelectWithColumnsInfo(query.__secondQuery, params, columnsForInsert)
+
+            selectQuery += this._buildSelectOrderBy(query, params)
+            selectQuery += this._buildSelectLimitOffset(query, params)
+
+            this._setSafeTableOrView(params, oldSafeTableOrView)
+            return selectQuery
+        }
 
         const tables = query.__tables_or_views
         const tablesLength = tables.length
@@ -384,6 +422,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
                         break
                     case 'leftOuterJoin':
                         selectQuery += ' letf outer join '
+                        break
+                    default:
+                        throw new Error('Invalid join type: ' + join.__joinType)
                 }
                 selectQuery += this._getTableOrViewNameInSql(join.__table_or_view)
                 if (join.__on) {

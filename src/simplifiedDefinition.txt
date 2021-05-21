@@ -996,6 +996,16 @@ interface SelectExpression {
     /** Allows to extends the where, or the on clause of a join, or the having clause using an or */
     or(condition: BooleanValueSource): this
 
+    /* Query compound operators */
+    union(select: CompoundableSubquery): this
+    unionAll(select: CompoundableSubquery): this
+    intersect(select: CompoundableSubquery): this
+    intersectAll(select: CompoundableSubquery): this
+    except(select: CompoundableSubquery): this
+    exceptAll(select: CompoundableSubquery): this
+    minus(select: CompoundableSubquery): this // alias to except
+    minusAll(select: CompoundableSubquery): this // alias to exceptAll
+
     /** Execute the select query that returns one o no result from the database */
     executeSelectNoneOrOne(): Promise<RESULT | null>
     /** 
@@ -1053,6 +1063,10 @@ type SelectValues = { [columnName: string]: ValueSource }
  */
 type Subquery = SelectExpression
 
+/**
+ * Here we use the CompoundablQuery type to indicate that you can use a select with a compound operator (union, intesect)
+ */
+type CompoundableSubquery = SelectExpression
 
 
 /******************** */

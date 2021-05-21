@@ -851,11 +851,25 @@ const customersWithDynamicCondition = connection.selectFrom(tCustomer)
 // Query: select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, company.name as "companyName" from customer inner join company on customer.company_id = company.id where (customer.first_name ilike ($1 || '%') or (customer.last_name ilike ($2 || '%') and customer.last_name like ('%' || $3))) and company.name = $4 order by lower("firstName"), lower("lastName") asc
 // Params: [ 'John', 'Smi', 'th', 'ACME' ]
 
-/*
-select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, company.name as "companyName" 
-from customer inner join company on customer.company_id = company.id 
-where (customer.first_name ilike ($1 || '%') or (customer.last_name ilike ($2 || '%') and customer.last_name like ('%' || $3))) and company.name = $4 order by lower("firstName"), lower("lastName") asc
-*/
+results.push([])
+
+const allDataWithName = connection.selectFrom(tCustomer)
+    .select({
+        id: tCustomer.id,
+        name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
+        type: connection.const<'customer' | 'company'>('customer', 'enum', 'customerOrCompany')
+    }).unionAll(
+        connection.selectFrom(tCompany)
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            type: connection.const<'customer' | 'company'>('company', 'enum', 'customerOrCompany')
+        })
+    ).executeSelectMany()
+
+// Query: select id as id, first_name || $1 || last_name as name, $2 as type from customer union all select id as id, name as name, $3 as type from company
+// Params: [ ' ', 'customer', 'company' ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -878,6 +892,7 @@ customerCountPerAcmeCompanies.finally(() => undefined)
 insertCustomCompany.finally(() => undefined)
 selectAllBigCompanies.finally(() => undefined)
 customersWithDynamicCondition.finally(() => undefined)
+allDataWithName.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

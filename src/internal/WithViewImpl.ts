@@ -2,9 +2,8 @@ import type { IWithView } from "../utils/ITableOrView"
 import type { AliasedTableOrView, OuterJoinSourceOf, WITH_VIEW } from "../utils/tableOrViewUtils"
 import type { AnyDB } from "../databases"
 import type { SelectData, WithData } from "../sqlBuilders/SqlBuilder"
-import { ColumnImpl } from "../internal/ColumnImpl"
+import { createColumnsFrom } from "../internal/ColumnImpl"
 import { database, tableOrViewRef, type } from "../utils/symbols"
-import { CustomBooleanTypeAdapter, DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { __getValueSourcePrivate, __OptionalRule } from "../expressions/values"
 
 export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME>> implements IWithView<REF>, WithData {
@@ -27,21 +26,8 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
         this.__selectData = selectData
         this.__optionalRule = optionalRule
         
-        const thiz = this as any
         const columns = selectData.__columns
-        for (const property in columns) {
-            const column = columns[property]!
-            const columnPrivate = __getValueSourcePrivate(column)
-            let valueType = columnPrivate.__valueType
-            let typeAdapter = columnPrivate.__typeAdapter
-            if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-                // Avoid treat the column as a custom boolean
-                typeAdapter = new ProxyTypeAdapter(typeAdapter)
-            }
-            const withColumn = new ColumnImpl(this, property, valueType, typeAdapter)
-            withColumn.__isOptional = columnPrivate.__isResultOptional(optionalRule)
-            thiz[property] = withColumn
-        }
+        createColumnsFrom(columns, this as any, optionalRule, this)
     }
 
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
@@ -62,21 +48,5 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
         } else if (!withs.includes(this as any)) {
             withs.push(this as any)
         }
-    }
-}
-
-export class ProxyTypeAdapter implements TypeAdapter {
-    typeAdapter: TypeAdapter
-
-    constructor(typeAdapter: TypeAdapter) {
-        this.typeAdapter = typeAdapter
-    }
-
-    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
-        return this.typeAdapter.transformValueFromDB(value, type, next)
-    }
-
-    transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
-        return this.typeAdapter.transformValueToDB(value, type, next)
     }
 }

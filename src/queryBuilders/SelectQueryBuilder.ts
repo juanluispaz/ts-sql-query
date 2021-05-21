@@ -1,7 +1,7 @@
-import type { SqlBuilder, JoinData, ToSql, SelectData } from "../sqlBuilders/SqlBuilder"
-import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, ExecutableSelect, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ExecutableSelectWithoutGroupBy, OffsetExecutableSelectExpressionWithoutGroupBy, OrderByExecutableSelectExpressionWithoutGroupBy } from "../expressions/select"
+import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData } from "../sqlBuilders/SqlBuilder"
+import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, ExecutableSelect, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableExecutableSelectExpression, CompoundedExecutableSelectExpression } from "../expressions/select"
 import type { HasAddWiths, ITableOrView, IWithView, OuterJoinSource } from "../utils/ITableOrView"
-import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, IfValueSource, IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, IfValueSource, IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelect } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { WithView } from "../utils/tableOrViewUtils"
 import { __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
@@ -9,46 +9,56 @@ import { __getValueSourcePrivate } from "../expressions/values"
 import ChainedError from "chained-error"
 import { AggregateFunctions0ValueSource } from "../internal/ValueSourceImpl"
 import { attachSource } from "../utils/attachSource"
-import { columnsType, database, requiredTableOrView, resultType, type } from "../utils/symbols"
+import { columnsType, database, requiredTableOrView, resultType, compoundable, type } from "../utils/symbols"
 import { asValueSource } from "../expressions/values"
 import { WithViewImpl } from "../internal/WithViewImpl"
+import { createColumnsFrom } from "../internal/ColumnImpl"
+import { View } from "../View"
 
-export class SelectQueryBuilder implements ToSql, HasAddWiths, SelectData, SelectExpression<any, any, any>, SelectExpressionFromNoTable<any>, ExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereExecutableSelectExpression<any, any, any, any, any, any>, DynamicWhereExpressionWithoutSelect<any, any, any>, GroupByOrderByExecutableSelectExpression<any, any, any, any, any, any>, OffsetExecutableSelectExpression<any, any, any, any>, ExecutableSelect<any, any, any, any>, SelectWhereJoinExpression<any, any, any>, DynamicOnExpression<any, any, any>, OnExpression<any, any, any>, SelectExpressionWithoutJoin<any, any, any>, SelectExpressionSubquery<any, any>, SelectWhereExpression<any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any, any>, GroupByOrderByHavingExecutableSelectExpression<any, any, any, any, any, any>, DynamicHavingExecutableSelectExpression<any, any, any, any, any, any>, GroupByOrderHavingByExpressionWithoutSelect<any, any, any>, DynamicHavingExpressionWithoutSelect<any, any, any>, ExecutableSelectWithoutGroupBy<any, any, any, any>, OffsetExecutableSelectExpressionWithoutGroupBy<any, any, any, any>, OrderByExecutableSelectExpressionWithoutGroupBy<any, any, any, any, any, any> {
+abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any, any>, OffsetExecutableSelectExpression<any, any, any, any>, ExecutableSelect<any, any, any, any> {
     [database]: any
     [requiredTableOrView]: any
-    [type]: 'ExecutableSelect'
+    [type]: any
+    [compoundable]: any
     [resultType]: any
     [columnsType]: any
+
     __sqlBuilder: SqlBuilder
 
-    __distinct: boolean
     __columns: { [property: string]: ValueSource<any, any> } = {}
-    __tables_or_views: Array<ITableOrView<any>>
-    __joins: Array<JoinData> = []
-    __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
-    __having?: BooleanValueSource<any, any> | IfValueSource<any, any>
-    __groupBy:  Array<ValueSource<any, any>> = []
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
     __limit?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
     __offset?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
     __withs: Array<IWithView<any>> = []
 
-    __lastJoin?: JoinData
-    __inHaving = false
     __oneColumn = false
 
     // cache
     __query = ''
     __params: any[] = []
 
-    constructor(sqlBuilder: SqlBuilder, tables: Array<ITableOrView<any>>, distinct: boolean) {
+    constructor(sqlBuilder: SqlBuilder) {
         this.__sqlBuilder = sqlBuilder
-        this.__tables_or_views = tables
-        this.__distinct = distinct
-        for (let i = 0, length = tables.length; i < length; i++) {
-            const table = tables[i]!
-            __getTableOrViewPrivate(table).__addWiths(this.__withs)
+    }
+
+    query(): string {
+        this.__finishJoinHaving()
+        if (this.__query) {
+            return this.__query
         }
+        try {
+            this.__query = this.__sqlBuilder._buildSelect(this.__asSelectData(), this.__params)
+        } catch (e) {
+            throw new ChainedError(e)
+        }
+        return this.__query
+    }
+    params(): any[] {
+        this.__finishJoinHaving()
+        if (!this.__query) {
+            this.query()
+        }
+        return this.__params
     }
 
     __transformValueFromDB(valueSource: ValueSource<any, any>, value: any, column?: string, index?: number, count?: boolean) {
@@ -185,21 +195,12 @@ export class SelectQueryBuilder implements ToSql, HasAddWiths, SelectData, Selec
         const source = new Error('Query executed at')
         return this.__executeSelectMany(source)
     }
+    abstract __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string
     __executeSelectCount(source: Error): Promise<any> {
         try {
             const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', undefined)
-            const selectCountData: SelectData = {
-                __distinct: false,
-                __columns: { '': countAll },
-                __tables_or_views: this.__tables_or_views,
-                __joins: this.__joins,
-                __where: this.__where,
-                __groupBy: [],
-                __withs: this.__withs
-            }
             const params: any[] = []
-            const query = this.__sqlBuilder._buildSelect(selectCountData, params)
-
+            const query = this.__buildSelectCount(countAll, params)
             return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(query, params).then((value) => {
                 return this.__transformValueFromDB(countAll, value, undefined, undefined, true)
             }).catch((e) => {
@@ -238,24 +239,222 @@ export class SelectQueryBuilder implements ToSql, HasAddWiths, SelectData, Selec
             return {...extras, data, count}
         })
     }
-    query(): string {
+
+    abstract __finishJoinHaving(): void
+    orderBy(column: any, mode?: OrderByMode): this {
         this.__finishJoinHaving()
-        if (this.__query) {
-            return this.__query
+        this.__query = ''
+        if (!this.__orderBy) {
+            this.__orderBy = {}
         }
-        try {
-            this.__query = this.__sqlBuilder._buildSelect(this, this.__params)
-        } catch (e) {
-            throw new ChainedError(e)
+        if (column in this.__orderBy) {
+            throw new Error('Column ' + column + ' already used in the order by clause')
         }
-        return this.__query
+        this.__orderBy[column] = mode || null
+        return this
     }
-    params(): any[] {
+    orderByFromString(orderBy: string): this {
         this.__finishJoinHaving()
-        if (!this.__query) {
-            this.query()
+        this.__query = ''
+        const columnsInQuery: { [columnNameInLowerCase: string]: string | undefined } = {}
+        const columns = this.__columns
+        for (const property in columns) {
+            columnsInQuery[property.toLowerCase()] = property
         }
-        return this.__params
+
+        const split = orderBy.trim().toLowerCase().replace(/\s+/g, ' ').split(/\s*,\s*/)
+        for (let i = 0, length = split.length; i < length; i++) {
+            const clause = split[i]!
+            const separatorIndex = clause.indexOf(' ')
+            let column
+            let ordering
+            if (separatorIndex < 0) {
+                column = clause
+                ordering = null
+            } else {
+                column = clause.substring(0, separatorIndex)
+                ordering = clause.substring(separatorIndex + 1)
+            }
+            const realColumnName = columnsInQuery[column]
+            if (!realColumnName) {
+                throw new Error('The column "' + column + '" is not part of the select clause')
+            }
+            if (ordering === 'asc') {
+                this.orderBy(realColumnName, 'asc')
+            } else if (ordering === 'desc') {
+                this.orderBy(realColumnName, 'desc')
+            } else if (ordering === 'asc nulls first') {
+                this.orderBy(realColumnName, 'asc nulls first')
+            } else if (ordering === 'desc nulls first') {
+                this.orderBy(realColumnName, 'desc nulls first')
+            } else if (ordering === 'asc nulls last') {
+                this.orderBy(realColumnName, 'asc nulls last')
+            } else if (ordering === 'desc nulls last') {
+                this.orderBy(realColumnName, 'desc nulls last')
+            } else if (ordering === 'insensitive') {
+                this.orderBy(realColumnName, 'insensitive')
+            } else if (ordering === 'asc insensitive') {
+                this.orderBy(realColumnName, 'asc insensitive')
+            } else if (ordering === 'desc insensitive') {
+                this.orderBy(realColumnName, 'desc insensitive')
+            } else if (ordering === 'asc nulls first insensitive') {
+                this.orderBy(realColumnName, 'asc nulls first insensitive')
+            } else if (ordering === 'desc nulls first insensitive') {
+                this.orderBy(realColumnName, 'desc nulls first insensitive')
+            } else if (ordering === 'asc nulls last insensitive') {
+                this.orderBy(realColumnName, 'asc nulls last insensitive')
+            } else if (ordering === 'desc nulls last insensitive') {
+                this.orderBy(realColumnName, 'desc nulls last insensitive')
+            } else if (!ordering) {
+                this.orderBy(realColumnName)
+            } else {
+                throw new Error('Unknow ordering clause "' + ordering + '" in the order by related to the column "' + column + '"')
+            }
+        }
+        return this
+    }
+    limit(limit: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): this {
+        this.__finishJoinHaving()
+        this.__query = ''
+        this.__limit = asValueSource(limit)
+        __addWiths(limit, this.__withs)
+        return this
+    }
+    offset(offset: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): this {
+        this.__finishJoinHaving()
+        this.__query = ''
+        this.__offset = asValueSource(offset)
+        __addWiths(offset, this.__withs)
+        return this
+    }
+
+    union(select: ICompoundableSelect<any, any, any>): any {
+        return new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'union', this.__compoundableAsSelectData(select))
+    }
+    unionAll(select: ICompoundableSelect<any, any, any>): any {
+        return new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'unionAll', this.__compoundableAsSelectData(select))
+    }
+    intersect: never
+    intersectAll: never
+    except: never
+    exceptAll: never
+    minus: never
+    minusAll: never
+
+    __compoundableAsSelectData(select: ICompoundableSelect<any, any, any>): SelectData {
+        return select as any
+    }
+
+    __addWiths(withs: Array<IWithView<any>>): void {
+        this.__finishJoinHaving()
+        const withViews = this.__withs
+        for (let i = 0, length = withViews.length; i < length; i++) {
+            const withView = withViews[i]!
+            __getTableOrViewPrivate(withView).__addWiths(withs)
+        }
+    }
+
+    abstract __asSelectData(): SelectData
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        this.__finishJoinHaving()
+        return sqlBuilder._buildSelect(this.__asSelectData(), params)
+    }
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+        this.__finishJoinHaving()
+        return sqlBuilder._buildSelect(this.__asSelectData(), params)
+    }
+
+    forUseInQueryAs: never
+}
+
+// Defined separated to don't have problems with the variable definition of this method
+(AbstractSelect.prototype as any).forUseInQueryAs = function (as: string): WithView<any, any> {
+    const thiz = this as SelectQueryBuilder
+    return new WithViewImpl<any, any>(as, thiz, thiz.__sqlBuilder) as any
+};
+
+(AbstractSelect.prototype as any).intersect = function(select: ICompoundableSelect<any, any, any>): any {
+    const thiz = this as SelectQueryBuilder
+    return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'intersect', thiz.__compoundableAsSelectData(select))
+};
+
+(AbstractSelect.prototype as any).intersectAll = function(select: ICompoundableSelect<any, any, any>): any {
+    const thiz = this as SelectQueryBuilder
+    return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'intersectAll', thiz.__compoundableAsSelectData(select))
+};
+
+(AbstractSelect.prototype as any).except = function(select: ICompoundableSelect<any, any, any>): any {
+    const thiz = this as SelectQueryBuilder
+    return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'except', thiz.__compoundableAsSelectData(select))
+};
+
+(AbstractSelect.prototype as any).exceptAll = function(select: ICompoundableSelect<any, any, any>): any {
+    const thiz = this as SelectQueryBuilder
+    return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'exceptAll', thiz.__compoundableAsSelectData(select))
+};
+
+(AbstractSelect.prototype as any).minus = function(select: ICompoundableSelect<any, any, any>): any {
+    const thiz = this as SelectQueryBuilder
+    return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'minus', thiz.__compoundableAsSelectData(select))
+};
+
+(AbstractSelect.prototype as any).minusAll = function(select: ICompoundableSelect<any, any, any>): any {
+    const thiz = this as SelectQueryBuilder
+    return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'minusAll', thiz.__compoundableAsSelectData(select))
+};
+
+export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSelectData, SelectExpression<any, any, any>, SelectExpressionFromNoTable<any>, ExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereExecutableSelectExpression<any, any, any, any, any, any>, DynamicWhereExpressionWithoutSelect<any, any, any>, GroupByOrderByExecutableSelectExpression<any, any, any, any, any, any>, SelectWhereJoinExpression<any, any, any>, DynamicOnExpression<any, any, any>, OnExpression<any, any, any>, SelectExpressionWithoutJoin<any, any, any>, SelectExpressionSubquery<any, any>, SelectWhereExpression<any, any, any>, GroupByOrderByHavingExecutableSelectExpression<any, any, any, any, any, any>, DynamicHavingExecutableSelectExpression<any, any, any, any, any, any>, GroupByOrderHavingByExpressionWithoutSelect<any, any, any>, DynamicHavingExpressionWithoutSelect<any, any, any> {
+    __type: 'plain' = 'plain'
+    __distinct: boolean
+    __tables_or_views: Array<ITableOrView<any>>
+    __joins: Array<JoinData> = []
+    __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
+    __having?: BooleanValueSource<any, any> | IfValueSource<any, any>
+    __groupBy:  Array<ValueSource<any, any>> = []
+
+    __lastJoin?: JoinData
+    __inHaving = false
+
+    constructor(sqlBuilder: SqlBuilder, tables: Array<ITableOrView<any>>, distinct: boolean) {
+        super(sqlBuilder)
+        this.__tables_or_views = tables
+        this.__distinct = distinct
+        for (let i = 0, length = tables.length; i < length; i++) {
+            const table = tables[i]!
+            __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        }
+    }
+
+    __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
+        if (this.groupBy.length > 0) {
+            const withView = new WithViewImpl<any, any>('result', this, this.__sqlBuilder)
+            const withs: Array<IWithView<any>> = []
+            withView.__addWiths(withs)
+            
+            const selectCountData: PlainSelectData = {
+                __type: 'plain',
+                __distinct: false,
+                __columns: { '': countAll },
+                __tables_or_views: [withView],
+                __joins: [],
+                __where: undefined,
+                __groupBy: [],
+                __withs: withs
+            }
+            return this.__sqlBuilder._buildSelect(selectCountData, params)
+        }
+
+        const selectCountData: PlainSelectData = {
+            __type: 'plain',
+            __distinct: false,
+            __columns: { '': countAll },
+            __tables_or_views: this.__tables_or_views,
+            __joins: this.__joins,
+            __where: this.__where,
+            __groupBy: [],
+            __withs: this.__withs
+        }
+        return this.__sqlBuilder._buildSelect(selectCountData, params)
     }
 
     select(columns: SelectColumns<any, any>): this {
@@ -462,115 +661,48 @@ export class SelectQueryBuilder implements ToSql, HasAddWiths, SelectData, Selec
         }
         return this
     }
-    orderBy(column: any, mode?: OrderByMode): this {
-        this.__finishJoinHaving()
-        this.__query = ''
-        if (!this.__orderBy) {
-            this.__orderBy = {}
-        }
-        if (column in this.__orderBy) {
-            throw new Error('Column ' + column + ' already used in the order by clause')
-        }
-        this.__orderBy[column] = mode || null
+    __asSelectData(): SelectData {
         return this
     }
-    orderByFromString(orderBy: string): this {
-        this.__finishJoinHaving()
-        this.__query = ''
-        const columnsInQuery: { [columnNameInLowerCase: string]: string | undefined } = {}
-        const columns = this.__columns
-        for (const property in columns) {
-            columnsInQuery[property.toLowerCase()] = property
-        }
-
-        const split = orderBy.trim().toLowerCase().replace(/\s+/g, ' ').split(/\s*,\s*/)
-        for (let i = 0, length = split.length; i < length; i++) {
-            const clause = split[i]!
-            const separatorIndex = clause.indexOf(' ')
-            let column
-            let ordering
-            if (separatorIndex < 0) {
-                column = clause
-                ordering = null
-            } else {
-                column = clause.substring(0, separatorIndex)
-                ordering = clause.substring(separatorIndex + 1)
-            }
-            const realColumnName = columnsInQuery[column]
-            if (!realColumnName) {
-                throw new Error('The column "' + column + '" is not part of the select clause')
-            }
-            if (ordering === 'asc') {
-                this.orderBy(realColumnName, 'asc')
-            } else if (ordering === 'desc') {
-                this.orderBy(realColumnName, 'desc')
-            } else if (ordering === 'asc nulls first') {
-                this.orderBy(realColumnName, 'asc nulls first')
-            } else if (ordering === 'desc nulls first') {
-                this.orderBy(realColumnName, 'desc nulls first')
-            } else if (ordering === 'asc nulls last') {
-                this.orderBy(realColumnName, 'asc nulls last')
-            } else if (ordering === 'desc nulls last') {
-                this.orderBy(realColumnName, 'desc nulls last')
-            } else if (ordering === 'insensitive') {
-                this.orderBy(realColumnName, 'insensitive')
-            } else if (ordering === 'asc insensitive') {
-                this.orderBy(realColumnName, 'asc insensitive')
-            } else if (ordering === 'desc insensitive') {
-                this.orderBy(realColumnName, 'desc insensitive')
-            } else if (ordering === 'asc nulls first insensitive') {
-                this.orderBy(realColumnName, 'asc nulls first insensitive')
-            } else if (ordering === 'desc nulls first insensitive') {
-                this.orderBy(realColumnName, 'desc nulls first insensitive')
-            } else if (ordering === 'asc nulls last insensitive') {
-                this.orderBy(realColumnName, 'asc nulls last insensitive')
-            } else if (ordering === 'desc nulls last insensitive') {
-                this.orderBy(realColumnName, 'desc nulls last insensitive')
-            } else if (!ordering) {
-                this.orderBy(realColumnName)
-            } else {
-                throw new Error('Unknow ordering clause "' + ordering + '" in the order by related to the column "' + column + '"')
-            }
-        }
-        return this
-    }
-    limit(limit: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): this {
-        this.__finishJoinHaving()
-        this.__query = ''
-        this.__limit = asValueSource(limit)
-        __addWiths(limit, this.__withs)
-        return this
-    }
-    offset(offset: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): this {
-        this.__finishJoinHaving()
-        this.__query = ''
-        this.__offset = asValueSource(offset)
-        __addWiths(offset, this.__withs)
-        return this
-    }
-
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
-        this.__finishJoinHaving()
-        return sqlBuilder._buildSelect(this, params)
-    }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
-        this.__finishJoinHaving()
-        return sqlBuilder._buildSelect(this, params)
-    }
-
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__finishJoinHaving()
-        const withViews = this.__withs
-        for (let i = 0, length = withViews.length; i < length; i++) {
-            const withView = withViews[i]!
-            __getTableOrViewPrivate(withView).__addWiths(withs)
-        }
-    }
-    forUseInQueryAs: never
 }
 
-// Defined separated to don't have problems with the variable definition of this method
-(SelectQueryBuilder.prototype as any).forUseInQueryAs = function (as: string):  WithView<any, any> {
-    const thiz = this as SelectQueryBuilder
-    return new WithViewImpl<any, any>(as, thiz, thiz.__sqlBuilder) as any
-};
+export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql, CompoundSelectData {
+    __type: 'compound' = 'compound'
+    __firstQuery: SelectData
+    __compoundOperator: CompoundOperator
+    __secondQuery: SelectData
+
+    constructor(sqlBuilder: SqlBuilder, firstQuery: SelectData, compoundOperator: CompoundOperator, secondQuery: SelectData) {
+        super(sqlBuilder)
+        this.__firstQuery = firstQuery
+        this.__compoundOperator = compoundOperator
+        this.__secondQuery = secondQuery
+
+        createColumnsFrom(firstQuery.__columns, this.__columns, sqlBuilder, new View(''))
+    }
+
+    __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
+        const withView = new WithViewImpl<any, any>('result', this, this.__sqlBuilder)
+        const withs: Array<IWithView<any>> = []
+        withView.__addWiths(withs)
+        
+        const selectCountData: PlainSelectData = {
+            __type: 'plain',
+            __distinct: false,
+            __columns: { '': countAll },
+            __tables_or_views: [withView],
+            __joins: [],
+            __where: undefined,
+            __groupBy: [],
+            __withs: withs
+        }
+        return this.__sqlBuilder._buildSelect(selectCountData, params)
+    }
+    __finishJoinHaving(): void {
+        // noop: do nothing here
+    }
+    __asSelectData(): SelectData {
+        return this
+    }
+
+}

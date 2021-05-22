@@ -1042,6 +1042,17 @@ interface SelectExpression {
     query(): string
     /** Returns the required parameters by the sql query */
     params(): any[]
+
+    // Result compose operations
+    compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    split(propertyName: string, mappig: { [property: string]: string }): this
+    splitOptional(propertyName: string, mappig: { [property: string]: string }): this
+
 }
 
 /**
@@ -1077,3 +1088,4 @@ type QueryRunner = any
 type OuterJoinSource = any
 type Argument = any
 type DynamicFilter = any
+type EXTERNAL_PROPERTY_TYPE = any

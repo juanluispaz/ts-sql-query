@@ -1,5 +1,5 @@
 import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData } from "../sqlBuilders/SqlBuilder"
-import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, ExecutableSelect, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableExecutableSelectExpression, CompoundedExecutableSelectExpression } from "../expressions/select"
+import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, WithableExecutableSelect, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty } from "../expressions/select"
 import type { HasAddWiths, ITableOrView, IWithView, OuterJoinSource } from "../utils/ITableOrView"
 import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, IfValueSource, IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelect } from "../expressions/values"
 import type { int } from "ts-extended-types"
@@ -15,7 +15,29 @@ import { WithViewImpl } from "../internal/WithViewImpl"
 import { createColumnsFrom } from "../internal/ColumnImpl"
 import { View } from "../View"
 
-abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any, any>, OffsetExecutableSelectExpression<any, any, any, any>, ExecutableSelect<any, any, any, any> {
+interface Compose {
+    type: 'compose'
+    config: {
+        externalProperty: string,
+        internalProperty: string,
+        propertyName: string
+    }
+    deleteInternal: boolean,
+    deleteExternal: boolean,
+    cardinality?: 'noneOrOne' | 'one' | 'many'
+    fn?: (ids: any[]) => Promise<any[]>
+}
+
+interface Split {
+    type: 'split',
+    optional: boolean,
+    propertyName: string,
+    mapping: { [key: string]: string }
+}
+
+type SplitCompose = Compose | Split
+
+abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any, any>, OffsetExecutableSelectExpression<any, any, any, any>, WithableExecutableSelect<any, any, any, any>, ExecutableSelect<any, any, any, any>, ComposeExpression<any, any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any, any>,  ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any, any> {
     [database]: any
     [requiredTableOrView]: any
     [type]: any
@@ -36,6 +58,10 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
     // cache
     __query = ''
     __params: any[] = []
+
+    // composition
+    __compositions: SplitCompose[] = []
+    __lastComposition?: Compose
 
     constructor(sqlBuilder: SqlBuilder) {
         this.__sqlBuilder = sqlBuilder
@@ -108,8 +134,9 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
         this.query()
         const source = new Error('Query executed at')
         try {
+            let result
             if (this.__oneColumn) {
-                return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
+                result = this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns['result']!
                     if (value === undefined) {
                         return null
@@ -119,7 +146,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
                     throw attachSource(new ChainedError(e), source)
                 })
             } else {
-                return this.__sqlBuilder._queryRunner.executeSelectOneRow(this.__query, this.__params).then((row) => {
+                result = this.__sqlBuilder._queryRunner.executeSelectOneRow(this.__query, this.__params).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
@@ -129,6 +156,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
                     throw attachSource(new ChainedError(e), source)
                 })
             }
+            return this.__applyCompositions(result, source)
         } catch (e) {
             throw new ChainedError(e)
         }
@@ -137,8 +165,9 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
         this.query()
         const source = new Error('Query executed at')
         try {
+            let result
             if (this.__oneColumn) {
-                return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
+                result = this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns['result']!
                     if (value === undefined) {
                         throw new Error('No result returned by the database')
@@ -148,7 +177,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
                     throw attachSource(new ChainedError(e), source)
                 })
             } else {
-                return this.__sqlBuilder._queryRunner.executeSelectOneRow(this.__query, this.__params).then((row) => {
+                result = this.__sqlBuilder._queryRunner.executeSelectOneRow(this.__query, this.__params).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
@@ -158,6 +187,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
                     throw attachSource(new ChainedError(e), source)
                 })
             }
+            return this.__applyCompositions(result, source)
         } catch (e) {
             throw new ChainedError(e)
         }
@@ -165,8 +195,9 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
     __executeSelectMany(source: Error): Promise<any> {
         this.query()
         try {
+            let result
             if (this.__oneColumn) {
-                return this.__sqlBuilder._queryRunner.executeSelectOneColumnManyRows(this.__query, this.__params).then((values) => {
+                result = this.__sqlBuilder._queryRunner.executeSelectOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns['result']!
 
                     return values.map((value) => {
@@ -179,7 +210,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
                     throw attachSource(new ChainedError(e), source)
                 })
             } else {
-                return this.__sqlBuilder._queryRunner.executeSelectManyRows(this.__query, this.__params).then((rows) => {
+                result = this.__sqlBuilder._queryRunner.executeSelectManyRows(this.__query, this.__params).then((rows) => {
                     return rows.map((row, index) => {
                         return this.__transformRow(row, index)
                     })
@@ -187,6 +218,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
                     throw attachSource(new ChainedError(e), source)
                 })
             }
+            return this.__applyCompositions(result, source)
         } catch (e) {
             throw new ChainedError(e)
         }
@@ -365,6 +397,238 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
     }
 
     forUseInQueryAs: never
+
+    compose(config: any): any {
+        this.__lastComposition = {
+            type: 'compose',
+            config: config,
+            deleteExternal: false,
+            deleteInternal: false
+        }
+        return this
+    }
+    composeDeletingInternalProperty(config: any): any {
+        this.__lastComposition = {
+            type: 'compose',
+            config: config,
+            deleteExternal: false,
+            deleteInternal: true
+        }
+        return this
+    }
+    composeDeletingExternalProperty(config: any): any {
+        this.__lastComposition = {
+            type: 'compose',
+            config: config,
+            deleteExternal: true,
+            deleteInternal: false
+        }
+        return this
+    }
+    withNoneOrOne(fn: (ids: any[]) => Promise<any[]>): any {
+        const last = this.__lastComposition
+        if (!last) {
+            throw new Error('Illegal state')
+        }
+        this.__lastComposition = undefined
+        last.fn = fn
+        last.cardinality = 'noneOrOne'
+        this.__compositions.push(last)
+        return this
+    }
+    withOne(fn: (ids: any[]) => Promise<any[]>): any {
+        const last = this.__lastComposition
+        if (!last) {
+            throw new Error('Illegal state')
+        }
+        this.__lastComposition = undefined
+        last.fn = fn
+        last.cardinality = 'one'
+        this.__compositions.push(last)
+        return this
+    }
+    withMany(fn: (ids: any[]) => Promise<any[]>): any {
+        const last = this.__lastComposition
+        if (!last) {
+            throw new Error('Illegal state')
+        }
+        this.__lastComposition = undefined
+        last.fn = fn
+        last.cardinality = 'many'
+        this.__compositions.push(last)
+        return this
+    }
+    split(propertyName: string, mappig: any): any {
+        const split: Split = {
+            type: 'split',
+            optional: false,
+            propertyName: propertyName,
+            mapping: mappig
+        }
+        this.__compositions.push(split)
+        return this
+    }
+    splitOptional(propertyName: string, mappig: any): any {
+        const split: Split = {
+            type: 'split',
+            optional: true,
+            propertyName: propertyName,
+            mapping: mappig
+        }
+        this.__compositions.push(split)
+        return this
+    }
+
+    __applyCompositions<R>(result: Promise<R>, source: Error): Promise<R> {
+        const compositions = this.__compositions
+        if (compositions.length <= 0) {
+            return result
+        }
+        for(let i = 0, length = compositions.length; i < length; i++) {
+            const composition = compositions[i]!
+            result = result.then(dataResult => {
+                try {
+                    if (composition.type === 'split') {
+                        return this.__applySplit(dataResult, composition)
+                    } else {
+                        return this.__applyComposition(dataResult, composition, source)
+                    }
+                } catch (e) {
+                    throw attachSource(e, source)
+                }
+            })
+        }
+        return result
+    }
+
+    __applySplit<R>(dataResult: R, split: Split): R {
+        let dataList: any[]
+        if (Array.isArray(dataResult)) {
+            dataList = dataResult
+        } else {
+            dataList = [dataResult]
+        }
+
+        const mapping = split.mapping
+        const optional = split.optional
+        const propertyName = split.propertyName
+
+        for(let i = 0, length = dataList.length; i < length; i++) {
+            const external = dataList[i]
+            const result: any = {}
+            let hasContent = false
+            for (let prop in mapping) {
+                const externalProp = mapping[prop]!
+                const value = external[externalProp]
+                if (value !== null && value !== undefined) {
+                    result[prop] = value
+                    hasContent = true
+                }
+                delete external[externalProp]
+            }
+            if (propertyName in external) {
+                throw new Error('The property ' + propertyName + ' already exists in the result of the query')
+            }
+            if (optional) {
+                if (hasContent) {
+                    external[propertyName] = result
+                }
+            } else {
+                external[propertyName] = result
+            }
+        }
+        return dataResult
+    }
+    __applyComposition<R>(dataResult: R, composition: Compose, source: Error): Promise<R> {
+        const config = composition.config
+        const resultProperty = config.propertyName
+
+        let dataList: any[]
+        if (Array.isArray(dataResult)) {
+            dataList = dataResult
+        } else {
+            dataList = [dataResult]
+        }
+
+        const dataMap: any = {}
+        const ids: any[] = []
+        for(let i = 0, length = dataList.length; i < length; i++) {
+            const data = dataList[i]
+            const externalProperty = config.externalProperty
+            const externalValue = data[externalProperty]
+            dataMap[externalValue] = data
+            ids.push(data[externalProperty])
+            if (composition.deleteExternal) {
+                delete data[externalProperty]
+            }
+            if (resultProperty in data) {
+                throw new Error('The property ' + resultProperty + ' already exists in the result of the external query')
+            }
+        }
+
+        const fn = composition.fn
+        if (!fn) {
+            throw new Error('Illegal state')
+        }
+
+        return fn(ids).then((internalList) => {
+            try {
+                this.__processCompositionResult(internalList, dataList, dataMap, composition)
+            } catch (e) {
+                throw attachSource(e, source)
+            }
+            return dataResult
+        }) 
+    }
+
+    __processCompositionResult(internalList: any[], dataList: any[], dataMap: any, composition: Compose): void {
+        const config = composition.config
+        const resultProperty = config.propertyName
+        
+        const cardinality = composition.cardinality
+        if (!cardinality) {
+            throw new Error('Illegal state')
+        }
+
+        if (cardinality === 'one') {
+            if (dataList.length !== internalList.length) {
+                throw new Error('The internal query in a query composition returned ' + internalList.length + ' rows when ' + dataList.length + ' was expected')
+            }
+        } else if (cardinality === 'many') {
+            for(let i = 0, length = dataList.length; i < length; i++) {
+                const data = dataList[i]
+                data[resultProperty] = []
+            }
+        }
+
+        for(let i = 0, length = internalList.length; i < length; i++) {
+            const internalData = internalList[i]
+            const internalProperty = config.internalProperty
+            const internalValue = internalData[internalProperty]
+
+            if (composition.deleteInternal) {
+                delete internalData[internalProperty]
+            }
+
+            const data = dataMap[internalValue]
+            if (!data) {
+                throw new Error('The internal query in a query composition returned an element identified with ' + internalValue + ' that is not pressent in the external query result')
+            }
+
+            if (cardinality === 'many') {
+                const resultList = data[resultProperty] as any[]
+                resultList.push(internalData)
+            } else if (cardinality === 'noneOrOne' || cardinality === 'one') {
+                const previous = data[resultProperty]
+                if (previous) {
+                    throw new Error('The internal query in a query composition retunrned multiple elements for an element identified with ' + internalValue)
+                }
+                data[resultProperty] = internalData
+            } else {
+                throw new Error('Illegal state')
+            }
+        }
+    }
 }
 
 // Defined separated to don't have problems with the variable definition of this method

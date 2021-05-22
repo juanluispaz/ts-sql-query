@@ -40,6 +40,12 @@ Type-safe SQL means the mistakes writting a query will be detected during the co
   - [Mapping the views](#mapping-the-views)
   - [Creating methods that allows to call a procedure](#creating-methods-that-allows-to-call-a-procedure)
   - [Creating methods that allows to call a function](#creating-methods-that-allows-to-call-a-function)
+- [Composing and splitting results](#composing-and-splitting-results)
+  - [Composing results](#composing-results)
+  - [Composing many items in the result](#composing-many-items-in-the-result)
+  - [Composing one item in the result](#composing-one-item-in-the-result)
+  - [Splitting results](#splitting-results)
+  - [Composing one item in the result with one query](#composing-one-item-in-the-result-with-one-query)
 - [Supported operations](#supported-operations)
   - [Operations definitions](#operations-definitions)
   - [Connection definition](#connection-definition)
@@ -1098,6 +1104,192 @@ The result type is a promise with the result returned by the function:
 const result: Promise<number>
 ```
 
+## Composing and splitting results
+
+Sometime you whan to create a result where the content looks like:
+1. The result item contains a property with an array with the related items. By example, for each company you want to get the list of its customers.
+2. The result item contains a property with an object of a related item. By example, for each customer you want to get the company information as well.
+3. The result item optionally contains a property with an object of a related item (if exists). By example, for each customer you want to get his preferred company (if he has one).
+
+To do this you have two strategies:
+- **Composing**: You can execute a second query that returns the additional data. Valid for the case 1, and also work for the case 2 or 3 but this is not the best approach.
+- **Splitting**: You can return all the data in the same query, and then move the additional data to the object in the internal property. Valid for the case 2 and 3 but it doesn't work for the case 1.
+
+### Composing results
+
+**How it works**:
+
+1. The first step is to perform a first query (the external one) that returns the data and the id needed to execute a second query. 
+2. When the first query is executed, all ids needed to perform the second query are collected in an array. 
+3. Then, a second query (the internal one) is executed with the ids collected from the first query; this query returns the additional data and the id provided by the first query.
+4. The data is joined by the id provided by the first query and returned as well by the second query.
+5. If required, the property with the id used to join the data can be deleted from the external or the internal object.
+
+**What you need**:
+
+- Name of the property in the external object that contains the id to be used to query the internal objects.
+- Name of the property in the internal object that will contain the id used to query the internal objects.
+- Name of the property in the external object that will contain the internal objects.
+- Determine the cardinality of the property to be added to the external object: `many` (an array), `one` (a required object), `noneOrOne` (an optional object).
+- Determine if the property need with the id required to join the data needs to be deleted from the external or internal object.
+- A function that receives the list of ids needed to join the data and returns a list with the data to be used to construct the result.
+
+**Defining the composition rule**:
+
+Before executing the query, you must call one of the next methods:
+- `compose`: that indicates the composition must be executed without delete any property.
+- `composeDeletingInternalProperty`: that indicates the composition must be performed deleting the internal property with the id used to join the information.
+- `composeDeletingExternalProperty`: that indicates the composition must be performed deleting the external property with the id used to join the information.
+
+This method receives an object with the following information:
+- `externalProperty`: name of the property that contains the shared id returned by the external query.
+- `internalProperty`: name of the property that contains the shared id returned by the internal query.
+- `propertyName`: name of the property to be included in the external object with the corresponding result from the second query.
+
+Then you must call one of the next methods:
+- `withNoneOrOne`: That indicates the cardinality of the property to be added to the external result is an optional object.
+- `withOne`: That indicates the cardinality of the property to be added to the external result is a required object.
+- `withMany`: That indicates the cardinality of the property to be added to the external result is a required array with objects.
+
+This method receives a function with argument an array with the ids and returns a promise with an array that contains the result of the second query (the internal one).
+
+### Composing many items in the result
+
+```ts
+const companiesWithCustomers = connection.selectFrom(tCompany)
+        .select({
+            id: tCompany.id,
+            name: tCompany.name
+        }).where(
+            tCompany.name.containsInsensitive('ACME')
+        ).composeDeletingInternalProperty({
+            externalProperty: 'id',
+            internalProperty: 'companyId',
+            propertyName: 'customers'
+        }).withMany((ids) => {
+            return connection.selectFrom(tCustomer)
+                .select({
+                    id: tCustomer.id,
+                    firstName: tCustomer.firstName,
+                    lastName: tCustomer.lastName,
+                    birthday: tCustomer.birthday,
+                    companyId: tCustomer.companyId
+                }).where(
+                    tCustomer.companyId.in(ids)
+                ).executeSelectMany()
+        }).executeSelectMany()
+```
+
+The result type is:
+```ts
+const companiesWithCustomers: Promise<{
+    id: number;
+    name: string;
+    customers: {
+        id: number;
+        birthday?: Date;
+        firstName: string;
+        lastName: string;
+    }[];
+}[]>
+```
+
+### Composing one item in the result
+
+```ts
+const customerWithCompany = connection.selectFrom(tCustomer)
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday,
+            companyId: tCustomer.companyId
+        }).where(
+            tCustomer.id .equals(12)
+        ).composeDeletingExternalProperty({
+            externalProperty: 'companyId',
+            internalProperty: 'id',
+            propertyName: 'company'
+        }).withOne((ids) => {
+            return connection.selectFrom(tCompany)
+                .select({
+                    id: tCompany.id,
+                    name: tCompany.name
+                }).where(
+                    tCompany.id.in(ids)
+                ).executeSelectMany()
+        }).executeSelectOne()
+```
+
+The result type is:
+```ts
+const customerWithCompany: Promise<{
+    id: number;
+    birthday?: Date;
+    firstName: string;
+    lastName: string;
+    company: {
+        id: number;
+        name: string;
+    };
+}>
+```
+
+### Splitting results
+
+**How it works**:
+
+The property that you indicate will be moved from the result of the query to a new object that will be stored as a property of it.
+
+**What you need**:
+
+- Name of the property in the result object that will contain the new object with the moved properties.
+- A mapping rule that determined how the properties will be moved; basically, you must indicate as a key the new name of the property in the new object and value the old property's name.
+
+**Defining the splitting rule**:
+
+Before executing the query, you must call one of the next methods:
+- `split`: that split the result, and the new property will be added as a required property.
+- `splitOptional`: The split result will be added as an optional property. If the new object has no data, the new property is omitted.
+
+Before executing the query, you must call `split` method with the following arguments:
+1. `propertyName`: name of the property to be included in each item returned by the query.
+2. `mapping`: an object map where the key is the new name of the property and the value is the old name of the property.
+
+### Composing one item in the result with one query
+
+```ts
+const customerWithCompanyInOneQuery = connection.selectFrom(tCustomer)
+        .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday,
+            companyId: tCompany.id,
+            companyName: tCompany.name
+        }).where(
+            tCustomer.id .equals(12)
+        ).split('company', {
+            id: 'companyId',
+            name: 'companyName'
+        }).executeSelectOne()
+```
+
+The result type is:
+```ts
+const customerWithCompanyInOneQuery: Promise<{
+    id: number;
+    birthday?: Date;
+    firstName: string;
+    lastName: string;
+    company: {
+        id: number;
+        name: string;
+    };
+}>
+```
+
 ## Supported operations
 
 The most common operations over the data are suported by ts-sql-query; in the case the database don't support it, an emulation is provided, if an emulation is not possible you will get an error during the compilation of your source code.
@@ -2138,6 +2330,16 @@ interface SelectExpression {
     query(): string
     /** Returns the required parameters by the sql query */
     params(): any[]
+
+    // Result compose operations
+    compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    split(propertyName: string, mappig: { [property: string]: string }): this
+    splitOptional(propertyName: string, mappig: { [property: string]: string }): this
 }
 
 /**

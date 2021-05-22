@@ -870,6 +870,124 @@ const allDataWithName = connection.selectFrom(tCustomer)
 // Query: select id as id, first_name || $1 || last_name as name, $2 as type from customer union all select id as id, name as name, $3 as type from company
 // Params: [ ' ', 'customer', 'company' ]
 
+results.push([{
+    id: 10,
+    name: 'ACME Inc.'
+}, {
+    id: 11,
+    name: 'ACME Corp.'
+}])
+postResults.push([{
+    id: 12,
+    firstName: 'John',
+    lastName: 'Smith',
+    birthday: new Date('1990/1/14'),
+    companyId: 10
+}, {
+    id: 13,
+    firstName: 'Jorge',
+    lastName: 'Justo',
+    birthday: new Date('1991/2/16'),
+    companyId: 10
+
+}, {
+    id: 14,
+    firstName: 'Maria',
+    lastName: 'Rodriguez',
+    birthday: new Date('1992/3/18'),
+    companyId: 11
+
+}])
+
+const companiesWithCustomers = connection.selectFrom(tCompany)
+        .select({
+            id: tCompany.id,
+            name: tCompany.name
+        }).where(
+            tCompany.name.containsInsensitive('ACME')
+        ).composeDeletingInternalProperty({
+            externalProperty: 'id',
+            internalProperty: 'companyId',
+            propertyName: 'customers'
+        }).withMany((ids) => {
+            return connection.selectFrom(tCustomer)
+                .select({
+                    id: tCustomer.id,
+                    firstName: tCustomer.firstName,
+                    lastName: tCustomer.lastName,
+                    birthday: tCustomer.birthday,
+                    companyId: tCustomer.companyId
+                }).where(
+                    tCustomer.companyId.in(ids)
+                ).executeSelectMany()
+        }).executeSelectMany()
+
+// ---------------
+
+results.push({
+    id: 12,
+    firstName: 'John',
+    lastName: 'Smith',
+    birthday: new Date('1990/1/14'),
+    companyId: 10
+})
+postResults.push([{
+    id: 10,
+    name: 'ACME Inc.'
+}])
+
+const customerWithCompany = connection.selectFrom(tCustomer)
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday,
+            companyId: tCustomer.companyId
+        }).where(
+            tCustomer.id .equals(12)
+        ).composeDeletingExternalProperty({
+            externalProperty: 'companyId',
+            internalProperty: 'id',
+            propertyName: 'company'
+        }).withOne((ids) => {
+            return connection.selectFrom(tCompany)
+                .select({
+                    id: tCompany.id,
+                    name: tCompany.name
+                }).where(
+                    tCompany.id.in(ids)
+                ).executeSelectMany()
+        }).executeSelectOne()
+
+// ---------------
+
+results.push({
+    id: 12,
+    firstName: 'John',
+    lastName: 'Smith',
+    birthday: new Date('1990/1/14'),
+    companyId: 10,
+    companyName: 'ACME Inc.'
+})
+
+const customerWithCompanyInOneQuery = connection.selectFrom(tCustomer)
+        .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday,
+            companyId: tCompany.id,
+            companyName: tCompany.name
+        }).where(
+            tCustomer.id .equals(12)
+        ).split('company', {
+            id: 'companyId',
+            name: 'companyName'
+        }).executeSelectOne()
+
+// ---------------
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -893,6 +1011,17 @@ insertCustomCompany.finally(() => undefined)
 selectAllBigCompanies.finally(() => undefined)
 customersWithDynamicCondition.finally(() => undefined)
 allDataWithName.finally(() => undefined)
+companiesWithCustomers.then((result) => {
+    console.log('companiesWithCustomers', result)
+    console.log('companiesWithCustomers resulr[0].customers', result[0]!.customers)
+    console.log('companiesWithCustomers resulr[1].customers', result[1]!.customers)
+})
+customerWithCompany.then((result) => {
+    console.log('customerWithCompany', result)
+})
+customerWithCompanyInOneQuery.then((result) => {
+    console.log('customerWithCompanyInOneQuery', result)
+})
 
 // case when then end
 // agragate functions, group by, having

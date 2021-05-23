@@ -6,7 +6,7 @@ import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { database, tableOrView } from "../utils/symbols"
-import { IExecutableSelect } from "../expressions/values"
+import { IExecutableSelectQuery } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
 
 // one implement ommited intentionally to don't confuse TypeScript
@@ -274,7 +274,7 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
             return this.set(columns)
         }
     }
-    from(select: IExecutableSelect<any, any, any>): this {
+    from(select: IExecutableSelectQuery<any, any, any>): this {
         this.__from = select as any as SelectData
         __addWiths(select, this.__withs)
         return this

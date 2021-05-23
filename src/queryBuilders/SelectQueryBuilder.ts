@@ -63,6 +63,10 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
     __compositions: SplitCompose[] = []
     __lastComposition?: Compose
 
+    __recursiveInternalView?: WithViewImpl<any, any>
+    __recursiveView?: WithViewImpl<any, any>
+    __recursiveSelect?: SelectData
+
     constructor(sqlBuilder: SqlBuilder) {
         this.__sqlBuilder = sqlBuilder
     }
@@ -134,6 +138,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
         this.query()
         const source = new Error('Query executed at')
         try {
+            this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
@@ -165,6 +170,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
         this.query()
         const source = new Error('Query executed at')
         try {
+            this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
@@ -195,6 +201,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
     __executeSelectMany(source: Error): Promise<any> {
         this.query()
         try {
+            this.__sqlBuilder._resetUnique()
             let result
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeSelectOneColumnManyRows(this.__query, this.__params).then((values) => {
@@ -230,6 +237,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
     abstract __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string
     __executeSelectCount(source: Error): Promise<any> {
         try {
+            this.__sqlBuilder._resetUnique()
             const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', undefined)
             const params: any[] = []
             const query = this.__buildSelectCount(countAll, params)
@@ -629,11 +637,73 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelect<a
             }
         }
     }
+
+    __buildRecursive(fn: (view: any) => ICompoundableSelect<any, any, any>, unionAll: boolean): void {
+        const sqlBuilder = this.__sqlBuilder
+        const name = 'recursive_select_' + sqlBuilder._generateUnique()
+        const recursiveInternalView = new WithViewImpl<any, any>(name, this as any, sqlBuilder) as any
+        let recursiveInternalSelect 
+        if (unionAll) {
+            recursiveInternalSelect = this.unionAll(fn(recursiveInternalView))
+        } else {
+            recursiveInternalSelect = this.union(fn(recursiveInternalView))
+        }
+        const recursiveView = new WithViewImpl<any, any>(name, recursiveInternalSelect, sqlBuilder) as any
+        recursiveView.__recursive = true
+
+        const recursiveSelect = new SelectQueryBuilder(this.__sqlBuilder, [recursiveView], false)
+        const columns = recursiveSelect.__columns
+        const currentColumns = this.__columns
+        for (let columnName in currentColumns) {
+            columns[columnName] = (recursiveView as any)[columnName]
+        }
+
+        this.__recursiveInternalView = recursiveInternalView
+        this.__recursiveView = recursiveView
+        this.__recursiveSelect = recursiveSelect
+    }
+    recursiveUnion(fn: (view: any) => ICompoundableSelect<any, any, any>): this {
+        this.__buildRecursive(fn, false)
+        return this
+    }
+    recursiveUnionAll(fn: (view: any) => ICompoundableSelect<any, any, any>): this {
+        this.__buildRecursive(fn, true)
+        return this
+    }
+    __buildRecursiveFn(fn: (view: any) => IBooleanValueSource<any, any>): (view: any) => ICompoundableSelect<any, any, any> {
+        return (view: any) => {
+            const current = this as any as PlainSelectData
+            const result = new SelectQueryBuilder(this.__sqlBuilder, current.__tables_or_views, false)
+            result.__columns = { ...current.__columns }
+            result.__withs = current.__withs.concat()
+            result.__joins = current.__joins.concat()
+            result.join(view).on(fn(view))
+            return result as any
+        }
+    }
+    recursiveUnionOn(fn: (view: any) => IBooleanValueSource<any, any>): this {
+        this.__buildRecursive(this.__buildRecursiveFn(fn), false)
+        return this
+    }
+    recursiveUnionAllOn(fn: (view: any) => IBooleanValueSource<any, any>): this {
+        this.__buildRecursive(this.__buildRecursiveFn(fn), true)
+        return this
+    }
+
 }
 
 // Defined separated to don't have problems with the variable definition of this method
 (AbstractSelect.prototype as any).forUseInQueryAs = function (as: string): WithView<any, any> {
     const thiz = this as SelectQueryBuilder
+    const recursiveView = thiz.__recursiveView
+    if (recursiveView) {
+        recursiveView.__name = as
+        this.__recursiveInternalView!.__name = as
+        this.__recursiveView = undefined
+        this.__recursiveInternalView = undefined
+        this.__recursiveSelect = undefined
+        return recursiveView as any
+    }
     return new WithViewImpl<any, any>(as, thiz, thiz.__sqlBuilder) as any
 };
 
@@ -691,7 +761,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
 
     __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
         if (this.groupBy.length > 0) {
-            const withView = new WithViewImpl<any, any>('result', this, this.__sqlBuilder)
+            const withView = new WithViewImpl<any, any>('result_for_count', this, this.__sqlBuilder)
             const withs: Array<IWithView<any>> = []
             withView.__addWiths(withs)
             
@@ -926,6 +996,10 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         return this
     }
     __asSelectData(): SelectData {
+        const recursiveSelect = this.__recursiveSelect
+        if (recursiveSelect) {
+            return recursiveSelect
+        }
         return this
     }
 }
@@ -946,7 +1020,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
     }
 
     __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
-        const withView = new WithViewImpl<any, any>('result', this, this.__sqlBuilder)
+        const withView = new WithViewImpl<any, any>('result_for_count', this, this.__sqlBuilder)
         const withs: Array<IWithView<any>> = []
         withView.__addWiths(withs)
         
@@ -966,6 +1040,10 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         // noop: do nothing here
     }
     __asSelectData(): SelectData {
+        const recursiveSelect = this.__recursiveSelect
+        if (recursiveSelect) {
+            return recursiveSelect
+        }
         return this
     }
 

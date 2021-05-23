@@ -20,6 +20,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
     _connectionConfiguration: ConnectionConfiguration
     _operationsThatNeedParenthesis: { [operation in keyof SqlOperation]?: boolean }
+    _unique = 1
     constructor() {
         this._operationsThatNeedParenthesis = {
             _equals: true,
@@ -43,6 +44,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
             _getMilliseconds: true,
             _fragment: true
         }
+    }
+    _generateUnique(): number {
+        return this._unique++
+    }
+    _resetUnique(): void {
+        this._unique = 1
     }
     _getSafeTableOrView(params: any[]): ITableOrView<any> | undefined {
         return (params as any)._safeTableOrView
@@ -305,6 +312,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return ''
         }
         let result = ''
+        let recursive = false
         for (let i = 0, length = withs.length; i < length; i++) {
             if (result) {
                 result += ', '
@@ -314,8 +322,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
             result += ' as ('
             result += this._buildSelect(withView.__selectData, params)
             result += ')'
+            recursive = recursive || !!withView.__recursive
         }
         this._setWithGeneratedFinished(params, true)
+        if (recursive) {
+            return 'with recursive ' + result + ' '
+        }
         return 'with ' + result + ' '
     }
     _buildSelect(query: SelectData, params: any[]): string {

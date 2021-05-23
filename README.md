@@ -24,6 +24,9 @@ Type-safe SQL means the mistakes writting a query will be detected during the co
   - [Select with custom reusable SQL fragment](#select-with-custom-reusable-sql-fragment)
   - [Select with custom reusable SQL fragment if value](#select-with-custom-reusable-sql-fragment-if-value)
   - [Using a select as a view in another select query (SQL with clause)](#using-a-select-as-a-view-in-another-select-query-sql-with-clause)
+  - [Recursive select](#recursive-select)
+    - [Recursive select looking for parents](#recursive-select-looking-for-parents)
+    - [Recursive select looking for children](#recursive-select-looking-for-children)
   - [Select using a dynamic filter](#select-using-a-dynamic-filter)
   - [Insert](#insert)
   - [Insert multiple values](#insert-multiple-values)
@@ -637,6 +640,131 @@ const customerCountPerAcmeCompanies: Promise<{
 }[]>
 ```
 
+### Recursive select
+
+#### Recursive select looking for parents
+
+```ts
+const recursiveParentCompany = connection.selectFrom(tCompany)
+    .where(tCompany.id.equals(10))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        parentId: tCompany.parentId
+    }).recursiveUnion((child) => { // Or: recursiveUnionAll
+        return connection.selectFrom(tCompany)
+        .join(child).on(child.parentId.equals(tCompany.id))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            parentId: tCompany.parentId
+        })
+    }).executeSelectMany()
+```
+
+If the union query have the same select and from that the external one you can specify only the join on clause:
+
+```ts
+const recursiveParentCompany = connection.selectFrom(tCompany)
+    .where(tCompany.id.equals(10))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        parentId: tCompany.parentId
+    }).recursiveUnionOn((child) => { // Or: recursiveUnionAllOn
+        return child.parentId.equals(tCompany.id)
+    }).executeSelectMany()
+```
+
+The executed query is:
+```sql
+with recursive 
+    recursive_select_1 as (
+        select id as id, name as name, parent_id as parentId 
+        from company where id = $1 
+        
+        union 
+        
+        select company.id as id, company.name as name, company.parent_id as parentId 
+        from company join recursive_select_1 on recursive_select_1.parentId = company.id
+    )
+select id as id, name as name, parentId as "parentId" 
+from recursive_select_1
+```
+
+The parameters are: `[ 10 ]`
+
+The result type is:
+```ts
+const recursiveParentCompany: Promise<{
+    id: number;
+    name: string;
+    parentId?: number;
+}[]>
+```
+
+#### Recursive select looking for children
+
+```ts
+const recursiveChildrenCompany = connection.selectFrom(tCompany)
+    .where(tCompany.id.equals(10))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        parentId: tCompany.parentId
+    }).recursiveUnionAll((parent) => { // Or: recursiveUnion
+        return connection.selectFrom(tCompany)
+        .join(parent).on(parent.id.equals(tCompany.parentId))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            parentId: tCompany.parentId
+        })
+    }).executeSelectMany()
+```
+
+If the union query have the same select and from that the external one you can specify only the join on clause:
+
+```ts
+const recursiveChildrenCompany = connection.selectFrom(tCompany)
+    .where(tCompany.id.equals(10))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        parentId: tCompany.parentId
+    }).recursiveUnionAllOn((parent) => { // Or: recursiveUnionOn
+        return parent.id.equals(tCompany.parentId)
+    }).executeSelectMany()
+```
+
+The executed query is:
+```sql
+with recursive 
+    recursive_select_1 as (
+        select id as id, name as name, parent_id as parentId 
+        from company 
+        where id = $1 
+        
+        union all 
+        
+        select company.id as id, company.name as name, company.parent_id as parentId 
+        from company join recursive_select_1 on recursive_select_1.id = company.parent_id
+    ) 
+select id as id, name as name, parentId as "parentId" 
+from recursive_select_1
+```
+
+The parameters are: `[ 10 ]`
+
+The result type is:
+```ts
+const recursiveChildrenCompany: Promise<{
+    id: number;
+    name: string;
+    parentId?: number;
+}[]>
+```
+
 ### Select using a dynamic filter
 
 You can create a dynamic condition for use in a where (for example). In these dynamic conditions, the criteria are provided as an object. Another system like the user interface may fill the criteria object. The provided criteria object is translated to the corresponding SQL. To use this feature, you must call the method `dynamicConditionFor` from the connection; this method receives a map where the key is the name that the external system is going to use to refer to the field and the value is the corresponding value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the criteria provided to the external system.
@@ -1005,6 +1133,7 @@ import { Table } from "ts-sql-query/Table";
 const tCompany = new class TCompany extends Table<DBConection, 'TCompany'> {
     id = this.autogeneratedPrimaryKey('id', 'int');
     name = this.column('name', 'string');
+    parentId = this.optionalColumn('parent_id', 'int');
     constructor() {
         super('company'); // table name in the database
     }
@@ -2284,7 +2413,7 @@ interface SelectExpression {
     /** Allows to extends the where, or the on clause of a join, or the having clause using an or */
     or(condition: BooleanValueSource): this
 
-    /* Query compound operators */
+    // Query compound operators
     union(select: CompoundableSubquery): this
     unionAll(select: CompoundableSubquery): this
     intersect(select: CompoundableSubquery): this
@@ -2293,6 +2422,12 @@ interface SelectExpression {
     exceptAll(select: CompoundableSubquery): this
     minus(select: CompoundableSubquery): this // alias to except
     minusAll(select: CompoundableSubquery): this // alias to exceptAll
+
+    // Recursive queries
+    recursiveUnion(fn: (view: View) => CompoundableSubquery): this
+    recursiveUnionAll(fn: (view: View) => CompoundableSubquery): this
+    recursiveUnionOn(fn: (view: View) => BooleanValueSource): this
+    recursiveUnionAllOn(fn: (view: View) => BooleanValueSource): this
 
     /** Execute the select query that returns one o no result from the database */
     executeSelectNoneOrOne(): Promise<RESULT | null>

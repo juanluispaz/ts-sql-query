@@ -996,7 +996,7 @@ interface SelectExpression {
     /** Allows to extends the where, or the on clause of a join, or the having clause using an or */
     or(condition: BooleanValueSource): this
 
-    /* Query compound operators */
+    // Query compound operators
     union(select: CompoundableSubquery): this
     unionAll(select: CompoundableSubquery): this
     intersect(select: CompoundableSubquery): this
@@ -1005,6 +1005,12 @@ interface SelectExpression {
     exceptAll(select: CompoundableSubquery): this
     minus(select: CompoundableSubquery): this // alias to except
     minusAll(select: CompoundableSubquery): this // alias to exceptAll
+
+    // Recursive queries
+    recursiveUnion(fn: (view: View) => CompoundableSubquery): this
+    recursiveUnionAll(fn: (view: View) => CompoundableSubquery): this
+    recursiveUnionOn(fn: (view: View) => BooleanValueSource): this
+    recursiveUnionAllOn(fn: (view: View) => BooleanValueSource): this
 
     /** Execute the select query that returns one o no result from the database */
     executeSelectNoneOrOne(): Promise<RESULT | null>

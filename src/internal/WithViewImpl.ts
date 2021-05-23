@@ -20,6 +20,7 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
     __optionalRule: __OptionalRule
     // @ts-ignore
     __originalWith?: WithViewImpl<any, any>
+    __ignoreWith?: boolean
 
     constructor(name: string, selectData: SelectData, optionalRule: __OptionalRule) {
         this.__name = name
@@ -43,6 +44,10 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
         return this.as(as) as any
     }
     __addWiths(withs: Array<IWithView<any>>): void {
+        if (this.__ignoreWith) {
+            return
+        }
+
         if (this.__originalWith) {
             this.__originalWith.__addWiths(withs)
         } else if (!withs.includes(this as any)) {

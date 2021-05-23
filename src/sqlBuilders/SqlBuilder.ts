@@ -12,6 +12,7 @@ export interface WithData {
     __as?: string
     __selectData: SelectData
     __optionalRule: __OptionalRule
+    __recursive?: boolean
 }
 
 export function getWithData(withView: IWithView<any>): WithData {
@@ -96,6 +97,8 @@ export interface SqlBuilder extends SqlOperation, __OptionalRule {
     _buildDelete(query: DeleteData, params: any[]): string
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any>[]): string
     _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any>[]): string
+    _generateUnique(): number
+    _resetUnique(): void
 }
 
 export interface ToSql {

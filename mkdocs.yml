@@ -1,0 +1,39 @@
+site_name: ts-sql-query
+site_description: Type-safe SQL query builder for TypeScript.
+repo_url: https://github.com/juanluispaz/ts-sql-query
+theme: 
+  name: readthedocs
+  highlightjs: false
+extra_javascript:
+  # MkDocs includes an old version of highlight.js, but it doesn't recognize all modern JS syntax, import a newer version
+  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.0.0/build/highlight.min.js
+  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.0.0/build/languages/typescript.min.js
+  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.0.0/build/languages/sql.min.js
+  - custom.js
+extra_css: 
+  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.0.0/build/styles/default.min.css
+  - custom.css
+nav:
+  - Introduction: index.md
+  - Queries:
+    - Basic query structure: queries/basic-query-structure.md
+    - Dynamic queries: queries/dynamic-queries.md
+    - Select: queries/select.md
+    - Select page: queries/select-page.md
+    - Recursive select: queries/recursive-select.md
+    - Select using a dynamic filter: queries/select-using-a-dynamic-filter.md
+    - SQL Fragments: queries/sql-fragments.md
+    - Insert: queries/insert.md
+    - Update: queries/update.md
+    - Delete: queries/delete.md
+  - Connection, tables & views: connection-tables-views.md
+  - Composing and splitting results: composing-and-splitting-results.md
+  - Supported operations: supported-operations.md
+  - Supported databases: supported-databases.md
+  - Supported databases with extended types: supported-databases-with-extended-types.md
+  - Query runners:
+    - Recommended query runners: query-runners/recommended-query-runners.md
+    - Additional query runners: query-runners/additional-query-runners.md
+    - General purpose query runners: query-runners/general-purpose-query-runners.md
+  - Advanced usage: advanced-usage.md
+  - Change Log: CHANGELOG.md

@@ -166,10 +166,12 @@ Based on: https://github.com/highlightjs/highlight.js/commit/3e628edbe34d2ffb916
 
 /* Customizations */
 
-code.sql {
+code.sql,
+code.language-sql {
     background-color: #202746 !important;
 }
 
-code.tsx {
+code.tsx,
+code.language-tsx {
     background-color: #2b2b2b !important;
 }

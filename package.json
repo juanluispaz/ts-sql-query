@@ -38,7 +38,8 @@
         "build": "rm -rf dist/*; tsc && npm run copy-prisma",
         "dist": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm exampleTests* && rm -Rf examples && npm publish",
         "dist-beta": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm exampleTests* && rm -Rf examples && npm publish --tag beta",
-        "docs": "mkdocs serve"
+        "docs": "mkdocs serve",
+        "create-single-doc-file": "sh ./scripts/create-single-doc-file.sh"
     },
     "repository": {
         "type": "git",

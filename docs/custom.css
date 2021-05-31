@@ -52,6 +52,18 @@ footer>.rst-footer-buttons {
     font-size: 1rem;
 }
 
+@media screen and (max-width: 768px) {
+    .wy-nav-side {
+        left: -310px;
+    }
+    .wy-nav-content-wrap.shift {
+        left: 310px;
+    }
+    .wy-nav-side {
+        padding-bottom: 0
+    }
+}
+
 
 /*
 Based on: https://github.com/highlightjs/highlight.js/commit/3e628edbe34d2ffb9166ff365f614f56621597be#diff-32b42f695d1077539c170b90483094e054cca0afef4c570eaeba60e00fe72616

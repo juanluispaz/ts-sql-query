@@ -26,6 +26,7 @@ nav:
     - Insert: queries/insert.md
     - Update: queries/update.md
     - Delete: queries/delete.md
+    - Transaction: queries/transaction.md
   - Connection, tables & views: connection-tables-views.md
   - Composing and splitting results: composing-and-splitting-results.md
   - Supported operations: supported-operations.md

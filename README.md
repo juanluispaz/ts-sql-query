@@ -1,6 +1,6 @@
 # ts-sql-query <!-- omit in toc -->
 
-[![npm](https://img.shields.io/npm/v/ts-sql-query.svg)](http://npm.im/ts-sql-query)
+[![npm](https://img.shields.io/npm/v/ts-sql-query.svg)](https://npm.im/ts-sql-query)
 
 Type-safe SQL query builder like QueryDSL or JOOQ in Java for TypeScript with MariaDB, MySql, Oracle, PostgreSql, Sqlite and SqlServer support.
 

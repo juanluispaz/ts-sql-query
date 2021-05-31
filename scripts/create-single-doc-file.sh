@@ -21,6 +21,8 @@ echo '\n# queries/update.md\n' >> dist/doc.md
 cat docs/queries/update.md >> dist/doc.md
 echo '\n# queries/delete.md\n' >> dist/doc.md
 cat docs/queries/delete.md >> dist/doc.md
+echo '\n# queries/transaction.md\n' >> dist/doc.md
+cat docs/queries/transaction.md >> dist/doc.md
 echo '\n# connection-tables-views.md\n' >> dist/doc.md
 cat docs/connection-tables-views.md >> dist/doc.md
 echo '\n# composing-and-splitting-results.md\n' >> dist/doc.md

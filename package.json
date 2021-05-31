@@ -47,6 +47,7 @@
     "bugs": {
         "url": "https://github.com/juanluispaz/ts-sql-query/issues"
     },
+    "homepage": "https://ts-sql-query.readthedocs.io/",
     "devDependencies": {
         "@prisma/client": "^2.22.1",
         "@types/any-db": "^2.1.30",

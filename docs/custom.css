@@ -33,11 +33,23 @@ h2~h2 {
 .rst-versions,
 .wy-nav-side,
 .wy-menu-vertical {
-    width: 310px;
+    width: 310px !important;
 }
 
 .wy-nav-side {
     padding-bottom: 2.6rem
+}
+
+footer {
+    font-size: 0rem;
+}
+
+footer>hr {
+    display: none;
+}
+
+footer>.rst-footer-buttons {
+    font-size: 1rem;
 }
 
 
@@ -160,16 +172,4 @@ code.sql {
 
 code.tsx {
     background-color: #2b2b2b !important;
-}
-
-footer {
-    font-size: 0rem;
-}
-
-footer>hr {
-    display: none;
-}
-
-footer>.rst-footer-buttons {
-    font-size: 1rem;
 }

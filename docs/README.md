@@ -59,7 +59,6 @@ You can read the latest version of the documentation at: https://ts-sql-query.re
   - [Composing one item in the result](composing-and-splitting-results.md#composing-one-item-in-the-result)
   - [Splitting results](composing-and-splitting-results.md#splitting-results)
   - [Splitting the result of one query](composing-and-splitting-results.md#splitting-the-result-of-one-query)
-- [supported-operations.md](#supported-operationsmd)
 - [Supported operations](supported-operations.md#supported-operations)
   - [Operations definitions](supported-operations.md#operations-definitions)
   - [Connection definition](supported-operations.md#connection-definition)

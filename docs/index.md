@@ -1,6 +1,6 @@
 # ts-sql-query
 
-[![npm](https://img.shields.io/npm/v/ts-sql-query.svg)](http://npm.im/ts-sql-query)
+[![npm](https://img.shields.io/npm/v/ts-sql-query.svg)](https://npm.im/ts-sql-query)
 
 ## What is ts-sql-query?
 

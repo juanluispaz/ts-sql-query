@@ -11,9 +11,9 @@ It allows to execute the queries using an [any-db](https://www.npmjs.com/package
 It internally uses:
 
 - [tedious](https://www.npmjs.com/package/tedious) for connections to SqlServer
-- [mysql](https://www.npmjs.com/package/mysql) for connections to MariaDB and MySql. It is not working properly due the bug https://github.com/Hypermediaisobar-admin/node-any-db-mssql/issues/1
+- [mysql](https://www.npmjs.com/package/mysql) for connections to MariaDB and MySql. It is not working properly due the bug [https://github.com/Hypermediaisobar-admin/node-any-db-mssql/issues/1](https://github.com/Hypermediaisobar-admin/node-any-db-mssql/issues/1)
 - [pg](https://www.npmjs.com/package/pg) for connections to PostgreSql
-- [sqlite3](https://www.npmjs.com/package/sqlite3) for connections to SqlLite. It is not working properly due the bug https://github.com/grncdr/node-any-db/issues/83
+- [sqlite3](https://www.npmjs.com/package/sqlite3) for connections to SqlLite. It is not working properly due the bug [https://github.com/grncdr/node-any-db/issues/83](https://github.com/grncdr/node-any-db/issues/83)
 
 **Note**: All of these implementations have a direct implementation here as alternative.
 
@@ -41,9 +41,9 @@ It allows to execute the queries using an [any-db](https://www.npmjs.com/package
 It internally uses:
 
 - [tedious](https://www.npmjs.com/package/tedious) for connections to SqlServer
-- [mysql](https://www.npmjs.com/package/mysql) for connections to MariaDB and MySql. It is not working properly due the bug https://github.com/Hypermediaisobar-admin/node-any-db-mssql/issues/1
+- [mysql](https://www.npmjs.com/package/mysql) for connections to MariaDB and MySql. It is not working properly due the bug [https://github.com/Hypermediaisobar-admin/node-any-db-mssql/issues/1](https://github.com/Hypermediaisobar-admin/node-any-db-mssql/issues/1)
 - [pg](https://www.npmjs.com/package/pg) for connections to PostgreSql
-- [sqlite3](https://www.npmjs.com/package/sqlite3) for connections to SqlLite. It is not working properly due the bug https://github.com/grncdr/node-any-db/issues/83
+- [sqlite3](https://www.npmjs.com/package/sqlite3) for connections to SqlLite. It is not working properly due the bug [https://github.com/grncdr/node-any-db/issues/83](https://github.com/grncdr/node-any-db/issues/83)
 
 **Note**: All of these implementations have a direct implementation here as alternative.
 
@@ -253,6 +253,7 @@ async function main() {
 Long running transactions are not supported by Prisma and they are not likely to be supported in a future. For more information see the [limitations](https://www.prisma.io/docs/about/limitations#long-running-transactions), the [blog page](https://www.prisma.io/blog/how-prisma-supports-transactions-x45s1d5l0ww1) expaining it more, the [transactions guide](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide/) and the [bug report](https://github.com/prisma/prisma/issues/1844).
 
 The consequence of this limitation is you cannot call the low level transaction methods:
+
 - `beginTransaction`
 - `commit`
 - `rollback`
@@ -305,7 +306,7 @@ async function main() {
 
 It allows to execute the queries using a [tedious](https://www.npmjs.com/package/tedious) connection and a [tedious-connection-pool](https://www.npmjs.com/package/tedious-connection-pool) pool.
 
-**Note**: This is not working due the bug https://github.com/tediousjs/tedious-connection-pool/issues/60
+**Note**: This is not working due the bug [https://github.com/tediousjs/tedious-connection-pool/issues/60](https://github.com/tediousjs/tedious-connection-pool/issues/60)
 
 **Supported databases**: sqlServer
 

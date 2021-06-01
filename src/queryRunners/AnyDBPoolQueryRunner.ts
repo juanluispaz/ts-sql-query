@@ -1,10 +1,9 @@
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { ConnectionPool, Connection } from 'any-db'
-import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
+import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { AnyDBQueryRunner } from "./AnyDBQueryRunner"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
-export class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {
+export class AnyDBPoolQueryRunner extends PromiseBasedPoolQueryRunner {
     readonly database: DatabaseType
     readonly pool: ConnectionPool
 
@@ -70,21 +69,12 @@ export class AnyDBPoolQueryRunner extends AbstractPoolQueryRunner {
         return result
 
     }
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
-    }
     executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         const adapterName = this.pool.adapter.name
         if (adapterName !== 'mssql' && adapterName !== 'postgres') {
             throw new Error('Unsupported executeInsertReturningMultipleLastInsertedId for this database')
         }
         return super.executeInsertReturningMultipleLastInsertedId(query, params)
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return new Promise((resolve, reject) => {

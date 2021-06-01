@@ -2,10 +2,9 @@ import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { Pool, Connection } from 'oracledb'
 import { BIND_OUT } from 'oracledb'
 import { OracleDBQueryRunner } from "./OracleDBQueryRunner"
-import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 
-export class OracleDBPoolQueryRunner extends AbstractPoolQueryRunner {
+export class OracleDBPoolQueryRunner extends PromiseBasedPoolQueryRunner {
     readonly database: DatabaseType
     readonly pool: Pool
 
@@ -36,12 +35,6 @@ export class OracleDBPoolQueryRunner extends AbstractPoolQueryRunner {
             params.push({dir: BIND_OUT})
         }
         return ':' + index
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.pool.getConnection().then(connection => new OracleDBQueryRunner(connection))

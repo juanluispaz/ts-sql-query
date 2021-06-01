@@ -1,10 +1,9 @@
 import type { DatabaseType } from "./QueryRunner"
 import type { Connection } from 'oracledb'
 import { OUT_FORMAT_OBJECT, OUT_FORMAT_ARRAY, BIND_OUT } from 'oracledb'
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 
-export class OracleDBQueryRunner extends AbstractQueryRunner {
+export class OracleDBQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
 
@@ -154,12 +153,6 @@ export class OracleDBQueryRunner extends AbstractQueryRunner {
             params.push({dir: BIND_OUT})
         }
         return ':' + index
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
     }
 }
 

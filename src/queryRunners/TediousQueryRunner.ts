@@ -1,10 +1,9 @@
 import type { DatabaseType } from "./QueryRunner"
 import type { Connection, TediousType } from 'tedious'
 import { Request, TYPES } from 'tedious'
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 
-export class TediousQueryRunner extends AbstractQueryRunner {
+export class TediousQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
 
@@ -336,15 +335,6 @@ export class TediousQueryRunner extends AbstractQueryRunner {
         const index = params.length
         params.push(value)
         return '@' + index
-    }
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
     }
 
     protected predefinedTypes: {[type: string]: TediousType | undefined} = {

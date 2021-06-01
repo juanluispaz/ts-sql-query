@@ -1,10 +1,9 @@
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { ConnectionPool } from 'mssql'
-import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
+import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { MssqlPoolQueryRunner } from "./MssqlPoolQueryRunner"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
-export class MssqlPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
+export class MssqlPoolPromiseQueryRunner extends PromiseBasedPoolQueryRunner {
     readonly database: DatabaseType
     readonly promisePool: Promise<ConnectionPool>
 
@@ -26,15 +25,6 @@ export class MssqlPoolPromiseQueryRunner extends AbstractPoolQueryRunner {
         const index = params.length
         params.push(value)
         return '@' + index
-    }
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.promisePool.then(pool => new MssqlPoolQueryRunner(pool))

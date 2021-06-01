@@ -1,7 +1,6 @@
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { DataSource, Transaction } from 'loopback-datasource-juggler'
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 
 export function createLoopBackQueryRunner(datasource: DataSource, transaction?: Transaction): LoopbackQueryRunner {
     const connector = datasource.connector
@@ -31,7 +30,7 @@ export interface LoopbackQueryRunner extends QueryRunner {
     transaction?: Transaction
 }
 
-export abstract class LoopBackAbstractQueryRunner extends AbstractQueryRunner implements LoopbackQueryRunner {
+export abstract class LoopBackAbstractQueryRunner extends PromiseBasedQueryRunner implements LoopbackQueryRunner {
     // @ts-ignore
     readonly database: DatabaseType
     readonly datasource: DataSource
@@ -97,11 +96,6 @@ export abstract class LoopBackAbstractQueryRunner extends AbstractQueryRunner im
             return row[columns[0]!] // Value in the row of the first column without care about the name
         }))
     }
-    abstract executeInsert(query: string, params?: any[]): Promise<number>
-    abstract executeInsertReturningLastInsertedId(query: string, params?: any[]): Promise<any>
-    abstract executeInsertReturningMultipleLastInsertedId(query: string, params?: any[]): Promise<any>
-    abstract executeUpdate(query: string, params?: any[]): Promise<number>
-    abstract executeDelete(query: string, params?: any[]): Promise<number>
     executeProcedure(query: string, params: any[] = []): Promise<void> {
         return this.query(query, params).then(() => undefined)
     }
@@ -144,16 +138,6 @@ export abstract class LoopBackAbstractQueryRunner extends AbstractQueryRunner im
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.query(query, params).then(() => undefined)
-    }
-    abstract addParam(params: any[], value: any): string
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
     }
     protected query(query: string, params?: any[]): Promise<any> {
         return this.datasource.execute(query, params, {transaction: this.transaction})

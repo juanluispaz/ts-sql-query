@@ -1,5 +1,5 @@
 import type { PromiseProvider, UnwrapPromiseTuple } from "../utils/PromiseProvider"
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import { ManagedTransactionQueryRunner } from "./ManagedTransactionQueryRunner"
 import type { DatabaseType } from "./QueryRunner"
 
 export interface ConsoleLogNoopQueryRunnerConfig {
@@ -7,7 +7,7 @@ export interface ConsoleLogNoopQueryRunnerConfig {
     promise?: PromiseProvider
 }
 
-export class ConsoleLogNoopQueryRunner extends AbstractQueryRunner {
+export class ConsoleLogNoopQueryRunner extends ManagedTransactionQueryRunner {
     readonly database: DatabaseType
     readonly promise: PromiseProvider
 

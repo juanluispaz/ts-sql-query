@@ -1,9 +1,8 @@
 import type { DatabaseType } from "./QueryRunner"
 import type { ClientBase } from 'pg'
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 
-export class PgQueryRunner extends AbstractQueryRunner {
+export class PgQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: ClientBase
 
@@ -131,14 +130,5 @@ export class PgQueryRunner extends AbstractQueryRunner {
     addParam(params: any[], value: any): string {
         params.push(value)
         return '$' + params.length
-    }
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
     }
 }

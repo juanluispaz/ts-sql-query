@@ -1,10 +1,9 @@
 import type { DatabaseType } from "./QueryRunner"
 import type { Connection, ResultSet } from 'any-db'
 import * as begin  from 'any-db-transaction'
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 
-export class AnyDBQueryRunner extends AbstractQueryRunner {
+export class AnyDBQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
 
     readonly connection: Connection
@@ -226,15 +225,6 @@ export class AnyDBQueryRunner extends AbstractQueryRunner {
         params.push(value)
         return result
 
-    }
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
     }
     protected query(query: string, params?: any[]): Promise<ResultSet> {
         let queryParams: any = params

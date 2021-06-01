@@ -1,10 +1,9 @@
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type * as ConnectionPool from 'tedious-connection-pool'
-import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
+import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { TediousQueryRunner } from "./TediousQueryRunner"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
-export class TediousPoolQueryRunner extends AbstractPoolQueryRunner {
+export class TediousPoolQueryRunner extends PromiseBasedPoolQueryRunner {
     readonly database: DatabaseType
     readonly pool: ConnectionPool
 
@@ -26,15 +25,6 @@ export class TediousPoolQueryRunner extends AbstractPoolQueryRunner {
         const index = params.length
         params.push(value)
         return '@' + index
-    }
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return new Promise((resolve, reject) => {

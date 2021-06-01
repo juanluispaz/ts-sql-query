@@ -1,7 +1,8 @@
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
-import type { QueryRunner } from "./QueryRunner"
+import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { DatabaseType, QueryRunner } from "./QueryRunner"
 
-export abstract class AbstractPoolQueryRunner extends AbstractQueryRunner {
+export abstract class AbstractPoolQueryRunner implements QueryRunner {
+    abstract readonly database: DatabaseType
     private currentQueryRunner?: QueryRunner
     private transactionLevel = 0
 
@@ -72,6 +73,19 @@ export abstract class AbstractPoolQueryRunner extends AbstractQueryRunner {
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.getQueryRunner().then(queryRunner => queryRunner.executeDatabaseSchemaModification(query, params)).finally(() => this.releaseIfNeeded())
     }
+
+    abstract executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
+    abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
+    abstract executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
+    abstract executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
+
+    abstract useDatabase(database: DatabaseType): void
+    abstract getNativeRunner(): unknown
+    abstract addParam(params: any[], value: any): string
+    addOutParam(_params: any[], _name: string): string {
+        throw new Error('Unsupported output parameters')
+    }
+    abstract createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
 
     private getQueryRunner(): Promise<QueryRunner> {
         if (!this.currentQueryRunner) {

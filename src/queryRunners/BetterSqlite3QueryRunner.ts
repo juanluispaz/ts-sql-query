@@ -2,13 +2,13 @@ import type { DatabaseType } from "./QueryRunner"
 import type { Database } from 'better-sqlite3'
 import type { PromiseProvider, UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { Integer } from 'better-sqlite3'
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 
 export interface BetterSqlite3QueryRunnerConfig {
     promise?: PromiseProvider
 }
 
-export class BetterSqlite3QueryRunner extends AbstractQueryRunner {
+export class BetterSqlite3QueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: Database
     readonly promise: PromiseProvider
@@ -192,9 +192,6 @@ export class BetterSqlite3QueryRunner extends AbstractQueryRunner {
     addParam(params: any[], value: any): string {
         params.push(value)
         return '?'
-    }
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.promise.resolve(result) 

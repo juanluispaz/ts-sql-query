@@ -22,37 +22,13 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     abstract executeRollback(): Promise<void>
     abstract executeDatabaseSchemaModification(query: string, params?: any[]): Promise<void>
     abstract addParam(params: any[], value: any): string
-    abstract addOutParam(params: any[], name: string): string
+    addOutParam(_params: any[], _name: string): string {
+        throw new Error('Unsupported output parameters')
+    }
     abstract createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
     abstract createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>>
-    executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any> {
-        return outermostQueryRunner.executeBeginTransaction().then(() => {
-            let result = fn()
-            if (Array.isArray(result)) {
-                result = this.createAllPromise(result)
-            }
-            return result.then((r) => {
-                return outermostQueryRunner.executeCommit().then(() => {
-                    return r
-                })
-            }, (e) => {
-                return outermostQueryRunner.executeRollback().then(() => {
-                    throw e
-                }, () => {
-                    // Throw the innermost error
-                    throw e
-                })
-            })
-        })
-    }
-    executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
-        return fn1().then((r1) => {
-            return fn2().then((r2) => {
-                return [r1, r2]
-            })
-        })
-    }
+    abstract executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
+    abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
+    abstract executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
+    abstract executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
 }

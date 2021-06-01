@@ -1,10 +1,9 @@
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { Pool, PoolConnection } from "mysql"
-import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
+import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { MySqlQueryRunner } from "./MySqlQueryRunner"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
-export class MySqlPoolQueryRunner extends AbstractPoolQueryRunner {
+export class MySqlPoolQueryRunner extends PromiseBasedPoolQueryRunner {
     readonly database: DatabaseType
     readonly pool: Pool
 
@@ -29,17 +28,8 @@ export class MySqlPoolQueryRunner extends AbstractPoolQueryRunner {
         params.push(value)
         return '?'
     }
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
-    }
     executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
-        throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
+        throw new Error('Unsupported executeInsertReturningMultipleLastInsertedId for this database')
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return new Promise((resolve, reject) => {

@@ -1,5 +1,4 @@
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 import type { DatabaseType } from "./QueryRunner"
 
 // Depends of msnodesqlv8
@@ -29,7 +28,7 @@ export interface SubmittedEventCb { (sql: string, params:any[]): void
 export interface EventColumnCb { (colIndex: number, data:any, more:boolean): void
 }
 
-export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends AbstractQueryRunner {
+export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: CONNECTION
 
@@ -297,14 +296,5 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends Abstr
         const index = params.length
         params.push(value)
         return '@' + index
-    }
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
     }
 }

@@ -1,10 +1,9 @@
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { Pool, PoolClient } from 'pg'
-import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner"
+import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { PgQueryRunner } from "./PgQueryRunner"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
-export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
+export class PgPoolQueryRunner extends PromiseBasedPoolQueryRunner {
     readonly database: DatabaseType
     readonly pool: Pool
 
@@ -25,15 +24,6 @@ export class PgPoolQueryRunner extends AbstractPoolQueryRunner {
     addParam(params: any[], value: any): string {
         params.push(value)
         return '$' + params.length
-    }
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
     }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.pool.connect().then(connection => new PgQueryRunner(connection))

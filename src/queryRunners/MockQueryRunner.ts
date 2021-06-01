@@ -1,5 +1,5 @@
 import type { PromiseProvider, UnwrapPromiseTuple } from "../utils/PromiseProvider"
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import { ManagedTransactionQueryRunner } from "./ManagedTransactionQueryRunner"
 import type { DatabaseType } from "./QueryRunner"
 
 export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
@@ -11,7 +11,7 @@ export interface MockQueryRunnerConfig {
     promise?: PromiseProvider
 }
 
-export class MockQueryRunner extends AbstractQueryRunner {
+export class MockQueryRunner extends ManagedTransactionQueryRunner {
     private count = 0
     readonly queryExecutor: QueryExecutor
 

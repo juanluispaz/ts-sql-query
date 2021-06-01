@@ -1,9 +1,8 @@
 import type { DatabaseType } from "./QueryRunner"
 import type { Database } from 'sqlite3'
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 
-export class Sqlite3QueryRunner extends AbstractQueryRunner {
+export class Sqlite3QueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: Database
 
@@ -122,7 +121,7 @@ export class Sqlite3QueryRunner extends AbstractQueryRunner {
         })
     }
     executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
-        throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
+        throw new Error('Unsupported executeInsertReturningMultipleLastInsertedId for this database')
     }
     executeUpdate(query: string, params: any[] = []): Promise<number> {
         return new Promise((resolve, reject) => {
@@ -229,14 +228,5 @@ export class Sqlite3QueryRunner extends AbstractQueryRunner {
     addParam(params: any[], value: any): string {
         params.push(value)
         return '?'
-    }
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
     }
 }

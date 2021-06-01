@@ -1,9 +1,9 @@
 import type { DatabaseType } from "./QueryRunner"
 import type { Connection } from "mysql"
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
+import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
-export class MySqlQueryRunner extends AbstractQueryRunner {
+export class MySqlQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
 
@@ -232,9 +232,6 @@ export class MySqlQueryRunner extends AbstractQueryRunner {
     addParam(params: any[], value: any): string {
         params.push(value)
         return '?'
-    }
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 

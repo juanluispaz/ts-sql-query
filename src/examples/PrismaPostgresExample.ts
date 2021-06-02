@@ -251,6 +251,19 @@ async function main() {
             .executeSelectOne()
         assertEquals(name, 'ACME Cia.')
 
+        ii = await connection
+            .insertInto(tCompany)
+            .from(
+                connection
+                .selectFrom(tCompany)
+                .select({
+                    name: tCompany.name.concat(' 3')
+                })
+            )
+            .returningLastInsertedId()
+            .executeInsert()
+        assertEquals(ii, [5, 6, 7])
+
         // commit = true
     } finally {
         // Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844

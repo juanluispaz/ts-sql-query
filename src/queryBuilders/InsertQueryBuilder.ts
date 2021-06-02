@@ -49,7 +49,7 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
                 return this.__sqlBuilder._queryRunner.executeInsert(this.__query, this.__params).catch((e) => {
                     throw attachSource(new ChainedError(e), source)
                 })
-            } else if (!multiple) {
+            } else if (!multiple && !this.__from) {
                 return this.__sqlBuilder._queryRunner.executeInsertReturningLastInsertedId(this.__query, this.__params).then((value) => {
                     if (value === undefined) {
                         value = null

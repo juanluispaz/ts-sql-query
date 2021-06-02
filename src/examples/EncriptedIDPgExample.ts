@@ -284,6 +284,19 @@ async function main() {
             .executeSelectOne()
         assertEquals(name, 'ACME Cia.')
 
+        ii = await connection
+            .insertInto(tCompany)
+            .from(
+                connection
+                .selectFrom(tCompany)
+                .select({
+                    name: tCompany.name.concat(' 3')
+                })
+            )
+            .returningLastInsertedId()
+            .executeInsert()
+        assertEquals(ii, ['BQjHWTD6_ulK0507', 'J_BFtuk1cz1D0609', 'EHT8AO2zDvi0070d'])
+
         commit = true
     } finally {
         if (commit) {

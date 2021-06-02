@@ -115,6 +115,41 @@ const customerCountPerCompany: Promise<{
 }[]>
 ```
 
+## Select with left join
+
+To use a table or view on a left join, you must get a left join representation calling the method `forUseInLeftJoin` or `forUseInLeftJoinAs` previous to write the query.
+
+```ts
+const parent = tCompany.forUseInLeftJoinAs('parent');
+
+const leftJoinCompany = connection.selectFrom(tCompany)
+    .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        parentId: parent.id,
+        parentName: parent.name
+    }).executeSelectMany();
+```
+
+The executed query is:
+```sql
+select company.id as id, company.name as name, parent.id as parentId, parent.name as parentName 
+from company left join company as parent on company.parent_id = parent.id
+```
+
+The parameters are: `[]`
+
+The result type is:
+```tsx
+const leftJoinCompany: Promise<{
+    id: number;
+    name: string;
+    parentId?: number;
+    parentName?: string;
+}[]>
+```
+
 ## Select with a compound operator (union, intersect, except)
 
 ```ts

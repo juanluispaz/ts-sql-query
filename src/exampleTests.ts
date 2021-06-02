@@ -1061,6 +1061,22 @@ const recursiveOnChildrenCompany = connection.selectFrom(tCompany)
 // Query: with recursive recursive_select_1 as (select id as id, name as name, parent_id as parentId from company where id = $1 union all select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.id = company.parent_id) select id as id, name as name, parentId as "parentId" from recursive_select_1
 // Params: [ 10 ]
 
+results.push([])
+
+const parent = tCompany.forUseInLeftJoinAs('parent')
+
+const leftJoinCompany = connection.selectFrom(tCompany)
+    .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        parentId: parent.id,
+        parentName: parent.name
+    }).executeSelectMany()
+
+// Query: select company.id as id, company.name as name, parent.id as parentId, parent.name as parentName from company left join company as parent on company.parent_id = parent.id
+// Params: [ ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -1099,6 +1115,7 @@ recursiveParentCompany.finally(() => undefined)
 recursiveOnParentCompany.finally(() => undefined)
 recursiveChildrenCompany.finally(() => undefined)
 recursiveOnChildrenCompany.finally(() => undefined)
+leftJoinCompany.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

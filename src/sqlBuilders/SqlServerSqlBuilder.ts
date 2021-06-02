@@ -220,8 +220,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _buildInsertOutput(query: InsertData, params: any[]): string {
         const idColumn = query.__idColumn
         if (!idColumn) {
+            this._setContainsInsertReturningClause(params, false)
             return ''
         }
+        this._setContainsInsertReturningClause(params, true)
         return ' output inserted.' + this._appendSql(idColumn, params)
     }
     _buildInsertReturning(_query: InsertData, _params: any[]): string {

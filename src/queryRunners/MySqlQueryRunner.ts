@@ -1,7 +1,6 @@
 import type { DatabaseType } from "./QueryRunner"
 import type { Connection } from "mysql"
 import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
 export class MySqlQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
@@ -30,22 +29,7 @@ export class MySqlQueryRunner extends PromiseBasedQueryRunner {
         return fn(this.connection)
     }
 
-    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, (error, results) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    if (results.length > 1) {
-                        reject(new Error('Too many rows, expected only zero or one row'))
-                        return
-                    }
-                    resolve(results[0])
-                }
-            })
-        })
-    }
-    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
+    protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error, results) => {
                 if (error) {
@@ -56,53 +40,7 @@ export class MySqlQueryRunner extends PromiseBasedQueryRunner {
             })
         })
     }
-    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, (error, results) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    if (results.length > 1) {
-                        reject(new Error('Too many rows, expected only zero or one row'))
-                        return
-                    }
-                    const row = results[0]
-                    if (row) {
-                        const columns = Object.getOwnPropertyNames(row)
-                        if (columns.length > 1) {
-                            reject(Error('Too many columns, expected only one column'))
-                            return
-                        }
-                        resolve(row[columns[0]!]) // Value in the row of the first column without care about the name
-                        return
-                    }
-                    resolve(undefined)
-                }
-            })
-        })
-    }
-    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, (error, results) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    const result = []
-                    for (let i = 0, length = results.length; i < length; i++) {
-                        const row = results[i]
-                        const columns = Object.getOwnPropertyNames(row)
-                        if (columns.length > 1) {
-                            reject(new Error('Too many columns, expected only one column'))
-                            return
-                        }
-                        result.push(row[columns[0]!]) // Value in the row of the first column without care about the name
-                    }
-                    resolve(result)
-                }
-            })
-        })
-    }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
+    protected executeMutation(query: string, params: any[]): Promise<number> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error, results) => {
                 if (error) {
@@ -114,73 +52,16 @@ export class MySqlQueryRunner extends PromiseBasedQueryRunner {
         })
     }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+        if (this.containsInsertReturningClause(query, params)) {
+            return super.executeInsertReturningLastInsertedId(query, params)
+        }
+        
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, (error, results) => {
                 if (error) {
                     reject(error)
                 } else {
                     resolve(results.insertId)
-                }
-            })
-        })
-    }
-    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
-        throw new Error('Unsupported executeInsertReturningLastInsertedId for this database')
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, (error, results) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(results.affectedRows)
-                }
-            })
-        })
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, (error, results) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(results.affectedRows)
-                }
-            })
-        })
-    }
-    executeProcedure(query: string, params: any[] = []): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, (error) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(undefined)
-                }
-            })
-        })
-    }
-    executeFunction(query: string, params: any[] = []): Promise<any> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, (error, results) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    if (results.length > 1) {
-                        reject(new Error('Too many rows, expected only zero or one row'))
-                        return
-                    }
-                    const row = results[0]
-                    if (row) {
-                        const columns = Object.getOwnPropertyNames(row)
-                        if (columns.length > 1) {
-                            reject(Error('Too many columns, expected only one column'))
-                            return
-                        }
-                        resolve(row[columns[0]!]) // Value in the row of the first column without care about the name
-                        return
-                    }
-                    resolve(undefined)
                 }
             })
         })
@@ -218,25 +99,8 @@ export class MySqlQueryRunner extends PromiseBasedQueryRunner {
             })
         })
     }
-    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, (error) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(undefined)
-                }
-            })
-        })
-    }
     addParam(params: any[], value: any): string {
         params.push(value)
         return '?'
-    }
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return Promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return Promise.all(promises) as any
     }
 }

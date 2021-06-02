@@ -34,5 +34,5 @@ export abstract class ManagedTransactionPoolQueryRunner extends AbstractPoolQuer
         })
     }
 
-    abstract createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>>
+    protected abstract createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>>
 }

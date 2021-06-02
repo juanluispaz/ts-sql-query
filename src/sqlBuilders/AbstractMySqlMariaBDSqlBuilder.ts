@@ -112,7 +112,8 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''
     }
-    _buildInsertReturning(_query: InsertData, _params: any[]): string {
+    _buildInsertReturning(_query: InsertData, params: any[]): string {
+        this._setContainsInsertReturningClause(params, false)
         return ''
     }
     _is(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {

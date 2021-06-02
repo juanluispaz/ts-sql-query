@@ -95,6 +95,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
             configurable: true
         })
     }
+    _getContainsInsertReturningClause(params: any[]): boolean | undefined {
+        return (params as any)._containsInsertReturningClause
+    }
+    _setContainsInsertReturningClause(params: any[], value: boolean | undefined): void {
+        Object.defineProperty(params, '_containsInsertReturningClause', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
     _isValue(value: any): boolean {
         if (value === null || undefined) {
             return false
@@ -890,8 +901,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildInsertReturning(query: InsertData, params: any[]): string {
         const idColumn = query.__idColumn
         if (!idColumn) {
+            this._setContainsInsertReturningClause(params, false)
             return ''
         }
+        this._setContainsInsertReturningClause(params, true)
         return ' returning ' + this._appendSql(idColumn, params)
     }
     _nextSequenceValue( _params: any[], sequenceName: string) {

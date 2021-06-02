@@ -1,6 +1,7 @@
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { DataSource, Transaction } from 'loopback-datasource-juggler'
 import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
+import { processOutBinds } from "./OracleUtils"
 
 export function createLoopBackQueryRunner(datasource: DataSource, transaction?: Transaction): LoopbackQueryRunner {
     const connector = datasource.connector
@@ -60,61 +61,7 @@ export abstract class LoopBackAbstractQueryRunner extends PromiseBasedQueryRunne
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
         return fn(this.datasource, this.transaction)
     }
-    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            return rows[0]
-        })
-    }
-    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.query(query, params)
-    }
-    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = rows[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
-        })
-    }
-    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.query(query, params).then((rows) => rows.map((row: any) => {
-            const columns = Object.getOwnPropertyNames(row)
-            if (columns.length > 1) {
-                throw new Error('Too many columns, expected only one column')
-            }
-            return row[columns[0]!] // Value in the row of the first column without care about the name
-        }))
-    }
-    executeProcedure(query: string, params: any[] = []): Promise<void> {
-        return this.query(query, params).then(() => undefined)
-    }
-    executeFunction(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = rows[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
-        })
-    }
+
     executeBeginTransaction(): Promise<void> {
         return this.datasource.beginTransaction({}).then((transaction) => {
             this.transaction = transaction
@@ -136,8 +83,8 @@ export abstract class LoopBackAbstractQueryRunner extends PromiseBasedQueryRunne
             this.transaction = undefined
         })
     }
-    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
-        return this.query(query, params).then(() => undefined)
+    protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
+        return this.query(query, params)
     }
     protected query(query: string, params?: any[]): Promise<any> {
         return this.datasource.execute(query, params, {transaction: this.transaction})
@@ -166,28 +113,14 @@ export class LoopBackMySqlQueryRunner extends LoopBackAbstractQueryRunner {
             }
         }
     }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => {
-            return result.affectedRows
-        })
+    protected executeMutation(query: string, params: any[]): Promise<number> {
+        return this.query(query, params).then(result => result.affectedRows)
     }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((result) => {
-            return result.insertId
-        })
-    }
-    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
-        throw new Error('Unsupported executeInsertReturningMultipleLastInsertedId for this database')
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => {
-            return result.affectedRows
-        })
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => {
-            return result.affectedRows
-        })
+        if (this.containsInsertReturningClause(query, params)) {
+            return super.executeInsertReturningLastInsertedId(query, params)
+        }
+        return this.query(query, params).then(result => result.insertId)
     }
     addParam(params: any[], value: any): string {
         params.push(value)
@@ -204,50 +137,12 @@ export class LoopBackOracleQueryRunner extends LoopBackAbstractQueryRunner {
         }
     }
 
-    executeInsert(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => {
-            return result.rowsAffected
-        })
+    protected executeMutation(query: string, params: any[]): Promise<number> {
+        return this.query(query, params).then(result => result.rowsAffected)
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    protected executeMutationReturning(query: string, params: any[] = []): Promise<any[]> {
         return this.query(query, params).then((result) => {
-            const outBinds = result.outBinds
-            if (!outBinds) {
-                throw new Error('Unable to find the last inserted id, no outBinds')
-            } else if (Array.isArray(outBinds)) {
-                if (outBinds.length === 1) {
-                    return getOnlyOneValue(outBinds[0])
-                }
-            } else {
-                throw new Error('Invalid outBinds returned by the database')
-            }
-            throw new Error('Unable to find the last inserted id')
-        })
-    }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((result) => {
-            const outBinds = result.outBinds
-            if (!outBinds) {
-                throw new Error('Unable to find the last inserted id, no outBinds')
-            } else if (Array.isArray(outBinds)) {
-                const result = []
-                for (let i = 0, length = outBinds.length; i < length; i++) {
-                    result.push(getOnlyOneValue(outBinds[i]))
-                }
-                return result
-            } else {
-                throw new Error('Invalid outBinds returned by the database')
-            }
-        })
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => {
-            return result.rowsAffected
-        })
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => {
-            return result.rowsAffected
+            return processOutBinds(params, result.outBinds)
         })
     }
     addParam(params: any[], value: any): string {
@@ -266,17 +161,6 @@ export class LoopBackOracleQueryRunner extends LoopBackAbstractQueryRunner {
     }
 }
 
-function getOnlyOneValue(values: any): any {
-    if (Array.isArray(values)) {
-        if (values.length != 1) {
-            throw new Error('Unable to find the output value in the output')
-        }
-        return values[0]
-    } else {
-        return values
-    }
-}
-
 export class LoopBackPostgreSqlQueryRunner extends LoopBackAbstractQueryRunner {
 
     constructor(datasource: DataSource, transaction?: Transaction) {
@@ -286,6 +170,9 @@ export class LoopBackPostgreSqlQueryRunner extends LoopBackAbstractQueryRunner {
         }
     }
 
+    protected executeMutation(query: string, params: any[]): Promise<number> {
+        return this.query(query, params).then(result => result?.affectedRows || 0)
+    }
     executeInsert(query: string, params: any[] = []): Promise<number> {
         const rowsToInsert = this.guessInsertRowCount(query)
         if (!isNaN(rowsToInsert)) {
@@ -309,43 +196,6 @@ export class LoopBackPostgreSqlQueryRunner extends LoopBackAbstractQueryRunner {
                 throw new Error('Unable to find the the affected row count')
             })
         }
-    }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((result) => {
-            if (result.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = result[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            throw new Error('Unable to find the last inserted id')
-        })
-    }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((result) => {
-            return result.map((row: any) => {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            })
-        })
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => {
-            return result.affectedRows
-        })
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => {
-            return result.affectedRows
-        })
     }
     addParam(params: any[], value: any): string {
         params.push(value)
@@ -377,7 +227,7 @@ export class LoopBackSqlServerQueryRunner extends LoopBackAbstractQueryRunner {
         }
     }
 
-    executeInsert(query: string, params: any[] = []): Promise<number> {
+    protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.query(query + '; select @@ROWCOUNT as count', params).then((result) => {
             if (result.length > 1) {
                 throw new Error('Too many rows, expected only zero or one row')
@@ -393,64 +243,11 @@ export class LoopBackSqlServerQueryRunner extends LoopBackAbstractQueryRunner {
             throw new Error('Unable to find the affected row count')
         })
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((result) => {
-            if (result.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = result[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            throw new Error('Unable to find the last inserted id')
-        })
+    executeProcedure(query: string, params: any[] = []): Promise<void> {
+        return this.query(query, params).then(() => undefined)
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((result) => {
-            return result.map((row: any) => {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            })
-        })
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.query(query + '; select @@ROWCOUNT as count', params).then((result) => {
-            if (result.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = result[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            throw new Error('Unable to find the affected row count')
-        })
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.query(query + '; select @@ROWCOUNT as count', params).then((result) => {
-            if (result.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = result[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            throw new Error('Unable to find the affected row count')
-        })
+    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
+        return this.query(query, params).then(() => undefined)
     }
     addParam(params: any[], value: any): string {
         params.push(value)
@@ -467,7 +264,7 @@ class LoopBackSqliteQueryRunner extends LoopBackAbstractQueryRunner {
         }
         // Fix invalid transaction type
         const connector: any =  datasource.connector!
-        if (!connector.__tssqlquery_transactiontypefixed) {
+        if (!connector.__tssqlquery_fixed) {
             const beginTransaction: Function = connector.beginTransaction
             connector.beginTransaction = function(isolationLevel: any, cb: any) {
                 if (isolationLevel === 'READ COMMITTED' ||
@@ -479,43 +276,69 @@ class LoopBackSqliteQueryRunner extends LoopBackAbstractQueryRunner {
                 }
                 beginTransaction.call(this, isolationLevel, cb)
             }
-            connector.__tssqlquery_transactiontypefixed = true
+
+            // Implements forceReturning option
+
+            const executeSQL: Function = connector.executeSQL
+            connector.executeSQL = function(sql: string, params: any, options: any, callback: any) {
+                const connection = options?.transaction?.connection
+                if (connection && !connection.__tssqlquery_fixed) {
+                    const all: Function = connection.all
+                    connection.all = function(this: any, sql: any, ...args: any) {
+                        if (sql instanceof String) {
+                            sql = sql.valueOf()
+                        }
+                        return all.apply(this, [sql, ...args])
+                    }
+                    connection.__tssqlquery_fixed = true
+                }
+
+                if (options?.forceReturning) {
+                    const q = new String(sql)
+                    q.trim = () => {
+                        return 'select: ' + sql
+                    }
+                    executeSQL.call(this, q, params, options, callback)
+                } else {
+                    executeSQL.call(this, sql, params, options, callback)
+                }
+            }
+
+            connector.connect((_err: any, connection: any) => {
+                if (connection && !connection.__tssqlquery_fixed) {
+                    const all: Function = connection.all
+                    connection.all = function(this: any, sql: any, ...args: any) {
+                        if (sql instanceof String) {
+                            sql = sql.valueOf()
+                        }
+                        return all.apply(this, [sql, ...args])
+                    }
+                    connection.__tssqlquery_fixed = true
+                }
+            })
+
+            connector.__tssqlquery_fixed = true
         }
     }
 
-    executeInsert(query: string, params: any[] = []): Promise<number> {
-        return this.queryNoSelect(query, params).then((result) => {
-            return result.count
-        })
+    protected executeMutation(query: string, params: any[]): Promise<number> {
+        return this.queryNoSelect(query, params).then(result => result.count)
     }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.queryNoSelect(query, params).then((result) => {
-            return result.lastID
-        })
+        if (this.containsInsertReturningClause(query, params)) {
+            super.executeInsertReturningLastInsertedId(query, params)
+        }
+        return this.queryNoSelect(query, params).then(result => result.lastID)
     }
-    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
-        throw new Error('Unsupported executeInsertReturningMultipleLastInsertedId for this database')
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.queryNoSelect(query, params).then((result) => {
-            return result.count
-        })
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.queryNoSelect(query, params).then((result) => {
-            return result.count
-        })
+    protected executeMutationReturning(query: string, params: any[]): Promise<any[]> {
+        return this.datasource.execute(query, params, {transaction: this.transaction, forceReturning: true})
     }
     addParam(params: any[], value: any): string {
         params.push(value)
         return '?'
     }
     protected query(query: string, params?: any[]): Promise<any> {
-        if (query.startsWith('with ')) {
-            // Work-around to loopback limitation
-            query = 'select * from (' + query + ')'
-        }
-        return this.datasource.execute(query, params, {transaction: this.transaction})
+        return this.datasource.execute(query, params, {transaction: this.transaction, forceReturning: query.startsWith('with ')})
     }
     protected queryNoSelect(query: string, params?: any[]): Promise<any> {
         return this.datasource.execute(query, params, {transaction: this.transaction})

@@ -1,4 +1,5 @@
 import { UnwrapPromiseTuple } from "../utils/PromiseProvider";
+import { AbstractQueryRunner } from "./AbstractQueryRunner";
 import { DatabaseType, QueryRunner } from "./QueryRunner"
 
 interface RawPrismaClient {
@@ -7,12 +8,13 @@ interface RawPrismaClient {
     $transaction(arg: any[]): Promise<any[]>
 }
 
-export class PrismaQueryRunner implements QueryRunner {
+export class PrismaQueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType;
     readonly connection: RawPrismaClient
     private transactionLevel = 0
 
     constructor(connection: RawPrismaClient) {
+        super()
         this.connection = connection
         switch ((connection as any)._activeProvider) {
             case 'postgresql':
@@ -52,113 +54,35 @@ export class PrismaQueryRunner implements QueryRunner {
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
         return fn(this.connection)
     }
-    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.queryRaw(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            return rows[0]
-        })
+    protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
+        return this.wrapPrismaPromise(this.connection.$queryRaw<any[]>(query, ...params))
     }
-    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.queryRaw(query, params)
-    }
-    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.queryRaw(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = rows[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
-        })
-    }
-    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.queryRaw(query, params).then((rows) => rows.map((row) => {
-            const columns = Object.getOwnPropertyNames(row)
-            if (columns.length > 1) {
-                throw new Error('Too many columns, expected only one column')
-            }
-            return row[columns[0]!] // Value in the row of the first column without care about the name
-        }))
-    }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
-        return this.executeRaw(query, params)
+    protected executeMutation(query: string, params: any[]): Promise<number> {
+        return this.wrapPrismaPromise(this.connection.$executeRaw(query, ...params))
     }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.database === 'mySql' || this.database === 'mariaDB') {
-            return this.combineOperation(
-                this.executeRaw(query, params),
-                this.queryRaw('select last_insert_id()', [])
-            ).then(([_count, rows]) => {
-                return this.findLastInsertedId(rows)
-            })
+            if (this.containsInsertReturningClause(query, params)) {
+                return super.executeInsertReturningLastInsertedId(query, params)
+            }
+
+            return this.executeCombined(
+                () => this.executeInsert(query, params), 
+                () => this.executeSelectOneColumnOneRow('select last_insert_id()', [])
+            ).then(([_count, id]) => id)
         }
         if (this.database === 'sqlite') {
-            return this.combineOperation(
-                this.executeRaw(query, params),
-                this.queryRaw('select last_insert_rowid()', [])
-            ).then(([_count, rows]) => {
-                return this.findLastInsertedId(rows)
-            })
+            if (this.containsInsertReturningClause(query, params)) {
+                return super.executeInsertReturningLastInsertedId(query, params)
+            }
+
+            return this.executeCombined(
+                () => this.executeInsert(query, params), 
+                () => this.executeSelectOneColumnOneRow('select last_insert_rowid()', [])
+            ).then(([_count, id]) => id)
         }
-        return this.queryRaw(query, params).then((rows) => {
-            return this.findLastInsertedId(rows)
-        })
-    }
-    private findLastInsertedId(rows: any[]): any {
-        if (rows.length > 1) {
-            throw new Error('Too many rows, expected only zero or one row')
-        }
-        const row = rows[0]
-        if (row) {
-            const columns = Object.getOwnPropertyNames(row)
-            if (columns.length > 1) {
-                throw new Error('Too many columns, expected only one column')
-            }
-            return row[columns[0]!] // Value in the row of the first column without care about the name
-        }
-        throw new Error('Unable to find the last inserted id')
-    }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.queryRaw(query, params).then((rows) => rows.map((row) => {
-            const columns = Object.getOwnPropertyNames(row)
-            if (columns.length > 1) {
-                throw new Error('Too many columns, expected only one column')
-            }
-            return row[columns[0]!] // Value in the row of the first column without care about the name
-        }))
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.executeRaw(query, params)
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.executeRaw(query, params)
-    }
-    executeProcedure(query: string, params: any[] = []): Promise<void> {
-        return this.executeRaw(query, params).then(() => undefined)
-    }
-    executeFunction(query: string, params: any[] = []): Promise<any> {
-        return this.queryRaw(query, params).then((rows) => {
-            if (rows.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = rows[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
-        })
+        
+        return super.executeInsertReturningLastInsertedId(query, params)
     }
     executeBeginTransaction(): Promise<void> {
         return Promise.reject(new Error('Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844'))
@@ -191,9 +115,6 @@ export class PrismaQueryRunner implements QueryRunner {
             this.transactionLevel--
         }
     }
-    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
-        return this.executeRaw(query, params).then(() => undefined)
-    }
     addParam(params: any[], value: any): string {
         const index = params.length
         let result
@@ -225,9 +146,6 @@ export class PrismaQueryRunner implements QueryRunner {
         params.push(value)
         return result
     }
-    addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
-    }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         if (this.transactionLevel <= 0) {
             return Promise.resolve(result)
@@ -253,22 +171,6 @@ export class PrismaQueryRunner implements QueryRunner {
         }
 
         return new CombinedPrismaPromise(fn1() as any, fn2() as any) as any
-    }
-    combineOperation<R1, R2>(p1: Promise<R1>, p2: Promise<R2>): Promise<[R1, R2]> {
-        if (this.transactionLevel <= 0) {
-            return this.connection.$transaction([
-                p1,
-                p2
-            ]) as any
-        }
-
-        return new CombinedPrismaPromise(p1 as any, p2 as any) as any
-    }
-    protected executeRaw(query: string, params: any[]): Promise<number> {
-        return this.wrapPrismaPromise(this.connection.$executeRaw(query, ...params))
-    }
-    protected queryRaw(query: string, params: any[]): Promise<any[]> {
-        return this.wrapPrismaPromise(this.connection.$queryRaw<any[]>(query, ...params))
     }
     protected wrapPrismaPromise(promise: Promise<any>): Promise<any> {
         if (this.transactionLevel <= 0) {

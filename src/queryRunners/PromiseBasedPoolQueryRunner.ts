@@ -5,7 +5,7 @@ export abstract class PromiseBasedPoolQueryRunner extends ManagedTransactionPool
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
     }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
+    protected createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
         return Promise.all(promises) as any
     }
 }

@@ -54,103 +54,24 @@ export class AnyDBQueryRunner extends PromiseBasedQueryRunner {
         return fn(this.connection, this.transaction)
     }
 
-    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((result) => {
-            if (result.rows.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            return result.rows[0]
-        })
+    protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
+        return this.query(query, params).then(result => result.rows)
     }
-    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.query(query, params).then((result) => result.rows)
+    protected executeMutation(query: string, params: any[]): Promise<number> {
+        return this.query(query, params).then(result => result.rowCount)
     }
-    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((result) => {
-            if (result.rows.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = result.rows[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
-        })
-    }
-    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return this.query(query, params).then((result) => result.rows.map((row) => {
-            const columns = Object.getOwnPropertyNames(row)
-            if (columns.length > 1) {
-                throw new Error('Too many columns, expected only one column')
-            }
-            return row[columns[0]!] // Value in the row of the first column without care about the name
-        }))
-    }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => result.rowCount)
-    }
+    
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((result) => {
-            if (result.lastInsertId !== undefined && result.lastInsertId !== null) {
-                return result.lastInsertId
+        const database = this.database
+        if (database === 'sqlite' || database === 'mariaDB' || database === 'mySql') {
+            if (this.containsInsertReturningClause(query, params)) {
+                return super.executeInsertReturningLastInsertedId(query, params)
             }
-            if (result.rows.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = result.rows[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            throw new Error('Unable to find the last inserted id')
-        })
-    }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        const adapterName = this.connection.adapter.name
-        if (adapterName !== 'mssql' && adapterName !== 'postgres') {
-            throw new Error('Unsupported executeInsertReturningMultipleLastInsertedId for this database')
+
+            return this.query(query, params).then(result => result.lastInsertId)
         }
-        return this.query(query, params).then((result) => {
-            return result.rows.map((row) => {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            })
-        })
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => result.rowCount)
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return this.query(query, params).then((result) => result.rowCount)
-    }
-    executeProcedure(query: string, params: any[] = []): Promise<void> {
-        return this.query(query, params).then(() => undefined)
-    }
-    executeFunction(query: string, params: any[] = []): Promise<any> {
-        return this.query(query, params).then((result) => {
-            if (result.rows.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = result.rows[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
-        })
+        
+        return super.executeInsertReturningLastInsertedId(query, params)
     }
     executeBeginTransaction(): Promise<void> {
         return new Promise((resolve, reject) => {
@@ -199,9 +120,6 @@ export class AnyDBQueryRunner extends PromiseBasedQueryRunner {
                 }
             })
         })
-    }
-    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
-        return this.query(query, params).then(() => undefined)
     }
     addParam(params: any[], value: any): string {
         const index = params.length

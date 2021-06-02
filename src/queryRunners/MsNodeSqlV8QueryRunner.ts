@@ -52,22 +52,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends Promi
         return fn(this.connection)
     }
 
-    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, function (error, rows) {
-                if (error) {
-                    reject(error)
-                } else if (!rows) {
-                    resolve(undefined)
-                } else if (rows.length > 1) {
-                    reject(new Error('Too many rows, expected only zero or one row'))
-                } else {
-                    resolve(rows[0])
-                }
-            })
-        })
-    }
-    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
+    protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return new Promise((resolve, reject) => {
             this.connection.query(query, params, function (error, rows) {
                 if (error) {
@@ -80,54 +65,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends Promi
             })
         })
     }
-    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, function (error, rows) {
-                if (error) {
-                    reject(error)
-                } else if (!rows) {
-                    resolve(undefined)
-                } else if (rows.length > 1) {
-                    reject(new Error('Too many rows, expected only zero or one row'))
-                } else {
-                    const row = rows[0]
-                    if (row) {
-                        const columns = Object.getOwnPropertyNames(row)
-                        if (columns.length > 1) {
-                            throw new Error('Too many columns, expected only one column')
-                        }
-                        resolve(row[columns[0]!]) // Value in the row of the first column without care about the name
-                        return
-                    }
-                    resolve(undefined)
-                }
-            })
-        })
-    }
-    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, function (error, rows) {
-                if (error) {
-                    reject(error)
-                } else if (!rows) {
-                    resolve([])
-                } else {
-                    const result = []
-                    for (let i = 0, length = rows.length; i < length; i++) {
-                        const row = rows[i]
-                        const columns = Object.getOwnPropertyNames(row)
-                        if (columns.length > 1) {
-                            reject(new Error('Too many columns, expected only one column'))
-                            return
-                        }
-                        result.push(row[columns[0]!]) // Value in the row of the first column without care about the name
-                    }
-                    resolve(result)
-                }
-            })
-        })
-    }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
+    protected executeMutation(query: string, params: any[]): Promise<number> {
         return new Promise((resolve, reject) => {
             let rowCount = 0
             this.connection.query(query, params, function (error) {
@@ -139,113 +77,6 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends Promi
             }).on('rowcount', function (count: number) {
                 rowCount = count
              })
-        })
-    }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, function (error, rows) {
-                if (error) {
-                    reject(error)
-                } else if (!rows) {
-                    resolve(new Error('Unable to find the last inserted id'))
-                } else if (rows.length > 1) {
-                    reject(new Error('Too many rows, expected only zero or one row'))
-                } else {
-                    const row = rows[0]
-                    if (row) {
-                        const columns = Object.getOwnPropertyNames(row)
-                        if (columns.length > 1) {
-                            throw new Error('Too many columns, expected only one column')
-                        }
-                        resolve(row[columns[0]!]) // Value in the row of the first column without care about the name
-                        return
-                    }
-                    resolve(new Error('Unable to find the last inserted id'))
-                }
-            })
-        })
-    }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, function (error, rows) {
-                if (error) {
-                    reject(error)
-                } else if (!rows) {
-                    resolve(new Error('Unable to find the last inserted id'))
-                } else {
-                    const result = rows.map((row) => {
-                        const columns = Object.getOwnPropertyNames(row)
-                        if (columns.length > 1) {
-                            throw new Error('Too many columns, expected only one column')
-                        }
-                        return row[columns[0]!] // Value in the row of the first column without care about the name
-                    })
-                    resolve(result)
-                }
-            })
-        })
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return new Promise((resolve, reject) => {
-            let rowCount = 0
-            this.connection.query(query, params, function (error) {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(rowCount)
-                }
-            }).on('rowcount', function (count: number) {
-                rowCount = count
-             })
-        })
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return new Promise((resolve, reject) => {
-            let rowCount = 0
-            this.connection.query(query, params, function (error) {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(rowCount)
-                }
-            }).on('rowcount', function (count: number) {
-                rowCount = count
-             })
-        })
-    }
-    executeProcedure(query: string, params: any[] = []): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, function (error) {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(undefined)
-                }
-            })
-        })
-    }
-    executeFunction(query: string, params: any[] = []): Promise<any> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, function (error, rows) {
-                if (error) {
-                    reject(error)
-                } else if (!rows) {
-                    resolve(undefined)
-                } else if (rows.length > 1) {
-                    reject(new Error('Too many rows, expected only zero or one row'))
-                } else {
-                    const row = rows[0]
-                    if (row) {
-                        const columns = Object.getOwnPropertyNames(row)
-                        if (columns.length > 1) {
-                            throw new Error('Too many columns, expected only one column')
-                        }
-                        resolve(row[columns[0]!]) // Value in the row of the first column without care about the name
-                        return
-                    }
-                    resolve(undefined)
-                }
-            })
         })
     }
     executeBeginTransaction(): Promise<void> {
@@ -277,17 +108,6 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends Promi
                     reject(error)
                 } else {
                     resolve()
-                }
-            })
-        })
-    }
-    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.connection.query(query, params, function (error) {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(undefined)
                 }
             })
         })

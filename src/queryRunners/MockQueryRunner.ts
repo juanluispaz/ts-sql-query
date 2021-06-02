@@ -1,6 +1,5 @@
 import type { PromiseProvider, UnwrapPromiseTuple } from "../utils/PromiseProvider"
-import { ManagedTransactionQueryRunner } from "./ManagedTransactionQueryRunner"
-import type { DatabaseType } from "./QueryRunner"
+import type { DatabaseType, QueryRunner } from "./QueryRunner"
 
 export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
 
@@ -11,7 +10,7 @@ export interface MockQueryRunnerConfig {
     promise?: PromiseProvider
 }
 
-export class MockQueryRunner extends ManagedTransactionQueryRunner {
+export class MockQueryRunner implements QueryRunner {
     private count = 0
     readonly queryExecutor: QueryExecutor
 
@@ -19,7 +18,6 @@ export class MockQueryRunner extends ManagedTransactionQueryRunner {
     readonly promise: PromiseProvider
 
     constructor(queryExecutor: QueryExecutor, databaseOrConfig: DatabaseType | MockQueryRunnerConfig = 'noopDB') {
-        super()
         this.queryExecutor = queryExecutor
         if (typeof databaseOrConfig === 'string') {
             databaseOrConfig = { database: databaseOrConfig }
@@ -182,6 +180,38 @@ export class MockQueryRunner extends ManagedTransactionQueryRunner {
         params.push({out_param_with_name: name})
         return ':' + index
     }
+
+    executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
+    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
+    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any> {
+        return outermostQueryRunner.executeBeginTransaction().then(() => {
+            let result = fn()
+            if (Array.isArray(result)) {
+                result = this.createAllPromise(result)
+            }
+            return result.then((r) => {
+                return outermostQueryRunner.executeCommit().then(() => {
+                    return r
+                })
+            }, (e) => {
+                return outermostQueryRunner.executeRollback().then(() => {
+                    throw e
+                }, () => {
+                    // Throw the innermost error
+                    throw e
+                })
+            })
+        })
+    }
+    executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
+        return fn1().then((r1) => {
+            return fn2().then((r2) => {
+                return [r1, r2]
+            })
+        })
+    }
+
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.promise.resolve(result) 
     }

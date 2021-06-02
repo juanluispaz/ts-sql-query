@@ -219,8 +219,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _buildInsertReturning(query: InsertData, params: any[]): string {
         const idColumn = query.__idColumn
         if (!idColumn) {
+            this._setContainsInsertReturningClause(params, false)
             return ''
         }
+        this._setContainsInsertReturningClause(params, true)
         return ' returning ' + this._appendSql(idColumn, params) + ' into ' + this._queryRunner.addOutParam(params, '') // Empty name for the out params, no special name is requiered
     }
     _isNull(params: any[], valueSource: ToSql): string {

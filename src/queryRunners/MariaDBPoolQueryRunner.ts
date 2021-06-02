@@ -28,9 +28,6 @@ export class MariaDBPoolQueryRunner extends PromiseBasedPoolQueryRunner {
         params.push(value)
         return '?'
     }
-    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
-        throw new Error('Unsupported executeInsertReturningMultipleLastInsertedId for this database')
-    }
     protected createQueryRunner(): Promise<QueryRunner> {
         return this.pool.getConnection().then(mariaDBConnection => new MariaDBQueryRunner(mariaDBConnection, this.database as any))
     }

@@ -27,33 +27,7 @@ export class TediousQueryRunner extends PromiseBasedQueryRunner {
         return fn(this.connection)
     }
 
-    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        return new Promise((resolve, reject) => {
-            let result: any = null
-            const req = new Request(query, (error) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(result)
-                }
-            })
-            for (var i = 0, length = params.length; i < length; i++) {
-                req.addParameter('' + i, this.getType(params, i), params[i])
-            }
-            req.on('row', function (columns) {
-                if (result !== null) {
-                    reject(Error('Too many rows, expected only zero or one row'))
-                }
-                result = {}
-                for (var i = 0, length = columns.length; i < length; i++) {
-                    const column = columns[i]!
-                    result[column.metadata.colName] = column.value
-                }
-            })
-            this.connection.execSql(req)
-        })
-    }
-    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
+    protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return new Promise((resolve, reject) => {
             let result: any[] = []
             const req = new Request(query, (error) => {
@@ -77,64 +51,7 @@ export class TediousQueryRunner extends PromiseBasedQueryRunner {
             this.connection.execSql(req)
         })
     }
-    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        return new Promise((resolve, reject) => {
-            let result: any = undefined
-            const req = new Request(query, (error) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(result)
-                }
-            })
-            for (var i = 0, length = params.length; i < length; i++) {
-                req.addParameter('' + i, this.getType(params, i), params[i])
-            }
-            let rowFound = false
-            req.on('row', function (columns) {
-                if (rowFound) {
-                    reject(Error('Too many rows, expected only zero or one row'))
-                }
-                rowFound = true
-                if (columns.length > 1) {
-                    reject(new Error('Too many columns, expected only one column'))
-                }
-                const column = columns[0]
-                if (column) {
-                    result = column.value
-                }
-            })
-            this.connection.execSql(req)
-        })
-    }
-    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        return new Promise((resolve, reject) => {
-            let result: any[] = []
-            const req = new Request(query, (error) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(result)
-                }
-            })
-            for (var i = 0, length = params.length; i < length; i++) {
-                req.addParameter('' + i, this.getType(params, i), params[i])
-            }
-            req.on('row', function (columns) {
-                const column = columns[0]
-                if (columns.length > 1) {
-                    reject(new Error('Too many columns, expected only one column'))
-                }
-                if (column) {
-                    result.push(column.value)
-                } else {
-                    result.push(undefined)
-                }
-            })
-            this.connection.execSql(req)
-        })
-    }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
+    protected executeMutation(query: string, params: any[]): Promise<number> {
         return new Promise((resolve, reject) => {
             const req = new Request(query, (error, rowCount) => {
                 if (error) {
@@ -146,140 +63,6 @@ export class TediousQueryRunner extends PromiseBasedQueryRunner {
             for (var i = 0, length = params.length; i < length; i++) {
                 req.addParameter('' + i, this.getType(params, i), params[i])
             }
-            this.connection.execSql(req)
-        })
-    }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return new Promise((resolve, reject) => {
-            let result: any = undefined
-            const req = new Request(query, (error) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    if (result === undefined) {
-                        reject(new Error('Unable to find the last inserted id'))
-                    } else {
-                        resolve(result)
-                    }
-                }
-            })
-            for (var i = 0, length = params.length; i < length; i++) {
-                req.addParameter('' + i, this.getType(params, i), params[i])
-            }
-            let rowFound = false
-            req.on('row', function (columns) {
-                if (rowFound) {
-                    reject(Error('Too many rows, expected only zero or one row'))
-                }
-                rowFound = true
-                if (columns.length > 1) {
-                    reject(new Error('Too many columns, expected only one column'))
-                }
-                const column = columns[0]
-                if (column) {
-                    result = column.value
-                }
-            })
-            this.connection.execSql(req)
-        })
-    }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        return new Promise((resolve, reject) => {
-            let result: any[] = []
-            const req = new Request(query, (error) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(result)
-                }
-            })
-            for (var i = 0, length = params.length; i < length; i++) {
-                req.addParameter('' + i, this.getType(params, i), params[i])
-            }
-            req.on('row', function (columns) {
-                if (columns.length > 1) {
-                    reject(new Error('Too many columns, expected only one column'))
-                }
-                const column = columns[0]
-                if (column) {
-                    result.push(column.value)
-                }
-            })
-            this.connection.execSql(req)
-        })
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        return new Promise((resolve, reject) => {
-            const req = new Request(query, (error, rowCount) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(rowCount)
-                }
-            })
-            for (var i = 0, length = params.length; i < length; i++) {
-                req.addParameter('' + i, this.getType(params, i), params[i])
-            }
-            this.connection.execSql(req)
-        })
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        return new Promise((resolve, reject) => {
-            const req = new Request(query, (error, rowCount) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(rowCount)
-                }
-            })
-            for (var i = 0, length = params.length; i < length; i++) {
-                req.addParameter('' + i, this.getType(params, i), params[i])
-            }
-            this.connection.execSql(req)
-        })
-    }
-    executeProcedure(query: string, params: any[] = []): Promise<void> {
-        return new Promise((resolve, reject) => {
-            const req = new Request(query, (error) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(undefined)
-                }
-            })
-            for (var i = 0, length = params.length; i < length; i++) {
-                req.addParameter('' + i, this.getType(params, i), params[i])
-            }
-            this.connection.execSql(req)
-        })
-    }
-    executeFunction(query: string, params: any[] = []): Promise<any> {
-        return new Promise((resolve, reject) => {
-            let result: any = undefined
-            const req = new Request(query, (error) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(result)
-                }
-            })
-            for (var i = 0, length = params.length; i < length; i++) {
-                req.addParameter('' + i, this.getType(params, i), params[i])
-            }
-            let rowFound = false
-            req.on('row', function (columns) {
-                if (rowFound) {
-                    reject(Error('Too many rows, expected only zero or one row'))
-                }
-                rowFound = true
-                if (columns.length > 1) {
-                    reject(new Error('Too many columns, expected only one column'))
-                }
-                const column = columns[0]
-                if (column) {
-                    result = column.value
-                }
-            })
             this.connection.execSql(req)
         })
     }
@@ -314,21 +97,6 @@ export class TediousQueryRunner extends PromiseBasedQueryRunner {
                     resolve()
                 }
             })
-        })
-    }
-    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
-        return new Promise((resolve, reject) => {
-            const req = new Request(query, (error) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve(undefined)
-                }
-            })
-            for (var i = 0, length = params.length; i < length; i++) {
-                req.addParameter('' + i, this.getType(params, i), params[i])
-            }
-            this.connection.execSql(req)
         })
     }
     addParam(params: any[], value: any): string {

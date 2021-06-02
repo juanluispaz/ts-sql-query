@@ -28,22 +28,7 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
         return fn(this.pool, this.transaction)
     }
 
-    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
-        const req = this.request()
-        for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, { type: this.getType(params, i) }, params[i])
-        }
-        return req.query(query).then((result) => {
-            if (!result.recordset) {
-                return undefined
-            }
-            if (result.recordset.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            return result.recordset[0]
-        })
-    }
-    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
+    protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
@@ -55,143 +40,13 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
             return result.recordset
         })
     }
-    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
-        const req = this.request()
-        for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, { type: this.getType(params, i) }, params[i])
-        }
-        return req.query(query).then((result) => {
-            if (!result.recordset) {
-                return undefined
-            }
-            if (result.recordset.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = result.recordset[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
-        })
-    }
-    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
-        const req = this.request()
-        for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, { type: this.getType(params, i) }, params[i])
-        }
-        return req.query(query).then((result) => {
-            if (!result.recordset) {
-                return []
-            }
-            return result.recordset.map((row: any) => {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            })
-        })
-    }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
+    protected executeMutation(query: string, params: any[]): Promise<number> {
         const req = this.request()
         for (var i = 0, length = params.length; i < length; i++) {
             req.input('' + i, { type: this.getType(params, i) }, params[i])
         }
         return req.query(query).then((result) => {
             return result.rowsAffected[0]!
-        })
-    }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        const req = this.request()
-        for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, { type: this.getType(params, i) }, params[i])
-        }
-        return req.query(query).then((result) => {
-            if (!result.recordset) {
-                throw new Error('Unable to find the last inserted id')
-            }
-            if (result.recordset.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = result.recordset[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            throw new Error('Unable to find the last inserted id')
-        })
-    }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        const req = this.request()
-        for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, { type: this.getType(params, i) }, params[i])
-        }
-        return req.query(query).then((result) => {
-            if (!result.recordset) {
-                throw new Error('Unable to find the last inserted id')
-            }
-            return result.recordset.map((row) => {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            })
-        })
-    }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
-        const req = this.request()
-        for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, { type: this.getType(params, i) }, params[i])
-        }
-        return req.query(query).then((result) => {
-            return result.rowsAffected[0]!
-        })
-    }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
-        const req = this.request()
-        for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, { type: this.getType(params, i) }, params[i])
-        }
-        return req.query(query).then((result) => {
-            return result.rowsAffected[0]!
-        })
-    }
-    executeProcedure(query: string, params: any[] = []): Promise<void> {
-        const req = this.request()
-        for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, { type: this.getType(params, i) }, params[i])
-        }
-        return req.query(query).then(() => undefined)
-    }
-    executeFunction(query: string, params: any[] = []): Promise<any> {
-        const req = this.request()
-        for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, { type: this.getType(params, i) }, params[i])
-        }
-        return req.query(query).then((result) => {
-            if (!result.recordset) {
-                return undefined
-            }
-            if (result.recordset.length > 1) {
-                throw new Error('Too many rows, expected only zero or one row')
-            }
-            const row = result.recordset[0]
-            if (row) {
-                const columns = Object.getOwnPropertyNames(row)
-                if (columns.length > 1) {
-                    throw new Error('Too many columns, expected only one column')
-                }
-                return row[columns[0]!] // Value in the row of the first column without care about the name
-            }
-            return undefined
         })
     }
     executeBeginTransaction(): Promise<void> {
@@ -216,13 +71,6 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
         return this.transaction.rollback().finally(() => {
             this.transaction = undefined
         })
-    }
-    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
-        const req = this.request()
-        for (var i = 0, length = params.length; i < length; i++) {
-            req.input('' + i, { type: this.getType(params, i) }, params[i])
-        }
-        return req.batch(query).then(() => undefined)
     }
     addParam(params: any[], value: any): string {
         const index = params.length

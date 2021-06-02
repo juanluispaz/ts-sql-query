@@ -23,3 +23,7 @@ The result type is a promise with the number of updated rows:
 ```tsx
 const updateCustomer: Promise<number>
 ```
+
+**Security constraint**:
+
+ts-sql-query will reject the execution of the update sentence if, for some reason ended without a where. If you want to allow an update without where, you must call `connection.updateAllowingNoWhere` instead of `connection.update` when you start writing the sentence.

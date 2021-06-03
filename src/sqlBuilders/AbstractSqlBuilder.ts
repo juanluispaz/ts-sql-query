@@ -227,9 +227,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendSql(value, params)
     }
-    _appendValue(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _appendSpreadValue(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (hasToSql(value)) {
-            return this._appendSql(value, params)
+            return '(' + this._appendSql(value, params) + ')'
         }
         if (Array.isArray(value) && value.length > 0) {
             let arrayResult = '(' + this._appendValue(value[0], params, columnType, typeAdapter)
@@ -238,6 +238,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 arrayResult += ', ' + this._appendValue(value[i], params, columnType, typeAdapter)
             }
             return arrayResult + ')'
+        }
+        const adaptedValue = this._transformParamToDB(value, columnType, typeAdapter)
+        return '(' + this._appendParam(adaptedValue, params, columnType) + ')'
+    }
+    _appendValue(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (hasToSql(value)) {
+            return this._appendSql(value, params)
         }
         const adaptedValue = this._transformParamToDB(value, columnType, typeAdapter)
         return this._appendParam(adaptedValue, params, columnType)
@@ -1063,18 +1070,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendSqlParenthesis(valueSource, params) + ' >= ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
     _in(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        if (Array.isArray(value)) {
-            return this._appendSqlParenthesis(valueSource, params) + ' in ' + this._appendValue(value, params, columnType, typeAdapter)
-        } else {
-            return this._appendSqlParenthesis(valueSource, params) + ' in (' + this._appendValue(value, params, columnType, typeAdapter) + ')'
-        }
+        return this._appendSqlParenthesis(valueSource, params) + ' in ' + this._appendSpreadValue(value, params, columnType, typeAdapter)
     }
     _notIn(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        if (Array.isArray(value)) {
-            return this._appendSqlParenthesis(valueSource, params) + ' not in ' + this._appendValue(value, params, columnType, typeAdapter)
-        } else {
-            return this._appendSqlParenthesis(valueSource, params) + ' not in (' + this._appendValue(value, params, columnType, typeAdapter) + ')'
-        }
+        return this._appendSqlParenthesis(valueSource, params) + ' not in ' + this._appendSpreadValue(value, params, columnType, typeAdapter)
     }
     _like(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + ' like ' + this._appendValue(value, params, columnType, typeAdapter)

@@ -45,14 +45,10 @@ interface EqualableValueSource extends NullableValueSource {
     isNot(value: this): boolean
 
     inIfValue(values: this[] | null | undefined): boolean
-    inIfValue(value: this | null | undefined): boolean
     in(values: this[]): boolean
-    in(value: this): boolean
     in(select: Subquery): boolean
     notInIfValue(values: this[] | null | undefined): boolean
-    notInIfValue(value: this | null | undefined): boolean
     notIn(values: this[]): boolean
-    notIn(value: this): boolean
     notIn(select: Subquery): boolean
     inN(...value: this[]): boolean
     notInN(...value: this[]): boolean
@@ -1122,18 +1118,18 @@ For the filter definition:
 
 ```ts
 type FilterType = DynamicCondition<{
-    myBoolean: 'boolean',
-    myStringInt: 'stringInt',
-    myInt: 'int',
-    myBigint: 'bigint',
-    myStringDouble: 'stringDouble',
-    myDouble: 'double',
-    myString: 'string',
-    myLocalDate: 'localDate',
-    myLocalTime: 'localTime',
-    myLocalDateTime: 'localDateTime',
-    myEnum: ['enum', MyEnumType],
-    myCustom: ['custom', MyCustomType],
+    myBoolean: 'boolean'
+    myStringInt: 'stringInt'
+    myInt: 'int'
+    myBigint: 'bigint'
+    myStringDouble: 'stringDouble'
+    myDouble: 'double'
+    myString: 'string'
+    myLocalDate: 'localDate'
+    myLocalTime: 'localTime'
+    myLocalDateTime: 'localDateTime'
+    myEnum: ['enum', MyEnumType]
+    myCustom: ['custom', MyCustomType]
     myCustomComparable: ['customComparable', MyCustomComparableType]
 }>
 ```
@@ -1145,18 +1141,18 @@ type FilterType = {
     not?: FilterType
     and?: FilterType[]
     or?: FilterType[]
-    myBoolean: EqualableFilter<boolean>,
-    myStringInt: ComparableFilter<string | number>,
-    myInt: ComparableFilter<number>,
-    myBigint: ComparableFilter<bigint>,
-    myStringDouble: ComparableFilter<string | number>,
-    myDouble: ComparableFilter<number>,
-    myString: StringFilter,
-    myLocalDate: ComparableFilter<Date>,
-    myLocalTime: ComparableFilter<Date>,
-    myLocalDateTime: ComparableFilter<Date>,
-    myEnum: EqualableFilter<MyEnumType>,
-    myCustom: EqualableFilter<MyCustomType>,
+    myBoolean: EqualableFilter<boolean>
+    myStringInt: ComparableFilter<string | number>
+    myInt: ComparableFilter<number>
+    myBigint: ComparableFilter<bigint>
+    myStringDouble: ComparableFilter<string | number>
+    myDouble: ComparableFilter<number>
+    myString: StringFilter
+    myLocalDate: ComparableFilter<Date>
+    myLocalTime: ComparableFilter<Date>
+    myLocalDateTime: ComparableFilter<Date>
+    myEnum: EqualableFilter<MyEnumType>
+    myCustom: EqualableFilter<MyCustomType>
     myCustomComparable: ComparableFilter<MyCustomComparableType>
 }
 
@@ -1178,10 +1174,10 @@ interface EqualableFilter<TYPE> {
     is?: TYPE | null | undefined
     isNotIfValue?: TYPE | null | undefined
     isNot?: TYPE | null | undefined
-    inIfValue?: TYPE | TYPE[] | null | undefined
-    in?: TYPE | TYPE[]
-    notInIfValue?: TYPE | TYPE[] | null | undefined
-    notIn?: TYPE | TYPE[]
+    inIfValue?: TYPE[] | null | undefined
+    in?: TYPE[]
+    notInIfValue?: TYPE[] | null | undefined
+    notIn?: TYPE[]
 }
 
 interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {

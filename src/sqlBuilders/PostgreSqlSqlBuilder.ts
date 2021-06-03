@@ -123,26 +123,16 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
     }
     _in(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        if (Array.isArray(value)) {
-            if (value.length <= 0) {
-                return this._falseValueForCondition
-            } else {
-                return this._appendSqlParenthesis(valueSource, params) + ' in ' + this._appendValue(value, params, columnType, typeAdapter)
-            }
-        } else {
-            return this._appendSqlParenthesis(valueSource, params) + ' in (' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+        if (Array.isArray(value) && value.length <= 0) {
+            return this._falseValueForCondition
         }
+        return super._in(params, valueSource, value, columnType, typeAdapter)
     }
     _notIn(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        if (Array.isArray(value)) {
-            if (value.length <= 0) {
-                return this._trueValueForCondition
-            } else {
-                return this._appendSqlParenthesis(valueSource, params) + ' not in ' + this._appendValue(value, params, columnType, typeAdapter)
-            }
-        } else {
-            return this._appendSqlParenthesis(valueSource, params) + ' not in (' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+        if (Array.isArray(value) && value.length <= 0) {
+            return this._trueValueForCondition
         }
+        return super._notIn(params, valueSource, value, columnType, typeAdapter)
     }
     _stringConcat(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {

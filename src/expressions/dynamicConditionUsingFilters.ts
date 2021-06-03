@@ -18,10 +18,10 @@ export interface EqualableFilter<TYPE> extends NullableFilter {
     is?: TYPE | null | undefined
     isNotIfValue?: TYPE | null | undefined
     isNot?: TYPE | null | undefined
-    inIfValue?: TYPE | TYPE[] | null | undefined
-    in?: TYPE | TYPE[]
-    notInIfValue?: TYPE | TYPE[] | null | undefined
-    notIn?: TYPE | TYPE[]
+    inIfValue?: TYPE[] | null | undefined
+    in?: TYPE[]
+    notInIfValue?: TYPE[] | null | undefined
+    notIn?: TYPE[]
 }
 
 export interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {

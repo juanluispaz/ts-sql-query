@@ -26,14 +26,10 @@ interface EqualableValueSource extends NullableValueSource {
     isNot(value: this): boolean
 
     inIfValue(values: this[] | null | undefined): boolean
-    inIfValue(value: this | null | undefined): boolean
     in(values: this[]): boolean
-    in(value: this): boolean
     in(select: Subquery): boolean
     notInIfValue(values: this[] | null | undefined): boolean
-    notInIfValue(value: this | null | undefined): boolean
     notIn(values: this[]): boolean
-    notIn(value: this): boolean
     notIn(select: Subquery): boolean
     inN(...value: this[]): boolean
     notInN(...value: this[]): boolean

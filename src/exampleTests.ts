@@ -29,6 +29,19 @@ class MyConection extends PostgreSqlConnection<'MyConnection'> {
     ).as((a1, a2) => {
         return this.fragmentWithType('boolean', 'required').sql`!!${a1} > ${a2}`
     })
+
+    transformValueFromDB(value: any, type: any) {
+        if (type === 'json') {
+            return JSON.parse(value);
+        }
+        return super.transformValueFromDB(value, type);
+    }
+    transformValueToDB(value: any, type: any) {
+        if (type === 'json') {
+            return JSON.stringify(value);
+        }
+        return super.transformValueToDB(value, type);
+    }
 }
 
 class MyTable extends Table<MyConection, 'MyTable'> {
@@ -361,6 +374,18 @@ let query23 = cn.selectFrom(t).where(t.c.equals(10)).and(t.bool).groupBy(t.od, t
 console.log(query23.query(), query23.params())
 
 cn.rollback()
+
+const pushers = new (class extends Table<MyConection, 'pushers'> {
+    id = this.primaryKey('id', 'string');
+    meta = this.column<any>('meta', 'custom', 'json');
+    tags = this.column<string[]>('tags', 'custom', 'json');
+    constructor() {
+        super('pushers');
+    }
+})();
+
+let query24 = cn.insertInto(pushers).values({id:'uuid', meta: { whatever: 123 }, tags:['a', 'b', 'c']})
+console.log(query24.query(), query24.params())
 
 /********************************************************************************************** */
 

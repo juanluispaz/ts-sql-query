@@ -93,16 +93,12 @@ export interface EqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
     isNot<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
 
     inIfValue(values: TYPE[] | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    inIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     in(values: TYPE[]): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    in(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     in<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     in<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     in<TABLE_OR_VIEW2 extends ITableOrView<any>>(select: IExecutableSelectQuery<TABLE_OR_VIEW[typeof database], TYPE | null | undefined, TABLE_OR_VIEW2>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2[typeof tableOrViewRef], boolean>
     notInIfValue(values: TYPE[] | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    notInIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notIn(values: TYPE[]): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    notIn(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notIn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notIn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     notIn<TABLE_OR_VIEW2 extends ITableOrView<any>>(select: IExecutableSelectQuery<TABLE_OR_VIEW[typeof database], TYPE | null | undefined, TABLE_OR_VIEW2>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2[typeof tableOrViewRef], boolean>

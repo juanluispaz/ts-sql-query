@@ -1,5 +1,31 @@
 # Change Log
 
+## v1.5.0 (3 Jun 2021)
+
+**Changes**:
+
+- Add support to custom array types
+- Add support to globally encrypted id
+- Big refactor to simplify the query runners implementation
+- Dropped support to very old better-sqlite3 versions (6 or before)
+- Allow to use returning clause on sqlite and mariadb in a sql text query executed directly with the query runner
+
+**Documentation changes**:
+
+- Implements new documentation website using mkdocs and readthedocs.io, available at: https://ts-sql-query.readthedocs.io/
+- Add transaction documentation
+- Document security constraint regarding update and delete with no where
+- Add select with left join example to the documentation
+
+**Distribution changes**:
+
+- Source maps are not included any more
+
+**Bug fixes**:
+
+- Fix insert from select returning last inserted id
+- Fix invalid in queries when the in function didn't receives an array of values
+
 ## v1.4.0 (23 May 2021)
 
 **Changes**:

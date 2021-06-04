@@ -190,3 +190,78 @@ const customerWithCompanyInOneQuery: Promise<{
     };
 }>
 ```
+
+## Splitting results and dynamic queries
+
+When you use dynamic parts of your query where the name of a field moved to an inner object is used, you can name those fields in the query with the path in the resulting object to allow easy usage of the dynamic query.
+
+```ts
+type FilterType = DynamicCondition<{
+    id: 'int',
+    firstName: 'string',
+    lastName: 'string',
+    birthday: 'localDate',
+    'company.id': 'int',
+    'company.name': 'string'
+}>
+
+const filter: FilterType = {
+    'company.name': {equals: 'ACME'},
+    or: [
+        { firstName: { containsInsensitive: 'John' } },
+        { lastName: { containsInsensitive: 'Smi' } }
+    ]
+}
+
+const orderBy = 'company.name asc insensitive, birthday desc'
+
+const selectFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday,
+    'company.id': tCompany.id,
+    'company.name': tCompany.name
+}
+
+const queryDynamicWhere = connection.dynamicConditionFor(selectFields).withValues(filter)
+
+const customerWithCompanyObject = connection.selectFrom(tCustomer)
+        .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select(selectFields)
+        .where(dynamicWhere)
+        .orderByFromString(orderBy)
+        .split('company', {
+            id: 'company.id',
+            name: 'company.name'
+        }).executeSelectOne()
+```
+
+The executed query is:
+```sql
+select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, company.id as "company.id", company.name as "company.name" 
+from customer inner join company on company.id = customer.company_id 
+where 
+    company.name = $1 
+    and (
+           customer.first_name ilike ('%' || $2 || '%') 
+        or customer.last_name ilike ('%' || $3 || '%')
+    )
+order by lower("company.name") asc, birthday desc
+```
+
+The parameters are: `[ 'John', 'Smi', 'ACME' ]`
+
+The result type is:
+```ts
+const customerWithCompanyObject: Promise<{
+    id: number;
+    birthday?: Date | undefined;
+    firstName: string;
+    lastName: string;
+    company: {
+        id: number;
+        name: string;
+    };
+}>
+```

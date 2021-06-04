@@ -1014,6 +1014,58 @@ const customerWithCompanyInOneQuery = connection.selectFrom(tCustomer)
 
 // ---------------
 
+results.push({
+    id: 12,
+    firstName: 'John',
+    lastName: 'Smith',
+    birthday: new Date('1990/1/14'),
+    'company.id': 10,
+    'company.name': 'ACME Inc.'
+})
+
+type QueryFilterType = DynamicCondition<{
+    id: 'int',
+    firstName: 'string',
+    lastName: 'string',
+    birthday: 'localDate',
+    'company.id': 'int',
+    'company.name': 'string'
+}>
+
+const queryFilter: QueryFilterType = {
+    'company.name': {equals: 'ACME'},
+    or: [
+        { firstName: { containsInsensitive: 'John' } },
+        { lastName: { containsInsensitive: 'Smi' } }
+    ]
+}
+
+const queryOrderBy = 'company.name asc insensitive, birthday desc'
+
+const querySelectFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday,
+    'company.id': tCompany.id,
+    'company.name': tCompany.name
+}
+
+const queryDynamicWhere = connection.dynamicConditionFor(querySelectFields).withValues(queryFilter)
+
+const customerWithCompanyObject = connection.selectFrom(tCustomer)
+        .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select(querySelectFields)
+        .where(queryDynamicWhere)
+        .orderByFromString(queryOrderBy)
+        .split('company', {
+            id: 'company.id',
+            name: 'company.name'
+        }).executeSelectOne()
+
+// Query: select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, company.id as "company.id", company.name as "company.name" from customer inner join company on company.id = customer.company_id where company.name = $1 and (customer.first_name ilike ('%' || $2 || '%') or customer.last_name ilike ('%' || $3 || '%')) order by lower("company.name") asc, birthday desc
+// Params: [ 'John', 'Smi', 'ACME' ]
+
 results.push([])
 
 const recursiveParentCompany = connection.selectFrom(tCompany)
@@ -1135,6 +1187,9 @@ customerWithCompany.then((result) => {
 })
 customerWithCompanyInOneQuery.then((result) => {
     console.log('customerWithCompanyInOneQuery', result)
+})
+customerWithCompanyObject.then((result) => {
+    console.log('customerWithCompanyObject', result)
 })
 recursiveParentCompany.finally(() => undefined)
 recursiveOnParentCompany.finally(() => undefined)

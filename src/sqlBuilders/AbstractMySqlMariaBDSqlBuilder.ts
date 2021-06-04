@@ -35,21 +35,21 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             }
             const order = orderBy[property]
             if (!order) {
-                orderByColumns += this._escape(property)
+                orderByColumns += this._escape(property, true)
             } else switch (order as OrderByMode) {
                 case 'asc':
                 case 'asc nulls first':
-                    orderByColumns += this._escape(property) + ' asc'
+                    orderByColumns += this._escape(property, true) + ' asc'
                     break
                 case 'desc':
                 case 'desc nulls last':
-                    orderByColumns += this._escape(property) + ' desc'
+                    orderByColumns += this._escape(property, true) + ' desc'
                     break
                 case 'asc nulls last':
-                    orderByColumns += this._escape(property) + ' is null, ' + this._escape(property) + ' asc'
+                    orderByColumns += this._escape(property, true) + ' is null, ' + this._escape(property, true) + ' asc'
                     break
                 case 'desc nulls first':
-                    orderByColumns += this._escape(property) + ' is not null, ' + this._escape(property) + ' desc'
+                    orderByColumns += this._escape(property, true) + ' is not null, ' + this._escape(property, true) + ' desc'
                     break
                 case 'insensitive':
                     orderByColumns += this._escapeInsensitive(property, column)
@@ -63,10 +63,10 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += this._escapeInsensitive(property, column) + ' desc'
                     break
                 case 'asc nulls last insensitive':
-                    orderByColumns += this._escape(property) + ' is null, ' + this._escapeInsensitive(property, column) + ' asc'
+                    orderByColumns += this._escape(property, true) + ' is null, ' + this._escapeInsensitive(property, column) + ' asc'
                     break
                 case 'desc nulls first insensitive':
-                    orderByColumns += this._escape(property) + ' is not null, ' + this._escapeInsensitive(property, column) + ' desc'
+                    orderByColumns += this._escape(property, true) + ' is not null, ' + this._escapeInsensitive(property, column) + ' desc'
                     break
                 default:
                     throw new Error('Invalid order by: ' + property + ' ' + order)
@@ -83,13 +83,13 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         const columnType = __getValueSourcePrivate(column).__valueType
         if (columnType != 'string') {
             // Ignore the insensitive term, it do nothing
-            return this._escape(identifier)
+            return this._escape(identifier, true)
         } else if (collation) {
-            return this._escape(identifier) + ' collate ' + collation
+            return this._escape(identifier, true) + ' collate ' + collation
         } else if (collation === '') {
-            return this._escape(identifier)
+            return this._escape(identifier, true)
         } else {
-            return 'lower(' + this._escape(identifier) + ')'
+            return 'lower(' + this._escape(identifier, true) + ')'
         }
     } 
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {

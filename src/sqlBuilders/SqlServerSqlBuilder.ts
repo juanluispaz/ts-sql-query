@@ -21,7 +21,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return word.toUpperCase() in reservedWords
     }
     _nextSequenceValue(_params: any[], sequenceName: string) {
-        return 'next value for ' + this._escape(sequenceName)
+        return 'next value for ' + this._escape(sequenceName, false)
     }
     _currentSequenceValue(_params: any[], sequenceName: string): string {
         return "(select current_value from sys.sequences where name = '" + sequenceName + "')"
@@ -147,17 +147,17 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             } else switch (order as OrderByMode) {
                 case 'asc':
                 case 'asc nulls first':
-                    orderByColumns += this._escape(property) + ' asc'
+                    orderByColumns += this._escape(property, true) + ' asc'
                     break
                 case 'desc':
                 case 'desc nulls last':
-                    orderByColumns += this._escape(property) + ' desc'
+                    orderByColumns += this._escape(property, true) + ' desc'
                     break
                 case 'asc nulls last':
-                    orderByColumns += 'iif(' + this._escape(property) + ' is null, 1, 0), ' + this._escape(property) + ' asc'
+                    orderByColumns += 'iif(' + this._escape(property, true) + ' is null, 1, 0), ' + this._escape(property, true) + ' asc'
                     break
                 case 'desc nulls first':
-                    orderByColumns += 'iif(' + this._escape(property) + ' is not null, 1, 0), ' + this._escape(property) + ' desc'
+                    orderByColumns += 'iif(' + this._escape(property, true) + ' is not null, 1, 0), ' + this._escape(property, true) + ' desc'
                     break
                 case 'insensitive':
                     orderByColumns += this._escapeInsensitive(property, column)
@@ -171,10 +171,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += this._escapeInsensitive(property, column) + ' desc'
                     break
                 case 'asc nulls last insensitive':
-                    orderByColumns += 'iif(' + this._escape(property) + ' is null, 1, 0), ' + this._escapeInsensitive(property, column) + ' asc'
+                    orderByColumns += 'iif(' + this._escape(property, true) + ' is null, 1, 0), ' + this._escapeInsensitive(property, column) + ' asc'
                     break
                 case 'desc nulls first insensitive':
-                    orderByColumns += 'iif(' + this._escape(property) + ' is not null, 1, 0), ' + this._escapeInsensitive(property, column) + ' desc'
+                    orderByColumns += 'iif(' + this._escape(property, true) + ' is not null, 1, 0), ' + this._escapeInsensitive(property, column) + ' desc'
                     break
                 default:
                     throw new Error('Invalid order by: ' + property + ' ' + order)
@@ -191,13 +191,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         const columnType = __getValueSourcePrivate(column).__valueType
         if (columnType != 'string') {
             // Ignore the insensitive term, it do nothing
-            return this._escape(identifier)
+            return this._escape(identifier, true)
         } else if (collation) {
-            return this._escape(identifier) + ' collate ' + collation
+            return this._escape(identifier, true) + ' collate ' + collation
         } else if (collation === '') {
-            return this._escape(identifier)
+            return this._escape(identifier, true)
         } else {
-            return 'lower(' + this._escape(identifier) + ')'
+            return 'lower(' + this._escape(identifier, true) + ')'
         }
     }
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
@@ -527,7 +527,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 'datepart(millisecond, ' + this._appendSql(valueSource, params) + ')'
     }
     _buildCallProcedure(params: any[], functionName: string, functionParams: ValueSource<any, any>[]): string {
-        let result = 'exec ' + this._escape(functionName)
+        let result = 'exec ' + this._escape(functionName, false)
         for (let i = 0, length = functionParams.length; i < length; i++) {
             result += ' ' + this._appendSql(functionParams[i]!, params)
         }

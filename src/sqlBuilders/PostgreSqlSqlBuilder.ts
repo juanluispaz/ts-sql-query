@@ -10,13 +10,13 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     _appendColumnAlias(name: string, params: any[]): string {
         if (!this._isWithGeneratedFinished(params)) {
             // Avoid quote identifiers when the with clause is generated
-            return this._escape(name)
+            return this._escape(name, true)
         }
         if (name.toLocaleLowerCase() !== name) {
             // Avoid automatically lowercase identifiers by postgresql when it contains uppercase characters
             return this._forceAsIdentifier(name)
         }
-        return this._escape(name)
+        return this._escape(name, true)
     }
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = ''

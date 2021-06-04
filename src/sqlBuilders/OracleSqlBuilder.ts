@@ -17,10 +17,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return word.toUpperCase() in reservedWords
     }
     _nextSequenceValue(_params: any[], sequenceName: string) {
-        return this._escape(sequenceName) + '.nextval'
+        return this._escape(sequenceName, false) + '.nextval'
     }
     _currentSequenceValue(_params: any[], sequenceName: string): string {
-        return this._escape(sequenceName) + '.currval'
+        return this._escape(sequenceName, false) + '.currval'
     }
     _fromNoTable() {
         return ' from dual'
@@ -99,7 +99,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _appendColumnAlias(name: string, params: any[]): string {
         if (!this._isWithGeneratedFinished(params)) {
             // Avoid quote identifiers when the with clause is generated
-            return this._escape(name)
+            return this._escape(name, true)
         }
         // Avoid automatically uppercase identifiers by oracle
         return this._forceAsIdentifier(name)
@@ -318,7 +318,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'extract(millisecond from ' + this._appendSql(valueSource, params) + ')'
     }
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any>[]): string {
-        let result = 'begin ' + this._escape(procedureName) + '('
+        let result = 'begin ' + this._escape(procedureName, false) + '('
         if (procedureParams.length > 0) {
             result += this._appendSql(procedureParams[0]!, params)
 
@@ -330,7 +330,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return result + '); end;'
     }
     _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any>[]): string {
-        let result = 'select ' + this._escape(functionName) + '('
+        let result = 'select ' + this._escape(functionName, false) + '('
         if (functionParams.length > 0) {
             result += this._appendSql(functionParams[0]!, params)
 

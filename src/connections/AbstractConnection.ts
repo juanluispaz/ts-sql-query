@@ -893,7 +893,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected forceAsIdentifier(identifier: string): string {
         return this.__sqlBuilder._forceAsIdentifier(identifier)
     }
-    protected escape(identifier: string): string {
+    protected escape(identifier: string, strict: boolean): string {
+        if (strict && !/^[a-zA-Z_][a-zA-Z0-9_]+$/.test(identifier)) {
+            return this.forceAsIdentifier(identifier)
+        }
         if (this.isReservedKeyword(identifier) || identifier.indexOf(' ') >= 0) {
             return this.forceAsIdentifier(identifier)
         }

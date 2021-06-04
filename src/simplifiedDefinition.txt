@@ -493,7 +493,7 @@ interface Connection {
      * The default implementation quote the identifier only if it is a reserved keyword.
      * If you want all identifiers quoted, you must reimplement this function returning the result of the forceAsIdentifier function.
      */
-    escape(identifier: string): string
+    escape(identifier: string, strict: boolean): string
 }
 
 interface FragmentExpression {

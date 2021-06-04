@@ -106,7 +106,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         if (!valueSourcePrivate.__isResultOptional(this.__sqlBuilder)) {
             let errorMessage = 'Expected a value as result'
             if (column !== undefined) {
-                errorMessage += ' of the column `' + column
+                errorMessage += ' of the column `' + column + '`'
             }
             if (index !== undefined) {
                 errorMessage += ' at index `' + index + '`'

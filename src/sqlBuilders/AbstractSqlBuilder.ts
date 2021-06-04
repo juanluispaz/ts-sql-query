@@ -124,8 +124,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _forceAsIdentifier(identifier: string): string {
         return '"' + identifier + '"'
     }
-    _escape(identifier: string): string {
-        return this._connectionConfiguration.escape(identifier)
+    _escape(identifier: string, strict: boolean): string {
+        return this._connectionConfiguration.escape(identifier, strict)
     }
     _needParenthesis(value: any): boolean {
         const operation = operationOf(value)
@@ -172,11 +172,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const tablePrivate = __getTableOrViewPrivate(tableOrView)
 
         if (tablePrivate.__as) {
-            return this._escape(tablePrivate.__as) + '.' + this._escape(columnPrivate.__name)
+            return this._escape(tablePrivate.__as, true) + '.' + this._escape(columnPrivate.__name, true)
         } else if (this._getSafeTableOrView(params) === tableOrView) {
-            return this._escape(columnPrivate.__name)
+            return this._escape(columnPrivate.__name, true)
         } else {
-            return this._escape(tablePrivate.__name) + '.' + this._escape(columnPrivate.__name)
+            return this._escape(tablePrivate.__name, false) + '.' + this._escape(columnPrivate.__name, true)
         }
     }
     _appendLiteralValue(value: number | string, _params: any[]) {
@@ -188,9 +188,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _getTableOrViewNameInSql(table: ITableOrView<any>): string {
         const t = __getTableOrViewPrivate(table)
-        let result = this._escape(t.__name)
+        let result = this._escape(t.__name, false)
         if (t.__as) {
-            result += ' as ' + this._escape(t.__as)
+            result += ' as ' + this._escape(t.__as, true)
         }
         return result
     }
@@ -317,7 +317,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendParam(value, params, columnType)
     }
     _appendColumnAlias(name: string, _params: any[]): string {
-        return this._escape(name)
+        return this._escape(name, true)
     }
     _buildWith(withData: WithQueryData, params: any[]): string {
         if (this._isWithGenerated(params)) {
@@ -915,10 +915,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return ' returning ' + this._appendSql(idColumn, params)
     }
     _nextSequenceValue( _params: any[], sequenceName: string) {
-        return "nextval('" + this._escape(sequenceName) + "')"
+        return "nextval('" + sequenceName + "')"
     }
     _currentSequenceValue(_params: any[], sequenceName: string): string {
-        return "currval('" + this._escape(sequenceName) + "')"
+        return "currval('" + sequenceName + "')"
     }
     _buildUpdate(query: UpdateData, params: any[]): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
@@ -1467,7 +1467,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'replace(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(value2, params, columnType, typeAdapter) + ')'
     }
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any>[]): string {
-        let result = 'call ' + this._escape(procedureName) + '('
+        let result = 'call ' + this._escape(procedureName, false) + '('
         if (procedureParams.length > 0) {
             result += this._appendSql(procedureParams[0]!, params)
 
@@ -1479,7 +1479,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return result + ')'
     }
     _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any>[]): string {
-        let result = 'select ' + this._escape(functionName) + '('
+        let result = 'select ' + this._escape(functionName, false) + '('
         if (functionParams.length > 0) {
             result += this._appendSql(functionParams[0]!, params)
 

@@ -256,7 +256,7 @@ The result type is:
 ```ts
 const customerWithCompanyObject: Promise<{
     id: number;
-    birthday?: Date | undefined;
+    birthday?: Date;
     firstName: string;
     lastName: string;
     company: {

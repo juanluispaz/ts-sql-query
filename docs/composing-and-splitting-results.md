@@ -52,6 +52,8 @@ Then you must call one of the next methods:
 
 This method receives a function with argument an array with the ids and returns a promise with an array that contains the result of the second query (the internal one).
 
+**Note**: In a select where the columns are picked, if the external column is not a required column, the created property will always be optional. The inner function with the query only will be executed if the external property was picked.
+
 ## Composing many items in the result
 
 ```ts

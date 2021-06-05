@@ -9,7 +9,7 @@ import { __getValueSourcePrivate } from "../expressions/values"
 import ChainedError from "chained-error"
 import { AggregateFunctions0ValueSource } from "../internal/ValueSourceImpl"
 import { attachSource } from "../utils/attachSource"
-import { columnsType, database, requiredTableOrView, resultType, compoundable, type } from "../utils/symbols"
+import { columnsType, database, requiredTableOrView, resultType, compoundable, type, compoundableColumns } from "../utils/symbols"
 import { asValueSource } from "../expressions/values"
 import { WithViewImpl } from "../internal/WithViewImpl"
 import { createColumnsFrom } from "../internal/ColumnImpl"
@@ -42,6 +42,8 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
     [requiredTableOrView]: any
     [type]: any
     [compoundable]: any
+    [compoundableColumns]: any
+
     [resultType]: any
     [columnsType]: any
 
@@ -370,10 +372,10 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         return this
     }
 
-    union(select: ICompoundableSelect<any, any, any>): any {
+    union(select: ICompoundableSelect<any, any, any, any>): any {
         return new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'union', this.__compoundableAsSelectData(select))
     }
-    unionAll(select: ICompoundableSelect<any, any, any>): any {
+    unionAll(select: ICompoundableSelect<any, any, any, any>): any {
         return new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'unionAll', this.__compoundableAsSelectData(select))
     }
     intersect: never
@@ -383,7 +385,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
     minus: never
     minusAll: never
 
-    __compoundableAsSelectData(select: ICompoundableSelect<any, any, any>): SelectData {
+    __compoundableAsSelectData(select: ICompoundableSelect<any, any, any, any>): SelectData {
         return select as any
     }
 
@@ -655,7 +657,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         }
     }
 
-    __buildRecursive(fn: (view: any) => ICompoundableSelect<any, any, any>, unionAll: boolean): void {
+    __buildRecursive(fn: (view: any) => ICompoundableSelect<any, any, any, any>, unionAll: boolean): void {
         const sqlBuilder = this.__sqlBuilder
         const name = 'recursive_select_' + sqlBuilder._generateUnique()
         const recursiveInternalView = new WithViewImpl<any, any>(name, this as any, sqlBuilder) as any
@@ -679,15 +681,15 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         this.__recursiveView = recursiveView
         this.__recursiveSelect = recursiveSelect
     }
-    recursiveUnion(fn: (view: any) => ICompoundableSelect<any, any, any>): this {
+    recursiveUnion(fn: (view: any) => ICompoundableSelect<any, any, any, any>): this {
         this.__buildRecursive(fn, false)
         return this
     }
-    recursiveUnionAll(fn: (view: any) => ICompoundableSelect<any, any, any>): this {
+    recursiveUnionAll(fn: (view: any) => ICompoundableSelect<any, any, any, any>): this {
         this.__buildRecursive(fn, true)
         return this
     }
-    __buildRecursiveFn(fn: (view: any) => IBooleanValueSource<any, any>): (view: any) => ICompoundableSelect<any, any, any> {
+    __buildRecursiveFn(fn: (view: any) => IBooleanValueSource<any, any>): (view: any) => ICompoundableSelect<any, any, any, any> {
         return (view: any) => {
             const current = this as any as PlainSelectData
             const result = new SelectQueryBuilder(this.__sqlBuilder, current.__tables_or_views, false)
@@ -724,32 +726,32 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
     return new WithViewImpl<any, any>(as, thiz, thiz.__sqlBuilder) as any
 };
 
-(AbstractSelect.prototype as any).intersect = function(select: ICompoundableSelect<any, any, any>): any {
+(AbstractSelect.prototype as any).intersect = function(select: ICompoundableSelect<any, any, any, any>): any {
     const thiz = this as SelectQueryBuilder
     return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'intersect', thiz.__compoundableAsSelectData(select))
 };
 
-(AbstractSelect.prototype as any).intersectAll = function(select: ICompoundableSelect<any, any, any>): any {
+(AbstractSelect.prototype as any).intersectAll = function(select: ICompoundableSelect<any, any, any, any>): any {
     const thiz = this as SelectQueryBuilder
     return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'intersectAll', thiz.__compoundableAsSelectData(select))
 };
 
-(AbstractSelect.prototype as any).except = function(select: ICompoundableSelect<any, any, any>): any {
+(AbstractSelect.prototype as any).except = function(select: ICompoundableSelect<any, any, any, any>): any {
     const thiz = this as SelectQueryBuilder
     return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'except', thiz.__compoundableAsSelectData(select))
 };
 
-(AbstractSelect.prototype as any).exceptAll = function(select: ICompoundableSelect<any, any, any>): any {
+(AbstractSelect.prototype as any).exceptAll = function(select: ICompoundableSelect<any, any, any, any>): any {
     const thiz = this as SelectQueryBuilder
     return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'exceptAll', thiz.__compoundableAsSelectData(select))
 };
 
-(AbstractSelect.prototype as any).minus = function(select: ICompoundableSelect<any, any, any>): any {
+(AbstractSelect.prototype as any).minus = function(select: ICompoundableSelect<any, any, any, any>): any {
     const thiz = this as SelectQueryBuilder
     return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'minus', thiz.__compoundableAsSelectData(select))
 };
 
-(AbstractSelect.prototype as any).minusAll = function(select: ICompoundableSelect<any, any, any>): any {
+(AbstractSelect.prototype as any).minusAll = function(select: ICompoundableSelect<any, any, any, any>): any {
     const thiz = this as SelectQueryBuilder
     return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'minusAll', thiz.__compoundableAsSelectData(select))
 };
@@ -808,7 +810,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         return this.__sqlBuilder._buildSelect(selectCountData, params)
     }
 
-    select(columns: SelectColumns<any, any>): this {
+    select(columns: SelectColumns<any, any>): any { // any to avoid deep errors
         this.__finishJoinHaving()
         this.__query = ''
         this.__columns = columns

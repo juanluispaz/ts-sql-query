@@ -197,6 +197,8 @@ const customerWithCompanyInOneQuery: Promise<{
 When you use dynamic parts of your query where the name of a field moved to an inner object is used, you can name those fields in the query with the path in the resulting object to allow easy usage of the dynamic query.
 
 ```ts
+import { DynamicCondition } from "ts-sql-query/dynamicCondition"
+
 type FilterType = DynamicCondition<{
     id: 'int',
     firstName: 'string',
@@ -240,7 +242,7 @@ const customerWithCompanyObject = connection.selectFrom(tCustomer)
 
 The executed query is:
 ```sql
-select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, company.id as "company.id", company.name as "company.name" 
+select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, company.id as "company.id", company.name as "company.name" 
 from customer inner join company on company.id = customer.company_id 
 where 
     company.name = $1 

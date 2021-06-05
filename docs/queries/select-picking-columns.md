@@ -3,6 +3,8 @@
 You can create a select where the caller can conditionally pick the columns that want to be returned (like in GraphQL)
 
 ```ts
+import { dynamicPick } from "ts-sql-query/dynamicCondition"
+
 const availableFields = {
     id: tCustomer.id,
     firstName: tCustomer.firstName,
@@ -25,7 +27,7 @@ const customerWithIdPeaking = connection.selectFrom(tCustomer)
 
 The executed query is:
 ```sql
-select id as id, first_name as "firstName", last_name as "lastName" 
+select id as id, first_name as firstName, last_name as lastName
 from customer
 ```
 

@@ -3,6 +3,8 @@
 You can create a dynamic condition for use in a where (for example). In these dynamic conditions, the criteria are provided as an object. Another system, like the user interface, may fill the criteria object. The provided criteria object is translated to the corresponding SQL. To use this feature, you must call the method `dynamicConditionFor` from the connection; this method receives a map where the key is the name that the external system is going to use to refer to the field and the value is the corresponding value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the criteria provided to the external system.
 
 ```ts
+import { DynamicCondition } from "ts-sql-query/dynamicCondition"
+
 type FilterType = DynamicCondition<{
     id: 'int',
     firstName: 'string',

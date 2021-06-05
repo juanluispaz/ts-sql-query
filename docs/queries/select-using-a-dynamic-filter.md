@@ -56,7 +56,7 @@ order by lower(firstName), lower(lastName) asc
 The parameters are: `[ 'John', 'Smi', 'th', 'ACME' ]`
 
 The result type is:
-```ts
+```tsx
 const customersWithCompanyName: Promise<{
     id: number;
     firstName: string;

@@ -32,7 +32,7 @@ from customer
 The parameters are: `[]`
 
 The result type is:
-```ts
+```tsx
 const customerWithIdPeaking: Promise<{
     id: number;
     birthday?: Date;

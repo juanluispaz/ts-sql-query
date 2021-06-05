@@ -254,7 +254,7 @@ order by lower("company.name") asc, birthday desc
 The parameters are: `[ 'John', 'Smi', 'ACME' ]`
 
 The result type is:
-```ts
+```tsx
 const customerWithCompanyObject: Promise<{
     id: number;
     birthday?: Date;

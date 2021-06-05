@@ -141,7 +141,7 @@ where id + 1 = $1
 The parameters are: `[ 2 ]`
 
 The result type is:
-```ts
+```tsx
 const companiesUsingCustomFunctionFragment: Promise<{
     id: number;
     name: string;

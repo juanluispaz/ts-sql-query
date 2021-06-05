@@ -15,9 +15,10 @@ When you realize a select, you can:
 - specify in your order by clause that the order must be case insensitive when the column type is string (ignored otherwise). To do it, add `insensitive` at the end of the ordering criteria/mode
 - add a dynamic `order by` provided by the user without risk of SQL injection and without exposing the internal structure of the database. To build a dynamic `order by` use the method `orderByFromString` with the usual order by syntax (and with the possibility to use the insensitive extension), but using as column's name the name of the property in the resulting object
 
-Addittionaly, you can:
+Additionally, you can:
 
-- create a custom boolean condition, that you can use in a where (by example), calling the `dynamicConditionFor` method in the connection object.
+- create a custom boolean condition that you can use in a where (by example), calling the `dynamicConditionFor` method in the connection object.
+- create a query where it is possible to pick the columns to be returned by the query.
 
 ```ts
 const firstNameContains = 'ohn';

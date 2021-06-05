@@ -9,6 +9,7 @@ import { TypeSafeMySqlConnection } from "./connections/TypeSafeMySqlConnection"
 import { MockQueryRunner } from "./queryRunners/MockQueryRunner"
 import { CustomBooleanTypeAdapter } from "./TypeAdapter"
 import { DynamicCondition } from "./expressions/dynamicConditionUsingFilters"
+import { dynamicPick } from "./dynamicCondition"
 // import { TypeSafeNoopConnection } from "./clients/TypeSafeNoopConnection"
 // import { int } from "ts-extended-types"
 
@@ -1154,6 +1155,35 @@ const leftJoinCompany = connection.selectFrom(tCompany)
 // Query: select company.id as id, company.name as name, parent.id as parentId, parent.name as parentName from company left join company as parent on company.parent_id = parent.id
 // Params: [ ]
 
+results.push({
+    id: 1,
+    firstName: 'First Name',
+    lastName: 'Last Name'
+})
+
+const availableFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday
+}
+
+const fieldsToPick = {
+    firstName: true,
+    lastName: true
+}
+
+// include allways id field as required
+const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id'])
+
+const customerWithIdPeaking = connection.selectFrom(tCustomer)
+    .select(pickedFields)
+    .executeSelectOne()
+
+// Query: select id as id, first_name as "firstName", last_name as "lastName" from customer
+// Params: [ ]
+
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -1196,6 +1226,7 @@ recursiveOnParentCompany.finally(() => undefined)
 recursiveChildrenCompany.finally(() => undefined)
 recursiveOnChildrenCompany.finally(() => undefined)
 leftJoinCompany.finally(() => undefined)
+customerWithIdPeaking.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

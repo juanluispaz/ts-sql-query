@@ -149,8 +149,9 @@ The property that you indicate will be moved from the result of the query to a n
 
 Before executing the query, you must call one of the next methods:
 
-- `split`: that split the result, and the new property will be added as a required property.
+- `splitRequired`: that split the result, and the new property will be added as a required property.
 - `splitOptional`: The split result will be added as an optional property. If the new object has no data, the new property is omitted.
+- `split`: that split the result, and the new property will be added as an optional property if all the moved properties are optional; otherwise, it will be required.
 
 Before executing the query, you must call `split` method with the following arguments:
 

@@ -468,7 +468,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         this.__compositions.push(last)
         return this
     }
-    split(propertyName: string, mappig: any): any {
+    splitRequired(propertyName: string, mappig: any): any {
         const split: Split = {
             type: 'split',
             optional: false,
@@ -479,6 +479,16 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         return this
     }
     splitOptional(propertyName: string, mappig: any): any {
+        const split: Split = {
+            type: 'split',
+            optional: true,
+            propertyName: propertyName,
+            mapping: mappig
+        }
+        this.__compositions.push(split)
+        return this
+    }
+    split(propertyName: string, mappig: any): any {
         const split: Split = {
             type: 'split',
             optional: true,

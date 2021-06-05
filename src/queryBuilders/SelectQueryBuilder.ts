@@ -559,9 +559,15 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         }
         return dataResult
     }
-    __applyComposition<R>(dataResult: R, composition: Compose, source: Error): Promise<R> {
+    __applyComposition<R>(dataResult: R, composition: Compose, source: Error): Promise<R> | R {
         const config = composition.config
         const resultProperty = config.propertyName
+        const externalProperty = config.externalProperty
+
+        if (!(externalProperty in this.__columns)) {
+            // this is the case of a select picking columns and the externalProperty was not picked
+            return dataResult
+        }
 
         let dataList: any[]
         if (Array.isArray(dataResult)) {
@@ -574,7 +580,6 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         const ids: any[] = []
         for(let i = 0, length = dataList.length; i < length; i++) {
             const data = dataList[i]
-            const externalProperty = config.externalProperty
             const externalValue = data[externalProperty]
             dataMap[externalValue] = data
             ids.push(data[externalProperty])
@@ -604,6 +609,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
     __processCompositionResult(internalList: any[], dataList: any[], dataMap: any, composition: Compose): void {
         const config = composition.config
         const resultProperty = config.propertyName
+        const internalProperty = config.internalProperty
         
         const cardinality = composition.cardinality
         if (!cardinality) {
@@ -623,7 +629,6 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
 
         for(let i = 0, length = internalList.length; i < length; i++) {
             const internalData = internalList[i]
-            const internalProperty = config.internalProperty
             const internalValue = internalData[internalProperty]
 
             if (composition.deleteInternal) {

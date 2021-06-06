@@ -383,6 +383,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _buildSelectWithColumnsInfo(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
+        const oldWithGenerated = this._isWithGenerated(params)
+        const oldWithGeneratedFinished = this._isWithGeneratedFinished(params)
 
         if (query.__type === 'compound') {
             this._setSafeTableOrView(params, undefined)
@@ -397,6 +399,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             selectQuery += this._buildSelectLimitOffset(query, params)
 
             this._setSafeTableOrView(params, oldSafeTableOrView)
+            this._setWithGenerated(params, oldWithGenerated)
+            this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
             return selectQuery
         }
 
@@ -514,6 +518,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         selectQuery += this._buildSelectLimitOffset(query, params)
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._setWithGenerated(params, oldWithGenerated)
+        this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
         return selectQuery
     }
     _appendSelectColumn(value: ValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
@@ -604,6 +610,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
+    _insertSupportWith = true
     _buildInsertMultiple(query: InsertData, params: any[]): string {
         const multiple = query.__multiple
         if (!multiple) {
@@ -617,7 +624,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const table = query.__table
         this._setSafeTableOrView(params, table)
 
-        const withClause = this._buildWith(query, params)
+        let withClause = ''
+        if (this._insertSupportWith) {
+            withClause = this._buildWith(query, params)
+        }
         const tableName = this._appendTableOrViewName(table, params)
 
         const usedColumns: { [name: string]: boolean | undefined } = {}
@@ -767,7 +777,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         this._setSafeTableOrView(params, table)
 
-        const withClause = this._buildWith(query, params)
+        let withClause = ''
+        if (this._insertSupportWith) {
+            withClause = this._buildWith(query, params)
+        }
         const tableName = this._appendTableOrViewName(table, params)
 
         let columns = ''
@@ -821,7 +834,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         this._setSafeTableOrView(params, table)
 
-        const withClause = this._buildWith(query, params)
+        let withClause = ''
+        if (this._insertSupportWith) {
+            withClause = this._buildWith(query, params)
+        }
         const tableName = this._appendTableOrViewName(table, params)
 
         let columns = ''
@@ -907,7 +923,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         this._setSafeTableOrView(params, table)
 
-        const withClause = this._buildWith(query, params)
+        let withClause = ''
+        if (this._insertSupportWith) {
+            withClause = this._buildWith(query, params)
+        }
         const tableName = this._appendTableOrViewName(table, params)
 
         const columnsForInsert: { [name: string]: Column | undefined } = {}

@@ -15,6 +15,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._getDate = true
         this._operationsThatNeedParenthesis._getMilliseconds = false
     }
+    _insertSupportWith = false
     _forceAsIdentifier(identifier: string): string {
         return '`' + identifier + '`'
     }

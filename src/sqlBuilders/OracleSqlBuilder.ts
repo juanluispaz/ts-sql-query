@@ -13,6 +13,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._getMilliseconds = false
     }
 
+    _insertSupportWith = false
     _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }

@@ -617,6 +617,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const table = query.__table
         this._setSafeTableOrView(params, table)
 
+        const withClause = this._buildWith(query, params)
         const tableName = this._appendTableOrViewName(table, params)
 
         const usedColumns: { [name: string]: boolean | undefined } = {}
@@ -704,7 +705,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        const insertQuery = 'insert into ' + tableName + ' (' + columns + ')' + output + ' values ' + multipleValues+ this._buildInsertReturning(query, params)
+        const insertQuery = withClause + 'insert into ' + tableName + ' (' + columns + ')' + output + ' values ' + multipleValues+ this._buildInsertReturning(query, params)
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
         return insertQuery

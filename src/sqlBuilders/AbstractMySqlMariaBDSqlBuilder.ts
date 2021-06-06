@@ -106,8 +106,8 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
-    _buildInsertDefaultValues(query: InsertData, _params: any[]): string {
-        return 'insert into ' + this._getTableOrViewNameInSql(query.__table) + ' () values ()'
+    _buildInsertDefaultValues(query: InsertData, params: any[]): string {
+        return 'insert into ' + this._appendTableOrViewName(query.__table, params) + ' () values ()'
     }
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''

@@ -186,7 +186,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return "'" + value + "'"
         }
     }
-    _getTableOrViewNameInSql(table: ITableOrView<any>): string {
+    _getTableOrViewVisibleName(table: ITableOrView<any>): string {
+        const t = __getTableOrViewPrivate(table)
+        let result = this._escape(t.__name, false)
+        if (t.__as) {
+            result += ' as ' + this._escape(t.__as, true)
+        }
+        return result
+    }
+    _appendTableOrViewName(table: ITableOrView<any>, params: any[]) {
         const t = __getTableOrViewPrivate(table)
         let result = this._escape(t.__name, false)
         if (t.__as) {
@@ -432,7 +440,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 if (requireComma) {
                     selectQuery += ', '
                 }
-                selectQuery += this._getTableOrViewNameInSql(tables[i]!)
+                selectQuery += this._appendTableOrViewName(tables[i]!, params)
                 requireComma = true
             }
         }
@@ -464,7 +472,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     default:
                         throw new Error('Invalid join type: ' + join.__joinType)
                 }
-                selectQuery += this._getTableOrViewNameInSql(join.__tableOrView)
+                selectQuery += this._appendTableOrViewName(join.__tableOrView, params)
                 if (join.__on) {
                     const onCondition = this._appendCondition(join.__on, params)
                     if (onCondition) {
@@ -609,6 +617,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const table = query.__table
         this._setSafeTableOrView(params, table)
 
+        const tableName = this._appendTableOrViewName(table, params)
+
         const usedColumns: { [name: string]: boolean | undefined } = {}
         for (let i = 0, length = multiple.length; i < length; i++) {
             const sets = multiple[i]
@@ -649,9 +659,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (column) {
                 columns += this._appendRawColumnName(column, params)
             } else {
-                throw new Error('Unable to find the column "' + columnName + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
+                throw new Error('Unable to find the column "' + columnName + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
             }
         }
+
+        const output = this._buildInsertOutput(query, params)
 
         for (let i = 0, length = multiple.length; i < length; i++) {
             let values = ''
@@ -681,7 +693,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                         values += this._appendValueForColumn(column, value, params)
                     }
                 } else {
-                    throw new Error('Unable to find the column "' + columnName + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
+                    throw new Error('Unable to find the column "' + columnName + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
                 }
             }
 
@@ -692,7 +704,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        const insertQuery = 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values ' + multipleValues+ this._buildInsertReturning(query, params)
+        const insertQuery = 'insert into ' + tableName + ' (' + columns + ')' + output + ' values ' + multipleValues+ this._buildInsertReturning(query, params)
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
         return insertQuery
@@ -755,9 +767,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(params, table)
 
         const withClause = this._buildWith(query, params)
+        const tableName = this._appendTableOrViewName(table, params)
 
         let columns = ''
-        let values = ''
+        const sequences: string[] = []
 
         for (var columnName in table) {
             const column = __getColumnOfTable(table, columnName)
@@ -771,19 +784,29 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
             if (columns) {
                 columns += ', '
-                values += ', '
             }
 
             columns += this._appendRawColumnName(column, params)
-            values += this._nextSequenceValue(params, columnPrivate.__sequenceName)
+            sequences.push(columnPrivate.__sequenceName)
         }
 
-        const tableName = this._getTableOrViewNameInSql(table)
+        const output = this._buildInsertOutput(query, params)
+
+        let values = ''
+        for (let i = 0, length = sequences.length; i < length; i++) {
+            const sequenceName = sequences[i]!
+            if (values) {
+                values += ', '
+            }
+
+            values += this._nextSequenceValue(params, sequenceName)
+        }
+        
         let insertQuery: string
         if (columns) {
-            insertQuery = withClause + 'insert into ' + tableName + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
+            insertQuery = withClause + 'insert into ' + tableName + ' (' + columns + ')' + output + ' values (' + values + ')' + this._buildInsertReturning(query, params)
         } else {
-            insertQuery = withClause + 'insert into ' + tableName + this._buildInsertOutput(query, params) + ' default values' + this._buildInsertReturning(query, params)
+            insertQuery = withClause + 'insert into ' + tableName + output + ' default values' + this._buildInsertReturning(query, params)
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
@@ -798,9 +821,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(params, table)
 
         const withClause = this._buildWith(query, params)
+        const tableName = this._appendTableOrViewName(table, params)
 
         let columns = ''
-        let values = ''
+        const sequences: string[] = []
 
         for (var columnName in table) {
             if (columnName in sets) {
@@ -817,17 +841,40 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
             if (columns) {
                 columns += ', '
-                values += ', '
             }
 
             columns += this._appendRawColumnName(column, params)
-            values += this._nextSequenceValue(params, columnPrivate.__sequenceName)
+            sequences.push(columnPrivate.__sequenceName)
         }
 
         const properties = Object.getOwnPropertyNames(sets)
         for (let i = 0, length = properties.length; i < length; i++) {
             if (columns) {
                 columns += ', '
+            }
+
+            const property = properties[i]!
+            const column = __getColumnOfTable(table, property)
+            if (column) {
+                columns += this._appendRawColumnName(column, params)
+            } else {
+                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
+            }
+        }
+
+        const output = this._buildInsertOutput(query, params)
+
+        let values = ''
+        for (let i = 0, length = sequences.length; i < length; i++) {
+            const sequenceName = sequences[i]!
+            if (values) {
+                values += ', '
+            }
+
+            values += this._nextSequenceValue(params, sequenceName)
+        }
+        for (let i = 0, length = properties.length; i < length; i++) {
+            if (values) {
                 values += ', '
             }
 
@@ -835,14 +882,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const value = sets[property]
             const column = __getColumnOfTable(table, property)
             if (column) {
-                columns += this._appendRawColumnName(column, params)
                 values += this._appendValueForColumn(column, value, params)
             } else {
-                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
+                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
             }
         }
 
-        const insertQuery = withClause + 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params)
+        const insertQuery = withClause + 'insert into ' + tableName + ' (' + columns + ')' + output + ' values (' + values + ')' + this._buildInsertReturning(query, params)
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
         return insertQuery
@@ -861,6 +907,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(params, table)
 
         const withClause = this._buildWith(query, params)
+        const tableName = this._appendTableOrViewName(table, params)
 
         const columnsForInsert: { [name: string]: Column | undefined } = {}
 
@@ -896,11 +943,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 columns += this._appendRawColumnName(column, params)
                 columnsForInsert[property] = column
             } else {
-                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
+                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
             }
         }
 
-        const insertQuery = withClause + 'insert into ' + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' ' + this._buildSelectWithColumnsInfo(from, params, columnsForInsert) + this._buildInsertReturning(query, params)
+        const insertQuery = withClause + 'insert into ' + tableName + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' ' + this._buildSelectWithColumnsInfo(from, params, columnsForInsert) + this._buildInsertReturning(query, params)
 
         for (let i = 0, length = addedColumns.length; i < length; i++) {
             const columnName = addedColumns[i]!
@@ -937,6 +984,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(params, table)
 
         const withClause = this._buildWith(query, params)
+        const tableName = this._appendTableOrViewName(table, params)
 
         let columns = ''
         const properties = Object.getOwnPropertyNames(sets)
@@ -953,11 +1001,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 columns += ' = '
                 columns += this._appendValueForColumn(column, value, params)
             } else {
-                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
+                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
             }
         }
 
-        let updateQuery = withClause + 'update ' + this._getTableOrViewNameInSql(table) + ' set ' + columns
+        let updateQuery = withClause + 'update ' + tableName + ' set ' + columns
         if (query.__where) {
             const whereCondition = this._appendCondition(query.__where, params)
             if (whereCondition) {
@@ -980,7 +1028,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const table = query.__table
         this._setSafeTableOrView(params, table)
 
-        let deleteQuery = withClause + 'delete from ' + this._getTableOrViewNameInSql(table)
+        let deleteQuery = withClause + 'delete from ' + this._appendTableOrViewName(table, params)
         if (query.__where) {
             const whereCondition = this._appendCondition(query.__where, params)
             if (whereCondition) {

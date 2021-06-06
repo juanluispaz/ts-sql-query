@@ -155,11 +155,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
 
         for (let i = 0, length = multiple.length; i < length; i++) {
-
+            const tableName = this._appendTableOrViewName(table, params)
             const sets = multiple[i]!
-    
             let columns = ''
-            let values = ''
+            const sequences: string[] = []
     
             for (var columnName in table) {
                 if (columnName in sets) {
@@ -176,17 +175,40 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     
                 if (columns) {
                     columns += ', '
-                    values += ', '
                 }
     
                 columns += this._appendSql(column, params)
-                values += this._nextSequenceValue(params, columnPrivate.__sequenceName)
+                sequences.push(columnPrivate.__sequenceName)
             }
     
             const properties = Object.getOwnPropertyNames(sets)
             for (let i = 0, length = properties.length; i < length; i++) {
                 if (columns) {
                     columns += ', '
+                }
+    
+                const property = properties[i]!
+                const column = __getColumnOfTable(table, property)
+                if (column) {
+                    columns += this._appendRawColumnName(column, params)
+                } else {
+                    throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
+                }
+            }
+
+            const output = this._buildInsertOutput(query, params)
+
+            let values = ''
+            for (let i = 0, length = sequences.length; i < length; i++) {
+                const sequenceName = sequences[i]!
+                if (values) {
+                    values += ', '
+                }
+
+                values += this._nextSequenceValue(params, sequenceName)
+            }
+            for (let i = 0, length = properties.length; i < length; i++) {
+                if (values) {
                     values += ', '
                 }
     
@@ -194,15 +216,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 const value = sets[property]
                 const column = __getColumnOfTable(table, property)
                 if (column) {
-                    columns += this._appendSql(column, params)
-                    const columnPrivate = __getColumnPrivate(column)
-                    values += this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__typeAdapter)
+                    values += this._appendValueForColumn(column, value, params)
                 } else {
-                    throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewNameInSql(table) +'". The column is not included in the table definition')
+                    throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
                 }
             }
     
-            insertAll += insertInto + this._getTableOrViewNameInSql(table) + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' values (' + values + ')' + this._buildInsertReturning(query, params) + end
+            insertAll += insertInto + tableName + ' (' + columns + ')' + output + ' values (' + values + ')' + this._buildInsertReturning(query, params) + end
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)

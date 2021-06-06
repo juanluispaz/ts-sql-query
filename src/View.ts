@@ -105,6 +105,11 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     private __addWiths(_withs: Array<IWithView<any>>): void {
         // Do nothing
     }
+
+    // @ts-ignore
+    private __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        requiredTablesOrViews.add(this)
+    }
 }
 
 export class View<Connection extends IConnection<any>, NAME extends string> extends ViewOf<VIEW<Connection[typeof database], NAME>> {

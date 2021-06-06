@@ -20,6 +20,7 @@ export interface ITableOrViewOf<DB extends AnyDB, REF extends TableOrViewRef<DB>
 
 export interface HasAddWiths {
     __addWiths(withs: Array<IWithView<any>>): void
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void
 }
 
 export function __addWiths(value: any, withs: Array<IWithView<any>>): void {
@@ -28,6 +29,15 @@ export function __addWiths(value: any, withs: Array<IWithView<any>>): void {
     }
     if (typeof value === 'object' && typeof value.__addWiths === 'function') {
         (value as HasAddWiths).__addWiths(withs)
+    }
+}
+
+export function __registerTableOrView(value: any, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    if (value === undefined || value === null) {
+        return
+    }
+    if (typeof value === 'object' && typeof value.__registerTableOrView === 'function') {
+        (value as HasAddWiths).__registerTableOrView(requiredTablesOrViews)
     }
 }
 

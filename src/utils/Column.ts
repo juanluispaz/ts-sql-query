@@ -31,7 +31,7 @@ export interface ComputedColumn extends Column {
 export interface __ColumnPrivate extends __ValueSourcePrivate {
     __isColumn: true
     __name: string
-    __table_or_view: ITableOrView<any>
+    __tableOrView: ITableOrView<any>
     __isOptional: boolean
     __hasDefault: boolean
     __isPrimaryKey: boolean

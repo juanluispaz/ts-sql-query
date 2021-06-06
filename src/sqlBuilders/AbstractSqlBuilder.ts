@@ -168,7 +168,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _appendRawColumnName(column: Column, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
-        const tableOrView = columnPrivate.__table_or_view
+        const tableOrView = columnPrivate.__tableOrView
         const tablePrivate = __getTableOrViewPrivate(tableOrView)
 
         if (tablePrivate.__as) {
@@ -392,7 +392,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return selectQuery
         }
 
-        const tables = query.__tables_or_views
+        const tables = query.__tablesOrViews
         const tablesLength = tables.length
         const joins = query.__joins
         const joinsLength = joins.length
@@ -438,8 +438,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         if (joinsLength > 0) {
+            const requiredTablesOrViews = query.__requiredTablesOrViews
             for (let i = 0; i < joinsLength; i++) {
                 const join = joins[i]!
+
+                if (join.__optional) {
+                    if (!requiredTablesOrViews!.has(join.__tableOrView)) {
+                        continue
+                    }
+                }
+
                 switch (join.__joinType) {
                     case 'join':
                         selectQuery += ' join '
@@ -456,7 +464,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     default:
                         throw new Error('Invalid join type: ' + join.__joinType)
                 }
-                selectQuery += this._getTableOrViewNameInSql(join.__table_or_view)
+                selectQuery += this._getTableOrViewNameInSql(join.__tableOrView)
                 if (join.__on) {
                     const onCondition = this._appendCondition(join.__on, params)
                     if (onCondition) {

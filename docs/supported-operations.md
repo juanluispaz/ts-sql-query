@@ -930,6 +930,12 @@ interface SelectExpression {
      */
     leftOuterJoin(source: OuterJoinSource): this
 
+    // Optional variants for joins, to be used in select picking columns
+    optionalJoin(table: Table | View): this
+    optionalInnerJoin(table: Table | View): this
+    optionalLeftJoin(source: OuterJoinSource): this
+    optionalLeftOuterJoin(source: OuterJoinSource): this
+
     /** Allows to create the on clause of a join dynamically */
     dynamicOn(): this
     /** Allows to specify the on clause of a join */

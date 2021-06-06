@@ -21,8 +21,9 @@ export function getWithData(withView: IWithView<any>): WithData {
 
 export interface JoinData {
     __joinType: 'join' | 'innerJoin' | 'leftJoin' | 'leftOuterJoin'
-    __table_or_view: ITableOrView<any>
+    __tableOrView: ITableOrView<any>
     __on?: BooleanValueSource<any, any> | IfValueSource<any, any>
+    __optional?: boolean
 }
 
 export interface WithQueryData {
@@ -35,7 +36,7 @@ export interface PlainSelectData extends WithQueryData {
     __type: 'plain'
     __distinct: boolean
     __columns: { [property: string]: ValueSource<any, any> }
-    __tables_or_views: Array<ITableOrView<any>>
+    __tablesOrViews: Array<ITableOrView<any>>
     __joins: Array<JoinData>
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __having?: BooleanValueSource<any, any> | IfValueSource<any, any>
@@ -43,6 +44,7 @@ export interface PlainSelectData extends WithQueryData {
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
     __limit?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
     __offset?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
+    __requiredTablesOrViews?: Set<ITableOrView<any>>
 }
 
 export type CompoundOperator = 'union' | 'unionAll' | 'intersect' | 'intersectAll' | 'except' | 'exceptAll' | 'minus' | 'minusAll'

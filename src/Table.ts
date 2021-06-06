@@ -308,6 +308,11 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     private __addWiths(_withs: Array<IWithView<any>>): void {
         // Do nothing
     }
+
+    // @ts-ignore
+    private __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        requiredTablesOrViews.add(this)
+    }
 }
 
 export class Table<Connection extends IConnection<any>, NAME extends string> extends TableOf<TABLE<Connection[typeof database], NAME>> {

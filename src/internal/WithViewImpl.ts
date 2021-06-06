@@ -21,6 +21,7 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
     // @ts-ignore
     __originalWith?: WithViewImpl<any, any>
     __ignoreWith?: boolean
+    __recursive?: boolean
 
     constructor(name: string, selectData: SelectData, optionalRule: __OptionalRule) {
         this.__name = name

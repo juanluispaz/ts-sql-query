@@ -69,6 +69,8 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
     __recursiveView?: WithViewImpl<any, any>
     __recursiveSelect?: SelectData
 
+    __subSelectUsing?: ITableOrView<any>[]
+
     constructor(sqlBuilder: SqlBuilder) {
         this.__sqlBuilder = sqlBuilder
     }
@@ -372,11 +374,28 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         return this
     }
 
+    __combineSubSelectUsing(select: ICompoundableSelect<any, any, any, any>, result: CompoundSelectQueryBuilder) {
+        const selectPrivate = select as any as AbstractSelect
+        if (this.__subSelectUsing) {
+            if (selectPrivate.__subSelectUsing) {
+                result.__subSelectUsing = this.__subSelectUsing.concat(...selectPrivate.__subSelectUsing)
+            } else {
+                result.__subSelectUsing = this.__subSelectUsing.concat()
+            }
+        } else if (selectPrivate.__subSelectUsing) {
+            result.__subSelectUsing = selectPrivate.__subSelectUsing.concat()
+        }
+    }
+
     union(select: ICompoundableSelect<any, any, any, any>): any {
-        return new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'union', this.__compoundableAsSelectData(select))
+        const result = new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'union', this.__compoundableAsSelectData(select))
+        this.__combineSubSelectUsing(select, result)
+        return result
     }
     unionAll(select: ICompoundableSelect<any, any, any, any>): any {
-        return new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'unionAll', this.__compoundableAsSelectData(select))
+        const result = new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'unionAll', this.__compoundableAsSelectData(select))
+        this.__combineSubSelectUsing(select, result)
+        return result
     }
     intersect: never
     intersectAll: never
@@ -395,6 +414,16 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         for (let i = 0, length = withViews.length; i < length; i++) {
             const withView = withViews[i]!
             __getTableOrViewPrivate(withView).__addWiths(withs)
+        }
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        const subSelectUsing = this.__subSelectUsing
+        if (!subSelectUsing) {
+            return
+        }
+        for (let i = 0, length = subSelectUsing.length; i < length; i++) {
+            const tableOrView = subSelectUsing[i]!
+            __getTableOrViewPrivate(tableOrView).__registerTableOrView(requiredTablesOrViews)
         }
     }
 
@@ -660,14 +689,14 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
     __buildRecursive(fn: (view: any) => ICompoundableSelect<any, any, any, any>, unionAll: boolean): void {
         const sqlBuilder = this.__sqlBuilder
         const name = 'recursive_select_' + sqlBuilder._generateUnique()
-        const recursiveInternalView = new WithViewImpl<any, any>(name, this as any, sqlBuilder) as any
+        const recursiveInternalView = new WithViewImpl<any, any>(name, this as any, sqlBuilder)
         let recursiveInternalSelect 
         if (unionAll) {
             recursiveInternalSelect = this.unionAll(fn(recursiveInternalView))
         } else {
             recursiveInternalSelect = this.union(fn(recursiveInternalView))
         }
-        const recursiveView = new WithViewImpl<any, any>(name, recursiveInternalSelect, sqlBuilder) as any
+        const recursiveView = new WithViewImpl<any, any>(name, recursiveInternalSelect, sqlBuilder)
         recursiveView.__recursive = true
 
         const recursiveSelect = new SelectQueryBuilder(this.__sqlBuilder, [recursiveView], false)
@@ -679,7 +708,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
 
         this.__recursiveInternalView = recursiveInternalView
         this.__recursiveView = recursiveView
-        this.__recursiveSelect = recursiveSelect
+        this.__recursiveSelect = recursiveSelect.__asSelectData() // __asSelectData is important here to detect the required tables
     }
     recursiveUnion(fn: (view: any) => ICompoundableSelect<any, any, any, any>): this {
         this.__buildRecursive(fn, false)
@@ -692,7 +721,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
     __buildRecursiveFn(fn: (view: any) => IBooleanValueSource<any, any>): (view: any) => ICompoundableSelect<any, any, any, any> {
         return (view: any) => {
             const current = this as any as PlainSelectData
-            const result = new SelectQueryBuilder(this.__sqlBuilder, current.__tables_or_views, false)
+            const result = new SelectQueryBuilder(this.__sqlBuilder, current.__tablesOrViews, false)
             result.__columns = { ...current.__columns }
             result.__withs = current.__withs.concat()
             result.__joins = current.__joins.concat()
@@ -728,49 +757,63 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
 
 (AbstractSelect.prototype as any).intersect = function(select: ICompoundableSelect<any, any, any, any>): any {
     const thiz = this as SelectQueryBuilder
-    return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'intersect', thiz.__compoundableAsSelectData(select))
+    const result = new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'intersect', thiz.__compoundableAsSelectData(select))
+    thiz.__combineSubSelectUsing(select, result)
+    return result
 };
 
 (AbstractSelect.prototype as any).intersectAll = function(select: ICompoundableSelect<any, any, any, any>): any {
     const thiz = this as SelectQueryBuilder
-    return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'intersectAll', thiz.__compoundableAsSelectData(select))
+    const result = new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'intersectAll', thiz.__compoundableAsSelectData(select))
+    thiz.__combineSubSelectUsing(select, result)
+    return result
 };
 
 (AbstractSelect.prototype as any).except = function(select: ICompoundableSelect<any, any, any, any>): any {
     const thiz = this as SelectQueryBuilder
-    return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'except', thiz.__compoundableAsSelectData(select))
+    const result = new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'except', thiz.__compoundableAsSelectData(select))
+    thiz.__combineSubSelectUsing(select, result)
+    return result
 };
 
 (AbstractSelect.prototype as any).exceptAll = function(select: ICompoundableSelect<any, any, any, any>): any {
     const thiz = this as SelectQueryBuilder
-    return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'exceptAll', thiz.__compoundableAsSelectData(select))
+    const result = new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'exceptAll', thiz.__compoundableAsSelectData(select))
+    thiz.__combineSubSelectUsing(select, result)
+    return result
 };
 
 (AbstractSelect.prototype as any).minus = function(select: ICompoundableSelect<any, any, any, any>): any {
     const thiz = this as SelectQueryBuilder
-    return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'minus', thiz.__compoundableAsSelectData(select))
+    const result = new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'minus', thiz.__compoundableAsSelectData(select))
+    thiz.__combineSubSelectUsing(select, result)
+    return result
 };
 
 (AbstractSelect.prototype as any).minusAll = function(select: ICompoundableSelect<any, any, any, any>): any {
     const thiz = this as SelectQueryBuilder
-    return new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'minusAll', thiz.__compoundableAsSelectData(select))
+    const result = new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'minusAll', thiz.__compoundableAsSelectData(select))
+    thiz.__combineSubSelectUsing(select, result)
+    return result
 };
 
 export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSelectData, SelectExpression<any, any, any>, SelectExpressionFromNoTable<any>, ExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereExecutableSelectExpression<any, any, any, any, any, any>, DynamicWhereExpressionWithoutSelect<any, any, any>, GroupByOrderByExecutableSelectExpression<any, any, any, any, any, any>, SelectWhereJoinExpression<any, any, any>, DynamicOnExpression<any, any, any>, OnExpression<any, any, any>, SelectExpressionWithoutJoin<any, any, any>, SelectExpressionSubquery<any, any>, SelectWhereExpression<any, any, any>, GroupByOrderByHavingExecutableSelectExpression<any, any, any, any, any, any>, DynamicHavingExecutableSelectExpression<any, any, any, any, any, any>, GroupByOrderHavingByExpressionWithoutSelect<any, any, any>, DynamicHavingExpressionWithoutSelect<any, any, any> {
     __type: 'plain' = 'plain'
     __distinct: boolean
-    __tables_or_views: Array<ITableOrView<any>>
+    __tablesOrViews: Array<ITableOrView<any>>
     __joins: Array<JoinData> = []
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __having?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __groupBy:  Array<ValueSource<any, any>> = []
+    __requiredTablesOrViews?: Set<ITableOrView<any>>
 
     __lastJoin?: JoinData
     __inHaving = false
+    __hasOptionalJoin = false
 
     constructor(sqlBuilder: SqlBuilder, tables: Array<ITableOrView<any>>, distinct: boolean) {
         super(sqlBuilder)
-        this.__tables_or_views = tables
+        this.__tablesOrViews = tables
         this.__distinct = distinct
         for (let i = 0, length = tables.length; i < length; i++) {
             const table = tables[i]!
@@ -788,7 +831,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
                 __type: 'plain',
                 __distinct: false,
                 __columns: { '': countAll },
-                __tables_or_views: [withView],
+                __tablesOrViews: [withView],
                 __joins: [],
                 __where: undefined,
                 __groupBy: [],
@@ -801,7 +844,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __type: 'plain',
             __distinct: false,
             __columns: { '': countAll },
-            __tables_or_views: this.__tables_or_views,
+            __tablesOrViews: this.__tablesOrViews,
             __joins: this.__joins,
             __where: this.__where,
             __groupBy: [],
@@ -833,7 +876,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     from(table: ITableOrView<any>): this {
         this.__finishJoinHaving()
         this.__query = ''
-        this.__tables_or_views.push(table)
+        this.__tablesOrViews.push(table)
         __getTableOrViewPrivate(table).__addWiths(this.__withs)
         return this
     }
@@ -845,7 +888,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         this.__lastJoin = {
             __joinType: 'join',
-            __table_or_view: table
+            __tableOrView: table
         }
         __getTableOrViewPrivate(table).__addWiths(this.__withs)
         return this
@@ -858,7 +901,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         this.__lastJoin = {
             __joinType: 'innerJoin',
-            __table_or_view: table
+            __tableOrView: table
         }
         __getTableOrViewPrivate(table).__addWiths(this.__withs)
         return this
@@ -871,7 +914,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         this.__lastJoin = {
             __joinType: 'leftJoin',
-            __table_or_view: source as any
+            __tableOrView: source as any
         }
         __getTableOrViewPrivate(source).__addWiths(this.__withs)
         return this
@@ -884,8 +927,68 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         this.__lastJoin = {
             __joinType: 'leftOuterJoin',
-            __table_or_view: source as any
+            __tableOrView: source as any
         }
+        __getTableOrViewPrivate(source).__addWiths(this.__withs)
+        return this
+    }
+    optionalJoin(table: ITableOrView<any>): this {
+        this.__finishJoinHaving()
+        this.__query = ''
+        if (this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin = {
+            __joinType: 'join',
+            __tableOrView: table,
+            __optional: true
+        }
+        this.__hasOptionalJoin = true
+        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        return this
+    }
+    optionalInnerJoin(table: ITableOrView<any>): this {
+        this.__finishJoinHaving()
+        this.__query = ''
+        if (this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin = {
+            __joinType: 'innerJoin',
+            __tableOrView: table,
+            __optional: true
+        }
+        this.__hasOptionalJoin = true
+        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        return this
+    }
+    optionalLeftJoin(source: OuterJoinSource<any, any>): this {
+        this.__finishJoinHaving()
+        this.__query = ''
+        if (this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin = {
+            __joinType: 'leftJoin',
+            __tableOrView: source as any,
+            __optional: true
+        }
+        this.__hasOptionalJoin = true
+        __getTableOrViewPrivate(source).__addWiths(this.__withs)
+        return this
+    }
+    optionalLeftOuterJoin(source: OuterJoinSource<any, any>): this {
+        this.__finishJoinHaving()
+        this.__query = ''
+        if (this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin = {
+            __joinType: 'leftOuterJoin',
+            __tableOrView: source as any,
+            __optional: true
+        }
+        this.__hasOptionalJoin = true
         __getTableOrViewPrivate(source).__addWiths(this.__withs)
         return this
     }
@@ -1019,7 +1122,56 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         if (recursiveSelect) {
             return recursiveSelect
         }
+        if (this.__hasOptionalJoin && !this.__requiredTablesOrViews) {
+            this.__requiredTablesOrViews = this.__generateRequiredTableOrView()
+        }
         return this
+    }
+    __generateRequiredTableOrView(): Set<ITableOrView<any>> {
+        const requiredTableOrView = new Set<ITableOrView<any>>()
+
+        const columns = this.__columns
+        for (const property in columns) {
+            const column = columns[property]!
+            __getValueSourcePrivate(column).__registerTableOrView(requiredTableOrView)
+        }
+        const where = this.__where
+        if (where) {
+            __getValueSourcePrivate(where).__registerTableOrView(requiredTableOrView)
+        }
+        const groupBy = this.__groupBy
+        for (let i = 0, lenght = groupBy.length; i < lenght; i++) {
+            const value = groupBy[i]!
+            __getValueSourcePrivate(value).__registerTableOrView(requiredTableOrView)
+        }
+        const having = this.__having
+        if (having) {
+            __getValueSourcePrivate(having).__registerTableOrView(requiredTableOrView)
+        }
+
+        const joins = this.__joins
+        for (let i = 0, lenght = groupBy.length; i < lenght; i++) {
+            const join = joins[i]!
+            const on = join.__on
+            if (!join.__optional && on) {
+                __getValueSourcePrivate(on).__registerTableOrView(requiredTableOrView)
+            }
+        }
+
+        const registeredCount = requiredTableOrView.size
+        let updatedCount = requiredTableOrView.size
+        do {
+            for (let i = 0, lenght = joins.length; i < lenght; i++) {
+                const join = joins[i]!
+                const on = join.__on
+                if (join.__optional && on && requiredTableOrView.has(join.__tableOrView)) {
+                    __getValueSourcePrivate(on).__registerTableOrView(requiredTableOrView)
+                }
+            }
+            updatedCount = requiredTableOrView.size
+        } while (registeredCount !== updatedCount)
+
+        return requiredTableOrView
     }
 }
 
@@ -1047,7 +1199,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
             __type: 'plain',
             __distinct: false,
             __columns: { '': countAll },
-            __tables_or_views: [withView],
+            __tablesOrViews: [withView],
             __joins: [],
             __where: undefined,
             __groupBy: [],

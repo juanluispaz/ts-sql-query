@@ -1,7 +1,7 @@
 import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0 } from "../sqlBuilders/SqlBuilder"
 import type { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, ValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, __OptionalRule, IfValueSource, BigintValueSource, TypeSafeBigintValueSource } from "../expressions/values"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { IWithView } from "../utils/ITableOrView"
+import { ITableOrView, IWithView, __registerTableOrView } from "../utils/ITableOrView"
 import { database, tableOrView, valueSourceType, valueType as valueType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType } from "../utils/symbols"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -56,6 +56,9 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
         return this.__resultIsOptionalCache
     }
     __addWiths(_withs: Array<IWithView<any>>): void {
+        // Do nothing
+    }
+    __registerTableOrView(_requiredTablesOrViews: Set<ITableOrView<any>>): void {
         // Do nothing
     }
     isConstValue(): boolean {
@@ -139,22 +142,22 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
         return condition(new SqlOperation1ValueSource('_largeAs', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
     inIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_in', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSourceIfValueOrNoop('_in', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
     in(value: any): any {
-        return condition(new SqlOperation1ValueSource('_in', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSource('_in', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
     notInIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_notIn', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSourceIfValueOrNoop('_notIn', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
     notIn(value: any): any {
-        return condition(new SqlOperation1ValueSource('_notIn', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSource('_notIn', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
     inN(...value: any[]): any {
-        return condition(new SqlOperation1ValueSource('_in', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSource('_in', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
     notInN(...value: any[]): any {
-        return condition(new SqlOperation1ValueSource('_notIn', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperationInValueSource('_notIn', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
     likeIfValue(value: any): any {
         return condition(new SqlOperation1ValueSourceIfValueOrNoop('_like', this, value, 'boolean', getTypeAdapter2(this, value)))
@@ -659,6 +662,9 @@ export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements H
     __addWiths(withs: Array<IWithView<any>>): void {
         __addWiths(this.__value, withs)
     }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerTableOrView(this.__value, requiredTablesOrViews)
+    }
 }
 
 export class SqlOperationConstValueSource extends ValueSourceImpl implements HasOperation {
@@ -690,6 +696,9 @@ export class SqlOperationConstValueSource extends ValueSourceImpl implements Has
     __addWiths(withs: Array<IWithView<any>>): void {
         __addWiths(this.__value, withs)
     }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerTableOrView(this.__value, requiredTablesOrViews)
+    }
 }
 
 export class SqlOperationAsOptionalValueSource extends ValueSourceImpl {
@@ -707,6 +716,9 @@ export class SqlOperationAsOptionalValueSource extends ValueSourceImpl {
     }
     __addWiths(withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(withs)
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
     }
 }
 
@@ -728,6 +740,9 @@ export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOper
     __addWiths(withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(withs)
     }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+    }
 }
 
 export class SqlOperationIsNullValueSource extends ValueSourceImpl implements HasOperation {
@@ -747,6 +762,9 @@ export class SqlOperationIsNullValueSource extends ValueSourceImpl implements Ha
     }
     __addWiths(withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(withs)
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
     }
 }
 
@@ -771,6 +789,51 @@ export class SqlOperation1ValueSource extends ValueSourceImpl implements HasOper
         this.__valueSource.__addWiths(withs)
         __addWiths(this.__value, withs)
     }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+        __registerTableOrView(this.__value, requiredTablesOrViews)
+    }
+}
+
+export class SqlOperationInValueSource extends ValueSourceImpl implements HasOperation {
+    __valueSource: ValueSourceImpl
+    __operation: '_in' | '_notIn'
+    __value: any
+
+    constructor(operation: '_in' | '_notIn', valueSource: ValueSourceImpl, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
+        this.__valueSource = valueSource
+        this.__operation = operation
+        this.__value = value
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
+    }
+    __resultIsOptional(rule: __OptionalRule): boolean {
+        return this.__valueSource.__resultIsOptional(rule)
+    }
+    __addWiths(withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(withs)
+        const values = this.__value
+        if (Array.isArray(values)) {
+            for (let i = 0, length = values.length; i < length; i++) {
+                __addWiths(values[i], withs)
+            }
+        } else {
+            __addWiths(values, withs)
+        }
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+        const values = this.__value
+        if (Array.isArray(values)) {
+            for (let i = 0, length = values.length; i < length; i++) {
+                __registerTableOrView(values[i], requiredTablesOrViews)
+            }
+        } else {
+            __registerTableOrView(values, requiredTablesOrViews)
+        }
+    }
 }
 
 export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implements HasOperation {
@@ -794,6 +857,10 @@ export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implem
         this.__valueSource.__addWiths(withs)
         __addWiths(this.__value, withs)
     }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+        __registerTableOrView(this.__value, requiredTablesOrViews)
+    }
 }
 
 export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl implements HasOperation {
@@ -816,6 +883,10 @@ export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl impleme
     __addWiths(withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(withs)
         __addWiths(this.__value, withs)
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+        __registerTableOrView(this.__value, requiredTablesOrViews)
     }
 }
 
@@ -842,6 +913,54 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
     __addWiths(withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(withs)
         __addWiths(this.__value, withs)
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+        __registerTableOrView(this.__value, requiredTablesOrViews)
+    }
+}
+
+export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl implements HasOperation {
+    __valueSource: ValueSourceImpl
+    __operation: '_in' | '_notIn'
+    __value: any
+
+    constructor(operation: '_in' | '_notIn', valueSource: ValueSourceImpl, value: any, valueType: string, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, typeAdapter)
+        this.__valueSource = valueSource
+        this.__operation = operation
+        this.__value = value
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return ''
+        }
+        return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
+    }
+    __resultIsOptional(rule: __OptionalRule): boolean {
+        return this.__valueSource.__resultIsOptional(rule)
+    }
+    __addWiths(withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(withs)
+        const values = this.__value
+        if (Array.isArray(values)) {
+            for (let i = 0, length = values.length; i < length; i++) {
+                __addWiths(values[i], withs)
+            }
+        } else {
+            __addWiths(values, withs)
+        }
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+        const values = this.__value
+        if (Array.isArray(values)) {
+            for (let i = 0, length = values.length; i < length; i++) {
+                __registerTableOrView(values[i], requiredTablesOrViews)
+            }
+        } else {
+            __registerTableOrView(values, requiredTablesOrViews)
+        }
     }
 }
 
@@ -883,6 +1002,10 @@ export class SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         this.__valueSource.__addWiths(withs)
         __addWiths(this.__value, withs)
     }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+        __registerTableOrView(this.__value, requiredTablesOrViews)
+    }
 }
 
 export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOperation {
@@ -908,6 +1031,11 @@ export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOper
         this.__valueSource.__addWiths(withs)
         __addWiths(this.__value, withs)
         __addWiths(this.__value2, withs)
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+        __registerTableOrView(this.__value, requiredTablesOrViews)
+        __registerTableOrView(this.__value2, requiredTablesOrViews)
     }
 }
 
@@ -941,6 +1069,11 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         __addWiths(this.__value, withs)
         __addWiths(this.__value2, withs)
     }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+        __registerTableOrView(this.__value, requiredTablesOrViews)
+        __registerTableOrView(this.__value2, requiredTablesOrViews)
+    }
 }
 
 
@@ -958,6 +1091,9 @@ export class NoopValueSource extends ValueSourceImpl {
     }
     __addWiths(withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(withs)
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
     }
 }
 
@@ -1005,6 +1141,13 @@ export class FragmentValueSource extends ValueSourceImpl {
             value.__addWiths(withs)
         }
     }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        const sqlParams = this.__sqlParams
+        for (let i = 0, length = sqlParams.length; i < length; i++) {
+            const value = __getValueSourcePrivate(sqlParams[i]!)
+            value.__registerTableOrView(requiredTablesOrViews)
+        }
+    }
 }
 
 export class AggregateFunctions0ValueSource extends ValueSourceImpl implements HasOperation {
@@ -1042,6 +1185,9 @@ export class AggregateFunctions1ValueSource extends ValueSourceImpl implements H
     __addWiths(withs: Array<IWithView<any>>): void {
         __addWiths(this.__value, withs)
     }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerTableOrView(this.__value, requiredTablesOrViews)
+    }
 }
 
 export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implements HasOperation {
@@ -1065,6 +1211,9 @@ export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implement
     }
     __addWiths(withs: Array<IWithView<any>>): void {
         __addWiths(this.__value, withs)
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerTableOrView(this.__value, requiredTablesOrViews)
     }
 }
 

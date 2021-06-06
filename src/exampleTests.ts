@@ -1183,6 +1183,46 @@ const customerWithIdPeaking = connection.selectFrom(tCustomer)
 // Query: select id as id, first_name as "firstName", last_name as "lastName" from customer
 // Params: [ ]
 
+results.push([])
+
+const availableFields2 = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday,
+    companyId: tCompany.id,
+    companyName: tCompany.name
+}
+
+const fieldsToPick2 = {
+    firstName: true,
+    lastName: true
+}
+
+// include allways id field as required
+const pickedFields2 = dynamicPick(availableFields2, fieldsToPick2, ['id'])
+
+const customerWithOptionalCompany = connection.selectFrom(tCustomer)
+    .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+    .select(pickedFields2)
+    .where(tCustomer.id.equals(12))
+    .executeSelectMany()
+
+// Query: select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName" from customer where customer.id = $1
+// Params: [ 12 ]
+
+/*
+
+const fieldsToPick2 = {
+    firstName: true,
+    lastName: true,
+    companyName: true
+}
+
+// Query: select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", company.name as "companyName" from customer inner join company on company.id = customer.company_id where customer.id = $1
+// Params: [ 12 ]
+
+*/
 
 results.push(...postResults)
 
@@ -1227,6 +1267,7 @@ recursiveChildrenCompany.finally(() => undefined)
 recursiveOnChildrenCompany.finally(() => undefined)
 leftJoinCompany.finally(() => undefined)
 customerWithIdPeaking.finally(() => undefined)
+customerWithOptionalCompany.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

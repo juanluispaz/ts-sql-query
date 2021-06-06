@@ -291,7 +291,10 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         if (!this.__orderBy) {
             this.__orderBy = {}
         }
-        if (!(column in this.__orderBy)) {
+        if (column in this.__orderBy) {
+            throw new Error('Column ' + column + ' already used in the order by clause')
+        }
+        if (!(column in this.__columns)) {
             // this can happens because we the column is not included in required columns for a select that picks the columns
             // In this case, we just skip it
             return this

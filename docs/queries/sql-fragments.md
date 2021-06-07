@@ -214,12 +214,12 @@ const customerInSystemTime: Promise<{
 
 ## Customizing a select
 
-The methos `customizeQuery` offers you to inject raw fragments of sql in the query, allowing you to extends the functionality of it when the required feature is not supported by ts-sql-query API.
+The method `customizeQuery` offers you to inject raw fragments of SQL in the query, allowing you to extend its functionality when the required feature is not supported by ts-sql-query API.
 
-The suported extension point offered by `customizeQuery` are:
+The supported extension point offered by `customizeQuery` are:
 
-- `afterSelectKeyword`: Place the fragment inmediatly after the `select` keyword.
-- `beforeColumns`: Place the fragment inmediatly before of the column list and after the `distinc` keyword.
+- `afterSelectKeyword`: Place the fragment immediately after the `select` keyword.
+- `beforeColumns`: Place the fragment immediately before the column list and after the `distinct keyword.
 - `customWindow`: Place the fragment as a `window` clause (the window keyboard will be added automatically).
 - `afterQuery`: Place the fragment at the end of the query.
 

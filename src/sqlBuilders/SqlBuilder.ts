@@ -1,5 +1,5 @@
 import type { ITableOrView, ITable, IWithView } from "../utils/ITableOrView"
-import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, __OptionalRule, IfValueSource } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, __OptionalRule, IfValueSource, IExecutableSelectQuery } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
@@ -101,6 +101,10 @@ export interface SqlBuilder extends SqlOperation, __OptionalRule {
     _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any>[]): string
     _generateUnique(): number
     _resetUnique(): void
+
+    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<ValueSource<any, any> | IExecutableSelectQuery<any, any, any>>): string
+    _rawFragmentTableName(params: any[], tableOrView: ITableOrView<any>): string
+    _rawFragmentTableAlias(params: any[], tableOrView: ITableOrView<any>): string
 }
 
 export interface ToSql {

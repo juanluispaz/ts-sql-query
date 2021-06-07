@@ -1,7 +1,7 @@
 import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0 } from "../sqlBuilders/SqlBuilder"
 import type { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, ValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, __OptionalRule, IfValueSource, BigintValueSource, TypeSafeBigintValueSource } from "../expressions/values"
 import type { TypeAdapter } from "../TypeAdapter"
-import { ITableOrView, IWithView, __registerTableOrView } from "../utils/ITableOrView"
+import { ITableOrView, IWithView, __getTableOrViewPrivate, __registerTableOrView } from "../utils/ITableOrView"
 import { database, tableOrView, valueSourceType, valueType as valueType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType } from "../utils/symbols"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -1289,4 +1289,45 @@ function isOptional(value: any, rule: __OptionalRule): boolean {
 function condition(valueSource: ValueSourceImpl): ValueSourceImpl {
     valueSource.__isBooleanForCondition = true
     return valueSource
+}
+
+export class TableOrViewRawFragmentValueSource implements ValueSource<any, any>, __ValueSourcePrivate, ToSql {
+    [tableOrView]: any
+    [valueType_]: any
+    [valueSourceType]: "ValueSource"
+    [database]: any
+
+    __valueType: string = ''
+    __typeAdapter?: TypeAdapter | undefined
+    __tableOrView: ITableOrView<any>
+    __operation: '_rawFragmentTableName' | '_rawFragmentTableAlias'
+
+    constructor(_tableOrView: ITableOrView<any>, operation: '_rawFragmentTableName' | '_rawFragmentTableAlias') {
+        this.__tableOrView = _tableOrView
+        this.__operation = operation
+    }
+
+    isConstValue(): boolean {
+        return false
+    }
+    getConstValue(): any {
+        throw new Error('You are trying to access to the const value when the expression is not const')
+    }
+
+    __isResultOptional(_rule: __OptionalRule): boolean {
+        return false
+    }
+    __isBooleanForCondition?: boolean | undefined
+    __addWiths(_withs: IWithView<any>[]): void {
+        // Do nothing
+    }
+    __registerTableOrView(_requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        // Do nothing
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        return sqlBuilder[this.__operation](params, this.__tableOrView)
+    }
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+        return this.__toSql(sqlBuilder, params)
+    }
 }

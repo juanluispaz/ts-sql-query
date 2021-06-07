@@ -1,12 +1,13 @@
-import type { IWithView } from "../utils/ITableOrView"
+import { ITableOrView, IWithView, __addWiths, __ITableOrViewPrivate, __registerTableOrView } from "../utils/ITableOrView"
 import type { AliasedTableOrView, OuterJoinSourceOf, WITH_VIEW } from "../utils/tableOrViewUtils"
 import type { AnyDB } from "../databases"
 import type { SelectData, WithData } from "../sqlBuilders/SqlBuilder"
 import { createColumnsFrom } from "../internal/ColumnImpl"
 import { database, tableOrViewRef, type } from "../utils/symbols"
 import { __getValueSourcePrivate, __OptionalRule } from "../expressions/values"
+import { RawFragment } from "../utils/RawFragment"
 
-export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME>> implements IWithView<REF>, WithData {
+export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME>> implements IWithView<REF>, WithData, __ITableOrViewPrivate {
     [database]: REF[typeof database]
     [type]: 'with'
     [tableOrViewRef]: REF
@@ -22,6 +23,8 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
     __originalWith?: WithViewImpl<any, any>
     __ignoreWith?: boolean
     __recursive?: boolean
+    // @ts-ignore
+    __template?: RawFragment<any>
 
     constructor(name: string, selectData: SelectData, optionalRule: __OptionalRule) {
         this.__name = name
@@ -31,6 +34,9 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
         const columns = selectData.__columns
         createColumnsFrom(columns, this as any, optionalRule, this)
     }
+    [type]: "with"
+    [tableOrViewRef]: REF
+    [database]: REF[typeof database]
 
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
         const result = new WithViewImpl(this.__name, this.__selectData, this.__optionalRule)
@@ -54,5 +60,10 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
         } else if (!withs.includes(this as any)) {
             withs.push(this as any)
         }
+        __addWiths(this.__template, withs)
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        requiredTablesOrViews.add(this)
+        __registerTableOrView(this.__template, requiredTablesOrViews)
     }
 }

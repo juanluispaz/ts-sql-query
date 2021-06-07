@@ -1,6 +1,6 @@
 import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator } from "./SqlBuilder"
 import type { ITableOrView, __ITableOrViewPrivate } from "../utils/ITableOrView"
-import { BooleanValueSource, IfValueSource, ValueSource, __ValueSourcePrivate } from "../expressions/values"
+import { BooleanValueSource, IExecutableSelectQuery, IfValueSource, ValueSource, __ValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
 import { CustomBooleanTypeAdapter, DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
@@ -11,6 +11,7 @@ import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 import { QueryRunner } from "../queryRunners/QueryRunner"
 import { getWithData } from "./SqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
+import { RawFragment } from "../utils/RawFragment"
 
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
@@ -192,15 +193,24 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (t.__as) {
             result += ' as ' + this._escape(t.__as, true)
         }
+        if (t.__customizationName) {
+            result += ' (customization name: ' + t.__customizationName + ')'
+        }
         return result
     }
     _appendTableOrViewName(table: ITableOrView<any>, params: any[]) {
         const t = __getTableOrViewPrivate(table)
+        if (t.__template) {
+            return this._appendRawFragment(t.__template, params)
+        }
         let result = this._escape(t.__name, false)
         if (t.__as) {
             result += ' as ' + this._escape(t.__as, true)
         }
         return result
+    }
+    _appendRawFragment(rawFragment: RawFragment<any>, params: any[]): string {
+        return (rawFragment as any as ToSql).__toSql(this, params) // RawFragment has a hidden implemetation of ToSql
     }
     _appendCondition(condition: BooleanValueSource<any, any> | IfValueSource<any, any>, params: any[]): string {
         if (hasToSql(condition)) {
@@ -220,7 +230,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendCondition(condition, params)
     }
-    _appendSql(value: ToSql | ValueSource<any, any> | Column, params: any[]): string {
+    _appendSql(value: ToSql | ValueSource<any, any> | Column | IExecutableSelectQuery<any, any, any>, params: any[]): string {
         return (value as ToSql).__toSql(this, params) // All ValueSource or Column have a hidden implemetation of ToSql
     }
     _appendSqlParenthesis(value: ToSql | ValueSource<any, any> | Column, params: any[]): string {
@@ -1577,6 +1587,29 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         result += sql[sql.length - 1]
         return result
+    }
+    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<ValueSource<any, any> | IExecutableSelectQuery<any, any, any>>): string {
+        if (sqlParams.length <= 0) {
+            return sql[0]!
+        }
+        let result = ''
+        for (let i = 0, length = sqlParams.length; i < length; i++) {
+            result += sql[i]
+            result += this._appendSql(sqlParams[i]!, params)
+        }
+        result += sql[sql.length - 1]
+        return result
+    }
+    _rawFragmentTableName(_params: any[], tableOrView: ITableOrView<any>): string {
+        const name = __getTableOrViewPrivate(tableOrView).__name
+        return this._escape(name, false)
+    }
+    _rawFragmentTableAlias(_params: any[], tableOrView: ITableOrView<any>): string {
+        const as = __getTableOrViewPrivate(tableOrView).__as
+        if (as) {
+            return 'as ' + this._escape(as, true)
+        }
+        return ''
     }
     _countAll(_params: any[]): string {
         return 'count(*)'

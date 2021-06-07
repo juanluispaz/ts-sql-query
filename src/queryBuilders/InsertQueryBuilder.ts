@@ -1,5 +1,5 @@
 import type { SqlBuilder, InsertData, SelectData } from "../sqlBuilders/SqlBuilder"
-import type{ ITable, IWithView } from "../utils/ITableOrView"
+import{ ITable, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, ExecutableMultipleInsert, ExecutableInsertFromSelect/*, MissingKeysInsertExpression*/ } from "../expressions/insert"
 import type { Column } from "../utils/Column"
 import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
@@ -31,6 +31,7 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>) {
         this.__sqlBuilder = sqlBuilder
         this.__table = table
+        __getTableOrViewPrivate(table).__addWiths(this.__withs)
     }
 
     executeInsert(): Promise<any> {

@@ -1,5 +1,5 @@
 import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource } from "./expressions/values"
-import type { ITable, TableOrViewRef, TableOrViewOf, IWithView } from "./utils/ITableOrView"
+import { ITable, TableOrViewRef, TableOrViewOf, IWithView, __addWiths, __registerTableOrView } from "./utils/ITableOrView"
 import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
 import type { TypeAdapter } from "./TypeAdapter"
 import type { AliasedTableOrView, OuterJoinSourceOf } from "./utils/tableOrViewUtils"
@@ -8,6 +8,7 @@ import type { AnyDB, Oracle, PostgreSql, SqlServer, TypeSafeDB } from "./databas
 import { ColumnImpl } from "./internal/ColumnImpl"
 import { database, tableName, tableOrViewRef, type, viewName } from "./utils/symbols"
 import { IConnection } from "./utils/IConnection"
+import { RawFragment } from "./utils/RawFragment"
 
 interface TABLE<DB extends AnyDB, NAME extends string> extends TableOrViewRef<DB> {
     [tableName]: NAME
@@ -26,6 +27,8 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     private __as?: string
     // @ts-ignore
     private __type: 'table' = 'table'
+    // @ts-ignore
+    private __template?: RawFragment<any>
 
     constructor(name: string) {
         this.__name = name
@@ -305,13 +308,14 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     }
 
     // @ts-ignore
-    private __addWiths(_withs: Array<IWithView<any>>): void {
-        // Do nothing
+    private __addWiths(withs: Array<IWithView<any>>): void {
+        __addWiths(this.__template, withs)
     }
 
     // @ts-ignore
     private __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         requiredTablesOrViews.add(this)
+        __registerTableOrView(this.__template, requiredTablesOrViews)
     }
 }
 

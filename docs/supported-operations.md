@@ -399,7 +399,12 @@ interface Connection {
     fragmentWithType<T>(type: 'enum', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType<T>(type: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-    
+
+    /** 
+     * This is a template, you can call as: .rawFragment`sql text with ${valueSourceParam}` 
+     */
+    rawFragment(sql: TemplateStringsArray, ...p: Array<ValueSource | Subquery>): RawFragment
+
     // Protected methods that allows call a stored procedure
     executeProcedure(procedureName: string, params: ValueSource[]): Promise<void>
 
@@ -484,6 +489,15 @@ interface Connection {
      * Allows to create a condition where the criteria is provided by an external system
      */
     dynamicConditionFor(definition: { [key: string ]: ValueSource }): DynamicConditionExpression
+
+    /*
+     * The fn function will receive as first argument the table name as ValueSource,
+     * as the second argument is the alias of the table as ValueSource
+     * The number of additional arguments in the fn function is the same in the resulting function (up to 5 arguments).
+     * The first argument of the returned function is the table or view, the second argument
+     * is a name for the customization; the additional arguments are the same defined in the fn function.
+     */
+    createTableOrViewCustomization(fn: (table: ValueSource, alias: ValueSource, ...params: any[]) => RawFragment): (tableOrView: Table | View, name: string, ...params: any[]) => CustomizedTableOrView
 
     /*
      * Configurations

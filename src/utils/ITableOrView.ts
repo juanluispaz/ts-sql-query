@@ -1,4 +1,5 @@
 import type { AnyDB } from "../databases"
+import { RawFragment } from "./RawFragment"
 import type { database, noTableOrViewRequired, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, tableOrView, tableOrViewAlias, tableOrViewRef, tableOrViewRefType, type } from "./symbols"
 
 export interface TableOrViewRef<DB extends AnyDB> {
@@ -45,6 +46,8 @@ export interface __ITableOrViewPrivate extends HasAddWiths {
     __name: string
     __as?: string
     __type: 'table' | 'view' | 'with'
+    __template?: RawFragment<any>
+    __customizationName?: string
 }
 
 export function __getTableOrViewPrivate(table: ITableOrView<any> | OuterJoinSource<any, any>): __ITableOrViewPrivate {

@@ -147,3 +147,67 @@ const companiesUsingCustomFunctionFragment: Promise<{
     name: string;
 }[]>
 ```
+
+## Raw SQL
+
+ts-sql-query offers you to write raw sql to extends and customize the generated queries in several places
+
+```ts
+const from = this.const(new Date('2019-01-01'), 'localDateTime')
+const to = this.const(new Date('2020-01-01'), 'localDateTime')
+const fragment = connection.rawFragment`between ${from} and ${to}`
+```
+
+## Table or view customization
+
+Some databases offer additional features that require writing the table name in some way in the from clause. For example, Sql Server and MariaDB have temporal tables that track all the changes in a table, allowing you to query a row with its values at a specific moment in time. For use temporal tables, when you refer to the table in the from, you must indicate the moment in time that you want to query. Oracle offers something similar called "Oracle Flashback Technology", but with a different syntax.
+
+ts-sql-query allows you to customize the SQL required to use the table, allowing you to use features not already supported by ts-sql-query like the temporal tables. To do it, you must call the `createTableOrViewCustomization` in the connection to create a function that performs that task. This method receives as an argument a function that must return the raw fragment of the SQL; this function receives as arguments the table name and the alias; any other argument will be included in the generated function. The generated function receives as first argument the table or view, as second argument a name for the customization, and any other argument required by the previous function.
+
+**Example**:
+
+You must define the connection with the customization function as:
+```ts
+class DBConection extends SqlServerConnection<'DBConnection'> { 
+
+    forSystemTimeBetween = this.createTableOrViewCustomization<Date, Date>((table, alias, fromDate, toDate) => {
+        const from = this.const(fromDate, 'localDateTime')
+        const to = this.const(toDate, 'localDateTime')
+        return this.rawFragment`${table} for system_time between ${from} and ${to} ${alias}`
+    })
+}
+```
+
+When you write the query, you use the customization function as:
+```ts
+const customerIn2019 = connection.forSystemTimeBetween(tCustomer, 'customerIn2019', new Date('2019-01-01'), new Date('2020-01-01'))
+
+const customerInSystemTime = connection.selectFrom(customerIn2019)
+    .where(customerIn2019.id.equals(10))
+    .select({
+        id: customerIn2019.id,
+        firstName: customerIn2019.firstName,
+        lastName: customerIn2019.lastName,
+        birthday: customerIn2019.birthday
+    })
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select id as id, first_name as firstName, last_name as lastName, birthday as birthday 
+from customer for system_time between $1 and $2  
+where id = $3
+```
+
+The parameters are: `[ 2019-01-01T00:00:00.000Z, 2020-01-01T00:00:00.000Z, 10 ]`
+
+The result type is:
+```tsx
+const customerInSystemTime: Promise<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    birthday?: Date;
+}[]>
+```

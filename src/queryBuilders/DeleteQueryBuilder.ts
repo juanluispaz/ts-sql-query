@@ -1,5 +1,5 @@
 import type { SqlBuilder, DeleteData } from "../sqlBuilders/SqlBuilder"
-import type { ITable, IWithView } from "../utils/ITableOrView"
+import { ITable, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { BooleanValueSource, IfValueSource, IBooleanValueSource, IIfValueSource } from "../expressions/values"
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
 import type { int } from "ts-extended-types"
@@ -26,6 +26,7 @@ export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressi
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>, allowNoWhere: boolean) {
         this.__sqlBuilder = sqlBuilder
         this.__table = table
+        __getTableOrViewPrivate(table).__addWiths(this.__withs)
         this.__allowNoWhere = allowNoWhere
     }
 

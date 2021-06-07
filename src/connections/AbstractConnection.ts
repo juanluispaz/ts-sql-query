@@ -4,7 +4,7 @@ import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expre
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
 import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ValueSource, RemapValueSourceTypeAsOptional, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, TypeSafeBigintValueSource, ITypeSafeBigintValueSource } from "../expressions/values"
 import type { Default } from "../expressions/Default"
-import type { TableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf, ITableOrView } from "../utils/ITableOrView"
+import { TableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf, ITableOrView, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from "../expressions/select"
 import type { TypeAdapter, DefaultTypeAdapter } from "../TypeAdapter"
 import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
@@ -16,7 +16,7 @@ import { InsertQueryBuilder } from "../queryBuilders/InsertQueryBuilder"
 import { UpdateQueryBuilder } from "../queryBuilders/UpdateQueryBuilder"
 import { DeleteQueryBuilder } from "../queryBuilders/DeleteQueryBuilder"
 import { __getValueSourcePrivate, Argument } from "../expressions/values"
-import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop, SqlOperationStaticBooleanValueSource } from "../internal/ValueSourceImpl"
+import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop, SqlOperationStaticBooleanValueSource, TableOrViewRawFragmentValueSource } from "../internal/ValueSourceImpl"
 import { DefaultImpl } from "../expressions/Default"
 import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
 import ChainedError from "chained-error"
@@ -26,6 +26,9 @@ import { database, tableOrViewRef, type } from "../utils/symbols"
 import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
 import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilder"
+import { RawFragment } from "../utils/RawFragment"
+import { RawFragmentImpl } from "../internal/RawFragmentImpl"
+import { CustomizedTableOrView } from "../utils/tableOrViewUtils"
 
 export abstract class AbstractConnection<DB extends AnyDB> implements IConnection<DB> {
     [database]: DB
@@ -504,6 +507,30 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(this: IConnection<TypeUnsafeDB>, a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5IfValueTypeUnsafe<DB, A1, A2, A3, A4, A5>
     protected buildFragmentWithArgsIfValue(...args: Argument<any, any, any, any>[]): any {
         return new FragmentFunctionBuilderIfValue(this as any, args) // make this protected fields as public
+    }
+
+    rawFragment(sql: TemplateStringsArray, ...params: Array<ValueSource<any, any> | IExecutableSelectQuery<DB, any, any>>): RawFragment<DB> {
+        return new RawFragmentImpl(sql, params)
+    }
+
+    protected createTableOrViewCustomization(fn: (table: ValueSource<NoTableOrViewRequired<DB>, unknown>, alias: ValueSource<NoTableOrViewRequired<DB>, unknown>) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>)
+    protected createTableOrViewCustomization<P1>(fn: (table: ValueSource<NoTableOrViewRequired<DB>, unknown>, alias: ValueSource<NoTableOrViewRequired<DB>, unknown>, p1: P1) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME, p1: P1) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>)
+    protected createTableOrViewCustomization<P1, P2>(fn: (table: ValueSource<NoTableOrViewRequired<DB>, unknown>, alias: ValueSource<NoTableOrViewRequired<DB>, unknown>, p1: P1, p2: P2) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME, p1: P1, p2: P2) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>)
+    protected createTableOrViewCustomization<P1, P2, P3>(fn: (table: ValueSource<NoTableOrViewRequired<DB>, unknown>, alias: ValueSource<NoTableOrViewRequired<DB>, unknown>, p1: P1, p2: P2, p3: P3) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME, p1: P1, p2: P2, p3: P3) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>)
+    protected createTableOrViewCustomization<P1, P2, P3, P4>(fn: (table: ValueSource<NoTableOrViewRequired<DB>, unknown>, alias: ValueSource<NoTableOrViewRequired<DB>, unknown>, p1: P1, p2: P2, p3: P3, p4: P4) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME, p1: P1, p2: P2, p3: P3, p4: P4) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>)
+    protected createTableOrViewCustomization<P1, P2, P3, P4, P5>(fn: (table: ValueSource<NoTableOrViewRequired<DB>, unknown>, alias: ValueSource<NoTableOrViewRequired<DB>, unknown>, p1: P1, p2: P2, p3: P3, p4: P4, p5: P5) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME, p1: P1, p2: P2, p3: P3, p4: P4, p5: P5) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>)
+    protected createTableOrViewCustomization(fn: (table: ValueSource<NoTableOrViewRequired<DB>, unknown>, alias: ValueSource<NoTableOrViewRequired<DB>, unknown>, ...params: any[]) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME, ...params: any[]) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>) {
+        return (tableOrView: ITableOrViewOf<DB, any>, name: string, ...params: any[]) => {
+            const as = __getTableOrViewPrivate(tableOrView).__as
+            const result = (tableOrView as any).as(as)
+            const table = new TableOrViewRawFragmentValueSource(result, '_rawFragmentTableName')
+            const alias = new TableOrViewRawFragmentValueSource(result, '_rawFragmentTableAlias')
+            const template = fn(table, alias, ...params)
+            const p = __getTableOrViewPrivate(result)
+            p.__template = template
+            p.__customizationName = name
+            return result as any
+        }
     }
 
     noValueBoolean<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> = NoTableOrViewRequiredView<DB>>(): IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {

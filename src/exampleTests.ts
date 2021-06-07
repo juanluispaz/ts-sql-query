@@ -472,6 +472,12 @@ class DBConection extends PostgreSqlConnection<'DBConnection'> {
         // Could be another fragment like a function call: myFunction(${left}, ${right})
         return this.fragmentWithType('boolean', 'required').sql`${left} + 1 = ${right}`
     })
+
+    forSystemTimeBetween = this.createTableOrViewCustomization<Date, Date>((table, alias, fromDate, toDate) => {
+        const from = this.const(fromDate, 'localDateTime')
+        const to = this.const(toDate, 'localDateTime')
+        return this.rawFragment`${table} for system_time between ${from} and ${to} ${alias}`
+    })
 }
 
 const tCompany = new class TCompany extends Table<DBConection, 'TCompany'> {
@@ -1224,6 +1230,23 @@ const fieldsToPick2 = {
 
 */
 
+results.push([])
+
+const customerIn2019 = connection.forSystemTimeBetween(tCustomer, 'customerIn2019', new Date('2019-01-01'), new Date('2020-01-01'))
+
+const customerInSystemTime = connection.selectFrom(customerIn2019)
+    .where(customerIn2019.id.equals(10))
+    .select({
+        id: customerIn2019.id,
+        firstName: customerIn2019.firstName,
+        lastName: customerIn2019.lastName,
+        birthday: customerIn2019.birthday
+    })
+    .executeSelectMany()
+
+// Query: select id as id, first_name as "firstName", last_name as "lastName", birthday as birthday from customer for system_time between $1 and $2  where id = $3
+// Params: [ 2019-01-01T00:00:00.000Z, 2020-01-01T00:00:00.000Z, 10 ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -1268,6 +1291,7 @@ recursiveOnChildrenCompany.finally(() => undefined)
 leftJoinCompany.finally(() => undefined)
 customerWithIdPeaking.finally(() => undefined)
 customerWithOptionalCompany.finally(() => undefined)
+customerInSystemTime.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

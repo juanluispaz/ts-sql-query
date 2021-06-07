@@ -1,6 +1,6 @@
 import type { AnyDB } from "../databases"
 import { RawFragment } from "./RawFragment"
-import type { database, noTableOrViewRequired, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, tableOrView, tableOrViewAlias, tableOrViewRef, tableOrViewRefType, type } from "./symbols"
+import type { database, noTableOrViewRequired, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, tableOrView, tableOrViewAlias, tableOrViewCustomName, tableOrViewRef, tableOrViewRefType, type } from "./symbols"
 
 export interface TableOrViewRef<DB extends AnyDB> {
     [database]: DB
@@ -81,6 +81,11 @@ export interface NoTableOrViewRequiredView<DB extends AnyDB> extends IView<NoTab
 
 export interface TableOrViewAliasRef<REF extends TableOrViewRef<AnyDB>, ALIAS> extends TableOrViewRef<REF[typeof database]> {
     [tableOrViewAlias]: ALIAS
+    [tableOrViewRef]: REF
+}
+
+export interface CustomizedTableOrViewRef<REF extends TableOrViewRef<AnyDB>, NAME> extends TableOrViewRef<REF[typeof database]> {
+    [tableOrViewCustomName]: NAME
     [tableOrViewRef]: REF
 }
 

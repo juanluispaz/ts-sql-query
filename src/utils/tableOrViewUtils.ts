@@ -1,6 +1,6 @@
-import type { ITable, ITableOrView, IView, IWithView, OuterJoinSource, TableOrViewAlias, TableOrViewAliasRef, TableOrViewRef } from "./ITableOrView"
+import type { CustomizedTableOrViewRef, ITable, ITableOrView, IView, IWithView, OuterJoinSource, TableOrViewAlias, TableOrViewAliasRef, TableOrViewRef } from "./ITableOrView"
 import type { ValueSource, RemapValueSourceType, RemapValueSourceTypeAsOptional } from "../expressions/values"
-import type { tableOrViewCustomName, tableOrViewRef, type, viewName } from "./symbols"
+import type { tableOrViewRef, type, viewName } from "./symbols"
 import type { AnyDB } from "../databases"
 
 export type ColumnsOfTableOrView<TABLE_OR_VIEW> = ({ [K in keyof TABLE_OR_VIEW]-?: TABLE_OR_VIEW[K] extends ValueSource<any, any> ? K : never })[keyof TABLE_OR_VIEW]
@@ -24,10 +24,6 @@ export type AddAliasMethods<T extends ITableOrView<any>> = T & {
 }
 
 export type WithView<REF extends WITH_VIEW<AnyDB, any>, COLUMNS> = AddAliasMethods<WithViewColumns<IWithView<REF>, COLUMNS>>
-
-export type CustomizedTableOrViewRef<REF extends TableOrViewRef<AnyDB>, NAME> = REF & {
-    [tableOrViewCustomName]: NAME
-}
 
 export type CustomizedTableOrViewType<TABLE_OR_VIEW extends ITableOrView<any>, REF extends TableOrViewRef<AnyDB>> = 
     TABLE_OR_VIEW extends ITable<any> ? ITable<REF>

@@ -219,7 +219,7 @@ The method `customizeQuery` offers you to inject raw fragments of SQL in the que
 The supported extension point offered by `customizeQuery` are:
 
 - `afterSelectKeyword`: Place the fragment immediately after the `select` keyword.
-- `beforeColumns`: Place the fragment immediately before the column list and after the `distinct keyword.
+- `beforeColumns`: Place the fragment immediately before the column list and after the `distinct` keyword.
 - `customWindow`: Place the fragment as a `window` clause (the window keyboard will be added automatically).
 - `afterQuery`: Place the fragment at the end of the query.
 

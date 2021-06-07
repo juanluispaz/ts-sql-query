@@ -2,7 +2,7 @@ import type { ITableOrView, ITable, IWithView } from "../utils/ITableOrView"
 import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, __OptionalRule, IfValueSource, IExecutableSelectQuery } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import type { OrderByMode } from "../expressions/select"
+import type { OrderByMode, SelectCustomization } from "../expressions/select"
 import type { Column } from "../utils/Column"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
@@ -28,6 +28,7 @@ export interface JoinData {
 
 export interface WithQueryData {
     __withs: Array<IWithView<any>>
+    __customization?: SelectCustomization<any>
 }
 
 export type SelectData = PlainSelectData | CompoundSelectData

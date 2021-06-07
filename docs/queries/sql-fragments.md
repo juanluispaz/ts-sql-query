@@ -211,3 +211,49 @@ const customerInSystemTime: Promise<{
     birthday?: Date;
 }[]>
 ```
+
+## Customizing a select
+
+The methos `customizeQuery` offers you to inject raw fragments of sql in the query, allowing you to extends the functionality of it when the required feature is not supported by ts-sql-query API.
+
+The suported extension point offered by `customizeQuery` are:
+
+- `afterSelectKeyword`: Place the fragment inmediatly after the `select` keyword.
+- `beforeColumns`: Place the fragment inmediatly before of the column list and after the `distinc` keyword.
+- `customWindow`: Place the fragment as a `window` clause (the window keyboard will be added automatically).
+- `afterQuery`: Place the fragment at the end of the query.
+
+```ts
+const customizedSelect = connection.selectFrom(tCustomer)
+    .where(tCustomer.id.equals(10))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    }).customizeQuery({
+        afterSelectKeyword: connection.rawFragment`/*+ some hints */`,
+        afterQuery: connection.rawFragment`for update`
+    })
+    .executeSelectOne()
+```
+
+The executed query is:
+```sql
+select /*+ some hints */ id as id, first_name as firstName, last_name as lastName, birthday as birthday 
+from customer 
+where id = $1 
+for update
+```
+
+The parameters are: `[ 10 ]`
+
+The result type is:
+```tsx
+const customizedSelect: Promise<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    birthday?: Date;
+}>
+```

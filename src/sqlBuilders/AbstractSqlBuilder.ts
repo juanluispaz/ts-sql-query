@@ -396,6 +396,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const oldWithGenerated = this._isWithGenerated(params)
         const oldWithGeneratedFinished = this._isWithGeneratedFinished(params)
 
+        const customization = query.__customization
+
         if (query.__type === 'compound') {
             this._setSafeTableOrView(params, undefined)
 
@@ -407,6 +409,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
             selectQuery += this._buildSelectOrderBy(query, params)
             selectQuery += this._buildSelectLimitOffset(query, params)
+
+            if (customization && customization.afterQuery) {
+                selectQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+            }
 
             this._setSafeTableOrView(params, oldSafeTableOrView)
             this._setWithGenerated(params, oldWithGenerated)
@@ -427,8 +433,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const withClause = this._buildWith(query, params)
         let selectQuery = withClause + 'select '
+
+        if (customization && customization.afterSelectKeyword) {
+            selectQuery += this._appendRawFragment(customization.afterSelectKeyword, params) + ' '
+        }
+
         if (query.__distinct) {
             selectQuery += 'distinct '
+        }
+
+        if (customization && customization.beforeColumns) {
+            selectQuery += this._appendRawFragment(customization.beforeColumns, params) + ' '
         }
 
         const columns = query.__columns
@@ -524,8 +539,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
+        if (customization && customization.customWindow) {
+            selectQuery += ' window '
+            selectQuery += this._appendRawFragment(customization.customWindow, params)
+        }
+
         selectQuery += this._buildSelectOrderBy(query, params)
         selectQuery += this._buildSelectLimitOffset(query, params)
+
+        if (customization && customization.afterQuery) {
+            selectQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+        }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
         this._setWithGenerated(params, oldWithGenerated)

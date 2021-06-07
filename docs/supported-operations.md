@@ -1071,6 +1071,13 @@ interface SelectExpression {
     withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     split(propertyName: string, mappig: { [property: string]: string }): this
     splitOptional(propertyName: string, mappig: { [property: string]: string }): this
+
+    customizeQuery(customization: {
+        afterSelectKeyword?: RawFragment
+        beforeColumns?: RawFragment
+        customWindow?: RawFragment
+        afterQuery?: RawFragment
+    }): this
 }
 
 /**

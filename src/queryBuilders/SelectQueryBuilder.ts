@@ -1,6 +1,6 @@
 import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData } from "../sqlBuilders/SqlBuilder"
-import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, WithableExecutableSelect, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty } from "../expressions/select"
-import type { HasAddWiths, ITableOrView, IWithView, OuterJoinSource } from "../utils/ITableOrView"
+import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, CustomizableExecutableSelect, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, WithableExecutableSelect, SelectCustomization } from "../expressions/select"
+import { HasAddWiths, ITableOrView, IWithView, OuterJoinSource, __registerTableOrView } from "../utils/ITableOrView"
 import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, IfValueSource, IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { WithView } from "../utils/tableOrViewUtils"
@@ -37,7 +37,7 @@ interface Split {
 
 type SplitCompose = Compose | Split
 
-abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQuery<any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any, any>, OffsetExecutableSelectExpression<any, any, any, any>, WithableExecutableSelect<any, any, any, any>, ExecutableSelect<any, any, any, any>, ComposeExpression<any, any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any, any>,  ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any, any> {
+abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQuery<any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any, any>, OffsetExecutableSelectExpression<any, any, any, any>, CustomizableExecutableSelect<any, any, any, any>, WithableExecutableSelect<any, any, any, any>, ExecutableSelect<any, any, any, any>, ComposeExpression<any, any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any, any>,  ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any, any> {
     [database]: any
     [requiredTableOrView]: any
     [type]: any
@@ -54,6 +54,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
     __limit?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
     __offset?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
     __withs: Array<IWithView<any>> = []
+    __customization?: SelectCustomization<any>
 
     __oneColumn = false
 
@@ -741,6 +742,22 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         return this
     }
 
+    customizeQuery(customization: SelectCustomization<any>): this {
+        this.__customization = customization
+        if (customization.afterSelectKeyword) {
+            __addWiths(customization.afterSelectKeyword, this.__withs)
+        }
+        if (customization.beforeColumns) {
+            __addWiths(customization.beforeColumns, this.__withs)
+        }
+        if (customization.customWindow) {
+            __addWiths(customization.customWindow, this.__withs)
+        }
+        if (customization.afterQuery) {
+            __addWiths(customization.afterQuery, this.__withs)
+        }
+        return this
+    }
 }
 
 // Defined separated to don't have problems with the variable definition of this method
@@ -1158,6 +1175,22 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             const on = join.__on
             if (!join.__optional && on) {
                 __getValueSourcePrivate(on).__registerTableOrView(requiredTableOrView)
+            }
+        }
+
+        const customization = this.__customization
+        if (customization) {
+            if (customization.afterSelectKeyword) {
+                __registerTableOrView(customization.afterSelectKeyword, requiredTableOrView)
+            }
+            if (customization.beforeColumns) {
+                __registerTableOrView(customization.beforeColumns, requiredTableOrView)
+            }
+            if (customization.customWindow) {
+                __registerTableOrView(customization.customWindow, requiredTableOrView)
+            }
+            if (customization.afterQuery) {
+                __registerTableOrView(customization.afterQuery, requiredTableOrView)
             }
         }
 

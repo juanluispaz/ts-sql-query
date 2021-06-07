@@ -1247,6 +1247,28 @@ const customerInSystemTime = connection.selectFrom(customerIn2019)
 // Query: select id as id, first_name as "firstName", last_name as "lastName", birthday as birthday from customer for system_time between $1 and $2  where id = $3
 // Params: [ 2019-01-01T00:00:00.000Z, 2020-01-01T00:00:00.000Z, 10 ]
 
+results.push({
+    id: 1,
+    firstName: 'First Name',
+    lastName: 'Last Name'
+})
+
+const customizedSelect = connection.selectFrom(tCustomer)
+    .where(tCustomer.id.equals(10))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    }).customizeQuery({
+        afterSelectKeyword: connection.rawFragment`/*+ some hints */`,
+        afterQuery: connection.rawFragment`for update`
+    })
+    .executeSelectOne()
+
+// Query: select /*+ some hints */ id as id, first_name as "firstName", last_name as "lastName", birthday as birthday from customer where id = $1 for update
+// Params: [ 10 ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -1292,6 +1314,7 @@ leftJoinCompany.finally(() => undefined)
 customerWithIdPeaking.finally(() => undefined)
 customerWithOptionalCompany.finally(() => undefined)
 customerInSystemTime.finally(() => undefined)
+customizedSelect.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

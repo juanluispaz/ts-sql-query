@@ -1,7 +1,7 @@
 import type { SqlBuilder, DeleteData } from "../sqlBuilders/SqlBuilder"
-import { ITable, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
+import { ITable, IWithView, __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { BooleanValueSource, IfValueSource, IBooleanValueSource, IIfValueSource } from "../expressions/values"
-import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
+import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization } from "../expressions/delete"
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
@@ -18,6 +18,7 @@ export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressi
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
+    __customization?: DeleteCustomization<any>
 
     // cache
     __query = ''
@@ -102,6 +103,13 @@ export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressi
             this.__where = asValueSource(condition)
         }
         __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        return this
+    }
+
+    customizeQuery(customization: DeleteCustomization<any>): this {
+        this.__customization = customization
+        __addWiths(customization.afterDeleteKeyword, this.__withs)
+        __addWiths(customization.afterQuery, this.__withs)
         return this
     }
 }

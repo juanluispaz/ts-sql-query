@@ -1088,12 +1088,21 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildDelete(query: DeleteData, params: any[]): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 
-        const withClause = this._buildWith(query, params)
-
         const table = query.__table
+        const customization = query.__customization
+
         this._setSafeTableOrView(params, table)
 
-        let deleteQuery = withClause + 'delete from ' + this._appendTableOrViewName(table, params)
+        let deleteQuery = this._buildWith(query, params)
+        deleteQuery += 'delete '
+
+        if (customization && customization.afterDeleteKeyword) {
+            deleteQuery += this._appendRawFragment(customization.afterDeleteKeyword, params) + ' '
+        }
+
+        deleteQuery += 'from '
+        deleteQuery += this._appendTableOrViewName(table, params)
+
         if (query.__where) {
             const whereCondition = this._appendCondition(query.__where, params)
             if (whereCondition) {
@@ -1103,6 +1112,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         } else if (!query.__allowNoWhere) {
             throw new Error('No where defined for the delete operation')
+        }
+
+        if (customization && customization.afterQuery) {
+            deleteQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)

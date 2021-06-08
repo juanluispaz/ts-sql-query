@@ -6,7 +6,8 @@ import type { OrderByMode, SelectCustomization } from "../expressions/select"
 import type { Column } from "../utils/Column"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
-import { UpdateCustomization } from "../expressions/update"
+import type { UpdateCustomization } from "../expressions/update"
+import type { DeleteCustomization } from "../expressions/delete"
 
 export interface WithData {
     __name: string
@@ -82,6 +83,7 @@ export interface DeleteData extends WithQueryData {
     __table: ITable<any>,
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __allowNoWhere: boolean
+    __customization?: DeleteCustomization<any>
 }
 
 export interface SqlBuilder extends SqlOperation, __OptionalRule {

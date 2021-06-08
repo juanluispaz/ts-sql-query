@@ -919,6 +919,11 @@ interface DeleteExpression {
     query(): string
     /** Returns the required parameters by the sql query */
     params(): any[]
+
+    customizeQuery(customization: {
+        afterDeleteKeyword?: RawFragment
+        afterQuery?: RawFragment
+    }): this
 }
 ```
 

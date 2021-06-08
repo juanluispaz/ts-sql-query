@@ -291,3 +291,35 @@ The result type is:
 ```tsx
 const customizedUpdate: Promise<number>
 ```
+
+## Customizing a delete
+
+The supported extension point offered by `customizeQuery` method for an delete are:
+
+- `afterDeleteKeyword`: Place the fragment immediately after the `delete` keyword.
+- `afterQuery`: Place the fragment at the end of the query.
+
+```ts
+const customizedDelete = connection.deleteFrom(tCustomer)
+    .where(tCustomer.id.equals(10))
+    .customizeQuery({
+        afterDeleteKeyword: connection.rawFragment`/*+ some hints */`,
+        afterQuery: connection.rawFragment`keep plan`,
+    })
+    .executeDelete()
+```
+
+The executed query is:
+```sql
+delete /*+ some hints */ 
+from customer 
+where id = $1 
+keep plan
+```
+
+The parameters are: `[ 10 ]`
+
+The result type is:
+```tsx
+const customizedDelete: Promise<number>
+```

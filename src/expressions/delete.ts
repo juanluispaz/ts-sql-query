@@ -3,7 +3,12 @@ import type { ITableOrView, NoTableOrViewRequired } from "../utils/ITableOrView"
 import type { AnyDB, TypeSafeDB } from "../databases"
 import type { int } from "ts-extended-types"
 import type { database, tableOrView, tableOrViewRef } from "../utils/symbols"
+import { RawFragment } from "../utils/RawFragment"
 
+export interface DeleteCustomization<DB extends AnyDB> {
+    afterDeleteKeyword?: RawFragment<DB>
+    afterQuery?: RawFragment<DB>
+}
 
 export interface DeleteExpressionOf<DB extends AnyDB> {
     [database]: DB
@@ -20,7 +25,11 @@ export interface ExecutableDelete<TABLE extends ITableOrView<any>> extends Delet
     params(): any[]
 }
 
-export interface DynamicExecutableDeleteExpression<TABLE extends ITableOrView<any>> extends ExecutableDelete<TABLE> {
+export interface CustomizableExecutableDelete<TABLE extends ITableOrView<any>> extends ExecutableDelete<TABLE> {
+    customizeQuery(customization: DeleteCustomization<TABLE[typeof database]>): ExecutableDelete<TABLE>
+}
+
+export interface DynamicExecutableDeleteExpression<TABLE extends ITableOrView<any>> extends CustomizableExecutableDelete<TABLE> {
     and(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
     and(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
     or(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
@@ -33,7 +42,7 @@ export interface DeleteExpression<TABLE extends ITableOrView<any>> extends Delet
     where(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
 }
 
-export interface DeleteExpressionAllowingNoWhere<TABLE extends ITableOrView<any>> extends ExecutableDelete<TABLE> {
+export interface DeleteExpressionAllowingNoWhere<TABLE extends ITableOrView<any>> extends CustomizableExecutableDelete<TABLE> {
     dynamicWhere() : DynamicExecutableDeleteExpression<TABLE>
     where(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
     where(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>

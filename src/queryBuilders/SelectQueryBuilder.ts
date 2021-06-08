@@ -744,18 +744,10 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
 
     customizeQuery(customization: SelectCustomization<any>): this {
         this.__customization = customization
-        if (customization.afterSelectKeyword) {
-            __addWiths(customization.afterSelectKeyword, this.__withs)
-        }
-        if (customization.beforeColumns) {
-            __addWiths(customization.beforeColumns, this.__withs)
-        }
-        if (customization.customWindow) {
-            __addWiths(customization.customWindow, this.__withs)
-        }
-        if (customization.afterQuery) {
-            __addWiths(customization.afterQuery, this.__withs)
-        }
+        __addWiths(customization.afterSelectKeyword, this.__withs)
+        __addWiths(customization.beforeColumns, this.__withs)
+        __addWiths(customization.customWindow, this.__withs)
+        __addWiths(customization.afterQuery, this.__withs)
         return this
     }
 }
@@ -1180,18 +1172,10 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
 
         const customization = this.__customization
         if (customization) {
-            if (customization.afterSelectKeyword) {
-                __registerTableOrView(customization.afterSelectKeyword, requiredTableOrView)
-            }
-            if (customization.beforeColumns) {
-                __registerTableOrView(customization.beforeColumns, requiredTableOrView)
-            }
-            if (customization.customWindow) {
-                __registerTableOrView(customization.customWindow, requiredTableOrView)
-            }
-            if (customization.afterQuery) {
-                __registerTableOrView(customization.afterQuery, requiredTableOrView)
-            }
+            __registerTableOrView(customization.afterSelectKeyword, requiredTableOrView)
+            __registerTableOrView(customization.beforeColumns, requiredTableOrView)
+            __registerTableOrView(customization.customWindow, requiredTableOrView)
+            __registerTableOrView(customization.afterQuery, requiredTableOrView)
         }
 
         const registeredCount = requiredTableOrView.size

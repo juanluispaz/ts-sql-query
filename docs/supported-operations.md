@@ -879,6 +879,11 @@ interface UpdateExpression {
     query(): string
     /** Returns the required parameters by the sql query */
     params(): any[]
+
+    customizeQuery(customization: {
+        afterUpdateKeyword?: RawFragment
+        afterQuery?: RawFragment
+    }): this
 }
 
 /** Columns required by the update */

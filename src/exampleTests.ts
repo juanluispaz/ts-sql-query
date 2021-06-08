@@ -1269,6 +1269,21 @@ const customizedSelect = connection.selectFrom(tCustomer)
 // Query: select /*+ some hints */ id as id, first_name as "firstName", last_name as "lastName", birthday as birthday from customer where id = $1 for update
 // Params: [ 10 ]
 
+results.push(1)
+
+const customizedUpdate = connection.update(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith'
+    }).where(tCustomer.id.equals(10))
+    .customizeQuery({
+        afterUpdateKeyword: connection.rawFragment`/*+ some hints */`,
+        afterQuery: connection.rawFragment`keep plan`,
+    })
+    .executeUpdate()
+
+// Query: update /*+ some hints */ customer set first_name = $1, last_name = $2 where id = $3 keep plan
+// Params: [ 'John', 'Smith', 10 ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -1315,6 +1330,7 @@ customerWithIdPeaking.finally(() => undefined)
 customerWithOptionalCompany.finally(() => undefined)
 customerInSystemTime.finally(() => undefined)
 customizedSelect.finally(() => undefined)
+customizedUpdate.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

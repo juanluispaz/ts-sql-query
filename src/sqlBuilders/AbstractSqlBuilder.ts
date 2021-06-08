@@ -1034,11 +1034,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const table = query.__table
         const sets = query.__sets
+        const customization = query.__customization
 
         this._setSafeTableOrView(params, table)
 
-        const withClause = this._buildWith(query, params)
-        const tableName = this._appendTableOrViewName(table, params)
+        let updateQuery = this._buildWith(query, params)
+        updateQuery += 'update '
+
+        if (customization && customization.afterUpdateKeyword) {
+            updateQuery += this._appendRawFragment(customization.afterUpdateKeyword, params) + ' '
+        }
+
+        updateQuery += this._appendTableOrViewName(table, params)
 
         let columns = ''
         const properties = Object.getOwnPropertyNames(sets)
@@ -1058,8 +1065,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
             }
         }
+        updateQuery += ' set ' + columns
 
-        let updateQuery = withClause + 'update ' + tableName + ' set ' + columns
         if (query.__where) {
             const whereCondition = this._appendCondition(query.__where, params)
             if (whereCondition) {
@@ -1069,6 +1076,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         } else if (!query.__allowNoWhere) {
             throw new Error('No where defined for the update operation')
+        }
+
+        if (customization && customization.afterQuery) {
+            updateQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)

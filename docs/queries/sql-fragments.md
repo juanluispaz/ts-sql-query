@@ -257,3 +257,37 @@ const customizedSelect: Promise<{
     birthday?: Date;
 }>
 ```
+
+## Customizing an update
+
+The supported extension point offered by `customizeQuery` method for an update are:
+
+- `afterUpdateKeyword`: Place the fragment immediately after the `update` keyword.
+- `afterQuery`: Place the fragment at the end of the query.
+
+```ts
+const customizedUpdate = connection.update(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith'
+    }).where(tCustomer.id.equals(10))
+    .customizeQuery({
+        afterUpdateKeyword: connection.rawFragment`/*+ some hints */`,
+        afterQuery: connection.rawFragment`keep plan`,
+    })
+    .executeUpdate()
+```
+
+The executed query is:
+```sql
+update /*+ some hints */ customer 
+set first_name = $1, last_name = $2 
+where id = $3 
+keep plan
+```
+
+The parameters are: `[ 'John', 'Smith', 10 ]`
+
+The result type is:
+```tsx
+const customizedUpdate: Promise<number>
+```

@@ -1,7 +1,7 @@
 import type { SqlBuilder, UpdateData } from "../sqlBuilders/SqlBuilder"
 import { ITable, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { BooleanValueSource, IBooleanValueSource, IfValueSource, IIfValueSource } from "../expressions/values"
-import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression } from "../expressions/update"
+import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization } from "../expressions/update"
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
@@ -10,7 +10,7 @@ import { asValueSource } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 
-export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressionAllowingNoWhere<any>, ExecutableUpdate<any>, ExecutableUpdateExpression<any>, NotExecutableUpdateExpression<any>, DynamicExecutableUpdateExpression<any>, UpdateData {
+export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressionAllowingNoWhere<any>, ExecutableUpdate<any>, CustomizableExecutableUpdate<any>, ExecutableUpdateExpression<any>, NotExecutableUpdateExpression<any>, DynamicExecutableUpdateExpression<any>, UpdateData {
     [database]: any
     [tableOrView]: any
     __sqlBuilder: SqlBuilder
@@ -20,6 +20,7 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
+    __customization?: UpdateCustomization<any>
 
     // cache
     __params: any[] = []
@@ -237,6 +238,13 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
             this.__where = asValueSource(condition)
         }
         __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        return this
+    }
+
+    customizeQuery(customization: UpdateCustomization<any>): this {
+        this.__customization = customization
+        __addWiths(customization.afterUpdateKeyword, this.__withs)
+        __addWiths(customization.afterQuery, this.__withs)
         return this
     }
 }

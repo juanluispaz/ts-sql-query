@@ -6,6 +6,7 @@ import type { OrderByMode, SelectCustomization } from "../expressions/select"
 import type { Column } from "../utils/Column"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
+import { UpdateCustomization } from "../expressions/update"
 
 export interface WithData {
     __name: string
@@ -74,6 +75,7 @@ export interface UpdateData extends WithQueryData {
     __sets: { [property: string] : any}
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __allowNoWhere: boolean
+    __customization?: UpdateCustomization<any>
 }
 
 export interface DeleteData extends WithQueryData {

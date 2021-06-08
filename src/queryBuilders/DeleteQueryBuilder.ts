@@ -1,7 +1,7 @@
 import type { SqlBuilder, DeleteData } from "../sqlBuilders/SqlBuilder"
 import { ITable, IWithView, __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { BooleanValueSource, IfValueSource, IBooleanValueSource, IIfValueSource } from "../expressions/values"
-import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization } from "../expressions/delete"
+import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete } from "../expressions/delete"
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
@@ -9,7 +9,7 @@ import { database, tableOrView } from "../utils/symbols"
 import { asValueSource } from "../expressions/values"
 import { __getValueSourcePrivate } from "../expressions/values"
 
-export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressionAllowingNoWhere<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any>, DeleteData {
+export class DeleteQueryBuilder implements DeleteExpression<any>, DeleteExpressionAllowingNoWhere<any>, CustomizableExecutableDelete<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any>, DeleteData {
     [database]: any
     [tableOrView]: any
     __sqlBuilder: SqlBuilder

@@ -3,7 +3,7 @@ import type { ITableOrView, NoTableOrViewRequired } from "../utils/ITableOrView"
 import type { AnyDB, TypeSafeDB } from "../databases"
 import type { int } from "ts-extended-types"
 import type { database, tableOrView, tableOrViewRef } from "../utils/symbols"
-import { RawFragment } from "../utils/RawFragment"
+import type { RawFragment } from "../utils/RawFragment"
 
 export interface UpdateCustomization<DB extends AnyDB> {
     afterUpdateKeyword?: RawFragment<DB>

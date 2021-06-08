@@ -4,7 +4,7 @@ import type { OuterJoinTableOrView, WithView, WITH_VIEW } from "../utils/tableOr
 import type { AnyDB, TypeWhenSafeDB, TypeSafeDB, NoopDB, MariaDB, PostgreSql, Sqlite, Oracle, SqlServer } from "../databases"
 import type { int } from "ts-extended-types"
 import type { columnsType, database, requiredTableOrView, compoundable, tableOrViewRef, resultType, compoundableColumns } from "../utils/symbols"
-import { RawFragment } from "../utils/RawFragment"
+import type { RawFragment } from "../utils/RawFragment"
 
 export type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last' | 'insensitive' |
                           'asc insensitive' | 'desc insensitive' | 'asc nulls first insensitive' | 'asc nulls last insensitive' | 

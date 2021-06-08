@@ -234,6 +234,66 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return insertAll + ' select ' + multiple.length + ' from dual'
         }
     }
+    _buildInsertDefaultValues(query: InsertData, params: any[]): string {
+        const oldSafeTableOrView = this._getSafeTableOrView(params)
+
+        const table = query.__table
+
+        this._setSafeTableOrView(params, table)
+
+        let insertQuery = ''
+        if (this._insertSupportWith) {
+            insertQuery = this._buildWith(query, params)
+        }
+        insertQuery += 'insert into '
+        insertQuery += this._appendTableOrViewName(table, params)
+        insertQuery += ' ('
+
+        let columns = ''
+        for (var columnName in table) {
+            const column = __getColumnOfTable(table, columnName)
+            if (!column) {
+                continue
+            }
+
+            if (columns) {
+                columns += ', '
+            }
+
+            columns += this._appendRawColumnName(column, params)
+        }
+
+        insertQuery += columns
+        insertQuery += ')'
+        insertQuery += this._buildInsertOutput(query, params)
+        insertQuery += ' values ('
+
+        let values = ''
+        for (var columnName in table) {
+            const column = __getColumnOfTable(table, columnName)
+            if (!column) {
+                continue
+            }
+
+            if (values) {
+                values += ', '
+            }
+
+            const columnPrivate = __getColumnPrivate(column)
+            if (columnPrivate.__sequenceName) {
+                values += this._nextSequenceValue(params, columnPrivate.__sequenceName)
+            } else {
+                values += 'default'
+            }
+        }
+        
+        insertQuery += values
+        insertQuery += ')'
+        insertQuery += this._buildInsertReturning(query, params)
+
+        this._setSafeTableOrView(params, oldSafeTableOrView)
+        return insertQuery
+    }
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''
     }

@@ -656,13 +656,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const oldSafeTableOrView = this._getSafeTableOrView(params)
         const table = query.__table
+        const customization = query.__customization
         this._setSafeTableOrView(params, table)
 
-        let withClause = ''
+        let insertQuery = ''
         if (this._insertSupportWith) {
-            withClause = this._buildWith(query, params)
+            insertQuery += this._buildWith(query, params)
         }
-        const tableName = this._appendTableOrViewName(table, params)
+        insertQuery += 'insert '
+        if (customization && customization.afterInsertKeyword) {
+            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
+        }
+        insertQuery += 'into '
+        insertQuery += this._appendTableOrViewName(table, params)
 
         const usedColumns: { [name: string]: boolean | undefined } = {}
         for (let i = 0, length = multiple.length; i < length; i++) {
@@ -675,8 +681,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         let columns = ''
-        let multipleValues = ''
-
         const nextSequenceValues: string[] = []
         for (var columnName in table) {
             const column = __getColumnOfTable(table, columnName)
@@ -695,7 +699,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
             columns += this._appendRawColumnName(column, params)
             nextSequenceValues.push(columnPrivate.__sequenceName)
         }
-
         for (let columnName in usedColumns) {
             if (columns) {
                 columns += ', '
@@ -708,8 +711,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        const output = this._buildInsertOutput(query, params)
+        insertQuery += ' (' + columns + ')'
+        insertQuery += this._buildInsertOutput(query, params)
 
+        let multipleValues = ''
         for (let i = 0, length = multiple.length; i < length; i++) {
             let values = ''
             for (let j = 0, length = nextSequenceValues.length; j < length; j++) {
@@ -749,7 +754,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        const insertQuery = withClause + 'insert into ' + tableName + ' (' + columns + ')' + output + ' values ' + multipleValues+ this._buildInsertReturning(query, params)
+        insertQuery += ' values ' + multipleValues
+        insertQuery += this._buildInsertReturning(query, params)
+        if (customization && customization.afterQuery) {
+            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+        }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
         return insertQuery
@@ -808,18 +817,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 
         const table = query.__table
+        const customization = query.__customization
 
         this._setSafeTableOrView(params, table)
 
-        let withClause = ''
+        let insertQuery = ''
         if (this._insertSupportWith) {
-            withClause = this._buildWith(query, params)
+            insertQuery += this._buildWith(query, params)
         }
-        const tableName = this._appendTableOrViewName(table, params)
+        insertQuery += 'insert '
+        if (customization && customization.afterInsertKeyword) {
+            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
+        }
+        insertQuery += 'into '
+        insertQuery += this._appendTableOrViewName(table, params)
 
         let columns = ''
         const sequences: string[] = []
-
         for (var columnName in table) {
             const column = __getColumnOfTable(table, columnName)
             if (!column) {
@@ -838,7 +852,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             sequences.push(columnPrivate.__sequenceName)
         }
 
-        const output = this._buildInsertOutput(query, params)
+        if (columns) {
+            insertQuery += ' (' + columns + ')'
+        }
+        insertQuery += this._buildInsertOutput(query, params)
 
         let values = ''
         for (let i = 0, length = sequences.length; i < length; i++) {
@@ -849,12 +866,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
             values += this._nextSequenceValue(params, sequenceName)
         }
-        
-        let insertQuery: string
-        if (columns) {
-            insertQuery = withClause + 'insert into ' + tableName + ' (' + columns + ')' + output + ' values (' + values + ')' + this._buildInsertReturning(query, params)
+
+        if (values) {
+            insertQuery += ' values (' + values + ')'
         } else {
-            insertQuery = withClause + 'insert into ' + tableName + output + ' default values' + this._buildInsertReturning(query, params)
+            insertQuery += ' default values'
+        }
+        insertQuery += this._buildInsertReturning(query, params)
+        if (customization && customization.afterQuery) {
+            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
@@ -865,18 +885,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const table = query.__table
         const sets = query.__sets
+        const customization = query.__customization
 
         this._setSafeTableOrView(params, table)
 
-        let withClause = ''
+        let insertQuery = ''
         if (this._insertSupportWith) {
-            withClause = this._buildWith(query, params)
+            insertQuery += this._buildWith(query, params)
         }
-        const tableName = this._appendTableOrViewName(table, params)
+        insertQuery += 'insert '
+        if (customization && customization.afterInsertKeyword) {
+            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
+        }
+        insertQuery += 'into '
+        insertQuery += this._appendTableOrViewName(table, params)
 
         let columns = ''
         const sequences: string[] = []
-
         for (var columnName in table) {
             if (columnName in sets) {
                 continue
@@ -897,7 +922,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
             columns += this._appendRawColumnName(column, params)
             sequences.push(columnPrivate.__sequenceName)
         }
-
         const properties = Object.getOwnPropertyNames(sets)
         for (let i = 0, length = properties.length; i < length; i++) {
             if (columns) {
@@ -913,7 +937,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        const output = this._buildInsertOutput(query, params)
+        insertQuery += ' (' + columns + ')'
+        insertQuery += this._buildInsertOutput(query, params)
 
         let values = ''
         for (let i = 0, length = sequences.length; i < length; i++) {
@@ -939,7 +964,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        const insertQuery = withClause + 'insert into ' + tableName + ' (' + columns + ')' + output + ' values (' + values + ')' + this._buildInsertReturning(query, params)
+        insertQuery += ' values (' + values + ')'
+        insertQuery += this._buildInsertReturning(query, params)
+        if (customization && customization.afterQuery) {
+            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+        }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
         return insertQuery
@@ -954,14 +983,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const table = query.__table
         const selectColumns = from.__columns
+        const customization = query.__customization
 
         this._setSafeTableOrView(params, table)
 
-        let withClause = ''
+        let insertQuery = ''
         if (this._insertSupportWith) {
-            withClause = this._buildWith(query, params)
+            insertQuery += this._buildWith(query, params)
         }
-        const tableName = this._appendTableOrViewName(table, params)
+        insertQuery += 'insert '
+        if (customization && customization.afterInsertKeyword) {
+            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
+        }
+        insertQuery += 'into '
+        insertQuery += this._appendTableOrViewName(table, params)
 
         const columnsForInsert: { [name: string]: Column | undefined } = {}
 
@@ -984,7 +1019,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
             columnsForInsert[columnName] = column
             selectColumns[columnName] = new SequenceValueSource('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__valueType, columnPrivate.__typeAdapter)
         }
-
         const properties = Object.getOwnPropertyNames(selectColumns)
         for (let i = 0, length = properties.length; i < length; i++) {
             if (columns) {
@@ -1001,7 +1035,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        const insertQuery = withClause + 'insert into ' + tableName + ' (' + columns + ')' + this._buildInsertOutput(query, params) + ' ' + this._buildSelectWithColumnsInfo(from, params, columnsForInsert) + this._buildInsertReturning(query, params)
+        insertQuery += ' (' + columns + ')'
+        insertQuery += this._buildInsertOutput(query, params)
+        insertQuery += ' ' + this._buildSelectWithColumnsInfo(from, params, columnsForInsert)
+        insertQuery += this._buildInsertReturning(query, params)
+        if (customization && customization.afterQuery) {
+            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+        }
 
         for (let i = 0, length = addedColumns.length; i < length; i++) {
             const columnName = addedColumns[i]!

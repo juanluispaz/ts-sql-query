@@ -138,29 +138,38 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         const table = query.__table
         const oldSafeTableOrView = this._getSafeTableOrView(params)
+        const customization = query.__customization
         this._setSafeTableOrView(params, table)
 
         const returning = !!query.__idColumn
 
-        let insertAll: string
-        let insertInto: string
-        let end: string
+        let insertQuery = ''
+        if (this._insertSupportWith) {
+            insertQuery += this._buildWith(query, params)
+        }
         if (returning) {
-            insertInto = 'insert into '
-            end = '; '
-            insertAll = ''
+            insertQuery += 'begin '
         } else {
-            insertInto = ' into '
-            end = ''
-            insertAll = 'insert all'
+            insertQuery = 'insert '
+            if (customization && customization.afterInsertKeyword) {
+                insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
+            }
+            insertQuery += 'all'
         }
 
         for (let i = 0, length = multiple.length; i < length; i++) {
-            const tableName = this._appendTableOrViewName(table, params)
+            if (returning) {
+                insertQuery += 'insert '
+                if (customization && customization.afterInsertKeyword) {
+                    insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
+                }
+            }
+            insertQuery += 'into '
+            insertQuery += this._appendTableOrViewName(table, params)
+
             const sets = multiple[i]!
             let columns = ''
             const sequences: string[] = []
-    
             for (var columnName in table) {
                 if (columnName in sets) {
                     continue
@@ -181,7 +190,6 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 columns += this._appendSql(column, params)
                 sequences.push(columnPrivate.__sequenceName)
             }
-    
             const properties = Object.getOwnPropertyNames(sets)
             for (let i = 0, length = properties.length; i < length; i++) {
                 if (columns) {
@@ -197,7 +205,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 }
             }
 
-            const output = this._buildInsertOutput(query, params)
+            insertQuery += ' (' + columns + ')'
+            insertQuery += this._buildInsertOutput(query, params)
 
             let values = ''
             for (let i = 0, length = sequences.length; i < length; i++) {
@@ -222,32 +231,45 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
                 }
             }
-    
-            insertAll += insertInto + tableName + ' (' + columns + ')' + output + ' values (' + values + ')' + this._buildInsertReturning(query, params) + end
+
+            insertQuery += ' values (' + values + ')'
+            insertQuery += this._buildInsertReturning(query, params)
+            if (customization && customization.afterQuery) {
+                insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+            }
+            if (returning) {
+                insertQuery += '; '
+            }
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
 
         if (returning) {
-            return 'begin ' + insertAll + 'end;'
+            insertQuery += 'end;'
         } else {
-            return insertAll + ' select ' + multiple.length + ' from dual'
+            insertQuery += ' select ' + multiple.length + ' from dual'
         }
+
+        return insertQuery
     }
     _buildInsertDefaultValues(query: InsertData, params: any[]): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 
         const table = query.__table
+        const customization = query.__customization
 
         this._setSafeTableOrView(params, table)
 
         let insertQuery = ''
         if (this._insertSupportWith) {
-            insertQuery = this._buildWith(query, params)
+            insertQuery += this._buildWith(query, params)
         }
-        insertQuery += 'insert into '
+        insertQuery += 'insert '
+        if (customization && customization.afterInsertKeyword) {
+            insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
+        }
+        insertQuery += 'into '
         insertQuery += this._appendTableOrViewName(table, params)
-        insertQuery += ' ('
 
         let columns = ''
         for (var columnName in table) {
@@ -263,10 +285,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             columns += this._appendRawColumnName(column, params)
         }
 
-        insertQuery += columns
-        insertQuery += ')'
+        insertQuery += ' (' + columns + ')'
         insertQuery += this._buildInsertOutput(query, params)
-        insertQuery += ' values ('
 
         let values = ''
         for (var columnName in table) {
@@ -287,9 +307,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
         }
         
-        insertQuery += values
-        insertQuery += ')'
+        insertQuery += ' values (' + values + ')'
         insertQuery += this._buildInsertReturning(query, params)
+        if (customization && customization.afterQuery) {
+            insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+        }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
         return insertQuery

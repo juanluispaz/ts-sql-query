@@ -258,6 +258,38 @@ const customizedSelect: Promise<{
 }>
 ```
 
+## Customizing an insert
+
+The supported extension point offered by `customizeQuery` method for an insert are:
+
+- `afterInsertKeyword`: Place the fragment immediately after the `insert` keyword.
+- `afterQuery`: Place the fragment at the end of the query.
+
+```ts
+const customizedInsert = connection.insertInto(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 1
+    }).customizeQuery({
+        afterInsertKeyword: connection.rawFragment`/*+ some hints */`,
+        afterQuery: connection.rawFragment`log errors reject limit unlimited`
+    }).executeInsert()
+```
+
+The executed query is:
+```sql
+insert /*+ some hints */ into customer (first_name, last_name, company_id) 
+values ($1, $2, $3) 
+log errors reject limit unlimited
+```
+
+The parameters are: `[ 10 ]`
+
+The result type is:
+```tsx
+const customizedInsert: Promise<number>
+```
+
 ## Customizing an update
 
 The supported extension point offered by `customizeQuery` method for an update are:
@@ -294,7 +326,7 @@ const customizedUpdate: Promise<number>
 
 ## Customizing a delete
 
-The supported extension point offered by `customizeQuery` method for an delete are:
+The supported extension point offered by `customizeQuery` method for a delete are:
 
 - `afterDeleteKeyword`: Place the fragment immediately after the `delete` keyword.
 - `afterQuery`: Place the fragment at the end of the query.

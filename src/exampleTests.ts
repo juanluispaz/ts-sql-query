@@ -1297,6 +1297,20 @@ const customizedDelete = connection.deleteFrom(tCustomer)
 // Query: delete /*+ some hints */ from customer where id = $1 keep plan
 // Params: [ 10 ]
 
+results.push(1)
+
+const customizedInsert = connection.insertInto(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 1
+    }).customizeQuery({
+        afterInsertKeyword: connection.rawFragment`/*+ some hints */`,
+        afterQuery: connection.rawFragment`log errors reject limit unlimited`
+    }).executeInsert()
+
+// Query: insert /*+ some hints */ into customer (first_name, last_name, company_id) values ($1, $2, $3) log errors reject limit unlimited
+// Params: [ 'John', 'Smith', 1 ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -1345,6 +1359,7 @@ customerInSystemTime.finally(() => undefined)
 customizedSelect.finally(() => undefined)
 customizedUpdate.finally(() => undefined)
 customizedDelete.finally(() => undefined)
+customizedInsert.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

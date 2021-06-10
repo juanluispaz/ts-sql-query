@@ -8,6 +8,7 @@ import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 import type { UpdateCustomization } from "../expressions/update"
 import type { DeleteCustomization } from "../expressions/delete"
+import type { InsertCustomization } from "../expressions/insert"
 
 export interface WithData {
     __name: string
@@ -69,6 +70,7 @@ export interface InsertData extends WithQueryData {
     __multiple?: { [property: string]: any }[]
     __idColumn?: Column
     __from?: SelectData
+    __customization?: InsertCustomization<any>
 }
 
 export interface UpdateData extends WithQueryData {

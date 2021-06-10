@@ -816,6 +816,11 @@ interface InsertExpression {
     query(): string
     /** Returns the required parameters by the sql query */
     params(): any[]
+
+    customizeQuery(customization: {
+        afterInsertKeyword?: RawFragment
+        afterQuery?: RawFragment
+    }): this
 }
 
 /** Columns required by the insert */

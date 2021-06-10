@@ -1,6 +1,6 @@
 import type { SqlBuilder, InsertData, SelectData } from "../sqlBuilders/SqlBuilder"
 import{ ITable, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
-import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, ExecutableMultipleInsert, ExecutableInsertFromSelect/*, MissingKeysInsertExpression*/ } from "../expressions/insert"
+import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*, MissingKeysInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturning, CustomiableExecutableInsert } from "../expressions/insert"
 import type { Column } from "../utils/Column"
 import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
@@ -11,7 +11,7 @@ import { __addWiths } from "../utils/ITableOrView"
 
 // one implement ommited intentionally to don't confuse TypeScript
 
-export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInsertReturning<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, ExecutableMultipleInsert<any>, ExecutableInsertFromSelect<any>, /*MissingKeysInsertExpression<any, any>,*/ InsertData {
+export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInsertReturning<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, CustomizableExecutableMultipleInsert<any>, CustomizableExecutableInsertFromSelect<any>, CustomizableExecutableInsertReturning<any, any>, CustomiableExecutableInsert<any>, /*MissingKeysInsertExpression<any, any>,*/ InsertData {
     [database]: any
     [tableOrView]: any
     __sqlBuilder: SqlBuilder
@@ -23,6 +23,7 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
     __idColumn?: Column
     __from?: SelectData
     __withs: Array<IWithView<any>> = []
+    __customization?: InsertCustomization<any>
 
     // cache
     __query = ''
@@ -280,6 +281,14 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
         __addWiths(select, this.__withs)
         return this
     }
+
+    customizeQuery(customization: InsertCustomization<any>): this {
+        this.__customization = customization
+        __addWiths(customization.afterInsertKeyword, this.__withs)
+        __addWiths(customization.afterQuery, this.__withs)
+        return this
+    }
+
     defaultValues: never
     returningLastInsertedId: never
 }

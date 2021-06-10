@@ -1122,13 +1122,13 @@ Type adapter definitions are in the file `ts-sql-query/TypeAdapter`.
 
 ```ts
 interface TypeAdapter {
-    transformValueFromDB(value: any, type: string, next: DefaultTypeAdapter): any
-    transformValueToDB(value: any, type: string, next: DefaultTypeAdapter): any
+    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
 }
 
 interface DefaultTypeAdapter {
-    transformValueFromDB(value: any, type: string): any
-    transformValueToDB(value: any, type: string): any
+    transformValueFromDB(value: unknown, type: string): unknown
+    transformValueToDB(value: unknown, type: string): unknown
 }
 
 class CustomBooleanTypeAdapter implements TypeAdapter {

@@ -29,6 +29,7 @@ nav:
     - Delete: queries/delete.md
     - Transaction: queries/transaction.md
   - Connection, tables & views: connection-tables-views.md
+  - Column types: column-types.md
   - Composing and splitting results: composing-and-splitting-results.md
   - Supported operations: supported-operations.md
   - Supported databases: supported-databases.md

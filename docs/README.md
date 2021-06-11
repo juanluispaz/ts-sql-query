@@ -69,7 +69,7 @@ You can read the latest version of the documentation at: https://ts-sql-query.re
 - [Column types](column-types.md#column-types)
   - [Typing](column-types.md#typing)
   - [Type adapters](column-types.md#type-adapters)
-  - [Globally type adapter](#globally-type-adapter)
+  - [Globally type adapter](column-types.md#globally-type-adapter)
 - [Composing and splitting results](composing-and-splitting-results.md#composing-and-splitting-results)
   - [Composing results](composing-and-splitting-results.md#composing-results)
   - [Composing many items in the result](composing-and-splitting-results.md#composing-many-items-in-the-result)

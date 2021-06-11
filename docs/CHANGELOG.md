@@ -1,5 +1,32 @@
 # Change Log
 
+## v1.6.0 (12 Jun 2021)
+
+**Changes**:
+
+- Allows to use complex names in different places like the column alias (name of the property in the result object of a select)
+- Allow a dynamic select picking the columns
+- Handle splitting with select picking columns
+- The `split` method automatically determines if the created property is required or optional
+- Added `splitRequired` splitting method
+- Add support to optional joins in a select picking columns
+- Add support to table "from" customization, allowing to include raw sql to use features not supported yet by ts-sql-query
+- Add support to select query customizations
+- Add support to update query customizations
+- Add support to delete query customizations
+- Add support to insert query customizations
+
+**Documentation changes**:
+
+- Document about how to deal with splitting result and dynamic queries
+- Add column types section in the documentation
+
+**Bug fixes**:
+
+- Ensure insert multiple can generate the with clause
+- Add support to with clause on insert queries on databases that doesn't support a global with on insert (oracle, mysql, mariadb)
+- Fix invalid insert default values query on oracle
+
 ## v1.5.0 (3 Jun 2021)
 
 **Changes**:
@@ -12,7 +39,7 @@
 
 **Documentation changes**:
 
-- Implements new documentation website using mkdocs and readthedocs.io, available at: https://ts-sql-query.readthedocs.io/
+- Implements new documentation website using mkdocs and readthedocs.io, available at: (https://ts-sql-query.readthedocs.io/)[https://ts-sql-query.readthedocs.io/]
 - Add transaction documentation
 - Document security constraint regarding update and delete with no where
 - Add select with left join example to the documentation

@@ -4,21 +4,21 @@
 
 ts-sql-query allows you to define the columns with the following types:
 
-| Comunn type        | Typescript Type   | Extended type   | Description                                                       |
-|--------------------|-------------------|-----------------|-------------------------------------------------------------------|
-| `boolean`          | `boolean`         | `boolean`       | Boolean value                                                     |
-| `stringInt`        | `string | number` | `stringInt`     | Integer number reprecented as number or string when it is too big |
-| `int`              | `number`          | `int`           | Integer number                                                    |
-| `bigint`           | `bigint`          | `bigint`        | BigInt number                                                     |
-| `stringDouble`     | `string | number` | `stringDouble`  | Floating point number reprecented as number or string             |
-| `double`           | `number`          | `double`        | Floating point number                                             |
-| `string`           | `string`          | `string`        | String value                                                      |
-| `localDate`        | `Date`            | `LocalDate`     | Date without time                                                 |
-| `localTime`        | `Date`            | `LocalTime`     | Time without date                                                 |
-| `localDateTime`    | `Date`            | `LocalDateTime` | Date with time                                                    |
-| `enum`             | *custom*          | *custom*        | Enum value with custom type                                       |
-| `custom`           | *custom*          | *custom*        | Custom equalable value                                            |
-| `customComparable` | *custom*          | *custom*        | Custom comparable value                                           |
+| Comunn type        | Typescript Type      | Extended type   | Description                                                       |
+|--------------------|----------------------|-----------------|-------------------------------------------------------------------|
+| `boolean`          | `boolean`            | `boolean`       | Boolean value                                                     |
+| `stringInt`        | `string` or `number` | `stringInt`     | Integer number reprecented as number or string when it is too big |
+| `int`              | `number`             | `int`           | Integer number                                                    |
+| `bigint`           | `bigint`             | `bigint`        | BigInt number                                                     |
+| `stringDouble`     | `string` or `number` | `stringDouble`  | Floating point number reprecented as number or string             |
+| `double`           | `number`             | `double`        | Floating point number                                             |
+| `string`           | `string`             | `string`        | String value                                                      |
+| `localDate`        | `Date`               | `LocalDate`     | Date without time                                                 |
+| `localTime`        | `Date`               | `LocalTime`     | Time without date                                                 |
+| `localDateTime`    | `Date`               | `LocalDateTime` | Date with time                                                    |
+| `enum`             | *custom*             | *custom*        | Enum value with custom type                                       |
+| `custom`           | *custom*             | *custom*        | Custom equalable value                                            |
+| `customComparable` | *custom*             | *custom*        | Custom comparable value                                           |
 
 The extended types are defined in the [ts-extended-types](https://www.npmjs.com/package/ts-extended-types) package. Its types allow you to make your application even more type-safe and better represent the data structure handled by the database. To use these types, you must extend the type-safe variant of the connections defined at [Supported databases with extended types](./supported-databases-with-extended-types.md)
 

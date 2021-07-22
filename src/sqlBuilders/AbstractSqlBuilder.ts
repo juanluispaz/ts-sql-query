@@ -707,7 +707,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (column) {
                 columns += this._appendRawColumnName(column, params)
             } else {
-                throw new Error('Unable to find the column "' + columnName + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
+                // Additional property provided in the value object
+                // Skipped because it is not part of the table
+                // This allows to have more complex objects used in the query
             }
         }
 
@@ -743,7 +745,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
                         values += this._appendValueForColumn(column, value, params)
                     }
                 } else {
-                    throw new Error('Unable to find the column "' + columnName + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
+                    // Additional property provided in the value object
+                    // Skipped because it is not part of the table
+                    // This allows to have more complex objects used in the query
                 }
             }
 
@@ -933,7 +937,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (column) {
                 columns += this._appendRawColumnName(column, params)
             } else {
-                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
+                // Additional property provided in the value object
+                // Skipped because it is not part of the table
+                // This allows to have more complex objects used in the query
             }
         }
 
@@ -960,7 +966,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (column) {
                 values += this._appendValueForColumn(column, value, params)
             } else {
-                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
+                // Additional property provided in the value object
+                // Skipped because it is not part of the table
+                // This allows to have more complex objects used in the query
             }
         }
 
@@ -1102,7 +1110,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 columns += ' = '
                 columns += this._appendValueForColumn(column, value, params)
             } else {
-                throw new Error('Unable to find the column "' + property + ' in the table "' + this._getTableOrViewVisibleName(table) +'". The column is not included in the table definition')
+                // Additional property provided in the value object
+                // Skipped because it is not part of the table
+                // This allows to have more complex objects used in the query
             }
         }
         updateQuery += ' set ' + columns

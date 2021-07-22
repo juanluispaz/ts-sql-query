@@ -1,5 +1,17 @@
 # Change Log
 
+## v1.7.0 (23 Jul 2021)
+
+**Changes**:
+
+- Implement `isTransactionActive` method at the connection object that allows to know if there is an active open transaction in ts-sql-query
+- Allows to use objects with the values in an insert or update that contains additional properties not precent in the table that will be ignored. This change makes the behaviour coherent with TypeScript compiler.
+
+**Bug fixes**:
+
+- Fix transaction management when a ts-sql-connection connection from a pool is reused, started a transaction, but no query is executed.
+- Fix select result on non-strict mode, making the best approximation to have an usable result (but loosing the optional property information)
+
 ## v1.6.0 (12 Jun 2021)
 
 **Changes**:
@@ -39,7 +51,7 @@
 
 **Documentation changes**:
 
-- Implements new documentation website using mkdocs and readthedocs.io, available at: (https://ts-sql-query.readthedocs.io/)[https://ts-sql-query.readthedocs.io/]
+- Implements new documentation website using mkdocs and readthedocs.io, available at: [https://ts-sql-query.readthedocs.io/](https://ts-sql-query.readthedocs.io/)
 - Add transaction documentation
 - Document security constraint regarding update and delete with no where
 - Add select with left join example to the documentation

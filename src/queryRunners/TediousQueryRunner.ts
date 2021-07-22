@@ -6,6 +6,7 @@ import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 export class TediousQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
+    private transactionLevel = 0
 
     constructor(connection: Connection) {
         super()
@@ -72,12 +73,14 @@ export class TediousQueryRunner extends PromiseBasedQueryRunner {
                 if (error) {
                     reject(error)
                 } else {
+                    this.transactionLevel++
                     resolve()
                 }
             })
         })
     }
     executeCommit(): Promise<void> {
+        this.transactionLevel--
         return new Promise((resolve, reject) => {
             this.connection.commitTransaction((error) => {
                 if (error) {
@@ -89,6 +92,7 @@ export class TediousQueryRunner extends PromiseBasedQueryRunner {
         })
     }
     executeRollback(): Promise<void> {
+        this.transactionLevel--
         return new Promise((resolve, reject) => {
             this.connection.rollbackTransaction((error) => {
                 if (error) {
@@ -98,6 +102,9 @@ export class TediousQueryRunner extends PromiseBasedQueryRunner {
                 }
             })
         })
+    }
+    isTransactionActive(): boolean {
+        return this.transactionLevel <= 0
     }
     addParam(params: any[], value: any): string {
         const index = params.length

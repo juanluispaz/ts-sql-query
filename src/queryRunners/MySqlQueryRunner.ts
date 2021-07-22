@@ -5,6 +5,7 @@ import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 export class MySqlQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
+    private transactionLevel = 0
 
     constructor(connection: Connection, database: 'mariaDB' | 'mySql' = 'mySql') {
         super()
@@ -72,12 +73,14 @@ export class MySqlQueryRunner extends PromiseBasedQueryRunner {
                 if (error) {
                     reject(error)
                 } else {
+                    this.transactionLevel++
                     resolve()
                 }
             })
         })
     }
     executeCommit(): Promise<void> {
+        this.transactionLevel--
         return new Promise((resolve, reject) => {
             this.connection.commit((error) => {
                 if (error) {
@@ -89,6 +92,7 @@ export class MySqlQueryRunner extends PromiseBasedQueryRunner {
         })
     }
     executeRollback(): Promise<void> {
+        this.transactionLevel--
         return new Promise((resolve, reject) => {
             this.connection.rollback((error) => {
                 if (error) {
@@ -98,6 +102,9 @@ export class MySqlQueryRunner extends PromiseBasedQueryRunner {
                 }
             })
         })
+    }
+    isTransactionActive(): boolean {
+        return this.transactionLevel <= 0
     }
     addParam(params: any[], value: any): string {
         params.push(value)

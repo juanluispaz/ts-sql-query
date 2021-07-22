@@ -31,6 +31,7 @@ export interface EventColumnCb { (colIndex: number, data:any, more:boolean): voi
 export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: CONNECTION
+    private transactionLevel = 0
 
     constructor(connection: CONNECTION) {
         super()
@@ -81,16 +82,18 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends Promi
     }
     executeBeginTransaction(): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.connection.beginTransaction(function (error) {
+            this.connection.beginTransaction((error) => {
                 if (error) {
                     reject(error)
                 } else {
+                    this.transactionLevel++
                     resolve()
                 }
             })
         })
     }
     executeCommit(): Promise<void> {
+        this.transactionLevel--
         return new Promise((resolve, reject) => {
             this.connection.commit(function (error) {
                 if (error) {
@@ -102,6 +105,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends Promi
         })
     }
     executeRollback(): Promise<void> {
+        this.transactionLevel--
         return new Promise((resolve, reject) => {
             this.connection.rollback(function (error) {
                 if (error) {
@@ -111,6 +115,9 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends Promi
                 }
             })
         })
+    }
+    isTransactionActive(): boolean {
+        return this.transactionLevel <= 0
     }
     addParam(params: any[], value: any): string {
         const index = params.length

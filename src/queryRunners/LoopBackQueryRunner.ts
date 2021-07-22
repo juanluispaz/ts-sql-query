@@ -83,6 +83,9 @@ export abstract class LoopBackAbstractQueryRunner extends PromiseBasedQueryRunne
             this.transaction = undefined
         })
     }
+    isTransactionActive(): boolean {
+        return !!this.transaction
+    }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         return this.query(query, params)
     }

@@ -65,6 +65,9 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     executeRollback(): Promise<void> {
         return this.queryRunner.executeRollback()
     }
+    isTransactionActive(): boolean {
+        return this.queryRunner.isTransactionActive()
+    }
     executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
     executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
     executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>

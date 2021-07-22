@@ -9,6 +9,7 @@ export interface NoopQueryRunnerConfig {
 export class NoopQueryRunner implements QueryRunner {
     readonly database: DatabaseType
     readonly promise: PromiseProvider
+    private transactionLevel = 0
 
     constructor(databaseOrConfig: DatabaseType | NoopQueryRunnerConfig = 'noopDB') {
         if (typeof databaseOrConfig === 'string') {
@@ -65,13 +66,19 @@ export class NoopQueryRunner implements QueryRunner {
         return this.promise.resolve(undefined)
     }
     executeBeginTransaction(): Promise<void> {
+        this.transactionLevel++
         return this.promise.resolve()
     }
     executeCommit(): Promise<void> {
+        this.transactionLevel--
         return this.promise.resolve()
     }
     executeRollback(): Promise<void> {
+        this.transactionLevel--
         return this.promise.resolve()
+    }
+    isTransactionActive(): boolean {
+        return this.transactionLevel <= 0
     }
     executeDatabaseSchemaModification(_query: string, _params: any[] = []): Promise<void> {
         return this.promise.resolve()

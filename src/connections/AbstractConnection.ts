@@ -92,6 +92,9 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
             throw new ChainedError(e)
         }
     }
+    isTransactionActive(): boolean {
+        return this.queryRunner.isTransactionActive()
+    }
 
     insertInto<TABLE extends ITableOf<DB, any>>(table: TABLE): InsertExpression<TABLE> {
         return new InsertQueryBuilder(this.__sqlBuilder, table)

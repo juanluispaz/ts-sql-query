@@ -121,6 +121,7 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     abstract executeBeginTransaction(): Promise<void>
     abstract executeCommit(): Promise<void>
     abstract executeRollback(): Promise<void>
+    abstract isTransactionActive(): boolean
     abstract addParam(params: any[], value: any): string
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')

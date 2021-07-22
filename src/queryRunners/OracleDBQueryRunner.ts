@@ -7,6 +7,7 @@ import { processOutBinds } from "./OracleUtils"
 export class OracleDBQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
+    private transactionLevel = 0
 
     constructor(connection: Connection) {
         super()
@@ -40,14 +41,20 @@ export class OracleDBQueryRunner extends PromiseBasedQueryRunner {
         })
     }
     executeBeginTransaction(): Promise<void> {
+        this.transactionLevel++
         // Oracle automatically begins the transaction
         return Promise.resolve()
     }
     executeCommit(): Promise<void> {
+        this.transactionLevel--
         return this.connection.commit()
     }
     executeRollback(): Promise<void> {
+        this.transactionLevel--
         return this.connection.rollback()
+    }
+    isTransactionActive(): boolean {
+        return this.transactionLevel <= 0
     }
     addParam(params: any[], value: any): string {
         const index = params.length

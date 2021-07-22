@@ -121,6 +121,9 @@ export class AnyDBQueryRunner extends PromiseBasedQueryRunner {
             })
         })
     }
+    isTransactionActive(): boolean {
+        return !!this.transaction
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         let result

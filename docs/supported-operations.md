@@ -289,6 +289,7 @@ interface Connection {
     beginTransaction(): Promise<void>
     commit(): Promise<void>
     rollback(): Promise<void>
+    isTransactionActive(): boolean
     transaction<T>(fn: () => Promise<T>[]): Promise<T[]>
     transaction<T>(fn: () => Promise<T>): Promise<T>
 

@@ -17,6 +17,8 @@ export class MockQueryRunner implements QueryRunner {
     readonly database: DatabaseType
     readonly promise: PromiseProvider
 
+    private transactionLevel = 0
+
     constructor(queryExecutor: QueryExecutor, databaseOrConfig: DatabaseType | MockQueryRunnerConfig = 'noopDB') {
         this.queryExecutor = queryExecutor
         if (typeof databaseOrConfig === 'string') {
@@ -118,13 +120,17 @@ export class MockQueryRunner implements QueryRunner {
     }
     executeBeginTransaction(): Promise<void> {
         try {
-            return this.promise.resolve(this.queryExecutor('beginTransaction', 'begin transaction', [], this.count++))
+            return this.promise.resolve(this.queryExecutor('beginTransaction', 'begin transaction', [], this.count++)).then(r => {
+                this.transactionLevel++
+                return r
+            })
         } catch (e) {
             return this.promise.reject(e)
         }
     }
     executeCommit(): Promise<void> {
         try {
+            this.transactionLevel--
             return this.promise.resolve(this.queryExecutor('commit', 'commit', [], this.count++))
         } catch (e) {
             return this.promise.reject(e)
@@ -132,10 +138,14 @@ export class MockQueryRunner implements QueryRunner {
     }
     executeRollback(): Promise<void> {
         try {
+            this.transactionLevel--
             return this.promise.resolve(this.queryExecutor('rollback', 'rollback', [], this.count++))
         } catch (e) {
             return this.promise.reject(e)
         }
+    }
+    isTransactionActive(): boolean {
+        return this.transactionLevel <= 0
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         try {

@@ -72,6 +72,9 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
             this.transaction = undefined
         })
     }
+    isTransactionActive(): boolean {
+        return !!this.transaction
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         params.push(value)

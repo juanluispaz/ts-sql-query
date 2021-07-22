@@ -5,6 +5,7 @@ import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 export class MariaDBQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
+    private transactionLevel = 0
 
     constructor(connection: Connection, database: 'mariaDB' | 'mySql' = 'mariaDB') {
         super()
@@ -43,13 +44,21 @@ export class MariaDBQueryRunner extends PromiseBasedQueryRunner {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.insertId)
     }
     executeBeginTransaction(): Promise<void> {
-        return this.connection.beginTransaction()
+        return this.connection.beginTransaction().then(() => {
+            this.transactionLevel++
+            return undefined
+        })
     }
     executeCommit(): Promise<void> {
+        this.transactionLevel--
         return this.connection.commit()
     }
     executeRollback(): Promise<void> {
+        this.transactionLevel--
         return this.connection.rollback()
+    }
+    isTransactionActive(): boolean {
+        return this.transactionLevel <= 0
     }
     addParam(params: any[], value: any): string {
         params.push(value)

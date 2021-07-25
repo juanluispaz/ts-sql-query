@@ -192,19 +192,19 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
             const properties = Object.getOwnPropertyNames(sets)
             for (let i = 0, length = properties.length; i < length; i++) {
-                if (columns) {
-                    columns += ', '
-                }
-    
                 const property = properties[i]!
                 const column = __getColumnOfTable(table, property)
-                if (column) {
-                    columns += this._appendRawColumnName(column, params)
-                } else {
+                if (!column) {
                     // Additional property provided in the value object
                     // Skipped because it is not part of the table
                     // This allows to have more complex objects used in the query
+                    continue
                 }
+
+                if (columns) {
+                    columns += ', '
+                }
+                columns += this._appendRawColumnName(column, params)
             }
 
             insertQuery += ' (' + columns + ')'
@@ -220,20 +220,20 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 values += this._nextSequenceValue(params, sequenceName)
             }
             for (let i = 0, length = properties.length; i < length; i++) {
-                if (values) {
-                    values += ', '
-                }
-    
                 const property = properties[i]!
-                const value = sets[property]
                 const column = __getColumnOfTable(table, property)
-                if (column) {
-                    values += this._appendValueForColumn(column, value, params)
-                } else {
+                if (!column) {
                     // Additional property provided in the value object
                     // Skipped because it is not part of the table
                     // This allows to have more complex objects used in the query
+                    continue
                 }
+
+                if (values) {
+                    values += ', '
+                }
+                const value = sets[property]
+                values += this._appendValueForColumn(column, value, params)
             }
 
             insertQuery += ' values (' + values + ')'

@@ -700,17 +700,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
             nextSequenceValues.push(columnPrivate.__sequenceName)
         }
         for (let columnName in usedColumns) {
-            if (columns) {
-                columns += ', '
-            }
             const column = __getColumnOfTable(table, columnName)
-            if (column) {
-                columns += this._appendRawColumnName(column, params)
-            } else {
+            if (!column) {
                 // Additional property provided in the value object
                 // Skipped because it is not part of the table
                 // This allows to have more complex objects used in the query
+                continue
             }
+
+            if (columns) {
+                columns += ', '
+            }
+            columns += this._appendRawColumnName(column, params)
         }
 
         insertQuery += ' (' + columns + ')'
@@ -730,24 +731,25 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const sets = multiple[i]!
 
             for (let columnName in usedColumns) {
+                const column = __getColumnOfTable(table, columnName)
+                if (!column) {
+                    // Additional property provided in the value object
+                    // Skipped because it is not part of the table
+                    // This allows to have more complex objects used in the query
+                    continue
+                }
+
                 if (values) {
                     values += ', '
                 }
 
                 const value = sets[columnName]
-                const column = __getColumnOfTable(table, columnName)
-                if (column) {
-                    const columnPrivate = __getColumnPrivate(column)
-                    const sequenceName = columnPrivate.__sequenceName
-                    if (!(columnName in sets) && sequenceName) {
-                        values += this._nextSequenceValue(params, sequenceName)
-                    } else {
-                        values += this._appendValueForColumn(column, value, params)
-                    }
+                const columnPrivate = __getColumnPrivate(column)
+                const sequenceName = columnPrivate.__sequenceName
+                if (!(columnName in sets) && sequenceName) {
+                    values += this._nextSequenceValue(params, sequenceName)
                 } else {
-                    // Additional property provided in the value object
-                    // Skipped because it is not part of the table
-                    // This allows to have more complex objects used in the query
+                    values += this._appendValueForColumn(column, value, params)
                 }
             }
 
@@ -928,19 +930,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         const properties = Object.getOwnPropertyNames(sets)
         for (let i = 0, length = properties.length; i < length; i++) {
-            if (columns) {
-                columns += ', '
-            }
-
             const property = properties[i]!
             const column = __getColumnOfTable(table, property)
-            if (column) {
-                columns += this._appendRawColumnName(column, params)
-            } else {
+            if (!column) {
                 // Additional property provided in the value object
                 // Skipped because it is not part of the table
                 // This allows to have more complex objects used in the query
+                continue
             }
+
+            if (columns) {
+                columns += ', '
+            }
+            columns += this._appendRawColumnName(column, params)
         }
 
         insertQuery += ' (' + columns + ')'
@@ -956,20 +958,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
             values += this._nextSequenceValue(params, sequenceName)
         }
         for (let i = 0, length = properties.length; i < length; i++) {
-            if (values) {
-                values += ', '
-            }
-
             const property = properties[i]!
-            const value = sets[property]
             const column = __getColumnOfTable(table, property)
-            if (column) {
-                values += this._appendValueForColumn(column, value, params)
-            } else {
+            if (!column) {
                 // Additional property provided in the value object
                 // Skipped because it is not part of the table
                 // This allows to have more complex objects used in the query
+                continue
             }
+
+            if (values) {
+                values += ', '
+            }
+            const value = sets[property]
+            values += this._appendValueForColumn(column, value, params)
         }
 
         insertQuery += ' values (' + values + ')'
@@ -1098,22 +1100,22 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let columns = ''
         const properties = Object.getOwnPropertyNames(sets)
         for (let i = 0, length = properties.length; i < length; i++) {
-            if (columns) {
-                columns += ', '
-            }
-
             const property = properties[i]!
-            const value = sets[property]
             const column = __getColumnOfTable(table, property)
-            if (column) {
-                columns += this._appendRawColumnName(column, params)
-                columns += ' = '
-                columns += this._appendValueForColumn(column, value, params)
-            } else {
+            if (!column) {
                 // Additional property provided in the value object
                 // Skipped because it is not part of the table
                 // This allows to have more complex objects used in the query
+                continue
             }
+
+            if (columns) {
+                columns += ', '
+            }
+            const value = sets[property]
+            columns += this._appendRawColumnName(column, params)
+            columns += ' = '
+            columns += this._appendValueForColumn(column, value, params)
         }
         updateQuery += ' set ' + columns
 

@@ -1,5 +1,15 @@
 # Change Log
 
+## v1.8.0 (26 Jul 2021)
+
+**Documentation changes**:
+
+- Make more clear and visible the warning about sharing the connection between HTTP requests.
+
+**Bug fixes**:
+
+- Fix invalid query when an insert or update contains additional properties not precent in the table (that must be ignored)
+
 ## v1.7.0 (23 Jul 2021)
 
 **Changes**:

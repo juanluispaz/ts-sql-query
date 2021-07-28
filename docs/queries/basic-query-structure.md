@@ -41,7 +41,7 @@ The `executeSelectOne` returns one result, but if it is not found in the databas
 
 You can execute the query using:
 
-- `executeSelectNoneOrOne(): Promise<RESULT | null>`: Execute the select query that returns one o no result from the database
+- `executeSelectNoneOrOne(): Promise<RESULT | null>`: Execute the select query that returns one or no result from the database. In case of more than one result found, it throws and error with message 'Too many rows, expected only zero or one row'.
 - `executeSelectOne(): Promise<RESULT>`: Execute the select query that returns one result from the database. If no result is returned by the database an exception will be thrown.
 - `executeSelectMany(): Promise<RESULT[]>`: Execute the select query that returns zero or many results from the database
 - `executeSelectPage(): Promise<{ data: RESULT[], count: number }>`: Execute the select query that returns zero or many results from the database. Select page execute the query twice, the first one to get the data from the database and the second one to get the count of all data without the limit and the offset.

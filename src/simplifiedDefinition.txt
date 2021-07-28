@@ -803,6 +803,63 @@ interface InsertExpression {
     setIfNotSetIfValue(columns: OptionalInsertSets): this
     /** Unset the listed columns previous set */
     ignoreIfSet(...columns: string[]): this
+
+    /** 
+     * Set a value for the specified columns that was previously indicated a value for set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setIfHasValue(columns: InsertSets): this
+    /** 
+     * Set a value for the specified columns that was previously indicated a value for 
+     * set only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setIfHasValueIfValue(columns: OptionalInsertSets): this
+    /** 
+     * Set a value for the specified columns that has not value to set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setIfHasNoValue(columns: InsertSets): this
+    /** 
+     * Set a value for the specified columns that has no value to set 
+     * only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setIfHasNoValueIfValue(columns: OptionalInsertSets): this
+    /** 
+     * Unset the listed columns if them has value to set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    ignoreIfHasValue(...columns: string[]): this
+    /** 
+     * Unset the listed columns if them has no value to set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    ignoreIfHasNoValue(...columns: string[]): this
+    /** 
+     * Unset all columns that was set with no value.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    ignoreAnySetWithNoValue(): this
+
     /** Allows to set the values dynamically */
     dynamicSet(): this
 
@@ -842,30 +899,86 @@ type OptionalInsertSets = { [columnName: string]: any }
 
 interface UpdateExpression {
     /** Set the values for insert */
-    set(columns: InsertSets): this
+    set(columns: UpdateSets): this
     /** Set a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array 
      */
-    setIfValue(columns: OptionalInsertSets): this
+    setIfValue(columns: OptionalUpdateSets): this
     /** Set a previous set value only */
-    setIfSet(columns: InsertSets): this
+    setIfSet(columns: UpdateSets): this
     /** Set a previous set value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array
      */
-    setIfSetIfValue(columns: OptionalInsertSets): this
+    setIfSetIfValue(columns: OptionalUpdateSets): this
     /** Set a unset value (only if the value was not previously set) */
-    setIfNotSet(columns: InsertSets): this
+    setIfNotSet(columns: UpdateSets): this
     /** 
      * Set a unset value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array
      * (only if the value was not previously set) 
      */
-    setIfNotSetIfValue(columns: OptionalInsertSets): this
+    setIfNotSetIfValue(columns: OptionalUpdateSets): this
     /** Unset the listed columns previous set */
     ignoreIfSet(...columns: string[]): this
+
+    /** 
+     * Set a value for the specified columns that was previously indicated a value for set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setIfHasValue(columns: UpdateSets): this
+    /** 
+     * Set a value for the specified columns that was previously indicated a value for 
+     * set only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setIfHasValueIfValue(columns: OptionalUpdateSets): this
+    /** 
+     * Set a value for the specified columns that has not value to set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setIfHasNoValue(columns: UpdateSets): this
+    /** 
+     * Set a value for the specified columns that has no value to set 
+     * only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setIfHasNoValueIfValue(columns: OptionalUpdateSets): this
+    /** 
+     * Unset the listed columns if them has value to set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    ignoreIfHasValue(...columns: string[]): this
+    /** 
+     * Unset the listed columns if them has no value to set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    ignoreIfHasNoValue(...columns: string[]): this
+    /** 
+     * Unset all columns that was set with no value.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    ignoreAnySetWithNoValue(): this
     /** Allows to set the values dynamically */
     dynamicSet(): this
 

@@ -207,6 +207,123 @@ export class UpdateQueryBuilder implements UpdateExpression<any>, UpdateExpressi
         }
         return this
     }
+
+    setIfHasValue(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        let sets = this.__sets
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            if (!this.__sqlBuilder._isValue(sets[property])) {
+                continue
+            }
+            const value = columns[property]
+            sets[property] = value
+        }
+        return this
+    }
+    setIfHasValueIfValue(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        let sets = this.__sets
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            if (!this.__sqlBuilder._isValue(sets[property])) {
+                continue
+            }
+            const value = columns[property]
+            if (!this.__sqlBuilder._isValue(value)) {
+                continue
+            }
+            sets[property] = value
+        }
+        return this
+    }
+    setIfHasNoValue(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        let sets = this.__sets
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            if (this.__sqlBuilder._isValue(sets[property])) {
+                continue
+            }
+            const value = columns[property]
+            sets[property] = value
+        }
+        return this
+    }
+    setIfHasNoValueIfValue(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        let sets = this.__sets
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            if (this.__sqlBuilder._isValue(sets[property])) {
+                continue
+            }
+            const value = columns[property]
+            if (!this.__sqlBuilder._isValue(value)) {
+                continue
+            }
+            sets[property] = value
+        }
+        return this
+    }
+    ignoreIfHasValue(...columns: any[]): this {
+        this.__query = ''
+        let sets = this.__sets
+        for (let i = 0, length = columns.length; i < length; i++) {
+            let column = columns[i]
+            if (!this.__sqlBuilder._isValue(sets[column])) {
+                continue
+            }
+            delete sets[column]
+        }
+        return this
+    }
+    ignoreIfHasNoValue(...columns: any[]): this {
+        this.__query = ''
+        let sets = this.__sets
+        for (let i = 0, length = columns.length; i < length; i++) {
+            let column = columns[i]
+            if (this.__sqlBuilder._isValue(sets[column])) {
+                continue
+            }
+            delete sets[column]
+        }
+        return this
+    }
+    ignoreAnySetWithNoValue(): this {
+        this.__query = ''
+        let sets = this.__sets
+        const properties = Object.getOwnPropertyNames(sets)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            if (this.__sqlBuilder._isValue(sets[property])) {
+                continue
+            }
+            delete sets[property]
+        }
+        return this
+    }
+
     dynamicWhere(): this {
         this.__query = ''
         return this

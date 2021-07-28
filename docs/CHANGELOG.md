@@ -1,5 +1,15 @@
 # Change Log
 
+## v1.9.0 (28 Jul 2021)
+
+**Changes**:
+
+- Add utilities methods to insert and update operations that helps to deal with columns that were prepared to set with no value (null, undefined, empty string, empty array): `setIfHasValue`, `setIfHasValueIfValue`, `setIfHasNoValue`, `setIfHasNoValueIfValue`, `ignoreIfHasValue`, `ignoreIfHasNoValue`, `ignoreAnySetWithNoValue`
+
+**Bug fixes**:
+
+- Fix wrong result of `isTransactionActive` in connections that potentially can nest transaction levels
+
 ## v1.8.0 (26 Jul 2021)
 
 **Documentation changes**:

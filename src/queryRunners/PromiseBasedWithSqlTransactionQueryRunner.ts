@@ -17,6 +17,6 @@ export abstract class PromiseBasedWithSqlTransactionQueryRunner extends PromiseB
         return this.executeMutation('rollback', []).then(() => undefined)
     }
     isTransactionActive(): boolean {
-        return this.transactionLevel <= 0
+        return this.transactionLevel > 0
     }
 }

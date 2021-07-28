@@ -104,7 +104,7 @@ export class MySqlQueryRunner extends PromiseBasedQueryRunner {
         })
     }
     isTransactionActive(): boolean {
-        return this.transactionLevel <= 0
+        return this.transactionLevel > 0
     }
     addParam(params: any[], value: any): string {
         params.push(value)

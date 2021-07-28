@@ -145,7 +145,7 @@ export class MockQueryRunner implements QueryRunner {
         }
     }
     isTransactionActive(): boolean {
-        return this.transactionLevel <= 0
+        return this.transactionLevel > 0
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         try {

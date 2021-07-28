@@ -73,7 +73,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
         return this.createResolvedPromise(undefined)
     }
     isTransactionActive(): boolean {
-        return this.transactionLevel <= 0
+        return this.transactionLevel > 0
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.getQueryRunner().then(queryRunner => queryRunner.executeDatabaseSchemaModification(query, params)).finally(() => this.releaseIfNeeded())

@@ -94,7 +94,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         return Promise.reject(new Error('Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844'))
     }
     isTransactionActive(): boolean {
-        return this.transactionLevel <= 0
+        return this.transactionLevel > 0
     }
     executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
     executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>

@@ -78,7 +78,7 @@ export class NoopQueryRunner implements QueryRunner {
         return this.promise.resolve()
     }
     isTransactionActive(): boolean {
-        return this.transactionLevel <= 0
+        return this.transactionLevel > 0
     }
     executeDatabaseSchemaModification(_query: string, _params: any[] = []): Promise<void> {
         return this.promise.resolve()

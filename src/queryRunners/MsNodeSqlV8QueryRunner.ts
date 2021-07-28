@@ -117,7 +117,7 @@ export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends Promi
         })
     }
     isTransactionActive(): boolean {
-        return this.transactionLevel <= 0
+        return this.transactionLevel > 0
     }
     addParam(params: any[], value: any): string {
         const index = params.length

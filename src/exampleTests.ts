@@ -1164,6 +1164,9 @@ const leftJoinCompany = connection.selectFrom(tCompany)
         name: tCompany.name,
         parentId: parent.id,
         parentName: parent.name
+    }).guidedSplitOptional('parent', {
+        id: 'parentId!',
+        name: 'parentName!'
     }).executeSelectMany()
 
 // Query: select company.id as id, company.name as name, parent.id as parentId, parent.name as parentName from company left join company as parent on company.parent_id = parent.id

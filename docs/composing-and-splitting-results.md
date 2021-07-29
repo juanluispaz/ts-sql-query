@@ -270,3 +270,67 @@ const customerWithCompanyObject: Promise<{
     };
 }>
 ```
+
+## Guided splitting results
+
+Sometimes the default splitting strategy is not enough to express the correct result type due to optional type information that cannot be extracted from the query. For example: when you perform a left join, all the fields coming from the left join table are optional, but you can know when this join exists; some of these fields are not optional at the same time. Adding additional information, you can express this optional combination in the split object.
+
+**How it works**:
+
+The property that you indicate will be moved from the result of the query to a new object that will be stored as a property of it. You can indicate if the property must be treated as required or optional in the new object.
+
+**What you need**:
+
+- Name of the property in the result object that will contain the new object with the moved properties.
+- A mapping rule that determined how the properties will be moved; basically, you must indicate as a key the new name of the property in the new object and value the old property's name. Optionally, at the end of the old property's name, you can add `!` to force treat it as mandatory, or `?` to force treat it as optional.
+
+**Defining the splitting rule**:
+
+Before executing the query, you must call one of the next methods:
+
+- `guidedSplitRequired`: that split the result, and the new property will be added as a required property.
+- `guidedSplitOptional`: The split result will be added as an optional property. If the new object has no data, the new property is omitted.
+
+Before executing the query, you must call `guidedSplit` method with the following arguments:
+
+1. `propertyName`: name of the property to be included in each item returned by the query.
+2. `mapping`: an object map where the key is the new name of the property and the value is the old name of the property.
+
+**Note**: When you force a property as required in the split object when this object is created, the forced-as-required properties must have value; if not, you will get an error.
+
+## Splitting the result of a left join query
+
+```ts
+const leftJoinCompany = connection.selectFrom(tCompany)
+    .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        parentId: parent.id,
+        parentName: parent.name
+    }).guidedSplitOptional('parent', {
+        id: 'parentId!',
+        name: 'parentName!'
+    }).executeSelectMany()
+```
+
+The executed query is:
+```sql
+select company.id as id, company.name as name, parent.id as parentId, parent.name as parentName 
+from company 
+left join company as parent on company.parent_id = parent.id
+```
+
+The parameters are: `[ ]`
+
+The result type is:
+```tsx
+const leftJoinCompany: Promise<{
+    id: number;
+    name: string;
+    parent?: {
+        id: number;
+        name: string;
+    };
+}[]>
+```

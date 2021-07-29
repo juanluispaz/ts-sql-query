@@ -35,7 +35,14 @@ interface Split {
     mapping: { [key: string]: string }
 }
 
-type SplitCompose = Compose | Split
+interface GuidedSplit {
+    type: 'guidedSplit',
+    optional: boolean,
+    propertyName: string,
+    mapping: { [key: string]: string }
+}
+
+type SplitCompose = Compose | Split | GuidedSplit
 
 abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQuery<any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any, any>, OffsetExecutableSelectExpression<any, any, any, any>, CustomizableExecutableSelect<any, any, any, any>, WithableExecutableSelect<any, any, any, any>, ExecutableSelect<any, any, any, any>, ComposeExpression<any, any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any, any>,  ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any, any> {
     [database]: any
@@ -534,6 +541,27 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         return this
     }
 
+    guidedSplitRequired(propertyName: string, mappig: any): any {
+        const split: GuidedSplit = {
+            type: 'guidedSplit',
+            optional: false,
+            propertyName: propertyName,
+            mapping: mappig
+        }
+        this.__compositions.push(split)
+        return this
+    }
+    guidedSplitOptional(propertyName: string, mappig: any): any {
+        const split: GuidedSplit = {
+            type: 'guidedSplit',
+            optional: true,
+            propertyName: propertyName,
+            mapping: mappig
+        }
+        this.__compositions.push(split)
+        return this
+    }
+
     __applyCompositions<R>(result: Promise<R>, source: Error): Promise<R> {
         const compositions = this.__compositions
         if (compositions.length <= 0) {
@@ -545,8 +573,10 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
                 try {
                     if (composition.type === 'split') {
                         return this.__applySplit(dataResult, composition)
-                    } else {
+                    } if (composition.type === 'compose') {
                         return this.__applyComposition(dataResult, composition, source)
+                    } else {
+                        return this.__applyGuidedSplit(dataResult, composition)
                     }
                 } catch (e) {
                     throw attachSource(e, source)
@@ -639,6 +669,70 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
             }
             return dataResult
         }) 
+    }
+    __applyGuidedSplit<R>(dataResult: R, split: GuidedSplit): R {
+        let dataList: any[]
+        if (Array.isArray(dataResult)) {
+            dataList = dataResult
+        } else {
+            dataList = [dataResult]
+        }
+
+        const mapping = split.mapping
+        const optional = split.optional
+        const propertyName = split.propertyName
+
+        for(let i = 0, length = dataList.length; i < length; i++) {
+            const forcedAsMandatoryProperties = []
+            const forcedAsMandatoryMapping = []
+            const external = dataList[i]
+            const result: any = {}
+            let hasContent = false
+            for (let prop in mapping) {
+                let externalProp = mapping[prop]!
+                if (externalProp.endsWith('!')) {
+                    externalProp = externalProp.substring(0, externalProp.length - 1)
+                    forcedAsMandatoryProperties.push(externalProp)
+                    forcedAsMandatoryMapping.push(prop)
+                } else if (externalProp.endsWith('?')) {
+                    externalProp = externalProp.substring(0, externalProp.length - 1)
+                }
+                const value = external[externalProp]
+                if (value !== null && value !== undefined) {
+                    result[prop] = value
+                    hasContent = true
+                }
+                delete external[externalProp]
+            }
+            if (propertyName in external) {
+                throw new Error('The property ' + propertyName + ' already exists in the result of the query')
+            }
+            if (hasContent || !optional) {
+                for(let j = 0, length2 = forcedAsMandatoryProperties.length; j < length2; j++) {
+                    const externalProp = forcedAsMandatoryProperties[j]!
+                    const prop = forcedAsMandatoryMapping[j]!
+                    const value = result[prop]
+                    if (value === null || value === undefined) {
+                        let errorMessage = 'Expected a value as result of the column `' + externalProp + '` mapped as `' + prop + '` in a `'
+                        if (optional) {
+                            errorMessage += 'guidedSplitOptional'
+                        } else {
+                            errorMessage += 'guidedSplitRequired'
+                        }
+                        errorMessage += '` at index `' + i + '`, but null or undefined value was found'
+                        throw new Error(errorMessage)
+                    }
+                }
+            }
+            if (optional) {
+                if (hasContent) {
+                    external[propertyName] = result
+                }
+            } else {
+                external[propertyName] = result
+            }
+        }
+        return dataResult
     }
 
     __processCompositionResult(internalList: any[], dataList: any[], dataMap: any, composition: Compose): void {

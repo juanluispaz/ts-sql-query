@@ -6,6 +6,7 @@ import { createColumnsFrom } from "../internal/ColumnImpl"
 import { database, tableOrViewRef, type } from "../utils/symbols"
 import { __getValueSourcePrivate, __OptionalRule } from "../expressions/values"
 import { RawFragment } from "../utils/RawFragment"
+import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 
 export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME>> implements IWithView<REF>, WithData, __ITableOrViewPrivate {
     [database]: REF[typeof database]
@@ -45,10 +46,19 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
         return result as any
     }
     forUseInLeftJoin(): OuterJoinSourceOf<this, ''> {
-        return this as any
+        return this.forUseInLeftJoinAs('')
     }
     forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): OuterJoinSourceOf<this, ALIAS> {
-        return this.as(as) as any
+        const result = new WithViewImpl(this.__name, this.__selectData, this.__optionalRule)
+        result.__as = as
+        result.__originalWith = this as any
+        for (const prop in result) {
+            const column = __getColumnOfTable(result, prop)
+            if (column) {
+                __getColumnPrivate(column).__isOptional = true
+            }
+        }
+        return result as any
     }
     __addWiths(withs: Array<IWithView<any>>): void {
         if (this.__ignoreWith) {

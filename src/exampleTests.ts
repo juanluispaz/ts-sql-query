@@ -1145,7 +1145,15 @@ const recursiveOnChildrenCompany = connection.selectFrom(tCompany)
 // Query: with recursive recursive_select_1 as (select id as id, name as name, parent_id as parentId from company where id = $1 union all select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.id = company.parent_id) select id as id, name as name, parentId as "parentId" from recursive_select_1
 // Params: [ 10 ]
 
-results.push([])
+results.push([{
+    id: 18,
+    name: 'name'
+}, {
+    id: 19,
+    name: 'name2',
+    parentId: 18,
+    parentName: 'name'
+}])
 
 const parent = tCompany.forUseInLeftJoinAs('parent')
 

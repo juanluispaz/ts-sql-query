@@ -3,7 +3,7 @@ import { IView, IWithView, TableOrViewOf, TableOrViewRef, __addWiths, __register
 import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
 import type { TypeAdapter } from "./TypeAdapter"
 import type { AliasedTableOrView, OuterJoinSourceOf } from "./utils/tableOrViewUtils"
-import type { Column, OptionalColumn } from "./utils/Column"
+import { Column, OptionalColumn, __getColumnOfTable, __getColumnPrivate } from "./utils/Column"
 import type { AnyDB, TypeSafeDB } from "./databases"
 import { ColumnImpl } from "./internal/ColumnImpl"
 import { database, tableOrViewRef, type, viewName } from "./utils/symbols"
@@ -40,10 +40,18 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
         return result as any
     }
     forUseInLeftJoin(): OuterJoinSourceOf<this, ''> {
-        return this as any
+        return this.forUseInLeftJoinAs('')
     }
     forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): OuterJoinSourceOf<this, ALIAS> {
-        return this.as(as) as any
+        const result = new ((this as any).constructor)() as ViewOf<any>
+        result.__as = as
+        for (const prop in result) {
+            const column = __getColumnOfTable(result, prop)
+            if (column) {
+                __getColumnPrivate(column).__isOptional = true
+            }
+        }
+        return result as any
     }
 
     protected column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<REF, boolean> & Column

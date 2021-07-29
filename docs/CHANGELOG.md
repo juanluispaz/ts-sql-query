@@ -1,5 +1,19 @@
 # Change Log
 
+## v1.10.0 (30 Jul 2021)
+
+**Changes**:
+
+- Implement guided splitting to help handle the splitting situation originated by a left join when the optionality of the moved properties are not correct due to known null rules that are not able to be extracted by ts-sql-query from the query
+
+**Documentation changes**:
+
+- Documented error for method `executeSelectNoneOrOne`
+
+**Bug fixes**:
+
+- Fix constraint violation when a left join return null on a column that originally was marked as required
+
 ## v1.9.0 (28 Jul 2021)
 
 **Changes**:

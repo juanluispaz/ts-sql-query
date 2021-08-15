@@ -301,6 +301,8 @@ Before executing the query, you must call `guidedSplit` method with the followin
 ## Splitting the result of a left join query
 
 ```ts
+const parent = tCompany.forUseInLeftJoinAs('parent')
+
 const leftJoinCompany = connection.selectFrom(tCompany)
     .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
     .select({

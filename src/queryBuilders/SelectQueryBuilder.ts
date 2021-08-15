@@ -588,7 +588,9 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
 
     __applySplit<R>(dataResult: R, split: Split): R {
         let dataList: any[]
-        if (Array.isArray(dataResult)) {
+        if (!dataResult) {
+            return dataResult
+        } else if (Array.isArray(dataResult)) {
             dataList = dataResult
         } else {
             dataList = [dataResult]
@@ -635,7 +637,9 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         }
 
         let dataList: any[]
-        if (Array.isArray(dataResult)) {
+        if (!dataResult) {
+            return dataResult
+        } else if (Array.isArray(dataResult)) {
             dataList = dataResult
         } else {
             dataList = [dataResult]
@@ -672,7 +676,9 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
     }
     __applyGuidedSplit<R>(dataResult: R, split: GuidedSplit): R {
         let dataList: any[]
-        if (Array.isArray(dataResult)) {
+        if (!dataResult) {
+            return dataResult
+        } else if (Array.isArray(dataResult)) {
             dataList = dataResult
         } else {
             dataList = [dataResult]

@@ -1,5 +1,15 @@
 # Change Log
 
+## v1.11.0 (16 Aug 2021)
+
+**Documentation changes**:
+
+- Fix missing parent definition in the "Splitting the result of a left join query" example of the documentation
+
+**Bug fixes**:
+
+- Fix error when composition or splitting are use in select a with `executeSelectNoneOrOne` and the result is null
+
 ## v1.10.0 (30 Jul 2021)
 
 **Changes**:

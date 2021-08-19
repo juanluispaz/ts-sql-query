@@ -1,5 +1,15 @@
 # Change Log
 
+## v1.12.0 (19 Aug 2021)
+
+**Changes**:
+
+- Add support to undefined elements in the and/or array of a dynamic condition
+
+**Bug fixes**:
+
+- Fix undefined not treated as absence of value in `IfValue` conditions
+
 ## v1.11.0 (16 Aug 2021)
 
 **Documentation changes**:
@@ -8,7 +18,7 @@
 
 **Bug fixes**:
 
-- Fix error when composition or splitting are use in select a with `executeSelectNoneOrOne` and the result is null
+- Fix error when composition or splitting are use in a select with `executeSelectNoneOrOne` and the result is null
 
 ## v1.10.0 (30 Jul 2021)
 

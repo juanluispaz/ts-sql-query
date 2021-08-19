@@ -108,7 +108,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         })
     }
     _isValue(value: any): boolean {
-        if (value === null || undefined) {
+        if (value === null || value === undefined) {
             return false
         }
         if (!this._connectionConfiguration.allowEmptyString && value === '') {

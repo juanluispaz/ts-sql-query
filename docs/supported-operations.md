@@ -1295,8 +1295,8 @@ The `FilterType` definition looks like this:
 ```ts
 type FilterType = {
     not?: FilterType
-    and?: FilterType[]
-    or?: FilterType[]
+    and?: Array<FilterType | undefined>
+    or?: Array<FilterType | undefined>
     myBoolean: EqualableFilter<boolean>
     myStringInt: ComparableFilter<string | number>
     myInt: ComparableFilter<number>

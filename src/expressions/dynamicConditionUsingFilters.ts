@@ -126,16 +126,16 @@ export type DynamicDefinition = {
 
 export type DynamicCondition<DEFINITION extends DynamicDefinition> = {
     not?: DynamicCondition<DEFINITION>
-    and?: DynamicCondition<DEFINITION>[]
-    or?: DynamicCondition<DEFINITION>[]
+    and?: Array<DynamicCondition<DEFINITION> | undefined>
+    or?: Array<DynamicCondition<DEFINITION> | undefined>
 } & {
         [KEY in keyof DEFINITION]?: FilterTypeOf<DEFINITION[KEY]>
     }
 
 export type TypeSafeDynamicCondition<DEFINITION extends DynamicDefinition> = {
     not?: TypeSafeDynamicCondition<DEFINITION>
-    and?: TypeSafeDynamicCondition<DEFINITION>[]
-    or?: TypeSafeDynamicCondition<DEFINITION>[]
+    and?: Array<TypeSafeDynamicCondition<DEFINITION> | undefined>
+    or?: Array<TypeSafeDynamicCondition<DEFINITION> | undefined>
 } & {
         [KEY in keyof DEFINITION]?: FilterTypeOf<DEFINITION[KEY]>
     }
@@ -172,8 +172,8 @@ export type Filterable = {
 
 export type DynamicFilter<DEFINITION extends Filterable> = {
     not?: DynamicFilter<DEFINITION>
-    and?: DynamicFilter<DEFINITION>[]
-    or?: DynamicFilter<DEFINITION>[]
+    and?: Array<DynamicFilter<DEFINITION> | undefined>
+    or?: Array<DynamicFilter<DEFINITION> | undefined>
 } & {
         [KEY in keyof DEFINITION]?: MapValueSourceToFilter<DEFINITION[KEY]>
     }

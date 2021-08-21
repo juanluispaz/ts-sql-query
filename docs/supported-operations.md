@@ -1050,8 +1050,11 @@ interface DeleteExpression {
 
 The select query definition must follow the logical order or the alternative order:
 
-- **Logical order**: from, join, where, group by, having, select, limit, offset
-- **Alternative order**: from, join, select, where, group by, having, limit, offset
+- **Logical order**: from, join, *where*, **group by**, **having**, **select**, union/intersect/except/minus/recursive, order by, limit, offset
+- **Alternative logical order 1**: from, join, **group by**, **having**, *where*, **select**, union/intersect/except/minus/recursive, order by, limit, offset
+- **Arternative logical order 2**: from, join, **group by**, **having**, **select**, *where*, union/intersect/except/minus/recursive, order by, limit, offset
+- **Alternative order 1**: from, join, **select**, *where*, **group by**, **having**, union/intersect/except/minus/recursive, order by, limit, offset
+- **Alternative order 2**: from, join, **select**, **group by**, **having**, *where*, union/intersect/except/minus/recursive, order by, limit, offset
 
 ```ts
 interface SelectExpression {

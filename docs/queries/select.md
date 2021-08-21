@@ -239,3 +239,13 @@ const customerCountPerAcmeCompanies: Promise<{
     acmeCustomerCount: number;
 }[]>
 ```
+
+## Select clauses order
+
+The select query clauses must follow one of the next orders:
+
+- **Logical order**: from, join, *where*, **group by**, **having**, **select**, union/intersect/except/minus/recursive, order by, limit, offset
+- **Alternative logical order 1**: from, join, **group by**, **having**, *where*, **select**, union/intersect/except/minus/recursive, order by, limit, offset
+- **Arternative logical order 2**: from, join, **group by**, **having**, **select**, *where*, union/intersect/except/minus/recursive, order by, limit, offset
+- **Alternative order 1**: from, join, **select**, *where*, **group by**, **having**, union/intersect/except/minus/recursive, order by, limit, offset
+- **Alternative order 2**: from, join, **select**, **group by**, **having**, *where*, union/intersect/except/minus/recursive, order by, limit, offset

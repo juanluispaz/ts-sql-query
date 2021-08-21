@@ -1,4 +1,4 @@
-import type { ToSql, InsertData, CompoundOperator } from "./SqlBuilder"
+import type { ToSql, InsertData, CompoundOperator, SelectData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { isValueSource, ValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
@@ -126,6 +126,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             default:
                 throw new Error('Invalid compound operator: ' + compoundOperator)
         }   
+    }
+    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }): string {
+        const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert)
+        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy !== undefined) {
+            return 'select * from (' + result + ')'
+        }
+        return result
     }
     _buildInsertMultiple(query: InsertData, params: any[]): string {
         const multiple = query.__multiple

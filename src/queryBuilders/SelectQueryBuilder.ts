@@ -1,5 +1,5 @@
 import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData } from "../sqlBuilders/SqlBuilder"
-import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, CustomizableExecutableSelect, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect } from "../expressions/select"
+import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect } from "../expressions/select"
 import { HasAddWiths, ITableOrView, IWithView, OuterJoinSource, __registerTableOrView } from "../utils/ITableOrView"
 import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, IfValueSource, IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery } from "../expressions/values"
 import type { int } from "ts-extended-types"
@@ -44,7 +44,7 @@ interface GuidedSplit {
 
 type SplitCompose = Compose | Split | GuidedSplit
 
-abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQuery<any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any, any>, OffsetExecutableSelectExpression<any, any, any, any>, CustomizableExecutableSelect<any, any, any, any>, WithableExecutableSelect<any, any, any, any>, ExecutableSelect<any, any, any, any>, ComposeExpression<any, any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any, any>,  ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any, any> {
+abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQuery<any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any, any>, WithableExecutableSelect<any, any, any, any>, ExecutableSelect<any, any, any, any>, ComposeExpression<any, any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any, any>,  ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any, any>, OffsetExecutableSelectExpression<any, any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedOrderByExecutableSelectExpression<any, any, any, any, any, any>, CompoundedOffsetExecutableSelectExpression<any, any, any, any>, CompoundedCustomizableExecutableSelect<any, any, any, any> {
     [database]: any
     [requiredTableOrView]: any
     [type]: any
@@ -293,7 +293,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
     }
 
     abstract __finishJoinHaving(): void
-    orderBy(column: any, mode?: OrderByMode): this {
+    orderBy(column: any, mode?: OrderByMode): any {
         this.__finishJoinHaving()
         this.__query = ''
         if (!this.__orderBy) {
@@ -310,7 +310,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         this.__orderBy[column] = mode || null
         return this
     }
-    orderByFromString(orderBy: string): this {
+    orderByFromString(orderBy: string): any {
         this.__finishJoinHaving()
         this.__query = ''
         const columnsInQuery: { [columnNameInLowerCase: string]: string | undefined } = {}
@@ -370,14 +370,14 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         }
         return this
     }
-    limit(limit: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): this {
+    limit(limit: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         this.__limit = asValueSource(limit)
         __addWiths(limit, this.__withs)
         return this
     }
-    offset(offset: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): this {
+    offset(offset: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         this.__offset = asValueSource(offset)
@@ -814,11 +814,11 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         this.__recursiveView = recursiveView
         this.__recursiveSelect = recursiveSelect.__asSelectData() // __asSelectData is important here to detect the required tables
     }
-    recursiveUnion(fn: (view: any) => ICompoundableSelect<any, any, any, any>): this {
+    recursiveUnion(fn: (view: any) => ICompoundableSelect<any, any, any, any>): any {
         this.__buildRecursive(fn, false)
         return this
     }
-    recursiveUnionAll(fn: (view: any) => ICompoundableSelect<any, any, any, any>): this {
+    recursiveUnionAll(fn: (view: any) => ICompoundableSelect<any, any, any, any>): any {
         this.__buildRecursive(fn, true)
         return this
     }
@@ -833,16 +833,16 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
             return result as any
         }
     }
-    recursiveUnionOn(fn: (view: any) => IBooleanValueSource<any, any>): this {
+    recursiveUnionOn(fn: (view: any) => IBooleanValueSource<any, any>): any {
         this.__buildRecursive(this.__buildRecursiveFn(fn), false)
         return this
     }
-    recursiveUnionAllOn(fn: (view: any) => IBooleanValueSource<any, any>): this {
+    recursiveUnionAllOn(fn: (view: any) => IBooleanValueSource<any, any>): any {
         this.__buildRecursive(this.__buildRecursiveFn(fn), true)
         return this
     }
 
-    customizeQuery(customization: SelectCustomization<any>): this {
+    customizeQuery(customization: SelectCustomization<any>): any {
         this.__customization = customization
         __addWiths(customization.afterSelectKeyword, this.__withs)
         __addWiths(customization.beforeColumns, this.__withs)
@@ -977,7 +977,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return this
     }
-    selectOneColumn(column: ValueSource<any, any>): this {
+    selectOneColumn(column: ValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         this.__oneColumn = true
@@ -985,14 +985,14 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getValueSourcePrivate(column).__addWiths(this.__withs)
         return this
     }
-    from(table: ITableOrView<any>): this {
+    from(table: ITableOrView<any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         this.__tablesOrViews.push(table)
         __getTableOrViewPrivate(table).__addWiths(this.__withs)
         return this
     }
-    join(table: ITableOrView<any>): this {
+    join(table: ITableOrView<any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
@@ -1005,7 +1005,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getTableOrViewPrivate(table).__addWiths(this.__withs)
         return this
     }
-    innerJoin(table: ITableOrView<any>): this {
+    innerJoin(table: ITableOrView<any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
@@ -1018,7 +1018,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getTableOrViewPrivate(table).__addWiths(this.__withs)
         return this
     }
-    leftJoin(source: OuterJoinSource<any, any>): this {
+    leftJoin(source: OuterJoinSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
@@ -1031,7 +1031,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getTableOrViewPrivate(source).__addWiths(this.__withs)
         return this
     }
-    leftOuterJoin(source: OuterJoinSource<any, any>): this {
+    leftOuterJoin(source: OuterJoinSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
@@ -1044,7 +1044,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getTableOrViewPrivate(source).__addWiths(this.__withs)
         return this
     }
-    optionalJoin(table: ITableOrView<any>): this {
+    optionalJoin(table: ITableOrView<any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
@@ -1059,7 +1059,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getTableOrViewPrivate(table).__addWiths(this.__withs)
         return this
     }
-    optionalInnerJoin(table: ITableOrView<any>): this {
+    optionalInnerJoin(table: ITableOrView<any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
@@ -1074,7 +1074,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getTableOrViewPrivate(table).__addWiths(this.__withs)
         return this
     }
-    optionalLeftJoin(source: OuterJoinSource<any, any>): this {
+    optionalLeftJoin(source: OuterJoinSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
@@ -1089,7 +1089,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getTableOrViewPrivate(source).__addWiths(this.__withs)
         return this
     }
-    optionalLeftOuterJoin(source: OuterJoinSource<any, any>): this {
+    optionalLeftOuterJoin(source: OuterJoinSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
@@ -1104,11 +1104,11 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getTableOrViewPrivate(source).__addWiths(this.__withs)
         return this
     }
-    dynamicOn(): this {
+    dynamicOn(): any {
         this.__query = ''
         return this
     }
-    on(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    on(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
         this.__query = ''
         if (!this.__lastJoin) {
             throw new Error('Illegal state')
@@ -1126,12 +1126,12 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         this.__inHaving = false
     }
-    dynamicWhere(): this {
+    dynamicWhere(): any {
         this.__finishJoinHaving()
         this.__query = ''
         return this
     }
-    where(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    where(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__where) {
@@ -1141,7 +1141,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
-    and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
         this.__query = ''
         __getValueSourcePrivate(condition).__addWiths(this.__withs)
         if (this.__lastJoin) {
@@ -1167,7 +1167,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return this
     }
-    or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
         this.__query = ''
         __getValueSourcePrivate(condition).__addWiths(this.__withs)
         if (this.__lastJoin) {
@@ -1193,13 +1193,13 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return this
     }
-    dynamicHaving(): this {
+    dynamicHaving(): any {
         this.__finishJoinHaving()
         this.__query = ''
         this.__inHaving = true
         return this
     }
-    having(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    having(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         this.__inHaving = true
@@ -1210,7 +1210,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
-    groupBy(...columns: Array<string| number | symbol | ValueSource<any, any>>): this {
+    groupBy(...columns: Array<string| number | symbol | ValueSource<any, any>>): any {
         this.__finishJoinHaving()
         this.__query = ''
         for (let i = 0, length = columns.length; i < length; i++) {

@@ -4,12 +4,19 @@ import type { OrderByMode } from "../expressions/select"
 import type { ValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
-import { isColumn } from "../utils/Column"
+import { Column, isColumn } from "../utils/Column"
 
 export class SqliteSqlBuilder extends AbstractSqlBuilder {
     sqlite: true = true
     _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
+    }
+    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }): string {
+        const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert)
+        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy !== undefined) {
+            return 'select * from (' + result + ')'
+        }
+        return result
     }
     _buildSelectOrderBy(query: SelectData, _params: any[]): string {
         const orderBy = query.__orderBy

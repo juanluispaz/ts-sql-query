@@ -391,6 +391,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 throw new Error('Invalid compound operator: ' + compoundOperator)
         }   
     }
+    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }): string {
+        const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert)
+        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy !== undefined) {
+            return '(' + result + ')'
+        }
+        return result
+    }
     _buildSelectWithColumnsInfo(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
         const oldWithGenerated = this._isWithGenerated(params)
@@ -403,9 +410,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
             const withClause = this._buildWith(query, params)
             let selectQuery = withClause
-            selectQuery += this._buildSelectWithColumnsInfo(query.__firstQuery, params, columnsForInsert)
+            selectQuery += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert)
             selectQuery += this._appendCompoundOperator(query.__compoundOperator, params)
-            selectQuery += this._buildSelectWithColumnsInfo(query.__secondQuery, params, columnsForInsert)
+            selectQuery += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, params, columnsForInsert)
 
             selectQuery += this._buildSelectOrderBy(query, params)
             selectQuery += this._buildSelectLimitOffset(query, params)

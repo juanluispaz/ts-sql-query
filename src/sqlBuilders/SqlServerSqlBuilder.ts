@@ -222,6 +222,11 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             }
             result += ' fetch next ' + this._appendValue(limit, params, 'int', undefined) + ' rows only'
         }
+
+        if (!result && query.__orderBy && !this._isCurrentRootQuery(query, params)) {
+            // subqueries with order by requires always an offset, this add a noop offset
+            result += ' offset 0 rows'
+        }
         return result
     }
     _buildInsertOutput(query: InsertData, params: any[]): string {

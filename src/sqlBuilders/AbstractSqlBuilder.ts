@@ -107,6 +107,43 @@ export class AbstractSqlBuilder implements SqlBuilder {
             configurable: true
         })
     }
+    _ensureRootQuery(query: SelectData | InsertData | UpdateData | DeleteData, params: any[]) {
+        const rootQuery = (params as any)._rootQuery
+        if (!rootQuery) {
+            Object.defineProperty(params, '_rootQuery', {
+                value: query,
+                writable: true,
+                enumerable: false,
+                configurable: true
+            })
+        }
+    }
+    _isCurrentRootQuery(query: SelectData | InsertData | UpdateData | DeleteData, params: any[]) {
+        const rootQuery = (params as any)._rootQuery
+        return rootQuery === query
+    }
+    _resetRootQuery(query: SelectData | InsertData | UpdateData | DeleteData, params: any[]) {
+        const rootQuery = (params as any)._rootQuery
+        if (rootQuery === query) {
+            Object.defineProperty(params, '_rootQuery', {
+                value: undefined,
+                writable: true,
+                enumerable: false,
+                configurable: true
+            })
+        }
+    }
+    _getRootQuery(params: any[]): object | undefined {
+        return (params as any)._containsInsertReturningClause
+    }
+    _setRootQuery(params: any[], value: object | undefined): void {
+        Object.defineProperty(params, '_rootQuery', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
     _isValue(value: any): boolean {
         if (value === null || value === undefined) {
             return false
@@ -367,7 +404,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'with ' + result + ' '
     }
     _buildSelect(query: SelectData, params: any[]): string {
-        return this._buildSelectWithColumnsInfo(query, params, {})
+        this._ensureRootQuery(query, params)
+        const result = this._buildSelectWithColumnsInfo(query, params, {})
+        this._resetRootQuery(query, params)
+        return result
     }
     _appendCompoundOperator(compoundOperator: CompoundOperator, _params: any[]): string {
         switch(compoundOperator) {
@@ -661,6 +701,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return ''
         }
 
+        this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
         const table = query.__table
         const customization = query.__customization
@@ -774,6 +815,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._resetRootQuery(query, params)
         return insertQuery
     }
     _appendCustomBooleanRemapForColumnIfRequired(column: Column, value: any, params: any[]): string | null {
@@ -827,6 +869,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__typeAdapter)
     }
     _buildInsertDefaultValues(query: InsertData, params: any[]): string {
+        this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 
         const table = query.__table
@@ -891,9 +934,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._resetRootQuery(query, params)
         return insertQuery
     }
     _buildInsert(query: InsertData, params: any[]): string {
+        this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 
         const table = query.__table
@@ -988,6 +1033,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._resetRootQuery(query, params)
         return insertQuery
     }
     _buildInsertFromSelect(query: InsertData, params: any[]): string {
@@ -996,6 +1042,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             throw new Error('Exepected an insert from a subquery')
         }
 
+        this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 
         const table = query.__table
@@ -1066,6 +1113,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._resetRootQuery(query, params)
         return insertQuery
     }
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
@@ -1087,6 +1135,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return "currval('" + sequenceName + "')"
     }
     _buildUpdate(query: UpdateData, params: any[]): string {
+        this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 
         const table = query.__table
@@ -1142,9 +1191,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._resetRootQuery(query, params)
         return updateQuery
     }
     _buildDelete(query: DeleteData, params: any[]): string {
+        this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 
         const table = query.__table
@@ -1178,6 +1229,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._resetRootQuery(query, params)
         return deleteQuery
     }
 

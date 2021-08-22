@@ -1,5 +1,21 @@
 # Change Log
 
+## v1.13.0 (22 Aug 2021)
+
+**Changes**:
+
+- Add more options to organize the select clauses, making in this way easier to create functions that return queries partially constructed. The where clause can be postponed until the end of the query, before the query execution
+- Add support to queries that use orderBy, limit, offset inside of a compound operator (like union, intersect). With this change now it is possible to use a limit in the inner query, not only in the outer one with the compound operator
+- Implement insert default values query customization on MySql/MariaDB
+- Increase the flexibility of a select from no table, allowing all the clauses supported by a select (outside the from definition)
+- Add utility function that allows extracting all columns from an object (like table or view) that enables to write a select all columns
+- Add utility functions that allow to deal with situations when a prefixed copy of a list of columns is required to use multiple columns with the same name in a select; complementary functions to help split back in a select the prefixed columns are also included
+
+**Bug fixes**:
+
+- Fix invalid order by of a compound query in Oracle. When a compound operator (union, intersect, ...) is used, Oracle requires to use the positional notation instead of the name of the columns
+- Fix invalid subquery in SqlServer that contains an order by. In SqlServer subqueries with an order by must always include an offset
+
 ## v1.12.0 (19 Aug 2021)
 
 **Changes**:

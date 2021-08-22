@@ -244,12 +244,16 @@ const customerCountPerAcmeCompanies: Promise<{
 
 The select query clauses must follow one of the next orders:
 
-- **Logical order**: from, join, **WHERE**, **group by**, **having**, **select**, order by, limit, offset
-- **Alternative logical order 1**: from, join, **group by**, **having**, **WHERE**, **select**, order by, limit, offset
-- **Arternative logical order 2**: from, join, **group by**, **having**, **select**, **WHERE**, order by, limit, offset
-- **Arternative logical order 3**: from, join, **group by**, **having**, **select**, order by, **WHERE**, limit, offset
-- **Arternative logical order 4**: from, join, **group by**, **having**, **select**, order by, limit, offset, **WHERE**
-- **Alternative order 1**: from, join, **select**, **WHERE**, **group by**, **having**, order by, limit, offset
-- **Alternative order 2**: from, join, **select**, **group by**, **having**, **WHERE**, order by, limit, offset
-- **Alternative order 3**: from, join, **select**, **group by**, **having**, order by, **WHERE**, limit, offset
-- **Alternative order 4**: from, join, **select**, **group by**, **having**, order by, limit, offset, **WHERE**
+- **Logical order**: from, join, **WHERE**, **group by**, **having**, **select**, order by, limit, offset, customizeQuery, compose/split
+- **Alternative logical order 1**: from, join, **group by**, **having**, **WHERE**, **select**, order by, limit, offset, customizeQuery, compose/split
+- **Arternative logical order 2**: from, join, **group by**, **having**, **select**, **WHERE**, order by, limit, offset, customizeQuery, compose/split
+- **Arternative logical order 3**: from, join, **group by**, **having**, **select**, order by, **WHERE**, limit, offset, customizeQuery, compose/split
+- **Arternative logical order 4**: from, join, **group by**, **having**, **select**, order by, limit, offset, **WHERE**, customizeQuery, compose/split
+- **Arternative logical order 5**: from, join, **group by**, **having**, **select**, order by, limit, offset, customizeQuery, **WHERE**, compose/split
+- **Arternative logical order 6**: from, join, **group by**, **having**, **select**, order by, limit, offset, customizeQuery, compose/split, **WHERE**
+- **Alternative order 1**: from, join, **select**, **WHERE**, **group by**, **having**, order by, limit, offset, customizeQuery, compose/split
+- **Alternative order 2**: from, join, **select**, **group by**, **having**, **WHERE**, order by, limit, offset, customizeQuery, compose/split
+- **Alternative order 3**: from, join, **select**, **group by**, **having**, order by, **WHERE**, limit, offset, customizeQuery, compose/split
+- **Alternative order 4**: from, join, **select**, **group by**, **having**, order by, limit, offset, **WHERE**, customizeQuery, compose/split
+- **Alternative order 5**: from, join, **select**, **group by**, **having**, order by, limit, offset, customizeQuery, **WHERE**, compose/split
+- **Alternative order 6**: from, join, **select**, **group by**, **having**, order by, limit, offset, customizeQuery, compose/split, **WHERE**

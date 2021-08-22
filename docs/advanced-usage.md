@@ -381,6 +381,7 @@ const selectAll: Promise<{
 To deal with complex queries, sometimes you need to combine data coming from different tables and then split the result into different objects; but, because the tables can have columns with the same name, you need to prefix it.
 
 The file `ts-sql-query/extras/utils` offers the following functions to deal with prefixing and splitting values:
+
 - `prefixDotted`: create a copy of the provided object using the provided prefix where every property's name has the pattern `prefix.name`.
 - `prefixMapForSplitDotted`: create a map object where the key is the generated property by the previous function, and the name is the property's original name. The result of this function is designed to use in the split function in the query.
 - `prefixCapitalized`: create a copy of the provided object using the provided prefix where every property's name has the pattern `prefixName`.

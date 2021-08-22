@@ -149,6 +149,8 @@ You can read the latest version of the documentation at: https://ts-sql-query.re
   - [Synchronous query runners](advanced-usage.md#synchronous-query-runners)
   - [Encrypted ID](advanced-usage.md#encrypted-id)
   - [Globally Encrypted ID](advanced-usage.md#globally-encrypted-id)
+  - [Extract columns](advanced-usage.md#extract-columns)
+  - [Prefixing](advanced-usage.md#prefixing)
 - [Change Log](CHANGELOG.md#change-log)
 
 <!-- 
@@ -314,6 +316,8 @@ Generated table of content of the file created using npm run create-single-doc-f
   - [Synchronous query runners](#synchronous-query-runners)
   - [Encrypted ID](#encrypted-id)
   - [Globally Encrypted ID](#globally-encrypted-id)
+  - [Extract columns](#extract-columns)
+  - [Prefixing](#prefixing)
 - [CHANGELOG.md](#changelogmd)
 - [Change Log](#change-log)
 

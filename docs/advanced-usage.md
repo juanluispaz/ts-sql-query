@@ -342,3 +342,99 @@ let company = await connection
 The id used in the query will be sent to the database decrypted.
 
 See [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/extras/IDEncrypter.ts) for more information to know how the password is encrypted.
+
+## Extract columns
+
+Sometimes could be useful to extract all columns available in an object, like a table or view; this allows to use in a select, ensuring the select uses all columns defined in the provided object. For this purpose you can find the function `extractColumnsFrom` in the file `ts-sql-query/extras/utils`.
+
+```ts
+import { extractColumnsFrom } from "./extras/utils";
+
+const selectAll = connection.selectFrom(tCustomer)
+    .select(extractColumnsFrom(tCustomer))
+    .where(tCustomer.id.equals(9))
+    .executeSelectOne();
+```
+
+The executed query is:
+```sql
+select id as id, first_name as "firstName", last_name as "lastName", birthday as birthday, company_id as "companyId" 
+from customer 
+where id = $1
+```
+
+The parameters are: `[ 9 ]`
+
+The result type is:
+```tsx
+const selectAll: Promise<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    companyId: number;
+    birthday?: Date;
+}>
+```
+
+## Prefixing
+
+To deal with complex queries, sometimes you need to combine data coming from different tables and then split the result into different objects; but, because the tables can have columns with the same name, you need to prefix it.
+
+The file `ts-sql-query/extras/utils` offers the following functions to deal with prefixing and splitting values:
+- `prefixDotted`: create a copy of the provided object using the provided prefix where every property's name has the pattern `prefix.name`.
+- `prefixMapForSplitDotted`: create a map object where the key is the generated property by the previous function, and the name is the property's original name. The result of this function is designed to use in the split function in the query.
+- `prefixCapitalized`: create a copy of the provided object using the provided prefix where every property's name has the pattern `prefixName`.
+- `prefixMapForSplitCapitalized`: create a map object where the key is the generated property by the previous function, and the name is the property's original name. The result of this function is designed to use in the split function in the query.
+
+```ts
+import { prefixDotted, prefixMapForSplitDotted } from "./extras/utils";
+
+const customerColumns = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday
+};
+
+const companyColumns = {
+    id: tCompany.id,
+    name: tCompany.name
+};
+
+const customerWithCompanyPrefixed = connection.selectFrom(tCustomer)
+        .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select({
+            ...prefixDotted(customerColumns, 'customer'),
+            ...prefixDotted(companyColumns, 'company')
+        }).where(
+            tCustomer.id.equals(12)
+        )
+        .split('customer', prefixMapForSplitDotted(customerColumns, 'customer'))
+        .split('company', prefixMapForSplitDotted(companyColumns, 'company'))
+        .executeSelectOne();
+```
+
+The executed query is:
+```sql
+select customer.id as "customer.id", customer.first_name as "customer.firstName", customer.last_name as "customer.lastName", customer.birthday as "customer.birthday", company.id as "company.id", company.name as "company.name" 
+from customer inner join company on company.id = customer.company_id 
+where customer.id = $1
+```
+
+The parameters are: `[ 12 ]`
+
+The result type is:
+```tsx
+const customerWithCompanyPrefixed: Promise<{
+    customer: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        birthday?: Date;
+    };
+    company: {
+        id: number;
+        name: string;
+    };
+}>
+```

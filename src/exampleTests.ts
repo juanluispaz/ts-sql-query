@@ -10,6 +10,7 @@ import { MockQueryRunner } from "./queryRunners/MockQueryRunner"
 import { CustomBooleanTypeAdapter } from "./TypeAdapter"
 import { DynamicCondition } from "./expressions/dynamicConditionUsingFilters"
 import { dynamicPick } from "./dynamicCondition"
+import { extractColumnsFrom, prefixCapitalized, prefixDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "./extras/utils"
 // import { TypeSafeNoopConnection } from "./clients/TypeSafeNoopConnection"
 // import { int } from "ts-extended-types"
 
@@ -1322,6 +1323,81 @@ const customizedInsert = connection.insertInto(tCustomer).set({
 // Query: insert /*+ some hints */ into customer (first_name, last_name, company_id) values ($1, $2, $3) log errors reject limit unlimited
 // Params: [ 'John', 'Smith', 1 ]
 
+results.push({
+    id: 9,
+    firstName: 'First Name',
+    lastName: 'Last Name',
+    companyId: 7
+})
+
+const selectAll = connection.selectFrom(tCustomer)
+    .select(extractColumnsFrom(tCustomer))
+    .where(tCustomer.id.equals(9))
+    .executeSelectOne()
+
+// Query: select id as id, first_name as "firstName", last_name as "lastName", birthday as birthday, company_id as "companyId" from customer where id = $1
+// Params: [ 9 ]
+
+results.push({
+    'customer.id': 12,
+    'customer.firstName': 'John',
+    'customer.lastName': 'Smith',
+    'customer.birthday': new Date('1990/1/14'),
+    'company.id': 10,
+    'company.name': 'ACME Inc.'
+})
+
+const customerColumns = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday
+}
+
+const companyColumns = {
+    id: tCompany.id,
+    name: tCompany.name
+}
+
+const customerWithCompanyPrefixed = connection.selectFrom(tCustomer)
+        .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select({
+            ...prefixDotted(customerColumns, 'customer'),
+            ...prefixDotted(companyColumns, 'company')
+        }).where(
+            tCustomer.id.equals(12)
+        )
+        .split('customer', prefixMapForSplitDotted(customerColumns, 'customer'))
+        .split('company', prefixMapForSplitDotted(companyColumns, 'company'))
+        .executeSelectOne()
+
+// Query: select customer.id as "customer.id", customer.first_name as "customer.firstName", customer.last_name as "customer.lastName", customer.birthday as "customer.birthday", company.id as "company.id", company.name as "company.name" from customer inner join company on company.id = customer.company_id where customer.id = $1
+// Params: [ 12 ]
+
+results.push({
+    customerId: 12,
+    customerFirstName: 'John',
+    customerLastName: 'Smith',
+    customerBirthday: new Date('1990/1/14'),
+    companyId: 10,
+    companyName: 'ACME Inc.'
+})
+
+const customerWithCompanyPrefixed2 = connection.selectFrom(tCustomer)
+        .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select({
+            ...prefixCapitalized(customerColumns, 'customer'),
+            ...prefixCapitalized(companyColumns, 'company')
+        }).where(
+            tCustomer.id.equals(12)
+        )
+        .split('customer', prefixMapForSplitCapitalized(customerColumns, 'customer'))
+        .split('company', prefixMapForSplitCapitalized(companyColumns, 'company'))
+        .executeSelectOne()
+
+// Query: select customer.id as "customerId", customer.first_name as "customerFirstName", customer.last_name as "customerLastName", customer.birthday as "customerBirthday", company.id as "companyId", company.name as "companyName" from customer inner join company on company.id = customer.company_id where customer.id = $1
+// Params: [ 12 ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -1371,6 +1447,13 @@ customizedSelect.finally(() => undefined)
 customizedUpdate.finally(() => undefined)
 customizedDelete.finally(() => undefined)
 customizedInsert.finally(() => undefined)
+selectAll.finally(() => undefined)
+customerWithCompanyPrefixed.then((result) => {
+    console.log('customerWithCompanyPrefixed', result)
+})
+customerWithCompanyPrefixed2.then((result) => {
+    console.log('customerWithCompanyPrefixed2', result)
+})
 
 // case when then end
 // agragate functions, group by, having

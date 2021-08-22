@@ -379,9 +379,7 @@ export interface SelectExpressionSubquery<DB extends AnyDB, REQUIRED_TABLE_OR_VI
     from<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpression<DB, TABLE_OR_VIEW | REQUIRED_TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW>
 }
 
-export interface SelectExpressionFromNoTable<DB extends AnyDB> extends SelectExpressionBase<AnyDB, NoTableOrViewRequiredView<DB>> {
-    select<COLUMNS extends SelectColumns<DB, NoTableOrViewRequiredView<DB>>>(columns: COLUMNS): CompoundableCustomizableExecutableSelectExpression<AnyDB, NoTableOrViewRequiredView<DB>, COLUMNS, SelectResult<ResultValues<COLUMNS>>, NoTableOrViewRequiredView<DB>, keyof COLUMNS>
-    selectOneColumn<RESULT>(column: RESULT | ValueSource<NoTableOrViewRequired<DB>, RESULT>): CompoundableCustomizableExecutableSelectExpression<AnyDB, NoTableOrViewRequiredView<DB>, undefined, FixSelectOneResult<RESULT>, NoTableOrViewRequiredView<DB>, 'result'>
+export interface SelectExpressionFromNoTable<DB extends AnyDB> extends SelectWhereExpression<AnyDB, NoTableOrViewRequiredView<DB>, NoTableOrViewRequiredView<DB>> {
 }
 
 export type SelectColumns<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> = {

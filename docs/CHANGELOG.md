@@ -1,5 +1,15 @@
 # Change Log
 
+## v1.14.0 (23 Aug 2021)
+
+**Changes**:
+
+- Add utility functions that allow to create a prefix map for a guided split taking as reference another object with columns, marking as required the same keys that have a required column in the reference object
+
+**Bug fixes**:
+
+- Fix invisible characters included in the prefixed property names in the prefix utility functions
+
 ## v1.13.0 (22 Aug 2021)
 
 **Changes**:

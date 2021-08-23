@@ -10,7 +10,7 @@ import { MockQueryRunner } from "./queryRunners/MockQueryRunner"
 import { CustomBooleanTypeAdapter } from "./TypeAdapter"
 import { DynamicCondition } from "./expressions/dynamicConditionUsingFilters"
 import { dynamicPick } from "./dynamicCondition"
-import { extractColumnsFrom, prefixCapitalized, prefixDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "./extras/utils"
+import { extractColumnsFrom, mapForGuidedSplit, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "./extras/utils"
 // import { TypeSafeNoopConnection } from "./clients/TypeSafeNoopConnection"
 // import { int } from "ts-extended-types"
 
@@ -1398,6 +1398,95 @@ const customerWithCompanyPrefixed2 = connection.selectFrom(tCustomer)
 // Query: select customer.id as "customerId", customer.first_name as "customerFirstName", customer.last_name as "customerLastName", customer.birthday as "customerBirthday", company.id as "companyId", company.name as "companyName" from customer inner join company on company.id = customer.company_id where customer.id = $1
 // Params: [ 12 ]
 
+results.push([{
+    id: 18,
+    name: 'name'
+}, {
+    id: 19,
+    name: 'name2',
+    parentId: 18,
+    parentName: 'name',
+    parentParentId: null
+}])
+
+const parentCompany = tCompany.forUseInLeftJoinAs('parent')
+
+const companyFields = {
+    id: tCompany.id,
+    name: tCompany.name
+}
+
+const parentCompanyFields = {
+    id: parentCompany.id,
+    name: parentCompany.name,
+    parentId: parentCompany.parentId
+}
+
+const companyPrefixed = connection.selectFrom(tCompany)
+    .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+    .select({
+        ...companyFields,
+        ...prefixCapitalized(parentCompanyFields, 'parent')
+    }).guidedSplitOptional('parent', prefixMapForGuidedSplitCapitalized(parentCompanyFields, tCompany, 'parent'))
+    .executeSelectMany()
+
+// Query: select company.id as id, company.name as name, parent.id as "parentId", parent.name as "parentName", parent.parent_id as "parentParentId" from company left join company as parent on company.parent_id = parent.id
+// Params: [ ]
+
+results.push([{
+    id: 18,
+    name: 'name'
+}, {
+    id: 19,
+    name: 'name2',
+    'parent.id': 18,
+    'parent.name': 'name',
+    'parent.parentId': 8
+}])
+
+const companyPrefixed2 = connection.selectFrom(tCompany)
+    .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+    .select({
+        ...companyFields,
+        ...prefixDotted(parentCompanyFields, 'parent')
+    }).guidedSplitOptional('parent', prefixMapForGuidedSplitDotted(parentCompanyFields, tCompany, 'parent'))
+    .executeSelectMany()
+
+// Query: select company.id as id, company.name as name, parent.id as "parent.id", parent.name as "parent.name", parent.parent_id as "parent.parentId" from company left join company as parent on company.parent_id = parent.id
+// Params: [ ]
+
+results.push([{
+    id: 18,
+    name: 'name'
+}, {
+    id: 19,
+    name: 'name2',
+    parentId: 18,
+    parentName: 'name'
+}])
+
+const parentFields = {
+    parentId: parent.id,
+    parentName: parent.name,
+    parentParentId: parentCompany.parentId
+}
+
+const companyPrefixed3 = connection.selectFrom(tCompany)
+    .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        ...parentFields
+    }).guidedSplitOptional('parent', mapForGuidedSplit(parentFields, {
+        parentId: tCompany.id,
+        parentName: tCompany.name,
+        parentParentId: tCompany.parentId
+    }))
+    .executeSelectMany()
+
+// Query: select company.id as id, company.name as name, parent.id as "parentId", parent.name as "parentName", parent.parent_id as "parentParentId" from company left join company as parent on company.parent_id = parent.id
+// Params: [ ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -1453,6 +1542,15 @@ customerWithCompanyPrefixed.then((result) => {
 })
 customerWithCompanyPrefixed2.then((result) => {
     console.log('customerWithCompanyPrefixed2', result)
+})
+companyPrefixed.then((result) => {
+    console.log('companyPrefixed', result)
+})
+companyPrefixed2.then((result) => {
+    console.log('companyPrefixed2', result)
+})
+companyPrefixed3.then((result) => {
+    console.log('companyPrefixed3', result)
 })
 
 // case when then end

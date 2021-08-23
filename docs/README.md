@@ -151,6 +151,7 @@ You can read the latest version of the documentation at: https://ts-sql-query.re
   - [Globally Encrypted ID](advanced-usage.md#globally-encrypted-id)
   - [Extract columns](advanced-usage.md#extract-columns)
   - [Prefixing](advanced-usage.md#prefixing)
+  - [Prefix map for guided split](advanced-usage.md#prefix-map-for-guided-split)
 - [Change Log](CHANGELOG.md#change-log)
 
 <!-- 
@@ -318,6 +319,7 @@ Generated table of content of the file created using npm run create-single-doc-f
   - [Globally Encrypted ID](#globally-encrypted-id)
   - [Extract columns](#extract-columns)
   - [Prefixing](#prefixing)
+  - [Prefix map for guided split](#prefix-map-for-guided-split)
 - [CHANGELOG.md](#changelogmd)
 - [Change Log](#change-log)
 

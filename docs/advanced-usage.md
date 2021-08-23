@@ -383,9 +383,9 @@ To deal with complex queries, sometimes you need to combine data coming from dif
 The file `ts-sql-query/extras/utils` offers the following functions to deal with prefixing and splitting values:
 
 - `prefixDotted`: create a copy of the provided object using the provided prefix where every property's name has the pattern `prefix.name`.
-- `prefixMapForSplitDotted`: create a map object where the key is the generated property by the previous function, and the name is the property's original name. The result of this function is designed to use in the split function in the query.
+- `prefixMapForSplitDotted`: create a map object where the key is the generated property by the previous function, and the value is the property's original name. The result of this function is designed to use in the split function in the query.
 - `prefixCapitalized`: create a copy of the provided object using the provided prefix where every property's name has the pattern `prefixName`.
-- `prefixMapForSplitCapitalized`: create a map object where the key is the generated property by the previous function, and the name is the property's original name. The result of this function is designed to use in the split function in the query.
+- `prefixMapForSplitCapitalized`: create a map object where the key is the generated property by the previous function, and the value is the property's original name. The result of this function is designed to use in the split function in the query.
 
 ```ts
 import { prefixDotted, prefixMapForSplitDotted } from "./extras/utils";
@@ -438,4 +438,60 @@ const customerWithCompanyPrefixed: Promise<{
         name: string;
     };
 }>
+```
+
+## Prefix map for guided split
+
+When you perform a left join, all the fields coming from the left join table are optional, but you can know when this join exists; some of these fields are not optional at the same time. You can use a guided split to create an inner object with the properties coming from the left join, but you will need to mark the fields that need to be transformed as non-optional in the new object.
+
+The file `ts-sql-query/extras/utils` offers the following functions to help you creating these mapping rules for a guided split:
+
+- `prefixMapForGuidedSplitDotted`: analogous function to `prefixMapForSplitDotted` that create a map object where the key is the generated property by the `prefixDotted` function, and the value is the property's original name. The original name will be followed with the required mark when the reference table gave as the second argument has a required column with the same original name. The result of this function is designed to use in the guided split function in the query.
+- `prefixMapForGuidedSplitCapitalized`: analogous function to `prefixMapForSplitCapitalized` that create a map object where the key is the generated property by the `prefixCapitalized` function, and the value is the property's original name. The original name will be followed with the required mark when the reference table gave as the second argument has a required column with the same original name. The result of this function is designed to use in the guided split function in the query.
+- `mapForGuidedSplit`: Create a map object where the key is the name of the key of the first object, and the value is the property's original name (the key). The original name will be followed with the required mark when the reference table gave as the second argument has a required column with the same original name. The result of this function is designed to use in the guided split function in the query. This function is analogous to the previous ones but without prefixing.
+
+```ts
+import { prefixDotted, prefixMapForGuidedSplitCapitalized } from "./extras/utils";
+
+const parentCompany = tCompany.forUseInLeftJoinAs('parent')
+
+const companyFields = {
+    id: tCompany.id,
+    name: tCompany.name
+}
+
+const parentCompanyFields = {
+    id: parentCompany.id,
+    name: parentCompany.name,
+    parentId: parentCompany.parentId
+}
+
+const companyPrefixed = connection.selectFrom(tCompany)
+    .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+    .select({
+        ...companyFields,
+        ...prefixCapitalized(parentCompanyFields, 'parent')
+    }).guidedSplitOptional('parent', prefixMapForGuidedSplitCapitalized(parentCompanyFields, tCompany, 'parent'))
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select company.id as id, company.name as name, parent.id as "parentId", parent.name as "parentName", parent.parent_id as "parentParentId"
+from company left join company as parent on company.parent_id = parent.id
+```
+
+The parameters are: `[ ]`
+
+The result type is:
+```tsx
+const companyPrefixed: Promise<{
+    name: string;
+    id: number;
+    parent?: {
+        name: string;
+        id: number;
+        parentId?: number;
+    };
+}[]>
 ```

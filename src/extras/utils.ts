@@ -2,7 +2,7 @@ import { Column, isColumn } from "../utils/Column"
 
 type OnlyStringKey<KEY> = KEY extends string ? KEY : never
 
-export function prefixCapitalized<O extends object, PREFIX extends string>(obj: O, prefix: PREFIX): { [K in OnlyStringKey<keyof O> as `${PREFIX}​​​​​${Capitalize<K>}​​​​​`]: O[K] } {
+export function prefixCapitalized<O extends object, PREFIX extends string>(obj: O, prefix: PREFIX): { [K in OnlyStringKey<keyof O> as `${PREFIX}${Capitalize<K>}`]: O[K] } {
     if (!obj) {
         return obj
     }
@@ -13,7 +13,7 @@ export function prefixCapitalized<O extends object, PREFIX extends string>(obj: 
     return result
 }
 
-export function prefixMapForSplitCapitalized<O extends object, PREFIX extends string>(obj: O, prefix: PREFIX): { [K in OnlyStringKey<keyof O> as K]: `${PREFIX}​​​​​${Capitalize<K>}​​​​​` } {
+export function prefixMapForSplitCapitalized<O extends object, PREFIX extends string>(obj: O, prefix: PREFIX): { [K in OnlyStringKey<keyof O> as K]: `${PREFIX}${Capitalize<K>}` } {
     if (!obj) {
         return obj
     }
@@ -24,7 +24,7 @@ export function prefixMapForSplitCapitalized<O extends object, PREFIX extends st
     return result
 }
 
-export function prefixDotted<O extends object, PREFIX extends string>(obj: O, prefix: PREFIX): { [K in OnlyStringKey<keyof O> as `${PREFIX}​​​​​.${K}​​​​​`]-?: O[K] } {
+export function prefixDotted<O extends object, PREFIX extends string>(obj: O, prefix: PREFIX): { [K in OnlyStringKey<keyof O> as `${PREFIX}.${K}`]-?: O[K] } {
     if (!obj) {
         return obj
     }
@@ -35,7 +35,7 @@ export function prefixDotted<O extends object, PREFIX extends string>(obj: O, pr
     return result
 }
 
-export function prefixMapForSplitDotted<O extends object, PREFIX extends string>(obj: O, prefix: PREFIX): { [K in OnlyStringKey<keyof O> as K]-?: `${PREFIX}​​​​​.${K}​​​​​` } {
+export function prefixMapForSplitDotted<O extends object, PREFIX extends string>(obj: O, prefix: PREFIX): { [K in OnlyStringKey<keyof O> as K]-?: `${PREFIX}.${K}` } {
     if (!obj) {
         return obj
     }

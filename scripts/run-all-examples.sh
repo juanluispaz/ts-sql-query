@@ -1,8 +1,6 @@
 #!/bin/bash
 set -x #echo on
 
-#npm install any-db-transaction any-db-mssql any-db-mysql any-db-postgres any-db-sqlite3 better-sqlite3 mssql mysql2 mysql oracledb pg sqlite3 tedious loopback-connector-sqlite3 loopback-connector-postgresql loopback-connector-mysql loopback-connector-mssql loopback-connector-oracle
-
 # On Linux
 # Download and uncompress instantclient-basic-linux: https://www.oracle.com/es/database/technologies/instant-client/linux-x86-64-downloads.html
 # sudo apt-get install build-essential libaio1

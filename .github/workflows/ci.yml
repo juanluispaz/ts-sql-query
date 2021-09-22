@@ -1,0 +1,31 @@
+on:
+  push:
+    branches: [master, ci]
+  pull_request:
+
+name: CI
+
+jobs:
+  build:
+    name: build library
+    runs-on: ubuntu-latest
+    strategy:
+        matrix:
+            node-version: [14.x, 16.x]
+    steps:
+      # Setup environment
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2.4.0
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Build
+      - name: Prepare
+        run: npm run generate-prisma
+      - name: Build
+        run: npm run build

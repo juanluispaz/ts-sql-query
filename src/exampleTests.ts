@@ -1466,8 +1466,8 @@ results.push([{
 }])
 
 const parentFields = {
-    parentId: parent.id,
-    parentName: parent.name,
+    parentId: parentCompany.id,
+    parentName: parentCompany.name,
     parentParentId: parentCompany.parentId
 }
 
@@ -1485,6 +1485,52 @@ const companyPrefixed3 = connection.selectFrom(tCompany)
     .executeSelectMany()
 
 // Query: select company.id as id, company.name as name, parent.id as "parentId", parent.name as "parentName", parent.parent_id as "parentParentId" from company left join company as parent on company.parent_id = parent.id
+// Params: [ ]
+
+
+results.push([{
+    id: 18,
+    name: 'name'
+}, {
+    id: 19,
+    name: 'name2',
+    parentId: 18,
+    parentName: 'name'
+}, {
+    id: 20,
+    name: 'name3',
+    parentId: 19,
+    parentName: 'name2',
+    parentParentId: 18,
+    parentParentName: 'name',
+    parentParentParentId: 17
+}])
+
+const parentParent = tCompany.forUseInLeftJoinAs('parentParent')
+
+const companyMultiSplit = connection.selectFrom(tCompany)
+    .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+    .leftJoin(parentParent).on(parent.parentId.equals(parentParent.id))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        parentId: parent.id,
+        parentName: parent.name,
+        parentParentId: parentParent.id,
+        parentParentName: parentParent.name,
+        parentParentParentId: parentParent.parentId,
+    }).guidedSplitOptional('parentParent', {
+        id: 'parentParentId!',
+        name: 'parentParentName!',
+        parentId: 'parentParentParentId'
+    }).guidedSplitOptional('parent', {
+        id: 'parentId!',
+        name: 'parentName!',
+        parent: 'parentParent'
+    })
+    .executeSelectMany()
+
+// Query: select company.id as id, company.name as name, parent.id as "parentId", parent.name as "parentName", parentParent.id as "parentParentId", parentParent.name as "parentParentName", parentParent.parent_id as "parentParentParentId" from company left join company as parent on company.parent_id = parent.id left join company as parentParent on parent.parent_id = parentParent.id
 // Params: [ ]
 
 results.push(...postResults)
@@ -1551,6 +1597,11 @@ companyPrefixed2.then((result) => {
 })
 companyPrefixed3.then((result) => {
     console.log('companyPrefixed3', result)
+})
+companyMultiSplit.then((result) => {
+    result.map((value, i) => {
+        console.log('companyMultiSplit[' + i + ']', value)
+    })
 })
 
 // case when then end

@@ -408,11 +408,17 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         this.__combineSubSelectUsing(select, result)
         return result
     }
+    // @ts-ignore
     intersect: never
+    // @ts-ignore
     intersectAll: never
+    // @ts-ignore
     except: never
+    // @ts-ignore
     exceptAll: never
+    // @ts-ignore
     minus: never
+    // @ts-ignore
     minusAll: never
 
     __compoundableAsSelectData(select: ICompoundableSelect<any, any, any, any>): SelectData {
@@ -448,6 +454,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         return sqlBuilder._buildSelect(this.__asSelectData(), params)
     }
 
+    // @ts-ignore
     forUseInQueryAs: never
 
     compose(config: any): any {
@@ -578,7 +585,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
                     } else {
                         return this.__applyGuidedSplit(dataResult, composition)
                     }
-                } catch (e) {
+                } catch (e: any) {
                     throw attachSource(e, source)
                 }
             })
@@ -668,7 +675,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         return fn(ids).then((internalList) => {
             try {
                 this.__processCompositionResult(internalList, dataList, dataMap, composition)
-            } catch (e) {
+            } catch (e: any) {
                 throw attachSource(e, source)
             }
             return dataResult

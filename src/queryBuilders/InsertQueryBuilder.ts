@@ -406,7 +406,9 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
         return this
     }
 
+    // @ts-ignore
     defaultValues: never
+    // @ts-ignore
     returningLastInsertedId: never
 }
 

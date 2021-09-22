@@ -22,8 +22,8 @@ export function processOutBinds(params: any[], outBinds: any): any[] {
     let current: any[] = []
     rows.push(current)
     for (let i = 0, length = outBinds.length; i < length; i++) {
-        const param = out[i]
-        const name = param.as || ''
+        const param: any = out[i]
+        const name: string = param.as || ''
         const value = outBinds[i]
 
         if (current.length > 0 && name in current[0]) {

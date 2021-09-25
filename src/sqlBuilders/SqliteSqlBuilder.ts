@@ -1,13 +1,33 @@
 import type { ToSql, SelectData, InsertData } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
-import type { ValueSource } from "../expressions/values"
+import { isValueSource, ValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn } from "../utils/Column"
+import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration"
 
 export class SqliteSqlBuilder extends AbstractSqlBuilder {
     sqlite: true = true
+    _getDateTimeFormat(type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
+        return this._connectionConfiguration.getDateTimeFormat!(type) as any
+    }
+    _getValueSourceDateTimeFormat(valueSource: ToSql): SqliteDateTimeFormat {
+        if (isValueSource(valueSource)) {
+            const type = __getValueSourcePrivate(valueSource).__valueType
+            switch(type) {
+                case 'localDate':
+                    return this._getDateTimeFormat('date')
+                case 'localTime':
+                    return this._getDateTimeFormat('time')
+                case 'localDateTime':
+                    return this._getDateTimeFormat('dateTime')
+                default:
+                    throw new Error('Unknown date type type: ' + type)
+            }
+        }
+        throw new Error('Unable to determine the value source type')
+    }
     _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
@@ -129,14 +149,81 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return this._appendSqlParenthesis(valueSource, params) + ' is not ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
+    /*
+        switch (this._getDateTimeFormat()) {
+            case 'localdate as text':
+            case 'localdate as text using T separator':
+            case 'UTC as text':
+            case 'UTC as text using T separator':
+            case 'UTC as text using Z timezone':
+            case 'UTC as text using T separator and Z timezone':
+            case 'Julian day as real number (day start at noon)':
+            case 'Unix time seconds as integer':
+            default:
+                throw new Error('Invalid sqlite date time format: ' + this._getDateTimeFormat())
+        }
+        */
     _currentDate(_params: any): string {
-        return "date('now')"
+        const dateTimeFormat = this._getDateTimeFormat('date')
+        switch (dateTimeFormat) {
+            case 'localdate as text':
+            case 'localdate as text using T separator':
+                return "date('now', 'localtime')"
+            case 'UTC as text':
+            case 'UTC as text using T separator':
+            case 'UTC as text using Z timezone':
+            case 'UTC as text using T separator and Z timezone':
+                return "date('now')"
+            case 'Julian day as real number':
+                return "julianday(date('now'))"
+            case 'Unix time seconds as integer':
+                return "cast(strftime('%s', date('now')) as integer)"
+            default:
+                throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
+        }
     }
     _currentTime(_params: any): string {
-        return "time('now')"
+        const dateTimeFormat = this._getDateTimeFormat('time')
+        switch (dateTimeFormat) {
+            case 'localdate as text':
+            case 'localdate as text using T separator':
+                return "time('now', 'localtime')"
+            case 'UTC as text':
+            case 'UTC as text using T separator':
+                return "time('now')"
+            case 'UTC as text using Z timezone':
+            case 'UTC as text using T separator and Z timezone':
+                return "(time('now') || 'Z')"
+            case 'Julian day as real number':
+                return "(julianday('2000-01-01 ' || time('now')) - julianday('2000-01-01'))"
+            case 'Unix time seconds as integer':
+                return "cast(strftime('%s', '1970-01-01 ' || time('now')) as integer)"
+            default:
+                throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
+        }
     }
     _currentTimestamp(_params: any): string {
-        return "datetime('now')"
+        const dateTimeFormat = this._getDateTimeFormat('dateTime')
+        switch (dateTimeFormat) {
+            case 'localdate as text':
+                return "datetime('now', 'localtime')"
+            case 'localdate as text using T separator':
+                return "strftime('%Y-%m-%dT%H:%M:%S', 'now', 'localtime')"
+            case 'UTC as text':
+                return "datetime('now')"
+            case 'UTC as text using T separator':
+                return "strftime('%Y-%m-%dT%H:%M:%S', 'now')"
+            case 'UTC as text using Z timezone':
+                return "strftime('%Y-%m-%d %H:%M:%SZ', 'now')"
+            case 'UTC as text using T separator and Z timezone':
+                return "strftime('%Y-%m-%dT%H:%M:%SZ', 'now')"
+            case 'Julian day as real number':
+                return "julianday('now')"
+            case 'Unix time seconds as integer':
+                return "cast(strftime('%s', 'now') as integer)"
+            default:
+                throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
+        }
     }
     _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'ifnull(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
@@ -163,31 +250,58 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return 'max(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
     }
     _getDate(params: any[], valueSource: ToSql): string {
+        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
+            return "cast(strftime('%d', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        }
         return "cast(strftime('%d', " + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getTime(params: any[], valueSource: ToSql): string {
+        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
+            return "round((julianday(" + this._appendSql(valueSource, params) + ", 'unixepoch') - 2440587.5) * 86400000.0)"
+        }
         return "round((julianday(" + this._appendSql(valueSource, params) + ") - 2440587.5) * 86400000.0)"
     }
     _getFullYear(params: any[], valueSource: ToSql): string {
+        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
+            return "cast(strftime('%Y', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        }
         return "cast(strftime('%Y', " + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getMonth(params: any[], valueSource: ToSql): string {
+        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
+            return "cast(strftime('%m', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        }
         return "cast(strftime('%m', " + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getDay(params: any[], valueSource: ToSql): string {
+        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
+            return "cast(strftime('%w'," + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        }
         return "cast(strftime('%w'," + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getHours(params: any[], valueSource: ToSql): string {
+        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
+            return "cast(strftime('%H', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        }
         return "cast(strftime('%H', " + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getMinutes(params: any[], valueSource: ToSql): string {
+        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
+            return "cast(strftime('%M', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        }
         return "cast(strftime('%M', " + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getSeconds(params: any[], valueSource: ToSql): string {
+        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
+            return "cast(strftime('%S', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        }
         return "cast(strftime('%S', " + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getMilliseconds(params: any[], valueSource: ToSql): string {
-        return "(strftime('%f', " + this._appendSql(valueSource, params) + " * 1000)) % 1000"
+        if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
+            return "(strftime('%f', " + this._appendSql(valueSource, params) + ", 'unixepoch') * 1000 % 1000)"
+        }
+        return "(strftime('%f', " + this._appendSql(valueSource, params) + ") * 1000 % 1000)"
     }
     _like(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + ' like ' + this._appendValue(value, params, columnType, typeAdapter) + " escape '\\'"

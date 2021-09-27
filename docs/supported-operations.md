@@ -55,16 +55,33 @@ interface EqualableValueSource extends NullableValueSource {
 }
 
 interface ComparableValueSource extends EqualableValueSource {
-    smallerIfValue(value: this | null | undefined): boolean
-    smaller(value: this): boolean
-    largerIfValue(value: this | null | undefined): boolean
-    larger(value: this): boolean
-    smallAsIfValue(value: this | null | undefined): boolean
-    smallAs(value: this): boolean
-    largeAsIfValue(value: this | null | undefined): boolean
-    largeAs(value: this): boolean
+    lessThanIfValue(value: this | null | undefined): boolean
+    lessThan(value: this): boolean
+    greaterThanIfValue(value: this | null | undefined): boolean
+    greaterThan(value: this): boolean
+    lessOrEqualsIfValue(value: this | null | undefined): boolean
+    lessOrEquals(value: this): boolean
+    greaterOrEqualsIfValue(value: this | null | undefined): boolean
+    greaterOrEquals(value: this): boolean
     between(value: this, value2: this): boolean
     notBetween(value: this, value2: this): boolean
+
+    /** @deprecated use lessThanIfValue method instead */
+    smallerIfValue(value: this | null | undefined): boolean
+    /** @deprecated use lessThan method instead */
+    smaller(value: this): boolean
+    /** @deprecated use greaterThanIfValue method instead */
+    largerIfValue(value: this | null | undefined): boolean
+    /** @deprecated use greaterThan method instead */
+    larger(value: this): boolean
+    /** @deprecated use lessOrEqualsIfValue method instead */
+    smallAsIfValue(value: this | null | undefined): boolean
+    /** @deprecated use lessOrEquals method instead */
+    smallAs(value: this): boolean
+    /** @deprecated use greaterOrEqualsIfValue method instead */
+    largeAsIfValue(value: this | null | undefined): boolean
+    /** @deprecated use greaterOrEquals method instead */
+    largeAs(value: this): boolean
 }
 
 /**
@@ -111,6 +128,8 @@ interface NumberValueSource extends ComparableValueSource {
     substract(value: number): number
     multiply(value: number): number
     divide(value: number): number
+    modulo(value: number): number
+    /** @deprecated use modulo method instead */
     mod(value: number): number
     atan2(value: number): number
 }
@@ -148,6 +167,8 @@ interface StringNumberValueSource extends ComparableValueSource {
     substract(value: number|string): number|string
     multiply(value: number|string): number|string
     divide(value: number|string): number|string
+    modulo(value: number|string): number|string
+    /** @deprecated use modulo method instead */
     mod(value: number|string): number|string
     atan2(value: number|string): number|string
 }
@@ -167,6 +188,8 @@ interface BigintValueSource extends ComparableValueSource {
     add(value: bigint): bigint
     substract(value: bigint): bigint
     multiply(value: bigint): bigint
+    modulo(value: bigint): bigint
+    /** @deprecated use modulo method instead */
     mod(value: bigint): bigint
 }
 
@@ -210,11 +233,19 @@ interface StringValueSource extends ComparableValueSource {
     containsInsensitive(value: string): boolean
     notContainsInsensitiveIfValue(value: string | null | undefined): boolean
     notContainsInsensitive(value: string): boolean
+    toLowerCase(): string
+    /** @deprecated use toLowerCase method instead */
     lower(): string
+    toUpperCase(): string
+    /** @deprecated use toUpperCase method instead */
     upper(): string
     length(): number
     trim(): string
+    trimLeft(): string
+    /** @deprecated use trimLeft method instead */
     ltrim(): string
+    trimRight(): string
+    /** @deprecated use trimRight method instead */
     rtrim(): string
     reverse(): string
     concatIfValue(value: string | null | undefined): string
@@ -1348,13 +1379,30 @@ interface EqualableFilter<TYPE> {
 }
 
 interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
+    lessThanIfValue?: TYPE | null | undefined
+    lessThan?: TYPE
+    greaterThanIfValue?: TYPE | null | undefined
+    greaterThan?: TYPE
+    lessOrEqualsIfValue?: TYPE | null | undefined
+    lessOrEquals?: TYPE
+    greaterOrEqualsIfValue?: TYPE | null | undefined
+    greaterOrEquals?: TYPE
+
+    /** @deprecated use lessThanIfValue instead */
     smallerIfValue?: TYPE | null | undefined
+    /** @deprecated use lessThan instead */
     smaller?: TYPE
+    /** @deprecated use greaterThanIfValue instead */
     largerIfValue?: TYPE | null | undefined
+    /** @deprecated use greaterThan instead */
     larger?: TYPE
+    /** @deprecated use lessOrEqualsIfValue instead */
     smallAsIfValue?: TYPE | null | undefined
+    /** @deprecated use lessOrEquals instead */
     smallAs?: TYPE
+    /** @deprecated use greaterOrEqualsIfValue instead */
     largeAsIfValue?: TYPE | null | undefined
+    /** @deprecated use greaterOrEquals instead */
     largeAs?: TYPE
 }
 

@@ -155,10 +155,10 @@ export interface SqlComparator1 {
     _isNot(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
     _equalsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
     _notEqualsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
-    _smaller(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
-    _larger(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
-    _smallAs(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
-    _largeAs(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
+    _lessThan(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
+    _greaterThan(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
+    _lessOrEquals(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
+    _greaterOrEquals(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
     _in(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
     _notIn(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
     _like(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
@@ -209,12 +209,12 @@ export interface SqlFunction0 {
     // Boolean
     _negate(params: any[], valueSource: ToSql): string
     // String
-    _lower(params: any[], valueSource: ToSql): string
-    _upper(params: any[], valueSource: ToSql): string
+    _toLowerCase(params: any[], valueSource: ToSql): string
+    _toUpperCase(params: any[], valueSource: ToSql): string
     _length(params: any[], valueSource: ToSql): string
     _trim(params: any[], valueSource: ToSql): string
-    _ltrim(params: any[], valueSource: ToSql): string
-    _rtrim(params: any[], valueSource: ToSql): string
+    _trimLeft(params: any[], valueSource: ToSql): string
+    _trimRight(params: any[], valueSource: ToSql): string
     _reverse(params: any[], valueSource: ToSql): string
     // Number functions
     _asDouble(params: any[], valueSource: ToSql): string
@@ -267,7 +267,7 @@ export interface SqlFunction1 {
     _substract(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
     _multiply(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
     _divide(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
-    _mod(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string // %
+    _modulo(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string // %
     // Trigonometric Functions
     _atan2(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
 }

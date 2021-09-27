@@ -30,10 +30,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             _isNot: true,
             _equalsInsensitive: true,
             _notEqualsInsensitive: true,
-            _smaller: true,
-            _larger: true,
-            _smallAs: true,
-            _largeAs: true,
+            _lessThan: true,
+            _greaterThan: true,
+            _lessOrEquals: true,
+            _greaterOrEquals: true,
             _and: true,
             _or: true,
             _concat: true,
@@ -41,7 +41,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             _substract: true,
             _multiply: true,
             _divide: true,
-            _mod: true,
+            _modulo: true,
             _getMilliseconds: true,
             _fragment: true
         }
@@ -1302,16 +1302,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params) + ') <> lower(' + this._appendValue(value, params, columnType, typeAdapter) + ')'
         }
     }
-    _smaller(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _lessThan(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + ' < ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
-    _larger(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _greaterThan(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + ' > ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
-    _smallAs(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _lessOrEquals(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + ' <= ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
-    _largeAs(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _greaterOrEquals(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + ' >= ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
     _in(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
@@ -1493,10 +1493,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _negate(params: any[], valueSource: ToSql): string {
         return 'not ' + this._appendConditionSqlParenthesis(valueSource, params)
     }
-    _lower(params: any[], valueSource: ToSql): string {
+    _toLowerCase(params: any[], valueSource: ToSql): string {
         return 'lower(' + this._appendSql(valueSource, params) + ')'
     }
-    _upper(params: any[], valueSource: ToSql): string {
+    _toUpperCase(params: any[], valueSource: ToSql): string {
         return 'upper(' + this._appendSql(valueSource, params) + ')'
     }
     _length(params: any[], valueSource: ToSql): string {
@@ -1505,10 +1505,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _trim(params: any[], valueSource: ToSql): string {
         return 'trim(' + this._appendSql(valueSource, params) + ')'
     }
-    _ltrim(params: any[], valueSource: ToSql): string {
+    _trimLeft(params: any[], valueSource: ToSql): string {
         return 'ltrim(' + this._appendSql(valueSource, params) + ')'
     }
-    _rtrim(params: any[], valueSource: ToSql): string {
+    _trimRight(params: any[], valueSource: ToSql): string {
         return 'rtrim(' + this._appendSql(valueSource, params) + ')'
     }
     _reverse(params: any[], valueSource: ToSql): string {
@@ -1698,7 +1698,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _divide(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'cast(' + this._appendSql(valueSource, params) + ' as double presition) / cast(' + this._appendValue(value, params, columnType, typeAdapter) + ' as double presition)'
     }
-    _mod(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _modulo(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + ' % ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
     _atan2(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {

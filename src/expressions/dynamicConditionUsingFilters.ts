@@ -25,13 +25,30 @@ export interface EqualableFilter<TYPE> extends NullableFilter {
 }
 
 export interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
+    lessThanIfValue?: TYPE | null | undefined
+    lessThan?: TYPE
+    greaterThanIfValue?: TYPE | null | undefined
+    greaterThan?: TYPE
+    lessOrEqualsIfValue?: TYPE | null | undefined
+    lessOrEquals?: TYPE
+    greaterOrEqualsIfValue?: TYPE | null | undefined
+    greaterOrEquals?: TYPE
+
+    /** @deprecated use lessThanIfValue instead */
     smallerIfValue?: TYPE | null | undefined
+    /** @deprecated use lessThan instead */
     smaller?: TYPE
+    /** @deprecated use greaterThanIfValue instead */
     largerIfValue?: TYPE | null | undefined
+    /** @deprecated use greaterThan instead */
     larger?: TYPE
+    /** @deprecated use lessOrEqualsIfValue instead */
     smallAsIfValue?: TYPE | null | undefined
+    /** @deprecated use lessOrEquals instead */
     smallAs?: TYPE
+    /** @deprecated use greaterOrEqualsIfValue instead */
     largeAsIfValue?: TYPE | null | undefined
+    /** @deprecated use greaterOrEquals instead */
     largeAs?: TYPE
 }
 

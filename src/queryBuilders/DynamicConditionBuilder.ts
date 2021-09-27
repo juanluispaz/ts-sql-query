@@ -117,13 +117,29 @@ const allowedOpreations: { [operation: string]: true | undefined } = {
     in: true,
     notInIfValue: true,
     notIn: true,
+    lessThanIfValue: true,
+    lessThan: true,
+    greaterThanIfValue: true,
+    greaterThan: true,
+    lessOrEqualsIfValue: true,
+    lessOrEquals: true,
+    greaterOrEqualsIfValue: true,
+    greaterOrEquals: true,
+    /** @deprecated use lessThanIfValue instead */
     smallerIfValue: true,
+    /** @deprecated use lessThan instead */
     smaller: true,
+    /** @deprecated use greaterThanIfValue instead */
     largerIfValue: true,
+    /** @deprecated use greaterThan instead */
     larger: true,
+    /** @deprecated use lessOrEqualsIfValue instead */
     smallAsIfValue: true,
+    /** @deprecated use lessOrEquals instead */
     smallAs: true,
+    /** @deprecated use greaterOrEqualsIfValue instead */
     largeAsIfValue: true,
+    /** @deprecated use greaterOrEquals instead */
     largeAs: true,
     equalsInsensitiveIfValue: true,
     equalsInsensitive: true,

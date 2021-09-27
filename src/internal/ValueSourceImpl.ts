@@ -117,29 +117,61 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
     notEqualsInsensitive(value: any): any {
         return condition(new SqlOperation1ValueSource('_notEqualsInsensitive', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
+    /** @deprecated use lessThanIfValue method instead */
     smallerIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_smaller', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
+    /** @deprecated use lessThan method instead */
     smaller(value: any): any {
-        return condition(new SqlOperation1ValueSource('_smaller', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_lessThan', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
+    /** @deprecated use greaterThanIfValue method instead */
     largerIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_larger', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterThan', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
+    /** @deprecated use greaterThan method instead */
     larger(value: any): any {
-        return condition(new SqlOperation1ValueSource('_larger', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_greaterThan', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
+    /** @deprecated use lessOrEqualsIfValue method instead */
     smallAsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_smallAs', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessOrEquals', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
+    /** @deprecated use lessOrEquals method instead */
     smallAs(value: any): any {
-        return condition(new SqlOperation1ValueSource('_smallAs', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_lessOrEquals', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
+    /** @deprecated use greaterOrEqualsIfValue method instead */
     largeAsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_largeAs', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterOrEquals', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
+    /** @deprecated use greaterOrEquals method instead */
     largeAs(value: any): any {
-        return condition(new SqlOperation1ValueSource('_largeAs', this, value, 'boolean', getTypeAdapter2(this, value)))
+        return condition(new SqlOperation1ValueSource('_greaterOrEquals', this, value, 'boolean', getTypeAdapter2(this, value)))
+    }
+    lessThanIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, 'boolean', getTypeAdapter2(this, value)))
+    }
+    lessThan(value: any): any {
+        return condition(new SqlOperation1ValueSource('_lessThan', this, value, 'boolean', getTypeAdapter2(this, value)))
+    }
+    greaterThanIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterThan', this, value, 'boolean', getTypeAdapter2(this, value)))
+    }
+    greaterThan(value: any): any {
+        return condition(new SqlOperation1ValueSource('_greaterThan', this, value, 'boolean', getTypeAdapter2(this, value)))
+    }
+    lessOrEqualsIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessOrEquals', this, value, 'boolean', getTypeAdapter2(this, value)))
+    }
+    lessOrEquals(value: any): any {
+        return condition(new SqlOperation1ValueSource('_lessOrEquals', this, value, 'boolean', getTypeAdapter2(this, value)))
+    }
+    greaterOrEqualsIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterOrEquals', this, value, 'boolean', getTypeAdapter2(this, value)))
+    }
+    greaterOrEquals(value: any): any {
+        return condition(new SqlOperation1ValueSource('_greaterOrEquals', this, value, 'boolean', getTypeAdapter2(this, value)))
     }
     inIfValue(value: any): any {
         return condition(new SqlOperationInValueSourceIfValueOrNoop('_in', this, value, 'boolean', getTypeAdapter2(this, value)))
@@ -269,11 +301,19 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
         return condition(new SqlOperation0ValueSource('_negate', this, 'boolean', this.__typeAdapter))
     }
     // String
-    lower(): any {
-        return new SqlOperation0ValueSource('_lower', this, this.__valueType, this.__typeAdapter)
+    toLowerCase(): any {
+        return new SqlOperation0ValueSource('_toLowerCase', this, this.__valueType, this.__typeAdapter)
     }
+    /** @deprecated use toLowerCase method instead */
+    lower(): any {
+        return new SqlOperation0ValueSource('_toLowerCase', this, this.__valueType, this.__typeAdapter)
+    }
+    toUpperCase(): any {
+        return new SqlOperation0ValueSource('_toUpperCase', this, this.__valueType, this.__typeAdapter)
+    }
+    /** @deprecated use toUpperCase method instead */
     upper(): any {
-        return new SqlOperation0ValueSource('_upper', this, this.__valueType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_toUpperCase', this, this.__valueType, this.__typeAdapter)
     }
     length(): any {
         return new SqlOperation0ValueSource('_length', this, 'int', this.__typeAdapter)
@@ -281,11 +321,19 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
     trim(): any {
         return new SqlOperation0ValueSource('_trim', this, this.__valueType, this.__typeAdapter)
     }
-    ltrim(): any {
-        return new SqlOperation0ValueSource('_ltrim', this, this.__valueType, this.__typeAdapter)
+    trimLeft(): any {
+        return new SqlOperation0ValueSource('_trimLeft', this, this.__valueType, this.__typeAdapter)
     }
+    /** @deprecated use trimLeft method instead */
+    ltrim(): any {
+        return new SqlOperation0ValueSource('_trimLeft', this, this.__valueType, this.__typeAdapter)
+    }
+    trimRight(): any {
+        return new SqlOperation0ValueSource('_trimRight', this, this.__valueType, this.__typeAdapter)
+    }
+    /** @deprecated use trimRight method instead */
     rtrim(): any {
-        return new SqlOperation0ValueSource('_rtrim', this, this.__valueType, this.__typeAdapter)
+        return new SqlOperation0ValueSource('_trimRight', this, this.__valueType, this.__typeAdapter)
     }
     reverse(): any {
         return new SqlOperation0ValueSource('_reverse', this, this.__valueType, this.__typeAdapter)
@@ -586,8 +634,12 @@ export abstract class ValueSourceImpl implements ValueSource<any, any>, Nullable
             return new SqlOperation1ValueSource('_divide', this, value, 'double', getTypeAdapter2(this, value))
         }
     }
+    modulo(value: any): any {
+        return createSqlOperation1ofOverloadedNumber(this, value, '_modulo')
+    }
+    /** @deprecated use modulo method instead */
     mod(value: any): any {
-        return createSqlOperation1ofOverloadedNumber(this, value, '_mod')
+        return createSqlOperation1ofOverloadedNumber(this, value, '_modulo')
     }
     // SqlFunction2
     substring(start: any, end: any): any {

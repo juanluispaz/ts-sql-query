@@ -125,29 +125,29 @@ console.log(query1.query(), query1.params())
 // let mm1 = t.c.power(mm)
 // let mm2 = t.c.power(q.c)
 // let mm3 = cn.pi().power(cn.pi()).equals(3)
-// let mm4 = cn.const(3).power(10).smallAs(mm1)
+// let mm4 = cn.const(3).power(10).lessOrEquals(mm1)
 
-// let cond = mm1.largeAs(7).negate()
+// let cond = mm1.greaterOrEquals(7).negate()
 
 const di: any = {}
 let where
 where = cn.true()
 if (di.a) {
-    where = where.and(t.c.smallAs(10))
+    where = where.and(t.c.lessOrEquals(10))
 }
 if (!di.b) {
-    where = where.and(t.c.smaller(1))
+    where = where.and(t.c.lessThan(1))
 }
 where = where.and(t.c.equals(2))
 
 let query2 = cn.update(t)
     .set({ c: t.c })
     .where(where)
-//    .where(t.c.larger(10).and(t.c.larger(1)))
-    // .where(cn.pi().power(t.c).equals(3).and(t.c.larger(10)))
+//    .where(t.c.greaterThan(10).and(t.c.greaterThan(1)))
+    // .where(cn.pi().power(t.c).equals(3).and(t.c.greaterThan(10)))
 //     .whereAnd(
 //     cn.pi().power(t.c).equals(3),
-//     t.c.largeAs(10)
+//     t.c.greaterOrEquals(10)
 // )
 
 //    .set(t.c).value(t.c).where(cn.pi().power(t.c).equals(3))
@@ -159,7 +159,7 @@ let query3 = cn.update(t)
     .set({ d: 'hello' })
     .dynamicWhere()
 
-query3 = query3.and(t.c.largeAs(10))
+query3 = query3.and(t.c.greaterOrEquals(10))
 query3 = query3.and(t.d.equals('mm'))
 
 console.log(query3.query(), query3.params())
@@ -167,7 +167,7 @@ console.log(query3.query(), query3.params())
 let query4 = cn.deleteFrom(t)
     .dynamicWhere()
 
-query4 = query4.and(t.c.largeAs(33))
+query4 = query4.and(t.c.greaterOrEquals(33))
 query4 = query4.and(t.d.equals('zz'))
 
 console.log(query4.query(), query4.params())
@@ -233,7 +233,7 @@ console.log(query9.query(), query9.params())
 
 
 let query10 = cn.selectFrom(t)
-    .innerJoin(q).dynamicOn().and(t.c.equals(q.f)).and(t.c.largeAs(12))
+    .innerJoin(q).dynamicOn().and(t.c.equals(q.f)).and(t.c.greaterOrEquals(12))
     .where(t.c.equals(10)).and(t.od.notEquals('d'))
     .select({
         d: t.d,

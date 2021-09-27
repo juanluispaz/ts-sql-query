@@ -121,22 +121,54 @@ export interface IComparableValueSource<TABLE_OR_VIEW extends TableOrViewRef<Any
 }
 
 export interface ComparableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends EqualableValueSource<TABLE_OR_VIEW, TYPE>, IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+    /** @deprecated use lessThanIfValue method instead */
     smallerIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    /** @deprecated use lessThan method instead */
     smaller(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    /** @deprecated use lessThan method instead */
     smaller<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    /** @deprecated use lessThan method instead */
     smaller<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    /** @deprecated use greaterThanIfValue method instead */
     largerIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    /** @deprecated use greaterThan method instead */
     larger(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    /** @deprecated use greaterThan method instead */
     larger<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    /** @deprecated use greaterThan method instead */
     larger<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    /** @deprecated use lessOrEqualsIfValue method instead */
     smallAsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    /** @deprecated use lessOrEquals method instead */
     smallAs(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    /** @deprecated use lessOrEquals method instead */
     smallAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    /** @deprecated use lessOrEquals method instead */
     smallAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    /** @deprecated use greaterOrEqualsIfValue method instead */
     largeAsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    /** @deprecated use greaterOrEquals method instead */
     largeAs(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    /** @deprecated use greaterOrEquals method instead */
     largeAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    /** @deprecated use greaterOrEquals method instead */
     largeAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    lessThanIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    lessThan(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    lessThan<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    lessThan<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    greaterThanIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    greaterThan(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    greaterThan<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    greaterThan<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    lessOrEqualsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    lessOrEquals(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    lessOrEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    lessOrEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    greaterOrEqualsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    greaterOrEquals(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
+    greaterOrEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    greaterOrEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     between(value: TYPE, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: TYPE, value2: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: TYPE, value2: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
@@ -264,8 +296,14 @@ export interface NumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     divide(value: TYPE): NumberValueSource<TABLE_OR_VIEW, TYPE>
     divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: INumberValueSource<TABLE_OR_VIEW2, TYPE>): NumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: INumberValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): NumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    modulo(value: TYPE): NumberValueSource<TABLE_OR_VIEW, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: INumberValueSource<TABLE_OR_VIEW2, TYPE>): NumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: INumberValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): NumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use modulo method instead */
     mod(value: TYPE): NumberValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: INumberValueSource<TABLE_OR_VIEW2, TYPE>): NumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: INumberValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): NumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
     // Trigonometric Functions
     atan2(value: TYPE): NumberValueSource<TABLE_OR_VIEW, TYPE>
@@ -335,8 +373,14 @@ export interface StringNumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<An
     divide(value: TYPE): StringNumberValueSource<TABLE_OR_VIEW, TYPE>
     divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringNumberValueSource<TABLE_OR_VIEW2, TYPE>): StringNumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringNumberValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    modulo(value: TYPE): StringNumberValueSource<TABLE_OR_VIEW, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringNumberValueSource<TABLE_OR_VIEW2, TYPE>): StringNumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringNumberValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use modulo method instead */
     mod(value: TYPE): StringNumberValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringNumberValueSource<TABLE_OR_VIEW2, TYPE>): StringNumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringNumberValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
     // Trigonometric Functions
     atan2(value: TYPE): StringNumberValueSource<TABLE_OR_VIEW, TYPE>
@@ -431,11 +475,23 @@ export interface IntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYP
     divide(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
     divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
     divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    modulo(value: TYPE): IntValueSource<TABLE_OR_VIEW, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IIntValueSource<TABLE_OR_VIEW2, TYPE>): IntValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IIntValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): IntValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    modulo(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    /** @deprecated use modulo method instead */
     mod(value: TYPE): IntValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IIntValueSource<TABLE_OR_VIEW2, TYPE>): IntValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IIntValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): IntValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use modulo method instead */
     mod(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     // Trigonometric Functions
     atan2(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
@@ -531,10 +587,22 @@ export interface DoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
     mod(value: int): DoubleValueSource<TABLE_OR_VIEW, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IIntValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IIntValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    modulo(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use modulo method instead */
+    mod(value: int): DoubleValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IIntValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IIntValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use modulo method instead */
     mod(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
     // Trigonometric Functions
     atan2(value: int): DoubleValueSource<TABLE_OR_VIEW, TYPE>
@@ -631,11 +699,23 @@ export interface BigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     // divide(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
     // divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
     // divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    modulo(value: TYPE): BigintValueSource<TABLE_OR_VIEW, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // modulo(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    /** @deprecated use modulo method instead */
     mod(value: TYPE): BigintValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // /** @deprecated use modulo method instead */
     // mod(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // /** @deprecated use modulo method instead */
     // mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // /** @deprecated use modulo method instead */
     // mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     // Trigonometric Functions
     // atan2(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
@@ -733,11 +813,23 @@ export interface TypeSafeBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     // divide(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
     // divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
     // divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    modulo(value: TYPE): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // modulo(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
+    /** @deprecated use modulo method instead */
     mod(value: TYPE): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    // /** @deprecated use modulo method instead */
     // mod(value: double): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
+    // /** @deprecated use modulo method instead */
     // mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, double>>
+    // /** @deprecated use modulo method instead */
     // mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     // Trigonometric Functions
     // atan2(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, double>>
@@ -833,11 +925,23 @@ export interface StringIntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
     divide(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
     divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
     divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
+    modulo(value: TYPE): StringIntValueSource<TABLE_OR_VIEW, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringIntValueSource<TABLE_OR_VIEW2, TYPE>): StringIntValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringIntValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringIntValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    modulo(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
+    /** @deprecated use modulo method instead */
     mod(value: TYPE): StringIntValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringIntValueSource<TABLE_OR_VIEW2, TYPE>): StringIntValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringIntValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringIntValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use modulo method instead */
     mod(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, AsType<TYPE, stringDouble>>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
     // Trigonometric Functions
     atan2(value: TYPE): StringDoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
@@ -932,11 +1036,23 @@ export interface StringDoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<An
     divide(value: TYPE): StringDoubleValueSource<TABLE_OR_VIEW, TYPE>
     divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     divide<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    modulo(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringIntValueSource<TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringIntValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    modulo(value: TYPE): StringDoubleValueSource<TABLE_OR_VIEW, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    modulo<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use modulo method instead */
     mod(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringIntValueSource<TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringIntValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use modulo method instead */
     mod(value: TYPE): StringDoubleValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use modulo method instead */
     mod<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
     // Trigonometric Functions
     atan2(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, TYPE>
@@ -1031,11 +1147,19 @@ export interface StringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     notContainsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notContainsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
     // SqlFunction0
+    toLowerCase(): StringValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use toLowerCase method instead */
     lower(): StringValueSource<TABLE_OR_VIEW, TYPE>
+    toUpperCase(): StringValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use toUpperCase method instead */
     upper(): StringValueSource<TABLE_OR_VIEW, TYPE>
     length(): NumberValueSource<TABLE_OR_VIEW, number>
     trim(): StringValueSource<TABLE_OR_VIEW, TYPE>
+    trimLeft(): StringValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use trimLeft method instead */
     ltrim(): StringValueSource<TABLE_OR_VIEW, TYPE>
+    trimRight(): StringValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use trimRight method instead */
     rtrim(): StringValueSource<TABLE_OR_VIEW, TYPE>
     reverse(): StringValueSource<TABLE_OR_VIEW, TYPE>
     // SqlFunction1
@@ -1158,11 +1282,19 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     notContainsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notContainsInsensitive<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
     // SqlFunction0
+    toLowerCase(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use toLowerCase method instead */
     lower(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
+    toUpperCase(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use toUpperCase method instead */
     upper(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
     length(): IntValueSource<TABLE_OR_VIEW, int>
     trim(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
+    trimLeft(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use trimLeft method instead */
     ltrim(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
+    trimRight(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use trimRight method instead */
     rtrim(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
     reverse(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
     // SqlFunction1

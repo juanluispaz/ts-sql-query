@@ -149,20 +149,6 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return this._appendSqlParenthesis(valueSource, params) + ' is not ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
     }
-    /*
-        switch (this._getDateTimeFormat()) {
-            case 'localdate as text':
-            case 'localdate as text using T separator':
-            case 'UTC as text':
-            case 'UTC as text using T separator':
-            case 'UTC as text using Z timezone':
-            case 'UTC as text using T separator and Z timezone':
-            case 'Julian day as real number (day start at noon)':
-            case 'Unix time seconds as integer':
-            default:
-                throw new Error('Invalid sqlite date time format: ' + this._getDateTimeFormat())
-        }
-        */
     _currentDate(_params: any): string {
         const dateTimeFormat = this._getDateTimeFormat('date')
         switch (dateTimeFormat) {

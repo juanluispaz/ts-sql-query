@@ -79,17 +79,17 @@ export interface NoTableOrViewRequiredView<DB extends AnyDB> extends IView<NoTab
     [noTableOrViewRequired]: 'NoTableOrViewRequiredView'
 }
 
-export interface TableOrViewAliasRef<REF extends TableOrViewRef<AnyDB>, ALIAS> extends TableOrViewRef<REF[typeof database]> {
+export interface TABLE_OR_VIEW_ALIAS<REF extends TableOrViewRef<AnyDB>, ALIAS> extends TableOrViewRef<REF[typeof database]> {
     [tableOrViewAlias]: ALIAS
     [tableOrViewRef]: REF
 }
 
-export interface CustomizedTableOrViewRef<REF extends TableOrViewRef<AnyDB>, NAME> extends TableOrViewRef<REF[typeof database]> {
+export interface CUSTOMIZED_TABLE_OR_VIEW<REF extends TableOrViewRef<AnyDB>, NAME> extends TableOrViewRef<REF[typeof database]> {
     [tableOrViewCustomName]: NAME
     [tableOrViewRef]: REF
 }
 
-export interface TableOrViewAlias<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> extends ITableOrView<TableOrViewAliasRef<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>> {
+export interface TableOrViewAlias<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> extends ITableOrView<TABLE_OR_VIEW_ALIAS<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>> {
     [tableOrView]: TABLE_OR_VIEW
     [tableOrViewAlias]: ALIAS
 }

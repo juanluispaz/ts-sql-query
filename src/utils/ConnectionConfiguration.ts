@@ -3,4 +3,5 @@ export interface ConnectionConfiguration {
     escape(identifier: string, strict: boolean): string
     insesitiveCollation?: string
     getDateTimeFormat?(type: string): string
+    compatibilityMode?: boolean
 }

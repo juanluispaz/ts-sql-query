@@ -11,6 +11,18 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
         queryRunner.useDatabase('sqlite')
     }
 
+    /**
+     * The compatibility mode avoid to use the newer syntax introduces in the newer versions of sqlite
+     *
+     * The newer syntax are:
+     * - Sqlite 3.30.0 (2019-10-04): Add support for the NULLS FIRST and NULLS LAST syntax in ORDER BY clauses.
+     *   In the copatibility mode their are emulated
+     * - Sqlite 3.35.0 (2021-03-12): Add support for the RETURNING clause on DELETE, INSERT, and UPDATE statements.
+     *   In the compatibility mode last_insert_id() is used to get the last inserted id.
+     *   When the compatibility mode is disabled the RETURNING clause on the insert statement is used.
+     */
+    protected compatibilityMode: boolean = false
+
     protected getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return 'localdate as text'
     }

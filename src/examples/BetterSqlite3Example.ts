@@ -11,6 +11,7 @@ import { BetterSqlite3QueryRunner } from "../queryRunners/BetterSqlite3QueryRunn
 import * as betterSqlite3 from 'better-sqlite3'
 
 class DBConection extends SqliteConnection<'DBConnection'> {
+    compatibilityMode = false
 }
 
 const tCompany = new class TCompany extends Table<DBConection, 'TCompany'> {

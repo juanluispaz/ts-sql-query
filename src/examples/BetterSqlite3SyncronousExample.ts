@@ -13,6 +13,7 @@ import * as betterSqlite3 from 'better-sqlite3'
 import { SynchronousPromise } from "synchronous-promise";
 
 class DBConection extends SqliteConnection<'DBConnection'> {
+    compatibilityMode = false
 }
 
 const tCompany = new class TCompany extends Table<DBConection, 'TCompany'> {

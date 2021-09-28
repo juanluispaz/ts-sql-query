@@ -60,11 +60,13 @@ export class AnyDBQueryRunner extends PromiseBasedQueryRunner {
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.query(query, params).then(result => result.rowCount)
     }
-    
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         const database = this.database
         if (database === 'sqlite' || database === 'mariaDB' || database === 'mySql') {
             if (this.containsInsertReturningClause(query, params)) {
+                if (database == 'sqlite') {
+                    throw new Error ("AnyDBQueryRunner doesn't support insert with the returning clause for sqlite. Enable the compatibility mode in the ts-sql-query connection object to avoid using the returning clause")
+                }
                 return super.executeInsertReturningLastInsertedId(query, params)
             }
 
@@ -72,6 +74,15 @@ export class AnyDBQueryRunner extends PromiseBasedQueryRunner {
         }
         
         return super.executeInsertReturningLastInsertedId(query, params)
+    }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
+        if (this.database !== 'sqlite') {
+            return super.executeInsertReturningMultipleLastInsertedId(query, params)
+        }
+        if (this.containsInsertReturningClause(query, params)) {
+            throw new Error ("AnyDBQueryRunner doesn't support insert with the returning clause for sqlite")
+        }
+        throw new Error("Unsupported executeInsertReturningMultipleLastInsertedId on queries for sqlite on AnyDBQueryRunner")
     }
     executeBeginTransaction(): Promise<void> {
         return new Promise((resolve, reject) => {

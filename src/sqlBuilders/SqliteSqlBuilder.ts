@@ -38,7 +38,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
-    _buildSelectOrderBy(query: SelectData, _params: any[]): string {
+    _buildSelectOrderBy(query: SelectData, params: any[]): string {
+        if (!this._connectionConfiguration.compatibilityMode) {
+            return super._buildSelectOrderBy(query, params)
+        }
         const orderBy = query.__orderBy
         if (!orderBy) {
             return ''
@@ -133,7 +136,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''
     }
-    _buildInsertReturning(_query: InsertData, params: any[]): string {
+    _buildInsertReturning(query: InsertData, params: any[]): string {
+        if (!this._connectionConfiguration.compatibilityMode || query.__from || query.__multiple) {
+            return super._buildInsertReturning(query, params)
+        }
         this._setContainsInsertReturningClause(params, false)
         return ''
     }

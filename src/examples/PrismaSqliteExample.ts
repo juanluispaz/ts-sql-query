@@ -6,6 +6,7 @@ import { PrismaClient } from './prisma/generated/sqlite'
 import { PrismaQueryRunner } from "../queryRunners/PrismaQueryRunner"
 
 class DBConection extends SqliteConnection<'DBConnection'> {
+    compatibilityMode = false
 }
 
 const tCompany = new class TCompany extends Table<DBConection, 'TCompany'> {

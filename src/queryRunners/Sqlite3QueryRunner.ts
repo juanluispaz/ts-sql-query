@@ -63,6 +63,12 @@ export class Sqlite3QueryRunner extends PromiseBasedWithSqlTransactionQueryRunne
             })
         })
     }
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
+        if (this.containsInsertReturningClause(query, params)) {
+            return super.executeInsertReturningMultipleLastInsertedId(query, params)
+        }
+        throw new Error("Unsupported executeInsertReturningMultipleLastInsertedId on queries thar doesn't include the returning clause")
+    }
     addParam(params: any[], value: any): string {
         params.push(value)
         return '?'

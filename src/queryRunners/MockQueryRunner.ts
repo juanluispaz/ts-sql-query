@@ -71,7 +71,7 @@ export class MockQueryRunner implements QueryRunner {
     }
     executeInsert(query: string, params: any[] = []): Promise<number> {
         try {
-            return this.promise.resolve(this.queryExecutor('insert', query, params, this.count++))
+            return this.promise.resolve(this.queryExecutor('insert', query, params, this.count++) || 0)
         } catch (e) {
             return this.promise.reject(e)
         }
@@ -92,14 +92,14 @@ export class MockQueryRunner implements QueryRunner {
     }
     executeUpdate(query: string, params: any[] = []): Promise<number> {
         try {
-            return this.promise.resolve(this.queryExecutor('update', query, params, this.count++))
+            return this.promise.resolve(this.queryExecutor('update', query, params, this.count++) || 0)
         } catch (e) {
             return this.promise.reject(e)
         }
     }
     executeDelete(query: string, params: any[] = []): Promise<number> {
         try {
-            return this.promise.resolve(this.queryExecutor('delete', query, params, this.count++))
+            return this.promise.resolve(this.queryExecutor('delete', query, params, this.count++) || 0)
         } catch (e) {
             return this.promise.reject(e)
         }

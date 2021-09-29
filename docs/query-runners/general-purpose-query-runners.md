@@ -122,6 +122,51 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 
 **Note**: `MockQueryRunner` supports synchronous query execution. See [Synchronous query runners](../../advanced-usage/#synchronous-query-runners) for more information.
 
+**Example of usage**
+
+```ts
+test('my test', async () => {
+    const connection = new DBConection(new MockQueryRunner((type, query, params, index) => {
+        switch (index) {
+        case 0:
+            expect(type).toEqual('insertReturningLastInsertedId');
+            expect(query).toEqual('insert into company (name) values ($1) returning id');
+            expect(params).toEqual([ 'ACME' ]);
+
+            // Return the result of the query execution, in this case the inserted id
+            return 12;
+        case 1:
+            expect(type).toEqual('selectOneRow');
+            expect(query).toEqual('select id as id, name as name from company where id = $1');
+            expect(params).toEqual([ 12 ]);
+
+            // Return the result of the query execution, in this case the requested row
+            return { id: 12, name: 'ACME' };
+        }
+        throw new Error('Unexpected query in the test case');
+    }));
+
+    const testCompanyId = await connection
+        .insertInto(tCompany)
+        .values({ name: 'ACME' })
+        .returningLastInsertedId()
+        .executeInsert();
+
+    expect(testCompanyId).toEqual(12);
+
+    let testCompany = await connection
+        .selectFrom(tCompany)
+        .where(tCompany.id.equals(testCompanyId))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name
+        })
+        .executeSelectOne();
+
+    expect(testCompany).toEqual({ id: 12, name: 'ACME' });
+});
+```
+
 ## NoopQueryRunner
 
 A fake connections that returns an empty result.

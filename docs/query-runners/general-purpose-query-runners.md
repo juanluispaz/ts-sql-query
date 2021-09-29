@@ -113,7 +113,7 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 
 'executeProcedure' | 'executeFunction' | 
 'beginTransaction' | 'commit' | 'rollback' |
-'executeDatabaseSchemaModification'
+'executeDatabaseSchemaModification' | 'isTransactionActive'
 ```
 
 - **`query: string`**: query required to be executed

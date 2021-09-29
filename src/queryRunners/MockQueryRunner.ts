@@ -1,7 +1,7 @@
 import type { PromiseProvider, UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 
-export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
+export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification' | 'isTransactionActive'
 
 export type QueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
 
@@ -16,8 +16,6 @@ export class MockQueryRunner implements QueryRunner {
 
     readonly database: DatabaseType
     readonly promise: PromiseProvider
-
-    private transactionLevel = 0
 
     constructor(queryExecutor: QueryExecutor, databaseOrConfig: DatabaseType | MockQueryRunnerConfig = 'noopDB') {
         this.queryExecutor = queryExecutor
@@ -43,19 +41,38 @@ export class MockQueryRunner implements QueryRunner {
 
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         try {
-            return this.promise.resolve(this.queryExecutor('selectOneRow', query, params, this.count++))
+            const index = this.count++
+            const result = this.queryExecutor('selectOneRow', query, params, index)
+            if (!isPlainObjectOrNoValue(result)) {
+                throw new Error('Invalid test case result for a selectOneRow with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a plain object')
+            }
+            return this.promise.resolve(result)
         } catch (e) {
             return this.promise.reject(e)
         }
     }
     executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         try {
-            return this.promise.resolve(this.queryExecutor('selectManyRows', query, params, this.count++) || [])
+            const index = this.count++
+            let result = this.queryExecutor('selectManyRows', query, params, index)
+            if (result === undefined || result === null) {
+                result = []
+            }
+            if (!Array.isArray(result)) {
+                throw new Error('Invalid test case result for a selectManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array of plain object')
+            }
+            for (let i = 0; i < result.length; i++) {
+                if (!isPlainObject(result[i])) {
+                    throw new Error('Invalid test case result for a selectManyRows with index ' + index + '. The returned array by the mock function provided to the MockQueryRunner contains a no plain object at position ' + i)
+                }
+            }
+            return this.promise.resolve(result)
         } catch (e) {
             return this.promise.reject(e)
         }
     }
     executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+        // undefined result means no value returned by the database
         try {
             return this.promise.resolve(this.queryExecutor('selectOneColumnOneRow', query, params, this.count++))
         } catch (e) {
@@ -64,14 +81,30 @@ export class MockQueryRunner implements QueryRunner {
     }
     executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         try {
-            return this.promise.resolve(this.queryExecutor('selectOneColumnManyRows', query, params, this.count++) || [])
+            const index = this.count++
+            let result = this.queryExecutor('selectOneColumnManyRows', query, params, index)
+            if (result === undefined || result === null) {
+                result = []
+            }
+            if (!Array.isArray(result)) {
+                throw new Error('Invalid test case result for a selectOneColumnManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
+            }
+            return this.promise.resolve(result)
         } catch (e) {
             return this.promise.reject(e)
         }
     }
     executeInsert(query: string, params: any[] = []): Promise<number> {
         try {
-            return this.promise.resolve(this.queryExecutor('insert', query, params, this.count++) || 0)
+            const index = this.count++
+            let result = this.queryExecutor('insert', query, params, index)
+            if (result === undefined || result === null) {
+                result = 1
+            }
+            if (typeof result !== 'number') {
+                throw new Error('Invalid test case result for an insert with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a number')
+            }
+            return this.promise.resolve(result)
         } catch (e) {
             return this.promise.reject(e)
         }
@@ -83,30 +116,59 @@ export class MockQueryRunner implements QueryRunner {
             return this.promise.reject(e)
         }
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any[]> {
         try {
-            return this.promise.resolve(this.queryExecutor('insertReturningMultipleLastInsertedId', query, params, this.count++))
+            const index = this.count++
+            let result = this.queryExecutor('insertReturningMultipleLastInsertedId', query, params, index)
+            if (result === undefined || result === null) {
+                result = []
+            }
+            if (!Array.isArray(result)) {
+                throw new Error('Invalid test case result for an insertReturningMultipleLastInsertedId with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
+            }
+            return this.promise.resolve(result)
         } catch (e) {
             return this.promise.reject(e)
         }
     }
     executeUpdate(query: string, params: any[] = []): Promise<number> {
         try {
-            return this.promise.resolve(this.queryExecutor('update', query, params, this.count++) || 0)
+            const index = this.count++
+            let result = this.queryExecutor('update', query, params, index)
+            if (result === undefined || result === null) {
+                result = 0
+            }
+            if (typeof result !== 'number') {
+                throw new Error('Invalid test case result for an update with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a number')
+            }
+            return this.promise.resolve(result)
         } catch (e) {
             return this.promise.reject(e)
         }
     }
     executeDelete(query: string, params: any[] = []): Promise<number> {
         try {
-            return this.promise.resolve(this.queryExecutor('delete', query, params, this.count++) || 0)
+            const index = this.count++
+            let result = this.queryExecutor('delete', query, params, index)
+            if (result === undefined || result === null) {
+                result = 0
+            }
+            if (typeof result !== 'number') {
+                throw new Error('Invalid test case result for a delete with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a number')
+            }
+            return this.promise.resolve(result)
         } catch (e) {
             return this.promise.reject(e)
         }
     }
     executeProcedure(query: string, params: any[] = []): Promise<void> {
         try {
-            return this.promise.resolve(this.queryExecutor('executeProcedure', query, params, this.count++))
+            const index = this.count++
+            const result = this.queryExecutor('executeProcedure', query, params, index)
+            if (result !== undefined && result !== null) {
+                throw new Error('Invalid test case result for an executeProcedure with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
+            }
+            return this.promise.resolve(undefined)
         } catch (e) {
             return this.promise.reject(e)
         }
@@ -120,36 +182,59 @@ export class MockQueryRunner implements QueryRunner {
     }
     executeBeginTransaction(): Promise<void> {
         try {
-            return this.promise.resolve(this.queryExecutor('beginTransaction', 'begin transaction', [], this.count++)).then(r => {
-                this.transactionLevel++
-                return r
-            })
+            const index = this.count++
+            const result = this.queryExecutor('beginTransaction', 'begin transaction', [], index)
+            if (result !== undefined && result !== null) {
+                throw new Error('Invalid test case result for a beginTransaction with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
+            }
+            return this.promise.resolve(undefined)
         } catch (e) {
             return this.promise.reject(e)
         }
     }
     executeCommit(): Promise<void> {
         try {
-            this.transactionLevel--
-            return this.promise.resolve(this.queryExecutor('commit', 'commit', [], this.count++))
+            const index = this.count++
+            const result = this.queryExecutor('commit', 'commit', [], index)
+            if (result !== undefined && result !== null) {
+                throw new Error('Invalid test case result for a commit with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
+            }
+            return this.promise.resolve(undefined)
         } catch (e) {
             return this.promise.reject(e)
         }
     }
     executeRollback(): Promise<void> {
         try {
-            this.transactionLevel--
-            return this.promise.resolve(this.queryExecutor('rollback', 'rollback', [], this.count++))
+            const index = this.count++
+            const result = this.queryExecutor('rollback', 'rollback', [], index)
+            if (result !== undefined && result !== null) {
+                throw new Error('Invalid test case result for a commit with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
+            }
+            return this.promise.resolve(undefined)
         } catch (e) {
             return this.promise.reject(e)
         }
     }
     isTransactionActive(): boolean {
-        return this.transactionLevel > 0
+        const index = this.count++
+        let result = this.queryExecutor('isTransactionActive', '', [], index)
+        if (result !== undefined && result !== null) {
+            result = false
+        }
+        if (typeof result !== 'boolean') {
+            throw new Error('Invalid test case result for an isTransactionActive with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined, or a boolean')
+        }
+        return result
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         try {
-            return this.promise.resolve(this.queryExecutor('executeDatabaseSchemaModification', query, params, this.count++))
+            const index = this.count++
+            const result = this.queryExecutor('executeDatabaseSchemaModification', query, params, index)
+            if (result !== undefined && result !== null) {
+                throw new Error('Invalid test case result for a executeDatabaseSchemaModification with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
+            }
+            return this.promise.resolve(undefined)
         } catch (e) {
             return this.promise.reject(e)
         }
@@ -228,4 +313,26 @@ export class MockQueryRunner implements QueryRunner {
     createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
         return this.promise.all(promises) as any
     }
+}
+
+function isPlainObject(value: any): boolean {
+	if (!value && typeof value !== 'object') {
+		return false
+	}
+
+	const prototype = Object.getPrototypeOf(value)
+	return prototype === null || prototype === Object.prototype
+}
+
+function isPlainObjectOrNoValue(value: any): boolean {
+    if (value === null || value === undefined) {
+        return true
+    }
+
+	if (typeof value !== 'object') {
+		return false
+	}
+
+	const prototype = Object.getPrototypeOf(value)
+	return prototype === null || prototype === Object.prototype
 }

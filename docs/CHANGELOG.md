@@ -1,5 +1,47 @@
 # Change Log
 
+## v1.15.0 (3 Sep 2021)
+
+**Changes**:
+
+- Allows to use in split/compose previously created property using split/compose
+- Add support to Date and Time management in sqlite using different strategies to represent the value (sqlite doesn't have dedicate types to represent dates and time). The implemented strategies are aligned with the date time support in sqlite allowing to store the information as text (in the local timezone or UTC), as integer (in unix time seconds) or as a real value (in Julian days)
+- Align method names with convention, where ts-sql-query tries to use well known method names, giving preferences to already existing names in JavaScript, o well known function names in SQL, avoiding abbreviations. Methods with new names (Previous names are still available as deprecated methods):
+
+    | Previous name              | New name           |
+    | -------------------------- | ------------------ |
+    | `smaller`                  | `lessThan`         |
+    | `smallAs`                  | `lessOrEquals`     |
+    | `larger`                   | `greaterThan`      |
+    | `largeAs`                  | `greaterOrEquals`  |
+    | `mod`                      | `modulo`           |
+    | `lower`                    | `toLowerCase`      |
+    | `upper`                    | `toUpperCase`      |
+    | `ltrim`                    | `trimLeft`         |
+    | `rtrim`                    | `trimRight`        |
+
+- Change some internal type names to improve the readability of the type name in the IDE and in error messages
+- Implement the compatibility mode on sqlite (enabled by default). When is disabled allows to take advantages of the newer syntax in sqlite. Right now only prisma and better sqlite includes an sqlite compatible
+- Now is possible create an insert from a select o with multiples values that returns the last inserted id if a compatible sqlite with the returning clause is used
+- Now is possible create an insert from a select that returns the last inserted id if a compatible sqlite with the returning clause is used
+- Ensure the MockQueryRunner returns a number when the mock function return no value when an insert, update or delete is executed
+- Detect invalid results from the mock function returned to the MockQueryRunner
+- Add support to mock the call to the method `isTransactionActive`
+
+**Documentation changes**:
+
+- Add example of MockQueryRunner usage to the documentation
+- Document how to run the examples
+
+**Internal changes**:
+
+- Changes to make happy TypeScript 4.4 and avoid error messages
+- Set up GitHub CI
+
+**Bug fixes**:
+
+- Fix type returned by a table or view customization when the original table or view has alias
+
 ## v1.14.0 (23 Aug 2021)
 
 **Changes**:

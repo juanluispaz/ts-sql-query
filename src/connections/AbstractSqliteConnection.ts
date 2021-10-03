@@ -21,7 +21,7 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
      *   In the compatibility mode last_insert_id() is used to get the last inserted id.
      *   When the compatibility mode is disabled the RETURNING clause on the insert statement is used.
      */
-    protected compatibilityMode: boolean = false
+    protected compatibilityMode: boolean = true
 
     protected getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return 'localdate as text'

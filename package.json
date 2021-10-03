@@ -33,8 +33,8 @@
     "scripts": {
         "generate-prisma": "prisma generate --schema src/examples/prisma/postgresql.prisma; prisma generate --schema src/examples/prisma/mysql.prisma; prisma generate --schema src/examples/prisma/mariadb.prisma; prisma generate --schema src/examples/prisma/sqlite.prisma; prisma generate --schema src/examples/prisma/sqlserver.prisma",
         "copy-prisma": "cp -R ./src/examples/prisma ./dist/examples/prisma",
-        "example": "npm run build && node dist/exampleTests.js",
-        "all-examples": "npm run build && sh ./scripts/run-all-examples.sh",
+        "example": "ts-node src/exampleTests.ts",
+        "all-examples": "sh ./scripts/run-all-examples.sh",
         "build": "rm -rf dist/*; tsc && npm run copy-prisma",
         "dist": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm exampleTests* && rm -Rf examples && npm publish",
         "dist-beta": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm exampleTests* && rm -Rf examples && npm publish --tag beta",
@@ -85,6 +85,7 @@
         "sqlite3": "^5.0.0",
         "synchronous-promise": "^2.0.15",
         "tedious": "^9.2.1",
+        "ts-node": "^10.2.1",
         "typescript": "^4.1.3"
     },
     "dependencies": {

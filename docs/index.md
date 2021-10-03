@@ -68,8 +68,7 @@ This command will compile the project and execute the script located at [scripts
 If you want to execute a single example (like Sqlite):
 
 ```sh
-npm run build
-node ./dist/examples/SqliteExample.js
+npx ts-node ./src/examples/SqliteExample.ts
 ```
 
 **Be aware**: all examples excepting Sqlite requires a specific docker image with the database running; see [scripts/run-all-examples.sh](https://github.com/juanluispaz/ts-sql-query/blob/master/scripts/run-all-examples.sh) for more details.

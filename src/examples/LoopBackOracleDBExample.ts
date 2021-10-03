@@ -10,7 +10,7 @@
   * Useful query for see errors: select * from SYS.USER_ERRORS
   */
 
-import { getConnection, SYSDBA } from 'oracledb'
+import * as oracledb from 'oracledb'
 import { Table } from "../Table";
 import { assertEquals } from "./assertEquals";
 import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
@@ -49,11 +49,11 @@ const tCustomer = new class TCustomer extends Table<DBConection, 'TCustomer'> {
 }()
 
 async function init() {
-    const connectionPromise = getConnection({
+    const connectionPromise = oracledb.getConnection({
         user: 'sys',
         password: 'Oracle18',
         connectString: 'localhost:1521/XE',
-        privilege: SYSDBA
+        privilege: oracledb.SYSDBA
     })
     
     const conn = await connectionPromise

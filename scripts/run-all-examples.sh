@@ -8,7 +8,8 @@ set -x #echo on
 # On Mac OS
 # Download and uncompress instantclient-basic-macos: https://www.oracle.com/es/database/technologies/instant-client/macos-intel-x86-downloads.html
 # Execute the commmand in the uncompressed folder: xattr -d com.apple.quarantine *
-export LD_LIBRARY_PATH="$HOME/Downloads/instantclient_19_8/"
+cp -R -X $PWD/../instantclient_19_8/* node_modules/oracledb/build/Release
+rm -Rf node_modules/loopback-connector-oracle/node_modules/oracledb
 
 node ./dist/examples/SqliteExample.js || exit 1
 node ./dist/examples/Sqlite3Example.js || exit 1

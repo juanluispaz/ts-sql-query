@@ -1,5 +1,20 @@
 # Change Log
 
+## v1.16.0 (4 Sep 2021)
+
+**Changes**:
+
+- Add support to differing execution logic till the end of a transaction, after commit or rollback
+
+**Internal changes**:
+
+- Introduce ts-node to run the examples
+
+**Bug fixes**:
+
+- Fix sqlite compatibility mode by default (regression introduced in the previous release)
+- Fix oracle example due oracle instant client not loading and throwing error when the oracle driver is initialized
+
 ## v1.15.0 (3 Sep 2021)
 
 **Changes**:

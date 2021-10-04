@@ -115,4 +115,8 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
 
     protected abstract createQueryRunner(): Promise<QueryRunner>
     protected abstract releaseQueryRunner(queryRunner: QueryRunner): void
+
+    isMocked(): boolean {
+        return false
+    }
 }

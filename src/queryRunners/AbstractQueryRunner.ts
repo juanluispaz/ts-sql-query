@@ -131,4 +131,8 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
     abstract executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
     abstract executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
+
+    isMocked(): boolean {
+        return false
+    }
 }

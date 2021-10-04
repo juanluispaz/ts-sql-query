@@ -155,4 +155,7 @@ export class NoopQueryRunner implements QueryRunner {
     createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
         return this.promise.all(promises) as any
     }
+    isMocked(): boolean {
+        return false
+    }
 }

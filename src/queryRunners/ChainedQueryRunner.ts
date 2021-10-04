@@ -89,4 +89,7 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
         return this.queryRunner.executeCombined(fn1, fn2)
     }
+    isMocked(): boolean {
+        return this.queryRunner.isMocked()
+    }
 }

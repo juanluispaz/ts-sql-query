@@ -323,6 +323,9 @@ interface Connection {
     isTransactionActive(): boolean
     transaction<T>(fn: () => Promise<T>[]): Promise<T[]>
     transaction<T>(fn: () => Promise<T>): Promise<T>
+    // Fuctions that allow to differ a code execution till the end of the transaction
+    executeAfterNextCommit(fn: ()=> void): void
+    executeAfterNextRollback(fn: ()=> void): void
 
     // Querying
     insertInto(table: Table): InsertExpression

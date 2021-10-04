@@ -45,3 +45,19 @@ await connection.rollback();
 ```
 
 When you use these methods, you must ensure the transaction begin before call commit or rollback.
+
+## Differing execution till transaction ends
+
+You can differ the execution of a logic till the end of the transaction. This differed logic can be set calling the `executeAfterNextCommit` or `executeAfterNextRollback` of the ts-sql.query connection in any momment of the application execution; the only condition is there must be an active transaction.
+
+```ts
+connection.executeAfterNextCommit(() => {
+    // Logic deffered till the commit is executed
+    console.log('After next commit')
+})
+
+connection.executeAfterNextRollback(() => {
+    // Logic deffered till the rollback is executed
+    console.log('After next rollback')
+})
+```

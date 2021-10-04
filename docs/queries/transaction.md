@@ -48,7 +48,7 @@ When you use these methods, you must ensure the transaction begin before call co
 
 ## Differing execution till transaction ends
 
-You can differ the execution of a logic till the end of the transaction. This differed logic can be set calling the `executeAfterNextCommit` or `executeAfterNextRollback` of the ts-sql.query connection in any momment of the application execution; the only condition is there must be an active transaction.
+You can differ the execution of a logic till the end of the transaction. This differed logic can be set calling the `executeAfterNextCommit` or `executeAfterNextRollback` of the ts-sql-query connection in any momment of the application execution; the only condition is there must be an active transaction.
 
 ```ts
 connection.executeAfterNextCommit(() => {

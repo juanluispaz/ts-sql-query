@@ -6,3 +6,5 @@ coverage
 package-lock.json
 dist
 generated
+.github
+.nyc_output

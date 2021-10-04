@@ -1,5 +1,4 @@
 #!/bin/bash
-set -x #echo on
 
 # On Linux
 # Download and uncompress instantclient-basic-linux: https://www.oracle.com/es/database/technologies/instant-client/linux-x86-64-downloads.html
@@ -10,6 +9,8 @@ set -x #echo on
 # Execute the commmand in the uncompressed folder: xattr -d com.apple.quarantine *
 cp -R -X $PWD/../instantclient_19_8/* node_modules/oracledb/build/Release
 rm -Rf node_modules/loopback-connector-oracle/node_modules/oracledb
+
+set -x #echo on
 
 ts-node ./src/examples/SqliteExample.ts || exit 1
 ts-node ./src/examples/Sqlite3Example.ts || exit 1

@@ -9,3 +9,5 @@ test
 src
 tsconfig.json
 generated
+.github
+.nyc_output

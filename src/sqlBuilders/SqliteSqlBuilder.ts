@@ -170,6 +170,8 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 return "julianday(date('now'))"
             case 'Unix time seconds as integer':
                 return "cast(strftime('%s', date('now')) as integer)"
+            case 'Unix time milliseconds as integer':
+                return "(cast(strftime('%s', date('now')) as integer) * 1000)"
             default:
                 throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
         }
@@ -187,9 +189,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             case 'UTC as text using T separator and Z timezone':
                 return "(time('now') || 'Z')"
             case 'Julian day as real number':
-                return "(julianday('2000-01-01 ' || time('now')) - julianday('2000-01-01'))"
+                return "(julianday(strftime('1970-01-01 %H:%M:%f', 'now')) - julianday('1970-01-01'))"
             case 'Unix time seconds as integer':
-                return "cast(strftime('%s', '1970-01-01 ' || time('now')) as integer)"
+                return "cast(strftime('%s', strftime('1970-01-01 %H:%M:%S', 'now')) as integer)"
+            case 'Unix time milliseconds as integer':
+                return "cast((julianday(strftime('1970-01-01 %H:%M:%f', 'now')) - 2440587.5) * 86400000.0 as integer)"
             default:
                 throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
         }
@@ -213,6 +217,8 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 return "julianday('now')"
             case 'Unix time seconds as integer':
                 return "cast(strftime('%s', 'now') as integer)"
+            case 'Unix time milliseconds as integer':
+                return "cast((julianday('now') - 2440587.5) * 86400000.0 as integer)"
             default:
                 throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
         }
@@ -244,54 +250,72 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     _getDate(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%d', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
+            return "cast(strftime('%d', " + this._appendSqlParenthesis(valueSource, params) + " / 1000, 'unixepoch') as integer)"
         }
         return "cast(strftime('%d', " + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getTime(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
-            return "round((julianday(" + this._appendSql(valueSource, params) + ", 'unixepoch') - 2440587.5) * 86400000.0)"
+            return '(' + this._appendSql(valueSource, params) + ' * 1000)'
+        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
+            return this._appendSql(valueSource, params)
         }
         return "round((julianday(" + this._appendSql(valueSource, params) + ") - 2440587.5) * 86400000.0)"
     }
     _getFullYear(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%Y', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
+            return "cast(strftime('%Y', " + this._appendSqlParenthesis(valueSource, params) + " / 1000, 'unixepoch') as integer)"
         }
         return "cast(strftime('%Y', " + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getMonth(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%m', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
+            return "cast(strftime('%m', " + this._appendSqlParenthesis(valueSource, params) + " / 1000, 'unixepoch') as integer)"
         }
         return "cast(strftime('%m', " + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getDay(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%w'," + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
+            return "cast(strftime('%w'," + this._appendSqlParenthesis(valueSource, params) + " / 1000, 'unixepoch') as integer)"
         }
         return "cast(strftime('%w'," + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getHours(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%H', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
+            return "cast(strftime('%H', " + this._appendSqlParenthesis(valueSource, params) + " / 1000, 'unixepoch') as integer)"
         }
         return "cast(strftime('%H', " + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getMinutes(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%M', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
+            return "cast(strftime('%M', " + this._appendSqlParenthesis(valueSource, params) + " / 1000, 'unixepoch') as integer)"
         }
         return "cast(strftime('%M', " + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getSeconds(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return "cast(strftime('%S', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
+            return "cast(strftime('%S', " + this._appendSqlParenthesis(valueSource, params) + " / 1000, 'unixepoch') as integer)"
         }
         return "cast(strftime('%S', " + this._appendSql(valueSource, params) + ") as integer)"
     }
     _getMilliseconds(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
-            return "(strftime('%f', " + this._appendSql(valueSource, params) + ", 'unixepoch') * 1000 % 1000)"
+            return '0'
+        } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
+            return '(' + this._appendSqlParenthesis(valueSource, params) + ' % 1000)'
         }
         return "(strftime('%f', " + this._appendSql(valueSource, params) + ") * 1000 % 1000)"
     }

@@ -111,15 +111,21 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 - `Julian day as real number`:
     - Dates and time are expressed as [Julian day](https://en.wikipedia.org/wiki/Julian_day).
     - **Column type in sqlite**: *REAL*
-    - **Date format**: *NNNNNNNNNN.5*. Example: `2459482.5` (*2021-09-25*). No **Z** is used here because it is not supported by sqlite.
+    - **Date format**: *NNNNNNNNNN.5*. Example: `2459482.5` (*2021-09-25*).
     - **Time format**: *0.NNNNNNNNNN* or *-0.NNNNNNNNNN*. Example: `0.75` (*18:00:00*). This value is a number between -0.5 to 0.5 that express the time on the first day of the calendar (November 24, 4714 BC). In JavaScript always use *1970-01-01* as the date for the provided time.
     - **Date time format**: *NNNNNNNNNN.NNNNNNNNNN*. Example: `2459483.25` (*2021-09-25 18:00:00*)
 - `Unix time seconds as integer`
     - Dates and time are expressed as the number of seconds from the beginning of the UNIX time (*1970-01-01*).
     - **Column type in sqlite**: *INTEGER*
-    - **Date format**: *NNNNNNNNNN*. Example: `1632528000` (*2021-09-25*). No **Z** is used here because it is not supported by sqlite.
+    - **Date format**: *NNNNNNNNNN*. Example: `1632528000` (*2021-09-25*).
     - **Time format**: *NNNNNNNNNN*. Example: `64800` (*18:00:00*). This value is a number that expresses the number of seconds for the provided time on the first day of the calendar (*1970-01-01*). In JavaScript always use *1970-01-01* as the date for the provided time.
     - **Date time format**: *NNNNNNNNNN*. Example: `1632592800` (*2021-09-25 18:00:00*)
+- `Unix time milliseconds as integer`
+    - Dates and time are expressed as the number of milliseconds from the beginning of the UNIX time (*1970-01-01*).
+    - **Column type in sqlite**: *INTEGER*
+    - **Date format**: *NNNNNNNNNNNNN*. Example: `1632528000000` (*2021-09-25*).
+    - **Time format**: *NNNNNNNNNNNNN*. Example: `64800000` (*18:00:00*). This value is a number that expresses the number of milliseconds for the provided time on the first day of the calendar (*1970-01-01*). In JavaScript always use *1970-01-01* as the date for the provided time.
+    - **Date time format**: *NNNNNNNNNNNNN*. Example: `1632592800000` (*2021-09-25 18:00:00*)
 
 ### Dealing with different date and time formats coming from the database
 
@@ -132,7 +138,11 @@ When a value is returned from the database that is different from the defined st
 - `treatUxepectedStringDateTimeAsUTC`: (default *false*)
     - When a numeric representation is expected (UNIX time or Julian day), but a string representation is received. 
     - If that string representation doesn't have a defined timezone, the value is treated as local date-time (the time zone is the same as the running application). 
-    - If you set this property to *true* you force to treat this case as UTC time.
+    - If you set this property to *true*, you force to treat this case as UTC time.
+- `uxepectedUnixDateTimeAreMilliseconds`: (default *false*)
+    - When a string representation is expected, but a numeric value is received, if the value is an integer, it is treated as UNIX time; if it has decimals, it is treated as Julian day. 
+    - By default, this unexpected UNIX time is understood as the number of seconds from the beginning of the UNIX time (*1970-01-01*).
+    - If you set this property to *true*, you force to treat this UNIX time as the number of milliseconds from the beginning of the UNIX time (*1970-01-01*).
 
 ### Compatibility mode
 

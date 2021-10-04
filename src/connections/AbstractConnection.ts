@@ -55,14 +55,13 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     private onRollbackStack?: Array<Array<()=>void> | undefined>
 
     private pushTransactionStack() {
-        if (this.onCommit || this.onCommitStack) {
+        if (this.onCommit || this.onCommitStack || this.onRollback || this.onRollbackStack) {
             if (!this.onCommitStack) {
                 this.onCommitStack = []
             }
             this.onCommitStack.push(this.onCommit)
             this.onCommit = undefined
-        }
-        if (this.onRollback || this.onRollbackStack) {
+            
             if (!this.onRollbackStack) {
                 this.onRollbackStack = []
             }

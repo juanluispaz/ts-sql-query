@@ -21,9 +21,9 @@ import { DefaultImpl } from "../expressions/Default"
 import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
 import ChainedError from "chained-error"
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue } from "../queryBuilders/FragmentQueryBuilder"
-import { attachRollbackError, attachSource, attachTransactionError, attachTransactionSource } from "../utils/attachSource"
+import { attachSource, attachTransactionSource } from "../utils/attachSource"
 import { database, tableOrViewRef, type } from "../utils/symbols"
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { callDeferredFunctions, UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
 import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilder"
 import { RawFragment } from "../utils/RawFragment"
@@ -49,10 +49,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         sqlBuilder._connectionConfiguration = this as any // transform protected methods to public
     }
 
-    private onCommit?: Array<()=>void>
-    private onRollback?: Array<()=>void>
-    private onCommitStack?: Array<Array<()=>void> | undefined>
-    private onRollbackStack?: Array<Array<()=>void> | undefined>
+    private onCommit?: Array<() => void | Promise<void>>
+    private onRollback?: Array<() => void | Promise<void>>
+    private onCommitStack?: Array<Array<() => void | Promise<void>> | undefined>
+    private onRollbackStack?: Array<Array<() => void | Promise<void>> | undefined>
 
     private pushTransactionStack() {
         if (this.onCommit || this.onCommitStack || this.onRollback || this.onRollbackStack) {
@@ -89,7 +89,9 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         }
     }
 
-    executeAfterNextCommit(fn: ()=> void): void {
+    executeAfterNextCommit(fn: ()=> void): void
+    executeAfterNextCommit(fn: ()=> Promise<void>): void
+    executeAfterNextCommit(fn: ()=> void | Promise<void>): void {
         if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
             throw new Error('There is no open transaction')
         }
@@ -99,7 +101,9 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         this.onCommit.push(fn)
     }
 
-    executeAfterNextRollback(fn: ()=> void): void {
+    executeAfterNextRollback(fn: ()=> void): void
+    executeAfterNextRollback(fn: ()=> Promise<void>): void
+    executeAfterNextRollback(fn: ()=> void | Promise<void>): void {
         if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
             throw new Error('There is no open transaction')
         }
@@ -123,35 +127,14 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                     throw e
                 }
             }, this.queryRunner).then((result) => {
-                try {
-                    const onCommit = this.onCommit
-                    if (onCommit) {
-                        for (let i = 0, length = onCommit.length; i < length; i++) {
-                            onCommit[i]!()
-                        }
-                    }
-                } catch (e) {
-                    throw attachTransactionSource(new ChainedError(e), source)
-                } finally {
-                    this.popTransactionStack()
-                }
-                return result
+                const onCommit = this.onCommit
+                this.popTransactionStack()
+                return callDeferredFunctions('after next commit', onCommit, result, source)
             }, (e) => {
-                try {
-                    const onRollback = this.onRollback
-                    if (onRollback) {
-                        for (let i = 0, length = onRollback.length; i < length; i++) {
-                            onRollback[i]!()
-                        }
-                    }
-                } catch (err) {
-                    const newError: any = attachTransactionSource(new ChainedError(err), source)
-                    attachTransactionError(newError, e)
-                    throw newError
-                } finally {
-                    this.popTransactionStack()
-                }
-                throw attachTransactionSource(new ChainedError(e), source)
+                const throwError = attachTransactionSource(new ChainedError(e), source)
+                const onRollback = this.onRollback
+                this.popTransactionStack()
+                return callDeferredFunctions('after next rollback', onRollback, undefined, source, e, throwError)
             })
         } catch (e) {
             throw new ChainedError(e)
@@ -175,21 +158,14 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         const source = new Error('Query executed at')
         try {
             return this.queryRunner.executeCommit().then(() => {
-                try {
-                    const onCommit = this.onCommit
-                    if (onCommit) {
-                        for (let i = 0, length = onCommit.length; i < length; i++) {
-                            onCommit[i]!()
-                        }
-                    }
-                } catch (e) {
-                    throw attachSource(new ChainedError(e), source)
-                } finally {
-                    this.popTransactionStack()
-                }
-            }, (e) => {
+                const onCommit = this.onCommit
                 this.popTransactionStack()
-                throw attachSource(new ChainedError(e), source)
+                return callDeferredFunctions('after next commit', onCommit, undefined, source)
+            }, (e) => {
+                const throwError = attachSource(new ChainedError(e), source)
+                const onRollback = this.onRollback
+                this.popTransactionStack()
+                return callDeferredFunctions('after next rollback', onRollback, undefined, source, e, throwError)
             })
         } catch (e) {
             throw new ChainedError(e)
@@ -199,34 +175,14 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         const source = new Error('Query executed at')
         try {
             return this.queryRunner.executeRollback().then(() => {
-                try {
-                    const onRollback = this.onRollback
-                    if (onRollback) {
-                        for (let i = 0, length = onRollback.length; i < length; i++) {
-                            onRollback[i]!()
-                        }
-                    }
-                } catch (e) {
-                    throw attachSource(new ChainedError(e), source)
-                } finally {
-                    this.popTransactionStack()
-                }
+                const onRollback = this.onRollback
+                this.popTransactionStack()
+                return callDeferredFunctions('after next rollback', onRollback, undefined, source)
             }, (e) => {
-                try {
-                    const onRollback = this.onRollback
-                    if (onRollback) {
-                        for (let i = 0, length = onRollback.length; i < length; i++) {
-                            onRollback[i]!()
-                        }
-                    }
-                } catch (err) {
-                    const newError: any = attachSource(new ChainedError(err), source)
-                    attachRollbackError(newError, e)
-                    throw newError
-                } finally {
-                    this.popTransactionStack()
-                }
-                throw attachSource(new ChainedError(e), source)
+                const throwError = attachSource(new ChainedError(e), source)
+                const onRollback = this.onRollback
+                this.popTransactionStack()
+                return callDeferredFunctions('after next rollback', onRollback, undefined, source, e, throwError)
             })
         } catch (e) {
             throw new ChainedError(e)

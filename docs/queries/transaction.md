@@ -61,3 +61,5 @@ connection.executeAfterNextRollback(() => {
     console.log('After next rollback')
 })
 ```
+
+**Note**: The provided function can be a sync function that returns void or an async function that returns a promise of void.

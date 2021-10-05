@@ -271,8 +271,15 @@ export class MockQueryRunner implements QueryRunner {
         return result
     }
     addOutParam(params: any[], name: string): string {
+        if (this.database !== 'oracle') {
+            throw new Error('Unsupported output parameters')
+        }
         const index = params.length
-        params.push({out_param_with_name: name})
+        if (name) {
+            params.push({dir: 3003 /*oracledb.BIND_OUT*/, as: name}) // See https://github.com/oracle/node-oracledb/blob/master/lib/oracledb.js
+        } else {
+            params.push({dir: 3003 /*oracledb.BIND_OUT*/}) // See https://github.com/oracle/node-oracledb/blob/master/lib/oracledb.js
+        }
         return ':' + index
     }
 

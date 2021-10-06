@@ -1,12 +1,24 @@
 # Change Log
 
+## v1.18.0 (6 Sep 2021)
+
+**Changes**:
+
+- Manage the errors coming from the deferred execution logic till the end of a transaction, after commit or rollback. Now all deferred logic will be executed even if one of them throw an error. All errors thrown by the deferred logic will be collected and combined in one single error that will be thrown after the commit or rollback is executed
+
+**Bug fixes**:
+
+- Fix invalid high level transaction management when the commit fails. The transaction was not rolled back when the commit fails
+- Fix connection released too early due when the commit fails in a pooled query runner
+- Don't fire the deferred functions when rollback when the commit fails; when this happens the transaction is still ongoing
+
 ## v1.17.0 (5 Sep 2021)
 
 **Changes**:
 
-- Implements "Unix time milliseconds as integer" date/time strategy for sqlite that allows to store dates & times in UNIX time as milliseconds
+- Implements `Unix time milliseconds as integer` date/time strategy for sqlite that allows to store dates & times in UNIX time as milliseconds
 - MockQueryRunner create the output param for oracle in the same way this database expect it
-- Add support to differing execution logic using async functions till the end of a transaction, after commit or rollback
+- Add support to deferring execution logic using async functions till the end of a transaction, after commit or rollback
 
 **New examples**:
 
@@ -18,13 +30,13 @@
 
 **Bug fixes**:
 
-- Fix differing logic execution till the end of transaction in case of multiple nested transaction with multiple differed logic but not in the middle of the nesting transaction
+- Fix deferring logic execution till the end of transaction in case of multiple nested transaction with multiple deferred logic but not in the middle of the nesting transaction
 
 ## v1.16.0 (4 Sep 2021)
 
 **Changes**:
 
-- Add support to differing execution logic till the end of a transaction, after commit or rollback
+- Add support to deferring execution logic till the end of a transaction, after commit or rollback
 
 **Internal changes**:
 

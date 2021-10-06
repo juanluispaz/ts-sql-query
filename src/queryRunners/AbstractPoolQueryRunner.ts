@@ -56,9 +56,21 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
         if (this.transactionLevel <= 0) {
             throw new Error('You are not in a transaction')
         }
-        this.transactionLevel--
+        
         if (this.currentQueryRunner) {
-            return this.currentQueryRunner.executeCommit().finally(() => this.releaseIfNeeded())
+            return this.currentQueryRunner.executeCommit().then(() => {
+                // Transaction count and release only modified when commit successful, in case of error there is still an open transaction 
+                this.transactionLevel--
+                if (this.transactionLevel < 0) {
+                    this.transactionLevel = 0
+                }
+                this.releaseIfNeeded()
+            })
+        }
+
+        this.transactionLevel--
+        if (this.transactionLevel < 0) {
+            this.transactionLevel = 0
         }
         return this.createResolvedPromise(undefined)
     }
@@ -66,9 +78,20 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
         if (this.transactionLevel <= 0) {
             throw new Error('You are not in a transaction')
         }
-        this.transactionLevel--
+
         if (this.currentQueryRunner) {
-            return this.currentQueryRunner.executeRollback().finally(() => this.releaseIfNeeded())
+            return this.currentQueryRunner.executeRollback().finally(() => {
+                this.transactionLevel--
+                if (this.transactionLevel < 0) {
+                    this.transactionLevel = 0
+                }
+                this.releaseIfNeeded()
+            })
+        }
+
+        this.transactionLevel--
+        if (this.transactionLevel < 0) {
+            this.transactionLevel = 0
         }
         return this.createResolvedPromise(undefined)
     }

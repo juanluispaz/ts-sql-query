@@ -16,7 +16,7 @@ export abstract class ManagedTransactionPoolQueryRunner extends AbstractPoolQuer
                 return outermostQueryRunner.executeCommit().then(() => {
                     return r
                 })
-            }, (e) => {
+            }).catch((e) => {
                 return outermostQueryRunner.executeRollback().then(() => {
                     throw e
                 }, () => {

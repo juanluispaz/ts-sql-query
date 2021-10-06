@@ -9,12 +9,27 @@ export abstract class PromiseBasedWithSqlTransactionQueryRunner extends PromiseB
         })
     }
     executeCommit(): Promise<void> {
-        this.transactionLevel--
-        return this.executeMutation('commit', []).then(() => undefined)
+        return this.executeMutation('commit', []).then(() => {
+            // Transaction count only modified when commit successful, in case of error there is still an open transaction 
+            this.transactionLevel--
+            if (this.transactionLevel < 0) {
+                this.transactionLevel = 0
+            }
+        })
     }
     executeRollback(): Promise<void> {
-        this.transactionLevel--
-        return this.executeMutation('rollback', []).then(() => undefined)
+        return this.executeMutation('rollback', []).then(() => {
+            this.transactionLevel--
+            if (this.transactionLevel < 0) {
+                this.transactionLevel = 0
+            }
+        }, (error) => {
+            this.transactionLevel--
+            if (this.transactionLevel < 0) {
+                this.transactionLevel = 0
+            }
+            throw error
+        })
     }
     isTransactionActive(): boolean {
         return this.transactionLevel > 0

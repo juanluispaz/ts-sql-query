@@ -72,6 +72,7 @@ export abstract class LoopBackAbstractQueryRunner extends PromiseBasedQueryRunne
             return Promise.reject(new Error('Not in an transaction, you cannot commit the transaction'))
         }
         return (this.transaction.commit() as Promise<any>).then(() => {
+            // Transaction count only modified when commit successful, in case of error there is still an open transaction 
             this.transaction = undefined
         })
     }
@@ -79,7 +80,7 @@ export abstract class LoopBackAbstractQueryRunner extends PromiseBasedQueryRunne
         if (!this.transaction) {
             return Promise.reject(new Error('Not in an transaction, you cannot rollback the transaction'))
         }
-        return (this.transaction.rollback() as Promise<any>).then(() => {
+        return (this.transaction.rollback() as Promise<any>).finally(() => {
             this.transaction = undefined
         })
     }

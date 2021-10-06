@@ -60,7 +60,8 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
         if (!this.transaction) {
             return Promise.reject(new Error('Not in an transaction, you cannot commit the transaction'))
         }
-        return this.transaction.commit().finally(() => {
+        return this.transaction.commit().then(() => {
+            // Transaction count only modified when commit successful, in case of error there is still an open transaction 
             this.transaction = undefined
         })
     }

@@ -46,12 +46,22 @@ export class OracleDBQueryRunner extends PromiseBasedQueryRunner {
         return Promise.resolve()
     }
     executeCommit(): Promise<void> {
-        this.transactionLevel--
-        return this.connection.commit()
+        return this.connection.commit().then(() => {
+            // Transaction count only modified when commit successful, in case of error there is still an open transaction 
+            this.transactionLevel--
+            if (this.transactionLevel < 0) {
+                this.transactionLevel = 0
+            }
+        })
     }
     executeRollback(): Promise<void> {
         this.transactionLevel--
-        return this.connection.rollback()
+        return this.connection.rollback().finally(() => {
+            this.transactionLevel--
+            if (this.transactionLevel < 0) {
+                this.transactionLevel = 0
+            }
+        })
     }
     isTransactionActive(): boolean {
         return this.transactionLevel > 0

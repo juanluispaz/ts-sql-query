@@ -82,21 +82,28 @@ export class MySql2QueryRunner extends PromiseBasedQueryRunner {
         })
     }
     executeCommit(): Promise<void> {
-        this.transactionLevel--
         return new Promise((resolve, reject) => {
             this.connection.commit((error: QueryError | null) => {
                 if (error) {
+                    // Transaction count only modified when commit successful, in case of error there is still an open transaction 
                     reject(error)
                 } else {
+                    this.transactionLevel--
+                    if (this.transactionLevel < 0) {
+                        this.transactionLevel = 0
+                    }
                     resolve()
                 }
             })
         })
     }
     executeRollback(): Promise<void> {
-        this.transactionLevel--
         return new Promise((resolve, reject) => {
             this.connection.rollback((error?: QueryError | null) => {
+                this.transactionLevel--
+                if (this.transactionLevel < 0) {
+                    this.transactionLevel = 0
+                }
                 if (error) {
                     reject(error)
                 } else {

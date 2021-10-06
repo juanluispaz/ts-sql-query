@@ -108,6 +108,7 @@ export class AnyDBQueryRunner extends PromiseBasedQueryRunner {
             }
             this.transaction.commit((error) => {
                 if (error) {
+                    // Transaction count only modified when commit successful, in case of error there is still an open transaction 
                     reject(error)
                 } else {
                     this.transaction = undefined
@@ -123,10 +124,10 @@ export class AnyDBQueryRunner extends PromiseBasedQueryRunner {
                 return
             }
             this.transaction.rollback((error) => {
+                this.transaction = undefined
                 if (error) {
                     reject(error)
                 } else {
-                    this.transaction = undefined
                     resolve()
                 }
             })

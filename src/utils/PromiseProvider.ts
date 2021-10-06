@@ -1,5 +1,5 @@
 import ChainedError from "chained-error"
-import { attachTransactionError, attachTransactionSource } from "./attachSource"
+import { attachAdditionalError, attachTransactionError, attachTransactionSource } from "./attachSource"
 
 export type PromiseProvider = PromiseConstructorLike & {
     resolve: typeof Promise.resolve,
@@ -35,49 +35,92 @@ export function callDeferredFunctions<T>(name: string, fns: Array<() => void | P
         }
         return result
     }
-    try {
-        let promise: Promise<void> | undefined
-        for (let i = 0, length = fns.length; i < length; i++) {
-            if (!promise) {
+
+    let promise: Promise<void> | undefined
+    // A containner is required to allow other functions to modify the value
+    const errorContainer: ErrorContainer = { 
+        error: throwError,
+        name,
+        source,
+        transactionError
+    }
+    for (let i = 0, length = fns.length; i < length; i++) {
+        if (!promise) {
+            try {
                 const fnResult = fns[i]!()
                 if (isPromise(fnResult)) {
                     promise = fnResult
                 }
+            } catch (e) {
+                if (errorContainer.error) {
+                    attachAdditionalError(errorContainer.error, e, name)
+                } else {
+                    errorContainer.error = attachTransactionSource(new ChainedError('Error executing ' + name + ' functions', e), source)
+                    if (transactionError) {
+                        attachTransactionError(errorContainer.error, transactionError)
+                    }
+                }
+            }
+        } else {
+            const fn = fns[i]!
+            promise = promise.then(callDeferredFunctionAsThen.bind(undefined, fn, errorContainer, true), callDeferredFunctionAsThen.bind(undefined, fn, errorContainer, false))
+        }
+    }
+    if (promise) {
+        return promise.then(() => {
+            if (errorContainer.error) {
+                throw errorContainer.error
+            }
+            return result
+        }, (e) => {
+            if (errorContainer.error) {
+                attachAdditionalError(errorContainer.error, e, errorContainer.name)
             } else {
-                const fn = fns[i]!
-                promise = promise.then(callDeferredFunctionAsThen.bind(undefined, fn))
+                errorContainer.error = attachTransactionSource(new ChainedError('Error executing ' + errorContainer.name + ' functions', e), errorContainer.source)
+                if (errorContainer.transactionError) {
+                    attachTransactionError(errorContainer.error, errorContainer.transactionError)
+                }
+            }
+            throw errorContainer.error
+        })
+    }
+    if (errorContainer.error) {
+        throw errorContainer.error
+    }
+    return result
+}
+
+function callDeferredFunctionAsThen(fn: () => void | Promise<void>, errorContainer: ErrorContainer, isThen: boolean, executionError: void | Error): void | Promise<void> {
+    if (!isThen && executionError) {
+        if (errorContainer.error) {
+            attachAdditionalError(errorContainer.error, executionError, errorContainer.name)
+        } else {
+            errorContainer.error = attachTransactionSource(new ChainedError('Error executing ' + errorContainer.name + ' functions', executionError), errorContainer.source)
+            if (errorContainer.transactionError) {
+                attachTransactionError(errorContainer.error, errorContainer.transactionError)
             }
         }
-        if (promise) {
-            return promise.then(() => {
-                if (throwError) {
-                    throw throwError
-                }
-                return result
-            }, (e) => {
-                const newError = attachTransactionSource(new ChainedError('Error executing ' + name + ' functions', e), source)
-                if (transactionError) {
-                    attachTransactionError(newError, transactionError)
-                }
-                throw newError
-            })
+    }
+    try {
+        const fnResult = fn()
+        if (isPromise(fnResult)) {
+            return fnResult
         }
-        if (throwError) {
-            throw throwError
-        }
-        return result
     } catch (e) {
-        const newError = attachTransactionSource(new ChainedError('Error executing ' + name + ' functions', e), source)
-        if (transactionError) {
-            attachTransactionError(newError, transactionError)
+        if (errorContainer.error) {
+            attachAdditionalError(errorContainer.error, e, errorContainer.name)
+        } else {
+            errorContainer.error = attachTransactionSource(new ChainedError('Error executing ' + errorContainer.name + ' functions', e), errorContainer.source)
+            if (errorContainer.transactionError) {
+                attachTransactionError(errorContainer.error, errorContainer.transactionError)
+            }
         }
-        throw newError
     }
 }
 
-function callDeferredFunctionAsThen(fn: () => void | Promise<void>): void | Promise<void> {
-    const fnResult = fn()
-    if (isPromise(fnResult)) {
-        return fnResult
-    }
+interface ErrorContainer {
+    error: Error | undefined
+    readonly name: string
+    readonly source: Error
+    readonly transactionError?: Error
 }

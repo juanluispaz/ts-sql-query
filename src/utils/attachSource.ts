@@ -49,3 +49,27 @@ export function attachTransactionError(error: Error, source: unknown): Error {
     }
     return error
 }
+
+export function attachAdditionalError(error: Error, additional: unknown, name: string): Error {
+    let additionalErrors: Array<unknown> | undefined = (error as any).additionalErrors
+    if (!additionalErrors) {
+        additionalErrors = []
+        Object.defineProperty(error, 'additionalErrors', {
+            value: additionalErrors,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    additionalErrors.push(additional)
+    if (additional instanceof Error) {
+        error.stack = error.stack + '\n-------------------------------------------------------------\n'
+            + 'An additional error happens during the ' + name +  ' processing in another handler.\n'
+            + 'Additional error: ' + additional.stack
+    } else {
+        error.stack = error.stack + '\n-------------------------------------------------------------\n'
+            + 'An additional error happens during the ' + name +  ' processing in another handler.\n'
+            + 'Additional error: ' + additional
+    }
+    return error
+}

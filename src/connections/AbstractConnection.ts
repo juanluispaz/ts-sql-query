@@ -162,10 +162,9 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                 this.popTransactionStack()
                 return callDeferredFunctions('after next commit', onCommit, undefined, source)
             }, (e) => {
-                const throwError = attachSource(new ChainedError(e), source)
-                const onRollback = this.onRollback
-                this.popTransactionStack()
-                return callDeferredFunctions('after next rollback', onRollback, undefined, source, e, throwError)
+                // Transaction only closed when commit successful, in case of error there is still an open transaction 
+                // No rollback yet, then no executeAfterNextRollback will be executed
+                throw attachSource(new ChainedError(e), source)
             })
         } catch (e) {
             throw new ChainedError(e)

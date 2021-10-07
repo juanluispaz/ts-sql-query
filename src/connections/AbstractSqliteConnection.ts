@@ -82,22 +82,24 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                         default:
                             throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
                     }
-                } else if (typeof value === 'number') {
+                } else if (typeof value === 'number' || typeof value === 'bigint') {
+                    let number: number = (typeof value === 'bigint') ? Number(value) : value;
+
                     if (dateTimeFormat === 'Julian day as real number') {
-                        result = new Date(julianToMilliseconds(value)) // Timezone is not compesated due down time is overwrited
+                        result = new Date(julianToMilliseconds(number)) // Timezone is not compesated due down time is overwrited
                     } else if (dateTimeFormat === 'Unix time seconds as integer') {
-                        result = new Date(value * 1000)
+                        result = new Date(number * 1000)
                     } else if (dateTimeFormat === 'Unix time milliseconds as integer') {
-                        result = new Date(value)
+                        result = new Date(number)
                     } else {
                         // Try to automatically detect if it is a julian or a unix time
                         // If it have decimal, it will be considered julian, otherwise unix time
-                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(value)) {
-                            result = new Date(julianToMilliseconds(value))
+                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(number)) {
+                            result = new Date(julianToMilliseconds(number))
                         } else if (this.uxepectedUnixDateTimeAreMilliseconds) {
-                            result = new Date(value)
+                            result = new Date(number)
                         } else {
-                            result = new Date(value * 1000)
+                            result = new Date(number * 1000)
                         }
                     }
                     result.setUTCHours(0, 0, 0, 0)
@@ -169,26 +171,28 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                         default:
                             throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
                     }
-                } else if (typeof value === 'number') {
+                } else if (typeof value === 'number' || typeof value === 'bigint') {
+                    let number: number = (typeof value === 'bigint') ? Number(value) : value;
+
                     if (dateTimeFormat === 'Julian day as real number') {
-                        result = new Date(julianToMilliseconds(value + 2440587.5 /* 1970-01-01 */))
+                        result = new Date(julianToMilliseconds(number + 2440587.5 /* 1970-01-01 */))
                     } else if (dateTimeFormat === 'Unix time seconds as integer') {
-                        result = new Date(value * 1000)
+                        result = new Date(number * 1000)
                     } else if (dateTimeFormat === 'Unix time milliseconds as integer') {
-                        result = new Date(value)
+                        result = new Date(number)
                     } else {
                         // Try to automatically detect if it is a julian or a unix time
                         // If it have decimal, it will be considered julian, otherwise unix time
-                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(value)) {
-                            if (value >= -1 && value <= 1) {
-                                result = new Date(julianToMilliseconds(value + 2440587.5 /* 1970-01-01 */))
+                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(number)) {
+                            if (number >= -1 && number <= 1) {
+                                result = new Date(julianToMilliseconds(number + 2440587.5 /* 1970-01-01 */))
                             } else {
-                                result = new Date(julianToMilliseconds(value))
+                                result = new Date(julianToMilliseconds(number))
                             }
                         } else if (this.uxepectedUnixDateTimeAreMilliseconds) {
-                            result = new Date(value)
+                            result = new Date(number)
                         } else {
-                            result = new Date(value * 1000)
+                            result = new Date(number * 1000)
                         }
                     }
                 } else {
@@ -238,21 +242,23 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                             throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
                     }
                 } else if (typeof value === 'number' || typeof value === 'bigint') {
+                    let number: number = (typeof value === 'bigint') ? Number(value) : value;
+
                     if (dateTimeFormat === 'Julian day as real number') {
-                        result = new Date(julianToMilliseconds(value)) // Timezone is not compesated due down time is overwrited
+                        result = new Date(julianToMilliseconds(number)) // Timezone is not compesated due down time is overwrited
                     } else if (dateTimeFormat === 'Unix time seconds as integer') {
-                        result = new Date(value * 1000)
+                        result = new Date(number * 1000)
                     } else if (dateTimeFormat === 'Unix time milliseconds as integer') {
-                        result = new Date(value)
+                        result = new Date(number)
                     } else {
                         // Try to automatically detect if it is a julian or a unix time
                         // If it have decimal, it will be considered julian, otherwise unix time
-                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(value)) {
-                            result = new Date(julianToMilliseconds(value))
+                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(number)) {
+                            result = new Date(julianToMilliseconds(number))
                         } else if (this.uxepectedUnixDateTimeAreMilliseconds) {
-                            result = new Date(value)
+                            result = new Date(number)
                         } else {
-                            result = new Date(value * 1000)
+                            result = new Date(number * 1000)
                         }
                     }
                 } else {

@@ -48,7 +48,7 @@ class DBConection extends TypeSafeSqliteConnection<'DBConnection'> { }
 
 ### Working with Date and Time in Sqlite
 
-ts-sql-query offers you different strategies to handle date and time in the database compatible with [sqlite date and time functions](https://www.sqlite.org/lang_datefunc.html). To define the strategy to be used, you must overwrite the `getDateTimeFormat` function; this function receives as an argument the type of date to handle (`date`, `time`, `dateTime`) and returns the strategy to use for that specific case. In addition, there are two properties (`treatUnexpectedIntegerDateTimeAsJulian` and `treatUxepectedStringDateTimeAsUTC`) that allow controlling how to deal with the cases when the expected format is not the one stored in the database. Example:
+ts-sql-query offers you different strategies to handle date and time in the database compatible with [sqlite date and time functions](https://www.sqlite.org/lang_datefunc.html). To define the strategy to be used, you must overwrite the `getDateTimeFormat` function; this function receives as an argument the type of date to handle (`date`, `time`, `dateTime`) and returns the strategy to use for that specific case. In addition, there are two properties (`treatUnexpectedIntegerDateTimeAsJulian` and `treatUnexpectedStringDateTimeAsUTC`) that allow controlling how to deal with the cases when the expected format is not the one stored in the database. Example:
 
 ```ts
 import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
@@ -66,7 +66,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
         }
     }
     protected treatUnexpectedIntegerDateTimeAsJulian = false
-    protected treatUxepectedStringDateTimeAsUTC = true
+    protected treatUnexpectedStringDateTimeAsUTC = true
 }
 ```
 
@@ -135,11 +135,11 @@ When a value is returned from the database that is different from the defined st
     - When a string representation is expected, but a numeric value is received, if the value is an integer, it is treated as UNIX time; if it has decimals, it is treated as Julian day. 
     - The problem with this approach is any Jualian date set at noon is an integer value in JavaScript; then, the value is misunderstood. 
     - However, you can force to ignore the UNIX time and always consider the value as Julian day if you set this property to *true*. 
-- `treatUxepectedStringDateTimeAsUTC`: (default *false*)
+- `treatUnexpectedStringDateTimeAsUTC`: (default *false*)
     - When a numeric representation is expected (UNIX time or Julian day), but a string representation is received. 
     - If that string representation doesn't have a defined timezone, the value is treated as local date-time (the time zone is the same as the running application). 
     - If you set this property to *true*, you force to treat this case as UTC time.
-- `uxepectedUnixDateTimeAreMilliseconds`: (default *false*)
+- `unexpectedUnixDateTimeAreMilliseconds`: (default *false*)
     - When a string representation is expected, but a numeric value is received, if the value is an integer, it is treated as UNIX time (if you didn't change the default behaviour); if it has decimals, it is treated as Julian day. 
     - By default, this unexpected UNIX time is understood as the number of seconds from the beginning of the UNIX time (*1970-01-01*).
     - If you set this property to *true*, you force to treat this UNIX time as the number of milliseconds from the beginning of the UNIX time (*1970-01-01*).

@@ -27,8 +27,8 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
         return 'localdate as text'
     }
     protected treatUnexpectedIntegerDateTimeAsJulian: boolean = false
-    protected treatUxepectedStringDateTimeAsUTC: boolean = false
-    protected uxepectedUnixDateTimeAreMilliseconds: boolean = false
+    protected treatUnexpectedStringDateTimeAsUTC: boolean = false
+    protected unexpectedUnixDateTimeAreMilliseconds: boolean = false
 
     protected transformValueFromDB(value: unknown, type: string): unknown {
         if (value === undefined || value == null) {
@@ -62,7 +62,7 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                         case 'Julian day as real number':
                         case 'Unix time seconds as integer':
                         case 'Unix time milliseconds as integer':
-                            if (!this.treatUxepectedStringDateTimeAsUTC) {
+                            if (!this.treatUnexpectedStringDateTimeAsUTC) {
                                 if (value.length <= 10) {
                                     result = new Date(value + ' 00:00') // If time is omited, UTC timezone will be used instead the local one
                                 } else {
@@ -94,9 +94,9 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                     } else {
                         // Try to automatically detect if it is a julian or a unix time
                         // If it have decimal, it will be considered julian, otherwise unix time
-                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(number)) {
+                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(value)) {
                             result = new Date(julianToMilliseconds(number))
-                        } else if (this.uxepectedUnixDateTimeAreMilliseconds) {
+                        } else if (this.unexpectedUnixDateTimeAreMilliseconds) {
                             result = new Date(number)
                         } else {
                             result = new Date(number * 1000)
@@ -145,13 +145,13 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                         case 'Unix time seconds as integer':
                         case 'Unix time milliseconds as integer':
                             if (containsDate(value)) {
-                                if (this.treatUxepectedStringDateTimeAsUTC) {
+                                if (this.treatUnexpectedStringDateTimeAsUTC) {
                                     result = new Date(value + 'Z')
                                 } else {
                                     result = new Date(value)
                                 }
                             } else {
-                                if (this.treatUxepectedStringDateTimeAsUTC) {
+                                if (this.treatUnexpectedStringDateTimeAsUTC) {
                                     result = new Date('1970-01-01 ' + value + 'Z')
                                 } else {
                                     result = new Date('1970-01-01 ' + value)
@@ -189,7 +189,7 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                             } else {
                                 result = new Date(julianToMilliseconds(number))
                             }
-                        } else if (this.uxepectedUnixDateTimeAreMilliseconds) {
+                        } else if (this.unexpectedUnixDateTimeAreMilliseconds) {
                             result = new Date(number)
                         } else {
                             result = new Date(number * 1000)
@@ -226,7 +226,7 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                             break
                         case 'Julian day as real number':
                         case 'Unix time seconds as integer':
-                            if (this.treatUxepectedStringDateTimeAsUTC) {
+                            if (this.treatUnexpectedStringDateTimeAsUTC) {
                                 result = new Date(value + 'Z')
                             } else {
                                 result = new Date(value)
@@ -253,9 +253,9 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                     } else {
                         // Try to automatically detect if it is a julian or a unix time
                         // If it have decimal, it will be considered julian, otherwise unix time
-                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(number)) {
+                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(value)) {
                             result = new Date(julianToMilliseconds(number))
-                        } else if (this.uxepectedUnixDateTimeAreMilliseconds) {
+                        } else if (this.unexpectedUnixDateTimeAreMilliseconds) {
                             result = new Date(number)
                         } else {
                             result = new Date(number * 1000)

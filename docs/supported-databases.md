@@ -48,7 +48,7 @@ class DBConection extends SqliteConnection<'DBConnection'> { }
 
 ### Working with Date and Time in Sqlite
 
-ts-sql-query offers you different strategies to handle date and time in the database compatible with [sqlite date and time functions](https://www.sqlite.org/lang_datefunc.html). To define the strategy to be used, you must overwrite the `getDateTimeFormat` function; this function receives as an argument the type of date to handle (`date`, `time`, `dateTime`) and returns the strategy to use for that specific case. In addition, there are two properties (`treatUnexpectedIntegerDateTimeAsJulian` and `treatUnexpectedStringDateTimeAsUTC`) that allow controlling how to deal with the cases when the expected format is not the one stored in the database. Example:
+ts-sql-query offers you different strategies to handle date and time in the database compatible with [sqlite date and time functions](https://www.sqlite.org/lang_datefunc.html). To define the strategy to be used, you must overwrite the `getDateTimeFormat` function; this function receives as an argument the type of date to handle (`date`, `time`, `dateTime`) and returns the strategy to use for that specific case. In addition, there are three properties (`treatUnexpectedIntegerDateTimeAsJulian`, `treatUnexpectedStringDateTimeAsUTC`, and `unexpectedUnixDateTimeAreMilliseconds`) that allow controlling how to deal with the cases when the expected format is not the one stored in the database. Example:
 
 ```ts
 import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";

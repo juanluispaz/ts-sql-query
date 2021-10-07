@@ -82,30 +82,32 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                         default:
                             throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
                     }
-                } else if (typeof value === 'number') {
+                } else if (typeof value === 'number' || typeof value === 'bigint') {
+                    let number: number = (typeof value === 'bigint') ? Number(value) : value;
+
                     if (dateTimeFormat === 'Julian day as real number') {
-                        result = new Date(julianToMilliseconds(value)) // Timezone is not compesated due down time is overwrited
+                        result = new Date(julianToMilliseconds(number)) // Timezone is not compesated due down time is overwrited
                     } else if (dateTimeFormat === 'Unix time seconds as integer') {
-                        result = new Date(value * 1000)
+                        result = new Date(number * 1000)
                     } else if (dateTimeFormat === 'Unix time milliseconds as integer') {
-                        result = new Date(value)
+                        result = new Date(number)
                     } else {
-                        // Try to automatically detect if it is a jualian or a unix time
+                        // Try to automatically detect if it is a julian or a unix time
                         // If it have decimal, it will be considered julian, otherwise unix time
                         if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(value)) {
-                            result = new Date(julianToMilliseconds(value))
+                            result = new Date(julianToMilliseconds(number))
                         } else if (this.unexpectedUnixDateTimeAreMilliseconds) {
-                            result = new Date(value)
+                            result = new Date(number)
                         } else {
-                            result = new Date(value * 1000)
+                            result = new Date(number * 1000)
                         }
                     }
                     result.setUTCHours(0, 0, 0, 0)
                 } else {
-                    throw new Error('Invalid localDate value received from the db: ' + value)
+                    throw new Error(`Invalid localDate value received from the db: ${value} (type ${typeof value})`)
                 }
                 if (isNaN(result.getTime())) {
-                    throw new Error('Invalid localDate value received from the db: ' + value)
+                    throw new Error(`Invalid localDate value received from the db: ${value} (.getTime() returns NaN)`)
                 }
                 (result as any).___type___ = 'localDate'
                 // This time fix works in almost every timezone (from -10 to +13, but not +14, -11, -12, almost uninhabited)
@@ -169,33 +171,35 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                         default:
                             throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
                     }
-                } else if (typeof value === 'number') {
+                } else if (typeof value === 'number' || typeof value === 'bigint') {
+                    let number: number = (typeof value === 'bigint') ? Number(value) : value;
+
                     if (dateTimeFormat === 'Julian day as real number') {
-                        result = new Date(julianToMilliseconds(value + 2440587.5 /* 1970-01-01 */))
+                        result = new Date(julianToMilliseconds(number + 2440587.5 /* 1970-01-01 */))
                     } else if (dateTimeFormat === 'Unix time seconds as integer') {
-                        result = new Date(value * 1000)
+                        result = new Date(number * 1000)
                     } else if (dateTimeFormat === 'Unix time milliseconds as integer') {
-                        result = new Date(value)
+                        result = new Date(number)
                     } else {
-                        // Try to automatically detect if it is a jualian or a unix time
+                        // Try to automatically detect if it is a julian or a unix time
                         // If it have decimal, it will be considered julian, otherwise unix time
-                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(value)) {
-                            if (value >= -1 && value <= 1) {
-                                result = new Date(julianToMilliseconds(value + 2440587.5 /* 1970-01-01 */))
+                        if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(number)) {
+                            if (number >= -1 && number <= 1) {
+                                result = new Date(julianToMilliseconds(number + 2440587.5 /* 1970-01-01 */))
                             } else {
-                                result = new Date(julianToMilliseconds(value))
+                                result = new Date(julianToMilliseconds(number))
                             }
                         } else if (this.unexpectedUnixDateTimeAreMilliseconds) {
-                            result = new Date(value)
+                            result = new Date(number)
                         } else {
-                            result = new Date(value * 1000)
+                            result = new Date(number * 1000)
                         }
                     }
                 } else {
-                    throw new Error('Invalid localTime value received from the db: ' + value)
+                    throw new Error(`Invalid localTime value received from the db: ${value} (type ${typeof value})`)
                 }
                 if (isNaN(result.getTime())) {
-                    throw new Error('Invalid localTime value received from the db: ' + value)
+                    throw new Error(`Invalid localTime value received from the db: ${value} (.getTime() returns NaN)`)
                 }
                 (result as any).___type___ = 'localTime'
                 result.setFullYear(1970, 0, 1)
@@ -237,29 +241,31 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                         default:
                             throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
                     }
-                } else if (typeof value === 'number') {
+                } else if (typeof value === 'number' || typeof value === 'bigint') {
+                    let number: number = (typeof value === 'bigint') ? Number(value) : value;
+
                     if (dateTimeFormat === 'Julian day as real number') {
-                        result = new Date(julianToMilliseconds(value)) // Timezone is not compesated due down time is overwrited
+                        result = new Date(julianToMilliseconds(number)) // Timezone is not compesated due down time is overwrited
                     } else if (dateTimeFormat === 'Unix time seconds as integer') {
-                        result = new Date(value * 1000)
+                        result = new Date(number * 1000)
                     } else if (dateTimeFormat === 'Unix time milliseconds as integer') {
-                        result = new Date(value)
+                        result = new Date(number)
                     } else {
-                        // Try to automatically detect if it is a jualian or a unix time
+                        // Try to automatically detect if it is a julian or a unix time
                         // If it have decimal, it will be considered julian, otherwise unix time
                         if (this.treatUnexpectedIntegerDateTimeAsJulian || !Number.isInteger(value)) {
-                            result = new Date(julianToMilliseconds(value))
+                            result = new Date(julianToMilliseconds(number))
                         } else if (this.unexpectedUnixDateTimeAreMilliseconds) {
-                            result = new Date(value)
+                            result = new Date(number)
                         } else {
-                            result = new Date(value * 1000)
+                            result = new Date(number * 1000)
                         }
                     }
                 } else {
-                    throw new Error('Invalid localDateTime value received from the db: ' + value + ` (type ${typeof value})`)
+                    throw new Error(`Invalid localDateTime value received from the db: ${value} (type ${typeof value})`)
                 }
                 if (isNaN(result.getTime())) {
-                    throw new Error('Invalid localDateTime value received from the db: ' + value + ' (NaN)')
+                    throw new Error(`Invalid localDateTime value received from the db: ${value} (.getTime() returns NaN)`)
                 }
                 (result as any).___type___ = 'LocalDateTime'
                 return result
@@ -293,7 +299,7 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                             throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
                     }
                 }
-                throw new Error('Invalid localDate value to send to the db: ' + value)
+                throw new Error(`Invalid localDate value to send to the db: ${value} (type ${typeof value})`)
             case 'localTime':
                 if (value instanceof Date && !isNaN(value.getTime())) {
                     const dateTimeFormat = this.getDateTimeFormat('time')
@@ -317,7 +323,7 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                             throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
                     }
                 }
-                throw new Error('Invalid localTime value to send to the db: ' + value)
+                throw new Error(`Invalid localTime value to send to the db: ${value} (type ${typeof value})`)
             case 'localDateTime':
                 if (value instanceof Date && !isNaN(value.getTime())) {
                     const dateTimeFormat = this.getDateTimeFormat('dateTime')
@@ -350,7 +356,7 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                             throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
                     }
                 }
-                throw new Error('Invalid localDateTime value to send to the db: ' + value)
+                throw new Error(`Invalid localDateTime value to send to the db: ${value} (type ${typeof value})`)
         }
         return super.transformValueToDB(value, type)
     }

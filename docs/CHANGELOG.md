@@ -1,5 +1,16 @@
 # Change Log
 
+## v1.19.0 (6 Sep 2021)
+
+**Changes**:
+
+- Add support to numeric date/time in Sqlite that is expressed as bigint in JavaScript by the database connector (By example, using `defaultSafeIntegers` option in BetterSqlite3)
+
+**Bug fixes**:
+
+- Fix typo in Sqlite `treatUnexpectedStringDateTimeAsUTC` connection option (wrongly named: `treatUxepectedStringDateTimeAsUTC`)
+- Fix typo in Sqlite `unexpectedUnixDateTimeAreMilliseconds` connection option (wrongly named: `uxepectedUnixDateTimeAreMilliseconds`)
+
 ## v1.18.0 (6 Sep 2021)
 
 **Changes**:

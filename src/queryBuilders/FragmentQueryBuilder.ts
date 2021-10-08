@@ -1,5 +1,5 @@
 import type { TypeAdapter } from "../TypeAdapter"
-import type { ValueSource, Argument } from "../expressions/values"
+import type { IValueSource, Argument } from "../expressions/values"
 import { FragmentValueSource, ValueSourceImpl, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop } from "../internal/ValueSourceImpl"
 import { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 
@@ -14,7 +14,7 @@ export class FragmentQueryBuilder {
         this.__isOptional = optional
     }
 
-    sql(sql: TemplateStringsArray, ...params: ValueSource<any, any>[]): ValueSource<any, any> {
+    sql(sql: TemplateStringsArray, ...params: IValueSource<any, any>[]): IValueSource<any, any> {
         return new FragmentValueSource(this.__isOptional, sql, params, this.__type, this.__adapter)
     }
 }
@@ -26,9 +26,9 @@ export class FragmentFunctionBuilder {
         this.definitions = definitions
     }
     
-    as(impl: (...vs: ValueSource<any, any>[]) => ValueSource<any, any>): ((...args: any[]) => ValueSource<any, any>) {
-        return (...args: any[]): ValueSource<any, any> => {
-            const newArgs: ValueSource<any, any>[] = []
+    as(impl: (...vs: IValueSource<any, any>[]) => IValueSource<any, any>): ((...args: any[]) => IValueSource<any, any>) {
+        return (...args: any[]): IValueSource<any, any> => {
+            const newArgs: IValueSource<any, any>[] = []
             for (let i = 0, length = args.length; i < length; i++) {
                 const arg = args[i]
                 if (arg instanceof ValueSourceImpl) {
@@ -58,9 +58,9 @@ export class FragmentFunctionBuilderIfValue {
         this.definitions = definitions
     }
     
-    as(impl: (...vs: ValueSource<any, any>[]) => ValueSource<any, any>): ((...args: any[]) => ValueSource<any, any>) {
-        return (...args: any[]): ValueSource<any, any> => {
-            const newArgs: ValueSource<any, any>[] = []
+    as(impl: (...vs: IValueSource<any, any>[]) => IValueSource<any, any>): ((...args: any[]) => IValueSource<any, any>) {
+        return (...args: any[]): IValueSource<any, any> => {
+            const newArgs: IValueSource<any, any>[] = []
             for (let i = 0, length = args.length; i < length; i++) {
                 const arg = args[i]
                 if (arg instanceof ValueSourceImpl) {

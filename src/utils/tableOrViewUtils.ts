@@ -1,9 +1,9 @@
 import type { CUSTOMIZED_TABLE_OR_VIEW, ITable, ITableOrView, IView, IWithView, OuterJoinSource, TableOrViewAlias, TABLE_OR_VIEW_ALIAS, TableOrViewRef } from "./ITableOrView"
-import type { ValueSource, RemapValueSourceType, RemapValueSourceTypeAsOptional } from "../expressions/values"
+import type { IValueSource, RemapValueSourceType, RemapValueSourceTypeAsOptional } from "../expressions/values"
 import type { tableOrViewRef, type, viewName } from "./symbols"
 import type { AnyDB } from "../databases"
 
-export type ColumnsOfTableOrView<TABLE_OR_VIEW> = ({ [K in keyof TABLE_OR_VIEW]-?: TABLE_OR_VIEW[K] extends ValueSource<any, any> ? K : never })[keyof TABLE_OR_VIEW]
+export type ColumnsOfTableOrView<TABLE_OR_VIEW> = ({ [K in keyof TABLE_OR_VIEW]-?: TABLE_OR_VIEW[K] extends IValueSource<any, any> ? K : never })[keyof TABLE_OR_VIEW]
 
 export type AliasedTableOrView<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ColumnsOfTableOrView<TABLE_OR_VIEW>]: RemapValueSourceType<TABLE_OR_VIEW_ALIAS<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>, TABLE_OR_VIEW[K]> } & TableOrViewAlias<TABLE_OR_VIEW, ALIAS>
 export type WithViewColumns<TABLE_OR_VIEW extends ITableOrView<any>, COLUMNS> = { [K in ColumnsOfTableOrView<COLUMNS>]: RemapValueSourceType<TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS[K]> } & TABLE_OR_VIEW

@@ -1,5 +1,5 @@
 import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0 } from "../sqlBuilders/SqlBuilder"
-import type { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, ValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, __OptionalRule, IfValueSource, BigintValueSource, TypeSafeBigintValueSource } from "../expressions/values"
+import type { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, __OptionalRule, IfValueSource, BigintValueSource, TypeSafeBigintValueSource } from "../expressions/values"
 import type { TypeAdapter } from "../TypeAdapter"
 import { ITableOrView, IWithView, __getTableOrViewPrivate, __registerTableOrView } from "../utils/ITableOrView"
 import { database, tableOrView, valueSourceType, valueType as valueType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType } from "../utils/symbols"
@@ -7,7 +7,7 @@ import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 
 
-export abstract class ValueSourceImpl implements ValueSource<any, any>, NullableValueSource<any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, BigintValueSource<any, any>, TypeSafeBigintValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, ToSql, __ValueSourcePrivate {
+export abstract class ValueSourceImpl implements IValueSource<any, any>, NullableValueSource<any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, BigintValueSource<any, any>, TypeSafeBigintValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, ToSql, __ValueSourcePrivate {
     [valueSourceType]: 'ValueSource'
     [nullableValueSourceType]: 'NullableValueSource'
     [equalableValueSourceType]: 'EqualableValueSource'
@@ -1168,10 +1168,10 @@ export class SequenceValueSource extends ValueSourceImpl {
 export class FragmentValueSource extends ValueSourceImpl {
     __operation: keyof SqlFragmentOperation = '_fragment' // Needed to detect if parenthesis is required
     __sql: TemplateStringsArray
-    __sqlParams: ValueSource<any, any>[]
+    __sqlParams: IValueSource<any, any>[]
     __isOptional: boolean
 
-    constructor(optional: boolean, sql: TemplateStringsArray, sqlParams: ValueSource<any, any>[], valueType: string, typeAdapter: TypeAdapter | undefined) {
+    constructor(optional: boolean, sql: TemplateStringsArray, sqlParams: IValueSource<any, any>[], valueType: string, typeAdapter: TypeAdapter | undefined) {
         super(valueType, typeAdapter)
         this.__sql = sql
         this.__sqlParams = sqlParams
@@ -1343,7 +1343,7 @@ function condition(valueSource: ValueSourceImpl): ValueSourceImpl {
     return valueSource
 }
 
-export class TableOrViewRawFragmentValueSource implements ValueSource<any, any>, __ValueSourcePrivate, ToSql {
+export class TableOrViewRawFragmentValueSource implements IValueSource<any, any>, __ValueSourcePrivate, ToSql {
     [tableOrView]: any
     [valueType_]: any
     [valueSourceType]: "ValueSource"

@@ -1,5 +1,5 @@
 import type { ITableOrView, ITable, IWithView } from "../utils/ITableOrView"
-import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, __OptionalRule, IfValueSource, IExecutableSelectQuery } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, IntValueSource, IValueSource, __OptionalRule, IfValueSource, IExecutableSelectQuery } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode, SelectCustomization } from "../expressions/select"
@@ -39,12 +39,12 @@ export type SelectData = PlainSelectData | CompoundSelectData
 export interface PlainSelectData extends WithQueryData {
     __type: 'plain'
     __distinct: boolean
-    __columns: { [property: string]: ValueSource<any, any> }
+    __columns: { [property: string]: IValueSource<any, any> }
     __tablesOrViews: Array<ITableOrView<any>>
     __joins: Array<JoinData>
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __having?: BooleanValueSource<any, any> | IfValueSource<any, any>
-    __groupBy:  Array<ValueSource<any, any>>
+    __groupBy:  Array<IValueSource<any, any>>
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
     __limit?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
     __offset?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
@@ -58,7 +58,7 @@ export interface CompoundSelectData extends WithQueryData {
     __firstQuery: SelectData
     __compoundOperator: CompoundOperator
     __secondQuery: SelectData
-    __columns: { [property: string]: ValueSource<any, any> }
+    __columns: { [property: string]: IValueSource<any, any> }
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
     __limit?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
     __offset?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
@@ -104,12 +104,12 @@ export interface SqlBuilder extends SqlOperation, __OptionalRule {
     _buildInsertMultiple(query: InsertData, params: any[]): string
     _buildUpdate(query: UpdateData, params: any[]): string
     _buildDelete(query: DeleteData, params: any[]): string
-    _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any>[]): string
-    _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any>[]): string
+    _buildCallProcedure(params: any[], procedureName: string, procedureParams: IValueSource<any, any>[]): string
+    _buildCallFunction(params: any[], functionName: string, functionParams: IValueSource<any, any>[]): string
     _generateUnique(): number
     _resetUnique(): void
 
-    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<ValueSource<any, any> | IExecutableSelectQuery<any, any, any>>): string
+    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any>>): string
     _rawFragmentTableName(params: any[], tableOrView: ITableOrView<any>): string
     _rawFragmentTableAlias(params: any[], tableOrView: ITableOrView<any>): string
 }
@@ -286,7 +286,7 @@ export interface SqlSequenceOperation {
 }
 
 export interface SqlFragmentOperation {
-    _fragment(params: any[], sql: TemplateStringsArray, sqlParams: ValueSource<any, any>[]): string
+    _fragment(params: any[], sql: TemplateStringsArray, sqlParams: IValueSource<any, any>[]): string
 }
 
 export interface AggregateFunctions0 {

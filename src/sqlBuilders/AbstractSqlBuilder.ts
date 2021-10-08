@@ -1,6 +1,6 @@
 import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator } from "./SqlBuilder"
 import type { ITableOrView, __ITableOrViewPrivate } from "../utils/ITableOrView"
-import { BooleanValueSource, IExecutableSelectQuery, IfValueSource, ValueSource, __ValueSourcePrivate } from "../expressions/values"
+import { BooleanValueSource, IExecutableSelectQuery, IfValueSource, IValueSource, __ValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
 import { CustomBooleanTypeAdapter, DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
@@ -267,16 +267,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendCondition(condition, params)
     }
-    _appendSql(value: ToSql | ValueSource<any, any> | Column | IExecutableSelectQuery<any, any, any>, params: any[]): string {
+    _appendSql(value: ToSql | IValueSource<any, any> | Column | IExecutableSelectQuery<any, any, any>, params: any[]): string {
         return (value as ToSql).__toSql(this, params) // All ValueSource or Column have a hidden implemetation of ToSql
     }
-    _appendSqlParenthesis(value: ToSql | ValueSource<any, any> | Column, params: any[]): string {
+    _appendSqlParenthesis(value: ToSql | IValueSource<any, any> | Column, params: any[]): string {
         if (this._needParenthesis(value)) {
             return '(' + this._appendSql(value, params) + ')'
         }
         return this._appendSql(value, params)
     }
-    _appendSqlParenthesisExcluding(value: ToSql | ValueSource<any, any> | Column, params: any[], excluding: keyof SqlOperation): string {
+    _appendSqlParenthesisExcluding(value: ToSql | IValueSource<any, any> | Column, params: any[], excluding: keyof SqlOperation): string {
         if (this._needParenthesisExcluding(value, excluding)) {
             return '(' + this._appendSql(value, params) + ')'
         }
@@ -316,16 +316,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendValue(value, params, columnType, typeAdapter)
     }
-    _appendConditionSql(value: ToSql | ValueSource<any, any> | Column, params: any[]): string {
+    _appendConditionSql(value: ToSql | IValueSource<any, any> | Column, params: any[]): string {
         return (value as ToSql).__toSqlForCondition(this, params) // All ValueSource or Column have a hidden implemetation of ToSql
     }
-    _appendConditionSqlParenthesis(value: ToSql | ValueSource<any, any> | Column, params: any[]): string {
+    _appendConditionSqlParenthesis(value: ToSql | IValueSource<any, any> | Column, params: any[]): string {
         if (this._needParenthesis(value)) {
             return '(' + this._appendConditionSql(value, params) + ')'
         }
         return this._appendConditionSql(value, params)
     }
-    _appendConditionSqlParenthesisExcluding(value: ToSql | ValueSource<any, any> | Column, params: any[], excluding: keyof SqlOperation): string {
+    _appendConditionSqlParenthesisExcluding(value: ToSql | IValueSource<any, any> | Column, params: any[], excluding: keyof SqlOperation): string {
         if (this._needParenthesisExcluding(value, excluding)) {
             return '(' + this._appendConditionSql(value, params) + ')'
         }
@@ -603,7 +603,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
         return selectQuery
     }
-    _appendSelectColumn(value: ValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
+    _appendSelectColumn(value: IValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
         if (columnForInsert) {
             const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)
             if (sql) {
@@ -1711,7 +1711,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _replace(params: any[], valueSource: ToSql, value: any, value2: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'replace(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(value2, params, columnType, typeAdapter) + ')'
     }
-    _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any>[]): string {
+    _buildCallProcedure(params: any[], procedureName: string, procedureParams: IValueSource<any, any>[]): string {
         let result = 'call ' + this._escape(procedureName, false) + '('
         if (procedureParams.length > 0) {
             result += this._appendSql(procedureParams[0]!, params)
@@ -1723,7 +1723,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         return result + ')'
     }
-    _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any>[]): string {
+    _buildCallFunction(params: any[], functionName: string, functionParams: IValueSource<any, any>[]): string {
         let result = 'select ' + this._escape(functionName, false) + '('
         if (functionParams.length > 0) {
             result += this._appendSql(functionParams[0]!, params)
@@ -1735,7 +1735,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         return result + ')'
     }
-    _fragment(params: any[], sql: TemplateStringsArray, sqlParams: ValueSource<any, any>[]): string {
+    _fragment(params: any[], sql: TemplateStringsArray, sqlParams: IValueSource<any, any>[]): string {
         if (sqlParams.length <= 0) {
             return sql[0]!
         }
@@ -1747,7 +1747,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         result += sql[sql.length - 1]
         return result
     }
-    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<ValueSource<any, any> | IExecutableSelectQuery<any, any, any>>): string {
+    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any>>): string {
         if (sqlParams.length <= 0) {
             return sql[0]!
         }

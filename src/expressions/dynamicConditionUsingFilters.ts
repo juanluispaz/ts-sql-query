@@ -1,5 +1,5 @@
 import { double, int, LocalDate, LocalDateTime, LocalTime, stringDouble, stringInt } from "ts-extended-types";
-import { BooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, IDateTimeValueSource, IDateValueSource, IDoubleValueSource, IEqualableValueSource, IIntValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, ILocalTimeValueSource, INullableValueSource, INumberValueSource, IStringDoubleValueSource, IStringIntValueSource, IStringNumberValueSource, IStringValueSource, ITimeValueSource, ITypeSafeBigintValueSource, ITypeSafeStringValueSource, ValueSource } from "./values";
+import { BooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, IDateTimeValueSource, IDateValueSource, IDoubleValueSource, IEqualableValueSource, IIntValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, ILocalTimeValueSource, INullableValueSource, INumberValueSource, IStringDoubleValueSource, IStringIntValueSource, IStringNumberValueSource, IStringValueSource, ITimeValueSource, ITypeSafeBigintValueSource, ITypeSafeStringValueSource, IValueSource } from "./values";
 
 export interface Filter {
 }
@@ -158,7 +158,7 @@ export type TypeSafeDynamicCondition<DEFINITION extends DynamicDefinition> = {
     }
 
 export type MapValueSourceToFilter<TYPE> =
-    TYPE extends ValueSource<any, infer T> ? (
+    TYPE extends IValueSource<any, infer T> ? (
         TYPE extends IBooleanValueSource<any, any> ? BooleanFilter :
         TYPE extends IStringIntValueSource<any, any> ? StringIntFilter :
         TYPE extends IIntValueSource<any, any> ? IntFilter :
@@ -179,12 +179,12 @@ export type MapValueSourceToFilter<TYPE> =
         TYPE extends IComparableValueSource<any, any> ? ComparableFilter<T> :
         TYPE extends IEqualableValueSource<any, any> ? EqualableFilter<T> :
         TYPE extends INullableValueSource<any, any> ? NullableFilter :
-        TYPE extends ValueSource<any, any> ? Filter :
+        TYPE extends IValueSource<any, any> ? Filter :
         never
     ) : never
 
 export type Filterable = {
-    [key: string]: ValueSource<any, any>
+    [key: string]: IValueSource<any, any>
 }
 
 export type DynamicFilter<DEFINITION extends Filterable> = {
@@ -199,10 +199,10 @@ export interface DynamicConditionExpression<DEFINITION extends Filterable> {
     withValues(filter: DynamicFilter<DEFINITION>): BooleanValueSource<TableOfCondition<DEFINITION>, BooleanTypeOfCondition<DEFINITION>>
 }
 
-export type TableOfValueSource<TYPE> = TYPE extends ValueSource<infer T, any> ? T : never
+export type TableOfValueSource<TYPE> = TYPE extends IValueSource<infer T, any> ? T : never
 
 export type BooleanValueOfValueSource<TYPE> =
-    TYPE extends ValueSource<any, infer T> ? (
+    TYPE extends IValueSource<any, infer T> ? (
         T extends null ? null : T extends undefined ? undefined : boolean
     ) : never
 

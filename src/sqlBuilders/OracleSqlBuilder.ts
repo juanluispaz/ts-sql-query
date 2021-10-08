@@ -1,6 +1,6 @@
 import type { ToSql, InsertData, CompoundOperator, SelectData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { isValueSource, ValueSource } from "../expressions/values"
+import { isValueSource, IValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -31,7 +31,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _trueValueForCondition = '(1=1)'
     _falseValueForCondition = '(0=1)'
     _nullValueForCondition = '(0=null)'
-    _appendSql(value: ToSql | ValueSource<any, any> | Column, params: any[]): string {
+    _appendSql(value: ToSql | IValueSource<any, any> | Column, params: any[]): string {
         if (isValueSource(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (valueSourcePrivate.__isBooleanForCondition) {
@@ -78,7 +78,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         return this._appendRawColumnName(column, params)
     }
-    _appendSelectColumn(value: ValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
+    _appendSelectColumn(value: IValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
         if (columnForInsert) {
             const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)
             if (sql) {
@@ -503,7 +503,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _getMilliseconds(params: any[], valueSource: ToSql): string {
         return 'extract(millisecond from ' + this._appendSql(valueSource, params) + ')'
     }
-    _buildCallProcedure(params: any[], procedureName: string, procedureParams: ValueSource<any, any>[]): string {
+    _buildCallProcedure(params: any[], procedureName: string, procedureParams: IValueSource<any, any>[]): string {
         let result = 'begin ' + this._escape(procedureName, false) + '('
         if (procedureParams.length > 0) {
             result += this._appendSql(procedureParams[0]!, params)
@@ -515,7 +515,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         return result + '); end;'
     }
-    _buildCallFunction(params: any[], functionName: string, functionParams: ValueSource<any, any>[]): string {
+    _buildCallFunction(params: any[], functionName: string, functionParams: IValueSource<any, any>[]): string {
         let result = 'select ' + this._escape(functionName, false) + '('
         if (functionParams.length > 0) {
             result += this._appendSql(functionParams[0]!, params)

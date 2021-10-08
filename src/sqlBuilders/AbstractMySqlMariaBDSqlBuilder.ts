@@ -1,7 +1,7 @@
 import type { ToSql, SelectData, InsertData } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
-import type { ValueSource } from "../expressions/values"
+import type { IValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { isColumn } from "../utils/Column"
@@ -79,7 +79,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return ' order by ' + orderByColumns
     }
-    _escapeInsensitive(identifier: string, column: ValueSource<any, any>) {
+    _escapeInsensitive(identifier: string, column: IValueSource<any, any>) {
         const collation = this._connectionConfiguration.insesitiveCollation
         const columnType = __getValueSourcePrivate(column).__valueType
         if (columnType != 'string') {

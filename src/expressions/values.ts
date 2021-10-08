@@ -12,9 +12,12 @@ export interface ValueSourceOf<DB extends AnyDB> {
     [database]: DB
 }
 
-export interface ValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends ValueSourceOf<TABLE_OR_VIEW[typeof database]> {
+export interface IValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends ValueSourceOf<TABLE_OR_VIEW[typeof database]> {
     [tableOrView]: TABLE_OR_VIEW
     [valueType]: TYPE
+}
+
+export interface ValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends IValueSource<TABLE_OR_VIEW, TYPE> {
     isConstValue(): boolean
     getConstValue(): TYPE
 }
@@ -40,11 +43,11 @@ export function isValueSource(value: any): value is ValueSource<TableOrViewRef<A
     return false
 }
 
-export function __getValueSourcePrivate(valueSource: ValueSource<any, any> | IIfValueSource<any, any>): __ValueSourcePrivate {
+export function __getValueSourcePrivate(valueSource: IValueSource<any, any> | IIfValueSource<any, any>): __ValueSourcePrivate {
     return valueSource as any
 }
 
-export interface INullableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends ValueSource<TABLE_OR_VIEW, TYPE> {
+export interface INullableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends IValueSource<TABLE_OR_VIEW, TYPE> {
     [nullableValueSourceType]: 'NullableValueSource'
 }
 
@@ -58,8 +61,8 @@ export interface NullableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
     // valueWhenNull<THIS, TABLE_OR_VIEW2 extends ITable<DB>>(this: THIS, value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW | TABLE_OR_VIEW2, THIS>
     // asOptional<THIS>(this: THIS): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW, THIS>
     valueWhenNull(value: MandatoryTypeOf<TYPE>): NullableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): NullableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): NullableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): NullableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): NullableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): NullableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -111,8 +114,8 @@ export interface EqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
 
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): EqualableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): EqualableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): EqualableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): EqualableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): EqualableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): EqualableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -189,8 +192,8 @@ export interface ComparableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyD
     notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, boolean | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): ComparableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): ComparableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): ComparableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): ComparableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): ComparableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): ComparableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -212,8 +215,8 @@ export interface BooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>,
     or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBooleanValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): BooleanValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): BooleanValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): BooleanValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): BooleanValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -311,8 +314,8 @@ export interface NumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: INumberValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): NumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): NumberValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): NumberValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): NumberValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): NumberValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): NumberValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): NumberValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -388,8 +391,8 @@ export interface StringNumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<An
     atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringNumberValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): StringNumberValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): StringNumberValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): StringNumberValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringNumberValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): StringNumberValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -502,8 +505,8 @@ export interface IntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYP
     atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): IntValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): IntValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): IntValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): IntValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): IntValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): IntValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -613,8 +616,8 @@ export interface DoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): DoubleValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): DoubleValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): DoubleValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): DoubleValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -726,8 +729,8 @@ export interface BigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     // atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): BigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): BigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BigintValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): BigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BigintValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): BigintValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -840,8 +843,8 @@ export interface TypeSafeBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     // atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, double | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): TypeSafeBigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): TypeSafeBigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -952,8 +955,8 @@ export interface StringIntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
     atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, stringDouble | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): StringIntValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): StringIntValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): StringIntValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringIntValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): StringIntValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -1063,8 +1066,8 @@ export interface StringDoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<An
     atan2<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringDoubleValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): StringDoubleValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): StringDoubleValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringDoubleValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): StringDoubleValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -1197,8 +1200,8 @@ export interface StringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: IStringValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): StringValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): StringValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): StringValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): StringValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -1332,8 +1335,8 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): TypeSafeStringValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): TypeSafeStringValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -1352,8 +1355,8 @@ export interface DateValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TY
     getDay(): NumberValueSource<TABLE_OR_VIEW, number>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): DateValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): DateValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DateValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): DateValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DateValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): DateValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -1372,8 +1375,8 @@ export interface TimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TY
     getMilliseconds(): NumberValueSource<TABLE_OR_VIEW, number>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): TimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): TimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): TimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): TimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -1402,8 +1405,8 @@ export interface DateTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
     getTime(): NumberValueSource<TABLE_OR_VIEW, number>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): DateTimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): DateTimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DateTimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): DateTimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): DateTimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): DateTimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -1422,8 +1425,8 @@ export interface LocalDateValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
     getDay(): IntValueSource<TABLE_OR_VIEW, int>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): LocalDateValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): LocalDateValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): LocalDateValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): LocalDateValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): LocalDateValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): LocalDateValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -1442,8 +1445,8 @@ export interface LocalTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
     getMilliseconds(): IntValueSource<TABLE_OR_VIEW, int>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): LocalTimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): LocalTimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): LocalTimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): LocalTimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): LocalTimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): LocalTimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
@@ -1472,29 +1475,29 @@ export interface LocalDateTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<A
     getTime(): IntValueSource<TABLE_OR_VIEW, int>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): LocalDateTimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): LocalDateTimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): LocalDateTimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): LocalDateTimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): LocalDateTimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     asOptional(): LocalDateTimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export type ColumnsOf<TYPE extends ITableOrView<any>> = ({ [K in keyof TYPE]-?: TYPE[K] extends ValueSource<TYPE[typeof tableOrViewRef], any> & Column ? K : never })[keyof TYPE]
+export type ColumnsOf<TYPE extends ITableOrView<any>> = ({ [K in keyof TYPE]-?: TYPE[K] extends IValueSource<TYPE[typeof tableOrViewRef], any> & Column ? K : never })[keyof TYPE]
 
 export type ColumnsForSetOf<TYPE extends ITableOrView<any>> = ({ [K in keyof TYPE]-?: 
-    TYPE[K] extends ValueSource<TYPE[typeof tableOrViewRef], any> & Column
+    TYPE[K] extends IValueSource<TYPE[typeof tableOrViewRef], any> & Column
     ? (TYPE[K] extends ComputedColumn ? never : K)
     : never 
 })[keyof TYPE]
 
 export type TypeOfColumn<TABLE_OR_VIEW extends ITableOrView<any>, K extends ColumnsOf<TABLE_OR_VIEW>> =
-    TABLE_OR_VIEW[K] extends ValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], infer Q> ? Q
+    TABLE_OR_VIEW[K] extends IValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], infer Q> ? Q
     : never
 
 export type InputTypeOfColumn<TYPE extends ITableOrView<any>, K extends ColumnsOf<TYPE>> =
-    TYPE[K] extends ValueSource<TYPE[typeof tableOrViewRef], infer Q> ?
+    TYPE[K] extends IValueSource<TYPE[typeof tableOrViewRef], infer Q> ?
     (TYPE[K] extends ColumnWithDefaultValue ? (
-        Q | ValueSource<TYPE[typeof tableOrViewRef], Q> | Default
+        Q | IValueSource<TYPE[typeof tableOrViewRef], Q> | Default
     ) : (
-        Q | ValueSource<TYPE[typeof tableOrViewRef], Q>
+        Q | IValueSource<TYPE[typeof tableOrViewRef], Q>
     ))
     : never
 
@@ -1502,7 +1505,7 @@ export type BooleanOrNullOf<T> = T extends null | undefined ? T : boolean
 export type StringOrNullOf<T> = T extends null | undefined ? T : string
 
 export type RemapValueSourceType<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> =
-    TYPE extends ValueSource<any, infer T> ? (
+    TYPE extends IValueSource<any, infer T> ? (
         TYPE extends IBooleanValueSource<any, any> ? BooleanValueSource<TABLE_OR_VIEW, T> :
         TYPE extends IStringIntValueSource<any, any> ? StringIntValueSource<TABLE_OR_VIEW, T> :
         TYPE extends IIntValueSource<any, any> ? IntValueSource<TABLE_OR_VIEW, T> :
@@ -1523,12 +1526,12 @@ export type RemapValueSourceType<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TY
         TYPE extends IComparableValueSource<any, any> ? ComparableValueSource<TABLE_OR_VIEW, T> :
         TYPE extends IEqualableValueSource<any, any> ? EqualableValueSource<TABLE_OR_VIEW, T> :
         TYPE extends INullableValueSource<any, any> ? NullableValueSource<TABLE_OR_VIEW, T> :
-        TYPE extends ValueSource<any, any> ? ValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends IValueSource<any, any> ? ValueSource<TABLE_OR_VIEW, T> :
         never
     ): never
 
 export type RemapValueSourceTypeAsOptional<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> =
-    TYPE extends ValueSource<any, infer T> ? (
+    TYPE extends IValueSource<any, infer T> ? (
         TYPE extends IBooleanValueSource<any, any> ? BooleanValueSource<TABLE_OR_VIEW, T | null | undefined> :
         TYPE extends IStringIntValueSource<any, any> ? StringIntValueSource<TABLE_OR_VIEW, T | null | undefined> :
         TYPE extends IIntValueSource<any, any> ? IntValueSource<TABLE_OR_VIEW, T | null | undefined> :
@@ -1549,12 +1552,12 @@ export type RemapValueSourceTypeAsOptional<TABLE_OR_VIEW extends TableOrViewRef<
         TYPE extends IComparableValueSource<any, any> ? ComparableValueSource<TABLE_OR_VIEW, T | null | undefined> :
         TYPE extends IEqualableValueSource<any, any> ? EqualableValueSource<TABLE_OR_VIEW, T | null | undefined> :
         TYPE extends INullableValueSource<any, any> ? NullableValueSource<TABLE_OR_VIEW, T | null | undefined> :
-        TYPE extends ValueSource<any, any> ? ValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends IValueSource<any, any> ? ValueSource<TABLE_OR_VIEW, T | null | undefined> :
         never
     ): never
 
 export type RemapValueSourceTypeAsMandatory<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> =
-    TYPE extends ValueSource<any, infer T> ? (
+    TYPE extends IValueSource<any, infer T> ? (
         TYPE extends IBooleanValueSource<any, any> ? BooleanValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         TYPE extends IStringIntValueSource<any, any> ? StringIntValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         TYPE extends IIntValueSource<any, any> ? IntValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
@@ -1575,7 +1578,7 @@ export type RemapValueSourceTypeAsMandatory<TABLE_OR_VIEW extends TableOrViewRef
         TYPE extends IComparableValueSource<any, any> ? ComparableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         TYPE extends IEqualableValueSource<any, any> ? EqualableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         TYPE extends INullableValueSource<any, any> ? NullableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
-        TYPE extends ValueSource<any, any> ? ValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends IValueSource<any, any> ? ValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         never
     ): never
 
@@ -1704,8 +1707,8 @@ export type RemapValueSourceTypeIfValue<TABLE_OR_VIEW extends TableOrViewRef<Any
         IfValueSource<TABLE_OR_VIEW, T>
     ) : RemapValueSourceType<TABLE_OR_VIEW, TYPE>
 
-export function asValueSource<VS extends ValueSource<any, any> | IIfValueSource<any, any>>(valueSource: VS): RemapValueSourceTypeIfValue<VS[typeof tableOrView], VS>
-export function asValueSource<VS extends ValueSource<any, any> | IIfValueSource<any, any>>(valueSource: VS | int | number): RemapValueSourceTypeIfValue<VS[typeof tableOrView], VS> | int | number
+export function asValueSource<VS extends IValueSource<any, any> | IIfValueSource<any, any>>(valueSource: VS): RemapValueSourceTypeIfValue<VS[typeof tableOrView], VS>
+export function asValueSource<VS extends IValueSource<any, any> | IIfValueSource<any, any>>(valueSource: VS | int | number): RemapValueSourceTypeIfValue<VS[typeof tableOrView], VS> | int | number
 export function asValueSource(valueSource: any): any {
     return valueSource
 }

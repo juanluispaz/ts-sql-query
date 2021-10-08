@@ -1,6 +1,6 @@
 import { ToSql, SelectData, InsertData, hasToSql } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { isValueSource, ValueSource } from "../expressions/values"
+import { isValueSource, IValueSource } from "../expressions/values"
 import type { OrderByMode } from "../expressions/select"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnPrivate } from "../utils/Column"
@@ -31,7 +31,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _trueValueForCondition = '(1=1)'
     _falseValueForCondition = '(0=1)'
     _nullValueForCondition = '(0=null)'
-    _appendSql(value: ToSql | ValueSource<any, any> | Column, params: any[]): string {
+    _appendSql(value: ToSql | IValueSource<any, any> | Column, params: any[]): string {
         if (isValueSource(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (valueSourcePrivate.__isBooleanForCondition) {
@@ -88,7 +88,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         return this._appendRawColumnName(column, params)
     }
-    _appendSelectColumn(value: ValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
+    _appendSelectColumn(value: IValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
         if (columnForInsert) {
             const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)
             if (sql) {
@@ -193,7 +193,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return ' order by ' + orderByColumns
     }
-    _escapeInsensitive(identifier: string, column: ValueSource<any, any>) {
+    _escapeInsensitive(identifier: string, column: IValueSource<any, any>) {
         const collation = this._connectionConfiguration.insesitiveCollation
         const columnType = __getValueSourcePrivate(column).__valueType
         if (columnType != 'string') {
@@ -538,7 +538,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _getMilliseconds(params: any[], valueSource: ToSql): string {
         return 'datepart(millisecond, ' + this._appendSql(valueSource, params) + ')'
     }
-    _buildCallProcedure(params: any[], functionName: string, functionParams: ValueSource<any, any>[]): string {
+    _buildCallProcedure(params: any[], functionName: string, functionParams: IValueSource<any, any>[]): string {
         let result = 'exec ' + this._escape(functionName, false)
         for (let i = 0, length = functionParams.length; i < length; i++) {
             result += ' ' + this._appendSql(functionParams[i]!, params)

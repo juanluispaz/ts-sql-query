@@ -1,7 +1,7 @@
 import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData } from "../sqlBuilders/SqlBuilder"
 import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderByExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereOffsetExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, ExecutableSelectWithWhere, ExecutableSelectWithoutWhere, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, SplitedComposedExecutableSelectWithoutWhere, SplitedComposedDynamicWhereExecutableSelectExpression, WhereableCompoundableExecutableSelectExpressionWithoutWhere } from "../expressions/select"
 import { HasAddWiths, ITableOrView, IWithView, OuterJoinSource, __registerTableOrView } from "../utils/ITableOrView"
-import type { BooleanValueSource, NumberValueSource, IntValueSource, ValueSource, IfValueSource, IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, IntValueSource, IValueSource, IfValueSource, IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { WithView } from "../utils/tableOrViewUtils"
 import { __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
@@ -56,7 +56,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
 
     __sqlBuilder: SqlBuilder
 
-    __columns: { [property: string]: ValueSource<any, any> } = {}
+    __columns: { [property: string]: IValueSource<any, any> } = {}
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
     __limit?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
     __offset?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
@@ -103,7 +103,7 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         return this.__params
     }
 
-    __transformValueFromDB(valueSource: ValueSource<any, any>, value: any, column?: string, index?: number, count?: boolean) {
+    __transformValueFromDB(valueSource: IValueSource<any, any>, value: any, column?: string, index?: number, count?: boolean) {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const typeAdapter = valueSourcePrivate.__typeAdapter
         let result
@@ -923,7 +923,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     __joins: Array<JoinData> = []
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __having?: BooleanValueSource<any, any> | IfValueSource<any, any>
-    __groupBy:  Array<ValueSource<any, any>> = []
+    __groupBy:  Array<IValueSource<any, any>> = []
     __requiredTablesOrViews?: Set<ITableOrView<any>>
 
     __lastJoin?: JoinData
@@ -984,7 +984,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return this
     }
-    selectOneColumn(column: ValueSource<any, any>): any {
+    selectOneColumn(column: IValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         this.__oneColumn = true
@@ -1217,7 +1217,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
-    groupBy(...columns: Array<string| number | symbol | ValueSource<any, any>>): any {
+    groupBy(...columns: Array<string| number | symbol | IValueSource<any, any>>): any {
         this.__finishJoinHaving()
         this.__query = ''
         for (let i = 0, length = columns.length; i < length; i++) {

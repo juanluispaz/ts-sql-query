@@ -73,10 +73,13 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected column(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<REF, Date> & Column
     protected column(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<REF, LocalDateTime> & Column
     protected column(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<REF, Date> & Column
-    protected column<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & Column
-    protected column<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & Column
-    protected column<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T> & Column
-    protected column<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<T, T> & Column */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected column<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & Column
+    protected column<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & Column
+    protected column<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<REF, T, TYPE_NAME> & Column
+    protected column<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & Column
+    protected column<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & Column
+    protected column<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T, T> & Column    
+    protected column(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME> & Column */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return new ColumnImpl(this, name, adapter, adapter2)
         }
@@ -102,10 +105,13 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<REF, Date | null | undefined> & OptionalColumn
     protected optionalColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<REF, LocalDateTime | null | undefined> & OptionalColumn
     protected optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<REF, Date | null | undefined> & OptionalColumn
-    protected optionalColumn<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T | null | undefined> & OptionalColumn
-    protected optionalColumn<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T | null | undefined> & OptionalColumn
-    protected optionalColumn<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T | null | undefined> & OptionalColumn
-    protected optionalColumn<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<T, T | null | undefined> & OptionalColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T | null | undefined, TYPE_NAME> & OptionalColumn
+    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T | null | undefined, TYPE_NAME> & OptionalColumn
+    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<REF, T | null | undefined, TYPE_NAME> & OptionalColumn
+    protected optionalColumn<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T | null | undefined, T> & OptionalColumn
+    protected optionalColumn<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T | null | undefined, T> & OptionalColumn
+    protected optionalColumn<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T | null | undefined, T> & OptionalColumn
+    protected optionalColumn(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<REF, T | null | undefined, TYPE_NAME> & OptionalColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return (new ColumnImpl(this, name, adapter, adapter2)).__asOptionalColumn()
         }
@@ -131,10 +137,13 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected columnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<REF, Date> & ColumnWithDefaultValue
     protected columnWithDefaultValue(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<REF, LocalDateTime> & ColumnWithDefaultValue
     protected columnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<REF, Date> & ColumnWithDefaultValue
-    protected columnWithDefaultValue<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & ColumnWithDefaultValue
-    protected columnWithDefaultValue<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & ColumnWithDefaultValue
-    protected columnWithDefaultValue<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T> & ColumnWithDefaultValue
-    protected columnWithDefaultValue<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<T, T> & ColumnWithDefaultValue */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & ColumnWithDefaultValue
+    protected columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & ColumnWithDefaultValue
+    protected columnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<REF, T, TYPE_NAME> & ColumnWithDefaultValue
+    protected columnWithDefaultValue<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & ColumnWithDefaultValue
+    protected columnWithDefaultValue<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & ColumnWithDefaultValue
+    protected columnWithDefaultValue<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T, T> & ColumnWithDefaultValue
+    protected columnWithDefaultValue(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME> & ColumnWithDefaultValue */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return (new ColumnImpl(this, name, adapter, adapter2)).__asColumnWithDefaultValue()
         }
@@ -160,10 +169,13 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected optionalColumnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<REF, Date> & OptionalColumn & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<REF, LocalDateTime> & OptionalColumn & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<REF, Date> & OptionalColumn & ColumnWithDefaultValue
-    protected optionalColumnWithDefaultValue<T>(name: string, type: 'enum', typeNme: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & OptionalColumn & ColumnWithDefaultValue
-    protected optionalColumnWithDefaultValue<T>(name: string, type: 'custom', typeNme: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & OptionalColumn & ColumnWithDefaultValue
-    protected optionalColumnWithDefaultValue<T>(name: string, type: 'customComparable', typeNme: string, adapter?: TypeAdapter): ComparableValueSource<REF, T> & OptionalColumn & ColumnWithDefaultValue
-    protected optionalColumnWithDefaultValue<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<T, T> & OptionalColumn & ColumnWithDefaultValue */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & OptionalColumn & ColumnWithDefaultValue
+    protected optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & OptionalColumn & ColumnWithDefaultValue
+    protected optionalColumnWithDefaultValue<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<REF, T, TYPE_NAME> & OptionalColumn & ColumnWithDefaultValue
+    protected optionalColumnWithDefaultValue<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & OptionalColumn & ColumnWithDefaultValue
+    protected optionalColumnWithDefaultValue<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & OptionalColumn & ColumnWithDefaultValue
+    protected optionalColumnWithDefaultValue<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T, T> & OptionalColumn & ColumnWithDefaultValue
+    protected optionalColumnWithDefaultValue(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME> & OptionalColumn & ColumnWithDefaultValue */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return (new ColumnImpl(this, name, adapter, adapter2)).__asOptionalColumnWithDefaultValue()
         }
@@ -189,10 +201,13 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected autogeneratedPrimaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<REF, Date> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<REF, LocalDateTime> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<REF, Date> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKey<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKey<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKey<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKey<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<T, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKey<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<REF, T, TYPE_NAME> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKey<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKey<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKey<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKey(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return (new ColumnImpl(this, name, adapter, adapter2)).__asAutogeneratedPrimaryKey()
         }
@@ -218,10 +233,13 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected primaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<REF, Date> & PrimaryKeyColumn
     protected primaryKey(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<REF, LocalDateTime> & PrimaryKeyColumn
     protected primaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<REF, Date> & PrimaryKeyColumn
-    protected primaryKey<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & PrimaryKeyColumn
-    protected primaryKey<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & PrimaryKeyColumn
-    protected primaryKey<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T> & PrimaryKeyColumn
-    protected primaryKey<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<T, T> & PrimaryKeyColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected primaryKey<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & PrimaryKeyColumn
+    protected primaryKey<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & PrimaryKeyColumn
+    protected primaryKey<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<REF, T, TYPE_NAME> & PrimaryKeyColumn
+    protected primaryKey<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & PrimaryKeyColumn
+    protected primaryKey<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & PrimaryKeyColumn
+    protected primaryKey<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T, T> & PrimaryKeyColumn
+    protected primaryKey(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME> & PrimaryKeyColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return (new ColumnImpl(this, name, adapter, adapter2)).__asPrimaryKey()
         }
@@ -247,10 +265,13 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected autogeneratedPrimaryKeyBySequence(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<REF, Date> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: TableOrViewOf<TypeSafeDB & (Oracle | PostgreSql | SqlServer)>, sequenceName: string, name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<REF, LocalDateTime> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<REF, Date> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKeyBySequence<T>(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKeyBySequence<T>(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKeyBySequence<T>(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
-    protected autogeneratedPrimaryKeyBySequence<_T>(name: string, sequenceName: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<T, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKeyBySequence<T, TYPE_NAME extends string>(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<REF, T, TYPE_NAME> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKeyBySequence<T>(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKeyBySequence<T>(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKeyBySequence<T>(this: TableOrViewOf<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T, T> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    protected autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return (new ColumnImpl(this, name, adapter, adapter2)).__asAutogeneratedPrimaryKeyBySequence(sequenceName)
         }
@@ -276,10 +297,13 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected computedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<REF, Date> & ComputedColumn
     protected computedColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<REF, LocalDateTime> & ComputedColumn
     protected computedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<REF, Date> & ComputedColumn
-    protected computedColumn<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & ComputedColumn
-    protected computedColumn<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T> & ComputedColumn
-    protected computedColumn<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T> & ComputedColumn
-    protected computedColumn<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<T, T> & ComputedColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected computedColumn<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & ComputedColumn
+    protected computedColumn<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T, TYPE_NAME> & ComputedColumn
+    protected computedColumn<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<REF, T, TYPE_NAME> & ComputedColumn
+    protected computedColumn<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & ComputedColumn
+    protected computedColumn<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T, T> & ComputedColumn
+    protected computedColumn<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T, T> & ComputedColumn
+    protected computedColumn(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME> & ComputedColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return new ColumnImpl(this, name, adapter, adapter2).__asComputedColumn()
         }
@@ -305,10 +329,13 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     protected optionalComputedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<REF, Date | null | undefined> & OptionalColumn & ComputedColumn
     protected optionalComputedColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<REF, LocalDateTime | null | undefined> & OptionalColumn & ComputedColumn
     protected optionalComputedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<REF, Date | null | undefined> & OptionalColumn & ComputedColumn
-    protected optionalComputedColumn<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T | null | undefined> & OptionalColumn & ComputedColumn
-    protected optionalComputedColumn<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T | null | undefined> & OptionalColumn & ComputedColumn
-    protected optionalComputedColumn<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T | null | undefined> & OptionalColumn & ComputedColumn
-    protected optionalComputedColumn<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<T, T | null | undefined> & OptionalColumn & ComputedColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T | null | undefined, TYPE_NAME> & OptionalColumn & ComputedColumn
+    protected optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<REF, T | null | undefined, TYPE_NAME> & OptionalColumn & ComputedColumn
+    protected optionalComputedColumn<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<REF, T | null | undefined, TYPE_NAME> & OptionalColumn & ComputedColumn
+    protected optionalComputedColumn<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T | null | undefined, T> & OptionalColumn & ComputedColumn
+    protected optionalComputedColumn<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<REF, T | null | undefined, T> & OptionalColumn & ComputedColumn
+    protected optionalComputedColumn<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T | null | undefined, T> & OptionalColumn & ComputedColumn
+    protected optionalComputedColumn(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<REF, T | null | undefined, TYPE_NAME> & OptionalColumn & ComputedColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return (new ColumnImpl(this, name, adapter, adapter2)).__asOptionalColumn().__asOptionalComputedColumn()
         }

@@ -35,9 +35,12 @@ export abstract class AbstractAdvancedConnection<DB extends AnyDB> extends Abstr
     protected sequence(name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<TimeValueSource<NoTableOrViewRequired<DB>, Date>>
     protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime>>
     protected sequence(name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<DateTimeValueSource<NoTableOrViewRequired<DB>, Date>>
-    protected sequence<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T>>
-    protected sequence<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T>>
-    protected sequence<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource<NoTableOrViewRequired<DB>, T>>
+    protected sequence<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME>>
+    protected sequence<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME>>
+    protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<ComparableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME>>
+    protected sequence<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T, T>>
+    protected sequence<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T, T>>
+    protected sequence<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource<NoTableOrViewRequired<DB>, T, T>>
     protected sequence<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Sequence<any> {
         if (typeof adapter === 'string') {
             return new SequenceQueryBuilder(name, adapter, adapter2)

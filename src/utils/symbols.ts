@@ -55,6 +55,7 @@ export const nextMethodNotSupportedByThisConnection: unique symbol = Symbol('nex
 
 // Value source type
 export const valueSourceType: unique symbol = Symbol('valueSourceType')
+export const valueSourceTypeName: unique symbol = Symbol('valueSourceTypeName')
 export const nullableValueSourceType: unique symbol = Symbol('nullableValueSourceType')
 export const equalableValueSourceType: unique symbol = Symbol('equalableValueSourceType')
 export const comparableValueSourceType: unique symbol = Symbol('comparableValueSourceType')

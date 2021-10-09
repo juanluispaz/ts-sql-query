@@ -5,7 +5,7 @@ import type { int, double, /*LocalDate, LocalTime, LocalDateTime,*/ stringDouble
 import type { TypeAdapter } from "../TypeAdapter"
 import type { bigintValueSourceType, booleanValueSourceType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, valueSourceType } from "../utils/symbols"
 import type { Column, ColumnWithDefaultValue, ComputedColumn } from "../utils/Column"
-import { valueType } from "../utils/symbols"
+import { valueType, valueSourceTypeName } from "../utils/symbols"
 
 export interface ValueSourceOf<DB extends AnyDB> {
     [valueSourceType]: 'ValueSource'
@@ -15,6 +15,10 @@ export interface ValueSourceOf<DB extends AnyDB> {
 export interface IValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends ValueSourceOf<TABLE_OR_VIEW[typeof database]> {
     [tableOrView]: TABLE_OR_VIEW
     [valueType]: TYPE
+}
+
+export interface IValueSourceWithTypeName<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE, TYPE_NAME> extends IValueSource<TABLE_OR_VIEW, TYPE> {
+    [valueSourceTypeName]: TYPE_NAME
 }
 
 export interface ValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends IValueSource<TABLE_OR_VIEW, TYPE> {
@@ -47,11 +51,11 @@ export function __getValueSourcePrivate(valueSource: IValueSource<any, any> | II
     return valueSource as any
 }
 
-export interface INullableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends IValueSource<TABLE_OR_VIEW, TYPE> {
+export interface INullableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE, TYPE_NAME> extends IValueSourceWithTypeName<TABLE_OR_VIEW, TYPE, TYPE_NAME> {
     [nullableValueSourceType]: 'NullableValueSource'
 }
 
-export interface NullableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends ValueSource<TABLE_OR_VIEW, TYPE>, INullableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface NullableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE, TYPE_NAME> extends ValueSource<TABLE_OR_VIEW, TYPE>, INullableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME> {
     isNull(): BooleanValueSource<TABLE_OR_VIEW, boolean>
     isNotNull(): BooleanValueSource<TABLE_OR_VIEW, boolean>
     // Next methods uses this as generic argument to avoid create a circular reference
@@ -60,10 +64,10 @@ export interface NullableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
     // valueWhenNull<THIS, TABLE_OR_VIEW2 extends ITable<DB>>(this: THIS, value: ValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): RemapValueSourceTypeAsMandatory<TABLE_OR_VIEW | TABLE_OR_VIEW2, THIS>
     // valueWhenNull<THIS, TABLE_OR_VIEW2 extends ITable<DB>>(this: THIS, value: ValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW | TABLE_OR_VIEW2, THIS>
     // asOptional<THIS>(this: THIS): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW, THIS>
-    valueWhenNull(value: MandatoryTypeOf<TYPE>): NullableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): NullableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): NullableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
-    asOptional(): NullableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull(value: MandatoryTypeOf<TYPE>): NullableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>, TYPE_NAME>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): NullableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>, TYPE_NAME>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): NullableValueSource<TABLE_OR_VIEW, TYPE | null | undefined, TYPE_NAME>
+    asOptional(): NullableValueSource<TABLE_OR_VIEW, TYPE | null | undefined, TYPE_NAME>
 }
 
 export interface IExecutableSelectQuery<DB extends AnyDB, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> {
@@ -73,135 +77,135 @@ export interface IExecutableSelectQuery<DB extends AnyDB, RESULT, REQUIRED_TABLE
     [resultType]: RESULT
 }
 
-export interface IEqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends INullableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface IEqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE, TYPE_NAME> extends INullableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME> {
     [equalableValueSourceType]: 'EqualableValueSource'
 }
 
-export interface EqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends NullableValueSource<TABLE_OR_VIEW, TYPE>, IEqualableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface EqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE, TYPE_NAME> extends NullableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME>, IEqualableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME> {
     equalsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     equals(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    equals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    equals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE  | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    equals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    equals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE  | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     notEqualsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notEquals(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    notEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    notEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE  | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    notEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    notEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE  | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     isIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     is(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, boolean>
-    is<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
-    is<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
+    is<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
+    is<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
     isNotIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, boolean>
     isNot(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, boolean>
-    isNot<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
-    isNot<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
+    isNot<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
+    isNot<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean>
 
     inIfValue(values: TYPE[] | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     in(values: TYPE[]): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    in<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    in<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    in<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    in<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     in<TABLE_OR_VIEW2 extends ITableOrView<any>>(select: IExecutableSelectQuery<TABLE_OR_VIEW[typeof database], TYPE | null | undefined, TABLE_OR_VIEW2>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2[typeof tableOrViewRef], boolean>
     notInIfValue(values: TYPE[] | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notIn(values: TYPE[]): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    notIn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    notIn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    notIn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    notIn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     notIn<TABLE_OR_VIEW2 extends ITableOrView<any>>(select: IExecutableSelectQuery<TABLE_OR_VIEW[typeof database], TYPE | null | undefined, TABLE_OR_VIEW2>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2[typeof tableOrViewRef], boolean>
     inN(...value: TYPE[]): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    inN<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(...value: (TYPE | IEqualableValueSource<TABLE_OR_VIEW2, TYPE>)[]): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>> // limitation: only one source table
-    inN<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(...value: (TYPE | IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>)[]): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>> // limitation: only one source table
+    inN<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(...value: (TYPE | IEqualableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>)[]): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>> // limitation: only one source table
+    inN<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(...value: (TYPE | IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>)[]): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>> // limitation: only one source table
     notInN(...value: TYPE[]): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    notInN<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(...value: (TYPE | IEqualableValueSource<TABLE_OR_VIEW2, TYPE>)[]): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>> // limitation: only one source table
-    notInN<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(...value: (TYPE | IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>)[]): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>> // limitation: only one source table
+    notInN<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(...value: (TYPE | IEqualableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>)[]): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>> // limitation: only one source table
+    notInN<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(...value: (TYPE | IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>)[]): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>> // limitation: only one source table
 
     // Redefined methods
-    valueWhenNull(value: MandatoryTypeOf<TYPE>): EqualableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): EqualableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): EqualableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
-    asOptional(): EqualableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull(value: MandatoryTypeOf<TYPE>): EqualableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>, TYPE_NAME>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): EqualableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>, TYPE_NAME>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): EqualableValueSource<TABLE_OR_VIEW, TYPE | null | undefined, TYPE_NAME>
+    asOptional(): EqualableValueSource<TABLE_OR_VIEW, TYPE | null | undefined, TYPE_NAME>
 }
 
-export interface IComparableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends IEqualableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface IComparableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE, TYPE_NAME> extends IEqualableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME> {
     [comparableValueSourceType]: 'ComparableValueSource'
 }
 
-export interface ComparableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> extends EqualableValueSource<TABLE_OR_VIEW, TYPE>, IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface ComparableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE, TYPE_NAME> extends EqualableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME>, IComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME> {
     /** @deprecated use lessThanIfValue method instead */
     smallerIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     /** @deprecated use lessThan method instead */
     smaller(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     /** @deprecated use lessThan method instead */
-    smaller<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    smaller<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     /** @deprecated use lessThan method instead */
-    smaller<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    smaller<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     /** @deprecated use greaterThanIfValue method instead */
     largerIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     /** @deprecated use greaterThan method instead */
     larger(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     /** @deprecated use greaterThan method instead */
-    larger<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    larger<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     /** @deprecated use greaterThan method instead */
-    larger<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    larger<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     /** @deprecated use lessOrEqualsIfValue method instead */
     smallAsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     /** @deprecated use lessOrEquals method instead */
     smallAs(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     /** @deprecated use lessOrEquals method instead */
-    smallAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    smallAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     /** @deprecated use lessOrEquals method instead */
-    smallAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    smallAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     /** @deprecated use greaterOrEqualsIfValue method instead */
     largeAsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     /** @deprecated use greaterOrEquals method instead */
     largeAs(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     /** @deprecated use greaterOrEquals method instead */
-    largeAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    largeAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     /** @deprecated use greaterOrEquals method instead */
-    largeAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    largeAs<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     lessThanIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     lessThan(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    lessThan<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    lessThan<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    lessThan<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    lessThan<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     greaterThanIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     greaterThan(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    greaterThan<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    greaterThan<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    greaterThan<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    greaterThan<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     lessOrEqualsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     lessOrEquals(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    lessOrEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    lessOrEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    lessOrEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    lessOrEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     greaterOrEqualsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     greaterOrEquals(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    greaterOrEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    greaterOrEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
+    greaterOrEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    greaterOrEquals<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
     between(value: TYPE, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: TYPE, value2: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: TYPE, value2: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, BooleanOrNullOf<TYPE>>
-    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, boolean | null | undefined>
-    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, boolean | null | undefined>
-    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, boolean | null | undefined>
+    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: TYPE, value2: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: TYPE, value2: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
+    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
+    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, BooleanOrNullOf<TYPE>>
+    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, boolean | null | undefined>
+    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, boolean | null | undefined>
+    between<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, boolean | null | undefined>
     notBetween(value: TYPE, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: TYPE, value2: IComparableValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: TYPE, value2: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
-    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, BooleanOrNullOf<TYPE>>
-    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, boolean | null | undefined>
-    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, boolean | null | undefined>
-    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, boolean | null | undefined>
+    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: TYPE, value2: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: TYPE, value2: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
+    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
+    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, BooleanOrNullOf<TYPE>>
+    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, boolean | null | undefined>
+    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, boolean | null | undefined>
+    notBetween<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(value: IComparableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>, value2: IComparableValueSource<TABLE_OR_VIEW3, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, boolean | null | undefined>
     // Redefined methods
-    valueWhenNull(value: MandatoryTypeOf<TYPE>): ComparableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): ComparableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
-    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): ComparableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
-    asOptional(): ComparableValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
+    valueWhenNull(value: MandatoryTypeOf<TYPE>): ComparableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>, TYPE_NAME>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): ComparableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>, TYPE_NAME>
+    valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): ComparableValueSource<TABLE_OR_VIEW, TYPE | null | undefined, TYPE_NAME>
+    asOptional(): ComparableValueSource<TABLE_OR_VIEW, TYPE | null | undefined, TYPE_NAME>
 }
 
-export interface IBooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends boolean | null | undefined = boolean*/> extends IEqualableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface IBooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends boolean | null | undefined = boolean*/> extends IEqualableValueSource<TABLE_OR_VIEW, TYPE, 'BooleanValueSource'> {
     [booleanValueSourceType]: 'BooleanValueSource'
 }
 
-export interface BooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends boolean | null | undefined = boolean*/> extends EqualableValueSource<TABLE_OR_VIEW, TYPE>, IBooleanValueSource<TABLE_OR_VIEW, TYPE> {
+export interface BooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends boolean | null | undefined = boolean*/> extends EqualableValueSource<TABLE_OR_VIEW, TYPE, 'BooleanValueSource'>, IBooleanValueSource<TABLE_OR_VIEW, TYPE> {
     negate(): BooleanValueSource<TABLE_OR_VIEW, TYPE>
     and(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IfValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
@@ -240,11 +244,11 @@ export interface IfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE
     or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBooleanValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
 }
 
-export interface INumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends number | null | undefined = number*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface INumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends number | null | undefined = number*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'NumberValueSource'> {
     [numberValueSourceType]: 'NumberValueSource'
 }
 
-export interface NumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends number | null | undefined = number*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, INumberValueSource<TABLE_OR_VIEW, TYPE> {
+export interface NumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends number | null | undefined = number*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'NumberValueSource'>, INumberValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
     asInt(): NumberValueSource<TABLE_OR_VIEW, TYPE> // Maybe unsafe cast, we round it when it is necesary
@@ -319,11 +323,11 @@ export interface NumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     asOptional(): NumberValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface IStringNumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends number | string | null | undefined = number | string*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface IStringNumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends number | string | null | undefined = number | string*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'StringNumberValueSource'> {
     [stringNumberValueSourceType]: 'StringNumberValueSource'
 }
 
-export interface StringNumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends number | string | null | undefined = number | string*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IStringNumberValueSource<TABLE_OR_VIEW, TYPE> {
+export interface StringNumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends number | string | null | undefined = number | string*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'StringNumberValueSource'>, IStringNumberValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
     asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, TYPE | string> // Maybe unsafe cast, we round it when it is necesary
@@ -396,11 +400,11 @@ export interface StringNumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<An
     asOptional(): StringNumberValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface IIntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends int | null | undefined = int*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface IIntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends int | null | undefined = int*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'IntValueSource'> {
     [intValueSourceType]: 'IntValueSource'
 }
 
-export interface IntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends int | null | undefined = int*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IIntValueSource<TABLE_OR_VIEW, TYPE> {
+export interface IntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends int | null | undefined = int*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'IntValueSource'>, IIntValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
     asStringInt(): StringIntValueSource<TABLE_OR_VIEW, AsType<TYPE, stringInt>>
@@ -510,11 +514,11 @@ export interface IntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYP
     asOptional(): IntValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface IDoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends double | null | undefined = double*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface IDoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends double | null | undefined = double*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'DoubleValueSource'> {
     [doubleValueSourceType]: 'DoubleValueSource'
 }
 
-export interface DoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends double | null | undefined = double*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IDoubleValueSource<TABLE_OR_VIEW, TYPE> {
+export interface DoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends double | null | undefined = double*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'DoubleValueSource'>, IDoubleValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
     asStringDouble(): StringDoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
@@ -621,12 +625,12 @@ export interface DoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     asOptional(): DoubleValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface IBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends int | null | undefined = int*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface IBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends int | null | undefined = int*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'BigintValueSource'> {
     [bigintValueSourceType]: 'BigintValueSource'
 }
 
 // some methods are commented because there is no bigdouble yet
-export interface BigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends bigint | null | undefined = bigint*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IBigintValueSource<TABLE_OR_VIEW, TYPE> {
+export interface BigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends bigint | null | undefined = bigint*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'BigintValueSource'>, IBigintValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
     asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, AsType<TYPE, number | string>>
@@ -735,12 +739,12 @@ export interface BigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
 }
 
 
-export interface ITypeSafeBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends int | null | undefined = int*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface ITypeSafeBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends int | null | undefined = int*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'TypeSafeBigintValueSource'> {
     [typeSafeBigintValueSourceType]: 'TypeSafeBigintValueSource'
 }
 
 // some methods are commented because there is no bigdouble yet
-export interface TypeSafeBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends bigint | null | undefined = bigint*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, ITypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE> {
+export interface TypeSafeBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends bigint | null | undefined = bigint*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'TypeSafeBigintValueSource'>, ITypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
     asStringInt(): StringIntValueSource<TABLE_OR_VIEW, AsType<TYPE, stringInt>>
@@ -848,11 +852,11 @@ export interface TypeSafeBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     asOptional(): TypeSafeBigintValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface IStringIntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends stringInt | null | undefined = stringInt*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface IStringIntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends stringInt | null | undefined = stringInt*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'StringIntValueSource'> {
     [stringIntValueSourceType]: 'StringIntValueSource'
 }
 
-export interface StringIntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends stringInt | null | undefined = stringInt*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IStringIntValueSource<TABLE_OR_VIEW, TYPE> {
+export interface StringIntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends stringInt | null | undefined = stringInt*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'StringIntValueSource'>, IStringIntValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
     asStringDouble(): StringDoubleValueSource<TABLE_OR_VIEW, AsType<TYPE, stringDouble>>
@@ -960,11 +964,11 @@ export interface StringIntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
     asOptional(): StringIntValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface IStringDoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends stringDouble | null | undefined = stringDouble*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface IStringDoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends stringDouble | null | undefined = stringDouble*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'StringDoubleValueSource'> {
     [stringDoubleValueSourceType]: 'StringDoubleValueSource'
 }
 
-export interface StringDoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends stringDouble | null | undefined = stringDouble*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IStringDoubleValueSource<TABLE_OR_VIEW, TYPE> {
+export interface StringDoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends stringDouble | null | undefined = stringDouble*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'StringDoubleValueSource'>, IStringDoubleValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlFunction0
     // Number functions
     //asInt(): StringIntValueSource<TABLE_OR_VIEW, StringIntTypeOf<TYPE>> // test function
@@ -1071,11 +1075,11 @@ export interface StringDoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<An
     asOptional(): StringDoubleValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface IStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends string | null | undefined = string*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface IStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends string | null | undefined = string*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'StringValueSource'> {
     [stringValueSourceType]: 'StringValueSource'
 }
 
-export interface StringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends string | null | undefined = string*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IStringValueSource<TABLE_OR_VIEW, TYPE> {
+export interface StringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends string | null | undefined = string*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'StringValueSource'>, IStringValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlComparator 1
     equalsInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     equalsInsensitive(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
@@ -1205,11 +1209,11 @@ export interface StringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     asOptional(): StringValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface ITypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends string | null | undefined = string*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface ITypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends string | null | undefined = string*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'TypeSafeStringValueSource'> {
     [typeSafeStringValueSourceType]: 'TypeSafeStringValueSource'
 }
 
-export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends string | null | undefined = string*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, ITypeSafeStringValueSource<TABLE_OR_VIEW, TYPE> {
+export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends string | null | undefined = string*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'TypeSafeStringValueSource'>, ITypeSafeStringValueSource<TABLE_OR_VIEW, TYPE> {
     // SqlComparator 1
     //asString(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE> // test function
     equalsInsensitiveIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
@@ -1340,11 +1344,11 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     asOptional(): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface IDateValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends Date | null | undefined = Date*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface IDateValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends Date | null | undefined = Date*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'DateValueSource'> {
     [dateValueSourceType]: 'DateValueSource'
 }
 
-export interface DateValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends Date | null | undefined = Date*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IDateValueSource<TABLE_OR_VIEW, TYPE> {
+export interface DateValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends Date | null | undefined = Date*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'DateValueSource'>, IDateValueSource<TABLE_OR_VIEW, TYPE> {
     /** Gets the year */
     getFullYear(): NumberValueSource<TABLE_OR_VIEW, number>
     /** Gets the month (value between 0 to 11)*/
@@ -1360,11 +1364,11 @@ export interface DateValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TY
     asOptional(): DateValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface ITimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends Date | null | undefined = Date*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface ITimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends Date | null | undefined = Date*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'TimeValueSource'> {
     [timeValueSourceType]: 'TimeValueSource'
 }
 
-export interface TimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends Date | null | undefined = Date*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, ITimeValueSource<TABLE_OR_VIEW, TYPE> {
+export interface TimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends Date | null | undefined = Date*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'TimeValueSource'>, ITimeValueSource<TABLE_OR_VIEW, TYPE> {
     /** Gets the hours */
     getHours(): NumberValueSource<TABLE_OR_VIEW, number>
     /** Gets the minutes */
@@ -1380,11 +1384,11 @@ export interface TimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TY
     asOptional(): TimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface IDateTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends Date | null | undefined = Date*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface IDateTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends Date | null | undefined = Date*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'DateTimeValueSource'> {
     [dateTimeValueSourceType]: 'DateTimeValueSource'
 }
 
-export interface DateTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends Date | null | undefined = Date*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, IDateTimeValueSource<TABLE_OR_VIEW, TYPE> {
+export interface DateTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends Date | null | undefined = Date*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'DateTimeValueSource'>, IDateTimeValueSource<TABLE_OR_VIEW, TYPE> {
     /** Gets the year */
     getFullYear(): NumberValueSource<TABLE_OR_VIEW, number>
     /** Gets the month (value between 0 to 11)*/
@@ -1410,11 +1414,11 @@ export interface DateTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
     asOptional(): DateTimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface ILocalDateValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends LocalDate | null | undefined = LocalDate*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface ILocalDateValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends LocalDate | null | undefined = LocalDate*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'LocalDateValueSource'> {
     [localDateValueSourceType]: 'LocalDateValueSource'
 }
 
-export interface LocalDateValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends LocalDate | null | undefined = LocalDate*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, ILocalDateValueSource<TABLE_OR_VIEW, TYPE> {
+export interface LocalDateValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends LocalDate | null | undefined = LocalDate*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'LocalDateValueSource'>, ILocalDateValueSource<TABLE_OR_VIEW, TYPE> {
     /** Gets the year */
     getFullYear(): IntValueSource<TABLE_OR_VIEW, int>
     /** Gets the month (value between 0 to 11)*/
@@ -1430,11 +1434,11 @@ export interface LocalDateValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
     asOptional(): LocalDateValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface ILocalTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends LocalTime | null | undefined = LocalTime*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface ILocalTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends LocalTime | null | undefined = LocalTime*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'LocalTimeValueSource'> {
     [localTimeValueSourceType]: 'LocalTimeValueSource'
 }
 
-export interface LocalTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends LocalTime | null | undefined = LocalTime*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, ILocalTimeValueSource<TABLE_OR_VIEW, TYPE> {
+export interface LocalTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends LocalTime | null | undefined = LocalTime*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'LocalTimeValueSource'>, ILocalTimeValueSource<TABLE_OR_VIEW, TYPE> {
     /** Gets the hours */
     getHours(): IntValueSource<TABLE_OR_VIEW, int>
     /** Gets the minutes */
@@ -1450,11 +1454,11 @@ export interface LocalTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
     asOptional(): LocalTimeValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
 }
 
-export interface ILocalDateTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends LocalDateTime | null | undefined = LocalDateTime*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE> {
+export interface ILocalDateTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends LocalDateTime | null | undefined = LocalDateTime*/> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, 'LocalDateTimeValueSource'> {
     [localDateTimeValueSourceType]: 'LocalDateTimeValueSource'
 }
 
-export interface LocalDateTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends LocalDateTime | null | undefined = LocalDateTime*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE>, ILocalDateTimeValueSource<TABLE_OR_VIEW, TYPE> {
+export interface LocalDateTimeValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends LocalDateTime | null | undefined = LocalDateTime*/> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, 'LocalDateTimeValueSource'>, ILocalDateTimeValueSource<TABLE_OR_VIEW, TYPE> {
     /** Gets the year */
     getFullYear(): IntValueSource<TABLE_OR_VIEW, int>
     /** Gets the month (value between 0 to 11)*/
@@ -1523,9 +1527,9 @@ export type RemapValueSourceType<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TY
         TYPE extends IDateValueSource<any, any> ? DateValueSource<TABLE_OR_VIEW, T> :
         TYPE extends ILocalTimeValueSource<any, any> ? LocalTimeValueSource<TABLE_OR_VIEW, T> :
         TYPE extends ITimeValueSource<any, any> ? TimeValueSource<TABLE_OR_VIEW, T> :
-        TYPE extends IComparableValueSource<any, any> ? ComparableValueSource<TABLE_OR_VIEW, T> :
-        TYPE extends IEqualableValueSource<any, any> ? EqualableValueSource<TABLE_OR_VIEW, T> :
-        TYPE extends INullableValueSource<any, any> ? NullableValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends IComparableValueSource<any, any, infer TYPE_NAME> ? ComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME> :
+        TYPE extends IEqualableValueSource<any, any, infer TYPE_NAME> ? EqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME> :
+        TYPE extends INullableValueSource<any, any, infer TYPE_NAME> ? NullableValueSource<TABLE_OR_VIEW, T, TYPE_NAME> :
         TYPE extends IValueSource<any, any> ? ValueSource<TABLE_OR_VIEW, T> :
         never
     ): never
@@ -1549,9 +1553,9 @@ export type RemapValueSourceTypeAsOptional<TABLE_OR_VIEW extends TableOrViewRef<
         TYPE extends IDateValueSource<any, any> ? DateValueSource<TABLE_OR_VIEW, T | null | undefined> :
         TYPE extends ILocalTimeValueSource<any, any> ? LocalTimeValueSource<TABLE_OR_VIEW, T | null | undefined> :
         TYPE extends ITimeValueSource<any, any> ? TimeValueSource<TABLE_OR_VIEW, T | null | undefined> :
-        TYPE extends IComparableValueSource<any, any> ? ComparableValueSource<TABLE_OR_VIEW, T | null | undefined> :
-        TYPE extends IEqualableValueSource<any, any> ? EqualableValueSource<TABLE_OR_VIEW, T | null | undefined> :
-        TYPE extends INullableValueSource<any, any> ? NullableValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends IComparableValueSource<any, any, infer TYPE_NAME> ? ComparableValueSource<TABLE_OR_VIEW, T | null | undefined, TYPE_NAME> :
+        TYPE extends IEqualableValueSource<any, any, infer TYPE_NAME> ? EqualableValueSource<TABLE_OR_VIEW, T | null | undefined, TYPE_NAME> :
+        TYPE extends INullableValueSource<any, any, infer TYPE_NAME> ? NullableValueSource<TABLE_OR_VIEW, T | null | undefined, TYPE_NAME> :
         TYPE extends IValueSource<any, any> ? ValueSource<TABLE_OR_VIEW, T | null | undefined> :
         never
     ): never
@@ -1575,9 +1579,9 @@ export type RemapValueSourceTypeAsMandatory<TABLE_OR_VIEW extends TableOrViewRef
         TYPE extends IDateValueSource<any, any> ? DateValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         TYPE extends ILocalTimeValueSource<any, any> ? LocalTimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         TYPE extends ITimeValueSource<any, any> ? TimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
-        TYPE extends IComparableValueSource<any, any> ? ComparableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
-        TYPE extends IEqualableValueSource<any, any> ? EqualableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
-        TYPE extends INullableValueSource<any, any> ? NullableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends IComparableValueSource<any, any, infer TYPE_NAME> ? ComparableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>, TYPE_NAME> :
+        TYPE extends IEqualableValueSource<any, any, infer TYPE_NAME> ? EqualableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>, TYPE_NAME> :
+        TYPE extends INullableValueSource<any, any, infer TYPE_NAME> ? NullableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>, TYPE_NAME> :
         TYPE extends IValueSource<any, any> ? ValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         never
     ): never
@@ -1589,13 +1593,15 @@ export type AsType<T, TYPE> = TYPE | OptionalTypeOf<T>
 export type ArgumentType = 'boolean' | 'stringInt' | 'int' | 'stringDouble' | 'double' | 'bigint' | 'string' | 'localDateTime' | 'localDate' | 'localTime' | 'customComparable' | 'enum' | 'custom'
 export type ArgumentRequire = 'required' | 'optional'
 export type ArgumentMode = 'value' | 'combined'
-export class Argument<T extends ArgumentType, REQUIRED extends ArgumentRequire, MODE extends ArgumentMode, TYPE> {
+export class Argument<T extends ArgumentType, REQUIRED extends ArgumentRequire, MODE extends ArgumentMode, TYPE, TYPE_NAME = any> {
     readonly type: T
     readonly typeName: string
     readonly required: REQUIRED
     readonly mode: MODE
     readonly adapter?: TypeAdapter
     [valueType]: TYPE
+    [valueSourceTypeName]: TYPE_NAME
+
     constructor (argumentType: T, typeName: string, required: REQUIRED, mode: MODE, adapter?: TypeAdapter) {
         this.type = argumentType
         this.typeName = typeName
@@ -1609,7 +1615,7 @@ export type TypeOf<R extends ArgumentRequire, T> = R extends 'required' ? T : (T
 export type TypeOfArgument<ARG> = ARG extends Argument<any, infer REQUIRED, any, infer T> ? TypeOf<REQUIRED, T> : never
 
 export type MapArgumentToTypeSafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, ARG> =
-    ARG extends Argument<infer TYPE, infer REQUIRED, any, infer T> ? (
+    ARG extends Argument<infer TYPE, infer REQUIRED, any, infer T, infer TYPE_NAME> ? (
         TYPE extends 'boolean' ? BooleanValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'stringInt' ? StringIntValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'int' ? IntValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
@@ -1620,14 +1626,14 @@ export type MapArgumentToTypeSafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, A
         TYPE extends 'localDateTime' ? LocalDateTimeValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localDate' ? LocalDateValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localTime' ? LocalTimeValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
-        TYPE extends 'customComparable'? ComparableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
-        TYPE extends 'enum' ? EqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
-        TYPE extends 'custom' ? EqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'customComparable'? ComparableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>, TYPE_NAME> :
+        TYPE extends 'enum' ? EqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>, TYPE_NAME> :
+        TYPE extends 'custom' ? EqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>, TYPE_NAME> :
         never
     ): never
 
 export type MapArgumentToTypeUnsafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, ARG> =
-    ARG extends Argument<infer TYPE, infer REQUIRED, any, infer T> ? (
+    ARG extends Argument<infer TYPE, infer REQUIRED, any, infer T, infer TYPE_NAME> ? (
         TYPE extends 'boolean' ? BooleanValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'stringInt' ? StringNumberValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'int' ? NumberValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
@@ -1638,14 +1644,14 @@ export type MapArgumentToTypeUnsafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>,
         TYPE extends 'localDateTime' ? DateTimeValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localDate' ? DateValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localTime' ? TimeValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
-        TYPE extends 'customComparable' ? ComparableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
-        TYPE extends 'enum' ? EqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
-        TYPE extends 'custom' ? EqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'customComparable' ? ComparableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>, TYPE_NAME> :
+        TYPE extends 'enum' ? EqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>, TYPE_NAME> :
+        TYPE extends 'custom' ? EqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>, TYPE_NAME> :
         never
     ): never
 
 export type MapArgumentToITypeSafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, ARG> =
-    ARG extends Argument<infer TYPE, infer REQUIRED, any, infer T> ? (
+    ARG extends Argument<infer TYPE, infer REQUIRED, any, infer T, infer TYPE_NAME> ? (
         TYPE extends 'boolean' ? IBooleanValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'stringInt' ? IStringIntValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'int' ? IIntValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
@@ -1656,14 +1662,14 @@ export type MapArgumentToITypeSafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
         TYPE extends 'localDateTime' ? ILocalDateTimeValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localDate' ? ILocalDateValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localTime' ? ILocalTimeValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
-        TYPE extends 'customComparable'? IComparableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
-        TYPE extends 'enum' ? IEqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
-        TYPE extends 'custom' ? IEqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'customComparable'? IComparableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>, TYPE_NAME> :
+        TYPE extends 'enum' ? IEqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>, TYPE_NAME> :
+        TYPE extends 'custom' ? IEqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>, TYPE_NAME> :
         never
     ): never
 
 export type MapArgumentToITypeUnsafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, ARG> =
-    ARG extends Argument<infer TYPE, infer REQUIRED, any, infer T> ? (
+    ARG extends Argument<infer TYPE, infer REQUIRED, any, infer T, infer TYPE_NAME> ? (
         TYPE extends 'boolean' ? IBooleanValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'stringInt' ? IStringNumberValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'int' ? INumberValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
@@ -1674,9 +1680,9 @@ export type MapArgumentToITypeUnsafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
         TYPE extends 'localDateTime' ? IDateTimeValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localDate' ? IDateValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
         TYPE extends 'localTime' ? ITimeValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
-        TYPE extends 'customComparable' ? IComparableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
-        TYPE extends 'enum' ? IEqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
-        TYPE extends 'custom' ? IEqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>> :
+        TYPE extends 'customComparable' ? IComparableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>, TYPE_NAME> :
+        TYPE extends 'enum' ? IEqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>, TYPE_NAME> :
+        TYPE extends 'custom' ? IEqualableValueSource<TABLE_OR_VIEW, TypeOf<REQUIRED, T>, TYPE_NAME> :
         never
     ): never
 

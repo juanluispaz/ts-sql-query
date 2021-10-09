@@ -176,9 +176,9 @@ export type MapValueSourceToFilter<TYPE> =
         TYPE extends IDateValueSource<any, any> ? DateFilter :
         TYPE extends ILocalTimeValueSource<any, any> ? LocalTimeFilter :
         TYPE extends ITimeValueSource<any, any> ? TimeFilter :
-        TYPE extends IComparableValueSource<any, any> ? ComparableFilter<T> :
-        TYPE extends IEqualableValueSource<any, any> ? EqualableFilter<T> :
-        TYPE extends INullableValueSource<any, any> ? NullableFilter :
+        TYPE extends IComparableValueSource<any, any, any> ? ComparableFilter<T> :
+        TYPE extends IEqualableValueSource<any, any, any> ? EqualableFilter<T> :
+        TYPE extends INullableValueSource<any, any, any> ? NullableFilter :
         TYPE extends IValueSource<any, any> ? Filter :
         never
     ) : never

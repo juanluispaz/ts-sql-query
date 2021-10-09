@@ -237,32 +237,32 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     }
     pi(this: IConnection<TypeSafeDB>): DoubleValueSource<NoTableOrViewRequired<DB>, double>
     pi(): NumberValueSource<NoTableOrViewRequired<DB>, number>
-    pi(): NumberValueSource<NoTableOrViewRequired<DB>, number> & DoubleValueSource<NoTableOrViewRequired<DB>, double> {
+    pi(): any {
         return new SqlOperationStatic0ValueSource(false, '_pi', 'double', undefined)
     }
     random(this: IConnection<TypeSafeDB>): DoubleValueSource<NoTableOrViewRequired<DB>, double>
     random(): NumberValueSource<NoTableOrViewRequired<DB>, number>
-    random(): NumberValueSource<NoTableOrViewRequired<DB>, number> & DoubleValueSource<NoTableOrViewRequired<DB>, double> {
+    random(): any {
         return new SqlOperationStatic0ValueSource(false, '_random', 'double', undefined)
     }
     currentDate(this: IConnection<TypeSafeDB>): LocalDateValueSource<NoTableOrViewRequired<DB>, LocalDate>
     currentDate(): DateValueSource<NoTableOrViewRequired<DB>, Date>
-    currentDate(): DateValueSource<NoTableOrViewRequired<DB>, Date> & LocalDateValueSource<NoTableOrViewRequired<DB>, LocalDate> {
+    currentDate(): any {
         return new SqlOperationStatic0ValueSource(false, '_currentDate', 'localDate', undefined)
     }
     currentTime(this: IConnection<TypeSafeDB>): LocalTimeValueSource<NoTableOrViewRequired<DB>, LocalTime>
     currentTime(): TimeValueSource<NoTableOrViewRequired<DB>, Date>
-    currentTime(): TimeValueSource<NoTableOrViewRequired<DB>, Date> & LocalTimeValueSource<NoTableOrViewRequired<DB>, LocalTime> {
+    currentTime(): any {
         return new SqlOperationStatic0ValueSource(false, '_currentTime', 'localTime', undefined)
     }
     currentDateTime(this: IConnection<TypeSafeDB>): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime>
     currentDateTime(): DateTimeValueSource<NoTableOrViewRequired<DB>, Date>
-    currentDateTime(): DateTimeValueSource<NoTableOrViewRequired<DB>, Date> & LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime> {
+    currentDateTime(): any {
         return new SqlOperationStatic0ValueSource(false, '_currentTimestamp', 'localDateTime', undefined)
     }
     currentTimestamp(this: IConnection<TypeSafeDB>): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime>
     currentTimestamp(): DateTimeValueSource<NoTableOrViewRequired<DB>, Date>
-    currentTimestamp(): DateTimeValueSource<NoTableOrViewRequired<DB>, Date> & LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime> {
+    currentTimestamp(): any {
         return new SqlOperationStatic0ValueSource(false, '_currentTimestamp', 'localDateTime', undefined)
     }
 
@@ -285,10 +285,13 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     const(this: IConnection<TypeUnsafeDB>, value: Date, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<NoTableOrViewRequired<DB>, Date>
     const(this: IConnection<TypeSafeDB>, value: LocalDateTime, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime>
     const(this: IConnection<TypeUnsafeDB>, value: Date, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<NoTableOrViewRequired<DB>, Date>
-    const<T>(value: T, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T>
-    const<T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T>
-    const<T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T>
-    const<_T>(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    const<T, TYPE_NAME extends string>(value: T, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME>
+    const<T, TYPE_NAME extends string>(value: T, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME>
+    const<T, TYPE_NAME extends string>(value: T, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME>
+    const<T>(value: T, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, T>
+    const<T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, T>
+    const<T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T, T>
+    const(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T, TYPE_NAME> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return new SqlOperationConstValueSource(false, value, adapter, adapter2)
         }
@@ -314,10 +317,13 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     optionalConst(this: IConnection<TypeUnsafeDB>, value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): TimeValueSource<NoTableOrViewRequired<DB>, Date | null | undefined>
     optionalConst(this: IConnection<TypeSafeDB>, value: LocalDateTime | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, LocalDateTime | null | undefined>
     optionalConst(this: IConnection<TypeUnsafeDB>, value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource<NoTableOrViewRequired<DB>, Date | null | undefined>
-    optionalConst<T>(value: T | null | undefined, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T | null | undefined>
-    optionalConst<T>(value: T | null | undefined, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T | null | undefined>
-    optionalConst<T>(value: T | null | undefined, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T | null | undefined>
-    optionalConst<_T>(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T | null | undefined, TYPE_NAME>
+    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T | null | undefined, TYPE_NAME>
+    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T | null | undefined, TYPE_NAME>
+    optionalConst<T>(value: T | null | undefined, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T | null | undefined, T>
+    optionalConst<T>(value: T | null | undefined, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T | null | undefined, T>
+    optionalConst<T>(value: T | null | undefined, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T | null | undefined, T>
+    optionalConst(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T, TYPE_NAME> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return new SqlOperationConstValueSource(true, value, adapter, adapter2)
         }
@@ -386,13 +392,19 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Promise<LocalDateTime | null>
     protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localDateTime', required: 'required', adapter?: TypeAdapter): Promise<Date>
     protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'enum', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'enum', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'custom', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'custom', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'customComparable', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
     protected executeFunction<T>(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
     protected executeFunction<T>(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
     protected executeFunction<T>(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
     protected executeFunction<T>(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
     protected executeFunction<T>(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
     protected executeFunction<T>(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<_T>(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Promise<any> {
+    protected executeFunction(functionName: string, params: IValueSource<NoTableOrViewRequired<DB>, any>[], returnType: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Promise<any> {
         try {
             if (typeof adapter === 'string') {
                 returnType = required
@@ -464,13 +476,19 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     fragmentWithType(this: IConnection<TypeSafeDB>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<DB, LocalDateTime | null | undefined>
     fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'localDateTime', required: 'required', adapter?: TypeAdapter): DateTimeFragmentExpression<DB, Date>
     fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): DateTimeFragmentExpression<DB, Date | null | undefined>
-    fragmentWithType<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T>
-    fragmentWithType<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T | null | undefined>
-    fragmentWithType<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T>
-    fragmentWithType<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T | null | undefined>
-    fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T>
-    fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T | null | undefined>
-    fragmentWithType<_T>(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, TYPE_NAME>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T | null | undefined, TYPE_NAME>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, TYPE_NAME>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T | null | undefined, TYPE_NAME>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T, TYPE_NAME>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T | null | undefined, TYPE_NAME>
+    fragmentWithType<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, T>
+    fragmentWithType<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T | null | undefined, T>
+    fragmentWithType<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, T>
+    fragmentWithType<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T | null | undefined, T>
+    fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T, T>
+    fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T | null | undefined, T>
+    fragmentWithType(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
             type = required
             required = adapter
@@ -515,13 +533,19 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected arg(this: IConnection<TypeSafeDB>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Argument<'localDateTime', 'optional', 'combined', LocalDateTime>
     protected arg(this: IConnection<TypeUnsafeDB>, type: 'localDateTime', required: 'required', adapter?: TypeAdapter): Argument<'localDateTime', 'required', 'combined', Date>
     protected arg(this: IConnection<TypeUnsafeDB>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Argument<'localDateTime', 'optional', 'combined', Date>
-    protected arg<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'enum', 'required', 'combined', T>
-    protected arg<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'enum', 'optional', 'combined', T>
-    protected arg<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'custom', 'required', 'combined', T>
-    protected arg<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'custom', 'optional', 'combined', T>
-    protected arg<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customComparable', 'required', 'combined', T>
-    protected arg<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'combined', T>
-    protected arg<_T>(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
+    protected arg<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Argument<'enum', 'required', 'combined', T, TYPE_NAME>
+    protected arg<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'enum', 'optional', 'combined', T, TYPE_NAME>
+    protected arg<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Argument<'custom', 'required', 'combined', T, TYPE_NAME>
+    protected arg<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'custom', 'optional', 'combined', T, TYPE_NAME>
+    protected arg<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Argument<'customComparable', 'required', 'combined', T, TYPE_NAME>
+    protected arg<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'combined', T, TYPE_NAME>
+    protected arg<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'enum', 'required', 'combined', T, T>
+    protected arg<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'enum', 'optional', 'combined', T, T>
+    protected arg<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'custom', 'required', 'combined', T, T>
+    protected arg<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'custom', 'optional', 'combined', T, T>
+    protected arg<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customComparable', 'required', 'combined', T, T>
+    protected arg<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'combined', T, T>
+    protected arg(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
             return new Argument(type as any, adapter, required as any, 'combined', adapter2)
         } else {
@@ -563,13 +587,19 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected valueArg(this: IConnection<TypeSafeDB>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Argument<'localDateTime', 'optional', 'value', LocalDateTime>
     protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'localDateTime', required: 'required', adapter?: TypeAdapter): Argument<'localDateTime', 'required', 'value', Date>
     protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Argument<'localDateTime', 'optional', 'value', Date>
-    protected valueArg<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'enum', 'required', 'value', T>
-    protected valueArg<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'enum', 'optional', 'value', T>
-    protected valueArg<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'custom', 'required', 'value', T>
-    protected valueArg<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'custom', 'optional', 'value', T>
-    protected valueArg<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customComparable', 'required', 'value', T>
-    protected valueArg<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'value', T>
-    protected valueArg<_T>(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
+    protected valueArg<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Argument<'enum', 'required', 'value', T, TYPE_NAME>
+    protected valueArg<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'enum', 'optional', 'value', T, TYPE_NAME>
+    protected valueArg<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Argument<'custom', 'required', 'value', T, TYPE_NAME>
+    protected valueArg<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'custom', 'optional', 'value', T, TYPE_NAME>
+    protected valueArg<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Argument<'customComparable', 'required', 'value', T, TYPE_NAME>
+    protected valueArg<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'value', T, TYPE_NAME>
+    protected valueArg<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'enum', 'required', 'value', T, T>
+    protected valueArg<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'enum', 'optional', 'value', T, T>
+    protected valueArg<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'custom', 'required', 'value', T, T>
+    protected valueArg<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'custom', 'optional', 'value', T, T>
+    protected valueArg<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Argument<'customComparable', 'required', 'value', T, T>
+    protected valueArg<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Argument<'customComparable', 'optional', 'value', T, T>
+    protected valueArg(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
             return new Argument(type as any, adapter, required as any, 'value', adapter2)
         } else {
@@ -651,11 +681,11 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     countDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IValueSource<TABLE_OR_VIEW, any>): IValueSource<TABLE_OR_VIEW, any> {
         return new AggregateFunctions1ValueSource(false, '_countDistinct', value, 'int', undefined)
     }
-    max<TABLE_OR_VIEW extends TableOrViewRef<DB>, TYPE extends IComparableValueSource<TABLE_OR_VIEW, any>>(value: TYPE): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW, TYPE> {
+    max<TABLE_OR_VIEW extends TableOrViewRef<DB>, TYPE extends IComparableValueSource<TABLE_OR_VIEW, any, any>>(value: TYPE): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW, TYPE> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource(true, '_max', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)) as any
     }
-    min<TABLE_OR_VIEW extends TableOrViewRef<DB>, TYPE extends IComparableValueSource<TABLE_OR_VIEW, any>>(value: TYPE): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW, TYPE> {
+    min<TABLE_OR_VIEW extends TableOrViewRef<DB>, TYPE extends IComparableValueSource<TABLE_OR_VIEW, any, any>>(value: TYPE): RemapValueSourceTypeAsOptional<TABLE_OR_VIEW, TYPE> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource(true, '_min', value, valuePrivate.__valueType, valuePrivate.__typeAdapter)) as any
     }

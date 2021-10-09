@@ -267,7 +267,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendCondition(condition, params)
     }
-    _appendSql(value: ToSql | IValueSource<any, any> | Column | IExecutableSelectQuery<any, any, any>, params: any[]): string {
+    _appendSql(value: ToSql | IValueSource<any, any> | Column | IExecutableSelectQuery<any, any, any, any>, params: any[]): string {
         return (value as ToSql).__toSql(this, params) // All ValueSource or Column have a hidden implemetation of ToSql
     }
     _appendSqlParenthesis(value: ToSql | IValueSource<any, any> | Column, params: any[]): string {
@@ -1747,7 +1747,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         result += sql[sql.length - 1]
         return result
     }
-    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any>>): string {
+    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any, any>>): string {
         if (sqlParams.length <= 0) {
             return sql[0]!
         }

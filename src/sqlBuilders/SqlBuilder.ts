@@ -109,7 +109,7 @@ export interface SqlBuilder extends SqlOperation, __OptionalRule {
     _generateUnique(): number
     _resetUnique(): void
 
-    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any>>): string
+    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any, any>>): string
     _rawFragmentTableName(params: any[], tableOrView: ITableOrView<any>): string
     _rawFragmentTableAlias(params: any[], tableOrView: ITableOrView<any>): string
 }

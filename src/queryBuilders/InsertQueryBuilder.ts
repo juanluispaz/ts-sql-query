@@ -393,7 +393,7 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
             return this.set(columns)
         }
     }
-    from(select: IExecutableSelectQuery<any, any, any>): this {
+    from(select: IExecutableSelectQuery<any, any, any, any>): this {
         this.__from = select as any as SelectData
         __addWiths(select, this.__withs)
         return this

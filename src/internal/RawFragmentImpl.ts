@@ -9,9 +9,9 @@ export class RawFragmentImpl implements RawFragment<any>, HasAddWiths, ToSql {
     [database]: any
     
     __template: TemplateStringsArray
-    __params: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any>>
+    __params: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any, any>>
 
-    constructor(template: TemplateStringsArray, params: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any>>) {
+    constructor(template: TemplateStringsArray, params: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any, any>>) {
         this.__template = template
         this.__params = params
     }

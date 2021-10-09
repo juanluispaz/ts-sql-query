@@ -336,10 +336,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     false<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> = NoTableOrViewRequiredView<DB>>(): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
         return new SqlOperationStaticBooleanValueSource('_false')
     }
-    exists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: IExecutableSelectQuery<DB, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
+    exists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: IExecutableSelectQuery<DB, any, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
         return new SqlOperationStatic1ValueSource(false, '_exists', select, 'boolean', undefined)
     }
-    notExists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: IExecutableSelectQuery<DB, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
+    notExists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: IExecutableSelectQuery<DB, any, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
         return new SqlOperationStatic1ValueSource(false, '_notExists', select, 'boolean', undefined)
     }
 
@@ -637,7 +637,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new FragmentFunctionBuilderIfValue(this as any, args) // make this protected fields as public
     }
 
-    rawFragment(sql: TemplateStringsArray, ...params: Array<IValueSource<any, any> | IExecutableSelectQuery<DB, any, any>>): RawFragment<DB> {
+    rawFragment(sql: TemplateStringsArray, ...params: Array<IValueSource<any, any> | IExecutableSelectQuery<DB, any, any, any>>): RawFragment<DB> {
         return new RawFragmentImpl(sql, params)
     }
 

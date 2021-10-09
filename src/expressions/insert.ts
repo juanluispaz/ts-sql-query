@@ -1,4 +1,4 @@
-import type { ColumnsForSetOf, InputTypeOfColumn, IValueSource, TypeOfColumn, IExecutableSelectQuery } from "./values"
+import type { ColumnsForSetOf, InputTypeOfColumn, IValueSource, TypeOfColumn, IExecutableSelectQuery, RemapIValueSourceType } from "./values"
 import type { ITableOrView, NoTableOrViewRequiredView } from "../utils/ITableOrView"
 import type { AnyDB, TypeSafeDB, NoopDB, PostgreSql, SqlServer, Oracle, Sqlite } from "../databases"
 import type { int } from "ts-extended-types"
@@ -97,7 +97,7 @@ export interface InsertExpression<TABLE extends ITableOrView<any>> extends Inser
     values(columns: InsertSets<TABLE> & RequiredInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     values(columns: Array<InsertSets<TABLE> & RequiredInsertSets<TABLE>>): CustomizableExecutableMultipleInsert<TABLE>
     defaultValues: DefaultValueType<TABLE>
-    from(select: IExecutableSelectQuery<TABLE[typeof database], SelectForInsertResultType<TABLE>, NoTableOrViewRequiredView<TABLE[typeof database]>>): CustomizableExecutableInsertFromSelect<TABLE>
+    from(select: IExecutableSelectQuery<TABLE[typeof database], SelectForInsertResultType<TABLE>, SelectForInsertColumns<TABLE>, NoTableOrViewRequiredView<TABLE[typeof database]>>): CustomizableExecutableInsertFromSelect<TABLE>
 }
 
 type ReturningMultipleLastInsertedIdType<TABLE extends ITableOrView<any>> =
@@ -124,6 +124,12 @@ export type SelectForInsertResultType<TABLE extends ITableOrView<any>> = {
     [P in ColumnsForSetOf<TABLE>]?: TypeOfColumn<TABLE, P>
 } & {
     [P in RequiredColumnsForInsertOf<TABLE>]: TypeOfColumn<TABLE, P>
+}
+
+export type SelectForInsertColumns<TABLE extends ITableOrView<any>> = {
+    [P in ColumnsForSetOf<TABLE>]?: RemapIValueSourceType<any, TABLE[P]>
+} & {
+    [P in RequiredColumnsForInsertOf<TABLE>]: RemapIValueSourceType<any, TABLE[P]>
 }
 
 export type InsertSets<TABLE extends ITableOrView<any>> = {

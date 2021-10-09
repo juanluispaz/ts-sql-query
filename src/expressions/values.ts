@@ -3,7 +3,7 @@ import type { Default } from "./Default"
 import type { AnyDB } from "../databases"
 import type { int, double, /*LocalDate, LocalTime, LocalDateTime,*/ stringDouble, stringInt } from "ts-extended-types"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { bigintValueSourceType, booleanValueSourceType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, valueSourceType } from "../utils/symbols"
+import type { bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, valueSourceType } from "../utils/symbols"
 import type { Column, ColumnWithDefaultValue, ComputedColumn } from "../utils/Column"
 import { valueType, valueSourceTypeName } from "../utils/symbols"
 
@@ -70,11 +70,12 @@ export interface NullableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
     asOptional(): NullableValueSource<TABLE_OR_VIEW, TYPE | null | undefined, TYPE_NAME>
 }
 
-export interface IExecutableSelectQuery<DB extends AnyDB, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> {
+export interface IExecutableSelectQuery<DB extends AnyDB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> {
     [type]: 'ExecutableSelectQuery'
     [database]: DB
     [requiredTableOrView]: REQUIRED_TABLE_OR_VIEW
     [resultType]: RESULT
+    [columnsType]: COLUMNS
 }
 
 export interface IEqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE, TYPE_NAME> extends INullableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME> {
@@ -103,12 +104,12 @@ export interface EqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
     in(values: TYPE[]): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     in<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     in<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
-    in<TABLE_OR_VIEW2 extends ITableOrView<any>>(select: IExecutableSelectQuery<TABLE_OR_VIEW[typeof database], TYPE | null | undefined, TABLE_OR_VIEW2>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2[typeof tableOrViewRef], boolean>
+    in<TABLE_OR_VIEW2 extends ITableOrView<any>>(select: IExecutableSelectQuery<TABLE_OR_VIEW[typeof database], TYPE | null | undefined, IEqualableValueSource<any, TYPE | null | undefined, TYPE_NAME>, TABLE_OR_VIEW2>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2[typeof tableOrViewRef], boolean>
     notInIfValue(values: TYPE[] | null | undefined): IfValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notIn(values: TYPE[]): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     notIn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     notIn<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>>
-    notIn<TABLE_OR_VIEW2 extends ITableOrView<any>>(select: IExecutableSelectQuery<TABLE_OR_VIEW[typeof database], TYPE | null | undefined, TABLE_OR_VIEW2>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2[typeof tableOrViewRef], boolean>
+    notIn<TABLE_OR_VIEW2 extends ITableOrView<any>>(select: IExecutableSelectQuery<TABLE_OR_VIEW[typeof database], TYPE | null | undefined, IEqualableValueSource<any, TYPE | null | undefined, TYPE_NAME>, TABLE_OR_VIEW2>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2[typeof tableOrViewRef], boolean>
     inN(...value: TYPE[]): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
     inN<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(...value: (TYPE | IEqualableValueSource<TABLE_OR_VIEW2, TYPE, TYPE_NAME>)[]): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>> // limitation: only one source table
     inN<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(...value: (TYPE | IEqualableValueSource<TABLE_OR_VIEW2, TYPE | null | undefined, TYPE_NAME>)[]): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE | null | undefined>> // limitation: only one source table
@@ -1583,6 +1584,84 @@ export type RemapValueSourceTypeAsMandatory<TABLE_OR_VIEW extends TableOrViewRef
         TYPE extends IEqualableValueSource<any, any, infer TYPE_NAME> ? EqualableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>, TYPE_NAME> :
         TYPE extends INullableValueSource<any, any, infer TYPE_NAME> ? NullableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>, TYPE_NAME> :
         TYPE extends IValueSource<any, any> ? ValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        never
+    ): never
+
+export type RemapIValueSourceType<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> =
+    TYPE extends IValueSource<any, infer T> ? (
+        TYPE extends IBooleanValueSource<any, any> ? IBooleanValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends IStringIntValueSource<any, any> ? IStringIntValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends IIntValueSource<any, any> ? IIntValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends IStringDoubleValueSource<any, any> ? IStringDoubleValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends IDoubleValueSource<any, any> ? IDoubleValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends ITypeSafeBigintValueSource<any, any> ? ITypeSafeBigintValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends IBigintValueSource<any, any> ? IBigintValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends IStringNumberValueSource<any, any> ? IStringNumberValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends INumberValueSource<any, any> ? INumberValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends ITypeSafeStringValueSource<any, any> ? ITypeSafeStringValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends IStringValueSource<any, any> ? IStringValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends ILocalDateTimeValueSource<any, any> ? ILocalDateTimeValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends IDateTimeValueSource<any, any> ? IDateTimeValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends ILocalDateValueSource<any, any> ? ILocalDateValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends IDateValueSource<any, any> ? IDateValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends ILocalTimeValueSource<any, any> ? ILocalTimeValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends ITimeValueSource<any, any> ? ITimeValueSource<TABLE_OR_VIEW, T> :
+        TYPE extends IComparableValueSource<any, any, infer TYPE_NAME> ? IComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME> :
+        TYPE extends IEqualableValueSource<any, any, infer TYPE_NAME> ? IEqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME> :
+        TYPE extends INullableValueSource<any, any, infer TYPE_NAME> ? INullableValueSource<TABLE_OR_VIEW, T, TYPE_NAME> :
+        TYPE extends IValueSource<any, any> ? IValueSource<TABLE_OR_VIEW, T> :
+        never
+    ): never
+
+export type RemapIValueSourceTypeAsOptional<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> =
+    TYPE extends IValueSource<any, infer T> ? (
+        TYPE extends IBooleanValueSource<any, any> ? IBooleanValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends IStringIntValueSource<any, any> ? IStringIntValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends IIntValueSource<any, any> ? IIntValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends IStringDoubleValueSource<any, any> ? IStringDoubleValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends IDoubleValueSource<any, any> ? IDoubleValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends ITypeSafeBigintValueSource<any, any> ? ITypeSafeBigintValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends IBigintValueSource<any, any> ? IBigintValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends IStringNumberValueSource<any, any> ? IStringNumberValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends INumberValueSource<any, any> ? INumberValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends ITypeSafeStringValueSource<any, any> ? ITypeSafeStringValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends IStringValueSource<any, any> ? IStringValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends ILocalDateTimeValueSource<any, any> ? ILocalDateTimeValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends IDateTimeValueSource<any, any> ? IDateTimeValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends ILocalDateValueSource<any, any> ? ILocalDateValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends IDateValueSource<any, any> ? IDateValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends ILocalTimeValueSource<any, any> ? ILocalTimeValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends ITimeValueSource<any, any> ? ITimeValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        TYPE extends IComparableValueSource<any, any, infer TYPE_NAME> ? IComparableValueSource<TABLE_OR_VIEW, T | null | undefined, TYPE_NAME> :
+        TYPE extends IEqualableValueSource<any, any, infer TYPE_NAME> ? IEqualableValueSource<TABLE_OR_VIEW, T | null | undefined, TYPE_NAME> :
+        TYPE extends INullableValueSource<any, any, infer TYPE_NAME> ? INullableValueSource<TABLE_OR_VIEW, T | null | undefined, TYPE_NAME> :
+        TYPE extends IValueSource<any, any> ? IValueSource<TABLE_OR_VIEW, T | null | undefined> :
+        never
+    ): never
+
+export type RemapIValueSourceTypeAsMandatory<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE> =
+    TYPE extends IValueSource<any, infer T> ? (
+        TYPE extends IBooleanValueSource<any, any> ? IBooleanValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends IStringIntValueSource<any, any> ? IStringIntValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends IIntValueSource<any, any> ? IIntValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends IStringDoubleValueSource<any, any> ? IStringDoubleValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends IDoubleValueSource<any, any> ? IDoubleValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends ITypeSafeBigintValueSource<any, any> ? ITypeSafeBigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends IBigintValueSource<any, any> ? IBigintValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends IStringNumberValueSource<any, any> ? IStringNumberValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends INumberValueSource<any, any> ? INumberValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends ITypeSafeStringValueSource<any, any> ? ITypeSafeStringValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends IStringValueSource<any, any> ? IStringValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends ILocalDateTimeValueSource<any, any> ? ILocalDateTimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends IDateTimeValueSource<any, any> ? IDateTimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends ILocalDateValueSource<any, any> ? ILocalDateValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends IDateValueSource<any, any> ? IDateValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends ILocalTimeValueSource<any, any> ? ILocalTimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends ITimeValueSource<any, any> ? ITimeValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
+        TYPE extends IComparableValueSource<any, any, infer TYPE_NAME> ? IComparableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>, TYPE_NAME> :
+        TYPE extends IEqualableValueSource<any, any, infer TYPE_NAME> ? IEqualableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>, TYPE_NAME> :
+        TYPE extends INullableValueSource<any, any, infer TYPE_NAME> ? INullableValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>, TYPE_NAME> :
+        TYPE extends IValueSource<any, any> ? IValueSource<TABLE_OR_VIEW, MandatoryTypeOf<T>> :
         never
     ): never
 

@@ -1,11 +1,11 @@
-import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0 } from "../sqlBuilders/SqlBuilder"
-import type { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, __OptionalRule, IfValueSource, BigintValueSource, TypeSafeBigintValueSource } from "../expressions/values"
-import type { TypeAdapter } from "../TypeAdapter"
-import { ITableOrView, IWithView, __getTableOrViewPrivate, __registerTableOrView } from "../utils/ITableOrView"
+import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData } from "../sqlBuilders/SqlBuilder"
+import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, __OptionalRule, IfValueSource, BigintValueSource, TypeSafeBigintValueSource, isValueSource } from "../expressions/values"
+import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
+import { HasAddWiths, ITableOrView, IWithView, __getTableOrViewPrivate, __registerTableOrView } from "../utils/ITableOrView"
 import { database, tableOrView, valueSourceType, valueType as valueType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType, valueSourceTypeName } from "../utils/symbols"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
-
+import { ProxyTypeAdapter } from "./ProxyTypeAdapter"
 
 export abstract class ValueSourceImpl implements IValueSource<any, any>, NullableValueSource<any, any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, BigintValueSource<any, any>, TypeSafeBigintValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, ToSql, __ValueSourcePrivate {
     [valueSourceType]: 'ValueSource'
@@ -1383,4 +1383,45 @@ export class TableOrViewRawFragmentValueSource implements IValueSource<any, any>
     __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
         return this.__toSql(sqlBuilder, params)
     }
+}
+
+export type InlineSelectData = SelectData & HasAddWiths
+
+export class InlineSelectValueSource extends ValueSourceImpl implements HasOperation {
+    __operation = '_inlineSelectAsValue' as const
+    __selectData: InlineSelectData
+
+    constructor(selectData: InlineSelectData) {
+        super(...valueSourceInitializationForInlineSelect(selectData))
+        this.__selectData = selectData
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        return sqlBuilder._inlineSelectAsValue(this.__selectData, params)
+    }
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+        return sqlBuilder._inlineSelectAsValueForCondition(this.__selectData, params)
+    }
+    __resultIsOptional(_rule: __OptionalRule): boolean {
+        return true
+    }
+    __addWiths(withs: IWithView<any>[]): void {
+        this.__selectData.__addWiths(withs)
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__selectData.__registerTableOrView(requiredTablesOrViews)
+    }
+}
+
+function valueSourceInitializationForInlineSelect(selectData: SelectData) {
+    const result = selectData.__columns['result']
+    if (!isValueSource(result)) {
+        throw new Error('Illegal state: result column for a select one column not found')
+    }
+    const valueSourcePrivate = __getValueSourcePrivate(result)
+    let typeAdapter = valueSourcePrivate.__typeAdapter
+    if (typeAdapter instanceof CustomBooleanTypeAdapter) {
+        // Avoid treat the column as a custom boolean
+        typeAdapter = new ProxyTypeAdapter(typeAdapter)
+    }
+    return [valueSourcePrivate.__valueType, typeAdapter] as const
 }

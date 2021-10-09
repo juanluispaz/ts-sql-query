@@ -403,6 +403,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return 'with ' + result + ' '
     }
+    _inlineSelectAsValue(query: SelectData, params: any[]): string {
+        const result = '(' + this._buildSelectWithColumnsInfo(query, params, {}) + ')'
+        return result
+    }
+    _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string {
+        const result = '(' + this._buildSelectWithColumnsInfo(query, params, {}) + ')'
+        return result
+    }
     _buildSelect(query: SelectData, params: any[]): string {
         this._ensureRootQuery(query, params)
         const result = this._buildSelectWithColumnsInfo(query, params, {})

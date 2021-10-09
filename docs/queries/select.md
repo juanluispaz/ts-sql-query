@@ -240,6 +240,42 @@ const customerCountPerAcmeCompanies: Promise<{
 }[]>
 ```
 
+## Inline select as value for another query
+
+To use a select query that returns one column as an inline query value, you must get the value representation by calling the method `forUseAsInlineQueryValue` and then use the value representation as with any other value in a secondary query.
+
+```ts
+const acmeId = connection.selectFrom(tCompany)
+    .where(tCompany.name.equals('ACME'))
+    .selectOneColumn(tCompany.id)
+    .forUseAsInlineQueryValue();
+
+const acmeCustomers = connection.selectFrom(tCustomer)
+    .where(tCustomer.companyId.equals(acmeId))
+    .select({
+        id: tCustomer.id,
+        name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName)
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+```sql
+select id as id, first_name || $1 || last_name as name 
+from customer 
+where company_id = (select id as result from company where name = $2)
+```
+
+The parameters are: `[ ' ', 'ACME' ]`
+
+The result type is:
+```tsx
+const acmeCustomers: Promise<{
+    name: string;
+    id: number;
+}[]>
+```
+
 ## Select clauses order
 
 The select query clauses must follow one of the next orders:

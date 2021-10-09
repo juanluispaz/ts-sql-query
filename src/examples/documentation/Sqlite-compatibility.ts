@@ -1563,6 +1563,31 @@ async function main() {
         .executeSelectMany()
 
     assertEquals(companyMultiSplit, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select id as id, first_name || ? || last_name as name from customer where company_id = (select id as result from company where name = ?)`)
+    expectedParams.push(`[" ","ACME"]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const acmeId = connection.selectFrom(tCompany)
+        .where(tCompany.name.equals('ACME'))
+        .selectOneColumn(tCompany.id)
+        .forUseAsInlineQueryValue()
+
+    const acmeCustomers = await connection.selectFrom(tCustomer)
+        .where(tCustomer.companyId.equals(acmeId))
+        .select({
+            id: tCustomer.id,
+            name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName)
+        })
+        .executeSelectMany()
+
+    assertEquals(acmeCustomers, result)
 }
 
 main().then(() => {

@@ -180,6 +180,23 @@ async function main() {
             .executeSelectMany()
         assertEquals(names, ['ACME', 'ACME 2', 'FOO', 'FOO 2'])
 
+        const fooComanyNameLength = connection
+            .selectFrom(tCompany)
+            .selectOneColumn(tCompany.name.length())
+            .where(tCompany.id.equals(2))
+            .forUseAsInlineQueryValue()
+
+        companies = await connection
+            .selectFrom(tCompany)
+            .select({
+                id: tCompany.id,
+                name: tCompany.name
+            })
+            .where(tCompany.name.length().greaterThan(fooComanyNameLength))
+            .orderBy('id')
+            .executeSelectMany()
+        assertEquals(companies, [{ id: 1, name: 'ACME' },{ id: 3, name: 'ACME 2' }, { id: 4, name: 'FOO 2'}])
+
         i = await connection
             .update(tCompany)
             .set({

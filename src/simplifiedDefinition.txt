@@ -1224,6 +1224,11 @@ interface SelectExpression {
      * @param as name of the clause with in the final query (must be unique per final query)
      */
     forUseInQueryAs(as: string): View
+
+    /**
+     * Allows to use a select query as an inline query value in another select. 
+     */
+    forUseAsInlineQueryValue(): ValueSource
     
     /** Returns the sql query to be executed in the database */
     query(): string

@@ -112,6 +112,9 @@ export interface SqlBuilder extends SqlOperation, __OptionalRule {
     _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any, any>>): string
     _rawFragmentTableName(params: any[], tableOrView: ITableOrView<any>): string
     _rawFragmentTableAlias(params: any[], tableOrView: ITableOrView<any>): string
+
+    _inlineSelectAsValue(query: SelectData, params: any[]): string
+    _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string
 }
 
 export interface ToSql {
@@ -325,4 +328,5 @@ export interface SqlOperation2 extends SqlComparator2, SqlFunction2 {
 }
 
 export interface SqlOperation extends SqlOperationStatic0, SqlOperationStatic1, SqlOperation0, SqlOperation1, SqlOperation2, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2 {
+    _inlineSelectAsValue(query: SelectData, params: any[]): string
 }

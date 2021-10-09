@@ -88,6 +88,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         return this._appendRawColumnName(column, params)
     }
+    _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string {
+        const result = '((' + this._buildSelectWithColumnsInfo(query, params, {}) + ') = 1)'
+        return result
+    }
     _appendSelectColumn(value: IValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
         if (columnForInsert) {
             const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)

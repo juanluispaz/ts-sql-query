@@ -1,5 +1,5 @@
-import type { IBooleanValueSource, IValueSource, INumberValueSource, IIntValueSource, IIfValueSource, IExecutableSelectQuery, RemapIValueSourceType } from "./values"
-import type { ITableOrViewOf, NoTableOrViewRequired, NoTableOrViewRequiredView, OuterJoinSource, TableOrViewRef } from "../utils/ITableOrView"
+import type { IBooleanValueSource, IValueSource, INumberValueSource, IIntValueSource, IIfValueSource, IExecutableSelectQuery, RemapIValueSourceType, RemapValueSourceTypeAsOptional } from "./values"
+import type { ITableOrView, ITableOrViewOf, NoTableOrViewRequired, NoTableOrViewRequiredView, OuterJoinSource, TableOrViewRef } from "../utils/ITableOrView"
 import type { OuterJoinTableOrView, WithView, WITH_VIEW } from "../utils/tableOrViewUtils"
 import type { AnyDB, TypeWhenSafeDB, TypeSafeDB, NoopDB, MariaDB, PostgreSql, Sqlite, Oracle, SqlServer } from "../databases"
 import type { int } from "ts-extended-types"
@@ -153,10 +153,12 @@ export interface ComposeExpressionDeletingExternalPropertyWithoutWhere<EXTERNAL_
 
 export interface WithableExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends ExecutableSelectWithWhere<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>, IExecutableSelectQuery<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW>, ICompoundableSelect<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW> {
     forUseInQueryAs: ForUseInQueryAs<DB, COLUMNS>
+    forUseAsInlineQueryValue: ForUseAsInlineQueryValue<COLUMNS, REQUIRED_TABLE_OR_VIEW>
 }
 
 export interface WithableExecutableSelectWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends ExecutableSelectWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>, IExecutableSelectQuery<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW>, ICompoundableSelect<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW> {
     forUseInQueryAs: ForUseInQueryAs<DB, COLUMNS>
+    forUseAsInlineQueryValue: ForUseAsInlineQueryValue<COLUMNS, REQUIRED_TABLE_OR_VIEW>
 }
 
 export interface CompoundedCustomizableExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends WithableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW> {
@@ -504,6 +506,13 @@ type ForUseInQueryAs<DB extends AnyDB, COLUMNS> =
     : COLUMNS extends IValueSource<any, any>
     ? never
     : <ALIAS extends string>(as: ALIAS) => WithView<WITH_VIEW<DB, ALIAS>, COLUMNS>
+
+type ForUseAsInlineQueryValue<COLUMNS, REQUIRED_TABLE_OR_VIEW> =
+    COLUMNS extends IValueSource<any, any>
+    ? (REQUIRED_TABLE_OR_VIEW extends ITableOrView<any>
+        ? () => RemapValueSourceTypeAsOptional<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS>
+        : never
+    ) : never
 
 type CompoundFunction<SUPPORTED_DB extends AnyDB, DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, ORDER_BY_KEYS> = 
     DB extends SUPPORTED_DB

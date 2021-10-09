@@ -1533,6 +1533,24 @@ const companyMultiSplit = connection.selectFrom(tCompany)
 // Query: select company.id as id, company.name as name, parent.id as "parentId", parent.name as "parentName", parentParent.id as "parentParentId", parentParent.name as "parentParentName", parentParent.parent_id as "parentParentParentId" from company left join company as parent on company.parent_id = parent.id left join company as parentParent on parent.parent_id = parentParent.id
 // Params: [ ]
 
+results.push([])
+
+const acmeId = connection.selectFrom(tCompany)
+    .where(tCompany.name.equals('ACME'))
+    .selectOneColumn(tCompany.id)
+    .forUseAsInlineQueryValue()
+
+const acmeCustomers = connection.selectFrom(tCustomer)
+    .where(tCustomer.companyId.equals(acmeId))
+    .select({
+        id: tCustomer.id,
+        name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName)
+    })
+    .executeSelectMany()
+
+// Query:  select id as id, first_name || $1 || last_name as name from customer where company_id = (select id as result from company where name = $2)
+// Params: [ ' ', 'ACME' ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -1603,6 +1621,7 @@ companyMultiSplit.then((result) => {
         console.log('companyMultiSplit[' + i + ']', value)
     })
 })
+acmeCustomers.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having
@@ -1661,6 +1680,9 @@ Things that I want to implement:
 
 5th to implement:
 - returning
+
+6th to implement:
+- update multiple from
 
 Things that I don't want to implement by now
 - agregate functions: filter

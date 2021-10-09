@@ -7,7 +7,7 @@ import type { WithView } from "../utils/tableOrViewUtils"
 import { __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import ChainedError from "chained-error"
-import { AggregateFunctions0ValueSource } from "../internal/ValueSourceImpl"
+import { AggregateFunctions0ValueSource, InlineSelectValueSource } from "../internal/ValueSourceImpl"
 import { attachSource } from "../utils/attachSource"
 import { columnsType, database, requiredTableOrView, resultType, compoundable, type, compoundableColumns } from "../utils/symbols"
 import { asValueSource } from "../expressions/values"
@@ -456,6 +456,8 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
 
     // @ts-ignore
     forUseInQueryAs: never
+    // @ts-ignore
+    forUseAsInlineQueryValue: never
 
     compose(config: any): any {
         this.__lastComposition = {
@@ -872,6 +874,11 @@ abstract class AbstractSelect implements ToSql, HasAddWiths, IExecutableSelectQu
         return recursiveView as any
     }
     return new WithViewImpl<any, any>(as, thiz, thiz.__sqlBuilder) as any
+};
+
+(AbstractSelect.prototype as any).forUseAsInlineQueryValue = function (): IValueSource<any, any> {
+    const thiz = this as SelectQueryBuilder
+    return new InlineSelectValueSource(thiz)
 };
 
 (AbstractSelect.prototype as any).intersect = function(select: ICompoundableSelect<any, any, any, any>): any {

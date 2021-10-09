@@ -203,6 +203,24 @@ async function main() {
             .executeSelectMany()
         assertEquals(names, ['ACME', 'ACME 2', 'FOO', 'FOO 2'])
 
+        const fooComanyNameLength = connection
+            .selectFrom(tCompany)
+            .selectOneColumn(tCompany.name.length())
+            .where(tCompany.id.equals('dmY1mZ8zdxsw0210'))
+            .forUseAsInlineQueryValue()
+
+        companies = await connection
+            .selectFrom(tCompany)
+            .select({
+                id: tCompany.id,
+                name: tCompany.name,
+                rawID: tCompany.rawID
+            })
+            .where(tCompany.name.length().greaterThan(fooComanyNameLength))
+            .orderBy('id')
+            .executeSelectMany()
+        assertEquals(companies, [{ id: 'uftSdCUhUTBQ0111', name: 'ACME', rawID: 1 },{ id: 'RYG2E7kLCEQh030b', name: 'ACME 2', rawID: 3 }, { id: 'YAuzxMU1mdYn0408', name: 'FOO 2', rawID: 4}])
+
         n = await connection
             .update(tCompany)
             .set({

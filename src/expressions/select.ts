@@ -37,14 +37,14 @@ export interface ExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TA
      *
      * Please, don't remove it or put in a type declaration
      */
-    executeSelectNoneOrOne(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<{ [P in keyof RESULT]: RESULT[P] } | null>
-    executeSelectOne(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<{ [P in keyof RESULT]: RESULT[P] }>
-    executeSelectMany(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<{ [P in keyof RESULT]: RESULT[P] }[]>
+    executeSelectNoneOrOne(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<( COLUMNS extends IValueSource<any, any> ? RESULT : { [P in keyof RESULT]: RESULT[P] }) | null>
+    executeSelectOne(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<( COLUMNS extends IValueSource<any, any> ? RESULT : { [P in keyof RESULT]: RESULT[P] })>
+    executeSelectMany(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<( COLUMNS extends IValueSource<any, any> ? RESULT : { [P in keyof RESULT]: RESULT[P] })[]>
 
-    executeSelectPage(this: SelectExpressionBase<TypeSafeDB, NoTableOrViewRequiredView<DB>>): Promise<{ data: { [P in keyof RESULT]: RESULT[P] }[], count: int }>
-    executeSelectPage(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<{ data: { [P in keyof RESULT]: RESULT[P] }[], count: number }>
-    executeSelectPage<EXTRAS extends {}>(this: SelectExpressionBase<TypeSafeDB, NoTableOrViewRequiredView<DB>>, extras: EXTRAS & { data?: { [P in keyof RESULT]: RESULT[P] }[], count?: int }): Promise<{ [Q in keyof SelectPageWithExtras<RESULT, EXTRAS>]: SelectPageWithExtras<RESULT, EXTRAS>[Q] }>
-    executeSelectPage<EXTRAS extends {}>(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>, extras: EXTRAS & { data?: { [P in keyof RESULT]: RESULT[P] }[], count?: number }): Promise<{ [Q in keyof SelectPageWithExtras<RESULT, EXTRAS>]: SelectPageWithExtras<RESULT, EXTRAS>[Q] }>
+    executeSelectPage(this: SelectExpressionBase<TypeSafeDB, NoTableOrViewRequiredView<DB>>): Promise<{ data: ( COLUMNS extends IValueSource<any, any> ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: int }>
+    executeSelectPage(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<{ data: ( COLUMNS extends IValueSource<any, any> ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: number }>
+    executeSelectPage<EXTRAS extends {}>(this: SelectExpressionBase<TypeSafeDB, NoTableOrViewRequiredView<DB>>, extras: EXTRAS & { data?: ( COLUMNS extends IValueSource<any, any> ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count?: int }): Promise<{ [Q in keyof SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>]: SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>[Q] }>
+    executeSelectPage<EXTRAS extends {}>(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>, extras: EXTRAS & { data?: ( COLUMNS extends IValueSource<any, any> ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count?: number }): Promise<{ [Q in keyof SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>]: SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>[Q] }>
 
     query(): string
     params(): any[]
@@ -498,7 +498,7 @@ export type MandatoryPropertiesOf<TYPE> = ({ [K in keyof TYPE]-?: null | undefin
 export type OptionalPropertiesOf<TYPE> = ({ [K in keyof TYPE]-?: null | undefined extends TYPE[K] ? K : (null extends TYPE[K] ? K : (undefined extends TYPE[K] ? K : never)) })[keyof TYPE]
 export type FixSelectOneResult<T> = T extends undefined ? null : T
 
-export type SelectPageWithExtras<RESULT, EXTRAS> = { data: { [P in keyof RESULT]: RESULT[P] }[], count: int } & Omit<EXTRAS, 'data' | 'count'>
+export type SelectPageWithExtras<COLUMNS, RESULT, EXTRAS> = { data: ( COLUMNS extends IValueSource<any, any> ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: int } & Omit<EXTRAS, 'data' | 'count'>
 
 type ForUseInQueryAs<DB extends AnyDB, COLUMNS> =
     COLUMNS extends undefined

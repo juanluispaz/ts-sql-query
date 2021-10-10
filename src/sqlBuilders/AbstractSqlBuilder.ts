@@ -166,17 +166,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
             configurable: true
         })
     }
-    _getModificationTable(params: any[]): ITableOrView<any> | undefined {
-        return (params as any)._modificationTable
-    }
-    _setModificationTable(params: any[], value: ITableOrView<any> | undefined): void {
-        Object.defineProperty(params, '_modificationTable', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
     _isValue(value: any): boolean {
         if (value === null || value === undefined) {
             return false
@@ -490,8 +479,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
         const oldWithGenerated = this._isWithGenerated(params)
         const oldWithGeneratedFinished = this._isWithGeneratedFinished(params)
-        const oldModificationTable = this._getModificationTable(params)
-        this._setModificationTable(params, undefined)
 
         const customization = query.__customization
 
@@ -651,7 +638,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(params, oldSafeTableOrView)
         this._setWithGenerated(params, oldWithGenerated)
         this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
-        this._setModificationTable(params, oldModificationTable)
         return selectQuery
     }
     _appendSelectColumn(value: IValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
@@ -754,12 +740,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldModificationTable = this._getModificationTable(params)
 
         const table = query.__table
         const customization = query.__customization
         this._setSafeTableOrView(params, table)
-        this._setModificationTable(params, table)
 
         let insertQuery = ''
         if (this._insertSupportWith) {
@@ -869,7 +853,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setModificationTable(params, oldModificationTable)
         this._resetRootQuery(query, params)
         return insertQuery
     }
@@ -926,13 +909,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildInsertDefaultValues(query: InsertData, params: any[]): string {
         this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldModificationTable = this._getModificationTable(params)
 
         const table = query.__table
         const customization = query.__customization
 
         this._setSafeTableOrView(params, table)
-        this._setModificationTable(params, table)
 
         let insertQuery = ''
         if (this._insertSupportWith) {
@@ -991,21 +972,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setModificationTable(params, oldModificationTable)
         this._resetRootQuery(query, params)
         return insertQuery
     }
     _buildInsert(query: InsertData, params: any[]): string {
         this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldModificationTable = this._getModificationTable(params)
 
         const table = query.__table
         const sets = query.__sets
         const customization = query.__customization
 
         this._setSafeTableOrView(params, table)
-        this._setModificationTable(params, table)
 
         let insertQuery = ''
         if (this._insertSupportWith) {
@@ -1093,7 +1071,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setModificationTable(params, oldModificationTable)
         this._resetRootQuery(query, params)
         return insertQuery
     }
@@ -1105,14 +1082,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldModificationTable = this._getModificationTable(params)
 
         const table = query.__table
         const selectColumns = from.__columns
         const customization = query.__customization
 
         this._setSafeTableOrView(params, table)
-        this._setModificationTable(params, table)
 
         let insertQuery = ''
         if (this._insertSupportWith) {
@@ -1176,7 +1151,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setModificationTable(params, oldModificationTable)
         this._resetRootQuery(query, params)
         return insertQuery
     }
@@ -1201,14 +1175,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildUpdate(query: UpdateData, params: any[]): string {
         this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldModificationTable = this._getModificationTable(params)
 
         const table = query.__table
         const sets = query.__sets
         const customization = query.__customization
 
         this._setSafeTableOrView(params, table)
-        this._setModificationTable(params, table)
 
         const oldValues = query.__oldValues
 
@@ -1306,7 +1278,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setModificationTable(params, oldModificationTable)
         this._resetRootQuery(query, params)
         return updateQuery
     }
@@ -1392,13 +1363,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildDelete(query: DeleteData, params: any[]): string {
         this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
-        const oldModificationTable = this._getModificationTable(params)
 
         const table = query.__table
         const customization = query.__customization
 
         this._setSafeTableOrView(params, table)
-        this._setModificationTable(params, table)
 
         let deleteQuery = this._buildWith(query, params)
         deleteQuery += 'delete '
@@ -1430,7 +1399,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
-        this._setModificationTable(params, oldModificationTable)
         this._resetRootQuery(query, params)
         return deleteQuery
     }

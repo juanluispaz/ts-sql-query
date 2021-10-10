@@ -90,6 +90,10 @@ export class ColumnImpl extends ValueSourceImpl implements __ColumnPrivate, ToSq
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         __getTableOrViewPrivate(this.__tableOrView).__registerTableOrView(requiredTablesOrViews)
     }
+
+    __getOldValues(): ITableOrView<any> | undefined {
+        return __getTableOrViewPrivate(this.__tableOrView).__getOldValues()
+    }
 }
 
 export function createColumnsFrom(columns: { [property: string]: IValueSource<any, any> }, target: { [property: string]: IValueSource<any, any> }, optionalRule: __OptionalRule, table: ITableOrView<any>, ) {

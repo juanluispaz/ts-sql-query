@@ -71,7 +71,8 @@ All these functions receive as argument:
 
 ```ts
 type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
-'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 
+'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 
+'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' | 
 'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
 'executeProcedure' | 'executeFunction' | 
 'beginTransaction' | 'commit' | 'rollback' |
@@ -111,7 +112,8 @@ The `MockQueryRunner` receives a function as argument to the constructor, this f
 
 ```ts
 type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
-'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 
+'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 
+'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' | 
 'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 
 'executeProcedure' | 'executeFunction' | 
 'beginTransaction' | 'commit' | 'rollback' |

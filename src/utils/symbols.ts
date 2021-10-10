@@ -26,6 +26,7 @@ export const noTableOrViewRequired: unique symbol = Symbol('noTableOrViewRequire
 export const outerJoinDatabase: unique symbol = Symbol('outerJoinDatabase')
 export const outerJoinTableOrView: unique symbol = Symbol('outerJoinTableOrView')
 export const outerJoinAlias: unique symbol = Symbol('outerJoinAlias')
+export const oldValues: unique symbol = Symbol('oldValues')
 
 // Columns
 export const valueType: unique symbol = Symbol('valueType')

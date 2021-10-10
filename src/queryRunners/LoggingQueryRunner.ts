@@ -1,7 +1,7 @@
 import type { QueryRunner } from "./QueryRunner"
 import { ChainedQueryRunner } from "./ChainedQueryRunner"
 
-export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
+export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' | 'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
 
 export interface QueryLogger {
     onQuery?: (queryType: QueryType, query: string, params: any[]) => void;
@@ -185,6 +185,90 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
+    executeUpdateReturningOneRow(query: string, params: any[] = []): Promise<any> {
+        const logger = this.logger
+        if (logger.onQuery) {
+            logger.onQuery('updateReturningOneRow', query, params)
+        }
+        let result = this.queryRunner.executeUpdateReturningOneRow(query, params)
+        if (logger.onQueryResult || logger.onQueryError) {
+            result.then(r => {
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('updateReturningOneRow', query, params, r)
+                }
+                return r
+            }, e => {
+                if (logger.onQueryError) {
+                    logger.onQueryError('updateReturningOneRow', query, params, e)
+                }
+                throw e
+            })
+        }
+        return result
+    }
+    executeUpdateReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+        const logger = this.logger
+        if (logger.onQuery) {
+            logger.onQuery('updateReturningManyRows', query, params)
+        }
+        let result = this.queryRunner.executeUpdateReturningManyRows(query, params)
+        if (logger.onQueryResult || logger.onQueryError) {
+            result.then(r => {
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('updateReturningManyRows', query, params, r)
+                }
+                return r
+            }, e => {
+                if (logger.onQueryError) {
+                    logger.onQueryError('updateReturningManyRows', query, params, e)
+                }
+                throw e
+            })
+        }
+        return result
+    }
+    executeUpdateReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+        const logger = this.logger
+        if (logger.onQuery) {
+            logger.onQuery('updateReturningOneColumnOneRow', query, params)
+        }
+        let result = this.queryRunner.executeUpdateReturningOneColumnOneRow(query, params)
+        if (logger.onQueryResult || logger.onQueryError) {
+            result.then(r => {
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('updateReturningOneColumnOneRow', query, params, r)
+                }
+                return r
+            }, e => {
+                if (logger.onQueryError) {
+                    logger.onQueryError('updateReturningOneColumnOneRow', query, params, e)
+                }
+                throw e
+            })
+        }
+        return result
+    }
+    executeUpdateReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+        const logger = this.logger
+        if (logger.onQuery) {
+            logger.onQuery('updateReturningOneColumnManyRows', query, params)
+        }
+        let result = this.queryRunner.executeUpdateReturningOneColumnManyRows(query, params)
+        if (logger.onQueryResult || logger.onQueryError) {
+            result.then(r => {
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('updateReturningOneColumnManyRows', query, params, r)
+                }
+                return r
+            }, e => {
+                if (logger.onQueryError) {
+                    logger.onQueryError('updateReturningOneColumnManyRows', query, params, e)
+                }
+                throw e
+            })
+        }
+        return result
+    }
     executeDelete(query: string, params: any[] = []): Promise<number> {
         const logger = this.logger
         if (logger.onQuery) {
@@ -206,7 +290,6 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-
     executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
         if (logger.onQuery) {

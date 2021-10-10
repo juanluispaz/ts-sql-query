@@ -282,6 +282,28 @@ async function main() {
             .executeInsert()
         assertEquals(ii, [5, 6, 7])
 
+        const updatedSmithFirstName = await connection.update(tCustomer)
+            .set({
+                firstName: 'Ron'
+            })
+            .where(tCustomer.id.equals(1))
+            .returningOneColumn(tCustomer.firstName)
+            .executeUpdateOne()
+        assertEquals(updatedSmithFirstName, 'Ron')
+
+        const oldCustomerValues = tCustomer.oldValues()
+        const updatedLastNames = await connection.update(tCustomer)
+            .set({
+                lastName: 'Customer'
+            })
+            .where(tCustomer.id.equals(2))
+            .returning({
+                oldLastName: oldCustomerValues.lastName,
+                newLastName: tCustomer.lastName
+            })
+            .executeUpdateOne()
+        assertEquals(updatedLastNames, {oldLastName: 'Person', newLastName: 'Customer'})
+
         const deletedCustomers = await connection.deleteFrom(tCustomer)
             .where(tCustomer.id.greaterOrEquals(2))
             .returning({
@@ -290,7 +312,10 @@ async function main() {
                 lastName: tCustomer.lastName
             })
             .executeDeleteMany()
-        assertEquals(deletedCustomers, [{ id: 2, firstName: 'Other', lastName: 'Person' }, { id:3, firstName: 'Jane', lastName: 'Doe' } ])
+        deletedCustomers.sort((a, b) => {
+            return a.id - b.id
+        })
+        assertEquals(deletedCustomers, [{ id: 2, firstName: 'Other', lastName: 'Customer' }, { id:3, firstName: 'Jane', lastName: 'Doe' } ])
 
         commit = true
     } finally {

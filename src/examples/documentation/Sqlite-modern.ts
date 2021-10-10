@@ -1612,6 +1612,26 @@ async function main() {
         .executeDeleteOne()
 
     assertEquals(deletedAcmeCompany, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 'Ron'
+    expectedResult.push(result)
+    expectedQuery.push(`update customer set first_name = ? where id = ? returning first_name as result`)
+    expectedParams.push(`["Ron",1]`)
+    expectedType.push(`updateReturningOneColumnOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const updatedSmithFirstName = await connection.update(tCustomer)
+        .set({
+            firstName: 'Ron'
+        })
+        .where(tCustomer.id.equals(1))
+        .returningOneColumn(tCustomer.firstName)
+        .executeUpdateOne()
+
+    assertEquals(updatedSmithFirstName, result)
 }
 
 main().then(() => {

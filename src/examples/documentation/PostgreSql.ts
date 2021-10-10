@@ -1611,6 +1611,53 @@ async function main() {
         .executeDeleteOne()
 
     assertEquals(deletedAcmeCompany, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 'Ron'
+    expectedResult.push(result)
+    expectedQuery.push(`update customer set first_name = $1 where id = $2 returning first_name as result`)
+    expectedParams.push(`["Ron",1]`)
+    expectedType.push(`updateReturningOneColumnOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const updatedSmithFirstName = await connection.update(tCustomer)
+        .set({
+            firstName: 'Ron'
+        })
+        .where(tCustomer.id.equals(1))
+        .returningOneColumn(tCustomer.firstName)
+        .executeUpdateOne()
+
+    assertEquals(updatedSmithFirstName, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        oldLastName: 'Shith', 
+        newLastName: 'Thomson'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`update customer as _new_ set last_name = $1 from (select * from customer as _old_ where _old_.id = $2 for update) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"`)
+    expectedParams.push(`["Thomson",2]`)
+    expectedType.push(`updateReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const oldCustomerValues = tCustomer.oldValues()
+    const updatedLastNames = await connection.update(tCustomer)
+        .set({
+            lastName: 'Thomson'
+        })
+        .where(tCustomer.id.equals(2))
+        .returning({
+            oldLastName: oldCustomerValues.lastName,
+            newLastName: tCustomer.lastName
+        })
+        .executeUpdateOne()
+    
+    assertEquals(updatedLastNames, result)
 }
 
 main().then(() => {

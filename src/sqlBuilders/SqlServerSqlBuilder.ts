@@ -1,10 +1,11 @@
-import { ToSql, SelectData, InsertData, hasToSql, DeleteData } from "./SqlBuilder"
+import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { isValueSource, IValueSource } from "../expressions/values"
 import type { OrderByMode } from "../expressions/select"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnPrivate } from "../utils/Column"
 import { __getValueSourcePrivate } from "../expressions/values"
+import { __getTableOrViewPrivate } from "../utils/ITableOrView"
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
@@ -13,29 +14,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._getDate = true
         this._operationsThatNeedParenthesis._getMilliseconds = false
     }
-    _getForceTableAliasAs(params: any[]): string | undefined {
-        return (params as any)._forceTableAliasAs
-    }
-    _setForceTableAliasAs(params: any[], value: string | undefined): void {
-        Object.defineProperty(params, '_forceTableAliasAs', {
-            value: value,
-            writable: true,
-            enumerable: false,
-            configurable: true
-        })
-    }
     _appendRawColumnName(column: Column, params: any[]): string {
-        const forceTableAliasAs = this._getForceTableAliasAs(params)
-        if (!forceTableAliasAs) {
-            return super._appendRawColumnName(column, params)
-        }
         const columnPrivate = __getColumnPrivate(column)
         const tableOrView = columnPrivate.__tableOrView
-        const forceTableAliasFor = this._getModificationTable(params)
-        if (forceTableAliasFor !== tableOrView) {
-            return super._appendRawColumnName(column, params)
+        if (__getTableOrViewPrivate(tableOrView).__oldValues) {
+            return 'deleted.' + this._escape(columnPrivate.__name, true)
         }
-        return forceTableAliasAs + '.' + this._escape(columnPrivate.__name, true)
+        return super._appendRawColumnName(column, params)
     }
     _forceAsIdentifier(identifier: string): string {
         return '[' + identifier + ']'
@@ -268,14 +253,18 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _buildInsertReturning(_query: InsertData, _params: any[]): string {
         return ''
     }
-    _buildDeleteOutput(query: DeleteData, params: any[]): string {
+    _updateOldValueInFrom = false
+    _buildUpdateOutput(query: UpdateData, params: any[]): string {
         const columns = query.__columns
         if (!columns) {
             return ''
         }
 
-        const oldForceTableAliasAs = this._getForceTableAliasAs(params)
-        this._setForceTableAliasAs(params, 'deleted')
+        const oldForceAliasFor = this._getForceAliasFor(params)
+        const oldForceAliasAs = this._getForceAliasAs(params)
+
+        this._setForceAliasFor(params, query.__table)
+        this._setForceAliasAs(params, 'inserted')
         
         let requireComma = false
         let result = ''
@@ -289,7 +278,44 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             }
             requireComma = true
         }
-        this._setForceTableAliasAs(params, oldForceTableAliasAs)
+    
+        this._setForceAliasFor(params, oldForceAliasFor)
+        this._setForceAliasAs(params, oldForceAliasAs)
+        if (!result) {
+            return ''
+        }
+        return ' output ' + result
+    }
+    _buildUpdateReturning(_query: UpdateData, _params: any[]): string {
+        return ''
+    }
+    _buildDeleteOutput(query: DeleteData, params: any[]): string {
+        const columns = query.__columns
+        if (!columns) {
+            return ''
+        }
+
+        const oldForceAliasFor = this._getForceAliasFor(params)
+        const oldForceAliasAs = this._getForceAliasAs(params)
+
+        this._setForceAliasFor(params, query.__table)
+        this._setForceAliasAs(params, 'deleted')
+        
+        let requireComma = false
+        let result = ''
+        for (const property in columns) {
+            if (requireComma) {
+                result += ', '
+            }
+            result += this._appendSql(columns[property]!, params)
+            if (property) {
+                result += ' as ' + this._appendColumnAlias(property, params)
+            }
+            requireComma = true
+        }
+
+        this._setForceAliasFor(params, oldForceAliasFor)
+        this._setForceAliasAs(params, oldForceAliasAs)
         if (!result) {
             return ''
         }

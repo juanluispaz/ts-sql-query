@@ -47,6 +47,18 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     executeUpdate(query: string, params: any[] = []): Promise<number> {
         return this.queryRunner.executeUpdate(query, params)
     }
+    executeUpdateReturningOneRow(query: string, params: any[] = []): Promise<any> {
+        return this.queryRunner.executeUpdateReturningOneRow(query, params)
+    }
+    executeUpdateReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+        return this.queryRunner.executeUpdateReturningManyRows(query, params)
+    }
+    executeUpdateReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+        return this.queryRunner.executeUpdateReturningOneColumnOneRow(query, params)
+    }
+    executeUpdateReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+        return this.queryRunner.executeUpdateReturningOneColumnManyRows(query, params)
+    }
     executeDelete(query: string, params: any[] = []): Promise<number> {
         return this.queryRunner.executeDelete(query, params)
     }

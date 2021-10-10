@@ -234,6 +234,15 @@ async function main() {
             { acmeCompanyId: 1, acmeCompanyName: 'ACME', acmeEndsWithME: true, acmeCustomerCount: 3 }
         ])
 
+        const updatedSmithFirstName = await connection.update(tCustomer)
+            .set({
+                firstName: 'Ron'
+            })
+            .where(tCustomer.id.equals(1))
+            .returningOneColumn(tCustomer.firstName)
+            .executeUpdateOne()
+        assertEquals(updatedSmithFirstName, 'Ron')
+
         const deletedCustomers = await connection.deleteFrom(tCustomer)
             .where(tCustomer.id.greaterOrEquals(2))
             .returning({
@@ -242,6 +251,9 @@ async function main() {
                 lastName: tCustomer.lastName
             })
             .executeDeleteMany()
+        deletedCustomers.sort((a, b) => {
+            return a.id - b.id
+        })
         assertEquals(deletedCustomers, [{ id: 2, firstName: 'Other', lastName: 'Person' }, { id:3, firstName: 'Jane', lastName: 'Doe' } ])
 
         commit = true

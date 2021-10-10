@@ -1,6 +1,6 @@
 # Delete
 
-## Genneral delete
+## General delete
 
 ```ts
 const deleteCustomer = connection.deleteFrom(tCustomer)
@@ -26,6 +26,8 @@ const deleteCustomer: Promise<number>
 ts-sql-query will reject the execution of the delete sentence if, for some reason ended without a where. If you want to allow a delete without where, you must call `connection.deleteAllowingNoWhereFrom` instead of `connection.deleteFrom` when you start writing the sentence.
 
 # Delete returning
+
+If you are using `PostgreSql`, modern `Sqlite`, `SqlServer` or `Oracle`, you can return values of the deleted record in the same query using the `returning` or `returningOneColumn` methods.
 
 ```ts
 const deletedAcmeCompany = connection.deleteFrom(tCompany)

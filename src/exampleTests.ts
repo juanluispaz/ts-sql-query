@@ -1567,6 +1567,39 @@ const deletedAcmeCompany = connection.deleteFrom(tCompany)
 // Query:  delete from company where name = $1 returning id as id, name as name
 // Params: [ 'ACME' ]
 
+results.push('Ron')
+
+const updatedSmithFirstName = connection.update(tCustomer)
+    .set({
+        firstName: 'Ron'
+    })
+    .where(tCustomer.id.equals(1))
+    .returningOneColumn(tCustomer.firstName)
+    .executeUpdateOne()
+
+// Query:  update customer set first_name = $1 where id = $2 returning first_name as result
+// Params: [ 'Ron', 1 ]
+
+results.push({
+    oldLastName: 'Shith', 
+    newLastName: 'Thomson'
+})
+
+const oldCustomerValues = tCustomer.oldValues()
+const updatedLastNames = connection.update(tCustomer)
+    .set({
+        lastName: 'Thomson'
+    })
+    .where(tCustomer.id.equals(2))
+    .returning({
+        oldLastName: oldCustomerValues.lastName,
+        newLastName: tCustomer.lastName
+    })
+    .executeUpdateOne()
+
+// Query:  update customer as _new_ set last_name = $1 from (select * from customer as _old_ where _old_.id = $2 for update) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"
+// Params: [ 'Thomson', 2 ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -1639,6 +1672,8 @@ companyMultiSplit.then((result) => {
 })
 acmeCustomers.finally(() => undefined)
 deletedAcmeCompany.finally(() => undefined)
+updatedSmithFirstName.finally(() => undefined)
+updatedLastNames.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

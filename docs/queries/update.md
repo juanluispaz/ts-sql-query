@@ -1,5 +1,7 @@
 # Update
 
+## General update
+
 ```ts
 const updateCustomer = connection.update(tCustomer).set({
         firstName: 'John',
@@ -27,3 +29,84 @@ const updateCustomer: Promise<number>
 **Security constraint**:
 
 ts-sql-query will reject the execution of the update sentence if, for some reason ended without a where. If you want to allow an update without where, you must call `connection.updateAllowingNoWhere` instead of `connection.update` when you start writing the sentence.
+
+## Delete returning
+
+If you are using `PostgreSql`, modern `Sqlite`, `SqlServer` or `Oracle`, you can return updated values of the updated record in the same query using the `returning` or `returningOneColumn` methods.
+
+```ts
+const updatedSmithFirstName = connection.update(tCustomer)
+    .set({
+        firstName: 'Ron'
+    })
+    .where(tCustomer.id.equals(1))
+    .returningOneColumn(tCustomer.firstName)
+    .executeUpdateOne()
+```
+
+The executed query is:
+```sql
+update customer 
+set first_name = $1 
+where id = $2 
+returning first_name as result
+```
+
+The parameters are: `[ 'Ron', 1 ]`
+
+The result type is a promise with the information of the deleted rows:
+```tsx
+const updatedSmithFirstName: Promise<string>
+```
+
+**Other options**
+
+You can execute the query using:
+
+- `executeDeleteNoneOrOne(): Promise<RESULT | null>`: Execute the update query that returns one or no result from the database. In case of more than one result found, it throws and error with message 'Too many rows, expected only zero or one row'.
+- `executeDeleteOne(): Promise<RESULT>`: Execute the update query that returns one result from the database. If no result is returned by the database an exception will be thrown.
+- `executeDeleteMany(min?: number, max?: number): Promise<RESULT[]>`: Execute the update query that returns zero or many results from the database.
+
+Aditionally, if you want to return the value of a single column, you can use `returningOneColumn(column)` instead of `returning({...})`.
+
+## Delete returning old values
+
+If you are using `PostgreSql` or `SqlServer`, you can return previous values of the updated record in the same query; to do this, you can create a reference to the old values of the table calling `myTable.oldValues()` and then use it in the returning clause.
+
+```ts
+const oldCustomerValues = tCustomer.oldValues()
+const updatedLastNames = connection.update(tCustomer)
+    .set({
+        lastName: 'Thomson'
+    })
+    .where(tCustomer.id.equals(2))
+    .returning({
+        oldLastName: oldCustomerValues.lastName,
+        newLastName: tCustomer.lastName
+    })
+    .executeUpdateOne()
+```
+
+The executed query is:
+```sql
+update customer as _new_ 
+set last_name = $1 
+from (
+    select * 
+    from customer as _old_ 
+    where _old_.id = $2 
+    for update
+) as _old_ 
+where _new_.id = _old_.id 
+returning _old_.last_name as oldLastName, _new_.last_name as newLastName
+```
+
+The parameters are: `[ 'Thomson', 2 ]`
+
+The result type is a promise with the information of the deleted rows:
+```tsx
+const updatedLastNames: Promise<{
+    oldLastName: string;
+    newLastName: string;
+}>
+```

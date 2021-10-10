@@ -1,6 +1,6 @@
 import type { AnyDB } from "../databases"
 import { RawFragment } from "./RawFragment"
-import type { database, noTableOrViewRequired, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, tableOrView, tableOrViewAlias, tableOrViewCustomName, tableOrViewRef, tableOrViewRefType, type } from "./symbols"
+import type { database, noTableOrViewRequired, oldValues, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, tableOrView, tableOrViewAlias, tableOrViewCustomName, tableOrViewRef, tableOrViewRefType, type } from "./symbols"
 
 export interface TableOrViewRef<DB extends AnyDB> {
     [database]: DB
@@ -22,6 +22,7 @@ export interface ITableOrViewOf<DB extends AnyDB, REF extends TableOrViewRef<DB>
 export interface HasAddWiths {
     __addWiths(withs: Array<IWithView<any>>): void
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void
+    __getOldValues(): ITableOrView<any> | undefined
 }
 
 export function __addWiths(value: any, withs: Array<IWithView<any>>): void {
@@ -42,12 +43,23 @@ export function __registerTableOrView(value: any, requiredTablesOrViews: Set<ITa
     }
 }
 
+export function __getOldValues(value: any): ITableOrView<any> | undefined {
+    if (value === undefined || value === null) {
+        return undefined
+    }
+    if (typeof value === 'object' && typeof value.__getOldValues === 'function') {
+        return (value as HasAddWiths).__getOldValues()
+    }
+    return undefined
+}
+
 export interface __ITableOrViewPrivate extends HasAddWiths {
     __name: string
     __as?: string
     __type: 'table' | 'view' | 'with'
     __template?: RawFragment<any>
     __customizationName?: string
+    __oldValues?: boolean
 }
 
 export function __getTableOrViewPrivate(table: ITableOrView<any> | OuterJoinSource<any, any>): __ITableOrViewPrivate {
@@ -71,12 +83,21 @@ export interface IWithView<REF extends TableOrViewRef<AnyDB>> extends ITableOrVi
 }
 
 export interface NoTableOrViewRequired<DB extends AnyDB> extends TableOrViewRef<DB> {
-    [database]: DB
     [noTableOrViewRequired]: 'NoTableOrViewRequired'
 }
 
 export interface NoTableOrViewRequiredView<DB extends AnyDB> extends IView<NoTableOrViewRequired<DB>> {
     [noTableOrViewRequired]: 'NoTableOrViewRequiredView'
+}
+
+export interface OLD<REF extends TableOrViewRef<AnyDB>> extends TableOrViewRef<REF[typeof database]> {
+    [tableOrViewRef]: REF
+    [oldValues]: 'OldValues'
+}
+
+export interface OldTableOrView<TABLE_OR_VIEW extends ITableOrView<any>> extends ITableOrView<OLD<TABLE_OR_VIEW[typeof tableOrViewRef]>> {
+    [tableOrView]: TABLE_OR_VIEW
+    [oldValues]: 'OldValuesTableOrView'
 }
 
 export interface TABLE_OR_VIEW_ALIAS<REF extends TableOrViewRef<AnyDB>, ALIAS> extends TableOrViewRef<REF[typeof database]> {

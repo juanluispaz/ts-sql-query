@@ -13,6 +13,10 @@ export interface QueryRunner {
     executeInsertReturningLastInsertedId(query: string, params?: any[]): Promise<any>
     executeInsertReturningMultipleLastInsertedId(query: string, params?: any[]): Promise<any[]>
     executeUpdate(query: string, params?: any[]): Promise<number>
+    executeUpdateReturningOneRow(query: string, params?: any[]): Promise<any>
+    executeUpdateReturningManyRows(query: string, params?: any[]): Promise<any[]>
+    executeUpdateReturningOneColumnOneRow(query: string, params?: any[]): Promise<any>
+    executeUpdateReturningOneColumnManyRows(query: string, params?: any[]): Promise<any[]>
     executeDelete(query: string, params?: any[]): Promise<number>
     executeDeleteReturningOneRow(query: string, params?: any[]): Promise<any>
     executeDeleteReturningManyRows(query: string, params?: any[]): Promise<any[]>

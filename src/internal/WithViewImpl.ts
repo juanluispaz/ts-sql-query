@@ -76,4 +76,7 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
         requiredTablesOrViews.add(this)
         __registerTableOrView(this.__template, requiredTablesOrViews)
     }
+    __getOldValues(): ITableOrView<any> | undefined {
+        return undefined
+    }
 }

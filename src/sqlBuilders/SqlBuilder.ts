@@ -79,6 +79,8 @@ export interface UpdateData extends WithQueryData {
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __allowNoWhere: boolean
     __customization?: UpdateCustomization<any>
+    __columns?: { [property: string]: IValueSource<any, any> }
+    __oldValues?: ITableOrView<any>
 }
 
 export interface DeleteData extends WithQueryData {

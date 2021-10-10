@@ -128,6 +128,11 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
         requiredTablesOrViews.add(this)
         __registerTableOrView(this.__template, requiredTablesOrViews)
     }
+
+    // @ts-ignore
+    private __getOldValues(): ITableOrView<any> | undefined {
+        return undefined
+    }
 }
 
 export class View<Connection extends IConnection<any>, NAME extends string> extends ViewOf<VIEW<Connection[typeof database], NAME>> {

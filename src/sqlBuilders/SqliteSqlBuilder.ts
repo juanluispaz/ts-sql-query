@@ -133,6 +133,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     _falseValue = '0'
     _trueValueForCondition = '1'
     _falseValueForCondition = '0'
+    _updateOldValueForUpdate = ''
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''
     }

@@ -1,6 +1,6 @@
 import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator } from "./SqlBuilder"
 import type { ITableOrView, __ITableOrViewPrivate } from "../utils/ITableOrView"
-import { BooleanValueSource, IExecutableSelectQuery, IfValueSource, IValueSource, __ValueSourcePrivate } from "../expressions/values"
+import { BooleanValueSource, EqualableValueSource, IExecutableSelectQuery, IfValueSource, IValueSource, __ValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
 import { CustomBooleanTypeAdapter, DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
@@ -58,6 +58,28 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _setSafeTableOrView(params: any[], tableOrView: ITableOrView<any> | undefined): void {
         Object.defineProperty(params, '_safeTableOrView', {
             value: tableOrView,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    _getForceAliasAs(params: any[]): string | undefined {
+        return (params as any)._forceAliasAs
+    }
+    _setForceAliasAs(params: any[], value: string | undefined): void {
+        Object.defineProperty(params, '_forceAliasAs', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    _getForceAliasFor(params: any[]): ITableOrView<any> | undefined {
+        return (params as any)._forceAliasFor
+    }
+    _setForceAliasFor(params: any[], value: ITableOrView<any> | undefined): void {
+        Object.defineProperty(params, '_forceAliasFor', {
+            value: value,
             writable: true,
             enumerable: false,
             configurable: true
@@ -220,10 +242,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const tableOrView = columnPrivate.__tableOrView
         const tablePrivate = __getTableOrViewPrivate(tableOrView)
 
+        const forceAliasFor = this._getForceAliasFor(params)
+        const forceAliasAs = this._getForceAliasAs(params)
+
+        if (forceAliasFor === tableOrView && forceAliasAs) {
+            return this._escape(forceAliasAs, true) + '.' + this._escape(columnPrivate.__name, true)
+        }
+
         if (tablePrivate.__as) {
             return this._escape(tablePrivate.__as, true) + '.' + this._escape(columnPrivate.__name, true)
         } else if (this._getSafeTableOrView(params) === tableOrView) {
-            return this._escape(columnPrivate.__name, true)
+                return this._escape(columnPrivate.__name, true)
         } else {
             return this._escape(tablePrivate.__name, false) + '.' + this._escape(columnPrivate.__name, true)
         }
@@ -1181,6 +1210,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(params, table)
         this._setModificationTable(params, table)
 
+        const oldValues = query.__oldValues
+
         let updateQuery = this._buildWith(query, params)
         updateQuery += 'update '
 
@@ -1189,6 +1220,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         updateQuery += this._appendTableOrViewName(table, params)
+        if (oldValues && this._updateOldValueInFrom) {
+            updateQuery += ' as ' + this._escape(this._updateNewAlias, true)
+        }
 
         let columns = ''
         const properties = Object.getOwnPropertyNames(sets)
@@ -1212,7 +1246,49 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         updateQuery += ' set ' + columns
 
-        if (query.__where) {
+        updateQuery += this._buildUpdateFrom(query, params)
+        updateQuery += this._buildUpdateOutput(query, params)
+
+        if (oldValues && this._updateOldValueInFrom) {
+            let where: BooleanValueSource<any, any> | undefined
+            for (let property in table) {
+                const column = (table as any)[property] as unknown
+                if (!isColumn(column)) {
+                    continue
+                }
+                const columnPrivate = __getColumnPrivate(column)
+                if (!columnPrivate.__isPrimaryKey) {
+                    continue
+                }
+                const oldCoumn = (oldValues as any)[property] as EqualableValueSource<any, any, any> | undefined
+                if (!oldCoumn) {
+                    throw new Error('The column ' + property + ' is missing from the old values table')
+                }
+                const condition = (column as any as EqualableValueSource<any, any, any>).equals(oldCoumn)
+                if (where) {
+                    where = where.and(condition)
+                } else {
+                    where = condition
+                }
+            }
+            if (!where) {
+                throw new Error('No primary key found')
+            }
+
+            const oldForceAliasFor = this._getForceAliasFor(params)
+            const oldForceAliasAs = this._getForceAliasAs(params)
+
+            this._setForceAliasFor(params, table)
+            this._setForceAliasAs(params, this._updateNewAlias)
+            const whereCondition = this._appendCondition(where, params)
+            if (whereCondition) {
+                updateQuery += ' where ' + whereCondition
+            } else if (!query.__allowNoWhere) {
+                throw new Error('No where generated for link with the update old values')
+            }
+            this._setForceAliasFor(params, oldForceAliasFor)
+            this._setForceAliasAs(params, oldForceAliasAs)
+        } else if (query.__where) {
             const whereCondition = this._appendCondition(query.__where, params)
             if (whereCondition) {
                 updateQuery += ' where ' + whereCondition
@@ -1223,6 +1299,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             throw new Error('No where defined for the update operation')
         }
 
+        updateQuery += this._buildUpdateReturning(query, params)
+
         if (customization && customization.afterQuery) {
             updateQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
         }
@@ -1231,6 +1309,85 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setModificationTable(params, oldModificationTable)
         this._resetRootQuery(query, params)
         return updateQuery
+    }
+    _updateNewAlias = '_new_'
+    _updateOldValueInFrom = true
+    _updateOldValueForUpdate = ' for update'
+    _buildUpdateFrom(query: UpdateData, params: any[]): string {
+        if (!this._updateOldValueInFrom) {
+            return ''
+        }
+        const oldValues = query.__oldValues
+        if (!oldValues) {
+            return ''
+        }
+
+        const oldValuesPrivate = __getTableOrViewPrivate(oldValues)
+        if (!oldValuesPrivate.__as) {
+            throw new Error('No alias founf fot the old values')
+        }
+
+        const oldForceAliasFor = this._getForceAliasFor(params)
+        const oldForceAliasAs = this._getForceAliasAs(params)
+
+        this._setForceAliasFor(params, query.__table)
+        this._setForceAliasAs(params, oldValuesPrivate.__as)
+
+        let from = ' from (select * from '
+        from += this._appendTableOrViewName(oldValues, params)
+
+        if (query.__where) {
+            const whereCondition = this._appendCondition(query.__where, params)
+            if (whereCondition) {
+                from += ' where ' + whereCondition
+            } else if (!query.__allowNoWhere) {
+                throw new Error('No where defined for the update operation')
+            }
+        } else if (!query.__allowNoWhere) {
+            throw new Error('No where defined for the update operation')
+        }
+
+        from += this._updateOldValueForUpdate
+        from += ') as ' + this._escape(oldValuesPrivate.__as, true)
+
+        this._setForceAliasFor(params, oldForceAliasFor)
+        this._setForceAliasAs(params, oldForceAliasAs)
+        return from
+    }
+    _buildUpdateOutput(_query: UpdateData, _params: any[]): string {
+        return ''
+    }
+    _buildUpdateReturning(query: UpdateData, params: any[]): string {
+        const columns = query.__columns
+        if (!columns) {
+            return ''
+        }
+        const oldForceAliasFor = this._getForceAliasFor(params)
+        const oldForceAliasAs = this._getForceAliasAs(params)
+        if (this._updateOldValueInFrom && query.__oldValues) {
+            this._setForceAliasFor(params, query.__table)
+            this._setForceAliasAs(params, this._updateNewAlias)
+        }
+
+        let requireComma = false
+        let result = ''
+        for (const property in columns) {
+            if (requireComma) {
+                result += ', '
+            }
+            result += this._appendSql(columns[property]!, params)
+            if (property) {
+                result += ' as ' + this._appendColumnAlias(property, params)
+            }
+            requireComma = true
+        }
+
+        this._setForceAliasFor(params, oldForceAliasFor)
+        this._setForceAliasAs(params, oldForceAliasAs)
+        if (!result) {
+            return ''
+        }
+        return ' returning ' + result
     }
     _buildDelete(query: DeleteData, params: any[]): string {
         this._ensureRootQuery(query, params)

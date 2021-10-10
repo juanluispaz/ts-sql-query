@@ -14,6 +14,10 @@ export interface QueryRunner {
     executeInsertReturningMultipleLastInsertedId(query: string, params?: any[]): Promise<any[]>
     executeUpdate(query: string, params?: any[]): Promise<number>
     executeDelete(query: string, params?: any[]): Promise<number>
+    executeDeleteReturningOneRow(query: string, params?: any[]): Promise<any>
+    executeDeleteReturningManyRows(query: string, params?: any[]): Promise<any[]>
+    executeDeleteReturningOneColumnOneRow(query: string, params?: any[]): Promise<any>
+    executeDeleteReturningOneColumnManyRows(query: string, params?: any[]): Promise<any[]>
     executeProcedure(query: string, params?: any[]): Promise<void>
     executeFunction(query: string, params?: any[]): Promise<any>
     executeBeginTransaction(): Promise<void>

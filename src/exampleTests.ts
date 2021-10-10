@@ -1551,6 +1551,22 @@ const acmeCustomers = connection.selectFrom(tCustomer)
 // Query:  select id as id, first_name || $1 || last_name as name from customer where company_id = (select id as result from company where name = $2)
 // Params: [ ' ', 'ACME' ]
 
+results.push({
+    id: 10,
+    name: 'ACME'
+})
+
+const deletedAcmeCompany = connection.deleteFrom(tCompany)
+    .where(tCompany.name.equals('ACME'))
+    .returning({
+        id: tCompany.id,
+        name: tCompany.name
+    })
+    .executeDeleteOne()
+
+// Query:  delete from company where name = $1 returning id as id, name as name
+// Params: [ 'ACME' ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -1622,6 +1638,7 @@ companyMultiSplit.then((result) => {
     })
 })
 acmeCustomers.finally(() => undefined)
+deletedAcmeCompany.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

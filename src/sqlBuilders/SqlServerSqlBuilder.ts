@@ -1,4 +1,4 @@
-import { ToSql, SelectData, InsertData, hasToSql } from "./SqlBuilder"
+import { ToSql, SelectData, InsertData, hasToSql, DeleteData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { isValueSource, IValueSource } from "../expressions/values"
 import type { OrderByMode } from "../expressions/select"
@@ -13,7 +13,30 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._getDate = true
         this._operationsThatNeedParenthesis._getMilliseconds = false
     }
-
+    _getForceTableAliasAs(params: any[]): string | undefined {
+        return (params as any)._forceTableAliasAs
+    }
+    _setForceTableAliasAs(params: any[], value: string | undefined): void {
+        Object.defineProperty(params, '_forceTableAliasAs', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    _appendRawColumnName(column: Column, params: any[]): string {
+        const forceTableAliasAs = this._getForceTableAliasAs(params)
+        if (!forceTableAliasAs) {
+            return super._appendRawColumnName(column, params)
+        }
+        const columnPrivate = __getColumnPrivate(column)
+        const tableOrView = columnPrivate.__tableOrView
+        const forceTableAliasFor = this._getModificationTable(params)
+        if (forceTableAliasFor !== tableOrView) {
+            return super._appendRawColumnName(column, params)
+        }
+        return forceTableAliasAs + '.' + this._escape(columnPrivate.__name, true)
+    }
     _forceAsIdentifier(identifier: string): string {
         return '[' + identifier + ']'
     }
@@ -243,6 +266,36 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return ' output inserted.' + this._appendSql(idColumn, params)
     }
     _buildInsertReturning(_query: InsertData, _params: any[]): string {
+        return ''
+    }
+    _buildDeleteOutput(query: DeleteData, params: any[]): string {
+        const columns = query.__columns
+        if (!columns) {
+            return ''
+        }
+
+        const oldForceTableAliasAs = this._getForceTableAliasAs(params)
+        this._setForceTableAliasAs(params, 'deleted')
+        
+        let requireComma = false
+        let result = ''
+        for (const property in columns) {
+            if (requireComma) {
+                result += ', '
+            }
+            result += this._appendSql(columns[property]!, params)
+            if (property) {
+                result += ' as ' + this._appendColumnAlias(property, params)
+            }
+            requireComma = true
+        }
+        this._setForceTableAliasAs(params, oldForceTableAliasAs)
+        if (!result) {
+            return ''
+        }
+        return ' output ' + result
+    }
+    _buildDeleteReturning(_query: DeleteData, _params: any[]): string {
         return ''
     }
     _isNullValue(value: any) {

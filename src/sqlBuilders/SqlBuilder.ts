@@ -86,6 +86,7 @@ export interface DeleteData extends WithQueryData {
     __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
     __allowNoWhere: boolean
     __customization?: DeleteCustomization<any>
+    __columns?: { [property: string]: IValueSource<any, any> }
 }
 
 export interface SqlBuilder extends SqlOperation, __OptionalRule {

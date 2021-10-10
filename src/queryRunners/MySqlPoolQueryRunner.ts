@@ -28,9 +28,6 @@ export class MySqlPoolQueryRunner extends PromiseBasedPoolQueryRunner {
         params.push(value)
         return '?'
     }
-    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
-        throw new Error('Unsupported executeInsertReturningMultipleLastInsertedId for this database')
-    }
     protected createQueryRunner(): Promise<QueryRunner> {
         return new Promise((resolve, reject) => {
             this.pool.getConnection((error, mysqlConnection) => {

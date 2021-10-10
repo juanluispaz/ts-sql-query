@@ -1,7 +1,7 @@
 import type { PromiseProvider, UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 
-export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification' | 'isTransactionActive'
+export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification' | 'isTransactionActive'
 
 export type QueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
 
@@ -155,6 +155,61 @@ export class MockQueryRunner implements QueryRunner {
             }
             if (typeof result !== 'number') {
                 throw new Error('Invalid test case result for a delete with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a number')
+            }
+            return this.promise.resolve(result)
+        } catch (e) {
+            return this.promise.reject(e)
+        }
+    }
+    executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
+        try {
+            const index = this.count++
+            const result = this.queryExecutor('deleteReturningOneRow', query, params, index)
+            if (!isPlainObjectOrNoValue(result)) {
+                throw new Error('Invalid test case result for a deleteReturningOneRow with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a plain object')
+            }
+            return this.promise.resolve(result)
+        } catch (e) {
+            return this.promise.reject(e)
+        }
+    }
+    executeDeleteReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+        try {
+            const index = this.count++
+            let result = this.queryExecutor('deleteReturningManyRows', query, params, index)
+            if (result === undefined || result === null) {
+                result = []
+            }
+            if (!Array.isArray(result)) {
+                throw new Error('Invalid test case result for a deleteReturningManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array of plain object')
+            }
+            for (let i = 0; i < result.length; i++) {
+                if (!isPlainObject(result[i])) {
+                    throw new Error('Invalid test case result for a deleteReturningManyRows with index ' + index + '. The returned array by the mock function provided to the MockQueryRunner contains a no plain object at position ' + i)
+                }
+            }
+            return this.promise.resolve(result)
+        } catch (e) {
+            return this.promise.reject(e)
+        }
+    }
+    executeDeleteReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+        // undefined result means no value returned by the database
+        try {
+            return this.promise.resolve(this.queryExecutor('deleteReturningOneColumnOneRow', query, params, this.count++))
+        } catch (e) {
+            return this.promise.reject(e)
+        }
+    }
+    executeDeleteReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+        try {
+            const index = this.count++
+            let result = this.queryExecutor('deleteReturningOneColumnManyRows', query, params, index)
+            if (result === undefined || result === null) {
+                result = []
+            }
+            if (!Array.isArray(result)) {
+                throw new Error('Invalid test case result for a deleteReturningOneColumnManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
             }
             return this.promise.resolve(result)
         } catch (e) {

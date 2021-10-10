@@ -177,6 +177,17 @@ export class LoopBackPostgreSqlQueryRunner extends LoopBackAbstractQueryRunner {
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.query(query, params).then(result => result?.affectedRows || 0)
     }
+    protected executeMutationReturning(query: string, params: any[]): Promise<any[]> {
+        return this.query(query, params).then(result => {
+            if (!result) {
+                return result
+            }
+            if (Array.isArray(result)) {
+                return result
+            }
+            return result.rows || []
+        })
+    }
     executeInsert(query: string, params: any[] = []): Promise<number> {
         const rowsToInsert = this.guessInsertRowCount(query)
         if (!isNaN(rowsToInsert)) {

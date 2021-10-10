@@ -60,6 +60,12 @@ export class AnyDBQueryRunner extends PromiseBasedQueryRunner {
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.query(query, params).then(result => result.rowCount)
     }
+    protected executeMutationReturning(query: string, params: any[]): Promise<any[]> {
+        if (this.database !== 'sqlite') {
+            return super.executeMutationReturning(query, params)
+        }
+        throw new Error('Unsupported returning clause on queries for sqlite on AnyDBQueryRunner')
+    }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         const database = this.database
         if (database === 'sqlite' || database === 'mariaDB' || database === 'mySql') {

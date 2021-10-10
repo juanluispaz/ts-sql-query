@@ -36,6 +36,18 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     executeDelete(query: string, params: any[] = []): Promise<number> {
         return this.getQueryRunner().then(queryRunner => queryRunner.executeDelete(query, params)).finally(() => this.releaseIfNeeded())
     }
+    executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeDeleteReturningOneRow(query, params)).finally(() => this.releaseIfNeeded())
+    }
+    executeDeleteReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeDeleteReturningManyRows(query, params)).finally(() => this.releaseIfNeeded())
+    }
+    executeDeleteReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeDeleteReturningOneColumnOneRow(query, params)).finally(() => this.releaseIfNeeded())
+    }
+    executeDeleteReturningOneColumnManyRows(query: string, params: any[] =[]): Promise<any[]> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeDeleteReturningOneColumnManyRows(query, params)).finally(() => this.releaseIfNeeded())
+    }
     executeProcedure(query: string, params: any[] = []): Promise<void> {
         return this.getQueryRunner().then(queryRunner => queryRunner.executeProcedure(query, params)).finally(() => this.releaseIfNeeded())
     }

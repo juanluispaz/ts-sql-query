@@ -69,13 +69,6 @@ export class AnyDBPoolQueryRunner extends PromiseBasedPoolQueryRunner {
         return result
 
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
-        const adapterName = this.pool.adapter.name
-        if (adapterName !== 'mssql' && adapterName !== 'postgres') {
-            throw new Error('Unsupported executeInsertReturningMultipleLastInsertedId for this database')
-        }
-        return super.executeInsertReturningMultipleLastInsertedId(query, params)
-    }
     protected createQueryRunner(): Promise<QueryRunner> {
         return new Promise((resolve, reject) => {
             this.pool.acquire((error, anyDBConnection) => {

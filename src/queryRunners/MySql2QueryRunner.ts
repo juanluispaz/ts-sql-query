@@ -66,9 +66,6 @@ export class MySql2QueryRunner extends PromiseBasedQueryRunner {
             })
         })
     }
-    executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
-        throw new Error('Unsupported executeInsertReturningMultipleLastInsertedId for this database')
-    }
     executeBeginTransaction(): Promise<void> {
         return new Promise((resolve, reject) => {
             this.connection.beginTransaction((error: QueryError | null) => {

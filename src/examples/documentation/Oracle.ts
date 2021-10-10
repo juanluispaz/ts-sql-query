@@ -1588,6 +1588,29 @@ async function main() {
         .executeSelectMany()
 
     assertEquals(acmeCustomers, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 10,
+        name: 'ACME'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`delete from company where name = :0 returning id, name into :1, :2`)
+    expectedParams.push(`["ACME",{"dir":3003,"as":"id"},{"dir":3003,"as":"name"}]`)
+    expectedType.push(`deleteReturningOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    const deletedAcmeCompany = await connection.deleteFrom(tCompany)
+        .where(tCompany.name.equals('ACME'))
+        .returning({
+            id: tCompany.id,
+            name: tCompany.name
+        })
+        .executeDeleteOne()
+
+    assertEquals(deletedAcmeCompany, result)
 }
 
 main().then(() => {

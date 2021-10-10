@@ -285,6 +285,16 @@ async function main() {
             .executeSelectOne()
         assertEquals(name, 'ACME Cia.')
 
+        const deletedCustomers = await connection.deleteFrom(tCustomer)
+            .where(tCustomer.id.greaterOrEquals(2))
+            .returning({
+                id: tCustomer.id,
+                firstName: tCustomer.firstName,
+                lastName: tCustomer.lastName
+            })
+            .executeDeleteMany()
+        assertEquals(deletedCustomers, [{ id: 2, firstName: 'Other', lastName: 'Person' }, { id:3, firstName: 'Jane', lastName: 'Doe' } ])
+
         commit = true
     } finally {
         if (commit) {

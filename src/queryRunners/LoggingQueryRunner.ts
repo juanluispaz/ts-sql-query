@@ -1,7 +1,7 @@
 import type { QueryRunner } from "./QueryRunner"
 import { ChainedQueryRunner } from "./ChainedQueryRunner"
 
-export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
+export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
 
 export interface QueryLogger {
     onQuery?: (queryType: QueryType, query: string, params: any[]) => void;
@@ -200,6 +200,91 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
             }, e => {
                 if (logger.onQueryError) {
                     logger.onQueryError('delete', query, params, e)
+                }
+                throw e
+            })
+        }
+        return result
+    }
+
+    executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
+        const logger = this.logger
+        if (logger.onQuery) {
+            logger.onQuery('deleteReturningOneRow', query, params)
+        }
+        let result = this.queryRunner.executeDeleteReturningOneRow(query, params)
+        if (logger.onQueryResult || logger.onQueryError) {
+            result.then(r => {
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('deleteReturningOneRow', query, params, r)
+                }
+                return r
+            }, e => {
+                if (logger.onQueryError) {
+                    logger.onQueryError('deleteReturningOneRow', query, params, e)
+                }
+                throw e
+            })
+        }
+        return result
+    }
+    executeDeleteReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+        const logger = this.logger
+        if (logger.onQuery) {
+            logger.onQuery('deleteReturningManyRows', query, params)
+        }
+        let result = this.queryRunner.executeDeleteReturningManyRows(query, params)
+        if (logger.onQueryResult || logger.onQueryError) {
+            result.then(r => {
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('deleteReturningManyRows', query, params, r)
+                }
+                return r
+            }, e => {
+                if (logger.onQueryError) {
+                    logger.onQueryError('deleteReturningManyRows', query, params, e)
+                }
+                throw e
+            })
+        }
+        return result
+    }
+    executeDeleteReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+        const logger = this.logger
+        if (logger.onQuery) {
+            logger.onQuery('deleteReturningOneColumnOneRow', query, params)
+        }
+        let result = this.queryRunner.executeDeleteReturningOneColumnOneRow(query, params)
+        if (logger.onQueryResult || logger.onQueryError) {
+            result.then(r => {
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('deleteReturningOneColumnOneRow', query, params, r)
+                }
+                return r
+            }, e => {
+                if (logger.onQueryError) {
+                    logger.onQueryError('deleteReturningOneColumnOneRow', query, params, e)
+                }
+                throw e
+            })
+        }
+        return result
+    }
+    executeDeleteReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+        const logger = this.logger
+        if (logger.onQuery) {
+            logger.onQuery('deleteReturningOneColumnManyRows', query, params)
+        }
+        let result = this.queryRunner.executeDeleteReturningOneColumnManyRows(query, params)
+        if (logger.onQueryResult || logger.onQueryError) {
+            result.then(r => {
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('deleteReturningOneColumnManyRows', query, params, r)
+                }
+                return r
+            }, e => {
+                if (logger.onQueryError) {
+                    logger.onQueryError('deleteReturningOneColumnManyRows', query, params, e)
                 }
                 throw e
             })

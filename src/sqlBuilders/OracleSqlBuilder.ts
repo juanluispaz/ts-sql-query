@@ -1,4 +1,4 @@
-import type { ToSql, InsertData, CompoundOperator, SelectData } from "./SqlBuilder"
+import type { ToSql, InsertData, CompoundOperator, SelectData, DeleteData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { isValueSource, IValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
@@ -414,6 +414,36 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         this._setContainsInsertReturningClause(params, true)
         return ' returning ' + this._appendSql(idColumn, params) + ' into ' + this._queryRunner.addOutParam(params, '') // Empty name for the out params, no special name is requiered
+    }
+    _buildDeleteReturning(query: DeleteData, params: any[]): string {
+        const columns = query.__columns
+        if (!columns) {
+            return ''
+        }
+        let requireComma = false
+        let result = ''
+        for (const property in columns) {
+            if (requireComma) {
+                result += ', '
+            }
+            result += this._appendSql(columns[property]!, params)
+            requireComma = true
+        }
+        if (result) {
+            result +=  ' into '
+        }
+        requireComma = false
+        for (const property in columns) {
+            if (requireComma) {
+                result += ', '
+            }
+            result +=  this._queryRunner.addOutParam(params, property)
+            requireComma = true
+        }
+        if (!result) {
+            return ''
+        }
+        return ' returning ' + result
     }
     _isNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {

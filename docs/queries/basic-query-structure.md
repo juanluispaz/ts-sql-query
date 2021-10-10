@@ -46,3 +46,5 @@ You can execute the query using:
 - `executeSelectMany(): Promise<RESULT[]>`: Execute the select query that returns zero or many results from the database
 - `executeSelectPage(): Promise<{ data: RESULT[], count: number }>`: Execute the select query that returns zero or many results from the database. Select page execute the query twice, the first one to get the data from the database and the second one to get the count of all data without the limit and the offset.
 - `executeSelectPage<EXTRAS extends {}>(extras: EXTRAS): Promise<{ data: RESULT[], count: number } & EXTRAS>`: Execute the select query as a select page, but allows to include extra properties to will be resulting object. If the object provided by argument includes the property count, the query that count the data will be omitted and this value will be used. If the object provided by argument includes the property data, the query that extract the data will be omitted and this value will be used.
+
+Aditionally, if you want to return the value of a single column, you can use `selectOneColumn(column)` instead of `select({...})`.

@@ -59,6 +59,18 @@ export class NoopQueryRunner implements QueryRunner {
     executeDelete(_query: string, _params: any[] = []): Promise<number> {
         return this.promise.resolve(0)
     }
+    executeDeleteReturningOneRow(_query: string, _params: any[] = []): Promise<any> {
+        return this.promise.resolve(undefined)
+    }
+    executeDeleteReturningManyRows(_query: string, _params: any[] = []): Promise<any[]> {
+        return this.promise.resolve([])
+    }
+    executeDeleteReturningOneColumnOneRow(_query: string, _params: any[] = []): Promise<any> {
+        return this.promise.resolve(undefined)
+    }
+    executeDeleteReturningOneColumnManyRows(_query: string, _params: any[] = []): Promise<any[]> {
+        return this.promise.resolve([])
+    }
     executeProcedure(_query: string, _params: any[] = []): Promise<void> {
         return this.promise.resolve()
     }

@@ -71,7 +71,8 @@ All these functions receive as argument:
 
 ```ts
 type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
-'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 
+'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 
+'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
 'executeProcedure' | 'executeFunction' | 
 'beginTransaction' | 'commit' | 'rollback' |
 'executeDatabaseSchemaModification'
@@ -110,7 +111,8 @@ The `MockQueryRunner` receives a function as argument to the constructor, this f
 
 ```ts
 type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
-'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'delete' | 
+'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 
+'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 
 'executeProcedure' | 'executeFunction' | 
 'beginTransaction' | 'commit' | 'rollback' |
 'executeDatabaseSchemaModification' | 'isTransactionActive'

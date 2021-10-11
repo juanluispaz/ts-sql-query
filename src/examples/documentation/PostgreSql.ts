@@ -1639,7 +1639,7 @@ async function main() {
         newLastName: 'Thomson'
     }
     expectedResult.push(result)
-    expectedQuery.push(`update customer as _new_ set last_name = $1 from (select * from customer as _old_ where _old_.id = $2 for update) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"`)
+    expectedQuery.push(`update customer as _new_ set last_name = $1 from (select _old_.* from customer as _old_ where _old_.id = $2 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"`)
     expectedParams.push(`["Thomson",2]`)
     expectedType.push(`updateReturningOneRow`)
 

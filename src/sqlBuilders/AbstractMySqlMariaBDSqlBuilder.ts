@@ -4,7 +4,7 @@ import type { OrderByMode } from "../expressions/select"
 import type { IValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
-import { isColumn } from "../utils/Column"
+import { Column, isColumn } from "../utils/Column"
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     constructor() {
@@ -127,6 +127,9 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     _buildInsertReturning(_query: InsertData, params: any[]): string {
         this._setContainsInsertReturningClause(params, false)
         return ''
+    }
+    _appendColumnNameForUpdate(column: Column, params: any[]) {
+        return this._appendRawColumnName(column, params)
     }
     _is(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {

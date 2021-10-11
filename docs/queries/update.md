@@ -71,7 +71,7 @@ Aditionally, if you want to return the value of a single column, you can use `re
 
 ## Delete returning old values
 
-If you are using `PostgreSql` or `SqlServer`, you can return previous values of the updated record in the same query; to do this, you can create a reference to the old values of the table calling `myTable.oldValues()` and then use it in the returning clause.
+If you are using `PostgreSql` (if the table have a primary key) or `SqlServer`, you can return previous values of the updated record in the same query; to do this, you can create a reference to the old values of the table calling `myTable.oldValues()` and then use it in the returning clause.
 
 ```ts
 const oldCustomerValues = tCustomer.oldValues()
@@ -92,10 +92,10 @@ The executed query is:
 update customer as _new_ 
 set last_name = $1 
 from (
-    select * 
+    select _old_.* 
     from customer as _old_ 
     where _old_.id = $2 
-    for update
+    for no key update of _old_
 ) as _old_ 
 where _new_.id = _old_.id 
 returning _old_.last_name as oldLastName, _new_.last_name as newLastName

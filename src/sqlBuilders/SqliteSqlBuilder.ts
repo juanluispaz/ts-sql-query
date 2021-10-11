@@ -1,4 +1,4 @@
-import type { ToSql, SelectData, InsertData } from "./SqlBuilder"
+import type { ToSql, SelectData, InsertData, UpdateData } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
 import { isValueSource, IValueSource } from "../expressions/values"
@@ -133,7 +133,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     _falseValue = '0'
     _trueValueForCondition = '1'
     _falseValueForCondition = '0'
-    _updateOldValueForUpdate = ''
+    _appendUpdateOldValueForUpdate(_query: UpdateData, _updatePrimaryKey: boolean, _params: any[]) {
+        return ''
+    }
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''
     }

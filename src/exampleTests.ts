@@ -1597,7 +1597,7 @@ const updatedLastNames = connection.update(tCustomer)
     })
     .executeUpdateOne()
 
-// Query:  update customer as _new_ set last_name = $1 from (select * from customer as _old_ where _old_.id = $2 for update) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"
+// Query:  update customer as _new_ set last_name = $1 from (select _old_.* from customer as _old_ where _old_.id = $2 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"
 // Params: [ 'Thomson', 2 ]
 
 results.push(...postResults)

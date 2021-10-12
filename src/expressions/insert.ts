@@ -28,7 +28,7 @@ export interface ExecutableInsert<TABLE extends ITableOrView<any>> extends Inser
 }
 
 export interface ExecutableInsertReturningLastInsertedId<TABLE extends ITableOrView<any>, RESULT> extends InsertExpressionBase<TABLE> {
-    executeInsert(): Promise<RESULT>
+    executeInsert(min?: number, max?: number): Promise<RESULT>
     query(): string
     params(): any[]
 }

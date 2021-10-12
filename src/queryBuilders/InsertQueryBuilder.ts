@@ -45,6 +45,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
             const idColumn = this.__idColumn
             const multiple = this.__multiple
             let result
+            let returningLastInsertedId = !idColumn
             if (multiple && multiple.length <= 0) {
                 if (idColumn) {
                     return this.__sqlBuilder._queryRunner.createResolvedPromise([])
@@ -113,14 +114,26 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
                 })
             }
             if (min !== undefined) {
-                result = result.then((count: any) => {
+                result = result.then((result: any) => {
+                    let count: number
+                    if (Array.isArray(result)) {
+                        count = result.length
+                    } else if (returningLastInsertedId) {
+                        if (result === null || result === undefined) {
+                            count = 0
+                        } else {
+                            count = 1
+                        }
+                    } else {
+                        count = result
+                    }
                     if (count < min) {
-                        throw attachSource(new Error("The delete operation didn't delete the minimum of " + min + " row(s)"), source)
+                        throw attachSource(new Error("The insert operation didn't insert the minimum of " + min + " row(s)"), source)
                     }
                     if (max !== undefined && count > max) {
-                        throw attachSource(new Error("The delete operation deleted more that the maximum of " + max + " row(s)"), source)
+                        throw attachSource(new Error("The insert operation insert more that the maximum of " + max + " row(s)"), source)
                     }
-                    return count
+                    return result
                 })
             }
             return result

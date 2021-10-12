@@ -1,6 +1,7 @@
 import { IExecutableSelectQuery, IValueSource } from "../expressions/values"
 import { SqlBuilder, ToSql } from "../sqlBuilders/SqlBuilder"
-import { HasAddWiths, ITableOrView, IWithView, __addWiths, __getOldValues, __registerTableOrView } from "../utils/ITableOrView"
+import { Column } from "../utils/Column"
+import { HasAddWiths, ITableOrView, IWithView, __addWiths, __getOldValues, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { RawFragment } from "../utils/RawFragment"
 import { database, rawFragment } from "../utils/symbols"
 
@@ -32,6 +33,12 @@ export class RawFragmentImpl implements RawFragment<any>, HasAddWiths, ToSql {
         const params = this.__params
         for (let i = 0, length = params.length; i < length; i++) {
             __registerTableOrView(params[i], requiredTablesOrViews)
+        }
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        const params = this.__params
+        for (let i = 0, length = params.length; i < length; i++) {
+            __registerRequiredColumn(params[i], requiredColumns, onlyForTablesOrViews)
         }
     }
     __getOldValues(): ITableOrView<any> | undefined {

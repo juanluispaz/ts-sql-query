@@ -1,5 +1,5 @@
 import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData } from "./SqlBuilder"
-import { ITableOrView, __ITableOrViewPrivate, __registerTableOrView } from "../utils/ITableOrView"
+import { ITableOrView, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { BooleanValueSource, EqualableValueSource, IExecutableSelectQuery, IfValueSource, IValueSource, __ValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
 import { CustomBooleanTypeAdapter, DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
@@ -79,6 +79,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _setForceAliasFor(params: any[], value: ITableOrView<any> | undefined): void {
         Object.defineProperty(params, '_forceAliasFor', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    _getFakeNamesOf(params: any[]): Set<ITableOrView<any>> | undefined {
+        return (params as any)._fakeNamesOf
+    }
+    _setFakeNamesOf(params: any[], value: Set<ITableOrView<any>> | undefined): void {
+        Object.defineProperty(params, '_fakeNamesOf', {
             value: value,
             writable: true,
             enumerable: false,
@@ -234,9 +245,18 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const forceAliasFor = this._getForceAliasFor(params)
         const forceAliasAs = this._getForceAliasAs(params)
+        const fakeNamesOf = this._getFakeNamesOf(params)
 
         if (forceAliasFor === tableOrView && forceAliasAs) {
             return this._escape(forceAliasAs, true) + '.' + this._escape(columnPrivate.__name, true)
+        }
+
+        if (fakeNamesOf && fakeNamesOf.has(tableOrView)) {
+            if (tablePrivate.__as) {
+                return this._escape('_old_', true) + '.' + this._escape(tablePrivate.__as + '__' + columnPrivate.__name, true)
+            } else {
+                return this._escape('_old_', true) + '.' + this._escape(tablePrivate.__name + '__' + columnPrivate.__name, true)
+            }
         }
 
         if (tablePrivate.__as) {
@@ -565,6 +585,26 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return selectQuery
         }
 
+        const oldFakeNameOf = this._getFakeNamesOf(params)
+        if (oldFakeNameOf) {
+            const requiredTablesOrViews = query.__requiredTablesOrViews
+            if (requiredTablesOrViews) {
+                const newFakeNameOf = new Set<ITableOrView<any>>()
+                requiredTablesOrViews.forEach(v => {
+                    if (oldFakeNameOf.has(v)) {
+                        newFakeNameOf.add(v)
+                    }
+                })
+                if (newFakeNameOf.size > 0) {
+                    this._setFakeNamesOf(params, newFakeNameOf)
+                } else {
+                    this._setFakeNamesOf(params, undefined)
+                } 
+            } else {
+                this._setFakeNamesOf(params, undefined)
+            }
+        }
+
         const tables = query.__tablesOrViews
         const tablesLength = tables.length
         const joins = query.__joins
@@ -653,6 +693,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._setFakeNamesOf(params, oldFakeNameOf)
         this._setWithGenerated(params, oldWithGenerated)
         this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
         return selectQuery
@@ -757,6 +798,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
+        const oldFakeNameOf = this._getFakeNamesOf(params)
+        this._setFakeNamesOf(params, undefined)
 
         const table = query.__table
         const customization = query.__customization
@@ -870,6 +913,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._setFakeNamesOf(params, oldFakeNameOf)
         this._resetRootQuery(query, params)
         return insertQuery
     }
@@ -926,6 +970,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildInsertDefaultValues(query: InsertData, params: any[]): string {
         this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
+        const oldFakeNameOf = this._getFakeNamesOf(params)
+        this._setFakeNamesOf(params, undefined)
 
         const table = query.__table
         const customization = query.__customization
@@ -989,12 +1035,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._setFakeNamesOf(params, oldFakeNameOf)
         this._resetRootQuery(query, params)
         return insertQuery
     }
     _buildInsert(query: InsertData, params: any[]): string {
         this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
+        const oldFakeNameOf = this._getFakeNamesOf(params)
+        this._setFakeNamesOf(params, undefined)
 
         const table = query.__table
         const sets = query.__sets
@@ -1088,6 +1137,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._setFakeNamesOf(params, oldFakeNameOf)
         this._resetRootQuery(query, params)
         return insertQuery
     }
@@ -1099,6 +1149,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
+        const oldFakeNameOf = this._getFakeNamesOf(params)
+        this._setFakeNamesOf(params, undefined)
 
         const table = query.__table
         const selectColumns = from.__columns
@@ -1168,6 +1220,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._setFakeNamesOf(params, oldFakeNameOf)
         this._resetRootQuery(query, params)
         return insertQuery
     }
@@ -1215,6 +1268,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildUpdate(query: UpdateData, params: any[]): string {
         this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
+        const oldFakeNameOf = this._getFakeNamesOf(params)
 
         const table = query.__table
         const sets = query.__sets
@@ -1228,6 +1282,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const oldValues = query.__oldValues
         const requiredTables = this._extractAdditionalRequiredTablesForUpdate(query, params)
+        const requiredColumns = this._extractAdditionalRequiredColumnsForUpdate(query, requiredTables, params)
+        this._setFakeNamesOf(params, requiredTables)
 
         let updateQuery = this._buildWith(query, params)
         updateQuery += 'update '
@@ -1272,7 +1328,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         updateQuery += ' set ' + columns
 
         updateQuery += this._buildUpdateOutput(query, params)
-        updateQuery += this._buildUpdateFrom(query, updatePrimaryKey, requiredTables, params)
+        updateQuery += this._buildUpdateFrom(query, updatePrimaryKey, requiredTables, requiredColumns, params)
 
         if (oldValues && this._updateOldValueInFrom) {
             let where: BooleanValueSource<any, any> | undefined
@@ -1298,10 +1354,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
             if (!where) {
                 throw new Error('No primary key found')
-            }
-
-            if (requiredTables && query.__where) {
-                where = where.and(query.__where)
             }
 
             const oldForceAliasFor = this._getForceAliasFor(params)
@@ -1337,10 +1389,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setForceAliasFor(params, oldForceAliasFor)
         this._setForceAliasAs(params, oldForceAliasAs)
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._setFakeNamesOf(params, oldFakeNameOf)
         this._resetRootQuery(query, params)
         return updateQuery
     }
-    _extractAdditionalRequiredTablesForUpdate(query: UpdateData, _params: any[]): ITableOrView<any>[] | undefined {
+    _extractAdditionalRequiredTablesForUpdate(query: UpdateData, _params: any[]): Set<ITableOrView<any>> | undefined {
         if (!this._updateOldValueInFrom || !query.__oldValues) {
             return undefined
         }
@@ -1369,21 +1422,31 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (result.size <= 0) {
             return undefined
         }
-        
-        return Array.from(result).sort((t1, t2) => {
-            const t1Private = __getTableOrViewPrivate(t1)
-            const t1Name = t1Private.__as || t1Private.__name
-            const t2Private = __getTableOrViewPrivate(t2)
-            const t2Name = t2Private.__as || t2Private.__name
+        return result
+    }
+    _extractAdditionalRequiredColumnsForUpdate(query: UpdateData, requiredTables: Set<ITableOrView<any>> | undefined, _params: any[]): Set<Column> | undefined {
+        if (!requiredTables) {
+            return undefined
+        }
 
-            if (t1Name > t2Name) {
-                return 1;
+        const result = new Set<Column>()
+
+        const sets = query.__sets
+        for (let property in sets) {
+            __registerRequiredColumn(sets[property], result, requiredTables)
+        }
+
+        const columns = query.__columns
+        if (columns) {
+            for (let property in columns) {
+                __registerRequiredColumn(columns[property], result, requiredTables)
             }
-            if (t1Name < t2Name) {
-                return -1;
-            }
-            return 0;
-        })
+        }
+
+        if (result.size <= 0) {
+            return undefined
+        }
+        return result
     }
     _updateNewAlias = '_new_'
     _updateOldValueInFrom = true
@@ -1391,7 +1454,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const columnPrivate = __getColumnPrivate(column)
         return this._escape(columnPrivate.__name, true)
     }
-    _appendUpdateOldValueForUpdate(query: UpdateData, updatePrimaryKey: boolean, requiredTables: ITableOrView<any>[] | undefined, _params: any[]) {
+    _appendUpdateOldValueForUpdate(query: UpdateData, updatePrimaryKey: boolean, _requiredTables: Set<ITableOrView<any>> | undefined, _params: any[]) {
         const oldValues = query.__oldValues
         if (!oldValues) {
             return ''
@@ -1406,23 +1469,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             result = ' for no key update of ' + this._escape(oldValuesPrivate.__as, true)
         }
-        if (requiredTables) {
-            for (let i = 0, length = requiredTables.length; i < length; i++) {
-                const tablePrivate = __getTableOrViewPrivate(requiredTables[i]!)
-                result += ', '
-                if (tablePrivate.__as) {
-                    result += this._escape(tablePrivate.__as, true)
-                } else {
-                    result += this._escape(tablePrivate.__name, false)
-                }
-            }
-        }
         return result
     }
     _buildAfterUpdateTable(_query: UpdateData, _params: any[]): string {
         return ''
     }
-    _buildUpdateFrom(query: UpdateData, updatePrimaryKey: boolean, requiredTables: ITableOrView<any>[] | undefined, params: any[]): string {
+    _buildUpdateFrom(query: UpdateData, updatePrimaryKey: boolean, requiredTables: Set<ITableOrView<any>> | undefined, requiredColumns: Set<Column> | undefined, params: any[]): string {
         if (!this._updateOldValueInFrom) {
             const from = this._buildFromJoins(query.__froms, query.__joins, undefined, params)
             if (from) {
@@ -1439,16 +1491,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return ''
         }
 
-        let from
-        if (requiredTables) {
-            from = this._buildFromJoins(query.__froms, query.__joins, undefined, params)
-            if (from) {
-                from = ' from ' + from + ', '
-            }
-        }
-        if (!from) {
-            from = ' from '
-        }
+        let from = ' from '
 
         const oldValuesPrivate = __getTableOrViewPrivate(oldValues)
         if (!oldValuesPrivate.__as) {
@@ -1457,11 +1500,57 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const oldForceAliasFor = this._getForceAliasFor(params)
         const oldForceAliasAs = this._getForceAliasAs(params)
+        const oldFakeNameOf = this._getFakeNamesOf(params)
+        this._setFakeNamesOf(params, undefined)
 
         this._setForceAliasFor(params, query.__table)
         this._setForceAliasAs(params, oldValuesPrivate.__as)
 
-        from += '(select ' + this._escape(oldValuesPrivate.__as, true) + '.* from '
+        from += '(select ' + this._escape(oldValuesPrivate.__as, true) + '.*'
+
+        if (requiredColumns) {
+            const additionalColumns = Array.from(requiredColumns).sort((c1, c2) => {
+                const c1Private = __getColumnPrivate(c1)
+                const c2Private = __getColumnPrivate(c2)
+                const t1 = c1Private.__tableOrView
+                const t2 = c2Private.__tableOrView
+                const t1Private = __getTableOrViewPrivate(t1)
+                const t1Name = t1Private.__as || t1Private.__name
+                const t2Private = __getTableOrViewPrivate(t2)
+                const t2Name = t2Private.__as || t2Private.__name
+
+                if (t1Name > t2Name) {
+                    return 1;
+                }
+                if (t1Name < t2Name) {
+                    return -1;
+                }
+                if (c1Private.__name > c2Private.__name) {
+                    return 1;
+                }
+                if (c1Private.__name < c2Private.__name) {
+                    return -1;
+                }
+                return 0;
+            })
+
+            for (let i = 0, length = additionalColumns.length; i < length; i++) {
+                const column = additionalColumns[i]!
+                from += ', '
+                from += this._appendSql(column, params)
+                from += ' as ' 
+
+                const columnPrivate = __getColumnPrivate(column)
+                const tablePrivate = __getTableOrViewPrivate(columnPrivate.__tableOrView)
+                if (tablePrivate.__as) {
+                    from += this._escape(tablePrivate.__as + '__' + columnPrivate.__name, true)
+                } else {
+                    from += this._escape(tablePrivate.__name + '__' + columnPrivate.__name, true)
+                }
+            }
+        }
+
+        from += ' from '
         from += this._appendTableOrViewName(oldValues, params)
 
         const innerFrom = this._buildFromJoins(query.__froms, query.__joins, undefined, params)
@@ -1485,6 +1574,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         this._setForceAliasFor(params, oldForceAliasFor)
         this._setForceAliasAs(params, oldForceAliasAs)
+        this._setFakeNamesOf(params, oldFakeNameOf)
         return from
     }
     _buildUpdateOutput(_query: UpdateData, _params: any[]): string {
@@ -1495,6 +1585,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _buildDelete(query: DeleteData, params: any[]): string {
         this._ensureRootQuery(query, params)
+        const oldFakeNameOf = this._getFakeNamesOf(params)
+        this._setFakeNamesOf(params, undefined)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
 
         const table = query.__table
@@ -1537,6 +1629,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._setFakeNamesOf(params, oldFakeNameOf)
         this._resetRootQuery(query, params)
         return deleteQuery
     }

@@ -1,5 +1,5 @@
 import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource } from "./expressions/values"
-import { IView, IWithView, TableOrViewOf, TableOrViewRef, __addWiths, __registerTableOrView } from "./utils/ITableOrView"
+import { IView, IWithView, TableOrViewOf, TableOrViewRef, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
 import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
 import type { TypeAdapter } from "./TypeAdapter"
 import type { AliasedTableOrView, OuterJoinSourceOf } from "./utils/tableOrViewUtils"
@@ -127,6 +127,11 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     private __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         requiredTablesOrViews.add(this)
         __registerTableOrView(this.__template, requiredTablesOrViews)
+    }
+
+    // @ts-ignore
+    private __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerRequiredColumn(this.__template, requiredColumns, onlyForTablesOrViews)
     }
 
     // @ts-ignore

@@ -218,6 +218,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         this._ensureRootQuery(query, params)
         const table = query.__table
         const oldSafeTableOrView = this._getSafeTableOrView(params)
+        const oldFakeNameOf = this._getFakeNamesOf(params)
+        this._setFakeNamesOf(params, undefined)
         const customization = query.__customization
         this._setSafeTableOrView(params, table)
 
@@ -327,6 +329,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._setFakeNamesOf(params, oldFakeNameOf)
         this._resetRootQuery(query, params)
 
         if (returning) {
@@ -340,6 +343,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _buildInsertDefaultValues(query: InsertData, params: any[]): string {
         this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
+        const oldFakeNameOf = this._getFakeNamesOf(params)
+        this._setFakeNamesOf(params, undefined)
 
         const table = query.__table
         const customization = query.__customization
@@ -400,6 +405,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
+        this._setFakeNamesOf(params, oldFakeNameOf)
         this._resetRootQuery(query, params)
         return insertQuery
     }

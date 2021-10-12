@@ -1,6 +1,6 @@
 import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData } from "../sqlBuilders/SqlBuilder"
 import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderByExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereOffsetExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, ExecutableSelectWithWhere, ExecutableSelectWithoutWhere, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, SplitedComposedExecutableSelectWithoutWhere, SplitedComposedDynamicWhereExecutableSelectExpression, WhereableCompoundableExecutableSelectExpressionWithoutWhere } from "../expressions/select"
-import { HasAddWiths, ITableOrView, IWithView, OuterJoinSource, __getOldValues, __registerTableOrView } from "../utils/ITableOrView"
+import { HasAddWiths, ITableOrView, IWithView, OuterJoinSource, __getOldValues, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import type { BooleanValueSource, NumberValueSource, IntValueSource, IValueSource, IfValueSource, IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { WithView } from "../utils/tableOrViewUtils"
@@ -15,6 +15,7 @@ import { WithViewImpl } from "../internal/WithViewImpl"
 import { createColumnsFrom } from "../internal/ColumnImpl"
 import { View } from "../View"
 import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
+import { Column } from "../utils/Column"
 
 abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql, HasAddWiths, IExecutableSelectQuery<any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any, any>, WithableExecutableSelect<any, any, any, any>, ExecutableSelect<any, any, any, any>, ComposeExpression<any, any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any, any>,  ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any, any>, OffsetExecutableSelectExpression<any, any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedOrderByExecutableSelectExpression<any, any, any, any, any, any>, CompoundedOffsetExecutableSelectExpression<any, any, any, any>, CompoundedCustomizableExecutableSelect<any, any, any, any>, OrderByExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, ExecutableSelectWithWhere<any, any, any, any>, ExecutableSelectWithoutWhere<any, any, any, any, any>, WithableExecutableSelectWithoutWhere<any, any, any, any, any>, CompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpressionWitoutWhere<any, any, any, any, any, any> {
     [database]: any
@@ -366,6 +367,41 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             __getTableOrViewPrivate(tableOrView).__registerTableOrView(requiredTablesOrViews)
         }
     }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        const subSelectUsing = this.__subSelectUsing
+        if (!subSelectUsing) {
+            return
+        }
+        const newOnly = new Set<ITableOrView<any>>()
+        for (let i = 0, length = subSelectUsing.length; i < length; i++) {
+            const tableOrView = subSelectUsing[i]!
+            if (onlyForTablesOrViews.has(tableOrView)) {
+                newOnly.add(tableOrView)
+            }
+        }
+        if (newOnly.size <= 0) {
+            return
+        }
+
+        const columns = this.__columns
+        for (const property in columns) {
+            __registerRequiredColumn(columns[property], requiredColumns, newOnly)
+        }
+        __registerRequiredColumn(this.__orderBy, requiredColumns, newOnly)
+        __registerRequiredColumn(this.__limit, requiredColumns, newOnly)
+        __registerRequiredColumn(this.__offset, requiredColumns, newOnly)
+
+        const customization = this.__customization
+        if (customization) {
+            __registerRequiredColumn(customization.afterSelectKeyword, requiredColumns, newOnly)
+            __registerRequiredColumn(customization.beforeColumns, requiredColumns, newOnly)
+            __registerRequiredColumn(customization.customWindow, requiredColumns, newOnly)
+            __registerRequiredColumn(customization.afterQuery, requiredColumns, newOnly)
+        }
+
+        this.__registerRequiredColumnInSelect(requiredColumns, newOnly)
+    }
+    abstract __registerRequiredColumnInSelect(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void
     __getOldValues(): ITableOrView<any> | undefined {
         const subSelectUsing = this.__subSelectUsing
         if (!subSelectUsing) {
@@ -541,6 +577,26 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         for (let i = 0, length = tables.length; i < length; i++) {
             const table = tables[i]!
             __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        }
+    }
+
+    __registerRequiredColumnInSelect(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        const tablesOrViews = this.__tablesOrViews
+        for (let i = 0, length = tablesOrViews.length; i < length; i++) {
+            __registerRequiredColumn(tablesOrViews[i], requiredColumns, onlyForTablesOrViews)
+        }
+        const joins = this.__joins
+        for (let i = 0, length = joins.length; i < length; i++) {
+            const join = joins[i]!
+            __registerRequiredColumn(join.__tableOrView, requiredColumns, onlyForTablesOrViews)
+            __registerRequiredColumn(join.__on, requiredColumns, onlyForTablesOrViews)
+        }
+        __registerRequiredColumn(this.__where, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__having, requiredColumns, onlyForTablesOrViews)
+        
+        const groupBy = this.__groupBy
+        for (let i = 0, length = groupBy.length; i < length; i++) {
+            __registerRequiredColumn(groupBy[i], requiredColumns, onlyForTablesOrViews)
         }
     }
 
@@ -933,6 +989,11 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         this.__secondQuery = secondQuery
 
         createColumnsFrom(firstQuery.__columns, this.__columns, sqlBuilder, new View(''))
+    }
+
+    __registerRequiredColumnInSelect(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerRequiredColumn(this.__firstQuery, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__secondQuery, requiredColumns, onlyForTablesOrViews)
     }
 
     __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {

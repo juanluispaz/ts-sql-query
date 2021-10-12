@@ -1724,6 +1724,93 @@ async function main() {
         .executeDelete()
 
     assertEquals(deleteACMECustomers, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        oldLastName: 'Smith 2', 
+        newLastName: 'Smith'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`update customer as _new_ set last_name = $1 from (select _old_.* from customer as _old_, company where _old_.company_id = company.id and company.name = $2 and _old_.first_name = $3 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"`)
+    expectedParams.push(`["Smith","ACME Cia.","Ron 2"]`)
+    expectedType.push(`updateReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const smithLastNameUpdate = await connection.update(tCustomer)
+        .from(tCompany)
+        .set({
+            lastName: 'Smith'
+        })
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .and(tCompany.name.equals('ACME Cia.'))
+        .and(tCustomer.firstName.equals('Ron 2'))
+        .returning({
+            oldLastName: oldCustomerValues.lastName,
+            newLastName: tCustomer.lastName
+        })
+        .executeUpdateOne()
+
+    assertEquals(smithLastNameUpdate, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        oldLastName: 'Smith', 
+        newLastName: 'Smith - ACME Cia.'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`update customer as _new_ set last_name = _new_.last_name || $1 || _old_.company__name from (select _old_.*, company.name as company__name from customer as _old_, company where _old_.company_id = company.id and company.name = $2 and _old_.first_name = $3 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"`)
+    expectedParams.push(`[" - ","ACME Cia.","Ron 2"]`)
+    expectedType.push(`updateReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const smithLastNameUpdate2 = await connection.update(tCustomer)
+        .from(tCompany)
+        .set({
+            lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+        })
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .and(tCompany.name.equals('ACME Cia.'))
+        .and(tCustomer.firstName.equals('Ron 2'))
+        .returning({
+            oldLastName: oldCustomerValues.lastName,
+            newLastName: tCustomer.lastName
+        })
+        .executeUpdateOne()
+
+    assertEquals(smithLastNameUpdate2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        oldLastName: 'Smith - ACME Cia.', 
+        newLastName: 'Smith/ACME Cia.'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`update customer as _new_ set last_name = $1 from (select _old_.*, company.name as company__name from customer as _old_, company where _old_.company_id = company.id and company.name = $2 and _old_.first_name = $3 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name || $4 || _old_.company__name as "newLastName"`)
+    expectedParams.push(`["Smith","ACME Cia.","Ron 2","/"]`)
+    expectedType.push(`updateReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const smithLastNameUpdate3 = await connection.update(tCustomer)
+        .from(tCompany)
+        .set({
+            lastName: 'Smith'
+        })
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .and(tCompany.name.equals('ACME Cia.'))
+        .and(tCustomer.firstName.equals('Ron 2'))
+        .returning({
+            oldLastName: oldCustomerValues.lastName,
+            newLastName: tCustomer.lastName.concat('/').concat(tCompany.name)
+        })
+        .executeUpdateOne()
+
+    assertEquals(smithLastNameUpdate3, result)
 }
 
 main().then(() => {

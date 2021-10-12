@@ -6,8 +6,10 @@ import { IValueSource, __getValueSourcePrivate, __OptionalRule } from "../expres
 import { ValueSourceImpl } from "./ValueSourceImpl"
 import { CustomBooleanTypeAdapter } from "../TypeAdapter"
 import { ProxyTypeAdapter } from "./ProxyTypeAdapter"
+import { type } from "../utils/symbols"
 
-export class ColumnImpl extends ValueSourceImpl implements __ColumnPrivate, ToSql {
+export class ColumnImpl extends ValueSourceImpl implements Column, __ColumnPrivate, ToSql {
+    [type]: 'column'
     __isColumn: true = true
     __name: string
     __tableOrView: ITableOrView<any>
@@ -89,6 +91,12 @@ export class ColumnImpl extends ValueSourceImpl implements __ColumnPrivate, ToSq
 
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         __getTableOrViewPrivate(this.__tableOrView).__registerTableOrView(requiredTablesOrViews)
+    }
+
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        if (onlyForTablesOrViews.has(this.__tableOrView)) {
+            requiredColumns.add(this)
+        }
     }
 
     __getOldValues(): ITableOrView<any> | undefined {

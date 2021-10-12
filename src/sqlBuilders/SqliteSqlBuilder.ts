@@ -134,7 +134,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     _falseValue = '0'
     _trueValueForCondition = '1'
     _falseValueForCondition = '0'
-    _appendUpdateOldValueForUpdate(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: ITableOrView<any>[] | undefined, _params: any[]) {
+    _appendUpdateOldValueForUpdate(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: Set<ITableOrView<any>> | undefined, _params: any[]) {
         return ''
     }
     _buildInsertOutput(_query: InsertData, _params: any[]): string {

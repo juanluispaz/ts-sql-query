@@ -19,9 +19,15 @@ export interface ITableOrViewOf<DB extends AnyDB, REF extends TableOrViewRef<DB>
     
 }
 
+// Duplicated here to avoid circular reference
+interface Column {
+    [type]: 'column'
+}
+
 export interface HasAddWiths {
     __addWiths(withs: Array<IWithView<any>>): void
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void
     __getOldValues(): ITableOrView<any> | undefined
 }
 
@@ -40,6 +46,15 @@ export function __registerTableOrView(value: any, requiredTablesOrViews: Set<ITa
     }
     if (typeof value === 'object' && typeof value.__registerTableOrView === 'function') {
         (value as HasAddWiths).__registerTableOrView(requiredTablesOrViews)
+    }
+}
+
+export function __registerRequiredColumn(value: any, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    if (value === undefined || value === null) {
+        return
+    }
+    if (typeof value === 'object' && typeof value.__registerRequiredColumn === 'function') {
+        (value as HasAddWiths).__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
     }
 }
 

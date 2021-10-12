@@ -139,7 +139,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return ''
     }
-    _buildUpdateFrom(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: ITableOrView<any>[] | undefined, _params: any[]): string {
+    _buildUpdateFrom(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: Set<ITableOrView<any>> | undefined, _requiredColumns: Set<Column> | undefined, _params: any[]): string {
         return ''
     }
     _buidDeleteUsing(query: DeleteData, params: any[]): string {

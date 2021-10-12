@@ -1724,6 +1724,93 @@ async function main() {
         .executeDelete()
 
     assertEquals(deleteACMECustomers, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        oldLastName: 'Smith 2', 
+        newLastName: 'Smith'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`update customer set last_name = @0 output deleted.last_name as oldLastName, inserted.last_name as newLastName from company where customer.company_id = company.id and company.name = @1 and customer.first_name = @2`)
+    expectedParams.push(`["Smith","ACME Cia.","Ron 2"]`)
+    expectedType.push(`updateReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const smithLastNameUpdate = await connection.update(tCustomer)
+        .from(tCompany)
+        .set({
+            lastName: 'Smith'
+        })
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .and(tCompany.name.equals('ACME Cia.'))
+        .and(tCustomer.firstName.equals('Ron 2'))
+        .returning({
+            oldLastName: oldCustomerValues.lastName,
+            newLastName: tCustomer.lastName
+        })
+        .executeUpdateOne()
+
+    assertEquals(smithLastNameUpdate, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        oldLastName: 'Smith', 
+        newLastName: 'Smith - ACME Cia.'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`update customer set last_name = customer.last_name + @0 + company.name output deleted.last_name as oldLastName, inserted.last_name as newLastName from company where customer.company_id = company.id and company.name = @1 and customer.first_name = @2`)
+    expectedParams.push(`[" - ","ACME Cia.","Ron 2"]`)
+    expectedType.push(`updateReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const smithLastNameUpdate2 = await connection.update(tCustomer)
+        .from(tCompany)
+        .set({
+            lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+        })
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .and(tCompany.name.equals('ACME Cia.'))
+        .and(tCustomer.firstName.equals('Ron 2'))
+        .returning({
+            oldLastName: oldCustomerValues.lastName,
+            newLastName: tCustomer.lastName
+        })
+        .executeUpdateOne()
+
+    assertEquals(smithLastNameUpdate2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        oldLastName: 'Smith - ACME Cia.', 
+        newLastName: 'Smith/ACME Cia.'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`update customer set last_name = @0 output deleted.last_name as oldLastName, inserted.last_name + @1 + company.name as newLastName from company where customer.company_id = company.id and company.name = @2 and customer.first_name = @3`)
+    expectedParams.push(`["Smith","/","ACME Cia.","Ron 2"]`)
+    expectedType.push(`updateReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const smithLastNameUpdate3 = await connection.update(tCustomer)
+        .from(tCompany)
+        .set({
+            lastName: 'Smith'
+        })
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .and(tCompany.name.equals('ACME Cia.'))
+        .and(tCustomer.firstName.equals('Ron 2'))
+        .returning({
+            oldLastName: oldCustomerValues.lastName,
+            newLastName: tCustomer.lastName.concat('/').concat(tCompany.name)
+        })
+        .executeUpdateOne()
+
+    assertEquals(smithLastNameUpdate3, result)
 }
 
 main().then(() => {

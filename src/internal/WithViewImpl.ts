@@ -1,4 +1,4 @@
-import { ITableOrView, IWithView, __addWiths, __ITableOrViewPrivate, __registerTableOrView } from "../utils/ITableOrView"
+import { ITableOrView, IWithView, __addWiths, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import type { AliasedTableOrView, OuterJoinSourceOf, WITH_VIEW } from "../utils/tableOrViewUtils"
 import type { AnyDB } from "../databases"
 import type { SelectData, WithData } from "../sqlBuilders/SqlBuilder"
@@ -6,7 +6,7 @@ import { createColumnsFrom } from "../internal/ColumnImpl"
 import { database, tableOrViewRef, type } from "../utils/symbols"
 import { __getValueSourcePrivate, __OptionalRule } from "../expressions/values"
 import { RawFragment } from "../utils/RawFragment"
-import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
+import { Column, __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 
 export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME>> implements IWithView<REF>, WithData, __ITableOrViewPrivate {
     [database]: REF[typeof database]
@@ -75,6 +75,9 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         requiredTablesOrViews.add(this)
         __registerTableOrView(this.__template, requiredTablesOrViews)
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerRequiredColumn(this.__template, requiredColumns, onlyForTablesOrViews)
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return undefined

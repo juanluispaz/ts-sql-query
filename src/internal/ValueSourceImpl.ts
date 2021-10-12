@@ -1,11 +1,12 @@
 import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData } from "../sqlBuilders/SqlBuilder"
 import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, __OptionalRule, IfValueSource, BigintValueSource, TypeSafeBigintValueSource, isValueSource } from "../expressions/values"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { HasAddWiths, ITableOrView, IWithView, __getOldValues, __getTableOrViewPrivate, __registerTableOrView } from "../utils/ITableOrView"
+import { HasAddWiths, ITableOrView, IWithView, __getOldValues, __getTableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { database, tableOrView, valueSourceType, valueType as valueType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType, valueSourceTypeName } from "../utils/symbols"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { ProxyTypeAdapter } from "./ProxyTypeAdapter"
+import { Column } from "../utils/Column"
 
 export abstract class ValueSourceImpl implements IValueSource<any, any>, NullableValueSource<any, any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, BigintValueSource<any, any>, TypeSafeBigintValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, ToSql, __ValueSourcePrivate {
     [valueSourceType]: 'ValueSource'
@@ -60,6 +61,9 @@ export abstract class ValueSourceImpl implements IValueSource<any, any>, Nullabl
         // Do nothing
     }
     __registerTableOrView(_requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        // Do nothing
+    }
+    __registerRequiredColumn(_requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
         // Do nothing
     }
     __getOldValues(): ITableOrView<any> | undefined {
@@ -721,6 +725,9 @@ export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements H
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         __registerTableOrView(this.__value, requiredTablesOrViews)
     }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    }
     __getOldValues(): ITableOrView<any> | undefined {
         return __getOldValues(this.__value)
     }
@@ -758,6 +765,9 @@ export class SqlOperationConstValueSource extends ValueSourceImpl implements Has
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         __registerTableOrView(this.__value, requiredTablesOrViews)
     }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    }
     __getOldValues(): ITableOrView<any> | undefined {
         return __getOldValues(this.__value)
     }
@@ -781,6 +791,9 @@ export class SqlOperationAsOptionalValueSource extends ValueSourceImpl {
     }
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues()
@@ -808,6 +821,9 @@ export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOper
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         this.__valueSource.__registerTableOrView(requiredTablesOrViews)
     }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+    }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues()
     }
@@ -833,6 +849,9 @@ export class SqlOperationIsNullValueSource extends ValueSourceImpl implements Ha
     }
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues()
@@ -863,6 +882,10 @@ export class SqlOperation1ValueSource extends ValueSourceImpl implements HasOper
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         this.__valueSource.__registerTableOrView(requiredTablesOrViews)
         __registerTableOrView(this.__value, requiredTablesOrViews)
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
@@ -906,6 +929,17 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
             }
         } else {
             __registerTableOrView(values, requiredTablesOrViews)
+        }
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+        const values = this.__value
+        if (Array.isArray(values)) {
+            for (let i = 0, length = values.length; i < length; i++) {
+                __registerRequiredColumn(values[i], requiredColumns, onlyForTablesOrViews)
+            }
+        } else {
+            __registerRequiredColumn(values, requiredColumns, onlyForTablesOrViews)
         }
     }
     __getOldValues(): ITableOrView<any> | undefined {
@@ -953,6 +987,10 @@ export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implem
         this.__valueSource.__registerTableOrView(requiredTablesOrViews)
         __registerTableOrView(this.__value, requiredTablesOrViews)
     }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
     }
@@ -982,6 +1020,10 @@ export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl impleme
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         this.__valueSource.__registerTableOrView(requiredTablesOrViews)
         __registerTableOrView(this.__value, requiredTablesOrViews)
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
@@ -1015,6 +1057,10 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         this.__valueSource.__registerTableOrView(requiredTablesOrViews)
         __registerTableOrView(this.__value, requiredTablesOrViews)
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
@@ -1061,6 +1107,17 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
             }
         } else {
             __registerTableOrView(values, requiredTablesOrViews)
+        }
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+        const values = this.__value
+        if (Array.isArray(values)) {
+            for (let i = 0, length = values.length; i < length; i++) {
+                __registerRequiredColumn(values[i], requiredColumns, onlyForTablesOrViews)
+            }
+        } else {
+            __registerRequiredColumn(values, requiredColumns, onlyForTablesOrViews)
         }
     }
     __getOldValues(): ITableOrView<any> | undefined {
@@ -1125,6 +1182,10 @@ export class SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         this.__valueSource.__registerTableOrView(requiredTablesOrViews)
         __registerTableOrView(this.__value, requiredTablesOrViews)
     }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
     }
@@ -1158,6 +1219,11 @@ export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOper
         this.__valueSource.__registerTableOrView(requiredTablesOrViews)
         __registerTableOrView(this.__value, requiredTablesOrViews)
         __registerTableOrView(this.__value2, requiredTablesOrViews)
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value2, requiredColumns, onlyForTablesOrViews)
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value) || __getOldValues(this.__value2)
@@ -1199,6 +1265,11 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         __registerTableOrView(this.__value, requiredTablesOrViews)
         __registerTableOrView(this.__value2, requiredTablesOrViews)
     }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value2, requiredColumns, onlyForTablesOrViews)
+    }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value) || __getOldValues(this.__value2)
     }
@@ -1222,6 +1293,9 @@ export class NoopValueSource extends ValueSourceImpl {
     }
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues()
@@ -1279,6 +1353,13 @@ export class FragmentValueSource extends ValueSourceImpl {
             value.__registerTableOrView(requiredTablesOrViews)
         }
     }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        const sqlParams = this.__sqlParams
+        for (let i = 0, length = sqlParams.length; i < length; i++) {
+            const value = __getValueSourcePrivate(sqlParams[i]!)
+            value.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+        }
+    }
     __getOldValues(): ITableOrView<any> | undefined {
         const sqlParams = this.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
@@ -1330,6 +1411,9 @@ export class AggregateFunctions1ValueSource extends ValueSourceImpl implements H
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         __registerTableOrView(this.__value, requiredTablesOrViews)
     }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    }
     __getOldValues(): ITableOrView<any> | undefined {
         return __getOldValues(this.__value)
     }
@@ -1359,6 +1443,9 @@ export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implement
     }
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         __registerTableOrView(this.__value, requiredTablesOrViews)
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return __getOldValues(this.__value)
@@ -1472,6 +1559,9 @@ export class TableOrViewRawFragmentValueSource implements IValueSource<any, any>
     __registerTableOrView(_requiredTablesOrViews: Set<ITableOrView<any>>): void {
         // Do nothing
     }
+    __registerRequiredColumn(_requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        // Do nothing
+    }
     __getOldValues(): ITableOrView<any> | undefined {
         return undefined
     }
@@ -1507,6 +1597,9 @@ export class InlineSelectValueSource extends ValueSourceImpl implements HasOpera
     }
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         this.__selectData.__registerTableOrView(requiredTablesOrViews)
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__selectData.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__selectData.__getOldValues()

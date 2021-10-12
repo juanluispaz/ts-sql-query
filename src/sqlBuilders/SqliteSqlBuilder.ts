@@ -6,6 +6,7 @@ import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn } from "../utils/Column"
 import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration"
+import { ITableOrView } from "../utils/ITableOrView"
 
 export class SqliteSqlBuilder extends AbstractSqlBuilder {
     sqlite: true = true
@@ -133,7 +134,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     _falseValue = '0'
     _trueValueForCondition = '1'
     _falseValueForCondition = '0'
-    _appendUpdateOldValueForUpdate(_query: UpdateData, _updatePrimaryKey: boolean, _params: any[]) {
+    _appendUpdateOldValueForUpdate(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: ITableOrView<any>[] | undefined, _params: any[]) {
         return ''
     }
     _buildInsertOutput(_query: InsertData, _params: any[]): string {

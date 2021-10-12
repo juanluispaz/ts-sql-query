@@ -5,6 +5,7 @@ import type { IValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn } from "../utils/Column"
+import { ITableOrView } from "../utils/ITableOrView"
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     constructor() {
@@ -138,7 +139,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return ''
     }
-    _buildUpdateFrom(_query: UpdateData, _updatePrimaryKey: boolean, _params: any[]): string {
+    _buildUpdateFrom(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: ITableOrView<any>[] | undefined, _params: any[]): string {
         return ''
     }
     _buidDeleteUsing(query: DeleteData, params: any[]): string {

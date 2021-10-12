@@ -390,6 +390,51 @@ async function main() {
             .executeDelete()
         assertEquals(i, 1)
 
+        const smithLastNameUpdate = await connection.update(tCustomer)
+            .from(tCompany)
+            .set({
+                lastName: 'Smith'
+            })
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .and(tCompany.name.equals('ACME Cia.'))
+            .and(tCustomer.firstName.equals('Ron 2'))
+            .returning({
+                oldLastName: oldCustomerValues.lastName,
+                newLastName: tCustomer.lastName
+            })
+            .executeUpdateOne()
+        assertEquals(smithLastNameUpdate, {oldLastName: 'Smith 2', newLastName: 'Smith'})
+
+        const smithLastNameUpdate2 = await connection.update(tCustomer)
+            .from(tCompany)
+            .set({
+                lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+            })
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .and(tCompany.name.equals('ACME Cia.'))
+            .and(tCustomer.firstName.equals('Ron 2'))
+            .returning({
+                oldLastName: oldCustomerValues.lastName,
+                newLastName: tCustomer.lastName
+            })
+            .executeUpdateOne()
+        assertEquals(smithLastNameUpdate2, {oldLastName: 'Smith', newLastName: 'Smith - ACME Cia.'})
+
+        const smithLastNameUpdate3 = await connection.update(tCustomer)
+            .from(tCompany)
+            .set({
+                lastName: 'Smith'
+            })
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .and(tCompany.name.equals('ACME Cia.'))
+            .and(tCustomer.firstName.equals('Ron 2'))
+            .returning({
+                oldLastName: oldCustomerValues.lastName,
+                newLastName: tCustomer.lastName.concat('/').concat(tCompany.name)
+            })
+            .executeUpdateOne()
+        assertEquals(smithLastNameUpdate3, {oldLastName: 'Smith - ACME Cia.', newLastName: 'Smith/ACME Cia.'})
+
         commit = true
     } finally {
         if (commit) {

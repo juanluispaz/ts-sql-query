@@ -274,6 +274,23 @@ async function main() {
             .executeSelectOne()
         assertEquals(name, 'ACME Cia.')
 
+        i = await connection.update(tCustomer)
+            .from(tCompany)
+            .set({
+                lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+            })
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .and(tCustomer.id.equals(1))
+            .executeUpdate()
+        assertEquals(i, 1)
+
+        i = await connection.deleteFrom(tCustomer)
+            .using(tCompany)
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .and(tCustomer.id.equals(1))
+            .executeDelete()
+        assertEquals(i, 1)
+
         commit = true
     } finally {
         if (commit) {

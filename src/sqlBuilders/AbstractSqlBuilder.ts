@@ -1,4 +1,4 @@
-import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator } from "./SqlBuilder"
+import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData } from "./SqlBuilder"
 import type { ITableOrView, __ITableOrViewPrivate } from "../utils/ITableOrView"
 import { BooleanValueSource, EqualableValueSource, IExecutableSelectQuery, IfValueSource, IValueSource, __ValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
@@ -482,6 +482,60 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
+    _buildFromJoins(tables: ITableOrView<any>[] | undefined, joins: JoinData[] | undefined, requiredTablesOrViews: Set<ITableOrView<any>> | undefined, params: any[]): string {
+        let fromJoins = ''
+
+        if (tables && tables.length > 0) {
+            let requireComma = false
+            for (let i = 0, length = tables.length; i < length; i++) {
+                if (requireComma) {
+                    fromJoins += ', '
+                }
+                fromJoins += this._appendTableOrViewName(tables[i]!, params)
+                requireComma = true
+            }
+        }
+
+        if (!joins || joins.length <= 0) {
+            return fromJoins
+        }
+
+        for (let i = 0, length = joins.length; i < length; i++) {
+            const join = joins[i]!
+
+            if (join.__optional) {
+                if (!requiredTablesOrViews!.has(join.__tableOrView)) {
+                    continue
+                }
+            }
+
+            switch (join.__joinType) {
+                case 'join':
+                    fromJoins += ' join '
+                    break
+                case 'innerJoin':
+                    fromJoins += ' inner join '
+                    break
+                case 'leftJoin':
+                    fromJoins += ' left join '
+                    break
+                case 'leftOuterJoin':
+                    fromJoins += ' letf outer join '
+                    break
+                default:
+                    throw new Error('Invalid join type: ' + join.__joinType)
+            }
+            fromJoins += this._appendTableOrViewName(join.__tableOrView, params)
+            if (join.__on) {
+                const onCondition = this._appendCondition(join.__on, params)
+                if (onCondition) {
+                    fromJoins += ' on ' + onCondition
+                }
+            }
+        }
+
+        return fromJoins
+    }
     _buildSelectWithColumnsInfo(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
         const oldWithGenerated = this._isWithGenerated(params)
@@ -555,51 +609,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             selectQuery += this._fromNoTable()
         } else {
             selectQuery += ' from '
-            requireComma = false
-            for (let i = 0; i < tablesLength; i++) {
-                if (requireComma) {
-                    selectQuery += ', '
-                }
-                selectQuery += this._appendTableOrViewName(tables[i]!, params)
-                requireComma = true
-            }
-        }
-
-        if (joinsLength > 0) {
-            const requiredTablesOrViews = query.__requiredTablesOrViews
-            for (let i = 0; i < joinsLength; i++) {
-                const join = joins[i]!
-
-                if (join.__optional) {
-                    if (!requiredTablesOrViews!.has(join.__tableOrView)) {
-                        continue
-                    }
-                }
-
-                switch (join.__joinType) {
-                    case 'join':
-                        selectQuery += ' join '
-                        break
-                    case 'innerJoin':
-                        selectQuery += ' inner join '
-                        break
-                    case 'leftJoin':
-                        selectQuery += ' left join '
-                        break
-                    case 'leftOuterJoin':
-                        selectQuery += ' letf outer join '
-                        break
-                    default:
-                        throw new Error('Invalid join type: ' + join.__joinType)
-                }
-                selectQuery += this._appendTableOrViewName(join.__tableOrView, params)
-                if (join.__on) {
-                    const onCondition = this._appendCondition(join.__on, params)
-                    if (onCondition) {
-                        selectQuery += ' on ' + onCondition
-                    }
-                }
-            }
+            selectQuery += this._buildFromJoins(tables, joins, query.__requiredTablesOrViews, params)
         }
 
         const where = query.__where
@@ -1210,7 +1220,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const sets = query.__sets
         const customization = query.__customization
 
-        this._setSafeTableOrView(params, table)
+        if (query.__froms || query.__joins) {
+            this._setSafeTableOrView(params, undefined)
+        } else {
+            this._setSafeTableOrView(params, table)
+        }
 
         const oldValues = query.__oldValues
 
@@ -1228,6 +1242,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             this._setForceAliasAs(params, this._updateNewAlias)
         }
         updateQuery += this._appendTableOrViewName(table, params)
+        updateQuery += this._buildAfterUpdateTable(query, params)
 
         let columns = ''
         let updatePrimaryKey = false
@@ -1341,13 +1356,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return ' for no key update of ' + this._escape(oldValuesPrivate.__as, true)
         }
     }
+    _buildAfterUpdateTable(_query: UpdateData, _params: any[]): string {
+        return ''
+    }
     _buildUpdateFrom(query: UpdateData, updatePrimaryKey: boolean, params: any[]): string {
+        let from = this._buildFromJoins(query.__froms, query.__joins, undefined, params)
+        if (from) {
+            from = ' from ' + from
+        }
         if (!this._updateOldValueInFrom) {
-            return ''
+            return from
         }
         const oldValues = query.__oldValues
         if (!oldValues) {
-            return ''
+            return from
         }
 
         const oldValuesPrivate = __getTableOrViewPrivate(oldValues)
@@ -1361,7 +1383,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setForceAliasFor(params, query.__table)
         this._setForceAliasAs(params, oldValuesPrivate.__as)
 
-        let from = ' from (select ' + this._escape(oldValuesPrivate.__as, true) + '.* from '
+        if (!from) {
+            from = ' from '
+        }
+        from += '(select ' + this._escape(oldValuesPrivate.__as, true) + '.* from '
         from += this._appendTableOrViewName(oldValues, params)
 
         if (query.__where) {
@@ -1395,7 +1420,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const table = query.__table
         const customization = query.__customization
 
-        this._setSafeTableOrView(params, table)
+        if (query.__using || query.__joins) {
+            this._setSafeTableOrView(params, undefined)
+        } else {
+            this._setSafeTableOrView(params, table)
+        }
 
         let deleteQuery = this._buildWith(query, params)
         deleteQuery += 'delete '
@@ -1408,6 +1437,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         deleteQuery += this._appendTableOrViewName(table, params)
 
         deleteQuery += this._buildDeleteOutput(query, params)
+        deleteQuery += this._buidDeleteUsing(query, params)
 
         if (query.__where) {
             const whereCondition = this._appendCondition(query.__where, params)
@@ -1429,6 +1459,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(params, oldSafeTableOrView)
         this._resetRootQuery(query, params)
         return deleteQuery
+    }
+    _buidDeleteUsing(query: DeleteData, params: any[]): string {
+        const result = this._buildFromJoins(query.__using, query.__joins, undefined, params)
+        if (result) {
+            return ' using ' + result
+        }
+        return ''
     }
     _buildDeleteOutput(_query: DeleteData, _params: any[]): string {
         return ''

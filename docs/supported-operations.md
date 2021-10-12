@@ -1072,9 +1072,9 @@ interface UpdateExpression {
     /** Allows to specify the where */
     where(condition: BooleanValueSource): this
 
-    /** Allows to extends the where using an and */
+    /** Allows to extends the where or the on clause of a join using an and */
     and(condition: BooleanValueSource): this
-    /** Allows to extends the where using an or */
+    /** Allows to extends the where or the on clause of a join using an or */
     or(condition: BooleanValueSource): this
 
     /**
@@ -1133,6 +1133,29 @@ interface UpdateExpression {
      */
     executeUpdateMany(min?: number, max?: number): Promise<RESULT[]>
 
+    /** Allows to add a from to the update query */
+    from(table: Table | View): this
+
+    /** Allows to add a join to the update query */
+    join(table: Table | View): this
+    /** Allows to add a inner join to the update query */
+    innerJoin(table: Table | View): this
+    /** 
+     * Allows to add a left join to the update query. 
+     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     */
+    leftJoin(source: OuterJoinSource): this
+    /** 
+     * Allows to add a left outer join to the update query. 
+     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     */
+    leftOuterJoin(source: OuterJoinSource): this
+
+    /** Allows to create the on clause of a join dynamically */
+    dynamicOn(): this
+    /** Allows to specify the on clause of a join */
+    on(condition: BooleanValueSource): this
+
     customizeQuery(customization: {
         afterUpdateKeyword?: RawFragment
         afterQuery?: RawFragment
@@ -1161,9 +1184,9 @@ interface DeleteExpression {
     /** Allows to specify the where */
     where(condition: BooleanValueSource): this
 
-    /** Allows to extends the where using an and */
+    /** Allows to extends the where or the on clause of a join using an and */
     and(condition: BooleanValueSource): this
-    /** Allows to extends the where using an or */
+    /** Allows to extends the where or the on clause of a join using an or */
     or(condition: BooleanValueSource): this
 
     /**
@@ -1221,6 +1244,29 @@ interface DeleteExpression {
     splitOptional(propertyName: string, mappig: { [property: string]: string }): this
     guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
     guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
+
+    /** Allows to add a using (like a from that doesn't delete) to the delete query */
+    using(table: Table | View): this
+
+    /** Allows to add a join to the delete query */
+    join(table: Table | View): this
+    /** Allows to add a inner join to the delete query */
+    innerJoin(table: Table | View): this
+    /** 
+     * Allows to add a left join to the delete query. 
+     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     */
+    leftJoin(source: OuterJoinSource): this
+    /** 
+     * Allows to add a left outer join to the delete query. 
+     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     */
+    leftOuterJoin(source: OuterJoinSource): this
+
+    /** Allows to create the on clause of a join dynamically */
+    dynamicOn(): this
+    /** Allows to specify the on clause of a join */
+    on(condition: BooleanValueSource): this
 
     customizeQuery(customization: {
         afterDeleteKeyword?: RawFragment

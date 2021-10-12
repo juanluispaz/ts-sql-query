@@ -110,3 +110,34 @@ const updatedLastNames: Promise<{
     newLastName: string;
 }>
 ```
+
+## Update using other tables or views
+
+Sometimes you want to include in the update query other tables or views to process the update instruction, you can add the `from` clause that is like a `from` clasue in a select. This is supported by `PostgreSql`, `Sqlite`, `SqlServer`, `MariaDB` or `MySql`.
+
+```ts
+const addACMECompanyNameToLastName = connection.update(tCustomer)
+    .from(tCompany)
+    .set({
+        lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+    })
+    .where(tCustomer.companyId.equals(tCompany.id))
+    .and(tCompany.name.containsInsensitive('ACME'))
+    .executeUpdate()
+```
+
+The executed query is:
+```sql
+update customer 
+set last_name = customer.last_name || $1 || company.name 
+from company 
+where customer.company_id = company.id 
+    and company.name ilike ('%' || $2 || '%')
+```
+
+The parameters are: `[ ' - ', 'ACME' ]`
+
+The result type is a promise with the information of the deleted rows:
+```tsx
+const addACMECompanyNameToLastName: Promise<number>
+```

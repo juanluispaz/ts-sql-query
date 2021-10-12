@@ -301,6 +301,16 @@ async function main() {
             .executeInsertOne()
         assertEquals(insertOneCustomers, { id: 7, firstName: 'Ron 2', lastName: 'Smith 2' })
 
+        i = await connection.update(tCustomer)
+            .from(tCompany)
+            .set({
+                lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+            })
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .and(tCustomer.id.equals(1))
+            .executeUpdate()
+        assertEquals(i, 1)
+
         commit = true
     } finally {
         if (commit) {

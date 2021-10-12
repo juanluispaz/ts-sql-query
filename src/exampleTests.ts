@@ -1620,6 +1620,31 @@ const insertReturningCustomerData = connection.insertInto(tCustomer).set({
 // Query:  insert into customer (first_name, last_name, company_id) values ($1, $2, $3) returning id as id, first_name as "firstName", last_name as "lastName" 
 // Params: [ 'John', 'Smith', 1 ]
 
+results.push(1)
+
+const addACMECompanyNameToLastName = connection.update(tCustomer)
+    .from(tCompany)
+    .set({
+        lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+    })
+    .where(tCustomer.companyId.equals(tCompany.id))
+    .and(tCompany.name.containsInsensitive('ACME'))
+    .executeUpdate()
+
+// Query:  update customer set last_name = customer.last_name || $1 || company.name from company where customer.company_id = company.id and company.name ilike ('%' || $2 || '%')
+// Params: [ ' - ', 'ACME' ]
+
+results.push(1)
+
+const deleteACMECustomers = connection.deleteFrom(tCustomer)
+    .using(tCompany)
+    .where(tCustomer.companyId.equals(tCompany.id))
+    .and(tCompany.name.containsInsensitive('ACME'))
+    .executeDelete()
+
+// Query:  delete from customer using company where customer.company_id = company.id and company.name ilike ('%' || $1 || '%')
+// Params: [ 'ACME' ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -1695,6 +1720,8 @@ deletedAcmeCompany.finally(() => undefined)
 updatedSmithFirstName.finally(() => undefined)
 updatedLastNames.finally(() => undefined)
 insertReturningCustomerData.finally(() => undefined)
+addACMECompanyNameToLastName.finally(() => undefined)
+deleteACMECustomers.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

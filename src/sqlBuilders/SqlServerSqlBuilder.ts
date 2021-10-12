@@ -262,6 +262,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _buildUpdateReturning(_query: UpdateData, _params: any[]): string {
         return ''
     }
+    _buidDeleteUsing(query: DeleteData, params: any[]): string {
+        const result = this._buildFromJoins(query.__using, query.__joins, undefined, params)
+        if (result) {
+            return ' from ' + result
+        }
+        return ''
+    }
     _buildDeleteOutput(query: DeleteData, params: any[]): string {
         return this._buildQueryOutput(query.__columns, query.__table, 'deleted', params)
     }

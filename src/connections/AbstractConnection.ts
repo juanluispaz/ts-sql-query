@@ -192,19 +192,19 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     }
 
     insertInto<TABLE extends ITableOf<DB, any>>(table: TABLE): InsertExpression<TABLE> {
-        return new InsertQueryBuilder(this.__sqlBuilder, table)
+        return new InsertQueryBuilder(this.__sqlBuilder, table) as any
     }
-    update<TABLE extends ITableOf<DB, any>>(table: TABLE): UpdateExpression<TABLE> {
-        return new UpdateQueryBuilder(this.__sqlBuilder, table, false)
+    update<TABLE extends ITableOf<DB, any>>(table: TABLE): UpdateExpression<TABLE, TABLE> {
+        return new UpdateQueryBuilder(this.__sqlBuilder, table, false) as any
     }
-    updateAllowingNoWhere<TABLE extends ITableOf<DB, any>>(table: TABLE): UpdateExpressionAllowingNoWhere<TABLE> {
-        return new UpdateQueryBuilder(this.__sqlBuilder, table, true)
+    updateAllowingNoWhere<TABLE extends ITableOf<DB, any>>(table: TABLE): UpdateExpressionAllowingNoWhere<TABLE, TABLE> {
+        return new UpdateQueryBuilder(this.__sqlBuilder, table, true) as any
     }
-    deleteFrom<TABLE extends ITableOf<DB, any>>(table: TABLE): DeleteExpression<TABLE> {
-        return new DeleteQueryBuilder(this.__sqlBuilder, table, false)
+    deleteFrom<TABLE extends ITableOf<DB, any>>(table: TABLE): DeleteExpression<TABLE, TABLE> {
+        return new DeleteQueryBuilder(this.__sqlBuilder, table, false) as any 
     }
-    deleteAllowingNoWhereFrom<TABLE extends ITableOf<DB, any>>(table: TABLE): DeleteExpressionAllowingNoWhere<TABLE> {
-        return new DeleteQueryBuilder(this.__sqlBuilder, table, true)
+    deleteAllowingNoWhereFrom<TABLE extends ITableOf<DB, any>>(table: TABLE): DeleteExpressionAllowingNoWhere<TABLE, TABLE> {
+        return new DeleteQueryBuilder(this.__sqlBuilder, table, true) as any
     }
     selectFrom<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpression<DB, TABLE_OR_VIEW, NoTableOrViewRequiredView<DB>> {
         return new SelectQueryBuilder(this.__sqlBuilder, [table], false) as any // cast to any to improve typescript performace

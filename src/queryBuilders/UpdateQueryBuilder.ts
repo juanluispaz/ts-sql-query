@@ -1,7 +1,7 @@
-import type { SqlBuilder, UpdateData } from "../sqlBuilders/SqlBuilder"
-import { ITable, ITableOrView, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
+import type { JoinData, SqlBuilder, UpdateData } from "../sqlBuilders/SqlBuilder"
+import { ITable, ITableOrView, IWithView, OuterJoinSource, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { BooleanValueSource, IBooleanValueSource, IfValueSource, IIfValueSource, IValueSource } from "../expressions/values"
-import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, ComposableExecutableUpdate, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableUpdate, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateColumns } from "../expressions/update"
+import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, ComposableExecutableUpdate, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableUpdate, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere } from "../expressions/update"
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
@@ -11,7 +11,7 @@ import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
 
-export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements UpdateExpression<any>, UpdateExpressionAllowingNoWhere<any>, ExecutableUpdate<any>, CustomizableExecutableUpdate<any>, ExecutableUpdateExpression<any>, NotExecutableUpdateExpression<any>, DynamicExecutableUpdateExpression<any>, UpdateData, ComposableExecutableUpdate<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableUpdate<any, any, any>, ReturnableExecutableUpdate<any>, ExecutableUpdateReturning<any, any, any> {
+export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any>, CustomizableExecutableUpdate<any>, ExecutableUpdateExpression<any, any>, NotExecutableUpdateExpression<any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData, ComposableExecutableUpdate<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableUpdate<any, any, any>, ReturnableExecutableUpdate<any, any>, ExecutableUpdateReturning<any, any, any>, UpdateSetExpression<any, any>, UpdateSetExpressionAllowingNoWhere<any, any>, UpdateSetJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, UpdateExpressionWithoutJoin<any, any>, UpdateFromExpression<any, any>, UpdateSetJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, UpdateExpressionWithoutJoinAllowingNoWhere<any, any>, UpdateFromExpressionAllowingNoWhere<any, any> {
     [database]: any
     [tableOrView]: any
 
@@ -23,8 +23,11 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements Upda
     __customization?: UpdateCustomization<any>
     __columns?: { [property: string]: IValueSource<any, any> }
     __oldValues?: ITableOrView<any>
+    __froms?: Array<ITableOrView<any>>
+    __joins?: Array<JoinData>
 
     __oneColumn?: boolean
+    __lastJoin?: JoinData
 
     // cache
     __params: any[] = []
@@ -211,10 +214,12 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements Upda
     }
 
     dynamicSet(): this {
+        this.__finishJoin()
         this.__query = ''
         return this
     }
     set(columns: any): this {
+        this.__finishJoin()
         this.__query = ''
         if (!columns) {
             return this
@@ -469,24 +474,134 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements Upda
     }
     and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__query = ''
+        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        if (this.__lastJoin) {
+            if (this.__lastJoin.__on) {
+                this.__lastJoin.__on = this.__lastJoin.__on.and(condition)
+            } else {
+                this.__lastJoin.__on = asValueSource(condition)
+            }
+            return this
+        }
         if (this.__where) {
             this.__where = this.__where.and(condition)
         } else {
             this.__where = asValueSource(condition)
         }
-        __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
     or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__query = ''
+        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        if (this.__lastJoin) {
+            if (this.__lastJoin.__on) {
+                this.__lastJoin.__on = this.__lastJoin.__on.and(condition)
+            } else {
+                this.__lastJoin.__on = asValueSource(condition)
+            }
+            return this
+        }
         if (this.__where) {
             this.__where = this.__where.or(condition)
         } else {
             this.__where = asValueSource(condition)
         }
+        return this
+    }
+
+    
+
+    from(table: ITableOrView<any>): any {
+        this.__finishJoin()
+        this.__query = ''
+        if (!this.__froms) {
+            this.__froms = []
+        }
+        this.__froms.push(table)
+        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        return this
+    }
+    join(table: ITableOrView<any>): any {
+        this.__finishJoin()
+        this.__query = ''
+        if (this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin = {
+            __joinType: 'join',
+            __tableOrView: table
+        }
+        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        return this
+    }
+    innerJoin(table: ITableOrView<any>): any {
+        this.__finishJoin()
+        this.__query = ''
+        if (this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin = {
+            __joinType: 'innerJoin',
+            __tableOrView: table
+        }
+        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        return this
+    }
+    leftJoin(source: OuterJoinSource<any, any>): any {
+        this.__finishJoin()
+        this.__query = ''
+        if (this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin = {
+            __joinType: 'leftJoin',
+            __tableOrView: source as any
+        }
+        __getTableOrViewPrivate(source).__addWiths(this.__withs)
+        return this
+    }
+    leftOuterJoin(source: OuterJoinSource<any, any>): any {
+        this.__finishJoin()
+        this.__query = ''
+        if (this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin = {
+            __joinType: 'leftOuterJoin',
+            __tableOrView: source as any
+        }
+        __getTableOrViewPrivate(source).__addWiths(this.__withs)
+        return this
+    }
+    dynamicOn(): any {
+        this.__query = ''
+        return this
+    }
+    on(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
+        this.__query = ''
+        if (!this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin.__on = asValueSource(condition)
+        if (!this.__joins) {
+            this.__joins = []
+        }
+        this.__joins.push(this.__lastJoin)
+        this.__lastJoin = undefined
         __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
+    __finishJoin() {
+        if (this.__lastJoin) {
+            if (!this.__joins) {
+                this.__joins = []
+            }
+            this.__joins.push(this.__lastJoin)
+            this.__lastJoin = undefined
+        }
+    }
+
+
 
     customizeQuery(customization: UpdateCustomization<any>): this {
         this.__customization = customization
@@ -502,7 +617,7 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements Upda
 }
 
 // Defined separated to don't have problems with the variable definition of this method
-(UpdateQueryBuilder.prototype as any).returning = function (columns: UpdateColumns<any>): any {
+(UpdateQueryBuilder.prototype as any).returning = function (columns: UpdateColumns<any, any>): any {
     const thiz = this as UpdateQueryBuilder
     thiz.__query = ''
     thiz.__columns = columns

@@ -1,7 +1,7 @@
-import type { SqlBuilder, DeleteData } from "../sqlBuilders/SqlBuilder"
-import { ITable, IWithView, __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
+import type { SqlBuilder, DeleteData, JoinData } from "../sqlBuilders/SqlBuilder"
+import { ITable, ITableOrView, IWithView, OuterJoinSource, __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { BooleanValueSource, IfValueSource, IBooleanValueSource, IIfValueSource, IValueSource } from "../expressions/values"
-import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableExecutableDelete, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns } from "../expressions/delete"
+import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableExecutableDelete, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere } from "../expressions/delete"
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
@@ -10,7 +10,7 @@ import { asValueSource } from "../expressions/values"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
 
-export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements DeleteExpression<any>, DeleteExpressionAllowingNoWhere<any>, CustomizableExecutableDelete<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any>, DeleteData, ComposableExecutableDelete<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableDelete<any, any, any>, ReturnableExecutableDelete<any>, ExecutableDeleteReturning<any, any, any> {
+export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableExecutableDelete<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableDelete<any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any> {
     [database]: any
     [tableOrView]: any
 
@@ -20,8 +20,11 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
     __withs: Array<IWithView<any>> = []
     __customization?: DeleteCustomization<any>
     __columns?: { [property: string]: IValueSource<any, any> }
+    __using?: Array<ITableOrView<any>>
+    __joins?: Array<JoinData>
 
     __oneColumn?: boolean
+    __lastJoin?: JoinData
 
     // cache
     __query = ''
@@ -167,6 +170,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
         }
     }
     query(): string {
+        this.__finishJoin()
         if (this.__query) {
             return this.__query
         }
@@ -178,6 +182,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
         return this.__query
     }
     params(): any[] {
+        this.__finishJoin()
         if (!this.__query) {
             this.query()
         }
@@ -185,10 +190,12 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
     }
 
     dynamicWhere(): this {
+        this.__finishJoin()
         this.__query = ''
         return this
     }
     where(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+        this.__finishJoin()
         this.__query = ''
         if (this.__where) {
             throw new Error('Illegal state')
@@ -199,26 +206,137 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
     }
     and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__query = ''
+        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        if (this.__lastJoin) {
+            if (this.__lastJoin.__on) {
+                this.__lastJoin.__on = this.__lastJoin.__on.and(condition)
+            } else {
+                this.__lastJoin.__on = asValueSource(condition)
+            }
+            return this
+        }
         if (this.__where) {
             this.__where = this.__where.and(condition)
         } else {
             this.__where = asValueSource(condition)
         }
-        __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
     or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__query = ''
+        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        if (this.__lastJoin) {
+            if (this.__lastJoin.__on) {
+                this.__lastJoin.__on = this.__lastJoin.__on.and(condition)
+            } else {
+                this.__lastJoin.__on = asValueSource(condition)
+            }
+            return this
+        }
         if (this.__where) {
             this.__where = this.__where.or(condition)
         } else {
             this.__where = asValueSource(condition)
         }
-        __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
 
+
+
+    using(table: ITableOrView<any>): any {
+        this.__finishJoin()
+        this.__query = ''
+        if (!this.__using) {
+            this.__using = []
+        }
+        this.__using.push(table)
+        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        return this
+    }
+    join(table: ITableOrView<any>): any {
+        this.__finishJoin()
+        this.__query = ''
+        if (this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin = {
+            __joinType: 'join',
+            __tableOrView: table
+        }
+        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        return this
+    }
+    innerJoin(table: ITableOrView<any>): any {
+        this.__finishJoin()
+        this.__query = ''
+        if (this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin = {
+            __joinType: 'innerJoin',
+            __tableOrView: table
+        }
+        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        return this
+    }
+    leftJoin(source: OuterJoinSource<any, any>): any {
+        this.__finishJoin()
+        this.__query = ''
+        if (this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin = {
+            __joinType: 'leftJoin',
+            __tableOrView: source as any
+        }
+        __getTableOrViewPrivate(source).__addWiths(this.__withs)
+        return this
+    }
+    leftOuterJoin(source: OuterJoinSource<any, any>): any {
+        this.__finishJoin()
+        this.__query = ''
+        if (this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin = {
+            __joinType: 'leftOuterJoin',
+            __tableOrView: source as any
+        }
+        __getTableOrViewPrivate(source).__addWiths(this.__withs)
+        return this
+    }
+    dynamicOn(): any {
+        this.__query = ''
+        return this
+    }
+    on(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
+        this.__query = ''
+        if (!this.__lastJoin) {
+            throw new Error('Illegal state')
+        }
+        this.__lastJoin.__on = asValueSource(condition)
+        if (!this.__joins) {
+            this.__joins = []
+        }
+        this.__joins.push(this.__lastJoin)
+        this.__lastJoin = undefined
+        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        return this
+    }
+    __finishJoin() {
+        if (this.__lastJoin) {
+            if (!this.__joins) {
+                this.__joins = []
+            }
+            this.__joins.push(this.__lastJoin)
+            this.__lastJoin = undefined
+        }
+    }
+
+
+    
     customizeQuery(customization: DeleteCustomization<any>): this {
+        this.__finishJoin()
         this.__customization = customization
         __addWiths(customization.afterDeleteKeyword, this.__withs)
         __addWiths(customization.afterQuery, this.__withs)
@@ -232,8 +350,9 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
 }
 
 // Defined separated to don't have problems with the variable definition of this method
-(DeleteQueryBuilder.prototype as any).returning = function (columns: DeleteColumns<any>): any {
+(DeleteQueryBuilder.prototype as any).returning = function (columns: DeleteColumns<any, any>): any {
     const thiz = this as DeleteQueryBuilder
+    thiz.__finishJoin()
     thiz.__query = ''
     thiz.__columns = columns
 
@@ -247,6 +366,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
 
 (DeleteQueryBuilder.prototype as any).returningOneColumn = function (column: IValueSource<any, any>): any {
     const thiz = this as DeleteQueryBuilder
+    thiz.__finishJoin()
     thiz.__query = ''
     thiz.__oneColumn = true
     thiz.__columns = { 'result': column }

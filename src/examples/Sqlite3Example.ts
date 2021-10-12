@@ -283,6 +283,16 @@ async function main() {
             { id: 2, name: 'Half Life 3' },
         ])
 
+        i = await connection.update(tCustomer)
+            .from(tCompany)
+            .set({
+                lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+            })
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .and(tCustomer.id.equals(1))
+            .executeUpdate()
+        assertEquals(i, 1)
+
         commit = true
     } finally {
         if (commit) {

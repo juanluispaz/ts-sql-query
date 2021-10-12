@@ -1589,6 +1589,45 @@ async function main() {
         .executeSelectMany()
 
     assertEquals(acmeCustomers, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push("update customer, company set customer.last_name = concat(concat(customer.last_name, ?), company.`name`) where customer.company_id = company.id and lower(company.`name`) like concat('%', lower(?), '%')")
+    expectedParams.push(`[" - ","ACME"]`)
+    expectedType.push(`update`)
+
+    /* *** Example ****************************************************************/
+
+    const addACMECompanyNameToLastName = await connection.update(tCustomer)
+        .from(tCompany)
+        .set({
+            lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+        })
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .and(tCompany.name.containsInsensitive('ACME'))
+        .executeUpdate()
+
+    assertEquals(addACMECompanyNameToLastName, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push("delete from customer using customer, company where customer.company_id = company.id and lower(company.`name`) like concat('%', lower(?), '%')")
+    expectedParams.push(`["ACME"]`)
+    expectedType.push(`delete`)
+
+    /* *** Example ****************************************************************/
+
+    const deleteACMECustomers = await connection.deleteFrom(tCustomer)
+        .using(tCompany)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .and(tCompany.name.containsInsensitive('ACME'))
+        .executeDelete()
+
+    assertEquals(deleteACMECustomers, result)
 }
 
 main().then(() => {

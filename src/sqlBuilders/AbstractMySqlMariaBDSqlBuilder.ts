@@ -1,4 +1,4 @@
-import type { ToSql, SelectData, InsertData } from "./SqlBuilder"
+import type { ToSql, SelectData, InsertData, UpdateData, DeleteData } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
 import type { IValueSource } from "../expressions/values"
@@ -130,6 +130,26 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     }
     _appendColumnNameForUpdate(column: Column, params: any[]) {
         return this._appendRawColumnName(column, params)
+    }
+    _buildAfterUpdateTable(query: UpdateData, params: any[]): string {
+        const result = this._buildFromJoins(query.__froms, query.__joins, undefined, params)
+        if (result) {
+            return ', ' + result
+        }
+        return ''
+    }
+    _buildUpdateFrom(_query: UpdateData, _updatePrimaryKey: boolean, _params: any[]): string {
+        return ''
+    }
+    _buidDeleteUsing(query: DeleteData, params: any[]): string {
+        const result = this._buildFromJoins(query.__using, query.__joins, undefined, params)
+        if (result) {
+            if (query.__using && query.__using.length > 0) {
+                return ' using ' + this._appendTableOrViewName(query.__table, params) + ', ' + result
+            }
+            return ' using ' + this._appendTableOrViewName(query.__table, params) + result
+        }
+        return ''
     }
     _is(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {

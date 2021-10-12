@@ -1,9 +1,10 @@
 import type { IBooleanValueSource, IIfValueSource, IValueSource } from "./values"
-import type { ITableOrView, NoTableOrViewRequired } from "../utils/ITableOrView"
-import type { AnyDB, NoopDB, Oracle, PostgreSql, Sqlite, SqlServer, TypeSafeDB } from "../databases"
+import type { ITableOrView, ITableOrViewOf, NoTableOrViewRequired, OuterJoinSource } from "../utils/ITableOrView"
+import type { AnyDB, MariaDB, MySql, NoopDB, Oracle, PostgreSql, Sqlite, SqlServer, TypeSafeDB } from "../databases"
 import type { int } from "ts-extended-types"
 import type { database, tableOrView, tableOrViewRef, valueType } from "../utils/symbols"
 import type { RawFragment } from "../utils/RawFragment"
+import { OuterJoinTableOrView } from "../utils/tableOrViewUtils"
 
 export interface DeleteCustomization<DB extends AnyDB> {
     afterDeleteKeyword?: RawFragment<DB>
@@ -29,28 +30,142 @@ export interface CustomizableExecutableDelete<TABLE extends ITableOrView<any>> e
     customizeQuery(customization: DeleteCustomization<TABLE[typeof database]>): ExecutableDelete<TABLE>
 }
 
-export interface DynamicExecutableDeleteExpression<TABLE extends ITableOrView<any>> extends ReturnableExecutableDelete<TABLE> {
-    and(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
-    and(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
-    or(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
-    or(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
+export interface DynamicExecutableDeleteExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends ReturnableExecutableDelete<TABLE, USING> {
+    and(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE, USING>
+    and(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE, USING>
+    or(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE, USING>
+    or(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE, USING>
 }
 
-export interface DeleteExpression<TABLE extends ITableOrView<any>> extends DeleteExpressionBase<TABLE> {
-    dynamicWhere() : DynamicExecutableDeleteExpression<TABLE>
-    where(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
-    where(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
+export interface DeleteWhereExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends DeleteExpressionBase<TABLE> {
+    dynamicWhere() : DynamicExecutableDeleteExpression<TABLE, USING>
+    where(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE, USING>
+    where(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE, USING>
 }
 
-export interface DeleteExpressionAllowingNoWhere<TABLE extends ITableOrView<any>> extends ReturnableExecutableDelete<TABLE> {
-    dynamicWhere() : DynamicExecutableDeleteExpression<TABLE>
-    where(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
-    where(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE>
+export interface DeleteExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends DeleteWhereExpression<TABLE, USING> {
+    using: UsingFnType<TABLE, USING>
+    join: OnExpressionFnType<TABLE, USING>
+    innerJoin: OnExpressionFnType<TABLE, USING>
+    leftJoin: OuterJoinOnExpressionFnType<TABLE, USING>
+    leftOuterJoin: OuterJoinOnExpressionFnType<TABLE, USING>
 }
 
-export interface ReturnableExecutableDelete<TABLE extends ITableOrView<any>> extends CustomizableExecutableDelete<TABLE> {
-    returning: ReturningFnType<TABLE>
-    returningOneColumn: ReturningOneColumnFnType<TABLE>
+export interface DeleteWhereExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends ReturnableExecutableDelete<TABLE, USING> {
+    dynamicWhere() : DynamicExecutableDeleteExpression<TABLE, USING>
+    where(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE, USING>
+    where(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableDeleteExpression<TABLE, USING>
+}
+
+export interface DeleteExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends DeleteWhereExpressionAllowingNoWhere<TABLE, USING> {
+    using: UsingFnTypeAllowingNoWhere<TABLE, USING>
+    join: OnExpressionFnTypeAllowingNoWhere<TABLE, USING>
+    innerJoin: OnExpressionFnTypeAllowingNoWhere<TABLE, USING>
+    leftJoin: OuterJoinOnExpressionFnTypeAllowingNoWhere<TABLE, USING>
+    leftOuterJoin: OuterJoinOnExpressionFnTypeAllowingNoWhere<TABLE, USING>
+}
+
+
+
+
+
+export interface DeleteWhereJoinExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends DeleteWhereExpression<TABLE, USING> {
+    join<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): OnExpression<TABLE, USING | TABLE_OR_VIEW2>
+    innerJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): OnExpression<TABLE, USING | TABLE_OR_VIEW2>
+    leftJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>): OnExpression<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
+    leftOuterJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>): OnExpression<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
+}
+
+export interface DynamicOnExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends DeleteWhereJoinExpression<TABLE, USING> {
+    and(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpression<TABLE, USING>
+    and(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpression<TABLE, USING>
+    or(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpression<TABLE, USING>
+    or(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpression<TABLE, USING>
+}
+
+export interface OnExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends DeleteWhereJoinExpression<TABLE, USING> {
+    dynamicOn(): DynamicOnExpression<TABLE, USING>
+    on(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpression<TABLE, USING>
+    on(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpression<TABLE, USING>
+}
+
+export interface DeleteExpressionWithoutJoin<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends DeleteWhereExpression<TABLE, USING> {
+    using<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): DeleteExpressionWithoutJoin<TABLE, USING | TABLE_OR_VIEW2>
+}
+
+export interface DeleteUsingExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends DeleteWhereJoinExpression<TABLE, USING> {
+    using<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): DeleteExpressionWithoutJoin<TABLE, USING | TABLE_OR_VIEW2>
+}
+
+type UsingFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | MariaDB | MySql) 
+    ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2) => DeleteUsingExpression<TABLE, USING | TABLE_OR_VIEW2>
+    : never
+
+type OnExpressionFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
+    TABLE[typeof database] extends (NoopDB | MariaDB | MySql) 
+    ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2) => OnExpression<TABLE, USING | TABLE_OR_VIEW2>
+    : never
+
+type OuterJoinOnExpressionFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
+    TABLE[typeof database] extends (NoopDB | MariaDB | MySql) 
+    ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>) => OnExpression<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
+    : never
+
+
+
+
+
+export interface DeleteWhereJoinExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends DeleteWhereExpressionAllowingNoWhere<TABLE, USING> {
+    join<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): OnExpressionAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
+    innerJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): OnExpressionAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
+    leftJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>): OnExpressionAllowingNoWhere<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
+    leftOuterJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>): OnExpressionAllowingNoWhere<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
+}
+
+export interface DynamicOnExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends DeleteWhereJoinExpressionAllowingNoWhere<TABLE, USING> {
+    and(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    and(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    or(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    or(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+}
+
+export interface OnExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends DeleteWhereJoinExpressionAllowingNoWhere<TABLE, USING> {
+    dynamicOn(): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    on(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    on(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+}
+
+export interface DeleteExpressionWithoutJoinAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends DeleteWhereExpressionAllowingNoWhere<TABLE, USING> {
+    using<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): DeleteExpressionWithoutJoinAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
+}
+
+export interface DeleteUsingExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends DeleteWhereJoinExpressionAllowingNoWhere<TABLE, USING> {
+    using<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): DeleteExpressionWithoutJoinAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
+}
+
+type UsingFnTypeAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | MariaDB | MySql) 
+    ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2) => DeleteUsingExpressionAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
+    : never
+
+type OnExpressionFnTypeAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
+    TABLE[typeof database] extends (NoopDB | MariaDB | MySql) 
+    ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2) => OnExpressionAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
+    : never
+
+type OuterJoinOnExpressionFnTypeAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
+    TABLE[typeof database] extends (NoopDB | MariaDB | MySql) 
+    ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>) => OnExpressionAllowingNoWhere<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
+    : never
+
+
+
+
+
+export interface ReturnableExecutableDelete<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends CustomizableExecutableDelete<TABLE> {
+    returning: ReturningFnType<TABLE, USING>
+    returningOneColumn: ReturningOneColumnFnType<TABLE, USING>
 }
 
 export interface ExecutableDeleteReturning<TABLE extends ITableOrView<any>, COLUMNS, RESULT> extends DeleteExpressionBase<TABLE> {
@@ -110,18 +225,18 @@ export interface ComposableCustomizableExecutableDelete<TABLE extends ITableOrVi
     customizeQuery(customization: DeleteCustomization<TABLE[typeof database]>): ComposableExecutableDelete<TABLE, COLUMNS, RESULT>
 }
 
-type ReturningFnType<TABLE extends ITableOrView<any>> =
+type ReturningFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
     TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle) 
-    ? <COLUMNS extends DeleteColumns<TABLE>>(columns: COLUMNS) => ComposableCustomizableExecutableDelete<TABLE, COLUMNS, DeleteResult<ResultValues<COLUMNS>>>
+    ? <COLUMNS extends DeleteColumns<TABLE, USING>>(columns: COLUMNS) => ComposableCustomizableExecutableDelete<TABLE, COLUMNS, DeleteResult<ResultValues<COLUMNS>>>
     : never
 
-type ReturningOneColumnFnType<TABLE extends ITableOrView<any>> =
+type ReturningOneColumnFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
     TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle) 
-    ? <COLUMN extends IValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, any>>(column: COLUMN) => ComposableCustomizableExecutableDelete<TABLE, COLUMN, FixDeleteOneResult<COLUMN[typeof valueType]>>
+    ? <COLUMN extends IValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, any>>(column: COLUMN) => ComposableCustomizableExecutableDelete<TABLE, COLUMN, FixDeleteOneResult<COLUMN[typeof valueType]>>
     : never
 
-export type DeleteColumns<TABLE extends ITableOrView<any>> = {
-    [P: string]: IValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, any>
+export type DeleteColumns<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
+    [P: string]: IValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, any>
 }
 
 type ColumnGuard<T> = T extends null | undefined ? never : T extends never ? never : T extends IValueSource<any, any> ? never : unknown

@@ -65,3 +65,30 @@ You can execute the query using:
 - `executeDeleteMany(min?: number, max?: number): Promise<RESULT[]>`: Execute the delete query that returns zero or many results from the database.
 
 Aditionally, if you want to return the value of a single column, you can use `returningOneColumn(column)` instead of `returning({...})`.
+
+## Delete using other tables or views
+
+Sometimes you want to include in the delete query other tables or views to process the delete instruction, you can add the `using` clause that is like a `from` clasue in a select. This is supported by `PostgreSql`, `SqlServer`, `MariaDB` or `MySql`.
+
+```ts
+const deleteACMECustomers = connection.deleteFrom(tCustomer)
+    .using(tCompany)
+    .where(tCustomer.companyId.equals(tCompany.id))
+    .and(tCompany.name.containsInsensitive('ACME'))
+    .executeDelete()
+```
+
+The executed query is:
+```sql
+delete from customer 
+using company 
+where customer.company_id = company.id 
+    and company.name ilike ('%' || $1 || '%')
+```
+
+The parameters are: `[ 'ACME' ]`
+
+The result type is a promise with the information of the deleted rows:
+```tsx
+const deleteACMECustomers: Promise<number>
+```

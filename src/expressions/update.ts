@@ -1,9 +1,10 @@
-import type { IBooleanValueSource, ColumnsForSetOf, IIfValueSource, InputTypeOfColumn, IValueSource } from "./values"
-import type { ITableOrView, NoTableOrViewRequired, OLD } from "../utils/ITableOrView"
-import type { AnyDB, NoopDB, Oracle, PostgreSql, Sqlite, SqlServer, TypeSafeDB } from "../databases"
+import type { IBooleanValueSource, ColumnsForSetOf, IIfValueSource, IValueSource, InputTypeOfColumnAllowing } from "./values"
+import type { ITableOrView, ITableOrViewOf, NoTableOrViewRequired, OLD, OuterJoinSource } from "../utils/ITableOrView"
+import type { AnyDB, MariaDB, MySql, NoopDB, Oracle, PostgreSql, Sqlite, SqlServer, TypeSafeDB } from "../databases"
 import type { int } from "ts-extended-types"
 import type { database, tableOrView, tableOrViewRef, valueType } from "../utils/symbols"
 import type { RawFragment } from "../utils/RawFragment"
+import { OuterJoinTableOrView } from "../utils/tableOrViewUtils"
 
 export interface UpdateCustomization<DB extends AnyDB> {
     afterUpdateKeyword?: RawFragment<DB>
@@ -29,80 +30,194 @@ export interface CustomizableExecutableUpdate<TABLE extends ITableOrView<any>> e
     customizeQuery(customization: UpdateCustomization<TABLE[typeof database]>): ExecutableUpdate<TABLE>
 }
 
-export interface ExecutableUpdateExpression<TABLE extends ITableOrView<any>> extends ReturnableExecutableUpdate<TABLE> {
-    set(columns: UpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
-    setIfValue(columns: OptionalUpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
-    setIfSet(columns: UpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
-    setIfSetIfValue(columns: OptionalUpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
-    setIfNotSet(columns: UpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
-    setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
-    ignoreIfSet(...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE>
+export interface ExecutableUpdateExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends ReturnableExecutableUpdate<TABLE, USING> {
+    set(columns: UpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
+    setIfValue(columns: OptionalUpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
+    setIfSet(columns: UpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
+    setIfSetIfValue(columns: OptionalUpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
+    setIfNotSet(columns: UpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
+    setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
+    ignoreIfSet(...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
 
-    setIfHasValue(columns: UpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
-    setIfHasValueIfValue(columns: OptionalUpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
-    setIfHasNoValue(columns: UpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
-    setIfHasNoValueIfValue(columns: OptionalUpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
-    ignoreIfHasValue(...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE>
-    ignoreIfHasNoValue(...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE>
-    ignoreAnySetWithNoValue(): ExecutableUpdateExpression<TABLE>
+    setIfHasValue(columns: UpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
+    setIfHasValueIfValue(columns: OptionalUpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
+    setIfHasNoValue(columns: UpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
+    setIfHasNoValueIfValue(columns: OptionalUpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
+    ignoreIfHasValue(...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    ignoreIfHasNoValue(...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    ignoreAnySetWithNoValue(): ExecutableUpdateExpression<TABLE, USING>
 
-    dynamicWhere() : DynamicExecutableUpdateExpression<TABLE>
-    where(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
-    where(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
+    dynamicWhere() : DynamicExecutableUpdateExpression<TABLE, USING>
+    where(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE, USING>
+    where(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE, USING>
 }
 
-export interface NotExecutableUpdateExpression<TABLE extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
-    set(columns: UpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
-    setIfValue(columns: OptionalUpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
-    setIfSet(columns: UpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
-    setIfSetIfValue(columns: OptionalUpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
-    setIfNotSet(columns: UpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
-    setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
-    ignoreIfSet(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE>
+export interface NotExecutableUpdateExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
+    set(columns: UpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfValue(columns: OptionalUpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfSet(columns: UpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfSetIfValue(columns: OptionalUpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfNotSet(columns: UpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
+    ignoreIfSet(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
 
-    setIfHasValue(columns: UpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
-    setIfHasValueIfValue(columns: OptionalUpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
-    setIfHasNoValue(columns: UpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
-    setIfHasNoValueIfValue(columns: OptionalUpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
-    ignoreIfHasValue(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE>
-    ignoreIfHasNoValue(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE>
-    ignoreAnySetWithNoValue(): NotExecutableUpdateExpression<TABLE>
+    setIfHasValue(columns: UpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfHasValueIfValue(columns: OptionalUpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfHasNoValue(columns: UpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfHasNoValueIfValue(columns: OptionalUpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
+    ignoreIfHasValue(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    ignoreIfHasNoValue(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    ignoreAnySetWithNoValue(): NotExecutableUpdateExpression<TABLE, USING>
 
-    dynamicWhere() : DynamicExecutableUpdateExpression<TABLE>
-    where(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
-    where(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
+    dynamicWhere() : DynamicExecutableUpdateExpression<TABLE, USING>
+    where(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE, USING>
+    where(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE, USING>
 }
 
-export interface DynamicExecutableUpdateExpression<TABLE extends ITableOrView<any>> extends ReturnableExecutableUpdate<TABLE> {
-    and(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
-    and(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
-    or(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
-    or(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE>
+export interface DynamicExecutableUpdateExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends ReturnableExecutableUpdate<TABLE, USING> {
+    and(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE, USING>
+    and(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE, USING>
+    or(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE, USING>
+    or(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicExecutableUpdateExpression<TABLE, USING>
 }
 
-export interface UpdateExpression<TABLE extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
-    dynamicSet(): NotExecutableUpdateExpression<TABLE>
-    set(columns: UpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
-    setIfValue(columns: OptionalUpdateSets<TABLE>): NotExecutableUpdateExpression<TABLE>
+export interface UpdateSetExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
+    dynamicSet(): NotExecutableUpdateExpression<TABLE, USING>
+    set(columns: UpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfValue(columns: OptionalUpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
 }
 
-export interface UpdateExpressionAllowingNoWhere<TABLE extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
-    dynamicSet(): ExecutableUpdateExpression<TABLE>
-    set(columns: UpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
-    setIfValue(columns: OptionalUpdateSets<TABLE>): ExecutableUpdateExpression<TABLE>
+export interface UpdateExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetExpression<TABLE, USING> {
+    from: FromFnType<TABLE, USING>
+    join: OnExpressionFnType<TABLE, USING>
+    innerJoin: OnExpressionFnType<TABLE, USING>
+    leftJoin: OuterJoinOnExpressionFnType<TABLE, USING>
+    leftOuterJoin: OuterJoinOnExpressionFnType<TABLE, USING>
 }
 
-export type UpdateSets<TABLE extends ITableOrView<any>> = {
-    [P in ColumnsForSetOf<TABLE>]?: InputTypeOfColumn<TABLE, P>
+export interface UpdateSetExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
+    dynamicSet(): ExecutableUpdateExpression<TABLE, USING>
+    set(columns: UpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
+    setIfValue(columns: OptionalUpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
 }
 
-export type OptionalUpdateSets<TABLE extends ITableOrView<any>> = {
-    [P in ColumnsForSetOf<TABLE>]?: InputTypeOfColumn<TABLE, P> | null | undefined
+export interface UpdateExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetExpressionAllowingNoWhere<TABLE, USING> {
+    from: FromFnTypeAllowingNoWhere<TABLE, USING>
+    join: OnExpressionFnTypeAllowingNoWhere<TABLE, USING>
+    innerJoin: OnExpressionFnTypeAllowingNoWhere<TABLE, USING>
+    leftJoin: OuterJoinOnExpressionFnTypeAllowingNoWhere<TABLE, USING>
+    leftOuterJoin: OuterJoinOnExpressionFnTypeAllowingNoWhere<TABLE, USING>
 }
 
-export interface ReturnableExecutableUpdate<TABLE extends ITableOrView<any>> extends CustomizableExecutableUpdate<TABLE> {
-    returning: ReturningFnType<TABLE>
-    returningOneColumn: ReturningOneColumnFnType<TABLE>
+export type UpdateSets<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
+    [P in ColumnsForSetOf<TABLE>]?: InputTypeOfColumnAllowing<TABLE, P, USING>
+}
+
+export type OptionalUpdateSets<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
+    [P in ColumnsForSetOf<TABLE>]?: InputTypeOfColumnAllowing<TABLE, P, USING> | null | undefined
+}
+
+
+
+
+
+export interface UpdateSetJoinExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetExpression<TABLE, USING> {
+    join<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): OnExpression<TABLE, USING | TABLE_OR_VIEW2>
+    innerJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): OnExpression<TABLE, USING | TABLE_OR_VIEW2>
+    leftJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>): OnExpression<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
+    leftOuterJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>): OnExpression<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
+}
+
+export interface DynamicOnExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetJoinExpression<TABLE, USING> {
+    and(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpression<TABLE, USING>
+    and(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpression<TABLE, USING>
+    or(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpression<TABLE, USING>
+    or(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpression<TABLE, USING>
+}
+
+export interface OnExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetJoinExpression<TABLE, USING> {
+    dynamicOn(): DynamicOnExpression<TABLE, USING>
+    on(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpression<TABLE, USING>
+    on(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpression<TABLE, USING>
+}
+
+export interface UpdateExpressionWithoutJoin<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetExpression<TABLE, USING> {
+    from<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): UpdateExpressionWithoutJoin<TABLE, USING | TABLE_OR_VIEW2>
+}
+
+export interface UpdateFromExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetJoinExpression<TABLE, USING> {
+    from<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): UpdateExpressionWithoutJoin<TABLE, USING | TABLE_OR_VIEW2>
+}
+
+type FromFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | MariaDB | MySql) 
+    ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2) => UpdateFromExpression<TABLE, USING | TABLE_OR_VIEW2>
+    : never
+
+type OnExpressionFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
+    TABLE[typeof database] extends (NoopDB | MariaDB | MySql) 
+    ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2) => OnExpression<TABLE, USING | TABLE_OR_VIEW2>
+    : never
+
+type OuterJoinOnExpressionFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
+    TABLE[typeof database] extends (NoopDB | MariaDB | MySql) 
+    ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>) => OnExpression<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
+    : never
+
+
+
+
+
+export interface UpdateSetJoinExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetExpressionAllowingNoWhere<TABLE, USING> {
+    join<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): OnExpressionAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
+    innerJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): OnExpressionAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
+    leftJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>): OnExpressionAllowingNoWhere<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
+    leftOuterJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>): OnExpressionAllowingNoWhere<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
+}
+
+export interface DynamicOnExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetJoinExpressionAllowingNoWhere<TABLE, USING> {
+    and(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    and(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    or(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    or(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+}
+
+export interface OnExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetJoinExpressionAllowingNoWhere<TABLE, USING> {
+    dynamicOn(): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    on(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    on(condition: IBooleanValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, boolean | null | undefined>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+}
+
+export interface UpdateExpressionWithoutJoinAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetExpressionAllowingNoWhere<TABLE, USING> {
+    from<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): UpdateExpressionWithoutJoinAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
+}
+
+export interface UpdateFromExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetJoinExpressionAllowingNoWhere<TABLE, USING> {
+    from<TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2): UpdateExpressionWithoutJoinAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
+}
+
+type FromFnTypeAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | MariaDB | MySql) 
+    ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2) => UpdateFromExpressionAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
+    : never
+
+type OnExpressionFnTypeAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
+    TABLE[typeof database] extends (NoopDB | MariaDB | MySql) 
+    ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2) => OnExpressionAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
+    : never
+
+type OuterJoinOnExpressionFnTypeAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
+    TABLE[typeof database] extends (NoopDB | MariaDB | MySql) 
+    ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>) => OnExpressionAllowingNoWhere<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
+    : never
+
+
+
+
+
+export interface ReturnableExecutableUpdate<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends CustomizableExecutableUpdate<TABLE> {
+    returning: ReturningFnType<TABLE, USING>
+    returningOneColumn: ReturningOneColumnFnType<TABLE, USING>
 }
 
 export interface ExecutableUpdateReturning<TABLE extends ITableOrView<any>, COLUMNS, RESULT> extends UpdateExpressionBase<TABLE> {
@@ -162,18 +277,18 @@ export interface ComposableCustomizableExecutableUpdate<TABLE extends ITableOrVi
     customizeQuery(customization: UpdateCustomization<TABLE[typeof database]>): ComposableExecutableUpdate<TABLE, COLUMNS, RESULT>
 }
 
-type ReturningFnType<TABLE extends ITableOrView<any>> =
+type ReturningFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
     TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle) 
-    ? <COLUMNS extends UpdateColumns<TABLE>>(columns: COLUMNS) => ComposableCustomizableExecutableUpdate<TABLE, COLUMNS, UpdateResult<ResultValues<COLUMNS>>>
+    ? <COLUMNS extends UpdateColumns<TABLE, USING>>(columns: COLUMNS) => ComposableCustomizableExecutableUpdate<TABLE, COLUMNS, UpdateResult<ResultValues<COLUMNS>>>
     : never
 
-type ReturningOneColumnFnType<TABLE extends ITableOrView<any>> =
+type ReturningOneColumnFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
     TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle) 
-    ? <COLUMN extends IValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | OLD<TABLE[typeof tableOrViewRef]>, any>>(column: COLUMN) => ComposableCustomizableExecutableUpdate<TABLE, COLUMN, FixUpdateOneResult<COLUMN[typeof valueType]>>
+    ? <COLUMN extends IValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | OLD<TABLE[typeof tableOrViewRef]>, any>>(column: COLUMN) => ComposableCustomizableExecutableUpdate<TABLE, COLUMN, FixUpdateOneResult<COLUMN[typeof valueType]>>
     : never
 
-export type UpdateColumns<TABLE extends ITableOrView<any>> = {
-    [P: string]: IValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | OLD<TABLE[typeof tableOrViewRef]>, any>
+export type UpdateColumns<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
+    [P: string]: IValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | OLD<TABLE[typeof tableOrViewRef]>, any>
 }
 
 type ColumnGuard<T> = T extends null | undefined ? never : T extends never ? never : T extends IValueSource<any, any> ? never : unknown

@@ -1506,6 +1506,15 @@ export type InputTypeOfColumn<TYPE extends ITableOrView<any>, K extends ColumnsO
     ))
     : never
 
+export type InputTypeOfColumnAllowing<TYPE extends ITableOrView<any>, K extends ColumnsOf<TYPE>, ALLOWING extends ITableOrView<any>> =
+    TYPE[K] extends IValueSource<TYPE[typeof tableOrViewRef], infer Q> ?
+    (TYPE[K] extends ColumnWithDefaultValue ? (
+        Q | IValueSource<ALLOWING[typeof tableOrViewRef], Q> | Default
+    ) : (
+        Q | IValueSource<ALLOWING[typeof tableOrViewRef], Q>
+    ))
+    : never
+
 export type BooleanOrNullOf<T> = T extends null | undefined ? T : boolean
 export type StringOrNullOf<T> = T extends null | undefined ? T : string
 

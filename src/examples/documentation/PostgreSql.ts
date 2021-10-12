@@ -1685,6 +1685,45 @@ async function main() {
         .executeInsertOne()
 
     assertEquals(insertReturningCustomerData, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`update customer set last_name = customer.last_name || $1 || company.name from company where customer.company_id = company.id and company.name ilike ('%' || $2 || '%')`)
+    expectedParams.push(`[" - ","ACME"]`)
+    expectedType.push(`update`)
+
+    /* *** Example ****************************************************************/
+
+    const addACMECompanyNameToLastName = await connection.update(tCustomer)
+        .from(tCompany)
+        .set({
+            lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+        })
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .and(tCompany.name.containsInsensitive('ACME'))
+        .executeUpdate()
+
+    assertEquals(addACMECompanyNameToLastName, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`delete from customer using company where customer.company_id = company.id and company.name ilike ('%' || $1 || '%')`)
+    expectedParams.push(`["ACME"]`)
+    expectedType.push(`delete`)
+
+    /* *** Example ****************************************************************/
+
+    const deleteACMECustomers = await connection.deleteFrom(tCustomer)
+        .using(tCompany)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .and(tCompany.name.containsInsensitive('ACME'))
+        .executeDelete()
+
+    assertEquals(deleteACMECustomers, result)
 }
 
 main().then(() => {

@@ -361,6 +361,23 @@ async function main() {
             .executeInsertOne()
         assertEquals(insertOneCustomers, { id: 7, firstName: 'Ron 2', lastName: 'Smith 2' })
 
+        i = await connection.update(tCustomer)
+            .from(tCompany)
+            .set({
+                lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+            })
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .and(tCustomer.id.equals(1))
+            .executeUpdate()
+        assertEquals(i, 1)
+
+        i = await connection.deleteFrom(tCustomer)
+            .using(tCompany)
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .and(tCustomer.id.equals(1))
+            .executeDelete()
+        assertEquals(i, 1)
+
         // commit = true
     } finally {
         // Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844

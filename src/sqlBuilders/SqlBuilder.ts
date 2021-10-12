@@ -82,6 +82,8 @@ export interface UpdateData extends WithQueryData {
     __customization?: UpdateCustomization<any>
     __columns?: { [property: string]: IValueSource<any, any> }
     __oldValues?: ITableOrView<any>
+    __froms?: Array<ITableOrView<any>>
+    __joins?: Array<JoinData>
 }
 
 export interface DeleteData extends WithQueryData {
@@ -90,6 +92,8 @@ export interface DeleteData extends WithQueryData {
     __allowNoWhere: boolean
     __customization?: DeleteCustomization<any>
     __columns?: { [property: string]: IValueSource<any, any> }
+    __using?: Array<ITableOrView<any>>
+    __joins?: Array<JoinData>
 }
 
 export interface SqlBuilder extends SqlOperation, __OptionalRule {

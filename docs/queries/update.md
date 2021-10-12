@@ -69,7 +69,7 @@ You can execute the query using:
 
 Aditionally, if you want to return the value of a single column, you can use `returningOneColumn(column)` instead of `returning({...})`.
 
-## Delete returning old values
+## Update returning old values
 
 If you are using `PostgreSql` (if the table have a primary key) or `SqlServer`, you can return previous values of the updated record in the same query; to do this, you can create a reference to the old values of the table calling `myTable.oldValues()` and then use it in the returning clause.
 

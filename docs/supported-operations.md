@@ -904,12 +904,61 @@ interface InsertExpression {
      */
     returningLastInsertedId(): this
 
-    /** Execute the insert, by default returns the number of inserted rows*/
-    executeInsert(): Promise<RESULT>
+    /**
+     * Execute the insert, by default returns the number of inserted rows
+     * 
+     * @param min Indicate the minimum of rows that must be updated, 
+     *           if the minimum is not reached an exception will be thrown
+     * @param max Indicate the maximum of rows that must be updated, 
+     *           if the maximum is exceeded an exception will be thrown
+     */
+    executeInsert(min?: number, max?: number): Promise<RESULT>
     /** Returns the sql query to be executed in the database */
     query(): string
     /** Returns the required parameters by the sql query */
     params(): any[]
+
+    // Result compose operations
+    compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    split(propertyName: string, mappig: { [property: string]: string }): this
+    splitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    splitOptional(propertyName: string, mappig: { [property: string]: string }): this
+    guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
+
+    // Returning methods
+    /** 
+     * Allows to specify the returning clause.
+     * It must be an object where the name of the property is the name of the resulting property
+     * and the value is the ValueSource where the value will be obtained.
+     */
+    returning(columns: InsertReturningValues): this
+    /** 
+     * Allows to specify the returning clause of a query that returns only one column.
+     * It receives as argument the ValueSource where the value will be obtained.
+     */
+    returningOneColumn(column: ValueSource): this
+    /** Execute the insert query that returns one o no result from the database */
+    executeInsertNoneOrOne(): Promise<RESULT | null>
+    /** 
+     * Execute the insert query that returns one result from the database.
+     * If no result is returned by the database an exception will be thrown.
+     */
+    executeInsertOne(): Promise<RESULT>
+    /** 
+     * Execute the insert query that returns zero or many results from the database 
+     * 
+     * @param min Indicate the minimum of rows that must be deleted, 
+     *           if the minimum is not reached an exception will be thrown
+     * @param max Indicate the maximum of rows that must be deleted, 
+     *           if the maximum is exceeded an exception will be thrown
+     */
+    executeInsertMany(min?: number, max?: number): Promise<RESULT[]>
 
     customizeQuery(customization: {
         afterInsertKeyword?: RawFragment
@@ -921,6 +970,13 @@ interface InsertExpression {
 type InsertSets = { [columnName: string]: any }
 /** Columns required by the insert, but marked as optionals */
 type OptionalInsertSets = { [columnName: string]: any }
+/**
+ * Returning projection of the value that vill be retreived from the database.
+ * 
+ * It must be an object where the name of the property is the name of the resulting property
+ * and the value is the ValueSource where the value will be obtained.
+ */
+ type InsertReturningValues = { [columnName: string]: ValueSource }
 ```
 
 ## Update definition
@@ -1035,6 +1091,48 @@ interface UpdateExpression {
     /** Returns the required parameters by the sql query */
     params(): any[]
 
+    // Result compose operations
+    compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    split(propertyName: string, mappig: { [property: string]: string }): this
+    splitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    splitOptional(propertyName: string, mappig: { [property: string]: string }): this
+    guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
+
+    // Returning methods
+    /** 
+     * Allows to specify the returning clause.
+     * It must be an object where the name of the property is the name of the resulting property
+     * and the value is the ValueSource where the value will be obtained.
+     */
+    returning(columns: UpdateReturningValues): this
+    /** 
+     * Allows to specify the returning clause of a query that returns only one column.
+     * It receives as argument the ValueSource where the value will be obtained.
+     */
+    returningOneColumn(column: ValueSource): this
+    /** Execute the update query that returns one o no result from the database */
+    executeUpdateNoneOrOne(): Promise<RESULT | null>
+    /** 
+     * Execute the update query that returns one result from the database.
+     * If no result is returned by the database an exception will be thrown.
+     */
+    executeUpdateOne(): Promise<RESULT>
+    /** 
+     * Execute the update query that returns zero or many results from the database 
+     * 
+     * @param min Indicate the minimum of rows that must be deleted, 
+     *           if the minimum is not reached an exception will be thrown
+     * @param max Indicate the maximum of rows that must be deleted, 
+     *           if the maximum is exceeded an exception will be thrown
+     */
+    executeUpdateMany(min?: number, max?: number): Promise<RESULT[]>
+
     customizeQuery(customization: {
         afterUpdateKeyword?: RawFragment
         afterQuery?: RawFragment
@@ -1045,6 +1143,13 @@ interface UpdateExpression {
 type UpdateSets = { [columnName: string]: any }
 /** Columns required by the update, but marked as optional */
 type OptionalUpdateSets = { [columnName: string]: any }
+/**
+ * Returning projection of the value that vill be retreived from the database.
+ * 
+ * It must be an object where the name of the property is the name of the resulting property
+ * and the value is the ValueSource where the value will be obtained.
+ */
+ type UpdateReturningValues = { [columnName: string]: ValueSource }
 ```
 
 ## Delete definition
@@ -1075,11 +1180,61 @@ interface DeleteExpression {
     /** Returns the required parameters by the sql query */
     params(): any[]
 
+    // Returning methods
+    /** 
+     * Allows to specify the returning clause.
+     * It must be an object where the name of the property is the name of the resulting property
+     * and the value is the ValueSource where the value will be obtained.
+     */
+    returning(columns: DeleteReturningValues): this
+    /** 
+     * Allows to specify the returning clause of a query that returns only one column.
+     * It receives as argument the ValueSource where the value will be obtained.
+     */
+    returningOneColumn(column: ValueSource): this
+    /** Execute the delete query that returns one o no result from the database */
+    executeDeleteNoneOrOne(): Promise<RESULT | null>
+    /** 
+     * Execute the delete query that returns one result from the database.
+     * If no result is returned by the database an exception will be thrown.
+     */
+    executeDeleteOne(min?: number, max?: number): Promise<RESULT>
+    /** 
+     * Execute the delete query that returns zero or many results from the database 
+     * 
+     * @param min Indicate the minimum of rows that must be deleted, 
+     *           if the minimum is not reached an exception will be thrown
+     * @param max Indicate the maximum of rows that must be deleted, 
+     *           if the maximum is exceeded an exception will be thrown
+     */
+    executeDeleteMany(): Promise<RESULT[]>
+
+    // Result compose operations
+    compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    split(propertyName: string, mappig: { [property: string]: string }): this
+    splitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    splitOptional(propertyName: string, mappig: { [property: string]: string }): this
+    guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
+
     customizeQuery(customization: {
         afterDeleteKeyword?: RawFragment
         afterQuery?: RawFragment
     }): this
 }
+
+/**
+ * Returning projection of the value that vill be retreived from the database.
+ * 
+ * It must be an object where the name of the property is the name of the resulting property
+ * and the value is the ValueSource where the value will be obtained.
+ */
+type DeleteReturningValues = { [columnName: string]: ValueSource }
 ```
 
 ## Select definition
@@ -1251,7 +1406,10 @@ interface SelectExpression {
     withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     split(propertyName: string, mappig: { [property: string]: string }): this
+    splitRequired(propertyName: string, mappig: { [property: string]: string }): this
     splitOptional(propertyName: string, mappig: { [property: string]: string }): this
+    guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
 
     customizeQuery(customization: {
         afterSelectKeyword?: RawFragment

@@ -11,6 +11,8 @@ To do this you have two strategies:
 - **Composing**: You can execute a second query that returns the additional data. Valid for the case 1, and also work for the case 2 or 3 but this is not the best approach.
 - **Splitting**: You can return all the data in the same query, and then move the additional data to the object in the internal property. Valid for the case 2 and 3 but it doesn't work for the case 1.
 
+**Note**: You can apply composing/spliting on select/insert/update/delete that returns objects.
+
 ## Composing results
 
 **How it works**:

@@ -1611,6 +1611,33 @@ async function main() {
         .executeDeleteOne()
 
     assertEquals(deletedAcmeCompany, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Smith',
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (:0, :1, :2) returning id, first_name, last_name into :3, :4, :5`)
+    expectedParams.push(`["John","Smith",1,{"dir":3003,"as":"id"},{"dir":3003,"as":"firstName"},{"dir":3003,"as":"lastName"}]`)
+    expectedType.push(`insertReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const insertReturningCustomerData = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        }).returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertOne()
+
+    assertEquals(insertReturningCustomerData, result)
 }
 
 main().then(() => {

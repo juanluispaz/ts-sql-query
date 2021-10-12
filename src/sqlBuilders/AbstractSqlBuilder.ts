@@ -118,6 +118,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             configurable: true
         })
     }
+    // Read in the query runner
     _getContainsInsertReturningClause(params: any[]): boolean | undefined {
         return (params as any)._containsInsertReturningClause
     }
@@ -1165,12 +1166,35 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _buildInsertReturning(query: InsertData, params: any[]): string {
         const idColumn = query.__idColumn
-        if (!idColumn) {
-            this._setContainsInsertReturningClause(params, false)
+        if (idColumn) {
+            this._setContainsInsertReturningClause(params, true)
+            return ' returning ' + this._appendSql(idColumn, params)
+        }
+
+        const result = this._buildQueryReturning(query.__columns, params)
+        this._setContainsInsertReturningClause(params, !!result)
+        return result
+    }
+    _buildQueryReturning(columns: { [property: string]: IValueSource<any, any> } | undefined, params: any[]): string {
+        if (!columns) {
             return ''
         }
-        this._setContainsInsertReturningClause(params, true)
-        return ' returning ' + this._appendSql(idColumn, params)
+        let requireComma = false
+        let result = ''
+        for (const property in columns) {
+            if (requireComma) {
+                result += ', '
+            }
+            result += this._appendSql(columns[property]!, params)
+            if (property) {
+                result += ' as ' + this._appendColumnAlias(property, params)
+            }
+            requireComma = true
+        }
+        if (!result) {
+            return ''
+        }
+        return ' returning ' + result
     }
     _nextSequenceValue( _params: any[], sequenceName: string) {
         return "nextval('" + sequenceName + "')"
@@ -1362,28 +1386,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return ''
     }
     _buildUpdateReturning(query: UpdateData, params: any[]): string {
-        const columns = query.__columns
-        if (!columns) {
-            return ''
-        }
-
-        let requireComma = false
-        let result = ''
-        for (const property in columns) {
-            if (requireComma) {
-                result += ', '
-            }
-            result += this._appendSql(columns[property]!, params)
-            if (property) {
-                result += ' as ' + this._appendColumnAlias(property, params)
-            }
-            requireComma = true
-        }
-
-        if (!result) {
-            return ''
-        }
-        return ' returning ' + result
+        return this._buildQueryReturning(query.__columns, params)
     }
     _buildDelete(query: DeleteData, params: any[]): string {
         this._ensureRootQuery(query, params)
@@ -1431,26 +1434,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return ''
     }
     _buildDeleteReturning(query: DeleteData, params: any[]): string {
-        const columns = query.__columns
-        if (!columns) {
-            return ''
-        }
-        let requireComma = false
-        let result = ''
-        for (const property in columns) {
-            if (requireComma) {
-                result += ', '
-            }
-            result += this._appendSql(columns[property]!, params)
-            if (property) {
-                result += ' as ' + this._appendColumnAlias(property, params)
-            }
-            requireComma = true
-        }
-        if (!result) {
-            return ''
-        }
-        return ' returning ' + result
+        return this._buildQueryReturning(query.__columns, params)
     }
 
     /*

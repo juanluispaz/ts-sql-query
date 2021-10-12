@@ -30,6 +30,18 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any[]> {
         return this.getQueryRunner().then(queryRunner => queryRunner.executeInsertReturningMultipleLastInsertedId(query, params)).finally(() => this.releaseIfNeeded())
     }
+    executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsertReturningOneRow(query, params)).finally(() => this.releaseIfNeeded())
+    }
+    executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsertReturningManyRows(query, params)).finally(() => this.releaseIfNeeded())
+    }
+    executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsertReturningOneColumnOneRow(query, params)).finally(() => this.releaseIfNeeded())
+    }
+    executeInsertReturningOneColumnManyRows(query: string, params: any[] =[]): Promise<any[]> {
+        return this.getQueryRunner().then(queryRunner => queryRunner.executeInsertReturningOneColumnManyRows(query, params)).finally(() => this.releaseIfNeeded())
+    }
     executeUpdate(query: string, params: any[] = []): Promise<number> {
         return this.getQueryRunner().then(queryRunner => queryRunner.executeUpdate(query, params)).finally(() => this.releaseIfNeeded())
     }

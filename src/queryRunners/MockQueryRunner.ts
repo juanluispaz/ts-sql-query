@@ -1,7 +1,12 @@
 import type { PromiseProvider, UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 
-export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' | 'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification' | 'isTransactionActive'
+export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
+    'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 
+    'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
+    'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' | 
+    'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 
+    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification' | 'isTransactionActive'
 
 export type QueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
 
@@ -125,6 +130,61 @@ export class MockQueryRunner implements QueryRunner {
             }
             if (!Array.isArray(result)) {
                 throw new Error('Invalid test case result for an insertReturningMultipleLastInsertedId with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
+            }
+            return this.promise.resolve(result)
+        } catch (e) {
+            return this.promise.reject(e)
+        }
+    }
+    executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
+        try {
+            const index = this.count++
+            const result = this.queryExecutor('insertReturningOneRow', query, params, index)
+            if (!isPlainObjectOrNoValue(result)) {
+                throw new Error('Invalid test case result for a insertReturningOneRow with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a plain object')
+            }
+            return this.promise.resolve(result)
+        } catch (e) {
+            return this.promise.reject(e)
+        }
+    }
+    executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+        try {
+            const index = this.count++
+            let result = this.queryExecutor('insertReturningManyRows', query, params, index)
+            if (result === undefined || result === null) {
+                result = []
+            }
+            if (!Array.isArray(result)) {
+                throw new Error('Invalid test case result for a insertReturningManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array of plain object')
+            }
+            for (let i = 0; i < result.length; i++) {
+                if (!isPlainObject(result[i])) {
+                    throw new Error('Invalid test case result for a insertReturningManyRows with index ' + index + '. The returned array by the mock function provided to the MockQueryRunner contains a no plain object at position ' + i)
+                }
+            }
+            return this.promise.resolve(result)
+        } catch (e) {
+            return this.promise.reject(e)
+        }
+    }
+    executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+        // undefined result means no value returned by the database
+        try {
+            return this.promise.resolve(this.queryExecutor('insertReturningOneColumnOneRow', query, params, this.count++))
+        } catch (e) {
+            return this.promise.reject(e)
+        }
+    }
+    executeInsertReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+        try {
+            const index = this.count++
+            let result = this.queryExecutor('insertReturningOneColumnManyRows', query, params, index)
+            if (result === undefined || result === null) {
+                result = []
+            }
+            if (!Array.isArray(result)) {
+                throw new Error('Invalid test case result for a insertReturningOneColumnManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
             }
             return this.promise.resolve(result)
         } catch (e) {

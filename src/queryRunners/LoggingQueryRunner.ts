@@ -1,7 +1,12 @@
 import type { QueryRunner } from "./QueryRunner"
 import { ChainedQueryRunner } from "./ChainedQueryRunner"
 
-export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' | 'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
+export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
+    'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 
+    'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' | 
+    'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' | 
+    'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 
+    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
 
 export interface QueryLogger {
     onQuery?: (queryType: QueryType, query: string, params: any[]) => void;
@@ -158,6 +163,90 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
             }, e => {
                 if (logger.onQueryError) {
                     logger.onQueryError('insertReturningMultipleLastInsertedId', query, params, e)
+                }
+                throw e
+            })
+        }
+        return result
+    }
+    executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
+        const logger = this.logger
+        if (logger.onQuery) {
+            logger.onQuery('insertReturningOneRow', query, params)
+        }
+        let result = this.queryRunner.executeInsertReturningOneRow(query, params)
+        if (logger.onQueryResult || logger.onQueryError) {
+            result.then(r => {
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('insertReturningOneRow', query, params, r)
+                }
+                return r
+            }, e => {
+                if (logger.onQueryError) {
+                    logger.onQueryError('insertReturningOneRow', query, params, e)
+                }
+                throw e
+            })
+        }
+        return result
+    }
+    executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+        const logger = this.logger
+        if (logger.onQuery) {
+            logger.onQuery('insertReturningManyRows', query, params)
+        }
+        let result = this.queryRunner.executeInsertReturningManyRows(query, params)
+        if (logger.onQueryResult || logger.onQueryError) {
+            result.then(r => {
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('insertReturningManyRows', query, params, r)
+                }
+                return r
+            }, e => {
+                if (logger.onQueryError) {
+                    logger.onQueryError('insertReturningManyRows', query, params, e)
+                }
+                throw e
+            })
+        }
+        return result
+    }
+    executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+        const logger = this.logger
+        if (logger.onQuery) {
+            logger.onQuery('insertReturningOneColumnOneRow', query, params)
+        }
+        let result = this.queryRunner.executeInsertReturningOneColumnOneRow(query, params)
+        if (logger.onQueryResult || logger.onQueryError) {
+            result.then(r => {
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('insertReturningOneColumnOneRow', query, params, r)
+                }
+                return r
+            }, e => {
+                if (logger.onQueryError) {
+                    logger.onQueryError('insertReturningOneColumnOneRow', query, params, e)
+                }
+                throw e
+            })
+        }
+        return result
+    }
+    executeInsertReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+        const logger = this.logger
+        if (logger.onQuery) {
+            logger.onQuery('insertReturningOneColumnManyRows', query, params)
+        }
+        let result = this.queryRunner.executeInsertReturningOneColumnManyRows(query, params)
+        if (logger.onQueryResult || logger.onQueryError) {
+            result.then(r => {
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('insertReturningOneColumnManyRows', query, params, r)
+                }
+                return r
+            }, e => {
+                if (logger.onQueryError) {
+                    logger.onQueryError('insertReturningOneColumnManyRows', query, params, e)
                 }
                 throw e
             })

@@ -53,6 +53,18 @@ export class NoopQueryRunner implements QueryRunner {
     executeInsertReturningMultipleLastInsertedId(_query: string, _params: any[] = []): Promise<any> {
         return this.promise.resolve([])
     }
+    executeInsertReturningOneRow(_query: string, _params: any[] = []): Promise<any> {
+        return this.promise.resolve(undefined)
+    }
+    executeInsertReturningManyRows(_query: string, _params: any[] = []): Promise<any[]> {
+        return this.promise.resolve([])
+    }
+    executeInsertReturningOneColumnOneRow(_query: string, _params: any[] = []): Promise<any> {
+        return this.promise.resolve(undefined)
+    }
+    executeInsertReturningOneColumnManyRows(_query: string, _params: any[] = []): Promise<any[]> {
+        return this.promise.resolve([])
+    }
     executeUpdate(_query: string, _params: any[] = []): Promise<number> {
         return this.promise.resolve(0)
     }

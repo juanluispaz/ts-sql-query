@@ -71,6 +71,7 @@ export interface InsertData extends WithQueryData {
     __idColumn?: Column
     __from?: SelectData
     __customization?: InsertCustomization<any>
+    __columns?: { [property: string]: IValueSource<any, any> }
 }
 
 export interface UpdateData extends WithQueryData {

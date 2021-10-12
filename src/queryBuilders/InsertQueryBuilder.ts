@@ -1,20 +1,20 @@
 import type { SqlBuilder, InsertData, SelectData } from "../sqlBuilders/SqlBuilder"
 import{ ITable, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
-import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*, MissingKeysInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturning, CustomiableExecutableInsert } from "../expressions/insert"
+import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*, MissingKeysInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturning, CustomiableExecutableInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns } from "../expressions/insert"
 import type { Column } from "../utils/Column"
 import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { database, tableOrView } from "../utils/symbols"
-import { IExecutableSelectQuery } from "../expressions/values"
+import { IExecutableSelectQuery, IValueSource, __getValueSourcePrivate } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
+import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
 
 // one implement ommited intentionally to don't confuse TypeScript
 
-export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInsertReturning<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, CustomizableExecutableMultipleInsert<any>, CustomizableExecutableInsertFromSelect<any>, CustomizableExecutableInsertReturning<any, any>, CustomiableExecutableInsert<any>, /*MissingKeysInsertExpression<any, any>,*/ InsertData {
+export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements InsertExpression<any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, CustomizableExecutableMultipleInsert<any>, CustomizableExecutableInsertFromSelect<any>, CustomizableExecutableInsertReturning<any, any>, CustomiableExecutableInsert<any>, /*MissingKeysInsertExpression<any, any>,*/ InsertData, ComposableExecutableInsert<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any> {
     [database]: any
     [tableOrView]: any
-    __sqlBuilder: SqlBuilder
 
     __table: ITable<any>
     __sets: { [property: string]: any } = {}
@@ -24,23 +24,27 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
     __from?: SelectData
     __withs: Array<IWithView<any>> = []
     __customization?: InsertCustomization<any>
+    __columns?: { [property: string]: IValueSource<any, any> }
+
+    __oneColumn?: boolean
 
     // cache
     __query = ''
     __params: any[] = []
 
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>) {
-        this.__sqlBuilder = sqlBuilder
+        super(sqlBuilder)
         this.__table = table
         __getTableOrViewPrivate(table).__addWiths(this.__withs)
     }
 
-    executeInsert(): Promise<any> {
+    executeInsert(min?: number, max?: number): Promise<any> {
         this.query()
         const source = new Error('Query executed at')
         try {
             const idColumn = this.__idColumn
             const multiple = this.__multiple
+            let result
             if (multiple && multiple.length <= 0) {
                 if (idColumn) {
                     return this.__sqlBuilder._queryRunner.createResolvedPromise([])
@@ -48,11 +52,11 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
                     return this.__sqlBuilder._queryRunner.createResolvedPromise(0)
                 }
             } else if (!idColumn) {
-                return this.__sqlBuilder._queryRunner.executeInsert(this.__query, this.__params).catch((e) => {
+                result = this.__sqlBuilder._queryRunner.executeInsert(this.__query, this.__params).catch((e) => {
                     throw attachSource(new ChainedError(e), source)
                 })
             } else if (!multiple && !this.__from) {
-                return this.__sqlBuilder._queryRunner.executeInsertReturningLastInsertedId(this.__query, this.__params).then((value) => {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningLastInsertedId(this.__query, this.__params).then((value) => {
                     if (value === undefined) {
                         value = null
                     }
@@ -78,7 +82,7 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
                     throw attachSource(new ChainedError(e), source)
                 })
             } else {
-                return this.__sqlBuilder._queryRunner.executeInsertReturningMultipleLastInsertedId(this.__query, this.__params).then((rows) => {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningMultipleLastInsertedId(this.__query, this.__params).then((rows) => {
                     const idColumnPrivate = __getColumnPrivate(idColumn)
                     const typeAdapter = idColumnPrivate.__typeAdapter
                     const columnType = idColumnPrivate.__valueType
@@ -108,11 +112,131 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
                     throw attachSource(new ChainedError(e), source)
                 })
             }
+            if (min !== undefined) {
+                result = result.then((count: any) => {
+                    if (count < min) {
+                        throw attachSource(new Error("The delete operation didn't delete the minimum of " + min + " row(s)"), source)
+                    }
+                    if (max !== undefined && count > max) {
+                        throw attachSource(new Error("The delete operation deleted more that the maximum of " + max + " row(s)"), source)
+                    }
+                    return count
+                })
+            }
+            return result
         } catch (e) {
             throw new ChainedError(e)
         }
     }
+    executeInsertNoneOrOne(): Promise<any> {
+        this.query()
+        const source = new Error('Query executed at')
+        try {
+            this.__sqlBuilder._resetUnique()
+            let result
+            if (this.__oneColumn) {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
+                    const valueSource = this.__columns!['result']!
+                    if (value === undefined) {
+                        return null
+                    }
+                    return this.__transformValueFromDB(valueSource, value)
+                }).catch((e) => {
+                    throw attachSource(new ChainedError(e), source)
+                })
+            } else {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneRow(this.__query, this.__params).then((row) => {
+                    if (row) {
+                        return this.__transformRow(row)
+                    } else {
+                        return null
+                    }
+                }).catch((e) => {
+                    throw attachSource(new ChainedError(e), source)
+                })
+            }
+            return this.__applyCompositions(result, source)
+        } catch (e) {
+            throw new ChainedError(e)
+        }
+    }
+    executeInsertOne(): Promise<any> {
+        this.query()
+        const source = new Error('Query executed at')
+        try {
+            this.__sqlBuilder._resetUnique()
+            let result
+            if (this.__oneColumn) {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
+                    const valueSource = this.__columns!['result']!
+                    if (value === undefined) {
+                        throw new Error('No result returned by the database')
+                    }
+                    return this.__transformValueFromDB(valueSource, value)
+                }).catch((e) => {
+                    throw attachSource(new ChainedError(e), source)
+                })
+            } else {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneRow(this.__query, this.__params).then((row) => {
+                    if (row) {
+                        return this.__transformRow(row)
+                    } else {
+                        throw new Error('No result returned by the database')
+                    }
+                }).catch((e) => {
+                    throw attachSource(new ChainedError(e), source)
+                })
+            }
+            return this.__applyCompositions(result, source)
+        } catch (e) {
+            throw new ChainedError(e)
+        }
+    }
+    executeInsertMany(min?: number, max?: number): Promise<any> {
+        const source = new Error('Query executed at')
+        this.query()
+        try {
+            this.__sqlBuilder._resetUnique()
+            let result
+            if (this.__oneColumn) {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
+                    const valueSource = this.__columns!['result']!
 
+                    return values.map((value) => {
+                        if (value === undefined) {
+                            value = null
+                        }
+                        return this.__transformValueFromDB(valueSource, value)
+                    })
+                }).catch((e) => {
+                    throw attachSource(new ChainedError(e), source)
+                })
+            } else {
+                result = this.__sqlBuilder._queryRunner.executeInsertReturningManyRows(this.__query, this.__params).then((rows) => {
+                    return rows.map((row, index) => {
+                        return this.__transformRow(row, index)
+                    })
+                }).catch((e) => {
+                    throw attachSource(new ChainedError(e), source)
+                })
+            }
+            if (min !== undefined) {
+                result = result.then((rows) => {
+                    const count = rows.length
+                    if (count < min) {
+                        throw attachSource(new Error("The insert operation didn't insert the minimum of " + min + " row(s)"), source)
+                    }
+                    if (max !== undefined && count > max) {
+                        throw attachSource(new Error("The insert operation insert more that the maximum of " + max + " row(s)"), source)
+                    }
+                    return rows
+                })
+            }
+            return this.__applyCompositions(result, source)
+        } catch (e) {
+            throw new ChainedError(e)
+        }
+    }
     query(): string {
         if (this.__query) {
             return this.__query
@@ -410,6 +534,11 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
     defaultValues: never
     // @ts-ignore
     returningLastInsertedId: never
+
+    // @ts-ignore
+    returning: any
+    // @ts-ignore
+    returningOneColumn: any
 }
 
 // Defined separated to don't have problems with the variable definition of this method
@@ -441,6 +570,28 @@ export class InsertQueryBuilder implements InsertExpression<any>, ExecutableInse
     if (!thiz.__idColumn) {
         throw new Error('In order to call executeInsertReturningLastInsertedId method the table must have defined one autogenerated primary key column')
     }
+    return thiz
+};
+
+(InsertQueryBuilder.prototype as any).returning = function (columns: InsertColumns<any>): any {
+    const thiz = this as InsertQueryBuilder
+    thiz.__query = ''
+    thiz.__columns = columns
+
+    const withs = thiz.__withs
+    for (const property in columns) {
+        const column = columns[property]!
+        __getValueSourcePrivate(column).__addWiths(withs)
+    }
+    return thiz
+};
+
+(InsertQueryBuilder.prototype as any).returningOneColumn = function (column: IValueSource<any, any>): any {
+    const thiz = this as InsertQueryBuilder
+    thiz.__query = ''
+    thiz.__oneColumn = true
+    thiz.__columns = { 'result': column }
+    __getValueSourcePrivate(column).__addWiths(thiz.__withs)
     return thiz
 };
 

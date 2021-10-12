@@ -307,6 +307,31 @@ async function main() {
         })
         assertEquals(deletedCustomers, [{ id: 2, firstName: 'Other', lastName: 'Person' }, { id:3, firstName: 'Jane', lastName: 'Doe' } ])
 
+        let insertOneCustomers = await connection
+            .insertInto(tCustomer)
+            .values({ firstName: 'Other', lastName: 'Person', companyId: 1 })
+            .returning({
+                id: tCustomer.id,
+                firstName: tCustomer.firstName,
+                lastName: tCustomer.lastName
+            })
+            .executeInsertOne()
+        assertEquals(insertOneCustomers, { id: 4, firstName: 'Other', lastName: 'Person' })
+
+        const insertMultipleCustomers = await connection
+            .insertInto(tCustomer)
+            .values([
+                { firstName: 'Other 2', lastName: 'Person 2', companyId: 1 },
+                { firstName: 'Other 3', lastName: 'Person 3', companyId: 1 }
+            ])
+            .returning({
+                id: tCustomer.id,
+                firstName: tCustomer.firstName,
+                lastName: tCustomer.lastName
+            })
+            .executeInsertMany()
+        assertEquals(insertMultipleCustomers, [ { id: 5, firstName: 'Other 2', lastName: 'Person 2' }, { id: 6, firstName: 'Other 3', lastName: 'Person 3' }])
+
         commit = true
     } finally {
         if (commit) {

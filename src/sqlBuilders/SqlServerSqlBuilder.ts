@@ -5,7 +5,7 @@ import type { OrderByMode } from "../expressions/select"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnPrivate } from "../utils/Column"
 import { __getValueSourcePrivate } from "../expressions/values"
-import { __getTableOrViewPrivate } from "../utils/ITableOrView"
+import { ITable, __getTableOrViewPrivate } from "../utils/ITableOrView"
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
@@ -243,54 +243,29 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     _buildInsertOutput(query: InsertData, params: any[]): string {
         const idColumn = query.__idColumn
-        if (!idColumn) {
-            this._setContainsInsertReturningClause(params, false)
-            return ''
+        if (idColumn) {
+            this._setContainsInsertReturningClause(params, true)
+            return ' output inserted.' + this._appendSql(idColumn, params)
         }
-        this._setContainsInsertReturningClause(params, true)
-        return ' output inserted.' + this._appendSql(idColumn, params)
+
+        const result = this._buildQueryOutput(query.__columns, query.__table, 'inserted', params)
+        this._setContainsInsertReturningClause(params, !!result)
+        return result
     }
     _buildInsertReturning(_query: InsertData, _params: any[]): string {
         return ''
     }
     _updateOldValueInFrom = false
     _buildUpdateOutput(query: UpdateData, params: any[]): string {
-        const columns = query.__columns
-        if (!columns) {
-            return ''
-        }
-
-        const oldForceAliasFor = this._getForceAliasFor(params)
-        const oldForceAliasAs = this._getForceAliasAs(params)
-
-        this._setForceAliasFor(params, query.__table)
-        this._setForceAliasAs(params, 'inserted')
-        
-        let requireComma = false
-        let result = ''
-        for (const property in columns) {
-            if (requireComma) {
-                result += ', '
-            }
-            result += this._appendSql(columns[property]!, params)
-            if (property) {
-                result += ' as ' + this._appendColumnAlias(property, params)
-            }
-            requireComma = true
-        }
-    
-        this._setForceAliasFor(params, oldForceAliasFor)
-        this._setForceAliasAs(params, oldForceAliasAs)
-        if (!result) {
-            return ''
-        }
-        return ' output ' + result
+        return this._buildQueryOutput(query.__columns, query.__table, 'inserted', params)
     }
     _buildUpdateReturning(_query: UpdateData, _params: any[]): string {
         return ''
     }
     _buildDeleteOutput(query: DeleteData, params: any[]): string {
-        const columns = query.__columns
+        return this._buildQueryOutput(query.__columns, query.__table, 'deleted', params)
+    }
+    _buildQueryOutput(columns: { [property: string]: IValueSource<any, any> } | undefined, table: ITable<any>, alias: string, params: any[]): string {
         if (!columns) {
             return ''
         }
@@ -298,8 +273,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         const oldForceAliasFor = this._getForceAliasFor(params)
         const oldForceAliasAs = this._getForceAliasAs(params)
 
-        this._setForceAliasFor(params, query.__table)
-        this._setForceAliasAs(params, 'deleted')
+        this._setForceAliasFor(params, table)
+        this._setForceAliasAs(params, alias)
         
         let requireComma = false
         let result = ''

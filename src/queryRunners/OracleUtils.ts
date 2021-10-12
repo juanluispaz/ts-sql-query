@@ -36,6 +36,7 @@ export function processOutBinds(params: any[], outBinds: any): any[] {
                 current.push({})
             }
             current[0][name] = value
+            continue
         }
 
         for (let j = current.length, length2 = value.length; j < length2; j++) {

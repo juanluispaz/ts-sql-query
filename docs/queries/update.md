@@ -30,7 +30,7 @@ const updateCustomer: Promise<number>
 
 ts-sql-query will reject the execution of the update sentence if, for some reason ended without a where. If you want to allow an update without where, you must call `connection.updateAllowingNoWhere` instead of `connection.update` when you start writing the sentence.
 
-## Delete returning
+## Update returning
 
 If you are using `PostgreSql`, modern `Sqlite`, `SqlServer` or `Oracle`, you can return updated values of the updated record in the same query using the `returning` or `returningOneColumn` methods.
 
@@ -54,7 +54,7 @@ returning first_name as result
 
 The parameters are: `[ 'Ron', 1 ]`
 
-The result type is a promise with the information of the deleted rows:
+The result type is a promise with the information of the updated rows:
 ```tsx
 const updatedSmithFirstName: Promise<string>
 ```
@@ -103,7 +103,7 @@ returning _old_.last_name as oldLastName, _new_.last_name as newLastName
 
 The parameters are: `[ 'Thomson', 2 ]`
 
-The result type is a promise with the information of the deleted rows:
+The result type is a promise with the information of the updated rows:
 ```tsx
 const updatedLastNames: Promise<{
     oldLastName: string;

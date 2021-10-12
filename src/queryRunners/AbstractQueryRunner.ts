@@ -73,6 +73,42 @@ export abstract class AbstractQueryRunner implements QueryRunner {
             })
         })
     }
+    executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
+        return this.executeMutationReturning(query, params).then((rows) => {
+            if (rows.length > 1) {
+                throw new Error('Too many rows, expected only zero or one row')
+            }
+            return rows[0]
+        })
+    }
+    executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+        return this.executeMutationReturning(query, params)
+    }
+    executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+        return this.executeMutationReturning(query, params).then((rows) => {
+            if (rows.length > 1) {
+                throw new Error('Too many rows, expected only zero or one row')
+            }
+            const row = rows[0]
+            if (row) {
+                const columns = Object.getOwnPropertyNames(row)
+                if (columns.length > 1) {
+                    throw new Error('Too many columns, expected only one column')
+                }
+                return row[columns[0]!] // Value in the row of the first column without care about the name
+            }
+            return undefined
+        })
+    }
+    executeInsertReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+        return this.executeMutationReturning(query, params).then((rows) => rows.map((row) => {
+            const columns = Object.getOwnPropertyNames(row)
+            if (columns.length > 1) {
+                throw new Error('Too many columns, expected only one column')
+            }
+            return row[columns[0]!] // Value in the row of the first column without care about the name
+        }))
+    }
     executeUpdate(query: string, params: any[] = []): Promise<number> {
         return this.executeMutation(query, params)
     }

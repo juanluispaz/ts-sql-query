@@ -1632,6 +1632,33 @@ async function main() {
         .executeUpdateOne()
 
     assertEquals(updatedSmithFirstName, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Smith',
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?) returning id as id, first_name as firstName, last_name as lastName`)
+    expectedParams.push(`["John","Smith",1]`)
+    expectedType.push(`insertReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const insertReturningCustomerData = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        }).returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertOne()
+
+    assertEquals(insertReturningCustomerData, result)
 }
 
 main().then(() => {

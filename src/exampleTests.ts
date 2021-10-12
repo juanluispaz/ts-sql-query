@@ -1600,6 +1600,26 @@ const updatedLastNames = connection.update(tCustomer)
 // Query:  update customer as _new_ set last_name = $1 from (select _old_.* from customer as _old_ where _old_.id = $2 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"
 // Params: [ 'Thomson', 2 ]
 
+results.push({
+    id: 1,
+    firstName: 'John',
+    lastName: 'Smith',
+})
+
+const insertReturningCustomerData = connection.insertInto(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 1
+    }).returning({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName
+    })
+    .executeInsertOne()
+
+// Query:  insert into customer (first_name, last_name, company_id) values ($1, $2, $3) returning id as id, first_name as "firstName", last_name as "lastName" 
+// Params: [ 'John', 'Smith', 1 ]
+
 results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
@@ -1674,6 +1694,7 @@ acmeCustomers.finally(() => undefined)
 deletedAcmeCompany.finally(() => undefined)
 updatedSmithFirstName.finally(() => undefined)
 updatedLastNames.finally(() => undefined)
+insertReturningCustomerData.finally(() => undefined)
 
 // case when then end
 // agragate functions, group by, having

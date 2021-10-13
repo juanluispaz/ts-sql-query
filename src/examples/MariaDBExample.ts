@@ -50,7 +50,6 @@ async function main() {
     const connection = new DBConection(new ConsoleLogQueryRunner(new MariaDBPoolQueryRunner(pool)))
     await connection.beginTransaction()
 
-    let commit = false
     try {
         await connection.queryRunner.executeDatabaseSchemaModification(`drop database if exists test`)
         await connection.queryRunner.executeDatabaseSchemaModification(`create database test`)
@@ -293,13 +292,10 @@ async function main() {
             .executeDelete()
         assertEquals(i, 1)
 
-        commit = true
-    } finally {
-        if (commit) {
-            connection.commit()
-        } else {
-            connection.rollback()
-        }
+        connection.commit()
+    } catch(e) {
+        connection.rollback()
+        throw e
     }
 }
 

@@ -45,7 +45,6 @@ async function main() {
     // Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844
     //await connection.beginTransaction()
 
-    // let commit = false
     try {
         await connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists customer`)
         await connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists company`)
@@ -423,14 +422,11 @@ async function main() {
             .executeUpdateOne()
         assertEquals(smithLastNameUpdate3, {oldLastName: 'Smith - ACME Cia.', newLastName: 'Smith/ACME Cia.'})
 
-        // commit = true
-    } finally {
+        // connection.commit()
+    } catch(e) {
         // Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844
-        // if (commit) {
-        //     connection.commit()
-        // } else {
-        //     connection.rollback()
-        // }
+        //connection.rollback()
+        throw e
     }
 }
 

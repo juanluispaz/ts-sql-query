@@ -41,7 +41,6 @@ function main() {
     const connection = new DBConection(new ConsoleLogQueryRunner(new BetterSqlite3QueryRunner(db, { promise: SynchronousPromise })))
     sync(connection.beginTransaction())
 
-    let commit = false
     try {
         sync(connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists customer`))
         sync(connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists company`))
@@ -313,13 +312,10 @@ function main() {
             .executeUpdate())
         assertEquals(i, 1)
 
-        commit = true
-    } finally {
-        if (commit) {
-            connection.commit()
-        } else {
-            connection.rollback()
-        }
+        connection.commit()
+    } catch(e) {
+        connection.rollback()
+        throw e
     }
 }
 

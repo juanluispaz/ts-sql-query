@@ -58,7 +58,6 @@ async function main() {
     const connection = new DBConection(new ConsoleLogQueryRunner(new OracleDBQueryRunner(conn)))
     await connection.beginTransaction()
 
-    let commit = false
     try {
         try {
             await connection.queryRunner.executeDatabaseSchemaModification(`drop table customer`)
@@ -332,13 +331,10 @@ async function main() {
             .executeInsertMany()
         assertEquals(insertMultipleCustomers, [ { id: 5, firstName: 'Other 2', lastName: 'Person 2' }, { id: 6, firstName: 'Other 3', lastName: 'Person 3' }])
 
-        commit = true
-    } finally {
-        if (commit) {
-            connection.commit()
-        } else {
-            connection.rollback()
-        }
+        connection.commit()
+    } catch(e) {
+        connection.rollback()
+        throw e
     }
 }
 

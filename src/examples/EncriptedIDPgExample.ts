@@ -84,7 +84,6 @@ async function main() {
     const connection = new DBConection(new ConsoleLogQueryRunner(new PgPoolQueryRunner(pool)))
     await connection.beginTransaction()
 
-    let commit = false
     try {
         await connection.queryRunner.executeDatabaseSchemaModification(`
             drop table if exists customer;
@@ -315,13 +314,10 @@ async function main() {
             .executeInsert()
         assertEquals(ii, ['BQjHWTD6_ulK0507', 'J_BFtuk1cz1D0609', 'EHT8AO2zDvi0070d'])
 
-        commit = true
-    } finally {
-        if (commit) {
-            connection.commit()
-        } else {
-            connection.rollback()
-        }
+        connection.commit()
+    } catch(e) {
+        connection.rollback()
+        throw e
     }
 }
 

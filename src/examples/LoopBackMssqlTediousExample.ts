@@ -59,7 +59,6 @@ async function main() {
     await timeout(1000) // loopback-connector-mssql doesn't wait for the connection be ready
     await connection.beginTransaction()
 
-    let commit = false
     try {
         await connection.queryRunner.executeDatabaseSchemaModification(`
             drop table if exists customer;
@@ -434,13 +433,10 @@ async function main() {
             .executeUpdateOne()
         assertEquals(smithLastNameUpdate3, {oldLastName: 'Smith - ACME Cia.', newLastName: 'Smith/ACME Cia.'})
 
-        commit = true
-    } finally {
-        if (commit) {
-            connection.commit()
-        } else {
-            connection.rollback()
-        }
+        connection.commit()
+    } catch(e) {
+        connection.rollback()
+        throw e
     }
 }
 

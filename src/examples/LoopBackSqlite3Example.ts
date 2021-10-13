@@ -41,7 +41,6 @@ async function main() {
     const connection = new DBConection(new ConsoleLogQueryRunner(createLoopBackQueryRunner(db)))
     await connection.beginTransaction()
 
-    let commit = false
     try {
         await connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists customer`)
         await connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists company`)
@@ -246,13 +245,10 @@ async function main() {
         //     .executeUpdate()
         // assertEquals(i, 1)
 
-        commit = true
-    } finally {
-        if (commit) {
-            connection.commit()
-        } else {
-            connection.rollback()
-        }
+        connection.commit()
+    } catch(e) {
+        connection.rollback()
+        throw e
     }
 }
 

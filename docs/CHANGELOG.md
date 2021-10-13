@@ -1,5 +1,26 @@
 # Change Log
 
+## v1.20.0 (14 Oct 2021)
+
+**Changes**:
+
+- Add support to scalar queries, that is an inline select query as value for another query
+- Add support to insert returning on databases that support it (PostgreSql, SqlServer, Oracle, modern Sqlite)
+- Add support to update returning on databases that support it (PostgreSql, SqlServer, Oracle, modern Sqlite)
+- Add support to update returning old values on databases that support it (SqlServer)
+- Add support to update returning old values on databases where it can be emulated in a single query (PostgreSql)
+- Add support to delete returning on databases that support it (PostgreSql, SqlServer, Oracle, modern Sqlite)
+- Add support to use more tables or views in an update (from clause) 
+- Add support to use more tables or views in a delete (using clause)
+- Add support to use more tables or views in an update returning old values on databases that support it (SqlServer)
+- Add support to use more tables or views in an update returning old values on databases where it can be emulated in a single query (PostgreSql)
+- Improve error detection to identify misuse of values that have different columns types with same TypeScript type (like date and time)
+- Improve min and max limit verification on insert
+
+**Bug fixes**:
+
+- Fix `selectOneColum` result type on complex objects (like Date)
+
 ## v1.19.0 (7 Oct 2021)
 
 **Changes**:

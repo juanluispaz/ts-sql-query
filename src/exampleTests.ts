@@ -1723,6 +1723,115 @@ insertReturningCustomerData.finally(() => undefined)
 addACMECompanyNameToLastName.finally(() => undefined)
 deleteACMECustomers.finally(() => undefined)
 
+/*
+
+PostgreSql update multitable with old values emulation:
+
+No secondary table used in set or return
+
+First attempt:
+update customer as _new_ 
+set last_name = $1 
+from (
+    select _old_.* 
+    from customer as _old_, company 
+    where _old_.company_id = company.id 
+        and company.name = $2 
+        and _old_.first_name = $3 
+    for no key update of _old_
+) as _old_ 
+where _new_.id = _old_.id 
+returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"
+
+Final:
+update customer as _new_ 
+set last_name = $1 
+from (
+    select _old_.* 
+    from customer as _old_, company 
+    where _old_.company_id = company.id 
+        and company.name = $2 
+        and _old_.first_name = $3 
+    for no key update of _old_
+) as _old_ 
+where _new_.id = _old_.id 
+returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"
+
+
+
+
+Secondary table used in set
+
+First attempt:
+update customer as _new_ 
+set last_name = _new_.last_name || $1 || company.name 
+from company, (
+    select _old_.* 
+    from customer as _old_, company 
+    where _old_.company_id = company.id 
+        and company.name = $2 
+        and _old_.first_name = $3 
+    for no key update of _old_, company
+) as _old_ 
+where _new_.id = _old_.id 
+    and _new_.company_id = company.id
+    and company.name = $4 
+    and _new_.first_name = $5 
+returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"
+
+Final:
+update customer as _new_ 
+set last_name = _new_.last_name || $1 || _old_.company__name 
+from (
+    select _old_.*, 
+           company.name as company__name 
+    from customer as _old_, company 
+    where _old_.company_id = company.id 
+        and company.name = $2 
+        and _old_.first_name = $3 
+    for no key update of _old_
+) as _old_ 
+where _new_.id = _old_.id 
+returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"
+
+
+
+Secondary table used in return
+
+First attempt:
+update customer as _new_ 
+set last_name = $1 
+from company, (
+    select _old_.* 
+    from customer as _old_, company 
+    where _old_.company_id = company.id 
+        and company.name = $2 
+        and _old_.first_name = $3 for 
+    no key update of _old_, company
+) as _old_ 
+where _new_.id = _old_.id 
+    and _new_.company_id = company.id 
+    and company.name = $4 
+    and _new_.first_name = $5 
+returning _old_.last_name as "oldLastName", _new_.last_name || $6 || company.name as "newLastName"
+
+Final:
+update customer as _new_ 
+set last_name = $1 
+from (
+    select _old_.*, 
+           company.name as company__name 
+    from customer as _old_, company 
+    where _old_.company_id = company.id 
+        and company.name = $2 
+        and _old_.first_name = $3 
+    for no key update of _old_
+) as _old_ 
+where _new_.id = _old_.id 
+returning _old_.last_name as "oldLastName", _new_.last_name || $4 || _old_.company__name as "newLastName"
+
+*/
+
 // case when then end
 // agragate functions, group by, having
 // begin transaction, commit, rollback
@@ -1779,10 +1888,10 @@ Things that I want to implement:
 + union, intersect
 
 5th to implement:
-- returning
++ returning
 
 6th to implement:
-- update multiple from
++ update multiple from
 
 Things that I don't want to implement by now
 - agregate functions: filter
@@ -1792,4 +1901,24 @@ Things that I don't want to implement by now
 
 Things that probably I'm not going to implement due alternative syntax exists:
 - from select
+
+Links:
+- Sqlite bug update returning: https://sqlite.org/forum/forumpost/e70ea1b15f
+- Modern SQL: https://modern-sql.com
+- Pagination with Relative Cursors: https://shopify.engineering/pagination-relative-cursors
+- Online test: https://sqliteonline.com/
+
+Documentation:
+- PostgreSql: https://www.postgresql.org/docs/13/sql-delete.html
+- SqlServer: https://docs.microsoft.com/es-es/sql/t-sql/statements/delete-transact-sql?view=sql-server-ver15
+- Sqlite: https://www.sqlite.org/index.html
+- MySql: https://dev.mysql.com/doc/refman/8.0/en/delete.html
+- MariaBD: https://mariadb.com/kb/en/delete/
+- Oracle SQL Language refernec: https://docs.oracle.com/en/database/oracle/oracle-database/21/sqlrf/DELETE.html#GUID-156845A5-B626-412B-9F95-8869B988ABD7
+- Oracle PL/SQL Langage reference: https://docs.oracle.com/en/database/oracle/oracle-database/21/lnpls/DELETE-statement-extension.html#GUID-9BEEC5E0-EF77-4E88-9DD4-B9BA1EABABCF
+- Oracle 11g Database Advanced Application Developer's Guide: https://docs.oracle.com/cd/B28359_01/appdev.111/b28424/adfns_flashback.htm#g1026131
+- Oracle 11g Database PL/SQL Language Reference: https://docs.oracle.com/database/121/LNPLS/langelems.htm#LNPLS013
+
+Others:
+- Join-Monster: https://join-monster.readthedocs.io/en/latest/
 */

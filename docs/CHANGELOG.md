@@ -1,6 +1,6 @@
 # Change Log
 
-## v1.19.0 (6 Sep 2021)
+## v1.19.0 (7 Oct 2021)
 
 **Changes**:
 
@@ -11,7 +11,7 @@
 - Fix typo in Sqlite `treatUnexpectedStringDateTimeAsUTC` connection option (wrongly named: `treatUxepectedStringDateTimeAsUTC`)
 - Fix typo in Sqlite `unexpectedUnixDateTimeAreMilliseconds` connection option (wrongly named: `uxepectedUnixDateTimeAreMilliseconds`)
 
-## v1.18.0 (6 Sep 2021)
+## v1.18.0 (6 Oct 2021)
 
 **Changes**:
 
@@ -23,7 +23,7 @@
 - Fix connection released too early due when the commit fails in a pooled query runner
 - Don't fire the deferred functions when rollback when the commit fails; when this happens the transaction is still ongoing
 
-## v1.17.0 (5 Sep 2021)
+## v1.17.0 (5 Oct 2021)
 
 **Changes**:
 
@@ -43,7 +43,7 @@
 
 - Fix deferring logic execution till the end of transaction in case of multiple nested transaction with multiple deferred logic but not in the middle of the nesting transaction
 
-## v1.16.0 (4 Sep 2021)
+## v1.16.0 (4 Oct 2021)
 
 **Changes**:
 
@@ -58,7 +58,7 @@
 - Fix sqlite compatibility mode by default (regression introduced in the previous release)
 - Fix oracle example due oracle instant client not loading and throwing error when the oracle driver is initialized
 
-## v1.15.0 (3 Sep 2021)
+## v1.15.0 (3 Oct 2021)
 
 **Changes**:
 

@@ -228,11 +228,11 @@ type ReturningLastInsertedIdFromSelectType<TABLE extends ITableOrView<any>> =
     : never
 
 type DefaultValueType<TABLE extends ITableOrView<any>> =
-    'yes' extends MissingKeys<keyof RequiredInsertSets<TABLE>> ? never : () => CustomiableExecutableInsert<TABLE>
+    unknown extends TABLE ? () => CustomiableExecutableInsert<TABLE> : // this is the case when TABLE is any
+    keyof RequiredInsertSets<TABLE> extends never ? () => CustomiableExecutableInsert<TABLE> : never
 
-type MissingKeys<KEYS> = KEYS extends never ? never : 'yes'
 type MaybeExecutableInsertExpression<TABLE extends ITableOrView<any>, MISSING_KEYS> = 
-    'yes' extends MissingKeys<MISSING_KEYS> ? MissingKeysInsertExpression<TABLE, MISSING_KEYS> : ExecutableInsertExpression<TABLE>
+    MISSING_KEYS extends never ? ExecutableInsertExpression<TABLE> :  MissingKeysInsertExpression<TABLE, MISSING_KEYS>
 
 export type SelectForInsertResultType<TABLE extends ITableOrView<any>> = {
     [P in ColumnsForSetOf<TABLE>]?: TypeOfColumn<TABLE, P>

@@ -332,18 +332,36 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         this.__combineSubSelectUsing(select, result)
         return result
     }
-    // @ts-ignore
-    intersect: never
-    // @ts-ignore
-    intersectAll: never
-    // @ts-ignore
-    except: never
-    // @ts-ignore
-    exceptAll: never
-    // @ts-ignore
-    minus: never
-    // @ts-ignore
-    minusAll: never
+    intersect(select: ICompoundableSelect<any, any, any, any>): any {
+        const result = new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'intersect', this.__compoundableAsSelectData(select))
+        this.__combineSubSelectUsing(select, result)
+        return result
+    }    
+    intersectAll(select: ICompoundableSelect<any, any, any, any>): any {
+        const result = new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'intersectAll', this.__compoundableAsSelectData(select))
+        this.__combineSubSelectUsing(select, result)
+        return result
+    }    
+    except(select: ICompoundableSelect<any, any, any, any>): any {
+        const result = new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'except', this.__compoundableAsSelectData(select))
+        this.__combineSubSelectUsing(select, result)
+        return result
+    }
+    exceptAll(select: ICompoundableSelect<any, any, any, any>): any {
+        const result = new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'exceptAll', this.__compoundableAsSelectData(select))
+        this.__combineSubSelectUsing(select, result)
+        return result
+    }
+    minus(select: ICompoundableSelect<any, any, any, any>): any {
+        const result = new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'minus', this.__compoundableAsSelectData(select))
+        this.__combineSubSelectUsing(select, result)
+        return result
+    }
+    minusAll(select: ICompoundableSelect<any, any, any, any>): any {
+        const result = new CompoundSelectQueryBuilder(this.__sqlBuilder, this.__asSelectData(), 'minusAll', this.__compoundableAsSelectData(select))
+        this.__combineSubSelectUsing(select, result)
+        return result
+    };
 
     __compoundableAsSelectData(select: ICompoundableSelect<any, any, any, any>): SelectData {
         return select as any
@@ -427,10 +445,22 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         return sqlBuilder._buildSelect(this.__asSelectData(), params)
     }
 
-    // @ts-ignore
-    forUseInQueryAs: never
-    // @ts-ignore
-    forUseAsInlineQueryValue: never
+    forUseInQueryAs(as: string): WithView<any, any> {
+        const recursiveView = this.__recursiveView
+        if (recursiveView) {
+            recursiveView.__name = as
+            this.__recursiveInternalView!.__name = as
+            this.__recursiveView = undefined
+            this.__recursiveInternalView = undefined
+            this.__recursiveSelect = undefined
+            return recursiveView as any
+        }
+        return new WithViewImpl<any, any>(as, this.__asSelectData(), this.__sqlBuilder) as any
+    };
+
+    forUseAsInlineQueryValue(): any {
+        return new InlineSelectValueSource(this.__asSelectData() as any)
+    };
 
     __buildRecursive(fn: (view: any) => ICompoundableSelect<any, any, any, any>, unionAll: boolean): void {
         const sqlBuilder = this.__sqlBuilder
@@ -493,68 +523,6 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         return this
     }
 }
-
-// Defined separated to don't have problems with the variable definition of this method
-(AbstractSelect.prototype as any).forUseInQueryAs = function (as: string): WithView<any, any> {
-    const thiz = this as SelectQueryBuilder
-    const recursiveView = thiz.__recursiveView
-    if (recursiveView) {
-        recursiveView.__name = as
-        this.__recursiveInternalView!.__name = as
-        this.__recursiveView = undefined
-        this.__recursiveInternalView = undefined
-        this.__recursiveSelect = undefined
-        return recursiveView as any
-    }
-    return new WithViewImpl<any, any>(as, thiz, thiz.__sqlBuilder) as any
-};
-
-(AbstractSelect.prototype as any).forUseAsInlineQueryValue = function (): IValueSource<any, any> {
-    const thiz = this as SelectQueryBuilder
-    return new InlineSelectValueSource(thiz)
-};
-
-(AbstractSelect.prototype as any).intersect = function(select: ICompoundableSelect<any, any, any, any>): any {
-    const thiz = this as SelectQueryBuilder
-    const result = new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'intersect', thiz.__compoundableAsSelectData(select))
-    thiz.__combineSubSelectUsing(select, result)
-    return result
-};
-
-(AbstractSelect.prototype as any).intersectAll = function(select: ICompoundableSelect<any, any, any, any>): any {
-    const thiz = this as SelectQueryBuilder
-    const result = new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'intersectAll', thiz.__compoundableAsSelectData(select))
-    thiz.__combineSubSelectUsing(select, result)
-    return result
-};
-
-(AbstractSelect.prototype as any).except = function(select: ICompoundableSelect<any, any, any, any>): any {
-    const thiz = this as SelectQueryBuilder
-    const result = new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'except', thiz.__compoundableAsSelectData(select))
-    thiz.__combineSubSelectUsing(select, result)
-    return result
-};
-
-(AbstractSelect.prototype as any).exceptAll = function(select: ICompoundableSelect<any, any, any, any>): any {
-    const thiz = this as SelectQueryBuilder
-    const result = new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'exceptAll', thiz.__compoundableAsSelectData(select))
-    thiz.__combineSubSelectUsing(select, result)
-    return result
-};
-
-(AbstractSelect.prototype as any).minus = function(select: ICompoundableSelect<any, any, any, any>): any {
-    const thiz = this as SelectQueryBuilder
-    const result = new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'minus', thiz.__compoundableAsSelectData(select))
-    thiz.__combineSubSelectUsing(select, result)
-    return result
-};
-
-(AbstractSelect.prototype as any).minusAll = function(select: ICompoundableSelect<any, any, any, any>): any {
-    const thiz = this as SelectQueryBuilder
-    const result = new CompoundSelectQueryBuilder(thiz.__sqlBuilder, thiz.__asSelectData(), 'minusAll', thiz.__compoundableAsSelectData(select))
-    thiz.__combineSubSelectUsing(select, result)
-    return result
-};
 
 export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSelectData, SelectExpression<any, any, any>, SelectExpressionFromNoTable<any>, ExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereExecutableSelectExpression<any, any, any, any, any, any>, DynamicWhereExpressionWithoutSelect<any, any, any>, GroupByOrderByExecutableSelectExpression<any, any, any, any, any, any>, SelectWhereJoinExpression<any, any, any>, DynamicOnExpression<any, any, any>, OnExpression<any, any, any>, SelectExpressionWithoutJoin<any, any, any>, SelectExpressionSubquery<any, any>, SelectWhereExpression<any, any, any>, GroupByOrderByHavingExecutableSelectExpression<any, any, any, any, any, any>, DynamicHavingExecutableSelectExpression<any, any, any, any, any, any>, GroupByOrderHavingByExpressionWithoutSelect<any, any, any>, DynamicHavingExpressionWithoutSelect<any, any, any>, WhereableExecutableSelectExpressionWithGroupBy<any, any, any, any, any, any>, DynamicWhereExecutableSelectExpressionWithGroupBy<any, any, any, any, any, any>, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicHavingExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereSelectExpressionWithoutSelect<any, any, any>, OrderedExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, OffsetExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, CompoundableCustomizableExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereOffsetExecutableSelectExpression<any, any, any, any, any, any>, DynamicWhereCompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, SplitedComposedExecutableSelectWithoutWhere<any, any, any, any, any>, SplitedComposedDynamicWhereExecutableSelectExpression<any, any, any, any, any>, WhereableCompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereCompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any> {
     __type: 'plain' = 'plain'

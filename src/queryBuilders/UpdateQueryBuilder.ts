@@ -610,37 +610,29 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements Upda
         return this
     }
 
-    // @ts-ignore
-    returning: any
-    // @ts-ignore
-    returningOneColumn: any
-}
-
-// Defined separated to don't have problems with the variable definition of this method
-(UpdateQueryBuilder.prototype as any).returning = function (columns: UpdateColumns<any, any>): any {
-    const thiz = this as UpdateQueryBuilder
-    thiz.__query = ''
-    thiz.__columns = columns
-
-    const withs = thiz.__withs
-    for (const property in columns) {
-        const column = columns[property]!
-        const columnPrivate = __getValueSourcePrivate(column)
-        columnPrivate.__addWiths(withs)
-        if (!thiz.__oldValues) {
-            thiz.__oldValues = columnPrivate.__getOldValues()
+    returning(columns: UpdateColumns<any, any>): this {
+        this.__query = ''
+        this.__columns = columns
+    
+        const withs = this.__withs
+        for (const property in columns) {
+            const column = columns[property]!
+            const columnPrivate = __getValueSourcePrivate(column)
+            columnPrivate.__addWiths(withs)
+            if (!this.__oldValues) {
+                this.__oldValues = columnPrivate.__getOldValues()
+            }
         }
+        return this
     }
-    return thiz
-};
-
-(UpdateQueryBuilder.prototype as any).returningOneColumn = function (column: IValueSource<any, any>): any {
-    const thiz = this as UpdateQueryBuilder
-    thiz.__query = ''
-    thiz.__oneColumn = true
-    thiz.__columns = { 'result': column }
-    const columnPrivate = __getValueSourcePrivate(column)
-    columnPrivate.__addWiths(thiz.__withs)
-    thiz.__oldValues = columnPrivate.__getOldValues()
-    return thiz
-};
+    
+    returningOneColumn(column: IValueSource<any, any>): this {
+        this.__query = ''
+        this.__oneColumn = true
+        this.__columns = { 'result': column }
+        const columnPrivate = __getValueSourcePrivate(column)
+        columnPrivate.__addWiths(this.__withs)
+        this.__oldValues = columnPrivate.__getOldValues()
+        return this
+    }
+}

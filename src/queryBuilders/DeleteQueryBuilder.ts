@@ -343,33 +343,25 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
         return this
     }
 
-    // @ts-ignore
-    returning: any
-    // @ts-ignore
-    returningOneColumn: any
-}
-
-// Defined separated to don't have problems with the variable definition of this method
-(DeleteQueryBuilder.prototype as any).returning = function (columns: DeleteColumns<any, any>): any {
-    const thiz = this as DeleteQueryBuilder
-    thiz.__finishJoin()
-    thiz.__query = ''
-    thiz.__columns = columns
-
-    const withs = thiz.__withs
-    for (const property in columns) {
-        const column = columns[property]!
-        __getValueSourcePrivate(column).__addWiths(withs)
+    returning(columns: DeleteColumns<any, any>): this {
+        this.__finishJoin()
+        this.__query = ''
+        this.__columns = columns
+    
+        const withs = this.__withs
+        for (const property in columns) {
+            const column = columns[property]!
+            __getValueSourcePrivate(column).__addWiths(withs)
+        }
+        return this
     }
-    return thiz
-};
-
-(DeleteQueryBuilder.prototype as any).returningOneColumn = function (column: IValueSource<any, any>): any {
-    const thiz = this as DeleteQueryBuilder
-    thiz.__finishJoin()
-    thiz.__query = ''
-    thiz.__oneColumn = true
-    thiz.__columns = { 'result': column }
-    __getValueSourcePrivate(column).__addWiths(thiz.__withs)
-    return thiz
-};
+    
+    returningOneColumn(column: IValueSource<any, any>): this {
+        this.__finishJoin()
+        this.__query = ''
+        this.__oneColumn = true
+        this.__columns = { 'result': column }
+        __getValueSourcePrivate(column).__addWiths(this.__withs)
+        return this
+    }
+}

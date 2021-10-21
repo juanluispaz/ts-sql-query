@@ -11,6 +11,7 @@ import { CustomBooleanTypeAdapter } from "./TypeAdapter"
 import { DynamicCondition } from "./expressions/dynamicConditionUsingFilters"
 import { dynamicPick } from "./dynamicCondition"
 import { extractColumnsFrom, mapForGuidedSplit, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "./extras/utils"
+// import { InterceptorQueryRunner, QueryType } from "./queryRunners/InterceptorQueryRunner"
 // import { TypeSafeNoopConnection } from "./clients/TypeSafeNoopConnection"
 // import { int } from "ts-extended-types"
 
@@ -63,6 +64,24 @@ class MyTable extends Table<MyConection, 'MyTable'> {
         super('t')
     }
 }
+
+// interface DurationPlayload {
+//     startTime: number
+// }
+// class DurationLogginQueryRunner extends InterceptorQueryRunner<DurationPlayload> {
+//     onQuery(queryType: QueryType, query: string, params: any[]): DurationPlayload {
+//         console.log('onQuery', queryType, query, params)
+//         return { startTime: Date.now() }
+//     }
+//     onQueryResult(queryType: QueryType, query: string, params: any[], result: any, playload: DurationPlayload): void {
+//         const duration = Date.now() - playload.startTime
+//         console.log('onQueryResult', queryType, query, params, result, duration)
+//     }
+//     onQueryError(queryType: QueryType, query: string, params: any[], error: any, playload: DurationPlayload): void {
+//         const duration = Date.now() - playload.startTime
+//         console.log('onQueryError', queryType, query, params, error, duration)
+//     }
+// }
 
 // declare var a: ColumnsOf<MyConection, MyTable>
 // declare var aa: keyof MyTable

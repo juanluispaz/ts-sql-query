@@ -34,6 +34,68 @@ async function main() {
 }
 ```
 
+## InterceptorQueryRunner
+
+A query runner that intercept all the queries and delegate the execution of the queries to the query runner received as second argument in the constructor.
+
+**Supported databases**: mariaDB, mySql, oracle, postgreSql, sqlite, sqlServer
+
+```ts
+import { InterceptorQueryRunner, QueryType } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+
+interface DurationPlayload {
+    startTime: number
+}
+class DurationLogginQueryRunner extends InterceptorQueryRunner<DurationPlayload> {
+    onQuery(queryType: QueryType, query: string, params: any[]): DurationPlayload {
+        console.log('onQuery', queryType, query, params)
+        return { startTime: Date.now() }
+    }
+    onQueryResult(queryType: QueryType, query: string, params: any[], result: any, playload: DurationPlayload): void {
+        const duration = Date.now() - playload.startTime
+        console.log('onQueryResult', queryType, query, params, result, duration)
+    }
+    onQueryError(queryType: QueryType, query: string, params: any[], error: any, playload: DurationPlayload): void {
+        const duration = Date.now() - playload.startTime
+        console.log('onQueryError', queryType, query, params, error, duration)
+    }
+}
+
+async function main() {
+    const connection = new DBConection(new DurationLogginQueryRunner(otherQueryRunner));
+    // Do your queries here
+}
+```
+
+The `InterceptorQueryRunner` is an abstract class where you must implement the following functions:
+
+- **`onQuery`**: Executed before the query. This function returns the playload data that will be recived by the next functions.
+- **`onQueryResult`**: Executed after the successful execution of the query. Receives as last argument the playload data created by the `onQuery` method.
+- **`onQueryError`**: Executed after the query in case of error. Receives as last argument the playload data created by the `onQuery` method.
+
+This class receives as the first generic type the playload type created when the query execution starts and receives when the query execution ends
+
+All these functions receive as argument:
+
+- **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
+
+```ts
+type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
+'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 
+'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
+'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' | 
+'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
+'executeProcedure' | 'executeFunction' | 
+'beginTransaction' | 'commit' | 'rollback' |
+'executeDatabaseSchemaModification'
+```
+
+- **`query: string`**: query required to be executed, empty in the case of `beginTransaction`, `commit` or `rollback`
+- **`params: any[]`**: parameters received by the query.
+- **`result: any`**: (only in `onQueryResult`) result of the execution of the query.
+- **`error: any`**: (only in `onQueryError`) error that happens executiong the query.
+- **`playload: PLAYLOAD_TYPE`**:  (only in `onQueryResult` or `onQueryError`) playload data created by the `onQuery` function.
+
 ## LoggingQueryRunner
 
 A query runner that intercept all the queries allowing you to log it and delegate the execution of the queries to the query runner received as second argument in the constructor.

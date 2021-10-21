@@ -1,5 +1,15 @@
 # Change Log
 
+## v1.21.0 (22 Oct 2021)
+
+**Changes**:
+
+- Added a new general query runner: InterceptorQueryRunner
+
+**Bug fixes**:
+
+- Fix error lost that was throw by a logger in a LogginQueryRunner
+
 ## v1.20.0 (14 Oct 2021)
 
 **Changes**:

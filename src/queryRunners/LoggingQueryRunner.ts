@@ -29,7 +29,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeSelectOneRow(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('selectOneRow', query, params, r)
                 }
@@ -50,7 +50,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeSelectManyRows(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('selectManyRows', query, params, r)
                 }
@@ -71,7 +71,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeSelectOneColumnOneRow(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('selectOneColumnOneRow', query, params, r)
                 }
@@ -92,7 +92,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeSelectOneColumnManyRows(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('selectOneColumnManyRows', query, params, r)
                 }
@@ -113,7 +113,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeInsert(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('insert', query, params, r)
                 }
@@ -134,7 +134,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeInsertReturningLastInsertedId(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('insertReturningLastInsertedId', query, params, r)
                 }
@@ -155,7 +155,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeInsertReturningMultipleLastInsertedId(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('insertReturningMultipleLastInsertedId', query, params, r)
                 }
@@ -176,7 +176,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeInsertReturningOneRow(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('insertReturningOneRow', query, params, r)
                 }
@@ -197,7 +197,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeInsertReturningManyRows(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('insertReturningManyRows', query, params, r)
                 }
@@ -218,7 +218,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeInsertReturningOneColumnOneRow(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('insertReturningOneColumnOneRow', query, params, r)
                 }
@@ -239,7 +239,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeInsertReturningOneColumnManyRows(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('insertReturningOneColumnManyRows', query, params, r)
                 }
@@ -260,7 +260,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeUpdate(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('update', query, params, r)
                 }
@@ -281,7 +281,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeUpdateReturningOneRow(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('updateReturningOneRow', query, params, r)
                 }
@@ -302,7 +302,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeUpdateReturningManyRows(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('updateReturningManyRows', query, params, r)
                 }
@@ -323,7 +323,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeUpdateReturningOneColumnOneRow(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('updateReturningOneColumnOneRow', query, params, r)
                 }
@@ -344,7 +344,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeUpdateReturningOneColumnManyRows(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('updateReturningOneColumnManyRows', query, params, r)
                 }
@@ -365,7 +365,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeDelete(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('delete', query, params, r)
                 }
@@ -386,7 +386,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeDeleteReturningOneRow(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('deleteReturningOneRow', query, params, r)
                 }
@@ -407,7 +407,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeDeleteReturningManyRows(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('deleteReturningManyRows', query, params, r)
                 }
@@ -428,7 +428,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeDeleteReturningOneColumnOneRow(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('deleteReturningOneColumnOneRow', query, params, r)
                 }
@@ -449,7 +449,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeDeleteReturningOneColumnManyRows(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('deleteReturningOneColumnManyRows', query, params, r)
                 }
@@ -470,7 +470,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeProcedure(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('executeProcedure', query, params, r)
                 }
@@ -491,7 +491,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeFunction(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('executeFunction', query, params, r)
                 }
@@ -514,7 +514,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeBeginTransaction()
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('beginTransaction', query, params, r)
                 }
@@ -537,7 +537,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeCommit()
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('commit', query, params, r)
                 }
@@ -560,7 +560,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeRollback()
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('rollback', query, params, r)
                 }
@@ -581,7 +581,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         let result = this.queryRunner.executeDatabaseSchemaModification(query, params)
         if (logger.onQueryResult || logger.onQueryError) {
-            result.then(r => {
+            result = result.then(r => {
                 if (logger.onQueryResult) {
                     logger.onQueryResult('executeDatabaseSchemaModification', query, params, r)
                 }

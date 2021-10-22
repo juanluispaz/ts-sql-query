@@ -653,11 +653,19 @@ export abstract class ValueSourceImpl implements IValueSource<any, any>, Nullabl
     substring(start: any, end: any): any {
         return new SqlOperation2ValueSource('_substring', this, start, end, this.__valueType, getTypeAdapter3(this, start, end))
     }
+    /** @deprecated use replaceAllIfValue method instead */
     replaceIfValue(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSourceIfValueOrIgnore('_replace', this, findString, replaceWith, this.__valueType, getTypeAdapter3(this, findString, replaceWith))
+        return new SqlOperation2ValueSourceIfValueOrIgnore('_replaceAll', this, findString, replaceWith, this.__valueType, getTypeAdapter3(this, findString, replaceWith))
     }
+    /** @deprecated use replaceAll method instead */
     replace(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSource('_replace', this, findString, replaceWith, this.__valueType, getTypeAdapter3(this, findString, replaceWith))
+        return new SqlOperation2ValueSource('_replaceAll', this, findString, replaceWith, this.__valueType, getTypeAdapter3(this, findString, replaceWith))
+    }
+    replaceAllIfValue(findString: any, replaceWith: any): any {
+        return new SqlOperation2ValueSourceIfValueOrIgnore('_replaceAll', this, findString, replaceWith, this.__valueType, getTypeAdapter3(this, findString, replaceWith))
+    }
+    replaceAll(findString: any, replaceWith: any): any {
+        return new SqlOperation2ValueSource('_replaceAll', this, findString, replaceWith, this.__valueType, getTypeAdapter3(this, findString, replaceWith))
     }
 }
 

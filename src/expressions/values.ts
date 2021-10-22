@@ -1189,20 +1189,48 @@ export interface StringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     substring<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: INumberValueSource<TABLE_OR_VIEW2, number>, end: INumberValueSource<TABLE_OR_VIEW3, number | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE| null | undefined>
     substring<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: INumberValueSource<TABLE_OR_VIEW2, number | null | undefined>, end: INumberValueSource<TABLE_OR_VIEW3, number>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE| null | undefined>
     substring<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: INumberValueSource<TABLE_OR_VIEW2, number | null | undefined>, end: INumberValueSource<TABLE_OR_VIEW3, number | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE| null | undefined>
+    /** @deprecated use replaceAllIfValue method instead */
     replaceIfValue(findString: TYPE | null | undefined, replaceWith: TYPE | null | undefined): StringValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use replaceAllIfValue method instead */
     replaceIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE | null | undefined, replaceWith: IStringValueSource<TABLE_OR_VIEW2, TYPE>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use replaceAllIfValue method instead */
     replaceIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE | null | undefined, replaceWith: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use replaceAllIfValue method instead */
     replaceIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: TYPE | null | undefined): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use replaceAllIfValue method instead */
     replaceIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: TYPE | null | undefined): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use replaceAll method instead */
     replace(findString: TYPE, replaceWith: TYPE): StringValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE, replaceWith: IStringValueSource<TABLE_OR_VIEW2, TYPE>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE, replaceWith: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: TYPE): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: TYPE): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: IStringValueSource<TABLE_OR_VIEW3, TYPE>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: IStringValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: IStringValueSource<TABLE_OR_VIEW3, TYPE>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: IStringValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
+    replaceAllIfValue(findString: TYPE | null | undefined, replaceWith: TYPE | null | undefined): StringValueSource<TABLE_OR_VIEW, TYPE>
+    replaceAllIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE | null | undefined, replaceWith: IStringValueSource<TABLE_OR_VIEW2, TYPE>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    replaceAllIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE | null | undefined, replaceWith: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    replaceAllIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: TYPE | null | undefined): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    replaceAllIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: TYPE | null | undefined): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    replaceAll(findString: TYPE, replaceWith: TYPE): StringValueSource<TABLE_OR_VIEW, TYPE>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE, replaceWith: IStringValueSource<TABLE_OR_VIEW2, TYPE>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE, replaceWith: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: TYPE): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: TYPE): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: IStringValueSource<TABLE_OR_VIEW3, TYPE>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: IStringValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: IStringValueSource<TABLE_OR_VIEW3, TYPE>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: IStringValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): StringValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
     valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): StringValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
@@ -1324,20 +1352,48 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     substring<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: IIntValueSource<TABLE_OR_VIEW2, int>, end: IIntValueSource<TABLE_OR_VIEW3, int | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE| null | undefined>
     substring<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: IIntValueSource<TABLE_OR_VIEW2, int | null | undefined>, end: IIntValueSource<TABLE_OR_VIEW3, int>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE| null | undefined>
     substring<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: IIntValueSource<TABLE_OR_VIEW2, int | null | undefined>, end: IIntValueSource<TABLE_OR_VIEW3, int | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE| null | undefined>
+    /** @deprecated use replaceAllIfValue method instead */
     replaceIfValue(findString: TYPE | null | undefined, replaceWith: TYPE | null | undefined): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use replaceAllIfValue method instead */
     replaceIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE | null | undefined, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use replaceAllIfValue method instead */
     replaceIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE | null | undefined, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use replaceAllIfValue method instead */
     replaceIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: TYPE | null | undefined): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use replaceAllIfValue method instead */
     replaceIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: TYPE | null | undefined): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use replaceAll method instead */
     replace(findString: TYPE, replaceWith: TYPE): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: TYPE): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: TYPE): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW3, TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW3, TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
+    /** @deprecated use replaceAll method instead */
     replace<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
+    replaceAllIfValue(findString: TYPE | null | undefined, replaceWith: TYPE | null | undefined): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
+    replaceAllIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE | null | undefined, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    replaceAllIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE | null | undefined, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    replaceAllIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: TYPE | null | undefined): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    replaceAllIfValue<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: TYPE | null | undefined): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    replaceAll(findString: TYPE, replaceWith: TYPE): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: TYPE, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: TYPE): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: TYPE): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW3, TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW3, TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
+    replaceAll<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(findString: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>, replaceWith: ITypeSafeStringValueSource<TABLE_OR_VIEW3, TYPE | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>
     valueWhenNull<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IValueSource<TABLE_OR_VIEW2, MandatoryTypeOf<TYPE>>): TypeSafeStringValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>

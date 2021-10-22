@@ -288,7 +288,7 @@ export interface SqlFunction1 {
 export interface SqlFunction2 {
     // String
     _substring(params: any[], valueSource: ToSql, value: any, value2: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
-    _replace(params: any[], valueSource: ToSql, value: any, value2: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
+    _replaceAll(params: any[], valueSource: ToSql, value: any, value2: any, columnType: string, typeAdapter: TypeAdapter | undefined): string
 }
 
 export interface SqlSequenceOperation {

@@ -252,8 +252,12 @@ interface StringValueSource extends ComparableValueSource {
     concat(value: string): string
     substringToEnd(start: number): string
     substring(start: number, end: number): string
+    /** @deprecated use replaceAllIfValue method instead */
     replaceIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): string
+    replaceAllIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): string
+    /** @deprecated use replaceAll method instead */
     replace(findString: string, replaceWith: string): string
+    replaceAll(findString: string, replaceWith: string): string
 }
 
 /**

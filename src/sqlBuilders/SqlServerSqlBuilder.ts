@@ -641,6 +641,22 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return super._notIn(params, valueSource, value, columnType, typeAdapter)
     }
+    _substrToEnd(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'substring(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', len(' + this._appendSql(valueSource, params) +  ') - ' + this._appendValue(value, params, columnType, typeAdapter) +  ')'
+    }
+    _substringToEnd(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'substring(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', len(' + this._appendSql(valueSource, params) +  ') - ' + this._appendValue(value, params, columnType, typeAdapter) +  ')'
+    }
+    _substr(params: any[], valueSource: ToSql, value: any, value2: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        return 'substring(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(value2, params, columnType, typeAdapter) + ')'
+    }
+    _substring(params: any[], valueSource: ToSql, value: any, value2: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (typeof value === 'number' && typeof value2 === 'number') {
+            const count = value2 - value
+            return 'substring(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(count, params, columnType, typeAdapter) + ')'
+        }
+        return 'substring(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(value2, params, columnType, typeAdapter) + ' - ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+    }
 }
 
 

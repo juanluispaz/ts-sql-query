@@ -586,6 +586,9 @@ export abstract class ValueSourceImpl implements IValueSource<any, any>, Nullabl
     concatIfValue(value: any): any {
         return new SqlOperation1ValueSourceIfValueOrIgnore('_concat', this, value, this.__valueType, getTypeAdapter2(this, value))
     }
+    substrToEnd(start: any): any {
+        return new SqlOperation1ValueSource('_substrToEnd', this, start, this.__valueType, getTypeAdapter2(this, start))
+    }
     substringToEnd(start: any): any {
         return new SqlOperation1ValueSource('_substringToEnd', this, start, this.__valueType, getTypeAdapter2(this, start))
     }
@@ -650,6 +653,9 @@ export abstract class ValueSourceImpl implements IValueSource<any, any>, Nullabl
         return createSqlOperation1ofOverloadedNumber(this, value, '_modulo')
     }
     // SqlFunction2
+    substr(start: any, count: any): any {
+        return new SqlOperation2ValueSource('_substr', this, start, count, this.__valueType, getTypeAdapter3(this, start, count))
+    }
     substring(start: any, end: any): any {
         return new SqlOperation2ValueSource('_substring', this, start, end, this.__valueType, getTypeAdapter3(this, start, end))
     }

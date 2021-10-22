@@ -231,7 +231,9 @@ interface StringValueSource extends ComparableValueSource {
     reverse(): string
     concatIfValue(value: string | null | undefined): string
     concat(value: string): string
+    substrToEnd(start: number): string
     substringToEnd(start: number): string
+    substr(start: number, count: number): string
     substring(start: number, end: number): string
     /** @deprecated use replaceAllIfValue method instead */
     replaceIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): string

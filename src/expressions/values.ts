@@ -1176,10 +1176,22 @@ export interface StringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     concat(value: TYPE | null | undefined): StringValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     concat<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringValueSource<TABLE_OR_VIEW2, TYPE>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     concat<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    substrToEnd(start: number): StringValueSource<TABLE_OR_VIEW, TYPE>
+    substrToEnd<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: INumberValueSource<TABLE_OR_VIEW2, number>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    substrToEnd<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: INumberValueSource<TABLE_OR_VIEW2, number | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
     substringToEnd(start: number): StringValueSource<TABLE_OR_VIEW, TYPE>
     substringToEnd<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: INumberValueSource<TABLE_OR_VIEW2, number>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     substringToEnd<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: INumberValueSource<TABLE_OR_VIEW2, number | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
     // SqlFunction2
+    substr(start: number, end: number): StringValueSource<TABLE_OR_VIEW, TYPE>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: number, count: INumberValueSource<TABLE_OR_VIEW2, number>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: number, count: INumberValueSource<TABLE_OR_VIEW2, number | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: INumberValueSource<TABLE_OR_VIEW2, number>, count: number): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: INumberValueSource<TABLE_OR_VIEW2, number | null | undefined>, count: number): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: INumberValueSource<TABLE_OR_VIEW2, number>, count: INumberValueSource<TABLE_OR_VIEW3, number>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: INumberValueSource<TABLE_OR_VIEW2, number>, count: INumberValueSource<TABLE_OR_VIEW3, number | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE| null | undefined>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: INumberValueSource<TABLE_OR_VIEW2, number | null | undefined>, count: INumberValueSource<TABLE_OR_VIEW3, number>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE| null | undefined>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: INumberValueSource<TABLE_OR_VIEW2, number | null | undefined>, count: INumberValueSource<TABLE_OR_VIEW3, number | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE| null | undefined>
     substring(start: number, end: number): StringValueSource<TABLE_OR_VIEW, TYPE>
     substring<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: number, end: INumberValueSource<TABLE_OR_VIEW2, number>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     substring<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: number, end: INumberValueSource<TABLE_OR_VIEW2, number | null | undefined>): StringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
@@ -1339,10 +1351,22 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     concat(value: TYPE | null | undefined): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE | null | undefined>
     concat<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     concat<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    substrToEnd(start: int): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
+    substrToEnd<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: IIntValueSource<TABLE_OR_VIEW2, int>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    substrToEnd<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: IIntValueSource<TABLE_OR_VIEW2, int | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
     substringToEnd(start: int): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
     substringToEnd<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: IIntValueSource<TABLE_OR_VIEW2, int>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     substringToEnd<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: IIntValueSource<TABLE_OR_VIEW2, int | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
     // SqlFunction2
+    substr(start: int, count: int): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: int, count: IIntValueSource<TABLE_OR_VIEW2, int>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: int, count: IIntValueSource<TABLE_OR_VIEW2, int | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: IIntValueSource<TABLE_OR_VIEW2, int>, count: int): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: IIntValueSource<TABLE_OR_VIEW2, int | null | undefined>, count: int): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: IIntValueSource<TABLE_OR_VIEW2, int>, count: IIntValueSource<TABLE_OR_VIEW3, int>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: IIntValueSource<TABLE_OR_VIEW2, int>, count: IIntValueSource<TABLE_OR_VIEW3, int | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE| null | undefined>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: IIntValueSource<TABLE_OR_VIEW2, int | null | undefined>, count: IIntValueSource<TABLE_OR_VIEW3, int>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE| null | undefined>
+    substr<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>, TABLE_OR_VIEW3 extends TableOrViewRef<this[typeof database]>>(start: IIntValueSource<TABLE_OR_VIEW2, int | null | undefined>, count: IIntValueSource<TABLE_OR_VIEW3, int | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, TYPE| null | undefined>
     substring(start: int, end: int): TypeSafeStringValueSource<TABLE_OR_VIEW, TYPE>
     substring<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: int, end: IIntValueSource<TABLE_OR_VIEW2, int>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE>
     substring<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(start: int, end: IIntValueSource<TABLE_OR_VIEW2, int | null | undefined>): TypeSafeStringValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, TYPE | null | undefined>

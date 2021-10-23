@@ -41,7 +41,7 @@ body>.rst-versions,
 }
 
 .rst-current-version {
-    line-height: initial;
+    line-height: initial !important;
 }
 
 .rst-current-version>span:first-child {

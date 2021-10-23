@@ -40,6 +40,18 @@ body>.rst-versions,
     padding-bottom: 2.6rem
 }
 
+.rst-current-version {
+    line-height: initial;
+}
+
+.rst-current-version>span:first-child {
+    float: left;
+}
+
+.rst-current-version>span:last-child {
+    margin-left: 15px;
+}
+
 footer {
     font-size: 0rem;
 }

@@ -37,7 +37,7 @@ body>.rst-versions,
 }
 
 .wy-nav-side {
-    padding-bottom: 2.6rem
+    padding-bottom: 2.6rem !important;
 }
 
 .rst-versions:not(.rst-badge)>.rst-current-version {
@@ -72,7 +72,7 @@ footer>.rst-footer-buttons {
         left: 310px;
     }
     .wy-nav-side {
-        padding-bottom: 0
+        padding-bottom: 0;
     }
 }
 

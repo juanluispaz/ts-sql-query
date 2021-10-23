@@ -209,14 +209,14 @@ export interface IBooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
 export interface BooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends boolean | null | undefined = boolean*/> extends EqualableValueSource<TABLE_OR_VIEW, TYPE, 'BooleanValueSource'>, IBooleanValueSource<TABLE_OR_VIEW, TYPE> {
     negate(): BooleanValueSource<TABLE_OR_VIEW, TYPE>
     and(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IfValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IIfValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBooleanValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IfValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
+    and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IIfValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
     and<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBooleanValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
     or(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, BooleanOrNullOf<TYPE>>
-    or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IfValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
+    or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IIfValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBooleanValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
-    or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IfValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
+    or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IIfValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
     or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBooleanValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
     // Redefined methods
     valueWhenNull(value: MandatoryTypeOf<TYPE>): BooleanValueSource<TABLE_OR_VIEW, MandatoryTypeOf<TYPE>>

@@ -21,8 +21,6 @@ nav:
     - Select: queries/select.md
     - Select page: queries/select-page.md
     - Recursive select: queries/recursive-select.md
-    - Select using a dynamic filter: queries/select-using-a-dynamic-filter.md
-    - Select picking columns: queries/select-picking-columns.md
     - SQL Fragments: queries/sql-fragments.md
     - Insert: queries/insert.md
     - Update: queries/update.md

@@ -2,7 +2,7 @@ import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { InsertExpression } from "../expressions/insert"
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expressions/update"
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, IValueSource, RemapValueSourceTypeAsOptional, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, TypeSafeBigintValueSource, ITypeSafeBigintValueSource } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, IValueSource, RemapValueSourceTypeAsOptional, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, TypeSafeBigintValueSource, ITypeSafeBigintValueSource, AlwaysIfValueSource } from "../expressions/values"
 import type { Default } from "../expressions/Default"
 import { TableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf, ITableOrView, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from "../expressions/select"
@@ -662,6 +662,15 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     }
 
     noValueBoolean<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> = NoTableOrViewRequiredView<DB>>(): IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], boolean> {
+        return new SqlOperationValueSourceIfValueAlwaysNoop()
+    }
+
+    dynamicBooleanExpressionUsing<REF extends TableOrViewRef<DB>>(table: ITableOrView<REF>): AlwaysIfValueSource<REF | NoTableOrViewRequired<DB>, boolean | null | undefined>
+    dynamicBooleanExpressionUsing<REF1 extends TableOrViewRef<DB>, REF2 extends TableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>): AlwaysIfValueSource<REF1 | REF2 | NoTableOrViewRequired<DB>, boolean | null | undefined>
+    dynamicBooleanExpressionUsing<REF1 extends TableOrViewRef<DB>, REF2 extends TableOrViewRef<DB>, REF3 extends TableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>, table3: ITableOrView<REF3>): AlwaysIfValueSource<REF1 | REF2 | REF3 | NoTableOrViewRequired<DB>, boolean | null | undefined>
+    dynamicBooleanExpressionUsing<REF1 extends TableOrViewRef<DB>, REF2 extends TableOrViewRef<DB>, REF3 extends TableOrViewRef<DB>, REF4 extends TableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>, table3: ITableOrView<REF3>, table4: ITableOrView<REF4>): AlwaysIfValueSource<REF1 | REF2 | REF3 | REF4 | NoTableOrViewRequired<DB>, boolean | null | undefined>
+    dynamicBooleanExpressionUsing<REF1 extends TableOrViewRef<DB>, REF2 extends TableOrViewRef<DB>, REF3 extends TableOrViewRef<DB>, REF4 extends TableOrViewRef<DB>, REF5 extends TableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>, table3: ITableOrView<REF3>, table4: ITableOrView<REF4>, table5: ITableOrView<REF5>): AlwaysIfValueSource<REF1 | REF2 | REF3 | REF4 | REF5 | NoTableOrViewRequired<DB>, boolean | null | undefined>
+    dynamicBooleanExpressionUsing(..._tables: any[]): AlwaysIfValueSource<any, boolean | null | undefined> {
         return new SqlOperationValueSourceIfValueAlwaysNoop()
     }
 

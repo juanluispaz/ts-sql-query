@@ -507,9 +507,19 @@ interface Connection {
     buildFragmentWithArgsIfValue(...argumentDefinitions: Argument[]): FragmentBuilderIfValue
 
     /**
-     * Return the same special boolean mark returned by the IfValue functions when there is no value
+     * Return the same special neutral boolean mark returned by the IfValue functions when there is no value
      */
     noValueBoolean(): BooleanValueSource
+
+    /**
+     * Return the same special neutral boolean mark returned by the IfValue functions when there is no value in a way it can be used
+     * to create dynamic boolean expression where the variable is reasigned (it have a stable type)
+     */
+    dynamicBooleanExpressionUsing(table: Table | View): BooleanValueSource
+    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View): BooleanValueSource
+    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View): BooleanValueSource
+    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View,  table4: Table | View): BooleanValueSource
+    dynamicBooleanExpressionUsing(table1: Table | View, table2: Table | View, table3: Table | View,  table4: Table | View,  table5: Table | View): BooleanValueSource
 
     /**
      * Allows to create a condition where the criteria is provided by an external system

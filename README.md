@@ -128,7 +128,8 @@ When you realize a select, you can:
 
 Additionally, you can:
 
-- create a custom boolean condition that you can use in a where (by example), calling the `dynamicConditionFor` method in the connection object.
+- create a dynamic boolean expression that you can use in a where (by example), calling the `dynamicBooleanExpresionUsing` method in the connection object.
+- create a custom boolean condition from criteria object that you can use in a where (by example), calling the `dynamicConditionFor` method in the connection object. This functionality is useful when creating a complex search & filtering functionality in the user interface, where the user can apply a different combination of constraints.
 - create a query where it is possible to pick the columns to be returned by the query.
 - define an optional join in a select query. That join only must be included in the final query if the table involved in the join is used in the final query. For example, a column of the joined table was picked or used in a dynamic where.
 

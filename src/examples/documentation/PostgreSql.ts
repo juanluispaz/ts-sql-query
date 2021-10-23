@@ -159,6 +159,39 @@ async function main() {
 
     result = []
     expectedResult.push(result)
+    expectedQuery.push(`select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(name), birthday asc nulls last`)
+    expectedParams.push(`[" ","ohn"]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+    
+    let searchedCustomersWhere = connection.dynamicBooleanExpressionUsing(tCustomer)
+    if (firstNameContains) {
+        searchedCustomersWhere = searchedCustomersWhere.and(tCustomer.firstName.contains(firstNameContains))
+    }
+    if (lastNameContains) {
+        searchedCustomersWhere = searchedCustomersWhere.or(tCustomer.lastName.contains(lastNameContains))
+    }
+    if (birthdayIs) {
+        searchedCustomersWhere = searchedCustomersWhere.and(tCustomer.birthday.equals(birthdayIs))
+    }
+    
+    const searchedCustomers2 = await connection.selectFrom(tCustomer)
+        .where(searchedCustomersWhere)
+        .select({
+            id: tCustomer.id,
+            name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
+            birthday: tCustomer.birthday
+        })
+        .orderByFromString(searchOrderBy)
+        .executeSelectMany()
+    
+    assertEquals(searchedCustomers2, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
     expectedQuery.push(`select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, comp.name as "companyName" from customer inner join company as comp on customer.company_id = comp.id where customer.first_name ilike ($1 || '%') order by lower("firstName"), lower("lastName") asc`)
     expectedParams.push(`["John"]`)
     expectedType.push(`selectManyRows`)

@@ -590,6 +590,32 @@ const searchedCustomers = connection.selectFrom(tCustomer)
 
 results.push([])
 
+let searchedCustomersWhere = connection.dynamicBooleanExpressionUsing(tCustomer)
+if (firstNameContains) {
+    searchedCustomersWhere = searchedCustomersWhere.and(tCustomer.firstName.contains(firstNameContains))
+}
+if (lastNameContains) {
+    searchedCustomersWhere = searchedCustomersWhere.or(tCustomer.lastName.contains(lastNameContains))
+}
+if (birthdayIs) {
+    searchedCustomersWhere = searchedCustomersWhere.and(tCustomer.birthday.equals(birthdayIs))
+}
+
+const searchedCustomers2 = connection.selectFrom(tCustomer)
+    .where(searchedCustomersWhere)
+    .select({
+        id: tCustomer.id,
+        name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
+        birthday: tCustomer.birthday
+    })
+    .orderByFromString(searchOrderBy)
+    .executeSelectMany()
+
+// Query: select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(name), birthday asc nulls last
+// Params: [ ' ', 'ohn' ]
+
+results.push([])
+
 const firstName = 'John'
 const lastName = null
 
@@ -1668,6 +1694,7 @@ results.push(...postResults)
 
 vCustomerAndCompany.as('foo')
 searchedCustomers.finally(() => undefined)
+searchedCustomers2.finally(() => undefined)
 customersWithCompanyName.finally(() => undefined)
 customerWithSelectedCompanies.finally(() => undefined)
 customerCountPerCompany.finally(() => undefined)

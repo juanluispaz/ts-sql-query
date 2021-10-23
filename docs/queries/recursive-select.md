@@ -46,7 +46,7 @@ with recursive
         select company.id as id, company.name as name, company.parent_id as parentId 
         from company join recursive_select_1 on recursive_select_1.parentId = company.id
     )
-select id as id, name as name, parentId as "parentId" 
+select id as id, name as name, parentId as parentId
 from recursive_select_1
 ```
 
@@ -108,7 +108,7 @@ with recursive
         select company.id as id, company.name as name, company.parent_id as parentId 
         from company join recursive_select_1 on recursive_select_1.id = company.parent_id
     ) 
-select id as id, name as name, parentId as "parentId" 
+select id as id, name as name, parentId as parentId
 from recursive_select_1
 ```
 

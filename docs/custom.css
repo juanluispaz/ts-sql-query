@@ -40,15 +40,15 @@ body>.rst-versions,
     padding-bottom: 2.6rem
 }
 
-.rst-current-version {
+.rst-versions:not(.rst-badge)>.rst-current-version {
     line-height: initial !important;
 }
 
-.rst-current-version>span:first-child {
+.rst-versions:not(.rst-badge)>.rst-current-version>span:first-child {
     float: left;
 }
 
-.rst-current-version>span:last-child {
+.rst-versions:not(.rst-badge)>.rst-current-version>span:last-child {
     margin-left: 15px;
 }
 

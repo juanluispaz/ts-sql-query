@@ -74,6 +74,9 @@ footer>.rst-footer-buttons {
     .wy-nav-side {
         padding-bottom: 0;
     }
+    .wy-nav-side {
+        padding-bottom: 0 !important;
+    }
 }
 
 

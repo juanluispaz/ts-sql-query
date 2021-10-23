@@ -1,5 +1,4 @@
 hljs.unregisterLanguage('sql');
-hljs.unregisterLanguage('python');
-hljs.unregisterLanguage('bash');
-hljs.registerAliases('sql', 'pgsql');
+hljs.registerAliases('sql', { languageName: 'pgsql' });
+hljs.configure({ languages: ['sql', 'ts', 'tsx'] })
 hljs.highlightAll();

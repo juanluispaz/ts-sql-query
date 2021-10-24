@@ -3,7 +3,7 @@ import type { Default } from "./Default"
 import type { AnyDB } from "../databases"
 import type { int, double, /*LocalDate, LocalTime, LocalDateTime,*/ stringDouble, stringInt } from "ts-extended-types"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, valueSourceType } from "../utils/symbols"
+import type { anyBooleanValueSourceType, bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, valueSourceType } from "../utils/symbols"
 import type { Column, ColumnWithDefaultValue, ComputedColumn } from "../utils/Column"
 import { valueType, valueSourceTypeName } from "../utils/symbols"
 
@@ -204,6 +204,7 @@ export interface ComparableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyD
 
 export interface IBooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends boolean | null | undefined = boolean*/> extends IEqualableValueSource<TABLE_OR_VIEW, TYPE, 'BooleanValueSource'> {
     [booleanValueSourceType]: 'BooleanValueSource'
+    [anyBooleanValueSourceType]: 'AnyBooleanValueSource'
 }
 
 export interface BooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends boolean | null | undefined = boolean*/> extends EqualableValueSource<TABLE_OR_VIEW, TYPE, 'BooleanValueSource'>, IBooleanValueSource<TABLE_OR_VIEW, TYPE> {
@@ -230,6 +231,7 @@ export interface IIfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYP
     [tableOrView]: TABLE_OR_VIEW
     [valueType]: TYPE
     [ifValueSourceType]: 'IfValueSource'
+    [anyBooleanValueSourceType]: 'AnyBooleanValueSource'
 }
 
 export interface IfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends boolean | null | undefined = boolean*/> extends IIfValueSource<TABLE_OR_VIEW, TYPE> {
@@ -243,6 +245,13 @@ export interface IfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE
     or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBooleanValueSource<TABLE_OR_VIEW2, TYPE>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, BooleanOrNullOf<TYPE>>
     or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IIfValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): IfValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
     or<TABLE_OR_VIEW2 extends TableOrViewRef<this[typeof database]>>(value: IBooleanValueSource<TABLE_OR_VIEW2, TYPE | null | undefined>): BooleanValueSource<TABLE_OR_VIEW | TABLE_OR_VIEW2, boolean | null | undefined>
+}
+
+export interface IAnyBooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends boolean | null | undefined = boolean*/> {
+    [database]: TABLE_OR_VIEW[typeof database]
+    [tableOrView]: TABLE_OR_VIEW
+    [valueType]: TYPE
+    [anyBooleanValueSourceType]: 'AnyBooleanValueSource'
 }
 
 export interface AlwaysIfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE /*extends boolean | null | undefined = boolean*/> extends IIfValueSource<TABLE_OR_VIEW, TYPE> {

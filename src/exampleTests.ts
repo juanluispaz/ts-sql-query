@@ -10,7 +10,7 @@ import { MockQueryRunner } from "./queryRunners/MockQueryRunner"
 import { CustomBooleanTypeAdapter } from "./TypeAdapter"
 import { DynamicCondition } from "./expressions/dynamicConditionUsingFilters"
 import { dynamicPick } from "./dynamicCondition"
-import { extractColumnsFrom, mapForGuidedSplit, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "./extras/utils"
+import { extractColumnsFrom, mapForGuidedSplit, mergeType, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "./extras/utils"
 // import { InterceptorQueryRunner, QueryType } from "./queryRunners/InterceptorQueryRunner"
 // import { TypeSafeNoopConnection } from "./clients/TypeSafeNoopConnection"
 // import { int } from "ts-extended-types"
@@ -613,6 +613,46 @@ const searchedCustomers2 = connection.selectFrom(tCustomer)
 
 // Query: select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(name), birthday asc nulls last
 // Params: [ ' ', 'ohn' ]
+
+results.push([])
+
+const hideId = false
+
+let searchedCustomersWhere3
+if (firstNameContains) {
+    searchedCustomersWhere3 = tCustomer.firstName.contains(firstNameContains)
+} else {
+    searchedCustomersWhere3 = connection.noValueBoolean()
+}
+if (lastNameContains) {
+    searchedCustomersWhere3 = mergeType(searchedCustomersWhere3).or(tCustomer.lastName.contains(lastNameContains))
+}
+if (birthdayIs) {
+    searchedCustomersWhere3 = mergeType(searchedCustomersWhere3).and(tCustomer.birthday.equals(birthdayIs))
+}
+searchedCustomersWhere3 = mergeType(searchedCustomersWhere3)
+
+let idColumn
+if (hideId) {
+    idColumn = connection.optionalConst(null, 'int')
+} else {
+    idColumn = tCustomer.id
+}
+idColumn = mergeType(idColumn)
+
+const searchedCustomers3 = connection.selectFrom(tCustomer)
+    .where(searchedCustomersWhere3)
+    .select({
+        id: idColumn,
+        name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
+        birthday: tCustomer.birthday
+    })
+    .orderByFromString(searchOrderBy)
+    .executeSelectMany()
+
+// Query: select id as id, first_name || $1 || last_name as name, birthday as birthday from customer where first_name like ('%' || $2 || '%') order by lower(name), birthday asc nulls last
+// Params: [ ' ', 'ohn' ]
+
 
 results.push([])
 
@@ -1695,6 +1735,7 @@ results.push(...postResults)
 vCustomerAndCompany.as('foo')
 searchedCustomers.finally(() => undefined)
 searchedCustomers2.finally(() => undefined)
+searchedCustomers3.finally(() => undefined)
 customersWithCompanyName.finally(() => undefined)
 customerWithSelectedCompanies.finally(() => undefined)
 customerCountPerCompany.finally(() => undefined)

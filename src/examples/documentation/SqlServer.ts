@@ -1,6 +1,6 @@
 import { SqlServerConnection } from "../../connections/SqlServerConnection"
 import { DynamicCondition, dynamicPick } from "../../dynamicCondition"
-import { extractColumnsFrom, mapForGuidedSplit, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "../../extras/utils"
+import { extractColumnsFrom, mapForGuidedSplit, mergeType, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "../../extras/utils"
 import { ConsoleLogQueryRunner } from "../../queryRunners/ConsoleLogQueryRunner"
 import { MockQueryRunner } from "../../queryRunners/MockQueryRunner"
 import { Table } from "../../Table"
@@ -187,6 +187,52 @@ async function main() {
         .executeSelectMany()
     
     assertEquals(searchedCustomers2, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select id as id, first_name + @0 + last_name as name, birthday as birthday from customer where first_name like ('%' + @1 + '%') order by lower(name), iif(birthday is null, 1, 0), birthday asc`)
+    expectedParams.push(`[" ","ohn"]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+    
+    const hideId = false
+
+    let searchedCustomersWhere3
+    if (firstNameContains) {
+        searchedCustomersWhere3 = tCustomer.firstName.contains(firstNameContains)
+    } else {
+        searchedCustomersWhere3 = connection.noValueBoolean()
+    }
+    if (lastNameContains) {
+        searchedCustomersWhere3 = mergeType(searchedCustomersWhere3).or(tCustomer.lastName.contains(lastNameContains))
+    }
+    if (birthdayIs) {
+        searchedCustomersWhere3 = mergeType(searchedCustomersWhere3).and(tCustomer.birthday.equals(birthdayIs))
+    }
+    searchedCustomersWhere3 = mergeType(searchedCustomersWhere3)
+    
+    let idColumn
+    if (hideId) {
+        idColumn = connection.optionalConst(null, 'int')
+    } else {
+        idColumn = tCustomer.id
+    }
+    idColumn = mergeType(idColumn)
+    
+    const searchedCustomers3 = await connection.selectFrom(tCustomer)
+        .where(searchedCustomersWhere3)
+        .select({
+            id: idColumn,
+            name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
+            birthday: tCustomer.birthday
+        })
+        .orderByFromString(searchOrderBy)
+        .executeSelectMany()
+    
+    assertEquals(searchedCustomers3, result)
     
     /* *** Preparation ************************************************************/
 

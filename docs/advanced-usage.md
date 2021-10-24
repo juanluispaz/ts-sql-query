@@ -348,7 +348,7 @@ See [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/ex
 Sometimes could be useful to extract all columns available in an object, like a table or view; this allows to use in a select, ensuring the select uses all columns defined in the provided object. For this purpose you can find the function `extractColumnsFrom` in the file `ts-sql-query/extras/utils`.
 
 ```ts
-import { extractColumnsFrom } from "./extras/utils";
+import { extractColumnsFrom } from "ts-sql-query/extras/utils";
 
 const selectAll = connection.selectFrom(tCustomer)
     .select(extractColumnsFrom(tCustomer))
@@ -388,7 +388,7 @@ The file `ts-sql-query/extras/utils` offers the following functions to deal with
 - `prefixMapForSplitCapitalized`: create a map object where the key is the generated property by the previous function, and the value is the property's original name. The result of this function is designed to use in the split function in the query.
 
 ```ts
-import { prefixDotted, prefixMapForSplitDotted } from "./extras/utils";
+import { prefixDotted, prefixMapForSplitDotted } from "ts-sql-query/extras/utils";
 
 const customerColumns = {
     id: tCustomer.id,
@@ -451,7 +451,7 @@ The file `ts-sql-query/extras/utils` offers the following functions to help you 
 - `mapForGuidedSplit`: Create a map object where the key is the name of the key of the first object, and the value is the property's original name (the key). The original name will be followed with the required mark when the reference table gave as the second argument has a required column with the same original name. The result of this function is designed to use in the guided split function in the query. This function is analogous to the previous ones but without prefixing.
 
 ```ts
-import { prefixDotted, prefixMapForGuidedSplitCapitalized } from "./extras/utils";
+import { prefixDotted, prefixMapForGuidedSplitCapitalized } from "ts-sql-query/extras/utils";
 
 const parentCompany = tCompany.forUseInLeftJoinAs('parent')
 
@@ -493,5 +493,70 @@ const companyPrefixed: Promise<{
         id: number;
         parentId?: number;
     };
+}[]>
+```
+
+## Merge types
+
+Sometimes, when you write advanced dynamic queries, you end in a situation when you have a variable with type a union of several types of value source, and you want to use it in a query. ts-sql-query doesn't handle the union of value source types due to the complexity of inferring the proper resulting type. However, the function `mergeType` (defined in the `ts-sql-query/extras/utils` file) can merge the types allowing you to use the value source in other parts of the query.
+
+```ts
+import { mergeType } from "ts-sql-query/extras/utils";
+
+const firstNameContains = 'ohn';
+const lastNameContains = null;
+const birthdayIs = null;
+const searchOrderBy = 'name insensitive, birthday asc nulls last';
+const hideId = false
+
+let searchedCustomersWhere
+if (firstNameContains) {
+    searchedCustomersWhere = tCustomer.firstName.contains(firstNameContains)
+} else {
+    searchedCustomersWhere = connection.noValueBoolean()
+}
+if (lastNameContains) {
+    searchedCustomersWhere = mergeType(searchedCustomersWhere).or(tCustomer.lastName.contains(lastNameContains))
+}
+if (birthdayIs) {
+    searchedCustomersWhere = mergeType(searchedCustomersWhere).and(tCustomer.birthday.equals(birthdayIs))
+}
+searchedCustomersWhere = mergeType(searchedCustomersWhere)
+
+let idColumn
+if (hideId) {
+    idColumn = connection.optionalConst(null, 'int')
+} else {
+    idColumn = tCustomer.id
+}
+idColumn = mergeType(idColumn)
+
+const searchedCustomers = connection.selectFrom(tCustomer)
+    .where(searchedCustomersWhere)
+    .select({
+        id: idColumn,
+        name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
+        birthday: tCustomer.birthday
+    })
+    .orderByFromString(searchOrderBy)
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select id as id, first_name || $1 || last_name as name, birthday as birthday 
+from customer 
+where first_name like ('%' || $2 || '%') 
+order by lower(name), birthday asc nulls last
+```
+
+The parameters are: `[ ' ', 'ohn' ]`
+
+The result type is:
+```tsx
+const searchedCustomers: Promise<{
+    id?: number;
+    name: string;
+    birthday?: Date;
 }[]>
 ```

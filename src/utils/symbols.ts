@@ -62,6 +62,7 @@ export const equalableValueSourceType: unique symbol = Symbol('equalableValueSou
 export const comparableValueSourceType: unique symbol = Symbol('comparableValueSourceType')
 export const booleanValueSourceType: unique symbol = Symbol('booleanValueSourceType')
 export const ifValueSourceType: unique symbol = Symbol('ifValueSourceType')
+export const anyBooleanValueSourceType: unique symbol = Symbol('anyBooleanValueSourceType')
 export const numberValueSourceType: unique symbol = Symbol('numberValueSourceType')
 export const stringNumberValueSourceType: unique symbol = Symbol('stringNumberValueSourceType')
 export const intValueSourceType: unique symbol = Symbol('intValueSourceType')

@@ -173,6 +173,7 @@ You can read the latest version of the documentation at: https://ts-sql-query.re
   - [Extract columns](advanced-usage.md#extract-columns)
   - [Prefixing](advanced-usage.md#prefixing)
   - [Prefix map for guided split](advanced-usage.md#prefix-map-for-guided-split)
+  - [Merge types](advanced-usage.md#merge-types)
 - [Change Log](CHANGELOG.md#change-log)
 
 <!-- 
@@ -360,6 +361,7 @@ Generated table of content of the file created using npm run create-single-doc-f
   - [Extract columns](#extract-columns)
   - [Prefixing](#prefixing)
   - [Prefix map for guided split](#prefix-map-for-guided-split)
+  - [Merge types](#merge-types)
 - [CHANGELOG.md](#changelogmd)
 - [Change Log](#change-log)
 

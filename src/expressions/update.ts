@@ -278,14 +278,18 @@ export interface ComposableCustomizableExecutableUpdate<TABLE extends ITableOrVi
 }
 
 type ReturningFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Oracle) 
     ? <COLUMNS extends UpdateColumns<TABLE, USING>>(columns: COLUMNS) => ComposableCustomizableExecutableUpdate<TABLE, COLUMNS, UpdateResult<ResultValues<COLUMNS>>>
-    : never
+    : (TABLE[typeof database] extends Sqlite 
+    ? <COLUMNS extends UpdateColumns<TABLE, TABLE>>(columns: COLUMNS) => ComposableCustomizableExecutableUpdate<TABLE, COLUMNS, UpdateResult<ResultValues<COLUMNS>>>
+    : never)
 
 type ReturningOneColumnFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Oracle) 
     ? <COLUMN extends IValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | OLD<TABLE[typeof tableOrViewRef]>, any>>(column: COLUMN) => ComposableCustomizableExecutableUpdate<TABLE, COLUMN, FixUpdateOneResult<COLUMN[typeof valueType]>>
-    : never
+    : (TABLE[typeof database] extends Sqlite 
+    ? <COLUMN extends IValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | OLD<TABLE[typeof tableOrViewRef]>, any>>(column: COLUMN) => ComposableCustomizableExecutableUpdate<TABLE, COLUMN, FixUpdateOneResult<COLUMN[typeof valueType]>>
+    : never)
 
 export type UpdateColumns<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
     [P: string]: IValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | OLD<TABLE[typeof tableOrViewRef]>, any>

@@ -1,5 +1,23 @@
 # Change Log
 
+## v1.22.0 (24 Oct 2021)
+
+**Changes**:
+
+- Deprecate `replace` method in favour of `replaceAll` in the string value source to align with JavaScript
+- Add the `substr` and `substrToEnd` to the string value source to align with JavaScript and respect the real available implementation in the databases
+- Add support to create complex dynamic boolean expression using the `dynamicBooleanExpresionUsing` method in the connection object. It allows to create programmatically dynamically complex boolean expressions instead of declarative dynamically conditions using the `IfValue` functions. It is recommend to use the `IfValue` functions when it is possible
+- Add `mergeType` utility function to deal with advanced dynamic queries when a variable ended with type a union of several types of value source. This function allows to resolve the union type in a single value source type
+
+**Documentation changes**:
+
+- Combine all topics related to dynamic queries in a single page to avoid confusion
+- Improve documentation style
+
+**Bug fixes**:
+
+- Fix broken `substring` implementation in the string value source
+
 ## v1.21.0 (22 Oct 2021)
 
 **Changes**:

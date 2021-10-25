@@ -47,7 +47,7 @@ ts-sql-query follows a strategy that can be a little bit different to what is us
 
     When Oracle's Instant Client is uncompressed, you will need to drop the quarantine mark over the files. To do this, you must execute the command `xattr -d com.apple.quarantine *` inside the uncompressed folder.
 
-- You need to update the following line of the [scripts/run-all-examples.sh](https://github.com/juanluispaz/ts-sql-query/blob/master/scripts/run-all-examples.sh) with the location of the racle's Instant Client folder:
+- You need to update the following line of the [scripts/run-all-examples.sh](https://github.com/juanluispaz/ts-sql-query/blob/master/scripts/run-all-examples.sh) with the location of the Oracle's Instant Client folder:
 
     **Before**: `cp -R -X $PWD/../instantclient_19_8/* node_modules/oracledb/build/Release`
 

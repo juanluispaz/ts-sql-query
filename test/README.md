@@ -2,7 +2,7 @@
 
 ts-sql-query follows a strategy that can be a little bit different to what is usual:
 
-1. The tests are structured as runnable examples located in the [src/example folder](https://github.com/juanluispaz/ts-sql-query/tree/master/src/examples)
+1. The tests are structured as runnable examples located in the [src/examples folder](https://github.com/juanluispaz/ts-sql-query/tree/master/src/examples)
 2. Tests must mimic real usage to be used as a reference for the users
 3. All tests must be done using the public interface, like any user of ts-sql-query will use the library
 4. The tests must run against real databases using real servers when it is possible

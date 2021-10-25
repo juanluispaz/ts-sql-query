@@ -40,9 +40,17 @@ ts-sql-query follows a strategy that can be a little bit different to what is us
   - Linux version: https://www.oracle.com/es/database/technologies/instant-client/linux-x86-64-downloads.html
   - MacOS version: https://www.oracle.com/es/database/technologies/instant-client/macos-intel-x86-downloads.html
 - You need to uncompress Oracle's Instant Client.
-    **MacOS users**: the file must be uncompressed in a folder different to the standard folders included in your user directory. This rule doesn't allow to use of the `Download` folder. Suppose you place the content of Oracle's Instant Client in any of the standard folders available in your home directory. In that case, the MacOS's gatekeeper will stop you due to additional permissions required. When Oracle's Instant Client is uncompressed, you will need to drop the quarantine mark over the files. To do this, you must execute the command `xattr -d com.apple.quarantine *` inside the uncompressed folder.
+
+    **MacOS users**: 
+    
+    The file must be uncompressed in a folder different to the standard folders included in your user directory. This rule doesn't allow to use of the `Download` folder. Suppose you place the content of Oracle's Instant Client in any of the standard folders available in your home directory. In that case, the MacOS's gatekeeper will stop you due to additional permissions required. 
+
+    When Oracle's Instant Client is uncompressed, you will need to drop the quarantine mark over the files. To do this, you must execute the command `xattr -d com.apple.quarantine *` inside the uncompressed folder.
+
 - You need to update the following line of the [scripts/run-all-examples.sh](https://github.com/juanluispaz/ts-sql-query/blob/master/scripts/run-all-examples.sh) with the location of the racle's Instant Client folder:
+
     **Before**: `cp -R -X $PWD/../instantclient_19_8/* node_modules/oracledb/build/Release`
+
     **After**: `cp -R -X /location/of/instantclient/* node_modules/oracledb/build/Release`
 
 ## Running all tests

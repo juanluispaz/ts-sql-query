@@ -422,10 +422,10 @@ async function main() {
             .executeUpdateOne()
         assertEquals(smithLastNameUpdate3, {oldLastName: 'Smith - ACME Cia.', newLastName: 'Smith/ACME Cia.'})
 
-        // connection.commit()
+        // await connection.commit()
     } catch(e) {
         // Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844
-        //connection.rollback()
+        //await connection.rollback()
         throw e
     }
 }

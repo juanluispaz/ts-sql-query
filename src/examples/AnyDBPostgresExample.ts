@@ -427,9 +427,9 @@ async function main() {
             .executeUpdateOne()
         assertEquals(smithLastNameUpdate3, {oldLastName: 'Smith - ACME Cia.', newLastName: 'Smith/ACME Cia.'})
 
-        connection.commit()
+        await connection.commit()
     } catch(e) {
-        connection.rollback()
+        await connection.rollback()
         throw e
     }
 }

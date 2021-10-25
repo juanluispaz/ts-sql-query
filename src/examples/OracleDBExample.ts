@@ -331,9 +331,9 @@ async function main() {
             .executeInsertMany()
         assertEquals(insertMultipleCustomers, [ { id: 5, firstName: 'Other 2', lastName: 'Person 2' }, { id: 6, firstName: 'Other 3', lastName: 'Person 3' }])
 
-        connection.commit()
+        await connection.commit()
     } catch(e) {
-        connection.rollback()
+        await connection.rollback()
         throw e
     }
 }

@@ -310,9 +310,9 @@ async function main() {
             .executeUpdate()
         assertEquals(i, 1)
 
-        connection.commit()
+        await connection.commit()
     } catch(e) {
-        connection.rollback()
+        await connection.rollback()
         throw e
     }
 }

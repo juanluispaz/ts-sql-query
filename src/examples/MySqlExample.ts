@@ -290,9 +290,9 @@ async function main() {
             .executeDelete()
         assertEquals(i, 1)
 
-        connection.commit()
+        await connection.commit()
     } catch(e) {
-        connection.rollback()
+        await connection.rollback()
         throw e
     }
 }

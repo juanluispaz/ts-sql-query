@@ -314,9 +314,9 @@ async function main() {
             .executeInsert()
         assertEquals(ii, ['BQjHWTD6_ulK0507', 'J_BFtuk1cz1D0609', 'EHT8AO2zDvi0070d'])
 
-        connection.commit()
+        await connection.commit()
     } catch(e) {
-        connection.rollback()
+        await connection.rollback()
         throw e
     }
 }

@@ -53,6 +53,13 @@ ts-sql-query follows a strategy that can be a little bit different to what is us
 
     **After**: `cp -R -X /location/of/instantclient/* node_modules/oracledb/build/Release`
 
+- The first time, after clone the repository, you will need to execute the following commands:
+
+    ```
+    npm install
+    npm run generate-prisma
+    ```
+
 ## Running all tests
 
 To run all the tests, you need to execute the following command:

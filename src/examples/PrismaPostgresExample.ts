@@ -17,6 +17,14 @@ class DBConection extends PostgreSqlConnection<'DBConnection'> {
         return this.executeProcedure('append_to_all_companies_name', [this.const(aditional, 'string')])
     }
     customerSeq = this.sequence('customer_seq', 'int')
+    getPrismaClient(): PrismaClient {
+        const prisma = this.queryRunner.getCurrentNativeTransaction() || this.queryRunner.getNativeRunner()
+        if (prisma instanceof PrismaClient) {
+            return prisma
+        } else {
+            throw new Error('Unable to find the Prisma Client')
+        }
+    }
 }
 
 const tCompany = new class TCompany extends Table<DBConection, 'TCompany'> {

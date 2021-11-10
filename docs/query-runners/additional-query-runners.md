@@ -344,6 +344,23 @@ const transactionResult = prisma.$transaction(async (prismaTransaction) => {
 });
 ```
 
+### Accessing to the Prisma Client from the connection
+
+If you want to access the underlying Prisma Cient from your connection object you can define an accesor method in your connection class like:
+
+```ts
+class DBConection extends PostgreSqlConnection<'DBConnection'> {
+    getPrismaClient(): PrismaClient {
+        const prisma = this.queryRunner.getCurrentNativeTransaction() || this.queryRunner.getNativeRunner()
+        if (prisma instanceof PrismaClient) {
+            return prisma
+        } else {
+            throw new Error('Unable to find the Prisma Client')
+        }
+    }
+}
+```
+
 ## sqlite
 
 It allows to execute the queries using an [sqlite](https://www.npmjs.com/package/sqlite) connection.

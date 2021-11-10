@@ -22,6 +22,10 @@ export class PgQueryRunner extends PromiseBasedWithSqlTransactionQueryRunner {
         return this.connection
     }
 
+    getCurrentNativeTransaction(): undefined {
+        return undefined
+    }
+
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
         return fn(this.connection)
     }

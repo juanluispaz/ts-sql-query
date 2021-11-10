@@ -24,6 +24,10 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
         return this.pool
     }
 
+    getCurrentNativeTransaction(): Transaction | undefined {
+        return this.transaction
+    }
+
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
         return fn(this.pool, this.transaction)
     }

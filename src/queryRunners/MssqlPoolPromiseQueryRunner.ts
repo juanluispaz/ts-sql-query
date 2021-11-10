@@ -1,5 +1,5 @@
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
-import type { ConnectionPool } from 'mssql'
+import type { ConnectionPool, Transaction } from 'mssql'
 import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { MssqlPoolQueryRunner } from "./MssqlPoolQueryRunner"
 
@@ -18,8 +18,11 @@ export class MssqlPoolPromiseQueryRunner extends PromiseBasedPoolQueryRunner {
             throw new Error('Unsupported database: ' + database + '. MssqlPoolPromiseQueryRunner only supports sqlServer databases')
         }
     }
-    getNativeRunner(): unknown {
+    getNativeRunner(): Promise<ConnectionPool> {
         return this.promisePool
+    }
+    getCurrentNativeTransaction(): Transaction | undefined {
+        return super.getCurrentNativeTransaction() as any
     }
     addParam(params: any[], value: any): string {
         const index = params.length

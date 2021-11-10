@@ -145,6 +145,12 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
 
     abstract useDatabase(database: DatabaseType): void
     abstract getNativeRunner(): unknown
+    getCurrentNativeTransaction(): unknown {
+        if (!this.currentQueryRunner) {
+            return undefined
+        }
+        return this.currentQueryRunner.getCurrentNativeTransaction()
+    }
     abstract addParam(params: any[], value: any): string
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')

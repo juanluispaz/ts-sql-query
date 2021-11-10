@@ -29,7 +29,7 @@ export interface PrismaConfig {
 export class PrismaQueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType;
     readonly connection: RawPrismaClient
-    readonly interactiveTransaction?: RawPrismaClient
+    readonly transaction?: RawPrismaClient
     readonly config: PrismaConfig
     private transactionLevel = 0
 
@@ -55,11 +55,11 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         }
         try {
             if (connection.$transaction as any) {
-                this.interactiveTransaction = undefined
+                this.transaction = undefined
             }
         } catch {
             // This is running in an interactiveTransaction
-            this.interactiveTransaction = connection
+            this.transaction = connection
             this.transactionLevel = 1
         }
         if (config.forUseInTransaction) {
@@ -81,14 +81,17 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
             }
         }
     }
-    getNativeRunner(): unknown {
+    getNativeRunner(): RawPrismaClient {
         return this.connection
     }
+    getCurrentNativeTransaction(): RawPrismaClient | undefined {
+        return this.transaction
+    }
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
-        return fn(this.connection, this.interactiveTransaction)
+        return fn(this.connection, this.transaction)
     }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        const connection = this.interactiveTransaction || this.connection
+        const connection = this.transaction || this.connection
         let result
         if (isPrisma3(connection)) {
             result = connection.$queryRawUnsafe<any[]>(query, ...params)
@@ -98,7 +101,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         return this.wrapPrismaPromise(result)
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        const connection = this.interactiveTransaction || this.connection
+        const connection = this.transaction || this.connection
         let result
         if (isPrisma3(connection)) {
             result = connection.$executeRawUnsafe<any[]>(query, ...params)
@@ -157,12 +160,12 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
     executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
     executeInTransaction(fn: () => Promise<any>[] | Promise<any>, _outermostQueryRunner: QueryRunner): Promise<any> {
         if (this.config.interactiveTransactions) {
-            if (this.interactiveTransaction) {
+            if (this.transaction) {
                 throw new Error('Nested interactive transaction is not supported by Prisma')
             }
             return this.connection.$transaction((interactiveTransactions: RawPrismaClient) => {
                 // @ts-ignore
-                this.interactiveTransaction = interactiveTransactions
+                this.transaction = interactiveTransactions
                 this.transactionLevel++
                 const promises = fn()
                 let result
@@ -174,7 +177,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
                 return result.finally(() => {
                     this.transactionLevel--
                     // @ts-ignore
-                    this.interactiveTransaction = undefined
+                    this.transaction = undefined
                 })
             }, this.config.interactiveTransactionsOptions)
         }
@@ -229,7 +232,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         return result
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        if (this.interactiveTransaction) {
+        if (this.transaction) {
             Promise.resolve(result)
         }
         if (this.transactionLevel <= 0) {
@@ -239,7 +242,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         }
     }
     executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
-        if (this.interactiveTransaction) {
+        if (this.transaction) {
             return fn1().then((r1) => {
                 return fn2().then((r2) => {
                     return [r1, r2]
@@ -266,7 +269,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         return new CombinedPrismaPromise(fn1() as any, fn2() as any) as any
     }
     protected wrapPrismaPromise(promise: Promise<any>): Promise<any> {
-        if (this.interactiveTransaction) {
+        if (this.transaction) {
             // Use a real Promise instead of Prisma proxy to avoid issues due then with one param is not properly managed
             return new Promise((resolve, reject) => {
                 promise.then(resolve, reject)

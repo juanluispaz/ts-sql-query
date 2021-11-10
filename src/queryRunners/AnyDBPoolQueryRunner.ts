@@ -2,6 +2,7 @@ import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { ConnectionPool, Connection } from 'any-db'
 import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { AnyDBQueryRunner } from "./AnyDBQueryRunner"
+import type * as begin  from 'any-db-transaction'
 
 export class AnyDBPoolQueryRunner extends PromiseBasedPoolQueryRunner {
     readonly database: DatabaseType
@@ -43,8 +44,11 @@ export class AnyDBPoolQueryRunner extends PromiseBasedPoolQueryRunner {
             }
         }
     }
-    getNativeRunner(): unknown {
+    getNativeRunner(): ConnectionPool {
         return this.pool
+    }
+    getCurrentNativeTransaction(): begin.Transaction | undefined {
+        return super.getCurrentNativeTransaction() as any
     }
     addParam(params: any[], value: any): string {
         const index = params.length

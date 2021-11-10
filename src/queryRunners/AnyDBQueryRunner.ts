@@ -50,6 +50,10 @@ export class AnyDBQueryRunner extends PromiseBasedQueryRunner {
         return this.connection
     }
 
+    getCurrentNativeTransaction(): begin.Transaction | undefined {
+        return this.transaction
+    }
+
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
         return fn(this.connection, this.transaction)
     }

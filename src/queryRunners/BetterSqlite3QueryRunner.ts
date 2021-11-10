@@ -29,6 +29,10 @@ export class BetterSqlite3QueryRunner extends PromiseBasedWithSqlTransactionQuer
         return this.connection
     }
 
+    getCurrentNativeTransaction(): undefined {
+        return undefined
+    }
+
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
         return fn(this.connection)
     }

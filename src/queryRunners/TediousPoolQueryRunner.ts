@@ -18,7 +18,7 @@ export class TediousPoolQueryRunner extends PromiseBasedPoolQueryRunner {
             throw new Error('Unsupported database: ' + database + '. TediousPoolQueryRunner only supports sqlServer databases')
         }
     }
-    getNativeRunner(): unknown {
+    getNativeRunner(): ConnectionPool {
         return this.pool
     }
     addParam(params: any[], value: any): string {

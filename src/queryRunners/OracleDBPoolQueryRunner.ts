@@ -19,7 +19,7 @@ export class OracleDBPoolQueryRunner extends PromiseBasedPoolQueryRunner {
             throw new Error('Unsupported database: ' + database + '. OracleDBPoolQueryRunner only supports oracle databases')
         }
     }
-    getNativeRunner(): unknown {
+    getNativeRunner(): Pool {
         return this.pool
     }
     addParam(params: any[], value: any): string {

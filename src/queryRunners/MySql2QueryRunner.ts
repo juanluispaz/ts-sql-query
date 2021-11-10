@@ -21,8 +21,13 @@ export class MySql2QueryRunner extends PromiseBasedQueryRunner {
             this.database = database
         }
     }
+
     getNativeRunner(): Connection {
         return this.connection
+    }
+    
+    getCurrentNativeTransaction(): undefined {
+        return undefined
     }
 
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {

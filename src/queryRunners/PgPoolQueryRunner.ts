@@ -18,7 +18,7 @@ export class PgPoolQueryRunner extends PromiseBasedPoolQueryRunner {
             throw new Error('Unsupported database: ' + database + '. PgPoolQueryRunner only supports postgreSql databases')
         }
     }
-    getNativeRunner(): unknown {
+    getNativeRunner(): Pool {
         return this.pool
     }
     addParam(params: any[], value: any): string {

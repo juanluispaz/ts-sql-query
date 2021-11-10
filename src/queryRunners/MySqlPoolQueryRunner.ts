@@ -21,7 +21,7 @@ export class MySqlPoolQueryRunner extends PromiseBasedPoolQueryRunner {
             this.database = database
         }
     }
-    getNativeRunner(): unknown {
+    getNativeRunner(): Pool {
         return this.pool
     }
     addParam(params: any[], value: any): string {

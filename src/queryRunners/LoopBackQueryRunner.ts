@@ -58,6 +58,9 @@ export abstract class LoopBackAbstractQueryRunner extends PromiseBasedQueryRunne
     getNativeRunner(): DataSource {
         return this.datasource
     }
+    getCurrentNativeTransaction(): Transaction | undefined {
+        return this.transaction
+    }
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
         return fn(this.datasource, this.transaction)
     }

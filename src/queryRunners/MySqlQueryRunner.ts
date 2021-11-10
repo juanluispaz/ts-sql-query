@@ -26,6 +26,10 @@ export class MySqlQueryRunner extends PromiseBasedQueryRunner {
         return this.connection
     }
 
+    getCurrentNativeTransaction(): undefined {
+        return undefined
+    }
+
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
         return fn(this.connection)
     }

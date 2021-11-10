@@ -42,7 +42,7 @@ const prisma = new PrismaClient()
 
 async function main() {
     const connection = new DBConection(new ConsoleLogQueryRunner(new PrismaQueryRunner(prisma)))
-    // Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844
+    // Prisma doesn't support low level transaction management
     // await connection.beginTransaction()
 
     try {
@@ -286,7 +286,7 @@ async function main() {
 
         // await connection.commit()
     } catch(e) {
-        // Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844
+        // Prisma doesn't support low level transaction management
         //await connection.rollback()
         throw e
     }

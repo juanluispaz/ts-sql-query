@@ -41,7 +41,7 @@ const tCustomer = new class TCustomer extends Table<DBConection, 'TCustomer'> {
 const prisma = new PrismaClient()
 
 async function main() {
-    const connection = new DBConection(new ConsoleLogQueryRunner(new PrismaQueryRunner(prisma)))
+    const connection = new DBConection(new ConsoleLogQueryRunner(new PrismaQueryRunner(prisma, {interactiveTransactions: true})))
     // Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844
     //await connection.beginTransaction()
 

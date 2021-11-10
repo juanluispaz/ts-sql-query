@@ -342,6 +342,7 @@ const transactionResult = prisma.$transaction(async (prismaTransaction) => {
 
     return {companyId, customerId};
 });
+```
 
 ## sqlite
 

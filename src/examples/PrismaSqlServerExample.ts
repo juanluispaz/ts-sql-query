@@ -10,12 +10,23 @@ import { PrismaClient } from './prisma/generated/sqlserver'
 import { PrismaQueryRunner } from "../queryRunners/PrismaQueryRunner"
 
 class DBConection extends SqlServerConnection<'DBConnection'> {
+
+    // Due Prisma doesn't allow to create functions or procedures, let emulate it for testing purpose
     // increment(i: number) {
     //     return this.executeFunction('dbo.increment', [this.const(i, 'int')], 'int', 'required')
     // }
     // appendToAllCompaniesName(aditional: string) {
     //     return this.executeProcedure('append_to_all_companies_name', [this.const(aditional, 'string')])
     // }
+
+    increment(i: number) {
+        return this.selectFromNoTable().selectOneColumn(this.const(i, 'int').add(1)).executeSelectOne()
+    }
+    appendToAllCompaniesName(aditional: string) {
+        return this.updateAllowingNoWhere(tCompany).set({name: tCompany.name.concat(aditional)}).executeUpdate()
+    }
+
+    // By default Prisma doesn't run in a transaction, let skip transaction based tests
     //customerSeq = this.sequence('customer_seq', 'int')
 }
 
@@ -69,6 +80,7 @@ async function main() {
             create sequence customer_seq as int start with 1;
         `)
 
+        // Prisma doesn't allows to create a SQL function
         // await connection.queryRunner.executeDatabaseSchemaModification(`
         //     create function increment(@i int) returns int as 
         //         begin
@@ -76,6 +88,7 @@ async function main() {
         //         end;
         // `)
 
+        // Prisma doesn't allows to create a SQL procedures
         // await connection.queryRunner.executeDatabaseSchemaModification(`
         //     create procedure append_to_all_companies_name @aditional varchar(100) as
         //     begin
@@ -107,6 +120,7 @@ async function main() {
             .executeInsert()
         assertEquals(ii, [1, 2, 3])
 
+        // By default Prisma doesn't run in a transaction, let skip transaction based tests
         // i = await connection
         //     .selectFromNoTable()
         //     .selectOneColumn(connection.customerSeq.currentValue())
@@ -252,17 +266,17 @@ async function main() {
             { acmeCompanyId: 1, acmeCompanyName: 'ACME', acmeEndsWithME: true, acmeCustomerCount: 3 }
         ])
 
-        // i = await connection.increment(10)
-        // assertEquals(i, 11)
+        i = await connection.increment(10)
+        assertEquals(i, 11)
 
-        // await connection.appendToAllCompaniesName(' Cia.')
+        await connection.appendToAllCompaniesName(' Cia.')
 
-        // name = await connection
-        //     .selectFrom(tCompany)
-        //     .where(tCompany.id.equals(1))
-        //     .selectOneColumn(tCompany.name)
-        //     .executeSelectOne()
-        // assertEquals(name, 'ACME Cia.')
+        name = await connection
+            .selectFrom(tCompany)
+            .where(tCompany.id.equals(1))
+            .selectOneColumn(tCompany.name)
+            .executeSelectOne()
+        assertEquals(name, 'ACME Cia.')
 
         ii = await connection
             .insertInto(tCompany)
@@ -374,51 +388,50 @@ async function main() {
             .executeDelete()
         assertEquals(i, 1)
 
-        // For some reason prisma doesn't return the query result
-        // const smithLastNameUpdate = await connection.update(tCustomer)
-        //     .from(tCompany)
-        //     .set({
-        //         lastName: 'Smith'
-        //     })
-        //     .where(tCustomer.companyId.equals(tCompany.id))
-        //     .and(tCompany.name.equals('ACME Cia.'))
-        //     .and(tCustomer.firstName.equals('Ron 2'))
-        //     .returning({
-        //         oldLastName: oldCustomerValues.lastName,
-        //         newLastName: tCustomer.lastName
-        //     })
-        //     .executeUpdateOne()
-        // assertEquals(smithLastNameUpdate, {oldLastName: 'Smith 2', newLastName: 'Smith'})
+        const smithLastNameUpdate = await connection.update(tCustomer)
+            .from(tCompany)
+            .set({
+                lastName: 'Smith'
+            })
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .and(tCompany.name.equals('ACME Cia.'))
+            .and(tCustomer.firstName.equals('Ron 2'))
+            .returning({
+                oldLastName: oldCustomerValues.lastName,
+                newLastName: tCustomer.lastName
+            })
+            .executeUpdateOne()
+        assertEquals(smithLastNameUpdate, {oldLastName: 'Smith 2', newLastName: 'Smith'})
 
-        // const smithLastNameUpdate2 = await connection.update(tCustomer)
-        //     .from(tCompany)
-        //     .set({
-        //         lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
-        //     })
-        //     .where(tCustomer.companyId.equals(tCompany.id))
-        //     .and(tCompany.name.equals('ACME Cia.'))
-        //     .and(tCustomer.firstName.equals('Ron 2'))
-        //     .returning({
-        //         oldLastName: oldCustomerValues.lastName,
-        //         newLastName: tCustomer.lastName
-        //     })
-        //     .executeUpdateOne()
-        // assertEquals(smithLastNameUpdate2, {oldLastName: 'Smith', newLastName: 'Smith - ACME Cia.'})
+        const smithLastNameUpdate2 = await connection.update(tCustomer)
+            .from(tCompany)
+            .set({
+                lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+            })
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .and(tCompany.name.equals('ACME Cia.'))
+            .and(tCustomer.firstName.equals('Ron 2'))
+            .returning({
+                oldLastName: oldCustomerValues.lastName,
+                newLastName: tCustomer.lastName
+            })
+            .executeUpdateOne()
+        assertEquals(smithLastNameUpdate2, {oldLastName: 'Smith', newLastName: 'Smith - ACME Cia.'})
 
-        // const smithLastNameUpdate3 = await connection.update(tCustomer)
-        //     .from(tCompany)
-        //     .set({
-        //         lastName: 'Smith'
-        //     })
-        //     .where(tCustomer.companyId.equals(tCompany.id))
-        //     .and(tCompany.name.equals('ACME Cia.'))
-        //     .and(tCustomer.firstName.equals('Ron 2'))
-        //     .returning({
-        //         oldLastName: oldCustomerValues.lastName,
-        //         newLastName: tCustomer.lastName.concat('/').concat(tCompany.name)
-        //     })
-        //     .executeUpdateOne()
-        // assertEquals(smithLastNameUpdate3, {oldLastName: 'Smith - ACME Cia.', newLastName: 'Smith/ACME Cia.'})
+        const smithLastNameUpdate3 = await connection.update(tCustomer)
+            .from(tCompany)
+            .set({
+                lastName: 'Smith'
+            })
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .and(tCompany.name.equals('ACME Cia.'))
+            .and(tCustomer.firstName.equals('Ron 2'))
+            .returning({
+                oldLastName: oldCustomerValues.lastName,
+                newLastName: tCustomer.lastName.concat('/').concat(tCompany.name)
+            })
+            .executeUpdateOne()
+        assertEquals(smithLastNameUpdate3, {oldLastName: 'Smith - ACME Cia.', newLastName: 'Smith/ACME Cia.'})
 
         // await connection.commit()
     } catch(e) {

@@ -1,5 +1,4 @@
-
-import { IValueSource, __getValueSourcePrivate } from "../expressions/values"
+import { AnyValueSource, __getValueSourcePrivate } from "../expressions/values"
 import { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import { attachSource } from "../utils/attachSource"
 
@@ -37,7 +36,7 @@ export class ComposeSplitQueryBuilder {
 
     __compositions: SplitCompose[] = []
     __lastComposition?: Compose
-    __columns?: { [property: string]: IValueSource<any, any> }
+    __columns?: { [property: string]: AnyValueSource }
 
     constructor(sqlBuilder: SqlBuilder) {
         this.__sqlBuilder = sqlBuilder
@@ -387,7 +386,7 @@ export class ComposeSplitQueryBuilder {
         }
     }
 
-    __transformValueFromDB(valueSource: IValueSource<any, any>, value: any, column?: string, index?: number, count?: boolean) {
+    __transformValueFromDB(valueSource: AnyValueSource, value: any, column?: string, index?: number, count?: boolean) {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const typeAdapter = valueSourcePrivate.__typeAdapter
         let result
@@ -399,7 +398,7 @@ export class ComposeSplitQueryBuilder {
         if (result !== null && result !== undefined) {
             return result
         }
-        if (!valueSourcePrivate.__isResultOptional(this.__sqlBuilder)) {
+        if (valueSourcePrivate.__optionalType === 'required') {
             let errorMessage = 'Expected a value as result'
             if (column !== undefined) {
                 errorMessage += ' of the column `' + column + '`'

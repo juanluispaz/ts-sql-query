@@ -1,7 +1,7 @@
 import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData } from "../sqlBuilders/SqlBuilder"
 import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderByExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereOffsetExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, ExecutableSelectWithWhere, ExecutableSelectWithoutWhere, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, SplitedComposedExecutableSelectWithoutWhere, SplitedComposedDynamicWhereExecutableSelectExpression, WhereableCompoundableExecutableSelectExpressionWithoutWhere } from "../expressions/select"
 import { HasAddWiths, ITableOrView, IWithView, OuterJoinSource, __getOldValues, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import type { BooleanValueSource, NumberValueSource, IntValueSource, IValueSource, IfValueSource, IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery } from "../expressions/values"
+import type { IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { WithView } from "../utils/tableOrViewUtils"
 import { __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
@@ -10,7 +10,7 @@ import ChainedError from "chained-error"
 import { AggregateFunctions0ValueSource, InlineSelectValueSource } from "../internal/ValueSourceImpl"
 import { attachSource } from "../utils/attachSource"
 import { columnsType, database, requiredTableOrView, resultType, compoundable, type, compoundableColumns } from "../utils/symbols"
-import { asValueSource } from "../expressions/values"
+import { asAlwaysIfValueSource } from "../expressions/values"
 import { WithViewImpl } from "../internal/WithViewImpl"
 import { createColumnsFrom } from "../internal/ColumnImpl"
 import { View } from "../View"
@@ -27,10 +27,10 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     [resultType]: any
     [columnsType]: any
 
-    __columns: { [property: string]: IValueSource<any, any> } = {}
+    __columns: { [property: string]: AnyValueSource } = {}
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
-    __limit?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
-    __offset?: int | number | NumberValueSource<any, any> | IntValueSource<any, any>
+    __limit?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
+    __offset?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __withs: Array<IWithView<any>> = []
     __customization?: SelectCustomization<any>
 
@@ -174,7 +174,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     __executeSelectCount(source: Error): Promise<any> {
         try {
             this.__sqlBuilder._resetUnique()
-            const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', undefined)
+            const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', 'required', undefined)
             const params: any[] = []
             const query = this.__buildSelectCount(countAll, params)
             return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(query, params).then((value) => {
@@ -297,14 +297,14 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     limit(limit: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
-        this.__limit = asValueSource(limit)
+        this.__limit = limit
         __addWiths(limit, this.__withs)
         return this
     }
     offset(offset: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
-        this.__offset = asValueSource(offset)
+        this.__offset = offset
         __addWiths(offset, this.__withs)
         return this
     }
@@ -455,7 +455,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             this.__recursiveSelect = undefined
             return recursiveView as any
         }
-        return new WithViewImpl<any, any>(as, this.__asSelectData(), this.__sqlBuilder) as any
+        return new WithViewImpl<any, any>(as, this.__asSelectData()) as any
     };
 
     forUseAsInlineQueryValue(): any {
@@ -465,14 +465,14 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     __buildRecursive(fn: (view: any) => ICompoundableSelect<any, any, any, any>, unionAll: boolean): void {
         const sqlBuilder = this.__sqlBuilder
         const name = 'recursive_select_' + sqlBuilder._generateUnique()
-        const recursiveInternalView = new WithViewImpl<any, any>(name, this as any, sqlBuilder)
+        const recursiveInternalView = new WithViewImpl<any, any>(name, this as any)
         let recursiveInternalSelect 
         if (unionAll) {
             recursiveInternalSelect = this.unionAll(fn(recursiveInternalView))
         } else {
             recursiveInternalSelect = this.union(fn(recursiveInternalView))
         }
-        const recursiveView = new WithViewImpl<any, any>(name, recursiveInternalSelect, sqlBuilder)
+        const recursiveView = new WithViewImpl<any, any>(name, recursiveInternalSelect)
         recursiveView.__recursive = true
 
         const recursiveSelect = new SelectQueryBuilder(this.__sqlBuilder, [recursiveView], false)
@@ -529,9 +529,9 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     __distinct: boolean
     __tablesOrViews: Array<ITableOrView<any>>
     __joins: Array<JoinData> = []
-    __where?: BooleanValueSource<any, any> | IfValueSource<any, any>
-    __having?: BooleanValueSource<any, any> | IfValueSource<any, any>
-    __groupBy:  Array<IValueSource<any, any>> = []
+    __where?: AlwaysIfValueSource<any, any>
+    __having?: AlwaysIfValueSource<any, any>
+    __groupBy:  Array<AnyValueSource> = []
     __requiredTablesOrViews?: Set<ITableOrView<any>>
 
     __lastJoin?: JoinData
@@ -570,7 +570,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
 
     __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
         if (this.groupBy.length > 0) {
-            const withView = new WithViewImpl<any, any>('result_for_count', this, this.__sqlBuilder)
+            const withView = new WithViewImpl<any, any>('result_for_count', this)
             const withs: Array<IWithView<any>> = []
             withView.__addWiths(withs)
             
@@ -612,7 +612,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return this
     }
-    selectOneColumn(column: IValueSource<any, any>): any {
+    selectOneColumn(column: AnyValueSource): any {
         this.__finishJoinHaving()
         this.__query = ''
         this.__oneColumn = true
@@ -748,7 +748,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         if (!this.__lastJoin) {
             throw new Error('Illegal state')
         }
-        this.__lastJoin.__on = asValueSource(condition)
+        this.__lastJoin.__on = asAlwaysIfValueSource(condition)
         this.__joins.push(this.__lastJoin)
         this.__lastJoin = undefined
         __getValueSourcePrivate(condition).__addWiths(this.__withs)
@@ -772,7 +772,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         if (this.__where) {
             throw new Error('Illegal state')
         }
-        this.__where = asValueSource(condition)
+        this.__where = asAlwaysIfValueSource(condition)
         __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
@@ -781,24 +781,24 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getValueSourcePrivate(condition).__addWiths(this.__withs)
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
-                this.__lastJoin.__on = this.__lastJoin.__on.and(condition)
+                this.__lastJoin.__on = this.__lastJoin.__on.and(asAlwaysIfValueSource(condition))
             } else {
-                this.__lastJoin.__on = asValueSource(condition)
+                this.__lastJoin.__on = asAlwaysIfValueSource(condition)
             }
             return this
         }
         if (this.__inHaving) {
             if (this.__having) {
-                this.__having = this.__having.and(condition)
+                this.__having = this.__having.and(asAlwaysIfValueSource(condition))
             } else {
-                this.__having = asValueSource(condition)
+                this.__having = asAlwaysIfValueSource(condition)
             }
             return this
         }
         if (this.__where) {
-            this.__where = this.__where.and(condition)
+            this.__where = this.__where.and(asAlwaysIfValueSource(condition))
         } else {
-            this.__where = asValueSource(condition)
+            this.__where = asAlwaysIfValueSource(condition)
         }
         return this
     }
@@ -807,24 +807,24 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getValueSourcePrivate(condition).__addWiths(this.__withs)
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
-                this.__lastJoin.__on = this.__lastJoin.__on.or(condition)
+                this.__lastJoin.__on = this.__lastJoin.__on.or(asAlwaysIfValueSource(condition))
             } else {
-                this.__lastJoin.__on = asValueSource(condition)
+                this.__lastJoin.__on = asAlwaysIfValueSource(condition)
             }
             return this
         }
         if (this.__inHaving) {
             if (this.__having) {
-                this.__having = this.__having.or(condition)
+                this.__having = this.__having.or(asAlwaysIfValueSource(condition))
             } else {
-                this.__having = asValueSource(condition)
+                this.__having = asAlwaysIfValueSource(condition)
             }
             return this
         }
         if (this.__where) {
-            this.__where = this.__where.or(condition)
+            this.__where = this.__where.or(asAlwaysIfValueSource(condition))
         } else {
-            this.__where = asValueSource(condition)
+            this.__where = asAlwaysIfValueSource(condition)
         }
         return this
     }
@@ -841,11 +841,11 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         if (this.__having) {
             throw new Error('Illegal state')
         }
-        this.__having = asValueSource(condition)
+        this.__having = asAlwaysIfValueSource(condition)
         __getValueSourcePrivate(condition).__addWiths(this.__withs)
         return this
     }
-    groupBy(...columns: Array<string| number | symbol | IValueSource<any, any>>): any {
+    groupBy(...columns: Array<string| number | symbol | AnyValueSource>): any {
         this.__finishJoinHaving()
         this.__query = ''
         for (let i = 0, length = columns.length; i < length; i++) {
@@ -956,7 +956,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         this.__compoundOperator = compoundOperator
         this.__secondQuery = secondQuery
 
-        createColumnsFrom(firstQuery.__columns, this.__columns, sqlBuilder, new View(''))
+        createColumnsFrom(firstQuery.__columns, this.__columns, new View(''))
     }
 
     __registerRequiredColumnInSelect(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
@@ -965,7 +965,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
     }
 
     __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
-        const withView = new WithViewImpl<any, any>('result_for_count', this, this.__sqlBuilder)
+        const withView = new WithViewImpl<any, any>('result_for_count', this)
         const withs: Array<IWithView<any>> = []
         withView.__addWiths(withs)
         

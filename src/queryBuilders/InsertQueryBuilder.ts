@@ -2,11 +2,11 @@ import type { SqlBuilder, InsertData, SelectData } from "../sqlBuilders/SqlBuild
 import{ ITable, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*, MissingKeysInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturning, CustomiableExecutableInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns } from "../expressions/insert"
 import type { Column } from "../utils/Column"
-import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
+import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { database, tableOrView } from "../utils/symbols"
-import { IExecutableSelectQuery, IValueSource, __getValueSourcePrivate } from "../expressions/values"
+import { AnyValueSource, IExecutableSelectQuery, __getValueSourcePrivate } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
 import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
 
@@ -24,7 +24,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
     __from?: SelectData
     __withs: Array<IWithView<any>> = []
     __customization?: InsertCustomization<any>
-    __columns?: { [property: string]: IValueSource<any, any> }
+    __columns?: { [property: string]: AnyValueSource }
 
     __oneColumn?: boolean
 
@@ -70,9 +70,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
                         result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__valueType)
                     }
                     if (result === null || result === undefined) {
-                        if (!idColumnPrivate.__isResultOptional(this.__sqlBuilder)) {
-                            throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
-                        }
+                        throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
                     }
                     if (this.__isMultiple) {
                         return [result]
@@ -92,9 +90,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
                         return rows.map((row, index) => {
                             const result = typeAdapter.transformValueFromDB(row, columnType, defaultTypeAdapter)
                             if (result === null || result === undefined) {
-                                if (!idColumnPrivate.__isResultOptional(this.__sqlBuilder)) {
-                                    throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found at index ' + index)
-                                }
+                                throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found at index ' + index)
                             }
                             return result
                         })
@@ -102,9 +98,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
                         return rows.map((row, index) => {
                             const result = defaultTypeAdapter.transformValueFromDB(row, columnType)
                             if (result === null || result === undefined) {
-                                if (!idColumnPrivate.__isResultOptional(this.__sqlBuilder)) {
-                                    throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found at index ' + index)
-                                }
+                                throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found at index ' + index)
                             }
                             return result
                         })
@@ -553,7 +547,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
         this.__query = ''
         const table = this.__table
         for (var columnName in table) {
-            const column = __getColumnOfTable(table, columnName)
+            const column = __getColumnOfObject(table, columnName)
             if (!column) {
                 continue
             }
@@ -584,7 +578,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
         return this
     }
     
-    returningOneColumn(column: IValueSource<any, any>): this {
+    returningOneColumn(column: AnyValueSource): this {
         this.__query = ''
         this.__oneColumn = true
         this.__columns = { 'result': column }

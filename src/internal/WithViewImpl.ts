@@ -4,9 +4,9 @@ import type { AnyDB } from "../databases"
 import type { SelectData, WithData } from "../sqlBuilders/SqlBuilder"
 import { createColumnsFrom } from "../internal/ColumnImpl"
 import { database, tableOrViewRef, type } from "../utils/symbols"
-import { __getValueSourcePrivate, __OptionalRule } from "../expressions/values"
+import { __getValueSourceOfObject, __getValueSourcePrivate } from "../expressions/values"
 import { RawFragment } from "../utils/RawFragment"
-import { Column, __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
+import { Column } from "../utils/Column"
 
 export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME>> implements IWithView<REF>, WithData, __ITableOrViewPrivate {
     [database]: REF[typeof database]
@@ -19,7 +19,6 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
     // @ts-ignore
     __type: 'with' = 'with'
     __selectData: SelectData
-    __optionalRule: __OptionalRule
     // @ts-ignore
     __originalWith?: WithViewImpl<any, any>
     __ignoreWith?: boolean
@@ -27,20 +26,19 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
     // @ts-ignore
     __template?: RawFragment<any>
 
-    constructor(name: string, selectData: SelectData, optionalRule: __OptionalRule) {
+    constructor(name: string, selectData: SelectData) {
         this.__name = name
         this.__selectData = selectData
-        this.__optionalRule = optionalRule
         
         const columns = selectData.__columns
-        createColumnsFrom(columns, this as any, optionalRule, this)
+        createColumnsFrom(columns, this as any, this)
     }
     [type]: "with"
     [tableOrViewRef]: REF
     [database]: REF[typeof database]
 
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
-        const result = new WithViewImpl(this.__name, this.__selectData, this.__optionalRule)
+        const result = new WithViewImpl(this.__name, this.__selectData)
         result.__as = as
         result.__originalWith = this as any
         return result as any
@@ -49,13 +47,16 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
         return this.forUseInLeftJoinAs('')
     }
     forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): OuterJoinSourceOf<this, ALIAS> {
-        const result = new WithViewImpl(this.__name, this.__selectData, this.__optionalRule)
+        const result = new WithViewImpl(this.__name, this.__selectData)
         result.__as = as
         result.__originalWith = this as any
         for (const prop in result) {
-            const column = __getColumnOfTable(result, prop)
+            const column = __getValueSourceOfObject(result, prop)
             if (column) {
-                __getColumnPrivate(column).__isOptional = true
+                const columnPrivate = __getValueSourcePrivate(column)
+                if (columnPrivate.__optionalType === 'required') {
+                    columnPrivate.__optionalType = 'originallyRequired'
+                }
             }
         }
         return result as any

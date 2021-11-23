@@ -1,5 +1,5 @@
 import { double, int, LocalDate, LocalDateTime, LocalTime, stringDouble, stringInt } from "ts-extended-types";
-import { BooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, IDateTimeValueSource, IDateValueSource, IDoubleValueSource, IEqualableValueSource, IIntValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, ILocalTimeValueSource, INullableValueSource, INumberValueSource, IStringDoubleValueSource, IStringIntValueSource, IStringNumberValueSource, IStringValueSource, ITimeValueSource, ITypeSafeBigintValueSource, ITypeSafeStringValueSource, IValueSource } from "./values";
+import { AnyValueSource, BooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, IDateTimeValueSource, IDateValueSource, IDoubleValueSource, IEqualableValueSource, IIntValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, ILocalTimeValueSource, INullableValueSource, INumberValueSource, IStringDoubleValueSource, IStringIntValueSource, IStringNumberValueSource, IStringValueSource, ITimeValueSource, ITypeSafeBigintValueSource, ITypeSafeStringValueSource, IValueSource, MergeOptionalUnion, ValueSourceOf } from "./values";
 
 export interface Filter {
 }
@@ -158,7 +158,7 @@ export type TypeSafeDynamicCondition<DEFINITION extends DynamicDefinition> = {
     }
 
 export type MapValueSourceToFilter<TYPE> =
-    TYPE extends IValueSource<any, infer T> ? (
+    TYPE extends IValueSource<any, infer T, any, any> ? (
         TYPE extends IBooleanValueSource<any, any> ? BooleanFilter :
         TYPE extends IStringIntValueSource<any, any> ? StringIntFilter :
         TYPE extends IIntValueSource<any, any> ? IntFilter :
@@ -176,15 +176,14 @@ export type MapValueSourceToFilter<TYPE> =
         TYPE extends IDateValueSource<any, any> ? DateFilter :
         TYPE extends ILocalTimeValueSource<any, any> ? LocalTimeFilter :
         TYPE extends ITimeValueSource<any, any> ? TimeFilter :
-        TYPE extends IComparableValueSource<any, any, any> ? ComparableFilter<T> :
-        TYPE extends IEqualableValueSource<any, any, any> ? EqualableFilter<T> :
-        TYPE extends INullableValueSource<any, any, any> ? NullableFilter :
-        TYPE extends IValueSource<any, any> ? Filter :
-        never
+        TYPE extends IComparableValueSource<any, any, any, any> ? ComparableFilter<T> :
+        TYPE extends IEqualableValueSource<any, any, any, any> ? EqualableFilter<T> :
+        TYPE extends INullableValueSource<any, any, any, any> ? NullableFilter :
+        Filter
     ) : never
 
 export type Filterable = {
-    [key: string]: IValueSource<any, any>
+    [key: string]: AnyValueSource
 }
 
 export type DynamicFilter<DEFINITION extends Filterable> = {
@@ -196,19 +195,17 @@ export type DynamicFilter<DEFINITION extends Filterable> = {
     }
 
 export interface DynamicConditionExpression<DEFINITION extends Filterable> {
-    withValues(filter: DynamicFilter<DEFINITION>): BooleanValueSource<TableOfCondition<DEFINITION>, BooleanTypeOfCondition<DEFINITION>>
+    withValues(filter: DynamicFilter<DEFINITION>): BooleanValueSource<TableOfCondition<DEFINITION>, BooleanOptionalTypeOfCondition<DEFINITION>>
 }
 
-export type TableOfValueSource<TYPE> = TYPE extends IValueSource<infer T, any> ? T : never
+export type TableOfValueSource<TYPE> = TYPE extends ValueSourceOf<infer T> ? T : never
 
-export type BooleanValueOfValueSource<TYPE> =
-    TYPE extends IValueSource<any, infer T> ? (
-        T extends null ? null : T extends undefined ? undefined : boolean
-    ) : never
+export type OptionalTypeOfValueSource<TYPE> =
+    TYPE extends IValueSource<any, any, any, infer T> ? T : never
 
-export type BooleanTypeOfCondition<DEFINITION extends Filterable> = ({
-    [KEY in keyof DEFINITION]: BooleanValueOfValueSource<DEFINITION[KEY]>
-})[keyof DEFINITION]
+export type BooleanOptionalTypeOfCondition<DEFINITION extends Filterable> = MergeOptionalUnion<({
+    [KEY in keyof DEFINITION]: OptionalTypeOfValueSource<DEFINITION[KEY]>
+})[keyof DEFINITION]>
 
 export type TableOfCondition<DEFINITION extends Filterable> = ({
     [KEY in keyof DEFINITION]: TableOfValueSource<DEFINITION[KEY]>

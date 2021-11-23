@@ -1,13 +1,13 @@
 import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData } from "./SqlBuilder"
 import { ITableOrView, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import { BooleanValueSource, EqualableValueSource, IExecutableSelectQuery, IfValueSource, IValueSource, __ValueSourcePrivate } from "../expressions/values"
+import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAnyBooleanValueSource, IExecutableSelectQuery, __getValueSourceOfObject, __ValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
 import { CustomBooleanTypeAdapter, DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 import { SequenceValueSource } from "../internal/ValueSourceImpl"
 import { hasToSql, operationOf } from "./SqlBuilder"
 import { __getTableOrViewPrivate } from "../utils/ITableOrView"
-import { __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
+import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import { QueryRunner } from "../queryRunners/QueryRunner"
 import { getWithData } from "./SqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -305,34 +305,34 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendRawFragment(rawFragment: RawFragment<any>, params: any[]): string {
         return (rawFragment as any as ToSql).__toSql(this, params) // RawFragment has a hidden implemetation of ToSql
     }
-    _appendCondition(condition: BooleanValueSource<any, any> | IfValueSource<any, any>, params: any[]): string {
+    _appendCondition(condition: IAnyBooleanValueSource<any, any>, params: any[]): string {
         if (hasToSql(condition)) {
             return condition.__toSqlForCondition(this, params)
         }
         throw new Error('Conditions must have a __toSqlForCondition method')
     }
-    _appendConditionParenthesis(condition: BooleanValueSource<any, any> | IfValueSource<any, any>, params: any[]): string {
+    _appendConditionParenthesis(condition: IAnyBooleanValueSource<any, any>, params: any[]): string {
         if (this._needParenthesis(condition)) {
             return '(' + this._appendCondition(condition, params) + ')'
         }
         return this._appendCondition(condition, params)
     }
-    _appendConditionParenthesisExcuding(condition: BooleanValueSource<any, any> | IfValueSource<any, any>, params: any[], excluding: keyof SqlOperation): string {
+    _appendConditionParenthesisExcuding(condition: IAnyBooleanValueSource<any, any>, params: any[], excluding: keyof SqlOperation): string {
         if (this._needParenthesisExcluding(condition, excluding)) {
             return '(' + this._appendCondition(condition, params) + ')'
         }
         return this._appendCondition(condition, params)
     }
-    _appendSql(value: ToSql | IValueSource<any, any> | Column | IExecutableSelectQuery<any, any, any, any>, params: any[]): string {
+    _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any, any>, params: any[]): string {
         return (value as ToSql).__toSql(this, params) // All ValueSource or Column have a hidden implemetation of ToSql
     }
-    _appendSqlParenthesis(value: ToSql | IValueSource<any, any> | Column, params: any[]): string {
+    _appendSqlParenthesis(value: ToSql | AnyValueSource, params: any[]): string {
         if (this._needParenthesis(value)) {
             return '(' + this._appendSql(value, params) + ')'
         }
         return this._appendSql(value, params)
     }
-    _appendSqlParenthesisExcluding(value: ToSql | IValueSource<any, any> | Column, params: any[], excluding: keyof SqlOperation): string {
+    _appendSqlParenthesisExcluding(value: ToSql | AnyValueSource, params: any[], excluding: keyof SqlOperation): string {
         if (this._needParenthesisExcluding(value, excluding)) {
             return '(' + this._appendSql(value, params) + ')'
         }
@@ -372,16 +372,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendValue(value, params, columnType, typeAdapter)
     }
-    _appendConditionSql(value: ToSql | IValueSource<any, any> | Column, params: any[]): string {
+    _appendConditionSql(value: ToSql | AnyValueSource, params: any[]): string {
         return (value as ToSql).__toSqlForCondition(this, params) // All ValueSource or Column have a hidden implemetation of ToSql
     }
-    _appendConditionSqlParenthesis(value: ToSql | IValueSource<any, any> | Column, params: any[]): string {
+    _appendConditionSqlParenthesis(value: ToSql | AnyValueSource, params: any[]): string {
         if (this._needParenthesis(value)) {
             return '(' + this._appendConditionSql(value, params) + ')'
         }
         return this._appendConditionSql(value, params)
     }
-    _appendConditionSqlParenthesisExcluding(value: ToSql | IValueSource<any, any> | Column, params: any[], excluding: keyof SqlOperation): string {
+    _appendConditionSqlParenthesisExcluding(value: ToSql | AnyValueSource, params: any[], excluding: keyof SqlOperation): string {
         if (this._needParenthesisExcluding(value, excluding)) {
             return '(' + this._appendConditionSql(value, params) + ')'
         }
@@ -698,7 +698,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
         return selectQuery
     }
-    _appendSelectColumn(value: IValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
+    _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined): string {
         if (columnForInsert) {
             const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)
             if (sql) {
@@ -829,7 +829,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let columns = ''
         const nextSequenceValues: string[] = []
         for (var columnName in table) {
-            const column = __getColumnOfTable(table, columnName)
+            const column = __getColumnOfObject(table, columnName)
             if (!column) {
                 continue
             }
@@ -846,7 +846,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             nextSequenceValues.push(columnPrivate.__sequenceName)
         }
         for (let columnName in usedColumns) {
-            const column = __getColumnOfTable(table, columnName)
+            const column = __getColumnOfObject(table, columnName)
             if (!column) {
                 // Additional property provided in the value object
                 // Skipped because it is not part of the table
@@ -877,7 +877,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const sets = multiple[i]!
 
             for (let columnName in usedColumns) {
-                const column = __getColumnOfTable(table, columnName)
+                const column = __getColumnOfObject(table, columnName)
                 if (!column) {
                     // Additional property provided in the value object
                     // Skipped because it is not part of the table
@@ -936,7 +936,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                         return this._appendRawColumnName(value, params) // same boolean as column
                     }
 
-                    if (!columnPrivate.__isOptional) {
+                    if (columnPrivate.__optionalType === 'required') {
                         // remapped
                         return 'case when ' + this._appendRawColumnName(value, params) + ' = ' + this._appendLiteralValue(valueTypeAdapter.trueValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
                     } else {
@@ -946,7 +946,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 }
             }
 
-            if (!columnPrivate.__isOptional) {
+            if (columnPrivate.__optionalType === 'required') {
                 // remapped
                 return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
             } else {
@@ -992,7 +992,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let columns = ''
         const sequences: string[] = []
         for (var columnName in table) {
-            const column = __getColumnOfTable(table, columnName)
+            const column = __getColumnOfObject(table, columnName)
             if (!column) {
                 continue
             }
@@ -1068,7 +1068,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (columnName in sets) {
                 continue
             }
-            const column = __getColumnOfTable(table, columnName)
+            const column = __getColumnOfObject(table, columnName)
             if (!column) {
                 continue
             }
@@ -1087,7 +1087,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const properties = Object.getOwnPropertyNames(sets)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
-            const column = __getColumnOfTable(table, property)
+            const column = __getColumnOfObject(table, property)
             if (!column) {
                 // Additional property provided in the value object
                 // Skipped because it is not part of the table
@@ -1115,7 +1115,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
-            const column = __getColumnOfTable(table, property)
+            const column = __getColumnOfObject(table, property)
             if (!column) {
                 // Additional property provided in the value object
                 // Skipped because it is not part of the table
@@ -1177,7 +1177,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (columnName in selectColumns) {
                 continue
             }
-            const column = __getColumnOfTable(table, columnName)
+            const column = __getColumnOfObject(table, columnName)
             if (!column) {
                 continue
             }
@@ -1188,7 +1188,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
             addedColumns.push(columnName)
             columnsForInsert[columnName] = column
-            selectColumns[columnName] = new SequenceValueSource('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__valueType, columnPrivate.__typeAdapter)
+            selectColumns[columnName] = new SequenceValueSource('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__valueType, 'required', columnPrivate.__typeAdapter)
         }
         const properties = Object.getOwnPropertyNames(selectColumns)
         for (let i = 0, length = properties.length; i < length; i++) {
@@ -1197,7 +1197,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
 
             const property = properties[i]!
-            const column = __getColumnOfTable(table, property)
+            const column = __getColumnOfObject(table, property)
             if (column) {
                 columns += this._appendRawColumnName(column, params)
                 columnsForInsert[property] = column
@@ -1238,7 +1238,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setContainsInsertReturningClause(params, !!result)
         return result
     }
-    _buildQueryReturning(columns: { [property: string]: IValueSource<any, any> } | undefined, params: any[]): string {
+    _buildQueryReturning(columns: { [property: string]: AnyValueSource } | undefined, params: any[]): string {
         if (!columns) {
             return ''
         }
@@ -1306,7 +1306,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const properties = Object.getOwnPropertyNames(sets)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
-            const column = __getColumnOfTable(table, property)
+            const column = __getColumnOfObject(table, property)
             if (!column) {
                 // Additional property provided in the value object
                 // Skipped because it is not part of the table
@@ -1333,19 +1333,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (oldValues && this._updateOldValueInFrom) {
             let where: BooleanValueSource<any, any> | undefined
             for (let property in table) {
-                const column = (table as any)[property] as unknown
-                if (!isColumn(column)) {
+                const column = __getColumnOfObject(table, property)
+                if (!column) {
                     continue
                 }
                 const columnPrivate = __getColumnPrivate(column)
                 if (!columnPrivate.__isPrimaryKey) {
                     continue
                 }
-                const oldCoumn = (oldValues as any)[property] as EqualableValueSource<any, any, any> | undefined
+                const oldCoumn = __getValueSourceOfObject(oldValues, property)
                 if (!oldCoumn) {
                     throw new Error('The column ' + property + ' is missing from the old values table')
                 }
-                const condition = (column as any as EqualableValueSource<any, any, any>).equals(oldCoumn)
+                const condition = (column as any as EqualableValueSource<any, any, any, any>).equals(oldCoumn)
                 if (where) {
                     where = where.and(condition)
                 } else {
@@ -2135,7 +2135,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _replaceAll(params: any[], valueSource: ToSql, value: any, value2: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'replace(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(value2, params, columnType, typeAdapter) + ')'
     }
-    _buildCallProcedure(params: any[], procedureName: string, procedureParams: IValueSource<any, any>[]): string {
+    _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string {
         let result = 'call ' + this._escape(procedureName, false) + '('
         if (procedureParams.length > 0) {
             result += this._appendSql(procedureParams[0]!, params)
@@ -2147,7 +2147,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         return result + ')'
     }
-    _buildCallFunction(params: any[], functionName: string, functionParams: IValueSource<any, any>[]): string {
+    _buildCallFunction(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
         let result = 'select ' + this._escape(functionName, false) + '('
         if (functionParams.length > 0) {
             result += this._appendSql(functionParams[0]!, params)
@@ -2159,7 +2159,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         return result + ')'
     }
-    _fragment(params: any[], sql: TemplateStringsArray, sqlParams: IValueSource<any, any>[]): string {
+    _fragment(params: any[], sql: TemplateStringsArray, sqlParams: AnyValueSource[]): string {
         if (sqlParams.length <= 0) {
             return sql[0]!
         }
@@ -2171,7 +2171,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         result += sql[sql.length - 1]
         return result
     }
-    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any, any>>): string {
+    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any, any>>): string {
         if (sqlParams.length <= 0) {
             return sql[0]!
         }

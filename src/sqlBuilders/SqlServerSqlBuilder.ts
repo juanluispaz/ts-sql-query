@@ -1,6 +1,6 @@
 import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { isValueSource, IValueSource } from "../expressions/values"
+import { AnyValueSource, isValueSource } from "../expressions/values"
 import type { OrderByMode } from "../expressions/select"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnPrivate } from "../utils/Column"
@@ -39,11 +39,11 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _trueValueForCondition = '(1=1)'
     _falseValueForCondition = '(0=1)'
     _nullValueForCondition = '(0=null)'
-    _appendSql(value: ToSql | IValueSource<any, any> | Column, params: any[]): string {
+    _appendSql(value: ToSql | AnyValueSource, params: any[]): string {
         if (isValueSource(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (valueSourcePrivate.__isBooleanForCondition) {
-                if (!valueSourcePrivate.__isResultOptional(this)) {
+                if (valueSourcePrivate.__optionalType === 'required') {
                     return 'cast(case when ' + super._appendConditionSql(value, params) + ' then 1 else 0 end as bit)'
                 } else {
                     return 'cast(case when ' + super._appendConditionSql(value, params) + ' then 1 when not ' + super._appendConditionSql(value, params) + ' then 0 else null end as bit)'
@@ -73,7 +73,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         const typeAdapter = columnPrivate.__typeAdapter
         if (columnPrivate.__valueType === 'boolean') {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-                if (!columnPrivate.__isOptional) {
+                if (columnPrivate.__optionalType === 'required') {
                     return 'case when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ' then 1 else 0 end'
                 } else {
                     return 'case when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) +  ' then 1 when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.falseValue, params) + ' then 0 else null end'
@@ -100,7 +100,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         const result = '((' + this._buildSelectWithColumnsInfo(query, params, {}) + ') = 1)'
         return result
     }
-    _appendSelectColumn(value: IValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
+    _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined): string {
         if (columnForInsert) {
             const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)
             if (sql) {
@@ -110,7 +110,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         const valueSourcePrivate = __getValueSourcePrivate(value)
         if (valueSourcePrivate.__isBooleanForCondition) {
-            if (!valueSourcePrivate.__isResultOptional(this)) {
+            if (valueSourcePrivate.__optionalType === 'required') {
                 return 'cast(case when ' + this._appendConditionSql(value, params) + ' then 1 else 0 end as bit)'
             } else {
                 return 'cast(case when ' + this._appendConditionSql(value, params) + ' then 1 when not ' + this._appendConditionSql(value, params) + ' then 0 else null end as bit)'
@@ -205,7 +205,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return ' order by ' + orderByColumns
     }
-    _escapeInsensitive(identifier: string, column: IValueSource<any, any>) {
+    _escapeInsensitive(identifier: string, column: AnyValueSource) {
         const collation = this._connectionConfiguration.insesitiveCollation
         const columnType = __getValueSourcePrivate(column).__valueType
         if (columnType != 'string') {
@@ -272,7 +272,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _buildDeleteOutput(query: DeleteData, params: any[]): string {
         return this._buildQueryOutput(query.__columns, query.__table, 'deleted', params)
     }
-    _buildQueryOutput(columns: { [property: string]: IValueSource<any, any> } | undefined, table: ITable<any>, alias: string, params: any[]): string {
+    _buildQueryOutput(columns: { [property: string]: AnyValueSource } | undefined, table: ITable<any>, alias: string, params: any[]): string {
         if (!columns) {
             return ''
         }
@@ -334,7 +334,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 return true
             }
         }
-        return __getValueSourcePrivate(value).__isResultOptional(this)
+        return __getValueSourcePrivate(value).__optionalType !== 'required'
     }
     _isNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {
@@ -343,9 +343,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
             if (valueSourcePrivate.__isBooleanForCondition) {
-                if (!valueSourcePrivate.__isResultOptional(this)) {
+                if (valueSourcePrivate.__optionalType === 'required') {
                     return this._falseValueForCondition
                 } else {
+                    // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
                     return '(case when ' + this._appendSqlParenthesis(valueSource, params) + ' then 0 when not ' + this._appendSqlParenthesis(valueSource, params) + ' then 0 else 1 end = 1)'
                 }
             }
@@ -365,9 +366,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
             if (valueSourcePrivate.__isBooleanForCondition) {
-                if (!valueSourcePrivate.__isResultOptional(this)) {
+                if (valueSourcePrivate.__optionalType === 'required') {
                     return this._trueValueForCondition
                 } else {
+                    // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
                     return '(case when ' + this._appendSqlParenthesis(valueSource, params) + ' then 1 when not ' + this._appendSqlParenthesis(valueSource, params) + ' then 1 else 0 end = 1)'
                 }
             }
@@ -603,7 +605,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _getMilliseconds(params: any[], valueSource: ToSql): string {
         return 'datepart(millisecond, ' + this._appendSql(valueSource, params) + ')'
     }
-    _buildCallProcedure(params: any[], functionName: string, functionParams: IValueSource<any, any>[]): string {
+    _buildCallProcedure(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
         let result = 'exec ' + this._escape(functionName, false)
         for (let i = 0, length = functionParams.length; i < length; i++) {
             result += ' ' + this._appendSql(functionParams[i]!, params)

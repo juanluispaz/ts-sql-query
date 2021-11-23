@@ -1,4 +1,4 @@
-import { IExecutableSelectQuery, IValueSource } from "../expressions/values"
+import { AnyValueSource, IExecutableSelectQuery } from "../expressions/values"
 import { SqlBuilder, ToSql } from "../sqlBuilders/SqlBuilder"
 import { Column } from "../utils/Column"
 import { HasAddWiths, ITableOrView, IWithView, __addWiths, __getOldValues, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
@@ -10,9 +10,9 @@ export class RawFragmentImpl implements RawFragment<any>, HasAddWiths, ToSql {
     [database]: any
     
     __template: TemplateStringsArray
-    __params: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any, any>>
+    __params: Array<AnyValueSource | IExecutableSelectQuery<any, any, any, any>>
 
-    constructor(template: TemplateStringsArray, params: Array<IValueSource<any, any> | IExecutableSelectQuery<any, any, any, any>>) {
+    constructor(template: TemplateStringsArray, params: Array<AnyValueSource | IExecutableSelectQuery<any, any, any, any>>) {
         this.__template = template
         this.__params = params
     }

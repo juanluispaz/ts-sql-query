@@ -33,6 +33,12 @@ class MyConection extends PostgreSqlConnection<'MyConnection'> {
         return this.fragmentWithType('boolean', 'required').sql`!!${a1} > ${a2}`
     })
 
+    customIsNull = this.buildFragmentWithArgs(
+        this.arg('boolean', 'optional')
+    ).as((a1) => {
+        return this.fragmentWithType('boolean', 'required').sql`${a1} is null`
+    })
+
     transformValueFromDB(value: any, type: any) {
         if (type === 'json') {
             return JSON.parse(value);
@@ -102,7 +108,7 @@ let q = new class MyTable2 extends Table<MyConection, 'MyTable2'> {
 let cn = new MyConection(new ConsoleLogNoopQueryRunner())
 cn.const(10, 'int')
 let query = cn.insertInto(t)
-    .set({ c: 10, d: '', oc: 20, bool: true, customBool: true }).setIfValue({ c: null, e: cn.default() })
+    .set({ c: 10, d: '', oc: 20, bool: cn.true(), customBool: true }).setIfValue({ c: null, e: cn.default() })
     // .set(t.c).value(10)
     // .set(t.c).value(12)
     .ignoreIfSet('e').returningLastInsertedId()
@@ -160,7 +166,7 @@ if (!di.b) {
 where = where.and(t.c.equals(2))
 
 let query2 = cn.update(t)
-    .set({ c: t.c })
+    .set({ c: t.c, bool: cn.true() })
     .where(where)
 //    .where(t.c.greaterThan(10).and(t.c.greaterThan(1)))
     // .where(cn.pi().power(t.c).equals(3).and(t.c.greaterThan(10)))
@@ -209,6 +215,7 @@ let query5 = cn.selectFrom(t).where(t.c.equals(10)).and(t.bool).select({
     e: t.e,
     bool: cn.true().equals(t.bool.equals(t.bool)),
     isBigFactorial: cn.isBigFactorial(t.c, 100),
+    customIsNull: cn.customIsNull(cn.true()),
     now: cn.now(),
     customBool: t.customBool,
     optCustomBool: t.optCustomBool

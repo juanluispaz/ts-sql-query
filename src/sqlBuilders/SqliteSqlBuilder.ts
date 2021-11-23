@@ -1,7 +1,7 @@
 import type { ToSql, SelectData, InsertData, UpdateData } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
-import { isValueSource, IValueSource } from "../expressions/values"
+import { AnyValueSource, isValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn } from "../utils/Column"
@@ -102,7 +102,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return ' order by ' + orderByColumns
     }
-    _escapeInsensitive(identifier: string, column: IValueSource<any, any>) {
+    _escapeInsensitive(identifier: string, column: AnyValueSource) {
         const collation = this._connectionConfiguration.insesitiveCollation
         const columnType = __getValueSourcePrivate(column).__valueType
         if (columnType != 'string') {

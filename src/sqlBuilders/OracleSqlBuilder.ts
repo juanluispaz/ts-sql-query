@@ -1,8 +1,8 @@
 import type { ToSql, InsertData, CompoundOperator, SelectData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { isValueSource, IValueSource } from "../expressions/values"
+import { AnyValueSource, isValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { Column, isColumn, __getColumnOfTable, __getColumnPrivate } from "../utils/Column"
+import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import { __getValueSourcePrivate } from "../expressions/values"
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
@@ -31,11 +31,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _trueValueForCondition = '(1=1)'
     _falseValueForCondition = '(0=1)'
     _nullValueForCondition = '(0=null)'
-    _appendSql(value: ToSql | IValueSource<any, any> | Column, params: any[]): string {
+    _appendSql(value: ToSql | AnyValueSource, params: any[]): string {
         if (isValueSource(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (valueSourcePrivate.__isBooleanForCondition) {
-                if (!valueSourcePrivate.__isResultOptional(this)) {
+                if (valueSourcePrivate.__optionalType === 'required') {
                     return 'case when ' + super._appendConditionSql(value, params) + ' then 1 else 0 end'
                 } else {
                     return 'case when ' + super._appendConditionSql(value, params) + ' then 1 when not ' + super._appendConditionSql(value, params) + ' then 0 else null end'
@@ -55,7 +55,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const typeAdapter = columnPrivate.__typeAdapter
         if (columnPrivate.__valueType === 'boolean') {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-                if (!columnPrivate.__isOptional) {
+                if (columnPrivate.__optionalType === 'required') {
                     return 'case when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ' then 1 else 0 end'
                 } else {
                     return 'case when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) +  ' then 1 when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.falseValue, params) + ' then 0 else null end'
@@ -82,7 +82,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const result = '((' + this._buildSelectWithColumnsInfo(query, params, {}) + ') = 1)'
         return result
     }
-    _appendSelectColumn(value: IValueSource<any, any>, params: any[], columnForInsert: Column | undefined): string {
+    _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined): string {
         if (columnForInsert) {
             const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)
             if (sql) {
@@ -92,7 +92,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         const valueSourcePrivate = __getValueSourcePrivate(value)
         if (valueSourcePrivate.__isBooleanForCondition) {
-            if (!valueSourcePrivate.__isResultOptional(this)) {
+            if (valueSourcePrivate.__optionalType === 'required') {
                 return 'case when ' + this._appendConditionSql(value, params) + ' then 1 else 0 end'
             } else {
                 return 'case when ' + this._appendConditionSql(value, params) + ' then 1 when not ' + this._appendConditionSql(value, params) + ' then 0 else null end'
@@ -256,7 +256,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 if (columnName in sets) {
                     continue
                 }
-                const column = __getColumnOfTable(table, columnName)
+                const column = __getColumnOfObject(table, columnName)
                 if (!column) {
                     continue
                 }
@@ -275,7 +275,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             const properties = Object.getOwnPropertyNames(sets)
             for (let i = 0, length = properties.length; i < length; i++) {
                 const property = properties[i]!
-                const column = __getColumnOfTable(table, property)
+                const column = __getColumnOfObject(table, property)
                 if (!column) {
                     // Additional property provided in the value object
                     // Skipped because it is not part of the table
@@ -303,7 +303,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
             for (let i = 0, length = properties.length; i < length; i++) {
                 const property = properties[i]!
-                const column = __getColumnOfTable(table, property)
+                const column = __getColumnOfObject(table, property)
                 if (!column) {
                     // Additional property provided in the value object
                     // Skipped because it is not part of the table
@@ -364,7 +364,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         let columns = ''
         for (var columnName in table) {
-            const column = __getColumnOfTable(table, columnName)
+            const column = __getColumnOfObject(table, columnName)
             if (!column) {
                 continue
             }
@@ -381,7 +381,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         let values = ''
         for (var columnName in table) {
-            const column = __getColumnOfTable(table, columnName)
+            const column = __getColumnOfObject(table, columnName)
             if (!column) {
                 continue
             }
@@ -423,7 +423,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         this._setContainsInsertReturningClause(params, !!result)
         return result
     }
-    _buildQueryReturning(columns: { [property: string]: IValueSource<any, any> } | undefined, params: any[]): string {
+    _buildQueryReturning(columns: { [property: string]: AnyValueSource } | undefined, params: any[]): string {
         if (!columns) {
             return ''
         }
@@ -459,9 +459,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
             if (valueSourcePrivate.__isBooleanForCondition) {
-                if (!valueSourcePrivate.__isResultOptional(this)) {
+                if (valueSourcePrivate.__optionalType === 'required') {
                     return this._falseValueForCondition
                 } else {
+                    // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
                     return '(case when ' + this._appendSqlParenthesis(valueSource, params) + ' then 0 when not ' + this._appendSqlParenthesis(valueSource, params) + ' then 0 else 1 end = 1)'
                 }
             }
@@ -475,9 +476,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
             if (valueSourcePrivate.__isBooleanForCondition) {
-                if (!valueSourcePrivate.__isResultOptional(this)) {
+                if (valueSourcePrivate.__optionalType === 'required') {
                     return this._trueValueForCondition
                 } else {
+                    // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
                     return '(case when ' + this._appendSqlParenthesis(valueSource, params) + ' then 1 when not ' + this._appendSqlParenthesis(valueSource, params) + ' then 1 else 0 end = 1)'
                 }
             }
@@ -544,7 +546,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _getMilliseconds(params: any[], valueSource: ToSql): string {
         return 'extract(millisecond from ' + this._appendSql(valueSource, params) + ')'
     }
-    _buildCallProcedure(params: any[], procedureName: string, procedureParams: IValueSource<any, any>[]): string {
+    _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string {
         let result = 'begin ' + this._escape(procedureName, false) + '('
         if (procedureParams.length > 0) {
             result += this._appendSql(procedureParams[0]!, params)
@@ -556,7 +558,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         return result + '); end;'
     }
-    _buildCallFunction(params: any[], functionName: string, functionParams: IValueSource<any, any>[]): string {
+    _buildCallFunction(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
         let result = 'select ' + this._escape(functionName, false) + '('
         if (functionParams.length > 0) {
             result += this._appendSql(functionParams[0]!, params)

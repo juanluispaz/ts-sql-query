@@ -1,21 +1,21 @@
 import type { TypeAdapter } from "../TypeAdapter"
-import type { IValueSource, Argument } from "../expressions/values"
+import type { Argument, AnyValueSource, OptionalType } from "../expressions/values"
 import { FragmentValueSource, ValueSourceImpl, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop } from "../internal/ValueSourceImpl"
 import { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 
 export class FragmentQueryBuilder {
     __type: string
     __adapter: TypeAdapter | undefined
-    __isOptional: boolean
+    __optionalType: OptionalType
 
-    constructor(type: string, optional: boolean, adapter: TypeAdapter | undefined) {
+    constructor(type: string, optionalType: OptionalType, adapter: TypeAdapter | undefined) {
         this.__type = type
         this.__adapter = adapter
-        this.__isOptional = optional
+        this.__optionalType = optionalType
     }
 
-    sql(sql: TemplateStringsArray, ...params: IValueSource<any, any>[]): IValueSource<any, any> {
-        return new FragmentValueSource(this.__isOptional, sql, params, this.__type, this.__adapter)
+    sql(sql: TemplateStringsArray, ...params: AnyValueSource[]): AnyValueSource {
+        return new FragmentValueSource(sql, params, this.__type, this.__optionalType, this.__adapter)
     }
 }
 
@@ -26,17 +26,16 @@ export class FragmentFunctionBuilder {
         this.definitions = definitions
     }
     
-    as(impl: (...vs: IValueSource<any, any>[]) => IValueSource<any, any>): ((...args: any[]) => IValueSource<any, any>) {
-        return (...args: any[]): IValueSource<any, any> => {
-            const newArgs: IValueSource<any, any>[] = []
+    as(impl: (...vs: AnyValueSource[]) => AnyValueSource): ((...args: any[]) => AnyValueSource) {
+        return (...args: any[]): AnyValueSource => {
+            const newArgs: AnyValueSource[] = []
             for (let i = 0, length = args.length; i < length; i++) {
                 const arg = args[i]
                 if (arg instanceof ValueSourceImpl) {
                     newArgs.push(arg)
                 } else {
                     const definition = this.definitions[i]!
-                    const optional = definition.required === 'optional'
-                    const newArg = new SqlOperationConstValueSource(optional, arg, definition.typeName, definition.adapter)
+                    const newArg = new SqlOperationConstValueSource(arg, definition.typeName, definition.optionalType, definition.adapter)
                     newArgs.push(newArg)
                 }
             }
@@ -58,23 +57,23 @@ export class FragmentFunctionBuilderIfValue {
         this.definitions = definitions
     }
     
-    as(impl: (...vs: IValueSource<any, any>[]) => IValueSource<any, any>): ((...args: any[]) => IValueSource<any, any>) {
-        return (...args: any[]): IValueSource<any, any> => {
-            const newArgs: IValueSource<any, any>[] = []
+    as(impl: (...vs: AnyValueSource[]) => AnyValueSource): ((...args: any[]) => AnyValueSource) {
+        return (...args: any[]): AnyValueSource => {
+            const newArgs: AnyValueSource[] = []
             for (let i = 0, length = args.length; i < length; i++) {
                 const arg = args[i]
                 if (arg instanceof ValueSourceImpl) {
                     newArgs.push(arg)
                 } else {
                     const definition = this.definitions[i]!
-                    const optional = definition.required === 'optional'
+                    const optional = definition.optionalType !== 'required'
                     const valueMode = definition.mode === 'value'
                     if (optional && valueMode) {
                         if (!this.sqlBuilderSource.__sqlBuilder._isValue(arg)) {
                             return new SqlOperationValueSourceIfValueAlwaysNoop()
                         }
                     }
-                    const newArg = new SqlOperationConstValueSource(optional, arg, definition.typeName, definition.adapter)
+                    const newArg = new SqlOperationConstValueSource(arg, definition.typeName, definition.optionalType, definition.adapter)
                     newArgs.push(newArg)
                 }
             }

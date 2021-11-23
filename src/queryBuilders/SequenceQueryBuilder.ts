@@ -13,9 +13,9 @@ export class SequenceQueryBuilder implements Sequence<any> {
         this.__typeAdapter = typeAdapter
     }
     nextValue(): any {
-        return new SequenceValueSource('_nextSequenceValue', this.__sequenceName, this.__columnType, this.__typeAdapter) as any
+        return new SequenceValueSource('_nextSequenceValue', this.__sequenceName, this.__columnType, 'required', this.__typeAdapter) as any
     }
     currentValue(): any {
-        return new SequenceValueSource('_currentSequenceValue', this.__sequenceName, this.__columnType, this.__typeAdapter) as any
+        return new SequenceValueSource('_currentSequenceValue', this.__sequenceName, this.__columnType, 'required', this.__typeAdapter) as any
     }
 }

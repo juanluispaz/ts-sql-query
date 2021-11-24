@@ -11,7 +11,6 @@ export const tableOrViewRefType: unique symbol = Symbol('tableOrViewRef')
 export const tableOrViewCustomName: unique symbol = Symbol('tableOrViewCustomName')
 export const resultType: unique symbol = Symbol('resultType')
 export const columnsType: unique symbol = Symbol('columnsType')
-export const compoundable: unique symbol = Symbol('compoundable')
 export const compoundableColumns: unique symbol = Symbol('compoundableColumns')
 export const rawFragment: unique symbol = Symbol('rawFragment')
 

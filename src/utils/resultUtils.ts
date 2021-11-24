@@ -6,6 +6,10 @@ export type ResultObjectValues<COLUMNS> = SplitResult<{
     [P in keyof COLUMNS]: ValueSourceValueTypeForObjectResult<COLUMNS[P]>
 }>
 
+// Column name considering picking
+
+export type RequiredColumnNames<T> = T extends AnyValueSource ? 'result' : { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[keyof T]
+
 // Picking
 
 export type RequiredKeysOfPickingColumns<T> = T extends AnyValueSource ? never : { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[keyof T]

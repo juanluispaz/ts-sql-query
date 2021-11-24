@@ -3,7 +3,7 @@ import type { AnyDB } from "../databases"
 import type { int, double, /*LocalDate, LocalTime, LocalDateTime,*/ stringDouble, stringInt, LocalTime, LocalDateTime, LocalDate } from "ts-extended-types"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { anyBooleanValueSourceType, bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, optionalType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, valueSourceType } from "../utils/symbols"
-import { valueType, valueSourceTypeName } from "../utils/symbols"
+import { valueType, valueSourceTypeName, isValueSourceObject } from "../utils/symbols"
 
 export type OptionalType = 'required' | 'requiredInOptionalObject'  | 'originallyRequired' | 'optional' // sorted from the more strict to less strict
 
@@ -63,7 +63,7 @@ export interface ValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE, 
 }
 
 export interface __ValueSourcePrivate extends HasAddWiths {
-    __isValueSource: true
+    [isValueSourceObject]: true
     __valueType: string
     __optionalType: OptionalType
     __typeAdapter?: TypeAdapter
@@ -75,7 +75,7 @@ export function isValueSource(value: any): value is ValueSource<TableOrViewRef<A
         return false
     }
     if (typeof value === 'object') {
-        return !!value.__isValueSource
+        return !!value[isValueSourceObject]
     }
     return false
 }
@@ -88,7 +88,7 @@ export function __getValueSourceOfObject(obj: ITableOrView<any>, prop: string): 
     if (typeof result !== 'object') {
         return undefined
     }
-    if (result.__isValueSource) {
+    if (result[isValueSourceObject]) {
         return result as any
     } else {
         return undefined

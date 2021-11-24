@@ -6,11 +6,11 @@ import { AnyValueSource, __getValueSourcePrivate } from "../expressions/values"
 import { ValueSourceImpl } from "./ValueSourceImpl"
 import { CustomBooleanTypeAdapter } from "../TypeAdapter"
 import { ProxyTypeAdapter } from "./ProxyTypeAdapter"
-import { type } from "../utils/symbols"
+import { isColumnObject, type } from "../utils/symbols"
 
 export class ColumnImpl extends ValueSourceImpl implements Column, __ColumnPrivate, ToSql {
     [type]: 'column'
-    __isColumn: true = true
+    [isColumnObject]: true = true
     __name: string
     __tableOrView: ITableOrView<any>
     __hasDefault: boolean = false

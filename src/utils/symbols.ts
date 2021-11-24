@@ -2,6 +2,10 @@
  * All symbols defined here are expected to don't have value
  */
 
+// Type marks
+export const isValueSourceObject: unique symbol = Symbol('isValueSourceObject')
+export const isColumnObject: unique symbol = Symbol('isColumnObject')
+
 // General Symbols
 export const type: unique symbol = Symbol('type')
 export const database: unique symbol = Symbol('database')

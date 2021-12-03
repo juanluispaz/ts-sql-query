@@ -17,6 +17,8 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
     // @ts-ignore
     __as?: string
     // @ts-ignore
+    __forUseInLeftJoin?: boolean
+    // @ts-ignore
     __type: 'with' = 'with'
     __selectData: SelectData
     // @ts-ignore
@@ -49,6 +51,7 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
     forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): OuterJoinSourceOf<this, ALIAS> {
         const result = new WithViewImpl(this.__name, this.__selectData)
         result.__as = as
+        result.__forUseInLeftJoin = true
         result.__originalWith = this as any
         for (const prop in result) {
             const column = __getValueSourceOfObject(result, prop)

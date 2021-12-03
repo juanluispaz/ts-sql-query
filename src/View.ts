@@ -25,6 +25,8 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     // @ts-ignore
     private __as?: string
     // @ts-ignore
+    private __forUseInLeftJoin?: boolean
+    // @ts-ignore
     private __type: 'view' = 'view'
     // @ts-ignore
     private __template?: RawFragment<any>
@@ -44,6 +46,7 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): OuterJoinSourceOf<this, ALIAS> {
         const result = new ((this as any).constructor)() as ViewOf<any>
         result.__as = as
+        result.__forUseInLeftJoin = true
         for (const prop in result) {
             const column = __getValueSourceOfObject(result, prop)
             if (column) {

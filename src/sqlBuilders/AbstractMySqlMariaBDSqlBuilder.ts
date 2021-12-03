@@ -1,4 +1,4 @@
-import type { ToSql, SelectData, InsertData, UpdateData, DeleteData } from "./SqlBuilder"
+import { ToSql, SelectData, InsertData, UpdateData, DeleteData, getQueryColumn } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
 import type { AnyValueSource } from "../expressions/values"
@@ -31,7 +31,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            const column = columns[property]
+            const column = getQueryColumn(columns, property)
             if (!column) {
                 throw new Error('Column ' + property + ' included in the order by not found in the select clause')
             }

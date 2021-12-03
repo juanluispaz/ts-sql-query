@@ -16,15 +16,15 @@ export type MergeOptional<OP1 extends OptionalType, OP2 extends OptionalType> =
         OP2 extends 'required' ? 'requiredInOptionalObject' : OP2
     ) :
     OP1 extends 'originallyRequired' ? (
-        OP2 extends 'required' ? 'originallyRequired' : OP2
+        OP2 extends 'required' | 'requiredInOptionalObject' ? 'originallyRequired' : OP2
     ) : 'optional'
 
 export type MergeOptionalUnion<OPTIONAL_TYPE extends OptionalType> =
     // Always select the less strict option
     'any' extends OPTIONAL_TYPE ? 'optional' :
     'optional' extends OPTIONAL_TYPE ? 'optional' :
-    'requiredInOptionalObject' extends OPTIONAL_TYPE ? 'requiredInOptionalObject' :
     'originallyRequired' extends OPTIONAL_TYPE ? 'originallyRequired' :
+    'requiredInOptionalObject' extends OPTIONAL_TYPE ? 'requiredInOptionalObject' :
     'required'
 
 export type OptionalTypeRequiredOrAny<OPTIONAL_TYPE extends OptionalType> =
@@ -38,6 +38,8 @@ export type OptionalValueType<OPTIONAL_TYPE extends OptionalType> =
 export type ValueSourceValueType<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | OptionalValueType<OPTIONAL_TYPE> : never
 export type ValueSourceValueTypeForResult<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' ? never : null) : never
 export type ValueSourceValueTypeForObjectResult<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' ? never : undefined) : never
+export type ValueSourceValueTypeForRequiredInOptionalObject<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' | 'requiredInOptionalObject' ? never : undefined) : never
+export type ValueSourceValueTypeForOptionalObjectResultSameOuterJoin<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' | 'requiredInOptionalObject' | 'originallyRequired' ? never : undefined) : never
 
 export interface AnyValueSource {
     [valueSourceType]: 'ValueSource'
@@ -68,9 +70,12 @@ export interface __ValueSourcePrivate extends HasAddWiths {
     __optionalType: OptionalType
     __typeAdapter?: TypeAdapter
     __isBooleanForCondition?: boolean
+
+    isConstValue(): boolean
+    getConstValue(): any
 }
 
-export function isValueSource(value: any): value is ValueSource<TableOrViewRef<AnyDB>, unknown, unknown, any> {
+export function isValueSource(value: any): value is AnyValueSource {
     if (value === undefined || value === null) {
         return false
     }

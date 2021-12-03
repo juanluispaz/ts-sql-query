@@ -1,7 +1,7 @@
-import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData } from "../sqlBuilders/SqlBuilder"
+import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData, QueryColumns } from "../sqlBuilders/SqlBuilder"
 import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderByExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereOffsetExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, ExecutableSelectWithWhere, ExecutableSelectWithoutWhere, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, SplitedComposedExecutableSelectWithoutWhere, SplitedComposedDynamicWhereExecutableSelectExpression, WhereableCompoundableExecutableSelectExpressionWithoutWhere } from "../expressions/select"
 import { HasAddWiths, ITableOrView, IWithView, OuterJoinSource, __getOldValues, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import type { IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource } from "../expressions/values"
+import { IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { WithView } from "../utils/tableOrViewUtils"
 import { __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
@@ -26,7 +26,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     [resultType]: any
     [columnsType]: any
 
-    __columns: { [property: string]: AnyValueSource } = {}
+    __columns: QueryColumns = {}
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
     __limit?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __offset?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
@@ -78,6 +78,9 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns['result']!
+                    if (!isValueSource(valueSource)) {
+                        throw new Error('The result column must be a ValueSource')
+                    }
                     if (value === undefined) {
                         return null
                     }
@@ -110,6 +113,9 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns['result']!
+                    if (!isValueSource(valueSource)) {
+                        throw new Error('The result column must be a ValueSource')
+                    }
                     if (value === undefined) {
                         throw new Error('No result returned by the database')
                     }
@@ -141,6 +147,9 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeSelectOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns['result']!
+                    if (!isValueSource(valueSource)) {
+                        throw new Error('The result column must be a ValueSource')
+                    }
 
                     return values.map((value) => {
                         if (value === undefined) {
@@ -219,26 +228,24 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     orderBy(column: any, mode?: OrderByMode): any {
         this.__finishJoinHaving()
         this.__query = ''
+        if (!this.__getColumnFromColumnsObject(column)) {
+            throw new Error('The column "' + column + '" is not part of the select clause')
+        }
+        this.__addOrderBy(column, mode)
+        return this
+    }
+    __addOrderBy(column: string, mode?: OrderByMode) {
         if (!this.__orderBy) {
             this.__orderBy = {}
         }
         if (column in this.__orderBy) {
             throw new Error('Column ' + column + ' already used in the order by clause')
         }
-        if (!(column in this.__columns)) {
-            throw new Error('The column "' + column + '" is not part of the select clause')
-        }
         this.__orderBy[column] = mode || null
-        return this
     }
     orderByFromString(orderBy: string): any {
         this.__finishJoinHaving()
         this.__query = ''
-        const columnsInQuery: { [columnNameInLowerCase: string]: string | undefined } = {}
-        const columns = this.__columns
-        for (const property in columns) {
-            columnsInQuery[property.toLowerCase()] = property
-        }
 
         const split = orderBy.trim().toLowerCase().replace(/\s+/g, ' ').split(/\s*,\s*/)
         for (let i = 0, length = split.length; i < length; i++) {
@@ -253,38 +260,38 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
                 column = clause.substring(0, separatorIndex)
                 ordering = clause.substring(separatorIndex + 1)
             }
-            const realColumnName = columnsInQuery[column]
+            const realColumnName = this.__getColumnNameFromColumnsObjectLowerCase(column)
             if (!realColumnName) {
                 throw new Error('The column "' + column + '" is not part of the select clause')
             }
             if (ordering === 'asc') {
-                this.orderBy(realColumnName, 'asc')
+                this.__addOrderBy(realColumnName, 'asc')
             } else if (ordering === 'desc') {
-                this.orderBy(realColumnName, 'desc')
+                this.__addOrderBy(realColumnName, 'desc')
             } else if (ordering === 'asc nulls first') {
-                this.orderBy(realColumnName, 'asc nulls first')
+                this.__addOrderBy(realColumnName, 'asc nulls first')
             } else if (ordering === 'desc nulls first') {
-                this.orderBy(realColumnName, 'desc nulls first')
+                this.__addOrderBy(realColumnName, 'desc nulls first')
             } else if (ordering === 'asc nulls last') {
-                this.orderBy(realColumnName, 'asc nulls last')
+                this.__addOrderBy(realColumnName, 'asc nulls last')
             } else if (ordering === 'desc nulls last') {
-                this.orderBy(realColumnName, 'desc nulls last')
+                this.__addOrderBy(realColumnName, 'desc nulls last')
             } else if (ordering === 'insensitive') {
-                this.orderBy(realColumnName, 'insensitive')
+                this.__addOrderBy(realColumnName, 'insensitive')
             } else if (ordering === 'asc insensitive') {
-                this.orderBy(realColumnName, 'asc insensitive')
+                this.__addOrderBy(realColumnName, 'asc insensitive')
             } else if (ordering === 'desc insensitive') {
-                this.orderBy(realColumnName, 'desc insensitive')
+                this.__addOrderBy(realColumnName, 'desc insensitive')
             } else if (ordering === 'asc nulls first insensitive') {
-                this.orderBy(realColumnName, 'asc nulls first insensitive')
+                this.__addOrderBy(realColumnName, 'asc nulls first insensitive')
             } else if (ordering === 'desc nulls first insensitive') {
-                this.orderBy(realColumnName, 'desc nulls first insensitive')
+                this.__addOrderBy(realColumnName, 'desc nulls first insensitive')
             } else if (ordering === 'asc nulls last insensitive') {
-                this.orderBy(realColumnName, 'asc nulls last insensitive')
+                this.__addOrderBy(realColumnName, 'asc nulls last insensitive')
             } else if (ordering === 'desc nulls last insensitive') {
-                this.orderBy(realColumnName, 'desc nulls last insensitive')
+                this.__addOrderBy(realColumnName, 'desc nulls last insensitive')
             } else if (!ordering) {
-                this.orderBy(realColumnName)
+                this.__addOrderBy(realColumnName)
             } else {
                 throw new Error('Unknow ordering clause "' + ordering + '" in the order by related to the column "' + column + '"')
             }
@@ -398,10 +405,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             return
         }
 
-        const columns = this.__columns
-        for (const property in columns) {
-            __registerRequiredColumn(columns[property], requiredColumns, newOnly)
-        }
+        this.__registerRequiredColumnOfColmns(this.__columns, requiredColumns, newOnly)
         __registerRequiredColumn(this.__orderBy, requiredColumns, newOnly)
         __registerRequiredColumn(this.__limit, requiredColumns, newOnly)
         __registerRequiredColumn(this.__offset, requiredColumns, newOnly)
@@ -495,7 +499,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         return (view: any) => {
             const current = this as any as PlainSelectData
             const result = new SelectQueryBuilder(this.__sqlBuilder, current.__tablesOrViews, false)
-            result.__columns = { ...current.__columns }
+            result.__columns = current.__columns
             result.__withs = current.__withs.concat()
             result.__joins = current.__joins.concat()
             result.join(view).on(fn(view))
@@ -601,12 +605,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         this.__columns = columns
-
-        const withs = this.__withs
-        for (const property in columns) {
-            const column = columns[property]!
-            __getValueSourcePrivate(column).__addWiths(withs)
-        }
+        this.__registerTableOrViewWithOfColumns(columns, this.__withs)
         return this
     }
     selectOneColumn(column: AnyValueSource): any {
@@ -846,16 +845,16 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         for (let i = 0, length = columns.length; i < length; i++) {
-            const column = columns[i]
-            if (!column || typeof column !== 'object') {
-                const valueSource = this.__columns[column as string]
+            const column = columns[i]!
+            if (isValueSource(column)) {
+                this.__groupBy.push(column)
+                __addWiths(column, this.__withs)
+            } else {
+                const valueSource = this.__getColumnFromColumnsObject(column)
                 if (!valueSource) {
                     throw new Error('The column "' + (column as string) + '" is not part of the select clause')
                 }
                 this.__groupBy.push(valueSource)
-            } else {
-                this.__groupBy.push(column)
-                __addWiths(column, this.__withs)
             }
         }
         return this
@@ -873,11 +872,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     __generateRequiredTableOrView(): Set<ITableOrView<any>> {
         const requiredTableOrView = new Set<ITableOrView<any>>()
 
-        const columns = this.__columns
-        for (const property in columns) {
-            const column = columns[property]!
-            __getValueSourcePrivate(column).__registerTableOrView(requiredTableOrView)
-        }
+        this.__registerTableOrViewOfColumns(this.__columns, requiredTableOrView)
         const where = this.__where
         if (where) {
             __getValueSourcePrivate(where).__registerTableOrView(requiredTableOrView)

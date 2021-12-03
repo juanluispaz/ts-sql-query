@@ -1,6 +1,8 @@
-import { AnyValueSource, __getValueSourcePrivate } from "../expressions/values"
-import { SqlBuilder } from "../sqlBuilders/SqlBuilder"
+import { AnyValueSource, isValueSource, __getValueSourcePrivate } from "../expressions/values"
+import { getQueryColumn, QueryColumns, SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import { attachSource } from "../utils/attachSource"
+import { Column } from "../utils/Column"
+import { ITableOrView, IWithView, __getTableOrViewPrivate, __registerRequiredColumn } from "../utils/ITableOrView"
 
 interface Compose {
     type: 'compose'
@@ -36,7 +38,7 @@ export class ComposeSplitQueryBuilder {
 
     __compositions: SplitCompose[] = []
     __lastComposition?: Compose
-    __columns?: { [property: string]: AnyValueSource }
+    __columns?: QueryColumns
 
     constructor(sqlBuilder: SqlBuilder) {
         this.__sqlBuilder = sqlBuilder
@@ -421,11 +423,213 @@ export class ComposeSplitQueryBuilder {
         for (let prop in columns) {
             const valueSource = columns[prop]!
             let value = row[prop]
-            const transformed = this.__transformValueFromDB(valueSource, value, prop, index)
+            let transformed 
+            if (isValueSource(valueSource)) {
+                transformed = this.__transformValueFromDB(valueSource, value, prop, index)
+            } else {
+                transformed = this.__transformProjectedObject(prop + '.', valueSource, row, index)
+            }
             if (transformed !== undefined && transformed !== null) {
                 result[prop] = transformed
             }
         }
         return result
+    }
+
+    __transformProjectedObject(pathPrefix: string, columns: QueryColumns, row: any, index?: number): any {
+        const result: any = {}
+        let keepObject = false
+        // Rule 1
+        let containsRequiredInOptionalObject = false
+        let requiredInOptionalObjectHaveValue = true
+        // Rule 2
+        let firstRequiredTables = new Set<ITableOrView<any>>()
+        let alwaysSameRequiredTablesSize : undefined | boolean = undefined
+        let originallyRequiredHaveValue = true
+
+        for (let prop in columns) {
+            const valueSource = columns[prop]!
+            const propName = pathPrefix + prop
+            let value = row[propName]
+            let transformed 
+            if (isValueSource(valueSource)) {
+                transformed = this.__transformValueFromDB(valueSource, value, propName, index)
+
+                const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+                if (valueSourcePrivate.__optionalType === 'requiredInOptionalObject') {
+                    // For rule 1
+                    containsRequiredInOptionalObject = true
+                    if (transformed === undefined || transformed === null) {
+                        requiredInOptionalObjectHaveValue = false
+                    }
+                } else if (valueSourcePrivate.__optionalType === 'originallyRequired') {
+                    // For rule 2
+                    if (transformed === undefined || transformed === null) {
+                        originallyRequiredHaveValue = false
+                    }
+                }
+
+                // For rule 2
+                if (alwaysSameRequiredTablesSize === undefined) {
+                    valueSourcePrivate.__registerTableOrView(firstRequiredTables)
+                    alwaysSameRequiredTablesSize = true
+                } else if (alwaysSameRequiredTablesSize) {
+                    let valueSourceRequiredTables = new Set<ITableOrView<any>>()
+                    valueSourcePrivate.__registerTableOrView(valueSourceRequiredTables)
+                    const initialSize = firstRequiredTables.size
+                    if (initialSize !== valueSourceRequiredTables.size) {
+                        alwaysSameRequiredTablesSize = false
+                    } else {
+                        valueSourceRequiredTables.forEach(table => {
+                            firstRequiredTables.add(table)
+                        })
+                        if (initialSize !== firstRequiredTables.size) {
+                            alwaysSameRequiredTablesSize = false
+                        }
+                    }
+                }
+            } else {
+                transformed = this.__transformProjectedObject(propName + '.', valueSource, row, index)
+            }
+            if (transformed !== undefined && transformed !== null) {
+                keepObject = true
+                result[prop] = transformed
+            }
+        }
+
+        // General rule
+        if (!keepObject) {
+            return undefined
+        }
+
+        // Rule 1
+        if (containsRequiredInOptionalObject && !requiredInOptionalObjectHaveValue) {
+            return undefined
+        }
+
+        // Rule 2
+        let onlyOuterJoin = true
+        firstRequiredTables.forEach(table => {
+            if (!__getTableOrViewPrivate(table).__forUseInLeftJoin) {
+                onlyOuterJoin = false
+            }
+        })
+        if (firstRequiredTables.size <= 0) {
+            onlyOuterJoin = false
+        }
+        if (alwaysSameRequiredTablesSize && onlyOuterJoin && !originallyRequiredHaveValue) {
+            return undefined
+        }
+
+        // No need to verify rule 3 due if there is no value an error is thrown
+        // Rule 4 covered in the general rule
+
+        return result
+    }
+
+    __getOldValueOfColumns(columns: QueryColumns | undefined): ITableOrView<any> | undefined {
+        for (const property in columns) {
+            const column = columns[property]!
+            if (isValueSource(column)) {
+                const oldValues = __getValueSourcePrivate(column).__getOldValues()
+                if (oldValues) {
+                    return oldValues
+                }
+            } else {
+                const oldValues = this.__getOldValueOfColumns(column)
+                if (oldValues) {
+                    return oldValues
+                }
+            }
+        }
+        return undefined
+    }
+
+    __registerTableOrViewOfColumns(columns: QueryColumns | undefined, requiredTablesOrViews: Set<ITableOrView<any>>) {
+        for (const property in columns) {
+            const column = columns[property]!
+            if (isValueSource(column)) {
+                __getValueSourcePrivate(column).__registerTableOrView(requiredTablesOrViews)
+            } else {
+                this.__registerTableOrViewOfColumns(column, requiredTablesOrViews)
+            }
+        }
+    }
+
+    __registerTableOrViewWithOfColumns(columns: QueryColumns | undefined, withs: IWithView<any>[]) {
+        for (const property in columns) {
+            const column = columns[property]!
+            if (isValueSource(column)) {
+                __getValueSourcePrivate(column).__addWiths(withs)
+            } else {
+                this.__registerTableOrViewWithOfColumns(column, withs)
+            }
+        }
+    }
+
+    __registerRequiredColumnOfColmns(columns: QueryColumns | undefined, requiredColumns: Set<Column>, newOnly: Set<ITableOrView<any>>) {
+        for (const property in columns) {
+            const column = columns[property]!
+            if (isValueSource(column)) {
+                __getValueSourcePrivate(column).__registerRequiredColumn(requiredColumns, newOnly)
+            } else {
+                this.__registerRequiredColumnOfColmns(column, requiredColumns, newOnly)
+            }
+        }
+    }
+
+    __getColumnFromColumnsObject(prop: string| number | symbol): AnyValueSource | undefined {
+        return getQueryColumn(this.__columns!, prop)
+    }
+
+    __getColumnNameFromColumnsObjectLowerCase(prop: string| number | symbol): string | undefined {
+        const columns = this.__columns!
+        const propName = (prop as string).toLowerCase()
+
+        let map: { [columnNameInLowerCase: string]: string | undefined } = {}
+        for (const property in columns) {
+            map[property.toLowerCase()] = property
+        }
+
+        let realProp = map[propName]
+        if (!realProp) {
+            return undefined
+        }
+        let valueSource = columns[realProp]
+        if (valueSource) {
+            if (isValueSource(valueSource)) {
+                return realProp
+            } else {
+                return undefined
+            }
+        }
+
+        const route = propName.split('.')
+        valueSource = columns
+        let path = ''
+        for (let i = 0, length = route.length; valueSource && i < length; i++) {
+            const currentProp = route[i]!
+            realProp = map[currentProp]
+            if (!realProp) {
+                return undefined
+            }
+            valueSource = valueSource[realProp]
+            if (path) {
+                path = path + '.' + realProp
+            }
+
+            if (isValueSource(valueSource)) {
+                return undefined
+            }
+
+            for (const property in valueSource) {
+                map[property.toLowerCase()] = property
+            }
+        }
+        if (isValueSource(valueSource)) {
+            return path
+        } else {
+            return undefined
+        }
     }
 }

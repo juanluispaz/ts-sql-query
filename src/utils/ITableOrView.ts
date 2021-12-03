@@ -72,6 +72,7 @@ export interface __ITableOrViewPrivate extends HasAddWiths {
     __name: string
     __as?: string
     __type: 'table' | 'view' | 'with'
+    __forUseInLeftJoin?: boolean
     __template?: RawFragment<any>
     __customizationName?: string
     __oldValues?: boolean
@@ -133,5 +134,17 @@ export interface TableOrViewAlias<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS
 export interface OuterJoinSource<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> {
     [outerJoinDatabase]: TABLE_OR_VIEW[typeof database]
     [outerJoinTableOrView]: TABLE_OR_VIEW
+    [outerJoinAlias]: ALIAS
+}
+
+export interface OUTER_JOIN_SOURCE<REF extends TableOrViewRef<AnyDB>, ALIAS> extends TableOrViewRef<REF[typeof database]> {
+    [outerJoinDatabase]: REF[typeof database]
+    [outerJoinTableOrView]: REF
+    [outerJoinAlias]: ALIAS
+}
+
+export interface TableOrViewOuterJoin<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> extends ITableOrView<OUTER_JOIN_SOURCE<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>> {
+    [tableOrView]: TABLE_OR_VIEW
+    [tableOrViewAlias]: ALIAS
     [outerJoinAlias]: ALIAS
 }

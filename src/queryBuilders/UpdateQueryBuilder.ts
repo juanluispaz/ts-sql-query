@@ -1,6 +1,6 @@
-import type { JoinData, SqlBuilder, UpdateData } from "../sqlBuilders/SqlBuilder"
+import type { JoinData, QueryColumns, SqlBuilder, UpdateData } from "../sqlBuilders/SqlBuilder"
 import { ITable, ITableOrView, IWithView, OuterJoinSource, __getTableOrViewPrivate } from "../utils/ITableOrView"
-import type { AlwaysIfValueSource, AnyValueSource, IBooleanValueSource, IIfValueSource } from "../expressions/values"
+import { AlwaysIfValueSource, AnyValueSource, IBooleanValueSource, IIfValueSource, isValueSource } from "../expressions/values"
 import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, ComposableExecutableUpdate, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableUpdate, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere } from "../expressions/update"
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
@@ -21,7 +21,7 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements Upda
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
     __customization?: UpdateCustomization<any>
-    __columns?: { [property: string]: AnyValueSource }
+    __columns?: QueryColumns
     __oldValues?: ITableOrView<any>
     __froms?: Array<ITableOrView<any>>
     __joins?: Array<JoinData>
@@ -83,6 +83,9 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements Upda
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
+                    if (!isValueSource(valueSource)) {
+                        throw new Error('The result column must be a ValueSource')
+                    }
                     if (value === undefined) {
                         return null
                     }
@@ -121,6 +124,9 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements Upda
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
+                    if (!isValueSource(valueSource)) {
+                        throw new Error('The result column must be a ValueSource')
+                    }
                     if (value === undefined) {
                         throw new Error('No result returned by the database')
                     }
@@ -158,6 +164,9 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements Upda
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns!['result']!
+                    if (!isValueSource(valueSource)) {
+                        throw new Error('The result column must be a ValueSource')
+                    }
 
                     return values.map((value) => {
                         if (value === undefined) {
@@ -613,16 +622,8 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements Upda
     returning(columns: UpdateColumns<any, any>): this {
         this.__query = ''
         this.__columns = columns
-    
-        const withs = this.__withs
-        for (const property in columns) {
-            const column = columns[property]!
-            const columnPrivate = __getValueSourcePrivate(column)
-            columnPrivate.__addWiths(withs)
-            if (!this.__oldValues) {
-                this.__oldValues = columnPrivate.__getOldValues()
-            }
-        }
+        this.__registerTableOrViewWithOfColumns(columns, this.__withs)
+        this.__oldValues = this.__getOldValueOfColumns(columns)
         return this
     }
     

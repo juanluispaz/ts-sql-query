@@ -1,4 +1,4 @@
-import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData } from "./SqlBuilder"
+import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData, flattenQueryColumns, FlatQueryColumns, getQueryColumn, QueryColumns } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AnyValueSource, isValueSource } from "../expressions/values"
 import type { OrderByMode } from "../expressions/select"
@@ -134,7 +134,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             const offset = query.__offset
             if ((offset !== null && offset !== undefined) || (limit !== null && limit !== undefined)) {
                 // Add fake order by to allow a limit and offset without order by
-                const columns = query.__columns
+                const columns: FlatQueryColumns = {}
+                flattenQueryColumns(query.__columns, columns, '')
+
                 let index = 0
                 for (const property in columns) {
                     index++
@@ -156,7 +158,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            const column = columns[property]
+            const column = getQueryColumn(columns, property)
             if (!column) {
                 throw new Error('Column ' + property + ' included in the order by not found in the select clause')
             }
@@ -272,10 +274,12 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _buildDeleteOutput(query: DeleteData, params: any[]): string {
         return this._buildQueryOutput(query.__columns, query.__table, 'deleted', params)
     }
-    _buildQueryOutput(columns: { [property: string]: AnyValueSource } | undefined, table: ITable<any>, alias: string, params: any[]): string {
-        if (!columns) {
+    _buildQueryOutput(queryColumns: QueryColumns | undefined, table: ITable<any>, alias: string, params: any[]): string {
+        if (!queryColumns) {
             return ''
         }
+        const columns: FlatQueryColumns = {}
+        flattenQueryColumns(queryColumns, columns, '')
 
         const oldForceAliasFor = this._getForceAliasFor(params)
         const oldForceAliasAs = this._getForceAliasAs(params)
@@ -313,8 +317,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (!isValueSource(value)) {
             return false
         }
-        if (value.isConstValue()) {
-            const valueSourceValue = value.getConstValue()
+        const valueSourcePrivate = __getValueSourcePrivate(value)
+        if (valueSourcePrivate.isConstValue()) {
+            const valueSourceValue = valueSourcePrivate.getConstValue()
             if (valueSourceValue === null || valueSourceValue === undefined) {
                 return true
             }
@@ -328,13 +333,14 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (!isValueSource(value)) {
             return false
         }
-        if (value.isConstValue()) {
-            const valueSourceValue = value.getConstValue()
+        const valueSourcePrivate = __getValueSourcePrivate(value)
+        if (valueSourcePrivate.isConstValue()) {
+            const valueSourceValue = valueSourcePrivate.getConstValue()
             if (valueSourceValue === null || valueSourceValue === undefined) {
                 return true
             }
         }
-        return __getValueSourcePrivate(value).__optionalType !== 'required'
+        return valueSourcePrivate.__optionalType !== 'required'
     }
     _isNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {

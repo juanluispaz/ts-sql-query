@@ -1,6 +1,6 @@
-import type { SqlBuilder, DeleteData, JoinData } from "../sqlBuilders/SqlBuilder"
+import type { SqlBuilder, DeleteData, JoinData, QueryColumns } from "../sqlBuilders/SqlBuilder"
 import { ITable, ITableOrView, IWithView, OuterJoinSource, __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
-import type { IBooleanValueSource, IIfValueSource, AnyValueSource, AlwaysIfValueSource } from "../expressions/values"
+import { IBooleanValueSource, IIfValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableExecutableDelete, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere } from "../expressions/delete"
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
@@ -19,7 +19,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
     __customization?: DeleteCustomization<any>
-    __columns?: { [property: string]: AnyValueSource }
+    __columns?: QueryColumns
     __using?: Array<ITableOrView<any>>
     __joins?: Array<JoinData>
 
@@ -69,6 +69,9 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
+                    if (!isValueSource(valueSource)) {
+                        throw new Error('The result column must be a ValueSource')
+                    }
                     if (value === undefined) {
                         return null
                     }
@@ -101,6 +104,9 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
+                    if (!isValueSource(valueSource)) {
+                        throw new Error('The result column must be a ValueSource')
+                    }
                     if (value === undefined) {
                         throw new Error('No result returned by the database')
                     }
@@ -133,6 +139,9 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns!['result']!
+                    if (!isValueSource(valueSource)) {
+                        throw new Error('The result column must be a ValueSource')
+                    }
 
                     return values.map((value) => {
                         if (value === undefined) {
@@ -347,12 +356,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
         this.__finishJoin()
         this.__query = ''
         this.__columns = columns
-    
-        const withs = this.__withs
-        for (const property in columns) {
-            const column = columns[property]!
-            __getValueSourcePrivate(column).__addWiths(withs)
-        }
+        this.__registerTableOrViewWithOfColumns(columns, this.__withs)
         return this
     }
     

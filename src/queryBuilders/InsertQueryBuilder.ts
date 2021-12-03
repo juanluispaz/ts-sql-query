@@ -1,4 +1,4 @@
-import type { SqlBuilder, InsertData, SelectData } from "../sqlBuilders/SqlBuilder"
+import type { SqlBuilder, InsertData, SelectData, QueryColumns } from "../sqlBuilders/SqlBuilder"
 import{ ITable, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*, MissingKeysInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturning, CustomiableExecutableInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns } from "../expressions/insert"
 import type { Column } from "../utils/Column"
@@ -6,7 +6,7 @@ import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { database, tableOrView } from "../utils/symbols"
-import { AnyValueSource, IExecutableSelectQuery, __getValueSourcePrivate } from "../expressions/values"
+import { AnyValueSource, IExecutableSelectQuery, isValueSource, __getValueSourcePrivate } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
 import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
 
@@ -24,7 +24,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
     __from?: SelectData
     __withs: Array<IWithView<any>> = []
     __customization?: InsertCustomization<any>
-    __columns?: { [property: string]: AnyValueSource }
+    __columns?: QueryColumns
 
     __oneColumn?: boolean
 
@@ -144,6 +144,9 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
+                    if (!isValueSource(valueSource)) {
+                        throw new Error('The result column must be a ValueSource')
+                    }
                     if (value === undefined) {
                         return null
                     }
@@ -176,6 +179,9 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
+                    if (!isValueSource(valueSource)) {
+                        throw new Error('The result column must be a ValueSource')
+                    }
                     if (value === undefined) {
                         throw new Error('No result returned by the database')
                     }
@@ -208,6 +214,9 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
             if (this.__oneColumn) {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns!['result']!
+                    if (!isValueSource(valueSource)) {
+                        throw new Error('The result column must be a ValueSource')
+                    }
 
                     return values.map((value) => {
                         if (value === undefined) {
@@ -569,12 +578,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
     returning(columns: InsertColumns<any>): this {
         this.__query = ''
         this.__columns = columns
-    
-        const withs = this.__withs
-        for (const property in columns) {
-            const column = columns[property]!
-            __getValueSourcePrivate(column).__addWiths(withs)
-        }
+        this.__registerTableOrViewWithOfColumns(columns, this.__withs)
         return this
     }
     

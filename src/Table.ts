@@ -25,6 +25,8 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     // @ts-ignore
     private __as?: string
     // @ts-ignore
+    private __forUseInLeftJoin?: boolean
+    // @ts-ignore
     private __type: 'table' = 'table'
     // @ts-ignore
     private __template?: RawFragment<any>
@@ -46,6 +48,7 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): OuterJoinSourceOf<this, ALIAS> {
         const result = new ((this as any).constructor)() as TableOf<any>
         result.__as = as
+        result.__forUseInLeftJoin = true
         for (const prop in result) {
             const column = __getValueSourceOfObject(result, prop)
             if (column) {

@@ -1,4 +1,4 @@
-import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData } from "./SqlBuilder"
+import { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, flattenQueryColumns, getQueryColumn } from "./SqlBuilder"
 import { ITableOrView, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAnyBooleanValueSource, IExecutableSelectQuery, __getValueSourceOfObject, __ValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
@@ -631,7 +631,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             selectQuery += this._appendRawFragment(customization.beforeColumns, params) + ' '
         }
 
-        const columns = query.__columns
+        const columns: FlatQueryColumns = {}
+        flattenQueryColumns(query.__columns, columns, '')
+
         let requireComma = false
         for (const property in columns) {
             if (requireComma) {
@@ -721,7 +723,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            const column = columns[property]
+            const column = getQueryColumn(columns, property)
             if (!column) {
                 throw new Error('Column ' + property + ' included in the order by not found in the select clause')
             }
@@ -1238,10 +1240,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setContainsInsertReturningClause(params, !!result)
         return result
     }
-    _buildQueryReturning(columns: { [property: string]: AnyValueSource } | undefined, params: any[]): string {
-        if (!columns) {
+    _buildQueryReturning(queryColumns: QueryColumns | undefined, params: any[]): string {
+        if (!queryColumns) {
             return ''
         }
+        const columns: FlatQueryColumns = {}
+        flattenQueryColumns(queryColumns, columns, '')
+
         let requireComma = false
         let result = ''
         for (const property in columns) {

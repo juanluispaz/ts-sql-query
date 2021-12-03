@@ -896,6 +896,49 @@ async function main() {
         'company.id': 10,
         'company.name': 'ACME Inc.'
     })
+    expectedQuery.push(`select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, company.id as "company.id", company.name as "company.name" from customer inner join company on company.id = customer.company_id where customer.id = $1`)
+    expectedParams.push(`[12]`)
+    expectedType.push(`selectOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    const customerWithCompanyInOneQuery2 = await connection.selectFrom(tCustomer)
+            .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+            .select({
+                id: tCustomer.id,
+                firstName: tCustomer.firstName,
+                lastName: tCustomer.lastName,
+                birthday: tCustomer.birthday,
+                company: {
+                    id: tCompany.id,
+                    name: tCompany.name
+                }
+            }).where(
+                tCustomer.id .equals(12)
+            ).executeSelectOne()
+
+    assertEquals(customerWithCompanyInOneQuery2, result)
+    
+    /* *** Preparation ************************************************************/
+    
+    result = {
+        id: 12,
+        firstName: 'John',
+        lastName: 'Smith',
+        birthday: new Date('1990/1/14'),
+        company: {
+            id: 10,
+            name: 'ACME Inc.'
+        }
+    }
+    expectedResult.push({
+        id: 12,
+        firstName: 'John',
+        lastName: 'Smith',
+        birthday: new Date('1990/1/14'),
+        'company.id': 10,
+        'company.name': 'ACME Inc.'
+    })
     expectedQuery.push(`select customer.id as id, customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as birthday, company.id as "company.id", company.name as "company.name" from customer inner join company on company.id = customer.company_id where company.name = $1 and (customer.first_name ilike ('%' || $2 || '%') or customer.last_name ilike ('%' || $3 || '%')) order by lower("company.name") asc, birthday desc`)
     expectedParams.push(`["ACME","John","Smi"]`)
     expectedType.push(`selectOneRow`)
@@ -1087,6 +1130,49 @@ async function main() {
         }).executeSelectMany()
     
     assertEquals(leftJoinCompany, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = [{
+        id: 18,
+        name: 'name'
+    }, {
+        id: 19,
+        name: 'name2',
+        parent: {
+            id: 18,
+            name: 'name'
+        }
+    }]
+    expectedResult.push([{
+        id: 18,
+        name: 'name'
+    }, {
+        id: 19,
+        name: 'name2',
+        'parent.id': 18,
+        'parent.name': 'name'
+    }])
+    expectedQuery.push(`select company.id as id, company.name as name, parent.id as "parent.id", parent.name as "parent.name" from company left join company as parent on company.parent_id = parent.id`)
+    expectedParams.push(`[]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    //const parent = tCompany.forUseInLeftJoinAs('parent')
+    
+    const leftJoinCompany2 = await connection.selectFrom(tCompany)
+        .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            parent: {
+                id: parent.id,
+                name: parent.name
+            }
+        }).executeSelectMany()
+    
+    assertEquals(leftJoinCompany2, result)
     
     /* *** Preparation ************************************************************/
 
@@ -1579,6 +1665,50 @@ async function main() {
         name: 'name2',
         parent: {
             id: 18,
+            name: 'name',
+            parentId: 8
+        }
+    }]
+    expectedResult.push([{
+        id: 18,
+        name: 'name'
+    }, {
+        id: 19,
+        name: 'name2',
+        'parent.id': 18,
+        'parent.name': 'name',
+        'parent.parentId': 8
+    }])
+    expectedQuery.push(`select company.id as id, company.name as name, parent.id as "parent.id", parent.name as "parent.name", parent.parent_id as "parent.parentId" from company left join company as parent on company.parent_id = parent.id`)
+    expectedParams.push(`[]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const companyPrefixed4 = await connection.selectFrom(tCompany)
+        .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            parent: {
+                id: parentCompany.id,
+                name: parentCompany.name,
+                parentId: parentCompany.parentId
+            }
+        }).executeSelectMany()
+    
+    assertEquals(companyPrefixed4, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = [{
+        id: 18,
+        name: 'name'
+    }, {
+        id: 19,
+        name: 'name2',
+        parent: {
+            id: 18,
             name: 'name'
         }
     }, {
@@ -1642,6 +1772,76 @@ async function main() {
         .executeSelectMany()
 
     assertEquals(companyMultiSplit, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = [{
+        id: 18,
+        name: 'name'
+    }, {
+        id: 19,
+        name: 'name2',
+        parent: {
+            id: 18,
+            name: 'name'
+        }
+    }, {
+        id: 20,
+        name: 'name3',
+        parent: {
+            id: 19,
+            name: 'name2',
+            parent: {
+                id: 18,
+                name: 'name',
+                parentId: 17
+            }
+        }
+    }]
+    expectedResult.push([{
+        id: 18,
+        name: 'name'
+    }, {
+        id: 19,
+        name: 'name2',
+        'parent.id': 18,
+        'parent.name': 'name'
+    }, {
+        id: 20,
+        name: 'name3',
+        'parent.id': 19,
+        'parent.name': 'name2',
+        'parent.parent.id': 18,
+        'parent.parent.name': 'name',
+        'parent.parent.parentId': 17
+    }])
+    expectedQuery.push(`select company.id as id, company.name as name, parent.id as "parent.id", parent.name as "parent.name", parentParent.id as "parent.parent.id", parentParent.name as "parent.parent.name", parentParent.parent_id as "parent.parent.parentId" from company left join company as parent on company.parent_id = parent.id left join company as parentParent on parent.parent_id = parentParent.id`)
+    expectedParams.push(`[]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    //const parentParent = tCompany.forUseInLeftJoinAs('parentParent')
+    
+    const companyMultiSplit2 = await connection.selectFrom(tCompany)
+        .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+        .leftJoin(parentParent).on(parent.parentId.equals(parentParent.id))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            parent: {
+                id: parent.id,
+                name: parent.name,
+                parent: {
+                    id: parentParent.id,
+                    name: parentParent.name,
+                    parentId: parentParent.parentId,
+                }
+            }
+        })
+        .executeSelectMany()
+
+    assertEquals(companyMultiSplit2, result)
 
     /* *** Preparation ************************************************************/
 

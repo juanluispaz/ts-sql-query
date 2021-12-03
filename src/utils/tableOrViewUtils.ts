@@ -1,4 +1,4 @@
-import type { CUSTOMIZED_TABLE_OR_VIEW, ITable, ITableOrView, IView, IWithView, OuterJoinSource, TableOrViewAlias, TABLE_OR_VIEW_ALIAS, TableOrViewRef, OLD, OldTableOrView } from "./ITableOrView"
+import type { CUSTOMIZED_TABLE_OR_VIEW, ITable, ITableOrView, IView, IWithView, OuterJoinSource, TableOrViewAlias, TABLE_OR_VIEW_ALIAS, TableOrViewRef, OLD, OldTableOrView, OUTER_JOIN_SOURCE, TableOrViewOuterJoin } from "./ITableOrView"
 import type { AnyValueSource, IValueSource, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType } from "../expressions/values"
 import type { tableOrViewRef, type, viewName } from "./symbols"
 import type { AnyDB } from "../databases"
@@ -12,8 +12,8 @@ export type OldValues<TABLE_OR_VIEW extends ITableOrView<any>> = { [K in ValueSo
 export type AliasedTableOrView<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ValueSourcesOf<TABLE_OR_VIEW>]: RemapValueSourceType<TABLE_OR_VIEW_ALIAS<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>, TABLE_OR_VIEW[K]> } & TableOrViewAlias<TABLE_OR_VIEW, ALIAS>
 type WithViewColumns<TABLE_OR_VIEW extends ITableOrView<any>, COLUMNS> = { [K in ValueSourcesOf<COLUMNS>]: RemapValueSourceType<TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS[K]> } & TABLE_OR_VIEW
 
-export type OuterJoinSourceOf<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ValueSourcesOf<TABLE_OR_VIEW>]: RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW_ALIAS<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>, TABLE_OR_VIEW[K], OuterOptionalTypeOf<TABLE_OR_VIEW[K]>> } & OuterJoinSource<TABLE_OR_VIEW, ALIAS>
-export type OuterJoinTableOrView<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ValueSourcesOf<TABLE_OR_VIEW>]: RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW_ALIAS<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>, TABLE_OR_VIEW[K], OuterOptionalTypeOf<TABLE_OR_VIEW[K]>> } & TableOrViewAlias<TABLE_OR_VIEW, ALIAS>
+export type OuterJoinSourceOf<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ValueSourcesOf<TABLE_OR_VIEW>]: RemapValueSourceTypeWithOptionalType<OUTER_JOIN_SOURCE<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>, TABLE_OR_VIEW[K], OuterOptionalTypeOf<TABLE_OR_VIEW[K]>> } & OuterJoinSource<TABLE_OR_VIEW, ALIAS>
+export type OuterJoinTableOrView<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ValueSourcesOf<TABLE_OR_VIEW>]: RemapValueSourceTypeWithOptionalType<OUTER_JOIN_SOURCE<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>, TABLE_OR_VIEW[K], OuterOptionalTypeOf<TABLE_OR_VIEW[K]>> } & TableOrViewOuterJoin<TABLE_OR_VIEW, ALIAS>
 type OuterOptionalTypeOf<TYPE> = 
     TYPE extends IValueSource<any, any, any, infer OPTIONAL_TYPE> ? (
         'required' extends OPTIONAL_TYPE

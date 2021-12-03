@@ -1,5 +1,5 @@
 import type { ITableOrView, ITable, IWithView } from "../utils/ITableOrView"
-import type { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IIntValueSource } from "../expressions/values"
+import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IIntValueSource, isValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode, SelectCustomization } from "../expressions/select"
@@ -9,6 +9,51 @@ import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 import type { UpdateCustomization } from "../expressions/update"
 import type { DeleteCustomization } from "../expressions/delete"
 import type { InsertCustomization } from "../expressions/insert"
+
+export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
+export type FlatQueryColumns = { [property: string]: AnyValueSource }
+
+export function getQueryColumn(columns: QueryColumns, prop: string| number | symbol): AnyValueSource | undefined {
+    const propName = prop as string
+    let valueSource = columns[propName]
+    if (valueSource) {
+        if (isValueSource(valueSource)) {
+            return valueSource
+        } else {
+            return undefined
+        }
+    }
+
+    const route = propName.split('.')
+    valueSource = columns
+    for (let i = 0, length = route.length; valueSource && i < length; i++) {
+        if (isValueSource(valueSource)) {
+            return undefined
+        }
+        const currentProp = route[i]!
+        valueSource = valueSource[currentProp]
+    }
+    if (isValueSource(valueSource)) {
+        return valueSource
+    } else {
+        return undefined
+    }
+}
+
+export function flattenQueryColumns(columns: QueryColumns, target: FlatQueryColumns, prefix: string) {
+    for (let prop in columns) {
+        const column = columns[prop]!
+        if (isValueSource(column)) {
+            const name = prefix + prop
+            if (target[name]) {
+                throw new Error("You are trying to use the same column name '" + name + "' several times in the same query")
+            }
+            target[name] = column
+        } else {
+            flattenQueryColumns(column, target, prefix + prop + '.')
+        }
+    }
+}
 
 export interface WithData {
     __name: string
@@ -38,7 +83,7 @@ export type SelectData = PlainSelectData | CompoundSelectData
 export interface PlainSelectData extends WithQueryData {
     __type: 'plain'
     __distinct: boolean
-    __columns: { [property: string]: AnyValueSource }
+    __columns: QueryColumns
     __tablesOrViews: Array<ITableOrView<any>>
     __joins: Array<JoinData>
     __where?: AlwaysIfValueSource<any, any>
@@ -57,7 +102,7 @@ export interface CompoundSelectData extends WithQueryData {
     __firstQuery: SelectData
     __compoundOperator: CompoundOperator
     __secondQuery: SelectData
-    __columns: { [property: string]: AnyValueSource }
+    __columns: QueryColumns
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
     __limit?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __offset?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
@@ -70,7 +115,7 @@ export interface InsertData extends WithQueryData {
     __idColumn?: Column
     __from?: SelectData
     __customization?: InsertCustomization<any>
-    __columns?: { [property: string]: AnyValueSource }
+    __columns?: QueryColumns
 }
 
 export interface UpdateData extends WithQueryData {
@@ -79,7 +124,7 @@ export interface UpdateData extends WithQueryData {
     __where?: AlwaysIfValueSource<any, any>
     __allowNoWhere: boolean
     __customization?: UpdateCustomization<any>
-    __columns?: { [property: string]: AnyValueSource }
+    __columns?: QueryColumns
     __oldValues?: ITableOrView<any>
     __froms?: Array<ITableOrView<any>>
     __joins?: Array<JoinData>
@@ -90,7 +135,7 @@ export interface DeleteData extends WithQueryData {
     __where?: AlwaysIfValueSource<any, any>
     __allowNoWhere: boolean
     __customization?: DeleteCustomization<any>
-    __columns?: { [property: string]: AnyValueSource }
+    __columns?: QueryColumns
     __using?: Array<ITableOrView<any>>
     __joins?: Array<JoinData>
 }

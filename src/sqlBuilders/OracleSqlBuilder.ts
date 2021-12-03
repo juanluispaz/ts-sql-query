@@ -1,4 +1,4 @@
-import type { ToSql, InsertData, CompoundOperator, SelectData } from "./SqlBuilder"
+import { ToSql, InsertData, CompoundOperator, SelectData, getQueryColumn, QueryColumns, FlatQueryColumns, flattenQueryColumns } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AnyValueSource, isValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
@@ -154,7 +154,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            const column = columns[property]
+            const column = getQueryColumn(columns, property)
             if (!column) {
                 throw new Error('Column ' + property + ' included in the order by not found in the select clause')
             }
@@ -423,10 +423,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         this._setContainsInsertReturningClause(params, !!result)
         return result
     }
-    _buildQueryReturning(columns: { [property: string]: AnyValueSource } | undefined, params: any[]): string {
-        if (!columns) {
+    _buildQueryReturning(queryColumns: QueryColumns | undefined, params: any[]): string {
+        if (!queryColumns) {
             return ''
         }
+        const columns: FlatQueryColumns = {}
+        flattenQueryColumns(queryColumns, columns, '')
+
         let requireComma = false
         let result = ''
         for (const property in columns) {

@@ -143,9 +143,9 @@ export function extractColumnsFrom<O extends object>(obj: O): { [K in ColumnKeys
     return result
 }
 
-type HasIfValueSource<VALUE> = VALUE extends {[ifValueSourceType]: 'IfValueSource'} ? 'yes' : never
+type HasIfValueSource<VALUE> = VALUE extends {[ifValueSourceType]: 'IfValueSource'} ? true : never
 
-export function mergeType<VALUE extends IAnyBooleanValueSource<any, any>>(value: VALUE): 'yes' extends HasIfValueSource<VALUE>? IfValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>> : BooleanValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+export function mergeType<VALUE extends IAnyBooleanValueSource<any, any>>(value: VALUE): true extends HasIfValueSource<VALUE>? IfValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>> : BooleanValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
 export function mergeType<VALUE extends IStringIntValueSource<any, any>>(value: VALUE): StringIntValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
 export function mergeType<VALUE extends IStringNumberValueSource<any, any>>(value: VALUE): StringNumberValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
 export function mergeType<VALUE extends IIntValueSource<any, any>>(value: VALUE): IntValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>

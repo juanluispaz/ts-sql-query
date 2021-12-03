@@ -1,4 +1,4 @@
-import type { ToSql, SelectData, InsertData, UpdateData } from "./SqlBuilder"
+import { ToSql, SelectData, InsertData, UpdateData, getQueryColumn } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
 import { AnyValueSource, isValueSource } from "../expressions/values"
@@ -53,7 +53,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            const column = columns[property]
+            const column = getQueryColumn(columns, property)
             if (!column) {
                 throw new Error('Column ' + property + ' included in the order by not found in the select clause')
             }

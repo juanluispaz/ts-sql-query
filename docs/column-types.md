@@ -20,7 +20,7 @@ ts-sql-query allows you to define the columns with the following types:
 | `custom`           | *custom*             | *custom*        | Custom equalable value                                            |
 | `customComparable` | *custom*             | *custom*        | Custom comparable value                                           |
 
-The extended types are defined in the [ts-extended-types](https://www.npmjs.com/package/ts-extended-types) package. Its types allow you to make your application even more type-safe and better represent the data structure handled by the database. To use these types, you must extend the type-safe variant of the connections defined at [Supported databases with extended types](./supported-databases-with-extended-types.md)
+The extended types are defined in the [ts-extended-types](https://www.npmjs.com/package/ts-extended-types) package. Its types allow you to make your application even more type-safe and better represent the data structure handled by the database. To use these types, you must extend the type-safe variant of the connections defined at [Supported databases with extended types](supported-databases-with-extended-types.md)
 
 You can define a column with these types as indicated next:
 
@@ -93,7 +93,7 @@ this.column<RgbColor>('ColumnName', 'custom', 'RgbColor', new RgbColorTypeAdapte
 - The `type` param tells you what the expected type is; you must verify it and only process the value if it is the one you are applying the rule.
 - The `next` gives you access to the default implementation; you must call if you cannot handle the type.
 
-Type adapter is useful when you define a rule that only applies to that specific column, for example, the `CustomBooleanTypeAdapter` explained in the [Custom booleans values](../advanced-usage/#custom-booleans-values) section. For the `RgbColor` example, it is not specific for one field, them; it will be better to define the rule globally in the connection object as explained in the next section.
+Type adapter is useful when you define a rule that only applies to that specific column, for example, the `CustomBooleanTypeAdapter` explained in the [Custom booleans values](advanced-usage.md#custom-booleans-values) section. For the `RgbColor` example, it is not specific for one field, them; it will be better to define the rule globally in the connection object as explained in the next section.
 
 ## Globally type adapter
 

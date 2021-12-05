@@ -303,7 +303,7 @@ const customerWithCompanyObject: Promise<{
 }>
 ```
 
-See [Select using a dynamic filter](../dynamic-queries/#select-using-a-dynamic-filter) and [Dynamic conditions](../../supported-operations/#dynamic-conditions) for more information.
+See [Select using a dynamic filter](dynamic-queries.md#select-using-a-dynamic-filter) and [Dynamic conditions](../supported-operations.md#dynamic-conditions) for more information.
 
 ## Select dynamically picking columns with complex projections
 
@@ -390,4 +390,4 @@ where customer.id = $1
 
 The parameters are: `[ 12 ]`
 
-See [Select dynamically picking columns](../dynamic-queries/#select-dynamically-picking-columns) and [Optional joins](../dynamic-queries/#optional-joins) for more information.
+See [Select dynamically picking columns](dynamic-queries.md#select-dynamically-picking-columns) and [Optional joins](dynamic-queries.md#optional-joins) for more information.

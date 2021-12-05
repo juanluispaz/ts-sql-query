@@ -150,7 +150,7 @@ const leftJoinCompany: Promise<{
 }[]>
 ```
 
-When you are doing a left join, you probably want to use [Complex projections](../complex-projections):
+When you are doing a left join, you probably want to use [Complex projections](complex-projections.md):
 
 ```ts
 const parent = tCompany.forUseInLeftJoinAs('parent');

@@ -20,7 +20,7 @@ async function main() {
 }
 ```
 
-**Note**: better-sqlite3 supports synchronous query execution. See [Synchronous query runners](../../advanced-usage/#synchronous-query-runners) for more information.
+**Note**: better-sqlite3 supports synchronous query execution. See [Synchronous query runners](../advanced-usage.md#synchronous-query-runners) for more information.
 
 ## mariadb
 

@@ -26,7 +26,7 @@ import { TypeSafeOracleConnection } from "ts-sql-query/connections/TypeSafeOracl
 class DBConection extends TypeSafeOracleConnection<'DBConnection'> { }
 ```
 
-**Note**: Oracle doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a number where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](../advanced-usage/#custom-booleans-values) for more information.
+**Note**: Oracle doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a number where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](advanced-usage.md#custom-booleans-values) for more information.
 
 ## PostgreSql
 
@@ -44,7 +44,7 @@ import { TypeSafeSqliteConnection } from "ts-sql-query/connections/TypeSafeSqlit
 class DBConection extends TypeSafeSqliteConnection<'DBConnection'> { }
 ```
 
-**Note**: If you use [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) to connect to the database you can run your queries synchronously. See [BetterSqlite3QueryRunner](../query-runners/recommended-query-runners/#better-sqlite3) and [Synchronous query runners](../advanced-usage/#synchronous-query-runners) for more information.
+**Note**: If you use [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) to connect to the database you can run your queries synchronously. See [BetterSqlite3QueryRunner](query-runners/recommended-query-runners.md#better-sqlite3) and [Synchronous query runners](advanced-usage.md#synchronous-query-runners) for more information.
 
 ### Working with Date and Time in Sqlite
 
@@ -171,4 +171,4 @@ class DBConection extends TypeSafeSqlServerConnection<'DBConnection'> { }
 
 **Note**: An empty string will be treated as a null value; if you need to allow empty string set the `allowEmptyString` property to true in the connection object.
 
-**Note**: Sql Server doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a bit where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](../advanced-usage/#custom-booleans-values) for more information.
+**Note**: Sql Server doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a bit where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](advanced-usage.md#custom-booleans-values) for more information.

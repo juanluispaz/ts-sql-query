@@ -86,10 +86,10 @@ Some query runners support to execute the queries synchronously if you provide a
 
 The query runners that support execute queries synchronously if you specify a synchronous Promise implementation are:
 
-- [BetterSqlite3QueryRunner](../query-runners/recommended-query-runners/#better-sqlite3)
-- [ConsoleLogNoopQueryRunner](../query-runners/general-purpose-query-runners/#consolelognoopqueryrunner)
-- [MockQueryRunner](../query-runners/general-purpose-query-runners/#mockqueryrunner)
-- [NoopQueryRunner](../query-runners/general-purpose-query-runners/#noopqueryrunner)
+- [BetterSqlite3QueryRunner](query-runners/recommended-query-runners.md#better-sqlite3)
+- [ConsoleLogNoopQueryRunner](query-runners/general-purpose-query-runners.md#consolelognoopqueryrunner)
+- [MockQueryRunner](query-runners/general-purpose-query-runners.md#mockqueryrunner)
+- [NoopQueryRunner](query-runners/general-purpose-query-runners.md#noopqueryrunner)
 
 For example:
 
@@ -378,7 +378,7 @@ const selectAll: Promise<{
 
 ## Prefixing
 
-**Note**: Before use splitting evaluate if you can use [complex projections](../queries/complex-projections) instead.
+**Note**: Before use splitting evaluate if you can use [complex projections](queries/complex-projections.md) instead.
 
 To deal with complex queries, sometimes you need to combine data coming from different tables and then split the result into different objects; but, because the tables can have columns with the same name, you need to prefix it.
 
@@ -444,7 +444,7 @@ const customerWithCompanyPrefixed: Promise<{
 
 ## Prefix map for guided split
 
-**Note**: Before use splitting evaluate if you can use [complex projections](../queries/complex-projections) instead.
+**Note**: Before use splitting evaluate if you can use [complex projections](queries/complex-projections.md) instead.
 
 When you perform a left join, all the fields coming from the left join table are optional, but you can know when this join exists; some of these fields are not optional at the same time. You can use a guided split to create an inner object with the properties coming from the left join, but you will need to mark the fields that need to be transformed as non-optional in the new object.
 

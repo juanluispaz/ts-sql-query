@@ -17,7 +17,7 @@ async function main() {
 }
 ```
 
-**Note**: `ConsoleLogNoopQueryRunner` supports synchronous query execution. See [Synchronous query runners](../../advanced-usage/#synchronous-query-runners) for more information.
+**Note**: `ConsoleLogNoopQueryRunner` supports synchronous query execution. See [Synchronous query runners](../advanced-usage.md#synchronous-query-runners) for more information.
 
 ## ConsoleLogQueryRunner
 
@@ -188,7 +188,7 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 - **`params: any[]`**: parameters received by the query
 - **`index: number`**: this is a counter of queries executed by the connection; that means, when the first query is executed the value is 0, when the second query is executed the value is 1, etc.
 
-**Note**: `MockQueryRunner` supports synchronous query execution. See [Synchronous query runners](../../advanced-usage/#synchronous-query-runners) for more information.
+**Note**: `MockQueryRunner` supports synchronous query execution. See [Synchronous query runners](../advanced-usage.md#synchronous-query-runners) for more information.
 
 **Example of usage**
 
@@ -250,4 +250,4 @@ async function main() {
 }
 ```
 
-**Note**: `NoopQueryRunner` supports synchronous query execution. See [Synchronous query runners](../../advanced-usage/#synchronous-query-runners) for more information.
+**Note**: `NoopQueryRunner` supports synchronous query execution. See [Synchronous query runners](../advanced-usage.md#synchronous-query-runners) for more information.

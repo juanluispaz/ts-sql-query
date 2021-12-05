@@ -1503,7 +1503,7 @@ type SelectValues = { [columnName: string]: ValueSource }
 
 Type adapters allow customising how the values are sent and retrieved from the database, allowing to transform them. You can specify the type adapter per field when you define at the table or view; or, you can define general rules overriding the `transformValueFromDB` and `transformValueToDB`.
 
-The `CustomBooleanTypeAdapter` allows defining custom values to express a boolean when they don't match the database's default values. For example, when you have a field in the database that is a boolean; but, the true value is represented with the string `yes`, and the false value is represented with the string `no`. See [Custom booleans values](../advanced-usage/#custom-booleans-values) for more information.
+The `CustomBooleanTypeAdapter` allows defining custom values to express a boolean when they don't match the database's default values. For example, when you have a field in the database that is a boolean; but, the true value is represented with the string `yes`, and the false value is represented with the string `no`. See [Custom booleans values](advanced-usage.md#custom-booleans-values) for more information.
 
 Type adapter definitions are in the file `ts-sql-query/TypeAdapter`.
 
@@ -1532,7 +1532,7 @@ class CustomBooleanTypeAdapter implements TypeAdapter {
 
 ## Dynamic conditions
 
-See [Select using a dynamic filter](../queries/select-using-a-dynamic-filter/) for more information.
+See [Select using a dynamic filter](queries/dynamic-queries.md#select-using-a-dynamic-filter) for more information.
 
 A dynamic condition allows you to create a condition which definition is provided in runtime. To create a dynamic condition, you must call the method `dynamicConditionFor` from the connection; this method receives a map where the key is the name with which is going to be referred the field, and the value is the corresponding value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the dynamic criteria and returns a boolean value source that you can use in any place where a boolean can be used in the query (like the where).
 

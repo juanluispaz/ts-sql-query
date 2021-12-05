@@ -194,7 +194,7 @@ const customersWithCompanyName: Promise<{
 
 The utility type `DynamicCondition` and `TypeSafeDynamicCondition` (when the extended types are used with type-safe connections) from `ts-sql-query/dynamicCondition` allows you to create a type definition for the dynamic criteria.
 
-See [Dynamic conditions](../../supported-operations/#dynamic-conditions) for more information.
+See [Dynamic conditions](../supported-operations.md#dynamic-conditions) for more information.
 
 ## Select dynamically picking columns
 

@@ -59,38 +59,38 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             }
             const order = orderBy[property]
             if (!order) {
-                orderByColumns += this._escape(property, true)
+                orderByColumns += this._appendColumnAlias(property, params)
             } else switch (order as OrderByMode) {
                 case 'asc':
                 case 'asc nulls first':
-                    orderByColumns += this._escape(property, true) + ' asc'
+                    orderByColumns += this._appendColumnAlias(property, params) + ' asc'
                     break
                 case 'desc':
                 case 'desc nulls last':
-                    orderByColumns += this._escape(property, true) + ' desc'
+                    orderByColumns += this._appendColumnAlias(property, params) + ' desc'
                     break
                 case 'asc nulls last':
-                    orderByColumns += this._escape(property, true) + ' is null, ' + this._escape(property, true) + ' asc'
+                    orderByColumns += this._appendColumnAlias(property, params) + ' is null, ' + this._appendColumnAlias(property, params) + ' asc'
                     break
                 case 'desc nulls first':
-                    orderByColumns += this._escape(property, true) + ' is not null, ' + this._escape(property, true) + ' desc'
+                    orderByColumns += this._appendColumnAlias(property, params) + ' is not null, ' + this._appendColumnAlias(property, params) + ' desc'
                     break
                 case 'insensitive':
-                    orderByColumns += this._escapeInsensitive(property, column)
+                    orderByColumns += this.__appendColumnAliasInsensitive(property, column, params)
                     break
                 case 'asc insensitive':
                 case 'asc nulls first insensitive':
-                    orderByColumns += this._escapeInsensitive(property, column) + ' asc'
+                    orderByColumns += this.__appendColumnAliasInsensitive(property, column, params) + ' asc'
                     break
                 case 'desc insensitive':
                 case 'desc nulls last insensitive':
-                    orderByColumns += this._escapeInsensitive(property, column) + ' desc'
+                    orderByColumns += this.__appendColumnAliasInsensitive(property, column, params) + ' desc'
                     break
                 case 'asc nulls last insensitive':
-                    orderByColumns += this._escape(property, true) + ' is null, ' + this._escapeInsensitive(property, column) + ' asc'
+                    orderByColumns += this._appendColumnAlias(property, params) + ' is null, ' + this.__appendColumnAliasInsensitive(property, column, params) + ' asc'
                     break
                 case 'desc nulls first insensitive':
-                    orderByColumns += this._escape(property, true) + ' is not null, ' + this._escapeInsensitive(property, column) + ' desc'
+                    orderByColumns += this._appendColumnAlias(property, params) + ' is not null, ' + this.__appendColumnAliasInsensitive(property, column, params) + ' desc'
                     break
                 default:
                     throw new Error('Invalid order by: ' + property + ' ' + order)
@@ -102,18 +102,18 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return ' order by ' + orderByColumns
     }
-    _escapeInsensitive(identifier: string, column: AnyValueSource) {
+    __appendColumnAliasInsensitive(identifier: string, column: AnyValueSource, params: any[]) {
         const collation = this._connectionConfiguration.insesitiveCollation
         const columnType = __getValueSourcePrivate(column).__valueType
         if (columnType != 'string') {
             // Ignore the insensitive term, it do nothing
-            return this._escape(identifier, true)
+            return this._appendColumnAlias(identifier, params)
         } else if (collation) {
-            return this._escape(identifier, true) + ' collate ' + collation
+            return this._appendColumnAlias(identifier, params) + ' collate ' + collation
         } else if (collation === '') {
-            return this._escape(identifier, true)
+            return this._appendColumnAlias(identifier, params)
         } else {
-            return 'lower(' + this._escape(identifier, true) + ')'
+            return 'lower(' + this._appendColumnAlias(identifier, params) + ')'
         }
     } 
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {

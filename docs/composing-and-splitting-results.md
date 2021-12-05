@@ -9,7 +9,7 @@ Sometime you whan to create a result where the content looks like:
 To do this you have two strategies:
 
 - **Composing**: You can execute a second query that returns the additional data. Valid for the case 1, and also work for the case 2 or 3 but this is not the best approach.
-- **Splitting**: You can return all the data in the same query, and then move the additional data to the object in the internal property. Valid for the case 2 and 3 but it doesn't work for the case 1.
+- **Splitting**: You can return all the data in the same query, and then move the additional data to the object in the internal property. Valid for the case 2 and 3 but it doesn't work for the case 1. Before use splitting evaluate if you can use [complex projections](../queries/complex-projections) instead.
 
 **Note**: You can apply composing/spliting on select/insert/update/delete that returns objects.
 
@@ -140,6 +140,8 @@ const customerWithCompany: Promise<{
 
 ## Splitting results
 
+**Note**: Before use splitting evaluate if you can use [complex projections](../queries/complex-projections) instead.
+
 **How it works**:
 
 The property that you indicate will be moved from the result of the query to a new object that will be stored as a property of it.
@@ -197,6 +199,8 @@ const customerWithCompanyInOneQuery: Promise<{
 ```
 
 ## Splitting results and dynamic queries
+
+**Note**: Before use splitting evaluate if you can use [complex projections](../queries/complex-projections) instead.
 
 When you use dynamic parts of your query where the name of a field moved to an inner object is used, you can name those fields in the query with the path in the resulting object to allow easy usage of the dynamic query.
 
@@ -274,6 +278,8 @@ const customerWithCompanyObject: Promise<{
 ```
 
 ## Guided splitting results
+
+**Note**: Before use splitting evaluate if you can use [complex projections](../queries/complex-projections) instead.
 
 Sometimes the default splitting strategy is not enough to express the correct result type due to optional type information that cannot be extracted from the query. For example: when you perform a left join, all the fields coming from the left join table are optional, but you can know when this join exists; some of these fields are not optional at the same time. Adding additional information, you can express this optional combination in the split object.
 

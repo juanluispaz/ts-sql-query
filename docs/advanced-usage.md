@@ -378,6 +378,8 @@ const selectAll: Promise<{
 
 ## Prefixing
 
+**Note**: Before use splitting evaluate if you can use [complex projections](../queries/complex-projections) instead.
+
 To deal with complex queries, sometimes you need to combine data coming from different tables and then split the result into different objects; but, because the tables can have columns with the same name, you need to prefix it.
 
 The file `ts-sql-query/extras/utils` offers the following functions to deal with prefixing and splitting values:
@@ -441,6 +443,8 @@ const customerWithCompanyPrefixed: Promise<{
 ```
 
 ## Prefix map for guided split
+
+**Note**: Before use splitting evaluate if you can use [complex projections](../queries/complex-projections) instead.
 
 When you perform a left join, all the fields coming from the left join table are optional, but you can know when this join exists; some of these fields are not optional at the same time. You can use a guided split to create an inner object with the properties coming from the left join, but you will need to mark the fields that need to be transformed as non-optional in the new object.
 

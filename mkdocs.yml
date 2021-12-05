@@ -26,6 +26,7 @@ nav:
     - Update: queries/update.md
     - Delete: queries/delete.md
     - Transaction: queries/transaction.md
+    - Complex projections: queries/complex-projections.md
   - Connection, tables & views: connection-tables-views.md
   - Column types: column-types.md
   - Composing and splitting results: composing-and-splitting-results.md

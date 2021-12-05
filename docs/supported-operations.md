@@ -31,6 +31,7 @@ interface NullableValueSource extends ValueSource {
     isNotNull(): boolean
     valueWhenNull(value: this): this
     asOptional(): this | null | undefined
+    asRequiredInOptionalObject(): this
 }
 
 interface EqualableValueSource extends NullableValueSource {

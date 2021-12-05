@@ -67,39 +67,39 @@ type CompoundColumnOptionalType<COLUMN> =
 /*
  * Rules (in priority order):
  * 
- * 1.- In the case there are properties defined as asRequiredInOptionalObject: all other non-required properties will be
+ * 1.- In the case, there are properties defined as asRequiredInOptionalObject: all other non-required properties will be
  *     marked as optional; the properties defined as asRequiredInOptionalObject will be considered required; the
  *     object will be considered optional.
  *     In the case of any property defined as asRequiredInOptionalObject has no value, the whole object will be ignored,
- *     independently if there is other properties with value.
- * 2.- In the case of all properies are comming from the same outer (left) join and the original table have
- *     required object, those properties witll be treated automatically as asRequiredInOptionalObject.
- * 3.- In the case there are required properties or inner object: all other non-required properties 
+ *     independently if there are other properties with value.
+ * 2.- In the case of all properties are coming from the same outer (left) join and the original table have
+ *     required object, those properties will be treated automatically as asRequiredInOptionalObject.
+ * 3.- In the case there are required properties or inner objects: all other non-required properties 
  *     or inner objects properties will be marked as optional; the object will be considered required.
- * 4.- In other case: all properties and inner objects will be marked as optional, the object will 
+ * 4.- In any other case: all properties and inner objects will be marked as optional, the object will 
  *     be considered optional.
  * 
  * Programmed logic (in priority order):
  *
  * 1.- There are requiredInOptionalObject fieds:
  *     - The resulting object is marked as optional
- *     - requiredInOptionalObject fields ar marked as required
- *     - required objects reamin as required, but must must not exists if the requiredInOptionalObject fields have no value (ignoring the inner objects)
- *     - inner objects reamin as in its definition, but must must not exists if the requiredInOptionalObject fields have no value (ignoring the inner objects)
- *     - originallyRequired & optional asr marked as optional
- * 2.- All fields (minimun one, ignoring inner objects) have the same identical outer (left) join dependency (plus NoTableOrView)
+ *     - requiredInOptionalObject fields are marked as required
+ *     - required objects remain as required but must not exist if the requiredInOptionalObject fields have no value (ignoring the inner objects)
+ *     - inner objects remain as in its definition but must not exist if the requiredInOptionalObject fields have no value (ignoring the inner objects)
+ *     - originallyRequired & optional are marked as optional
+ * 2.- All fields (minimum one, ignoring inner objects) have the same identical outer (left) join dependency (plus NoTableOrView)
  *     - The fields that were required because the value is required in the original table used for the outer join will be treated as
  *       requiredInOptionalObject in the same way described in the previous point.
  * 3.- There are required fields or inner objects:
  *     - The resulting object is marked as required
- *     - required fiels are marked as required
+ *     - required fields are marked as required
  *     - requiredInOptionalObject & originallyRequired & optional are marked as optional
- *     - inner objects reamin as in its definition
- * 4.- There are not required fields or inner objects:
+ *     - inner objects remain as in their definition
+ * 4.- There are no required fields or inner objects:
  *     - The resulting object is marked as optional
  *     - requiredInOptionalObject fields ar marked as required
- *     - originallyRequired & optional asr marked as optional
- *     - inner objects reamin as in its definition
+ *     - originallyRequired & optional are marked as optional
+ *     - inner objects remain as in its definition
  */
 type InnerResultObjectValues<COLUMNS> = 
     ContainsRequiredInOptionalObject<COLUMNS> extends true ? 

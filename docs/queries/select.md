@@ -150,6 +150,44 @@ const leftJoinCompany: Promise<{
 }[]>
 ```
 
+When you are doing a left join, you probably want to use [Complex projections](../complex-projections):
+
+```ts
+const parent = tCompany.forUseInLeftJoinAs('parent');
+
+const leftJoinCompany = await connection.selectFrom(tCompany)
+    .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        parent: {
+            id: parent.id,
+            name: parent.name
+        }
+    }).executeSelectMany();
+```
+
+The executed query is:
+```sql
+select company.id as id, company.name as name, 
+    parent.id as "parent.id", parent.name as "parent.name" 
+from company left join company as parent on company.parent_id = parent.id
+```
+
+The parameters are: `[]`
+
+The result type is:
+```tsx
+const leftJoinCompany: Promise<{
+    id: number;
+    name: string;
+    parent?: {
+        id: number;
+        name: string;
+    };
+}[]>
+```
+
 ## Select with a compound operator (union, intersect, except)
 
 ```ts

@@ -663,6 +663,64 @@ async function main() {
         .executeSelectMany()
     
     assertEquals(customersWithDynamicCondition, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select customer.id as id, customer.first_name as "name.firstName", customer.last_name as "name.lastName", customer.birthday as birthday, company.id as "company.id", company.name as "company.name" from customer inner join company on customer.company_id = company.id where (lower(customer.first_name) like lower(? || '%') escape '\\' or (lower(customer.last_name) like lower(? || '%') escape '\\' and customer.last_name like ('%' || ?) escape '\\')) and company.name = ? order by lower("name.firstName"), lower("name.lastName") asc`)
+    expectedParams.push(`["John","Smi","th","ACME"]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    type FilterType2 = DynamicCondition<{
+        id: 'int',
+        name: {
+            firstName: 'string',
+            lastName: 'string',
+        }
+        birthday: 'localDate',
+        company: {
+            id: 'int'
+            name: 'string'
+        }
+    }>
+
+    const filter2: FilterType2 = {
+        or: [
+            { name: { firstName: { startsWithInsensitive: 'John' } } },
+            { name: { lastName: { startsWithInsensitiveIfValue: 'Smi', endsWith: 'th' } } }
+        ],
+        company: {
+            name: { equals: 'ACME' }
+        }
+    }
+    
+    const selectFields2 = {
+        id: tCustomer.id,
+        name: {
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+        },
+        birthday: tCustomer.birthday,
+        company: {
+            id: tCompany.id,
+            name: tCompany.name
+        }
+    }
+    
+    const dynamicWhere2 = connection.dynamicConditionFor(selectFields2).withValues(filter2)
+    
+    const customersWithDynamicCondition2 = await connection.selectFrom(tCustomer)
+        .innerJoin(tCompany).on(tCustomer.companyId.equals(tCompany.id))
+        .where(dynamicWhere2)
+        .select(selectFields2)
+        .orderBy('name.firstName', 'insensitive')
+        .orderBy('name.lastName', 'asc insensitive')
+        .executeSelectMany()
+    
+    assertEquals(customersWithDynamicCondition2, result)
     
     /* *** Preparation ************************************************************/
 
@@ -989,6 +1047,83 @@ async function main() {
     assertEquals(customerWithCompanyObject, result)
     
     /* *** Preparation ************************************************************/
+    
+    result = {
+        id: 12,
+        name: {
+            firstName: 'John',
+            lastName: 'Smith',
+        },
+        birthday: new Date('1990/1/14'),
+        company: {
+            id: 10,
+            name: 'ACME Inc.'
+        }
+    }
+    expectedResult.push({
+        id: 12,
+        'name.firstName': 'John',
+        'name.lastName': 'Smith',
+        birthday: new Date('1990/1/14'),
+        'company.id': 10,
+        'company.name': 'ACME Inc.'
+    })
+    expectedQuery.push(`select customer.id as id, customer.first_name as "name.firstName", customer.last_name as "name.lastName", customer.birthday as birthday, company.id as "company.id", company.name as "company.name" from customer inner join company on company.id = customer.company_id where company.name = ? and (lower(customer.first_name) like lower('%' || ? || '%') escape '\\' or lower(customer.last_name) like lower('%' || ? || '%') escape '\\') order by lower("company.name") asc, birthday desc`)
+    expectedParams.push(`["ACME","John","Smi"]`)
+    expectedType.push(`selectOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    type QueryFilterType2 = DynamicCondition<{
+        id: 'int',
+        name: {
+            firstName: 'string',
+            lastName: 'string',
+        },
+        birthday: 'localDate',
+        company: {
+            id: 'int',
+            name: 'string'
+        }
+    }>
+    
+    const queryFilter2: QueryFilterType2 = {
+        company: { name: {equals: 'ACME'} },
+        name: {
+            or: [
+                { firstName: { containsInsensitive: 'John' } },
+                { lastName: { containsInsensitive: 'Smi' } }
+            ]
+        }
+    }
+    
+    const queryOrderBy2 = 'company.name asc insensitive, birthday desc'
+    
+    const querySelectFields2 = {
+        id: tCustomer.id,
+        name: {
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+        },
+        birthday: tCustomer.birthday,
+        company: {
+            id: tCompany.id,
+            name: tCompany.name
+        }
+    }
+    
+    const queryDynamicWhere2 = connection.dynamicConditionFor(querySelectFields2).withValues(queryFilter2)
+    
+    const customerWithCompanyObject2 = await connection.selectFrom(tCustomer)
+            .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+            .select(querySelectFields2)
+            .where(queryDynamicWhere2)
+            .orderByFromString(queryOrderBy2)
+            .executeSelectOne()
+    
+    assertEquals(customerWithCompanyObject2, result)
+    
+    /* *** Preparation ************************************************************/
 
     result = []
     expectedResult.push(result)
@@ -1280,6 +1415,136 @@ async function main() {
         .executeSelectMany()
     
     assertEquals(customerWithOptionalCompany3, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: {
+            firstName: 'First Name',
+            lastName: 'Last Name'
+        }
+    }
+    expectedResult.push({
+        id: 1,
+        'name.firstName': 'First Name',
+        'name.lastName': 'Last Name'
+    })
+    expectedQuery.push(`select id as id, first_name as "name.firstName", last_name as "name.lastName" from customer`)
+    expectedParams.push(`[]`)
+    expectedType.push(`selectOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    const availableFields4 = {
+        id: tCustomer.id,
+        name: {
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+        },
+        birthday: tCustomer.birthday
+    }
+    
+    const fieldsToPick4 = {
+        name: {
+            firstName: true,
+            lastName: true
+        }
+    }
+    
+    // include allways id field as required
+    const pickedFields4 = dynamicPick(availableFields4, fieldsToPick4, ['id'])
+    
+    const customerWithIdPeaking4 = await connection.selectFrom(tCustomer)
+        .select(pickedFields4)
+        .executeSelectOne()
+    
+    assertEquals(customerWithIdPeaking4, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select customer.id as id, customer.first_name as "name.firstName", customer.last_name as "name.lastName" from customer where customer.id = ?`)
+    expectedParams.push(`[12]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const availableFields5 = {
+        id: tCustomer.id,
+        name: {
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+        },
+        birthday: tCustomer.birthday,
+        company: {
+            id: tCompany.id,
+            name: tCompany.name
+        }
+    }
+    
+    const fieldsToPick5 = {
+        name: {
+            firstName: true,
+            lastName: true
+        }
+    }
+    
+    // include allways id field as required
+    const pickedFields5 = dynamicPick(availableFields5, fieldsToPick5, ['id'])
+    
+    const customerWithOptionalCompany5 = await connection.selectFrom(tCustomer)
+        .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select(pickedFields5)
+        .where(tCustomer.id.equals(12))
+        .executeSelectMany()
+    
+    assertEquals(customerWithOptionalCompany5, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select customer.id as id, customer.first_name as "name.firstName", customer.last_name as "name.lastName", company.id as "company.id", company.name as "company.name" from customer inner join company on company.id = customer.company_id where customer.id = ?`)
+    expectedParams.push(`[12]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const availableFields6 = {
+        id: tCustomer.id,
+        name: {
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+        },
+        birthday: tCustomer.birthday,
+        company: {
+            id: tCompany.id,
+            name: tCompany.name
+        }
+    }
+    
+    const fieldsToPick6 = {
+        name: {
+            firstName: true,
+            lastName: true,
+        },
+        company: {
+            name: true
+        }
+    }
+    
+    // include allways id field as required
+    const pickedFields6 = dynamicPick(availableFields6, fieldsToPick6, ['id'])
+    
+    const customerWithOptionalCompany6 = await connection.selectFrom(tCustomer)
+        .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select(pickedFields6)
+        .where(tCustomer.id.equals(12))
+        .executeSelectMany()
+    
+    assertEquals(customerWithOptionalCompany6, result)
     
     /* *** Preparation ************************************************************/
 

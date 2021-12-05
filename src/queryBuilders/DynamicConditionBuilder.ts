@@ -10,7 +10,10 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any> 
     }
 
     withValues(filter: DynamicFilter<any>): BooleanValueSource<any, any> {
-        const definition = this.definition
+        return this.processFilter(filter, this.definition, '')
+    }
+
+    processFilter(filter: DynamicFilter<any>, definition: Filterable, prefix: string): BooleanValueSource<any, any> {
         let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop() as any
         
         if (filter === null || filter === undefined) {
@@ -30,7 +33,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any> 
                 if (!Array.isArray(value)) {
                     throw new Error('The and conjunction expect an array as value')
                 }
-                condition = this.processAndFilter(value)
+                condition = this.processAndFilter(value, definition, prefix)
             } else if (key === 'or') {
                 if (value === null || value === undefined) {
                     continue
@@ -38,31 +41,37 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any> 
                 if (!Array.isArray(value)) {
                     throw new Error('The or conjunction expect an array as value')
                 }
-                condition = this.processOrFilter(value)
+                condition = this.processOrFilter(value, definition, prefix)
             } else if (key === 'not') {
                 if (value === null || value === undefined) {
                     continue
                 }
-                condition = this.withValues(value).negate()
+                condition = this.processFilter(value, definition, prefix).negate()
             } else {
                 const column = definition[key]
-                if (!isValueSource(column)) {
-                    throw new Error('Unknown column with name "' + key + '" provided as dynamic filter condition')
+                if (!column) {
+                    throw new Error('Unknown column with name "' + prefix + key + '" provided as dynamic filter condition')
                 }
                 if (value === null || value === undefined) {
                     continue
                 }
                 if (typeof value !== 'object' || value instanceof Date) {
-                    throw new Error('Invalid dynamic filter condition received for the column "' + key + '"; an object is expected. Received value: ' + value)
+                    throw new Error('Invalid dynamic filter condition received for the column "' + prefix + key + '"; an object is expected. Received value: ' + value)
                 }
-                condition = this.processColumnFilter(column, value, key)
+                if (isValueSource(column)) {
+                    condition = this.processColumnFilter(value, column, prefix + key)
+                } else if (prefix) {
+                    condition = this.processFilter(value, column, prefix + ' .' + key)
+                } else {
+                    condition = this.processFilter(value, column, key)
+                }
             }
             result = result.and(condition)
         }
         return result
     }
 
-    processColumnFilter(valueSource: any, filter: any, column: string) {
+    processColumnFilter(filter: any, valueSource: any, column: string) {
         let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop() as any
         for (const key in filter) {
             if (allowedOpreations[key] !== true) { // keep the strict true comparison to avoid false positives
@@ -83,19 +92,19 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any> 
         return result
     }
 
-    processAndFilter(filter: DynamicFilter<any>[]) {
+    processAndFilter(filter: DynamicFilter<any>[], definition: Filterable, prefix: string) {
         let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop() as any
         for (let i = 0, length = filter.length; i < length; i++) {
-            const condition = this.withValues(filter[i]!!)
+            const condition = this.processFilter(filter[i]!, definition, prefix)
             result = result.and(condition)
         }
         return result
     }
 
-    processOrFilter(filter: DynamicFilter<any>[]) {
+    processOrFilter(filter: DynamicFilter<any>[], definition: Filterable, prefix: string) {
         let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop() as any
         for (let i = 0, length = filter.length; i < length; i++) {
-            const condition = this.withValues(filter[i]!!)
+            const condition = this.processFilter(filter[i]!, definition, prefix)
             result = result.or(condition)
         }
         return result

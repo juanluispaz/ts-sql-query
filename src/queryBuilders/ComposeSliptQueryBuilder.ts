@@ -592,11 +592,8 @@ export class ComposeSplitQueryBuilder {
         }
 
         let realProp = map[propName]
-        if (!realProp) {
-            return undefined
-        }
-        let valueSource = columns[realProp]
-        if (valueSource) {
+        if (realProp) {
+            let valueSource = columns[realProp]
             if (isValueSource(valueSource)) {
                 return realProp
             } else {
@@ -605,7 +602,7 @@ export class ComposeSplitQueryBuilder {
         }
 
         const route = propName.split('.')
-        valueSource = columns
+        let valueSource: QueryColumns | AnyValueSource | undefined = columns
         let path = ''
         for (let i = 0, length = route.length; valueSource && i < length; i++) {
             const currentProp = route[i]!
@@ -616,20 +613,23 @@ export class ComposeSplitQueryBuilder {
             valueSource = valueSource[realProp]
             if (path) {
                 path = path + '.' + realProp
+            } else {
+                path = realProp
             }
 
             if (isValueSource(valueSource)) {
-                return undefined
+                if (i === length - 1) {
+                    return path
+                } else {
+                    return undefined
+                }
             }
 
+            map = {}
             for (const property in valueSource) {
                 map[property.toLowerCase()] = property
             }
         }
-        if (isValueSource(valueSource)) {
-            return path
-        } else {
-            return undefined
-        }
+        return undefined
     }
 }

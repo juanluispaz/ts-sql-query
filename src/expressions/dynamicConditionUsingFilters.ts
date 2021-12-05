@@ -138,7 +138,7 @@ export type DynamicColumnType<T> = 'boolean' | 'stringInt' | 'int' | 'bigint' | 
     'string' | 'localDate' | 'localTime' | 'localDateTime' | ['enum', T] | ['custom', T] | ['customComparable', T]
 
 export type DynamicDefinition = {
-    [key: string]: DynamicColumnType<any>
+    [key: string]: DynamicColumnType<any> | DynamicDefinition
 }
 
 export type DynamicCondition<DEFINITION extends DynamicDefinition> = {
@@ -146,16 +146,16 @@ export type DynamicCondition<DEFINITION extends DynamicDefinition> = {
     and?: Array<DynamicCondition<DEFINITION> | undefined>
     or?: Array<DynamicCondition<DEFINITION> | undefined>
 } & {
-        [KEY in keyof DEFINITION]?: FilterTypeOf<DEFINITION[KEY]>
-    }
+    [KEY in keyof DEFINITION]?: DEFINITION[KEY] extends DynamicColumnType<any> ? FilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends DynamicDefinition ? DynamicCondition<DEFINITION[KEY]> : never
+}
 
 export type TypeSafeDynamicCondition<DEFINITION extends DynamicDefinition> = {
     not?: TypeSafeDynamicCondition<DEFINITION>
     and?: Array<TypeSafeDynamicCondition<DEFINITION> | undefined>
     or?: Array<TypeSafeDynamicCondition<DEFINITION> | undefined>
 } & {
-        [KEY in keyof DEFINITION]?: FilterTypeOf<DEFINITION[KEY]>
-    }
+    [KEY in keyof DEFINITION]?: DEFINITION[KEY] extends DynamicColumnType<any> ? TypeSafeFilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends DynamicDefinition ? DynamicCondition<DEFINITION[KEY]> : never
+}
 
 export type MapValueSourceToFilter<TYPE> =
     TYPE extends IValueSource<any, infer T, any, any> ? (
@@ -183,7 +183,7 @@ export type MapValueSourceToFilter<TYPE> =
     ) : never
 
 export type Filterable = {
-    [key: string]: AnyValueSource
+    [key: string]: AnyValueSource | Filterable
 }
 
 export type DynamicFilter<DEFINITION extends Filterable> = {
@@ -191,8 +191,8 @@ export type DynamicFilter<DEFINITION extends Filterable> = {
     and?: Array<DynamicFilter<DEFINITION> | undefined>
     or?: Array<DynamicFilter<DEFINITION> | undefined>
 } & {
-        [KEY in keyof DEFINITION]?: MapValueSourceToFilter<DEFINITION[KEY]>
-    }
+    [KEY in keyof DEFINITION]?: DEFINITION[KEY] extends AnyValueSource ? MapValueSourceToFilter<DEFINITION[KEY]> : DEFINITION[KEY] extends Filterable ? DynamicFilter<DEFINITION[KEY]> : never
+}
 
 export interface DynamicConditionExpression<DEFINITION extends Filterable> {
     withValues(filter: DynamicFilter<DEFINITION>): BooleanValueSource<TableOfCondition<DEFINITION>, BooleanOptionalTypeOfCondition<DEFINITION>>

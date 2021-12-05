@@ -7,9 +7,9 @@ import { database } from "./symbols"
 
 export type ResultObjectValues<COLUMNS> = FixOptionalProperties<{
     [P in keyof COLUMNS]: 
-        COLUMNS[P] extends AnyValueSource
-        ? ValueSourceValueTypeForObjectResult<COLUMNS[P]> 
-        : InnerResultObjectValues<COLUMNS[P]>
+        COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+        ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>> 
+        : InnerResultObjectValues<NonNullable<COLUMNS[P]>>
 }>
 
 // Column name considering picking
@@ -18,7 +18,7 @@ export type RequiredColumnNames<T> = T extends AnyValueSource ? 'result' : 'any'
 type RequiredInnerColumnNames<T, PREFIX extends string> = { [K in keyof T]-?: 
     K extends string 
     ?
-        T[K] extends AnyValueSource
+        T[K] extends AnyValueSource | undefined // Undefined is to deal with picking columns
         ? ({} extends Pick<T, K> ? never : `${PREFIX}${K}`) 
         : RequiredInnerColumnNames<T[K], `${PREFIX}${K}.`>
     : never
@@ -105,41 +105,41 @@ type InnerResultObjectValues<COLUMNS> =
     ContainsRequiredInOptionalObject<COLUMNS> extends true ? 
         FixOptionalProperties<{
             [P in keyof COLUMNS]: 
-                COLUMNS[P] extends AnyValueSource
-                ? ValueSourceValueTypeForRequiredInOptionalObject<COLUMNS[P]> 
-                : InnerResultObjectValues<COLUMNS[P]>
+                COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+                ? ValueSourceValueTypeForRequiredInOptionalObject<NonNullable<COLUMNS[P]>>
+                : InnerResultObjectValues<NonNullable<COLUMNS[P]>>
         }> | undefined
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
         FixOptionalProperties<{
             [P in keyof COLUMNS]: 
-                COLUMNS[P] extends AnyValueSource
-                ? ValueSourceValueTypeForOptionalObjectResultSameOuterJoin<COLUMNS[P]> 
-                : InnerResultObjectValues<COLUMNS[P]>
+                COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+                ? ValueSourceValueTypeForOptionalObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
+                : InnerResultObjectValues<NonNullable<COLUMNS[P]>>
         }> | undefined
     : ContainsRequired<COLUMNS> extends true ? 
         FixOptionalProperties<{
             [P in keyof COLUMNS]: 
-                COLUMNS[P] extends AnyValueSource
-                ? ValueSourceValueTypeForObjectResult<COLUMNS[P]> 
-                : InnerResultObjectValues<COLUMNS[P]>
+                COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+                ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
+                : InnerResultObjectValues<NonNullable<COLUMNS[P]>>
         }>
     : FixOptionalProperties<{
         [P in keyof COLUMNS]: 
-            COLUMNS[P] extends AnyValueSource
-            ? ValueSourceValueTypeForObjectResult<COLUMNS[P]> 
-            : InnerResultObjectValues<COLUMNS[P]>
+            COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+            ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
+            : InnerResultObjectValues<NonNullable<COLUMNS[P]>>
     }> | undefined
 
 type ContainsRequiredInOptionalObject<TYPE> = FalseWhenNever<(
     { [K in keyof TYPE]-?: 
-        TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> 
+        TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE>  | undefined // Undefined is to deal with picking columns
         ? IsRequiredInOptionalObject<OPTIONAL_TYPE>
         : never
     })[keyof TYPE]>
 
 type ContainsRequired<TYPE> = FalseWhenNever<(
     { [K in keyof TYPE]-?: 
-        TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> 
+        TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE>  | undefined // Undefined is to deal with picking columns
         ? IsRequired<OPTIONAL_TYPE>
         : InnerObjectIsRequired<TYPE[K]> extends true ? true : never
     })[keyof TYPE]>
@@ -151,19 +151,19 @@ type InnerObjectIsRequired<TYPE> =
     
 type AllFromSameLeftJoinWithOriginallyRequired<TYPE> = FalseWhenNever<(
     { [K in keyof TYPE]-?: 
-        TYPE[K] extends ValueSource<infer T, any, any, infer OPTIONAL_TYPE> 
+        TYPE[K] extends ValueSource<infer T, any, any, infer OPTIONAL_TYPE> | undefined // Undefined is to deal with picking columns
         ? OUTER_JOIN_SOURCE<any, any> extends T
             ? (
-                InnerTables<TYPE> | NoTableOrViewRequired<TYPE[K][typeof database]> extends T | NoTableOrViewRequired<TYPE[K][typeof database]>
+                InnerTables<TYPE> | NoTableOrViewRequired<T[typeof database]> extends T | NoTableOrViewRequired<T[typeof database]>
                 ? IsOriginallyRequired<OPTIONAL_TYPE>
                 : false
-            ) : T extends NoTableOrViewRequired<TYPE[K][typeof database]> 
+            ) : T extends NoTableOrViewRequired<T[typeof database]> 
                 ? never
                 : false
         : never
     })[keyof TYPE]>
 
-type InnerTables<TYPE> = ({ [K in keyof TYPE]-?: TYPE[K] extends ValueSourceOf<infer T> ? T : never})[keyof TYPE]
+type InnerTables<TYPE> = ({ [K in keyof TYPE]-?: TYPE[K] extends ValueSourceOf<infer T> | undefined ? T : never})[keyof TYPE] // Undefined is to deal with picking columns
 
 type IsRequiredInOptionalObject<OPTIONAL_TYPE extends OptionalType> =
     'any' extends OPTIONAL_TYPE ? never :

@@ -304,7 +304,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         if (separator === undefined || separator === null) {
             return 'group_concat(' + this._appendSql(value, params) + ')'
         } else if (separator === '') {
-            return 'group_concat(' + this._appendSql(value, params) + ", '')"
+            return 'group_concat(' + this._appendSql(value, params) + " separator '')"
         } else {
             return 'group_concat(' + this._appendSql(value, params) + ' separator ' + this._appendValue(separator, params, 'string', undefined) + ')'
         }
@@ -313,7 +313,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         if (separator === undefined || separator === null) {
             return 'group_concat(distinct ' + this._appendSql(value, params) + ')'
         } else if (separator === '') {
-            return 'group_concat(' + this._appendSql(value, params) + ", '')"
+            return 'group_concat(' + this._appendSql(value, params) + " separator '')"
         } else {
             return 'group_concat(distinct ' + this._appendSql(value, params) + ' separator ' + this._appendValue(separator, params, 'string', undefined) + ')'
         }

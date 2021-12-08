@@ -32,8 +32,8 @@ export type OptionalTypeRequiredOrAny<OPTIONAL_TYPE extends OptionalType> =
     OPTIONAL_TYPE extends 'any' ? any :
     OPTIONAL_TYPE extends 'required' ? 'required' : any
 
-export type OptionalValueType<OPTIONAL_TYPE extends OptionalType> = 
-    OPTIONAL_TYPE extends 'optional' ? null | undefined : never
+type OptionalValueType<OPTIONAL_TYPE extends OptionalType> = 
+    OPTIONAL_TYPE extends 'required' ? never : null | undefined
 
 export type ValueSourceValueType<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | OptionalValueType<OPTIONAL_TYPE> : never
 export type ValueSourceValueTypeForResult<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' ? never : null) : never
@@ -132,16 +132,20 @@ export interface IEqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyD
 
 export interface EqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends NullableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>, IEqualableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     equalsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    equals(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using equalsIfValue instead */
     equals(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     equals<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notEqualsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notEquals(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notEqualsIfValue instead */
     notEquals(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notEquals<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     isIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    is(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, 'required'>
+    is(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, 'required'>
     is<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'required'>
     isNotIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, 'required'>
-    isNot(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, 'required'>
+    isNot(value: TYPE | null | undefined): BooleanValueSource<TABLE_OR_VIEW, 'required'>
     isNot<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'required'>
 
     inIfValue(values: TYPE[] | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -194,23 +198,43 @@ export interface ComparableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyD
     /** @deprecated use greaterOrEquals method instead */
     largeAs<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     lessThanIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    lessThan(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using lessThanIfValue instead */
     lessThan(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     lessThan<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     greaterThanIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    greaterThan(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterThanIfValue instead */
     greaterThan(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     greaterThan<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     lessOrEqualsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    lessOrEquals(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using lessOrEqualsIfValue instead */
     lessOrEquals(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     lessOrEquals<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     greaterOrEqualsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    greaterOrEquals(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualsIfValue instead */
     greaterOrEquals(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     greaterOrEquals<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    between(value: TYPE, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualsIfValue instead */
     between(value: TYPE | OptionalValueType<OPTIONAL_TYPE>, value2: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    between<VALUE2 extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: TYPE, value2: VALUE2): BooleanValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualsIfValue instead */
     between<VALUE2 extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: TYPE | OptionalValueType<OPTIONAL_TYPE>, value2: VALUE2): BooleanValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
+    between<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualsIfValue instead */
     between<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE, value2: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     between<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>, VALUE2 extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE, value2: VALUE2): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView] | VALUE2[typeof tableOrView], MergeOptional<MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>, VALUE2[typeof optionalType]>>
+    notBetween(value: TYPE, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualsIfValue instead */
     notBetween(value: TYPE | OptionalValueType<OPTIONAL_TYPE>, value2: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notBetween<VALUE2 extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: TYPE, value2: VALUE2): BooleanValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualsIfValue instead */
     notBetween<VALUE2 extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: TYPE | OptionalValueType<OPTIONAL_TYPE>, value2: VALUE2): BooleanValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
+    notBetween<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE, value2: TYPE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using greaterOrEqualsIfValue instead */
     notBetween<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE, value2: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notBetween<VALUE extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>, VALUE2 extends IEqualableValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE, value2: VALUE2): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView] | VALUE2[typeof tableOrView], MergeOptional<MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>, VALUE2[typeof optionalType]>>
     // Redefined methods
@@ -227,9 +251,13 @@ export interface IBooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
 
 export interface BooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends EqualableValueSource<TABLE_OR_VIEW, boolean, 'BooleanValueSource', OPTIONAL_TYPE>, IBooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
     negate(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    and(value: boolean): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     and(value: boolean | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     and<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     and<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    or(value: boolean): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     or(value: boolean| OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     or<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     or<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
@@ -250,9 +278,13 @@ export interface IIfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPT
 }
 
 export interface IfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
+    and(value: boolean): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     and(value: boolean | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     and<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     and<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    or(value: boolean): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     or(value: boolean| OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     or<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     or<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
@@ -267,9 +299,13 @@ export interface IAnyBooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<Any
 }
 
 export interface AlwaysIfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
+    and(value: boolean): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     and(value: boolean | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     and<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     and<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    or(value: boolean): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     or(value: boolean| OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     or<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     or<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
@@ -306,25 +342,45 @@ export interface NumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     sin(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     tan(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // SqlFunction1
+    power(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     power(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     power<VALUE extends INumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    logn(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     logn(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     logn<VALUE extends INumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    roundn(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     roundn(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     roundn<VALUE extends INumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     minValue(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     minValue<VALUE extends INumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     maxValue(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     maxValue<VALUE extends INumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Number operators
+    add(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends INumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     substract(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     substract<VALUE extends INumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    multiply(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     multiply(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     multiply<VALUE extends INumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    divide(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     divide(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     divide<VALUE extends INumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     modulo(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     modulo<VALUE extends INumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     /** @deprecated use modulo method instead */
@@ -332,6 +388,8 @@ export interface NumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     /** @deprecated use modulo method instead */
     mod<VALUE extends INumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions
+    atan2(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     atan2(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     atan2<VALUE extends INumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Redefined methods
@@ -370,33 +428,57 @@ export interface StringNumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<An
     sin(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     tan(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // SqlFunction1
+    power(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     power(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     power<VALUE extends IStringNumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     power<VALUE extends IStringNumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    logn(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     logn(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     logn<VALUE extends IStringNumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    roundn(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     roundn(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     roundn<VALUE extends IStringNumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     minValue(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     minValue<VALUE extends IStringNumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     maxValue(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     maxValue<VALUE extends IStringNumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Number operators
+    add(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IStringNumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     substract(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     substract<VALUE extends IStringNumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    multiply(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     multiply(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     multiply<VALUE extends IStringNumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    divide(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     divide(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     divide<VALUE extends IStringNumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     modulo(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     modulo<VALUE extends IStringNumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     /** @deprecated use modulo method instead */
+    mod(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     mod(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated use modulo method instead */
     mod<VALUE extends IStringNumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions
+    atan2(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     atan2(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     atan2<VALUE extends IStringNumberValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Redefined methods
@@ -436,43 +518,81 @@ export interface IntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPT
     sin(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     tan(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // SqlFunction1
+    power(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     power(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     power<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    power(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     power(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     power<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    logn(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     logn(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     logn<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    logn(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     logn(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     logn<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    roundn(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     roundn(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     roundn<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: int): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     minValue(value: int | OptionalValueType<OPTIONAL_TYPE>): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     minValue<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     minValue(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     minValue<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: int): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     maxValue(value: int | OptionalValueType<OPTIONAL_TYPE>): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     maxValue<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     maxValue(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     maxValue<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Number operators
+    add(value: int): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: int | OptionalValueType<OPTIONAL_TYPE>): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    add(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: int): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     substract(value: int | OptionalValueType<OPTIONAL_TYPE>): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     substract<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     substract(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     substract<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    multiply(value: int): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     multiply(value: int | OptionalValueType<OPTIONAL_TYPE>): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     multiply<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    multiply(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     multiply(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     multiply<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    divide(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     divide(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     divide<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    divide(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     divide(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     divide<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo(value: int): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     modulo(value: int | OptionalValueType<OPTIONAL_TYPE>): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     modulo<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     modulo(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     modulo<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     /** @deprecated use modulo method instead */
@@ -484,8 +604,12 @@ export interface IntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPT
     /** @deprecated use modulo method instead */
     mod<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions
+    atan2(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     atan2(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     atan2<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    atan2(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     atan2(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     atan2<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Redefined methods
@@ -522,43 +646,81 @@ export interface DoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     sin(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     tan(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // SqlFunction1
+    power(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     power(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     power<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    power(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     power(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     power<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    logn(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     logn(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     logn<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    logn(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     logn(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     logn<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    roundn(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     roundn(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     roundn<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     minValue(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     minValue<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     minValue(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     minValue<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     maxValue(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     maxValue<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     maxValue(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     maxValue<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Number operators
+    add(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    add(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     substract(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     substract<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     substract(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     substract<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    multiply(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     multiply(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     multiply<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    multiply(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     multiply(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     multiply<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    divide(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     divide(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     divide<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    divide(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     divide(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     divide<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    mod(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     mod(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     modulo<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     modulo(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     modulo<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     /** @deprecated use modulo method instead */
@@ -570,8 +732,12 @@ export interface DoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     /** @deprecated use modulo method instead */
     mod<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions
+    atan2(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     atan2(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     atan2<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    atan2(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     atan2(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     atan2<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Redefined methods
@@ -610,56 +776,98 @@ export interface BigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     // sin(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // tan(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // SqlFunction1
+    // power(value: bigint): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // power(value: bigint | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // power<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // power(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // power(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // power<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // logn(value: bigint): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // logn(value: bigint | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // logn<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // logn(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // logn(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // logn<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // roundn(value: bigint): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // roundn(value: bigint | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // roundn<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: bigint): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     minValue(value: bigint | OptionalValueType<OPTIONAL_TYPE>): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     minValue<VALUE extends IBigintValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // minValue(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // minValue(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // minValue<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: bigint): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     maxValue(value: bigint | OptionalValueType<OPTIONAL_TYPE>): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     maxValue<VALUE extends IBigintValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // maxValue(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // maxValue(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // maxValue<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Number operators
+    add(value: bigint): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: bigint | OptionalValueType<OPTIONAL_TYPE>): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IBigintValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // add(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // add(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // add<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: bigint): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     substract(value: bigint | OptionalValueType<OPTIONAL_TYPE>): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     substract<VALUE extends IBigintValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // substract(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // substract(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // substract<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // multiply(value: bigint): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // multiply(value: bigint | OptionalValueType<OPTIONAL_TYPE>): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // multiply<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // multiply(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // multiply(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // multiply<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // divide(value: bigint): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // divide(value: bigint | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // divide<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // divide(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // divide(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // divide<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo(value: bigint): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     modulo(value: bigint | OptionalValueType<OPTIONAL_TYPE>): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     modulo<VALUE extends IBigintValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // modulo(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // modulo(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // modulo<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     /** @deprecated use modulo method instead */
     mod(value: bigint | OptionalValueType<OPTIONAL_TYPE>): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated use modulo method instead */
     mod<VALUE extends IBigintValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated use modulo method instead */
+    // /** @deprecated use modulo method instead */
     // mod(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // /** @deprecated use modulo method instead */
     // mod<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions
+    // atan2(value: bigint): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // atan2(value: bigint | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // atan2<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // atan2(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // atan2(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // atan2<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Redefined methods
@@ -699,56 +907,98 @@ export interface TypeSafeBigintValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     // sin(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // tan(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // SqlFunction1
+    // power(value: bigint): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // power(value: bigint | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // power<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // power(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // power(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // power<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // logn(value: bigint): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // logn(value: bigint | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // logn<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // logn(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // logn(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // logn<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // roundn(value: bigint): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // roundn(value: bigint | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // roundn<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: bigint): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     minValue(value: bigint | OptionalValueType<OPTIONAL_TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     minValue<VALUE extends ITypeSafeBigintValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): TypeSafeBigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // minValue(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // minValue(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // minValue<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: bigint): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     maxValue(value: bigint | OptionalValueType<OPTIONAL_TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     maxValue<VALUE extends ITypeSafeBigintValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): TypeSafeBigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // maxValue(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // maxValue(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // maxValue<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Number operators
+    add(value: bigint): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: bigint | OptionalValueType<OPTIONAL_TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends ITypeSafeBigintValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): TypeSafeBigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // add(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // add(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // add<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: bigint): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     substract(value: bigint | OptionalValueType<OPTIONAL_TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     substract<VALUE extends ITypeSafeBigintValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): TypeSafeBigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // substract(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // substract(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // substract<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // multiply(value: bigint): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // multiply(value: bigint | OptionalValueType<OPTIONAL_TYPE>): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // multiply<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // multiply(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // multiply(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // multiply<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // divide(value: bigint): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // divide(value: bigint | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // divide<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // divide(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // divide(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // divide<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo(value: bigint): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     modulo(value: bigint | OptionalValueType<OPTIONAL_TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     modulo<VALUE extends ITypeSafeBigintValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): TypeSafeBigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // modulo(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // modulo(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // modulo<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     /** @deprecated use modulo method instead */
     mod(value: bigint | OptionalValueType<OPTIONAL_TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated use modulo method instead */
     mod<VALUE extends ITypeSafeBigintValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): TypeSafeBigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated use modulo method instead */
+    // /** @deprecated use modulo method instead */
     // mod(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // /** @deprecated use modulo method instead */
     // mod<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions
+    // atan2(value: bigint): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // atan2(value: bigint | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // atan2<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // atan2(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // atan2(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // atan2<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Redefined methods
@@ -786,43 +1036,81 @@ export interface StringIntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
     sin(): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     tan(): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // SqlFunction1
+    power(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     power(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     power<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    power(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     power(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     power<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    logn(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     logn(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     logn<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    logn(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     logn(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     logn<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    roundn(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     roundn(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     roundn<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: stringInt): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     minValue(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     minValue<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringIntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     minValue(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     minValue<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: stringInt): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     maxValue(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     maxValue<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringIntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     maxValue(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     maxValue<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Number operators
+    add(value: stringInt): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringIntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    add(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: stringInt): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     substract(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     substract<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringIntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     substract(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     substract<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    multiply(value: stringInt): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     multiply(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     multiply<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringIntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    multiply(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     multiply(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     multiply<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    divide(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     divide(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     divide<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    divide(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     divide(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     divide<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo(value: stringInt): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     modulo(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     modulo<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringIntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     modulo(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     modulo<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     /** @deprecated use modulo method instead */
@@ -834,8 +1122,12 @@ export interface StringIntValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB
     /** @deprecated use modulo method instead */
     mod<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions
+    atan2(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     atan2(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     atan2<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    atan2(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     atan2(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     atan2<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Redefined methods
@@ -872,43 +1164,80 @@ export interface StringDoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<An
     sin(): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     tan(): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // SqlFunction1
+    power(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     power(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     power<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    power(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     power(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     power<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    logn(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     logn(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     logn<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    logn(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     logn(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     logn<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    roundn(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     roundn(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     roundn<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     minValue(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     minValue<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     minValue(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     minValue<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     maxValue(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     maxValue<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     maxValue(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     maxValue<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Number operators
+    add(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    add(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     substract(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     substract<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     substract(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     substract<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    multiply(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     multiply(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     multiply<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    multiply(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     multiply(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     multiply<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    divide(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     divide(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     divide<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    divide(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     divide(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     divide<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     modulo(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     modulo<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     modulo(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     modulo<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     /** @deprecated use modulo method instead */
@@ -921,7 +1250,11 @@ export interface StringDoubleValueSource<TABLE_OR_VIEW extends TableOrViewRef<An
     mod<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions
     atan2(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    atan2(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     atan2<VALUE extends IStringIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    atan2(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     atan2(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     atan2<VALUE extends IStringDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Redefined methods
@@ -938,57 +1271,93 @@ export interface IStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>,
 export interface StringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, string, 'StringValueSource', OPTIONAL_TYPE>, IStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
     // SqlComparator 1
     equalsInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    equalsInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using equalsInsensitiveIfValue instead */
     equalsInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     equalsInsensitive<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notEqualsInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notEqualsInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notEqualsInsensitiveIfValue instead */
     notEqualsInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notEqualsInsensitive<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     likeIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    like(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using likeIfValue instead */
     like(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     like<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notLikeIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notLikeIfValue instead */
+    notLike(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notLike(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notLike<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     likeInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    likeInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using likeInsensitiveIfValue instead */
     likeInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     likeInsensitive<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notLikeInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notLikeInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notLikeInsensitiveIfValue instead */
     notLikeInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notLikeInsensitive<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     startsWithIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    startsWith(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using startsWithIfValue instead */
     startsWith(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     startsWith<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notStartsWithIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notStartsWith(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notStartsWithIfValue instead */
     notStartsWith(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notStartsWith<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     endsWithIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    endsWith(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using endsWithIfValue instead */
     endsWith(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     endsWith<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notEndsWithIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notEndsWith(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notEndsWithIfValue instead */
     notEndsWith(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notEndsWith<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     startsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    startsWithInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using startsWithInsensitiveIfValue instead */
     startsWithInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     startsWithInsensitive<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notStartsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notStartsWithInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notStartsWithInsensitiveIfValue instead */
     notStartsWithInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notStartsWithInsensitive<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     endsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    endsWithInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using endsWithInsensitiveIfValue instead */
     endsWithInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     endsWithInsensitive<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notEndsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notEndsWithInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notEndsWithInsensitiveIfValue instead */
     notEndsWithInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notEndsWithInsensitive<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     containsIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    contains(value: string ): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using containsIfValue instead */
     contains(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     contains<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notContainsIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notContains(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notContainsIfValue instead */
     notContains(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notContains<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     containsInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    containsInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using containsInsensitiveIfValue instead */
     containsInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     containsInsensitive<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notContainsInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notContainsInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notContainsInsensitiveIfValue instead */
     notContainsInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notContainsInsensitive<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // SqlFunction0
@@ -1009,7 +1378,10 @@ export interface StringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     reverse(): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // SqlFunction1
     concatIfValue(value: string | null | undefined): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    concat(value: string): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); you should be using concatIfValue instead */
     concat(value: string | OptionalValueType<OPTIONAL_TYPE>): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); you should be using concatIfValue instead */
     concat(value: string | null | undefined): StringValueSource<TABLE_OR_VIEW, 'optional'>
     concat<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     substrToEnd(start: number): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -1042,8 +1414,14 @@ export interface StringValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
     replaceAllIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     replaceAllIfValue<VALUE2 extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: string | null | undefined, replaceWith: VALUE2): StringValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
     replaceAllIfValue<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: VALUE, replaceWith: string | null | undefined): StringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    replaceAll(findString: string, replaceWith: string): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); you should be using replaceAllIfValue instead */
     replaceAll(findString: string | OptionalValueType<OPTIONAL_TYPE>, replaceWith: string | OptionalValueType<OPTIONAL_TYPE>): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    replaceAll<VALUE2 extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: string, replaceWith: VALUE2): StringValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); you should be using replaceAllIfValue instead */
     replaceAll<VALUE2 extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: string | OptionalValueType<OPTIONAL_TYPE>, replaceWith: VALUE2): StringValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
+    replaceAll<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: VALUE, replaceWith: string): StringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); you should be using replaceAllIfValue instead */
     replaceAll<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: VALUE, replaceWith: string | OptionalValueType<OPTIONAL_TYPE>): StringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     replaceAll<VALUE extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>, VALUE2 extends IStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: VALUE, replaceWith: VALUE2): StringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView] | VALUE2[typeof tableOrView], MergeOptional<MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>, VALUE2[typeof optionalType]>>
     // Redefined methods
@@ -1061,57 +1439,93 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     // SqlComparator 1
     //asString(): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // test function
     equalsInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    equalsInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using equalsInsensitiveIfValue instead */
     equalsInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     equalsInsensitive<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notEqualsInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notEqualsInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using noEqualsInsensitiveIfValue instead */
     notEqualsInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notEqualsInsensitive<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     likeIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    like(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using likeIfValue instead */
     like(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     like<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notLikeIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notLike(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notLikeIfValue instead */
     notLike(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notLike<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     likeInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    likeInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using likeInsensitiveIfValue instead */
     likeInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     likeInsensitive<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notLikeInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notLikeInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notLikeInsensitiveIfValue instead */
     notLikeInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notLikeInsensitive<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     startsWithIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    startsWith(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using startsWithIfValue instead */
     startsWith(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     startsWith<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notStartsWithIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notStartsWith(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notStartsWithIfValue instead */
     notStartsWith(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notStartsWith<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     endsWithIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    endsWith(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using endsWithIfValue instead */
     endsWith(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     endsWith<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notEndsWithIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notEndsWith(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notEndsWithIfValue instead */
     notEndsWith(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notEndsWith<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     startsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    startsWithInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using startsWithInsensitiveIfValue instead */
     startsWithInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     startsWithInsensitive<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notStartsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notStartsWithInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notStartsWithInsensitiveIfValue instead */
     notStartsWithInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notStartsWithInsensitive<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     endsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    endsWithInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using endsWithInsensitiveIfValue instead */
     endsWithInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     endsWithInsensitive<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notEndsWithInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notEndsWithInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notEndsWithInsensitiveIfValue instead */
     notEndsWithInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notEndsWithInsensitive<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     containsIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    contains(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using containsIfValue instead */
     contains(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     contains<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notContainsIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notContains(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notContainsIfValue instead */
     notContains(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notContains<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     containsInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    containsInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using containsInsensitiveIfValue instead */
     containsInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     containsInsensitive<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     notContainsInsensitiveIfValue(value: string | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    notContainsInsensitive(value: string): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using notContainsInsensitiveIfValue instead */
     notContainsInsensitive(value: string | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     notContainsInsensitive<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // SqlFunction0
@@ -1132,7 +1546,10 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     reverse(): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // SqlFunction1
     concatIfValue(value: string | null | undefined): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    concat(value: string): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); you should be using concatfValue instead */
     concat(value: string | OptionalValueType<OPTIONAL_TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); you should be using concatIfValue instead */
     concat(value: string | null | undefined): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
     concat<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     substrToEnd(start: int): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -1165,8 +1582,14 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     replaceAllIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     replaceAllIfValue<VALUE2 extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: string | null | undefined, replaceWith: VALUE2): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
     replaceAllIfValue<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: VALUE, replaceWith: string | null | undefined): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    replaceAll(findString: string, replaceWith: string): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); you should be using replaceAllIfValue instead */
     replaceAll(findString: string | OptionalValueType<OPTIONAL_TYPE>, replaceWith: string | OptionalValueType<OPTIONAL_TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    replaceAll<VALUE2 extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: string, replaceWith: VALUE2): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); you should be using replaceAllIfValue instead */
     replaceAll<VALUE2 extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: string | OptionalValueType<OPTIONAL_TYPE>, replaceWith: VALUE2): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
+    replaceAll<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: VALUE, replaceWith: string): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); you should be using replaceAllIfValue instead */
     replaceAll<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: VALUE, replaceWith: string | OptionalValueType<OPTIONAL_TYPE>): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     replaceAll<VALUE extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>, VALUE2 extends ITypeSafeStringValueSource<TableOrViewRef<this[typeof database]>, any>>(findString: VALUE, replaceWith: VALUE2): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView] | VALUE2[typeof tableOrView], MergeOptional<MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>, VALUE2[typeof optionalType]>>
     // Redefined methods

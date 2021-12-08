@@ -115,8 +115,139 @@ export function createColumnsFrom(columns: QueryColumns, target: QueryColumns, t
             target[property] = withColumn
         } else {
             const newTarget = {}
-            createColumnsFrom(column, target, table)
+            createColumnsFromInnerObject(column, target, table, property + '.')
             target[property] = newTarget
         }
     }
+}
+
+export function createColumnsFromInnerObject(columns: QueryColumns, target: QueryColumns, table: ITableOrView<any>, prefix: string) {
+    const rule = getInnerObjetRuleToApply(columns)
+    
+    for (const property in columns) {
+        const column = columns[property]!
+        if (isValueSource(column)) {
+            const columnPrivate = __getValueSourcePrivate(column)
+            let valueType = columnPrivate.__valueType
+            let typeAdapter = columnPrivate.__typeAdapter
+            if (typeAdapter instanceof CustomBooleanTypeAdapter) {
+                // Avoid treat the column as a custom boolean
+                typeAdapter = new ProxyTypeAdapter(typeAdapter)
+            }
+            const withColumn = new ColumnImpl(table, prefix + property, valueType, typeAdapter)
+            let optionalType = columnPrivate.__optionalType
+            switch(rule) {
+                case 1: // Rule 1, there is requiredInOptionalObject
+                    if (optionalType === 'originallyRequired') {
+                        optionalType = 'optional'
+                    }
+                    break
+                case 2: // Rule 2: all from the same left join ignoring inner objects
+                    if (optionalType === 'originallyRequired') {
+                        optionalType = 'requiredInOptionalObject'
+                    }
+                    break
+                case 3: // Rule 3: there is a required property
+                    if (optionalType !== 'required') {
+                        optionalType = 'optional'
+                    }
+                    break
+                case 4: // Rule 4: the general rule
+                    if (optionalType !== 'required') {
+                        optionalType = 'optional'
+                    }
+                    break
+            }
+            withColumn.__optionalType = optionalType
+            target[property] = withColumn
+        } else {
+            const newTarget = {}
+            createColumnsFromInnerObject(column, target, table, prefix + property + '.')
+            target[property] = newTarget
+        }
+    }
+}
+
+export function getInnerObjetRuleToApply(columns: QueryColumns): 1 | 2 | 3 | 4 {
+    let containsRequired = false
+    let contaisOriginallyRequired = false
+    let innerObjectsAreRequired = true
+
+    for (const property in columns) {
+        const column = columns[property]!
+        if (isValueSource(column)) {
+            const columnPrivate = __getValueSourcePrivate(column)
+            const optionalType = columnPrivate.__optionalType
+
+            switch (optionalType) {
+            case 'requiredInOptionalObject': 
+                return 1 // Rule 1, there is requiredInOptionalObject
+            case 'required':
+                containsRequired = true
+                break
+            case 'originallyRequired':
+                contaisOriginallyRequired = true
+                break
+            default: //do nothing
+            }
+        } else {
+            if (getInnerObjetRuleToApply(column) === 3) {
+                // This is the only case where the inner object is required
+                innerObjectsAreRequired = true
+            }
+        }
+    }
+
+    if (contaisOriginallyRequired) {
+        let firstRequiredTables = new Set<ITableOrView<any>>()
+        let alwaysSameRequiredTablesSize : undefined | boolean = undefined
+
+        for (const property in columns) {
+            const column = columns[property]!
+            if (!isValueSource(column)) {
+                // ignore inner objects
+                continue
+            }
+
+            const columnPrivate = __getValueSourcePrivate(column)
+            if (alwaysSameRequiredTablesSize === undefined) {
+                columnPrivate.__registerTableOrView(firstRequiredTables)
+                alwaysSameRequiredTablesSize = true
+            } else if (alwaysSameRequiredTablesSize) {
+                let valueSourceRequiredTables = new Set<ITableOrView<any>>()
+                columnPrivate.__registerTableOrView(valueSourceRequiredTables)
+                const initialSize = firstRequiredTables.size
+                if (initialSize !== valueSourceRequiredTables.size) {
+                    alwaysSameRequiredTablesSize = false
+                } else {
+                    valueSourceRequiredTables.forEach(table => {
+                        firstRequiredTables.add(table)
+                    })
+                    if (initialSize !== firstRequiredTables.size) {
+                        alwaysSameRequiredTablesSize = false
+                    }
+                }
+            }
+        }
+
+        // Evaluate rule 2: all from the same left join ignoring inner objects
+        let onlyOuterJoin = true
+        firstRequiredTables.forEach(table => {
+            if (!__getTableOrViewPrivate(table).__forUseInLeftJoin) {
+                onlyOuterJoin = false
+            }
+        })
+        if (firstRequiredTables.size <= 0) {
+            onlyOuterJoin = false
+        }
+        if (alwaysSameRequiredTablesSize && onlyOuterJoin) {
+            return 2 // Rule 2: all from the same left join ignoring inner objects
+        }
+    }
+
+    if (containsRequired || innerObjectsAreRequired) {
+        return 3 // Rule 3: there is a required property
+    }
+
+    return 4 // Rule 4: the general rule
 }

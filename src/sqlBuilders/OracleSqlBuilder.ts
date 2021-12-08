@@ -1,4 +1,4 @@
-import { ToSql, InsertData, CompoundOperator, SelectData, getQueryColumn, QueryColumns, FlatQueryColumns, flattenQueryColumns } from "./SqlBuilder"
+import { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, flattenQueryColumns } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AnyValueSource, isValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
@@ -147,14 +147,16 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (!orderBy) {
             return ''
         }
-        const columns = query.__columns
+
+        const columns: FlatQueryColumns = {}
+        flattenQueryColumns(query.__columns, columns, '')
         const columnNames = Object.getOwnPropertyNames(columns)
         let orderByColumns = ''
         for (const property in orderBy) {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            const column = getQueryColumn(columns, property)
+            const column = columns[property]
             if (!column) {
                 throw new Error('Column ' + property + ' included in the order by not found in the select clause')
             }

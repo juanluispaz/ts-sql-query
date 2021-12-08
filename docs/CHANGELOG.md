@@ -1,5 +1,22 @@
 # Change Log
 
+## v1.23.0 (8 Dec 2021)
+
+**Changes**:
+
+- Add support to complex projections, that allows to create inner objects in the result of a query
+- Detect invalid query when a table in the from of an update appears in the returning clause in sqlite. Now it verify the restriction 7 of the returning clause in Sqlite
+- Add support for Prisma 3
+- Add support for the interactive transactions in Prisma
+
+**Documentation changes**:
+
+- Add test strategy information
+
+**Bug fixes**:
+
+- Fix MariaDB/MySql `stringConcat` when an empty separator is used
+
 ## v1.22.0 (24 Oct 2021)
 
 **Changes**:

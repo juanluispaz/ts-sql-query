@@ -76,6 +76,8 @@ const customersOfCompany: Promise<{
 
 **Note**: When you indicate that a table will be used in a left join, all required columns are treated as optional in ts-sql-query because the left join is per se optional; the rule number 2 is the only one that can revert it implicitly.
 
+**Limitation**: You cannot use complex projections in queries that will be used as table in other query (created using `forUseInQueryAs` that corresponds to the with clause in SQL)
+
 ## Optional inner object with required properties
 
 You can take advantage of the optional type of an inner object to mark the inner properties as required. That means the inner properties are optional, but we know they will be required together if they have value; in the case they have no value, the whole object must not exist. To do this, we must call the `asRequiredInOptionalObject` method on the properties that must exist.

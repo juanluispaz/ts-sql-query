@@ -10,7 +10,18 @@ type ValueSourcesOf<TABLE_OR_VIEW> = ({ [K in keyof TABLE_OR_VIEW]-?: TABLE_OR_V
 export type OldValues<TABLE_OR_VIEW extends ITableOrView<any>> = { [K in ValueSourcesOf<TABLE_OR_VIEW>]: RemapValueSourceType<OLD<TABLE_OR_VIEW[typeof tableOrViewRef]>, TABLE_OR_VIEW[K]> } & OldTableOrView<TABLE_OR_VIEW>
 
 export type AliasedTableOrView<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ValueSourcesOf<TABLE_OR_VIEW>]: RemapValueSourceType<TABLE_OR_VIEW_ALIAS<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>, TABLE_OR_VIEW[K]> } & TableOrViewAlias<TABLE_OR_VIEW, ALIAS>
-type WithViewColumns<TABLE_OR_VIEW extends ITableOrView<any>, COLUMNS> = { [K in ValueSourcesOf<COLUMNS>]: RemapValueSourceType<TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS[K]> } & TABLE_OR_VIEW
+
+/*
+ * This solution don't expose the inner objects in a with because typescript get frozen (see commented implementation in resultUsitls)
+ */
+type WithViewColumns<TABLE_OR_VIEW extends ITableOrView<any>, COLUMNS> = { [K in ValueSourcesOf<COLUMNS>]: RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS[K], WithOptionalTypeOf<COLUMNS[K]>> } & TABLE_OR_VIEW
+
+type WithOptionalTypeOf<TYPE> = 
+    TYPE extends IValueSource<any, any, any, infer OPTIONAL_TYPE> ? (
+        'required' extends OPTIONAL_TYPE
+        ? 'required'
+        : 'optional'
+    ) : never
 
 export type OuterJoinSourceOf<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ValueSourcesOf<TABLE_OR_VIEW>]: RemapValueSourceTypeWithOptionalType<OUTER_JOIN_SOURCE<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>, TABLE_OR_VIEW[K], OuterOptionalTypeOf<TABLE_OR_VIEW[K]>> } & OuterJoinSource<TABLE_OR_VIEW, ALIAS>
 export type OuterJoinTableOrView<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ValueSourcesOf<TABLE_OR_VIEW>]: RemapValueSourceTypeWithOptionalType<OUTER_JOIN_SOURCE<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>, TABLE_OR_VIEW[K], OuterOptionalTypeOf<TABLE_OR_VIEW[K]>> } & TableOrViewOuterJoin<TABLE_OR_VIEW, ALIAS>

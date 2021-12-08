@@ -184,3 +184,72 @@ type IsRequired<OPTIONAL_TYPE extends OptionalType> =
 
 // Dealing with never https://github.com/microsoft/TypeScript/issues/23182
 type FalseWhenNever<T> = [T] extends [never] ? false : T
+
+// Inner obect processing for withs
+
+/**
+ * Alternative solution that allows to expose the inner objects in the with, but typescript get frozen
+ * This implementation doesn't deal when a inner property is used alone. See the case when in this view the inner property
+ * is requiredInOptionalObject but that property is used in a way that flag make no sence any more
+ */
+
+// export type WithViewColumns<TABLE_OR_VIEW extends ITableOrView<any>, COLUMNS> = {
+//     [P in keyof COLUMNS]: 
+//         COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+//         ? RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS[P], WithOptionalTypeOf<COLUMNS[P]>>
+//         : InnerObjectWithColumns<TABLE_OR_VIEW, NonNullable<COLUMNS[P]>>
+// } & TABLE_OR_VIEW
+
+// type WithOptionalTypeOf<TYPE> = 
+//     TYPE extends IValueSource<any, any, any, infer OPTIONAL_TYPE> ? (
+//         'required' extends OPTIONAL_TYPE
+//         ? 'required'
+//         : 'optional'
+//     ) : never
+
+// type WithRequiredInOptionalObjectTypeOf<TYPE> = 
+//     TYPE extends IValueSource<any, any, any, infer OPTIONAL_TYPE> ? (
+//         // Always select the less strict option
+//         'optional' extends OPTIONAL_TYPE ? 'optional' :
+//         'originallyRequired' extends OPTIONAL_TYPE ? 'optional' :
+//         'requiredInOptionalObject' extends OPTIONAL_TYPE ? 'requiredInOptionalObject' :
+//         'required'
+//     ) : never
+
+// type WithOptionalOriginallyRequiredTypeOf<TYPE> = 
+//     TYPE extends IValueSource<any, any, any, infer OPTIONAL_TYPE> ? (
+//         // Always select the less strict option
+//         'optional' extends OPTIONAL_TYPE ? 'optional' :
+//         'originallyRequired' extends OPTIONAL_TYPE ? 'requiredInOptionalObject' :
+//         'requiredInOptionalObject' extends OPTIONAL_TYPE ? 'requiredInOptionalObject' :
+//         'required'
+//     ) : never
+
+// type InnerObjectWithColumns<TABLE_OR_VIEW extends ITableOrView<any>, COLUMNS> = 
+//     ContainsRequiredInOptionalObject<COLUMNS> extends true ? 
+//         ({
+//             [P in keyof COLUMNS]: 
+//                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+//                 ? RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS[P], WithRequiredInOptionalObjectTypeOf<COLUMNS[P]>>
+//                 : InnerResultObjectValues<NonNullable<COLUMNS[P]>>
+//         })
+//     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
+//         ({
+//             [P in keyof COLUMNS]: 
+//                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+//                 ? RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS[P], WithOptionalOriginallyRequiredTypeOf<COLUMNS[P]>>
+//                 : InnerResultObjectValues<NonNullable<COLUMNS[P]>>
+//         })
+//     : ContainsRequired<COLUMNS> extends true ? 
+//         ({
+//             [P in keyof COLUMNS]: 
+//                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+//                 ? RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS[P], WithOptionalTypeOf<COLUMNS[P]>>
+//                 : InnerResultObjectValues<NonNullable<COLUMNS[P]>>
+//         })
+//     : ({
+//         [P in keyof COLUMNS]: 
+//             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+//             ? RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS[P], WithOptionalTypeOf<COLUMNS[P]>>
+//             : InnerResultObjectValues<NonNullable<COLUMNS[P]>>
+//     })

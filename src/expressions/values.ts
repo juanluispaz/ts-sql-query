@@ -278,6 +278,7 @@ export interface IIfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPT
 }
 
 export interface IfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
+    negate(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     and(value: boolean): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     and(value: boolean | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -299,6 +300,7 @@ export interface IAnyBooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<Any
 }
 
 export interface AlwaysIfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
+    negate(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     and(value: boolean): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     and(value: boolean | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>

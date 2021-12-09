@@ -375,12 +375,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendConditionSql(value: ToSql | AnyValueSource, params: any[]): string {
         return (value as ToSql).__toSqlForCondition(this, params) // All ValueSource or Column have a hidden implemetation of ToSql
     }
-    _appendConditionSqlParenthesis(value: ToSql | AnyValueSource, params: any[]): string {
-        if (this._needParenthesis(value)) {
-            return '(' + this._appendConditionSql(value, params) + ')'
-        }
-        return this._appendConditionSql(value, params)
-    }
     _appendConditionSqlParenthesisExcluding(value: ToSql | AnyValueSource, params: any[], excluding: keyof SqlOperation): string {
         if (this._needParenthesisExcluding(value, excluding)) {
             return '(' + this._appendConditionSql(value, params) + ')'
@@ -1910,7 +1904,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     // SqlFunctions0
     _negate(params: any[], valueSource: ToSql): string {
-        return 'not ' + this._appendConditionSqlParenthesis(valueSource, params)
+        const sql = this._appendConditionSql(valueSource, params)
+        if (!sql) {
+            return sql
+        }
+        if (this._needParenthesis(valueSource)) {
+            return 'not (' + sql + ')'
+        }
+        return 'not ' + sql
     }
     _toLowerCase(params: any[], valueSource: ToSql): string {
         return 'lower(' + this._appendSql(valueSource, params) + ')'

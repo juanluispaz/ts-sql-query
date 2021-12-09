@@ -289,6 +289,8 @@ export interface IfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTI
     or(value: boolean| OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     or<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     or<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    trueWhenNoValue(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    falseWhenNoValue(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
 }
 
 export interface IAnyBooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> {
@@ -311,6 +313,8 @@ export interface AlwaysIfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
     or(value: boolean| OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     or<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     or<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    trueWhenNoValue(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    falseWhenNoValue(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
 }
 
 export interface INumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, number, 'NumberValueSource', OPTIONAL_TYPE> {

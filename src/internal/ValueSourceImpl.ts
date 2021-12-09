@@ -308,6 +308,16 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     negate(): any {
         return condition(new SqlOperation0ValueSource('_negate', this, 'boolean', this.__optionalType, this.__typeAdapter))
     }
+    trueWhenNoValue(): any {
+        const result = new BooleanValueWhenNoValueValueSource('_true', this, 'boolean', this.__optionalType, this.__typeAdapter)
+        result.__isBooleanForCondition = this.__isBooleanForCondition
+        return result
+    }
+    falseWhenNoValue(): any {
+        const result = new BooleanValueWhenNoValueValueSource('_false', this, 'boolean', this.__optionalType, this.__typeAdapter)
+        result.__isBooleanForCondition = this.__isBooleanForCondition
+        return result
+    }
     // String
     toLowerCase(): any {
         return new SqlOperation0ValueSource('_toLowerCase', this, this.__valueType, this.__optionalType, this.__typeAdapter)
@@ -703,6 +713,51 @@ export class SqlOperationStaticBooleanValueSource extends ValueSourceImpl implem
         } else {
             return sqlBuilder._falseForCondition(params)
         }
+    }
+}
+
+export class BooleanValueWhenNoValueValueSource extends ValueSourceImpl implements HasOperation {
+    __valueSource: ValueSourceImpl
+    __operation: '_true' | '_false'
+
+    constructor(operation: '_true' | '_false', valueSource: ValueSourceImpl, valueType: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, optionalType, typeAdapter)
+        this.__valueSource = valueSource
+        this.__operation = operation
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        const sql = this.__valueSource.__toSql(sqlBuilder, params)
+        if (sql) {
+            return sql
+        }
+
+        // No value
+        return sqlBuilder[this.__operation](params)
+    }
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+        const sql = this.__valueSource.__toSql(sqlBuilder, params)
+        if (sql) {
+            return sql
+        }
+
+        // No value
+        if (this.__operation === '_true') {
+            return sqlBuilder._trueForCondition(params)
+        } else {
+            return sqlBuilder._falseForCondition(params)
+        }
+    }
+    __addWiths(withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(withs)
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+    }
+    __getOldValues(): ITableOrView<any> | undefined {
+        return this.__valueSource.__getOldValues()
     }
 }
 

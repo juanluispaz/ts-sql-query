@@ -92,6 +92,10 @@ interface BooleanValueSource extends EqualableValueSource {
     negate(): boolean
     and(value: boolean): boolean
     or(value: boolean): boolean
+    /** This function allows to return a true value when null or undefined were provided to the *IfValue function */
+    trueWhenNoValue(): boolean
+    /** This function allows to return a false value when null or undefined were provided to the *IfValue function */
+    falseWhenNoValue(): boolean
 }
 
 /**

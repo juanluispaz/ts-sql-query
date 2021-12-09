@@ -763,7 +763,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     }
 
     dynamicConditionFor<DEFINITION extends Filterable>(definition: DEFINITION): DynamicConditionExpression<DEFINITION> {
-        return new DynamicConditionBuilder(definition)
+        return new DynamicConditionBuilder(this.__sqlBuilder, definition)
     }
 
     protected transformValueFromDB(value: unknown, type: string): unknown {

@@ -1,11 +1,14 @@
 import { DynamicConditionExpression, DynamicFilter, Filterable } from "../expressions/dynamicConditionUsingFilters";
 import { BooleanValueSource, isValueSource } from "../expressions/values";
 import { SqlOperationValueSourceIfValueAlwaysNoop } from "../internal/ValueSourceImpl";
+import { SqlBuilder } from "../sqlBuilders/SqlBuilder";
 
 export class DynamicConditionBuilder implements DynamicConditionExpression<any> {
+    sqlBuilder: SqlBuilder
     definition: Filterable
 
-    constructor(definition: Filterable) {
+    constructor(sqlBuilder: SqlBuilder, definition: Filterable) {
+        this.sqlBuilder = sqlBuilder
         this.definition = definition
     }
 
@@ -78,6 +81,11 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any> 
                 throw new Error('Invalid operation with name "' + key + '" for the column "' + column + '" provided as dynamic filter condition')
             }
             const value = filter[key]
+            if (!this.sqlBuilder._isValue(value)) {
+                if (key !== 'is' && key !== 'isNot' && !key.endsWith('IfValue')) {
+                    continue
+                }
+            }
             let condition: BooleanValueSource<any, any>
             if (key === 'isNull' || key === 'isNotNull') {
                 condition = valueSource[key]()

@@ -33,7 +33,7 @@ export type OptionalTypeRequiredOrAny<OPTIONAL_TYPE extends OptionalType> =
     OPTIONAL_TYPE extends 'required' ? 'required' : any
 
 type OptionalValueType<OPTIONAL_TYPE extends OptionalType> = 
-    OPTIONAL_TYPE extends 'required' ? never : null | undefined
+    OPTIONAL_TYPE extends 'optional' ? null | undefined : never
 
 export type ValueSourceValueType<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | OptionalValueType<OPTIONAL_TYPE> : never
 export type ValueSourceValueTypeForResult<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' ? never : null) : never

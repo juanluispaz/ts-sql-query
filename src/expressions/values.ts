@@ -278,7 +278,7 @@ export interface IIfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPT
 }
 
 export interface IfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
-    negate(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    negate(): IIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     and(value: boolean): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
     and(value: boolean | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -302,19 +302,19 @@ export interface IAnyBooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<Any
 }
 
 export interface AlwaysIfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
-    negate(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    and(value: boolean): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    negate(): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    and(value: boolean): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
-    and(value: boolean | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    and(value: boolean | OptionalValueType<OPTIONAL_TYPE>): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     and<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     and<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    or(value: boolean): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    or(value: boolean): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); this could be an error in your code */
-    or(value: boolean| OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    or(value: boolean| OptionalValueType<OPTIONAL_TYPE>): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     or<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     or<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    trueWhenNoValue(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    falseWhenNoValue(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    trueWhenNoValue(): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    falseWhenNoValue(): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
 }
 
 export interface INumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, number, 'NumberValueSource', OPTIONAL_TYPE> {

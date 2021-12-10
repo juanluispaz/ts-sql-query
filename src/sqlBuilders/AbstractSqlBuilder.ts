@@ -1908,6 +1908,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!sql) {
             return sql
         }
+        if (sql === this._trueValueForCondition) {
+            return this._falseValueForCondition
+        } else if (sql === this._falseValueForCondition) {
+            return this._trueValueForCondition
+        }
+        
         if (this._needParenthesis(valueSource)) {
             return 'not (' + sql + ')'
         }

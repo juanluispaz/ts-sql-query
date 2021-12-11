@@ -73,10 +73,10 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         throw new Error('You are trying to access to the const value when the expression is not const')
     }
     asOptional(): any {
-        return new NoopValueSource(this, 'int', 'optional', this.__typeAdapter)
+        return new NoopValueSource(this, this.__valueType, 'optional', this.__typeAdapter)
     }
     asRequiredInOptionalObject(): any {
-        return new NoopValueSource(this, 'int', 'requiredInOptionalObject', this.__typeAdapter)
+        return new NoopValueSource(this, this.__valueType, 'requiredInOptionalObject', this.__typeAdapter)
     }
     // SqlComparator0
     isNull(): any {

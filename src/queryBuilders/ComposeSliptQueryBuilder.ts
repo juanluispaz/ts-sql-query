@@ -418,16 +418,25 @@ export class ComposeSplitQueryBuilder {
     }
 
     __transformRow(row: any, index?: number): any {
-        const columns = this.__columns
+        const columns = this.__columns!
+        return this.__transformRootObject('', columns, row, index)
+    }
+
+    __transformRootObject(errorPrefix: string, columns: QueryColumns, row: any, index?: number): any {
         const result: any = {}
         for (let prop in columns) {
             const valueSource = columns[prop]!
             let value = row[prop]
             let transformed 
             if (isValueSource(valueSource)) {
-                transformed = this.__transformValueFromDB(valueSource, value, prop, index)
+                const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+                if (valueSourcePrivate.__aggregatedArrayColumns) {
+                    transformed = this.__transformAggregatedArray(errorPrefix + prop, valueSource, value, index)
+                } else {
+                    transformed = this.__transformValueFromDB(valueSource, value, errorPrefix + prop, index)
+                }
             } else {
-                transformed = this.__transformProjectedObject(prop + '.', valueSource, row, index)
+                transformed = this.__transformProjectedObject(errorPrefix + prop + '.', prop + '.', valueSource, row, index)
             }
             if (transformed !== undefined && transformed !== null) {
                 result[prop] = transformed
@@ -436,7 +445,100 @@ export class ComposeSplitQueryBuilder {
         return result
     }
 
-    __transformProjectedObject(pathPrefix: string, columns: QueryColumns, row: any, index?: number): any {
+    __transformAggregatedArray(errorPrefix: string, valueSource: AnyValueSource, value: any, index?: number): any {
+        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        if (value === null || value === undefined) {
+            if (valueSourcePrivate.__optionalType === 'required') {
+                return []
+            } else {
+                return null
+            }
+        }
+
+        let json = value
+        if (typeof value === 'string') {
+            try {
+                json = JSON.parse(value)
+            } catch (e) {
+                let errorMessage = 'Invalid JSON string coming from the database for the column `' + errorPrefix + '`'
+                if (index !== undefined) {
+                    errorMessage += ' at index `' + index + '`'
+                }
+                errorMessage += '. ' + e + '. JSON: ' + value
+                throw new Error(errorMessage)
+            }
+        }
+
+        if (json === null || json === undefined) {
+            if (valueSourcePrivate.__optionalType === 'required') {
+                return []
+            } else {
+                return null
+            }
+        }
+        if (!Array.isArray(json)) {
+            let errorMessage = 'Invalid JSON string coming from the database for the column `' + errorPrefix + '`'
+            if (index !== undefined) {
+                errorMessage += ' at index `' + index + '`'
+            }
+            errorMessage += '. An array were expected'
+            throw new Error(errorMessage)
+        }
+
+        const columns = valueSourcePrivate.__aggregatedArrayColumns!
+        const result = []
+
+        if (isValueSource(columns)) {
+            const columnPrivate = __getValueSourcePrivate(columns)
+            if (columnPrivate.__aggregatedArrayColumns) {
+                for (let i = 0, lenght = json.length; i < lenght; i++) {
+                    const resultValue = this.__transformAggregatedArray(errorPrefix + '[' + i + ']', columns, json[i], index)
+                    if (resultValue === null || resultValue === undefined) {
+                        continue
+                    }
+                    result.push(resultValue)
+                }
+            } else {
+                for (let i = 0, lenght = json.length; i < lenght; i++) {
+                    const resultValue = this.__transformValueFromDB(columns, json[i], errorPrefix + '[' + i + ']', index)
+                    if (resultValue === null || resultValue === undefined) {
+                        continue
+                    }
+                    result.push(resultValue)
+                }
+            }
+        } else if (valueSourcePrivate.__aggregatedArrayMode === 'ResultObject') {
+            for (let i = 0, lenght = json.length; i < lenght; i++) {
+                const row = json[i]
+                const resultObject = this.__transformRootObject(errorPrefix + '[' + i + '].', columns, row, index)
+                if (resultObject === null || resultObject === undefined) {
+                    continue
+                }
+                result.push(resultObject)
+            }
+        } else {
+            for (let i = 0, lenght = json.length; i < lenght; i++) {
+                const row = json[i]
+                const resultObject = this.__transformProjectedObject(errorPrefix + '[' + i + '].', '', columns, row, index)
+                if (resultObject === null || resultObject === undefined) {
+                    continue
+                }
+                result.push(resultObject)
+            }
+        }
+
+        if (result.length <= 0) {
+            if (valueSourcePrivate.__optionalType === 'required') {
+                return []
+            } else {
+                return null
+            }
+        }
+
+        return result
+    }
+
+    __transformProjectedObject(errorPrefix: string, pathPrefix: string, columns: QueryColumns, row: any, index?: number): any {
         const result: any = {}
         let keepObject = false
         // Rule 1
@@ -453,9 +555,13 @@ export class ComposeSplitQueryBuilder {
             let value = row[propName]
             let transformed 
             if (isValueSource(valueSource)) {
-                transformed = this.__transformValueFromDB(valueSource, value, propName, index)
-
                 const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+                if (valueSourcePrivate.__aggregatedArrayColumns) {
+                    transformed = this.__transformAggregatedArray(propName, valueSource, value, index)
+                } else {
+                    transformed = this.__transformValueFromDB(valueSource, value, errorPrefix + propName, index)
+                }
+
                 if (valueSourcePrivate.__optionalType === 'requiredInOptionalObject') {
                     // For rule 1
                     containsRequiredInOptionalObject = true
@@ -489,7 +595,7 @@ export class ComposeSplitQueryBuilder {
                     }
                 }
             } else {
-                transformed = this.__transformProjectedObject(propName + '.', valueSource, row, index)
+                transformed = this.__transformProjectedObject(errorPrefix, propName + '.', valueSource, row, index)
             }
             if (transformed !== undefined && transformed !== null) {
                 keepObject = true

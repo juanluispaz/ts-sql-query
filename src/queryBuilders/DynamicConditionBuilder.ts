@@ -1,5 +1,5 @@
 import { DynamicConditionExpression, DynamicFilter, Filterable } from "../expressions/dynamicConditionUsingFilters";
-import { BooleanValueSource, isValueSource } from "../expressions/values";
+import { BooleanValueSource, isValueSource, __getValueSourcePrivate } from "../expressions/values";
 import { SqlOperationValueSourceIfValueAlwaysNoop } from "../internal/ValueSourceImpl";
 import { SqlBuilder } from "../sqlBuilders/SqlBuilder";
 
@@ -76,8 +76,10 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any> 
 
     processColumnFilter(filter: any, valueSource: any, column: string) {
         let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop() as any
+        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         for (const key in filter) {
-            if (allowedOpreations[key] !== true) { // keep the strict true comparison to avoid false positives
+            if (allowedOpreations[key] !== true || valueSourcePrivate.__aggregatedArrayColumns) { // keep the strict true comparison to avoid false positives
+                // aggregated arrays doesn't allows to use any operation
                 throw new Error('Invalid operation with name "' + key + '" for the column "' + column + '" provided as dynamic filter condition')
             }
             const value = filter[key]

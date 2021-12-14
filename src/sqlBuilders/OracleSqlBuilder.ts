@@ -1,6 +1,6 @@
 import { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, flattenQueryColumns } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { AnyValueSource, isValueSource } from "../expressions/values"
+import { AnyValueSource, IAggregatedArrayValueSource, isValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -718,6 +718,26 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return this._trueValueForCondition
         }
         return super._notIn(params, valueSource, value, columnType, typeAdapter)
+    }
+    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {
+        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
+        if (isValueSource(aggregatedArrayColumns)) {
+            return 'json_arrayagg(' + this._appendSql(aggregatedArrayColumns, params) + ')'
+        } else {
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            let result = ''
+            for (let prop in columns) {
+                if (result) {
+                    result += ', '
+                }
+                result += "'" + prop + "' value " + this._appendSql(columns[prop]!, params)
+            }
+
+            return 'json_arrayagg(json_object(' + result + '))'
+        }
     }
 }
 

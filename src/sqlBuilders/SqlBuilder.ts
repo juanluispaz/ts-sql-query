@@ -1,5 +1,5 @@
 import type { ITableOrView, ITable, IWithView } from "../utils/ITableOrView"
-import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IIntValueSource, isValueSource } from "../expressions/values"
+import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IIntValueSource, isValueSource, IAggregatedArrayValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode, SelectCustomization } from "../expressions/select"
@@ -167,6 +167,7 @@ export interface SqlBuilder extends SqlOperation {
 
     _inlineSelectAsValue(query: SelectData, params: any[]): string
     _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string
+    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string
 }
 
 export interface ToSql {

@@ -23,6 +23,7 @@ ts-node ./src/examples/documentation/Oracle.ts || exit 1
 ts-node ./src/examples/SqliteExample.ts || exit 1
 ts-node ./src/examples/Sqlite3Example.ts || exit 1
 ts-node ./src/examples/BetterSqlite3Example.ts || exit 1
+ts-node ./src/examples/BetterSqlite3SyncronousExample.ts || exit 1
 ts-node ./src/examples/AnyDBSqlite3Example.ts || exit 1
 ts-node ./src/examples/LoopBackSqlite3Example.ts || exit 1
 ts-node ./src/examples/PrismaSqliteExample.ts || exit 1

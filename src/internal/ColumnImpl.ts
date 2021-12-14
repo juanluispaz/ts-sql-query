@@ -112,6 +112,9 @@ export function createColumnsFrom(columns: QueryColumns, target: QueryColumns, t
             }
             const withColumn = new ColumnImpl(table, property, valueType, typeAdapter)
             withColumn.__optionalType = columnPrivate.__optionalType
+            if (columnPrivate.__aggregatedArrayColumns) {
+                withColumn.__aggregatedArrayColumns = columnPrivate.__aggregatedArrayColumns
+            }
             target[property] = withColumn
         } else {
             const newTarget = {}
@@ -159,6 +162,10 @@ export function createColumnsFromInnerObject(columns: QueryColumns, target: Quer
                     break
             }
             withColumn.__optionalType = optionalType
+            if (columnPrivate.__aggregatedArrayColumns) {
+                withColumn.__aggregatedArrayColumns = columnPrivate.__aggregatedArrayColumns
+                withColumn.__aggregatedArrayMode = columnPrivate.__aggregatedArrayMode
+            }
             target[property] = withColumn
         } else {
             const newTarget = {}

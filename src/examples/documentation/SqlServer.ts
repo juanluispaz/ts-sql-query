@@ -2421,6 +2421,113 @@ async function main() {
         .executeUpdateOne()
 
     assertEquals(smithLastNameUpdate3, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            { id: 1, firstName: 'John', lastName: 'Smith' },
+            { id: 2, firstName: 'Other', lastName: 'Person' },
+            { id: 3, firstName: 'Jane', lastName: 'Doe' }
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar, id), ', "firstName": ', '"' + string_escape(convert(nvarchar, first_name), 'json') + '"', ', "lastName": ', '"' + string_escape(convert(nvarchar, last_name), 'json') + '"', '}'), ','), ']') as [result] from customer where company_id = company.id) as customers from company where id = @0`)
+    expectedParams.push(`[1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedCustomersOfAcme = connection.subSelectUsing(tCompany).from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .selectOneColumn(connection.aggregateAsArray({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        }))
+        .forUseAsInlineQueryValue()
+
+    const acmeCompanyWithCustomers = await connection.selectFrom(tCompany)
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            customers: aggregatedCustomersOfAcme
+        })
+        .executeSelectOne()
+    
+    assertEquals(acmeCompanyWithCustomers, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            { id: 1, firstName: 'John', lastName: 'Smith' },
+            { id: 2, firstName: 'Other', lastName: 'Person' },
+            { id: 3, firstName: 'Jane', lastName: 'Doe' }
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select company.id as id, company.name as name, concat('[', string_agg(concat('{', '"id": ', isnull(convert(nvarchar, customer.id), 'null'), ', "firstName": ', isnull('"' + string_escape(convert(nvarchar, customer.first_name), 'json') + '"', 'null'), ', "lastName": ', isnull('"' + string_escape(convert(nvarchar, customer.last_name), 'json') + '"', 'null'), '}'), ','), ']') as customers from company left join customer on customer.company_id = company.id where company.id = @0 group by company.id`)
+    expectedParams.push(`[1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const tCustomerLeftJoin = tCustomer.forUseInLeftJoin()
+    const acmeCompanyWithCustomers2 = await connection.selectFrom(tCompany).leftJoin(tCustomerLeftJoin).on(tCustomerLeftJoin.companyId.equals(tCompany.id))
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            customers: connection.aggregateAsArray({
+                id: tCustomerLeftJoin.id,
+                firstName: tCustomerLeftJoin.firstName,
+                lastName: tCustomerLeftJoin.lastName
+            }).useEmptyArrayForNoValue()
+        })
+        .groupBy('id')
+        .executeSelectOne()
+    
+    assertEquals(acmeCompanyWithCustomers2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            'Jane Doe',
+            'John Smith',
+            'Other Person'
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as id, name as name, (select concat('[', string_agg('"' + string_escape(convert(nvarchar, first_name + @0 + last_name), 'json') + '"', ','), ']') as [result] from customer where company_id = company.id) as customers from company where id = @1`)
+    expectedParams.push(`[" ",1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedCustomersOfAcme3 = connection.subSelectUsing(tCompany).from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .selectOneColumn(connection.aggregateAsArrayOfOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName)))
+        .forUseAsInlineQueryValue()
+
+    const acmeCompanyWithCustomers3 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            customers: aggregatedCustomersOfAcme3.useEmptyArrayForNoValue()
+        })
+        .executeSelectOne()
+    
+    assertEquals(acmeCompanyWithCustomers3, result)
 }
 
 main().then(() => {

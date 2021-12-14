@@ -1,14 +1,14 @@
 import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData } from "../sqlBuilders/SqlBuilder"
-import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, TypeSafeBigintValueSource, isValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType } from "../expressions/values"
+import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, TypeSafeBigintValueSource, isValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode } from "../expressions/values"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { HasAddWiths, ITableOrView, IWithView, __getOldValues, __getTableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import { database, tableOrView, valueSourceType, valueType as valueType_, optionalType as optionalType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType, valueSourceTypeName, anyBooleanValueSourceType, optionalType, isValueSourceObject } from "../utils/symbols"
+import { database, tableOrView, valueSourceType, valueType as valueType_, optionalType as optionalType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType, valueSourceTypeName, anyBooleanValueSourceType, optionalType, isValueSourceObject, aggregatedArrayValueSourceType } from "../utils/symbols"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { ProxyTypeAdapter } from "./ProxyTypeAdapter"
 import { Column } from "../utils/Column"
 
-export abstract class ValueSourceImpl implements IValueSource<any, any, any, any>, NullableValueSource<any, any, any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, BigintValueSource<any, any>, TypeSafeBigintValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, AlwaysIfValueSource<any, any>, IAnyBooleanValueSource<any, any>, ToSql, __ValueSourcePrivate {
+export abstract class ValueSourceImpl implements IValueSource<any, any, any, any>, NullableValueSource<any, any, any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, BigintValueSource<any, any>, TypeSafeBigintValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, AlwaysIfValueSource<any, any>, IAnyBooleanValueSource<any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, ToSql, __ValueSourcePrivate {
     [valueSourceType]: 'ValueSource'
     [nullableValueSourceType]: 'NullableValueSource'
     [equalableValueSourceType]: 'EqualableValueSource'
@@ -32,6 +32,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     [localTimeValueSourceType]: 'LocalTimeValueSource'
     [localDateTimeValueSourceType]: 'LocalDateTimeValueSource'
     [anyBooleanValueSourceType]: 'AnyBooleanValueSource'
+    [aggregatedArrayValueSourceType]: 'AggregatedArrayValueSource'
     [valueSourceTypeName]: any
 
     [database]: any
@@ -44,11 +45,17 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     __optionalType: OptionalType
     __typeAdapter?: TypeAdapter
     __isBooleanForCondition?: boolean
+    __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource
+    __aggregatedArrayMode?: __AggregatedArrayMode
 
-    constructor(valueType: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+    constructor(valueType: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode) {
         this.__valueType = valueType
         this.__optionalType = optionalType
         this.__typeAdapter = typeAdapter
+        if (aggregatedArrayColumns) {
+            this.__aggregatedArrayColumns = aggregatedArrayColumns
+            this.__aggregatedArrayMode = aggregatedArrayMode
+        }
     }
     abstract __toSql(sqlBuilder: SqlBuilder, params: any[]): string
     __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
@@ -76,7 +83,28 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         return new NoopValueSource(this, this.__valueType, 'optional', this.__typeAdapter)
     }
     asRequiredInOptionalObject(): any {
-        return new NoopValueSource(this, this.__valueType, 'requiredInOptionalObject', this.__typeAdapter)
+        const result = new NoopValueSource(this, this.__valueType, 'requiredInOptionalObject', this.__typeAdapter)
+        if (this.__aggregatedArrayColumns) {
+            result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
+            result.__aggregatedArrayMode = this.__aggregatedArrayMode
+        }
+        return result
+    }
+    useEmptyArrayForNoValue(): any {
+        const result = new NoopValueSource(this, this.__valueType, 'required', this.__typeAdapter)
+        if (this.__aggregatedArrayColumns) {
+            result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
+            result.__aggregatedArrayMode = this.__aggregatedArrayMode
+        }
+        return result
+    }
+    asOptionalNonEmptyArray(): any {
+        const result = new NoopValueSource(this, this.__valueType, 'optional', this.__typeAdapter)
+        if (this.__aggregatedArrayColumns) {
+            result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
+            result.__aggregatedArrayMode = this.__aggregatedArrayMode
+        }
+        return result
     }
     // SqlComparator0
     isNull(): any {
@@ -1607,5 +1635,117 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData) {
         // Avoid treat the column as a custom boolean
         typeAdapter = new ProxyTypeAdapter(typeAdapter)
     }
-    return [valueSourcePrivate.__valueType, valueSourcePrivate.__optionalType, typeAdapter] as const
+    return [valueSourcePrivate.__valueType, valueSourcePrivate.__optionalType, typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode] as const
+}
+
+export class AggregateValueAsArrayValueSource implements ValueSource<any, any, any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
+    [tableOrView]: any
+    [valueType_]: any
+    [optionalType_]: any
+    [optionalType]: any
+    [valueSourceType]: "ValueSource"
+    [database]: any
+    [valueSourceTypeName]: any
+    [aggregatedArrayValueSourceType]: 'AggregatedArrayValueSource'
+
+    [isValueSourceObject]: true = true
+    __valueType: string = 'aggregatedArray'
+    __optionalType: OptionalType
+    __operation: '_aggregateValueAsArray' = '_aggregateValueAsArray'
+    __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
+    __aggregatedArrayMode: __AggregatedArrayMode
+
+    constructor(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType) {
+        this.__aggregatedArrayColumns = aggregatedArrayColumns
+        this.__aggregatedArrayMode = aggregatedArrayMode
+        this.__optionalType = _optionalType
+    }
+
+    isConstValue(): boolean {
+        return false
+    }
+    getConstValue(): any {
+        throw new Error('You are trying to access to the const value when the expression is not const')
+    }
+    __isBooleanForCondition?: boolean | undefined
+    __addWiths(withs: IWithView<any>[]): void {
+        this.__addWithsOf(withs, this.__aggregatedArrayColumns)
+    }
+    __addWithsOf(withs: IWithView<any>[], aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
+        if (!aggregatedArrayColumns) {
+            return
+        } else if (isValueSource(aggregatedArrayColumns)) {
+            const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
+            valueSourcePrivate.__addWiths(withs)
+        } else {
+            for (let prop in aggregatedArrayColumns) {
+                this.__addWithsOf(withs, aggregatedArrayColumns[prop])
+            }
+        }
+    }
+    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__registerTableOrViewOf(requiredTablesOrViews, this.__aggregatedArrayColumns)
+    }
+    __registerTableOrViewOf(requiredTablesOrViews: Set<ITableOrView<any>>, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
+        if (!aggregatedArrayColumns) {
+            return
+        } else if (isValueSource(aggregatedArrayColumns)) {
+            const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
+            valueSourcePrivate.__registerTableOrView(requiredTablesOrViews)
+        } else {
+            for (let prop in aggregatedArrayColumns) {
+                this.__registerTableOrViewOf(requiredTablesOrViews, aggregatedArrayColumns[prop])
+            }
+        }
+    }
+    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__registerRequiredColumnOf(requiredColumns, onlyForTablesOrViews, this.__aggregatedArrayColumns)
+    }
+    __registerRequiredColumnOf(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
+        if (!aggregatedArrayColumns) {
+            return
+        } else if (isValueSource(aggregatedArrayColumns)) {
+            const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
+            valueSourcePrivate.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+        } else {
+            for (let prop in aggregatedArrayColumns) {
+                this.__registerRequiredColumnOf(requiredColumns, onlyForTablesOrViews, aggregatedArrayColumns[prop])
+            }
+        }
+    }
+    __getOldValues(): ITableOrView<any> | undefined {
+        return this.__getOldValuesOf(this.__aggregatedArrayColumns)
+    }
+    __getOldValuesOf(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): ITableOrView<any> | undefined {
+        if (!aggregatedArrayColumns) {
+            return undefined
+        } else if (isValueSource(aggregatedArrayColumns)) {
+            const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
+            return valueSourcePrivate.__getOldValues()
+        } else {
+            for (let prop in aggregatedArrayColumns) {
+                const result = this.__getOldValuesOf(aggregatedArrayColumns[prop])
+                if (result) {
+                    return result
+                }
+            }
+            return undefined
+        }
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        return sqlBuilder._aggregateValueAsArray(this, params)
+    }
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+        return this.__toSql(sqlBuilder, params)
+    }
+
+    useEmptyArrayForNoValue(): any {
+        return new AggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'required')
+    }
+    asOptionalNonEmptyArray(): any {
+        return new AggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional')
+    }
+    asRequiredInOptionalObject(): any {
+        return new AggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'requiredInOptionalObject')
+    }
 }

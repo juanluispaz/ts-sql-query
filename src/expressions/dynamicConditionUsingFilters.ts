@@ -1,5 +1,5 @@
 import { double, int, LocalDate, LocalDateTime, LocalTime, stringDouble, stringInt } from "ts-extended-types";
-import { AnyValueSource, BooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, IDateTimeValueSource, IDateValueSource, IDoubleValueSource, IEqualableValueSource, IIntValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, ILocalTimeValueSource, INullableValueSource, INumberValueSource, IStringDoubleValueSource, IStringIntValueSource, IStringNumberValueSource, IStringValueSource, ITimeValueSource, ITypeSafeBigintValueSource, ITypeSafeStringValueSource, IValueSource, MergeOptionalUnion, ValueSourceOf } from "./values";
+import { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, IDateTimeValueSource, IDateValueSource, IDoubleValueSource, IEqualableValueSource, IIntValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, ILocalTimeValueSource, INullableValueSource, INumberValueSource, IStringDoubleValueSource, IStringIntValueSource, IStringNumberValueSource, IStringValueSource, ITimeValueSource, ITypeSafeBigintValueSource, ITypeSafeStringValueSource, IValueSource, MergeOptionalUnion, ValueSourceOf } from "./values";
 
 export interface Filter {
 }
@@ -179,6 +179,7 @@ export type MapValueSourceToFilter<TYPE> =
         TYPE extends IComparableValueSource<any, any, any, any> ? ComparableFilter<T> :
         TYPE extends IEqualableValueSource<any, any, any, any> ? EqualableFilter<T> :
         TYPE extends INullableValueSource<any, any, any, any> ? NullableFilter :
+        TYPE extends IAggregatedArrayValueSource<any, any, any>  ? Filter | Array<Filter> : // Keep here to make easy deal with aggreagted arrays
         Filter
     ) : never
 

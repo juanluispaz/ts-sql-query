@@ -1,6 +1,6 @@
 import { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, flattenQueryColumns, getQueryColumn } from "./SqlBuilder"
 import { ITableOrView, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAnyBooleanValueSource, IExecutableSelectQuery, __getValueSourceOfObject, __ValueSourcePrivate } from "../expressions/values"
+import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableSelectQuery, isValueSource, __AggregatedArrayColumns, __getValueSourceOfObject, __ValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
 import { CustomBooleanTypeAdapter, DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
@@ -384,14 +384,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendConditionValue(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (hasToSql(value)) {
             return this._appendConditionSql(value, params)
-        }
-        if (Array.isArray(value) && value.length > 0) {
-            let arrayResult = '(' + this._appendConditionValue(value[0], params, columnType, typeAdapter)
-
-            for (let i = 1, length = value.length; i < length; i++) {
-                arrayResult += ', ' + this._appendConditionValue(value[i], params, columnType, typeAdapter)
-            }
-            return arrayResult + ')'
         }
         const adaptedValue = this._transformParamToDB(value, columnType, typeAdapter)
         return this._appendConditionParam(adaptedValue, params, columnType)
@@ -2254,6 +2246,26 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return 'string_concat(distinct ' + this._appendSql(value, params) + ", '')"
         } else {
             return 'string_concat(distinct ' + this._appendSql(value, params) + ', ' + this._appendValue(separator, params, 'string', undefined) + ')'
+        }
+    }
+    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {
+        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
+        if (isValueSource(aggregatedArrayColumns)) {
+            return 'json_agg(' + this._appendSql(aggregatedArrayColumns, params) + ')'
+        } else {
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            let result = ''
+            for (let prop in columns) {
+                if (result) {
+                    result += ', '
+                }
+                result += "'" + prop + "', " + this._appendSql(columns[prop]!, params)
+            }
+
+            return 'json_agg(json_build_object(' + result + '))'
         }
     }
 }

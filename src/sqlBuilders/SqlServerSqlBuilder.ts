@@ -1,6 +1,6 @@
 import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData, flattenQueryColumns, FlatQueryColumns, getQueryColumn, QueryColumns } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { AnyValueSource, isValueSource } from "../expressions/values"
+import { AnyValueSource, IAggregatedArrayValueSource, isValueSource } from "../expressions/values"
 import type { OrderByMode } from "../expressions/select"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnPrivate } from "../utils/Column"
@@ -664,6 +664,73 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return 'substring(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(count, params, columnType, typeAdapter) + ')'
         }
         return 'substring(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(value2, params, columnType, typeAdapter) + ' - ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+    }
+    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {
+        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
+        if (isValueSource(aggregatedArrayColumns)) {
+            return "concat('[', string_agg(" + this._appendJsonValueForAggregate(aggregatedArrayColumns, params) + ", ','), ']')"
+        } else {
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            let result = ''
+            for (let prop in columns) {
+                if (result) {
+                    result += `, ', "`+ prop + `": ', ` + this._appendJsonValueForAggregate(columns[prop]!, params)
+                } else {
+                    result += `'"`+ prop + `": ', ` + this._appendJsonValueForAggregate(columns[prop]!, params)
+                }
+            }
+
+            return `concat('[', string_agg(concat('{', ` + result + `, '}'), ','), ']')`
+        }
+    }
+    _appendJsonValueForAggregate(valueSource: AnyValueSource, params: any[]): string {
+        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const type = valueSourcePrivate.__valueType
+
+        let result: string
+
+        switch(type) {
+        case 'boolean':
+            if (valueSourcePrivate.__optionalType === 'required') {
+                return 'case when ' + super._appendConditionSql(valueSource, params) + " then 'true' else 'false' end"
+            } else {
+                return 'case when ' + super._appendConditionSql(valueSource, params) + " then 'true' when not " + super._appendConditionSql(valueSource, params) + " then 'false' else 'null' end"
+            }
+        case 'int':
+        case 'double':
+            result = 'convert(nvarchar, ' + this._appendSql(valueSource, params) + ')'
+            break
+        case 'stringInt':
+        case 'stringDouble':
+        case 'bigint':
+            result = `'"' + convert(nvarchar, ` + this._appendSql(valueSource, params) + ` + '"')`
+            break
+        case 'string':
+        case 'aggregatedArray':
+            result = 'convert(nvarchar, ' + this._appendSql(valueSource, params) + ')'
+            result = 'string_escape(' + result + ", 'json')"
+            result = `'"' + ` + result + ` + '"'`
+            break
+        case 'localDate':
+        case 'localTime':
+        case 'localDateTime':
+            result = 'convert(nvarchar, ' + this._appendSql(valueSource, params) + ', 127)'
+            result = `'"' + ` + result + ` + '"'`
+            break
+        default:
+            result = 'convert(nvarchar, ' + this._appendSql(valueSource, params) + ')'
+            result = 'string_escape(' + result + ", 'json')"
+            result = `'"' + ` + result + ` + '"'`
+        }
+
+        if (valueSourcePrivate.__optionalType !== 'required') {
+            result = `isnull(` + result + `, 'null')`
+        }
+        
+        return result
     }
 }
 

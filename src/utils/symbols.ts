@@ -83,3 +83,4 @@ export const dateTimeValueSourceType: unique symbol = Symbol('dateTimeValueSourc
 export const localDateValueSourceType: unique symbol = Symbol('localDateValueSourceType')
 export const localTimeValueSourceType: unique symbol = Symbol('localTimeValueSourceType')
 export const localDateTimeValueSourceType: unique symbol = Symbol('localDateTimeValueSourceType')
+export const aggregatedArrayValueSourceType: unique symbol = Symbol('aggregatedArrayValueSourceType')

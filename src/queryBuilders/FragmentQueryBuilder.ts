@@ -1,5 +1,5 @@
 import type { TypeAdapter } from "../TypeAdapter"
-import type { Argument, AnyValueSource, OptionalType } from "../expressions/values"
+import { Argument, AnyValueSource, OptionalType, isValueSource } from "../expressions/values"
 import { FragmentValueSource, ValueSourceImpl, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop } from "../internal/ValueSourceImpl"
 import { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 
@@ -31,7 +31,7 @@ export class FragmentFunctionBuilder {
             const newArgs: AnyValueSource[] = []
             for (let i = 0, length = args.length; i < length; i++) {
                 const arg = args[i]
-                if (arg instanceof ValueSourceImpl) {
+                if (isValueSource(arg)) {
                     newArgs.push(arg)
                 } else {
                     const definition = this.definitions[i]!

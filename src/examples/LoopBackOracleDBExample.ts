@@ -299,6 +299,87 @@ async function main() {
             { acmeCompanyId: 1, acmeCompanyName: 'ACME', acmeEndsWithME: true, acmeCustomerCount: 3 }
         ])
 
+        const aggregatedCustomersOfAcme = connection.subSelectUsing(tCompany).from(tCustomer)
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .selectOneColumn(connection.aggregateAsArray({
+                id: tCustomer.id,
+                firstName: tCustomer.firstName,
+                lastName: tCustomer.lastName
+            }))
+            .forUseAsInlineQueryValue()
+
+        const acmeCompanyWithCustomers = await connection.selectFrom(tCompany)
+            .where(tCompany.id.equals(1))
+            .select({
+                id: tCompany.id,
+                name: tCompany.name,
+                customers: aggregatedCustomersOfAcme
+            })
+            .executeSelectOne()
+        acmeCompanyWithCustomers.customers!.sort((a, b) => {
+            return a.id - b.id
+        })
+        assertEquals(acmeCompanyWithCustomers, {
+            id: 1,
+            name: 'ACME',
+            customers: [
+                { id: 1, firstName: 'John', lastName: 'Smith' },
+                { id: 2, firstName: 'Other', lastName: 'Person' },
+                { id: 3, firstName: 'Jane', lastName: 'Doe' }
+            ]
+        })
+
+        const tCustomerLeftJoin = tCustomer.forUseInLeftJoin()
+        const acmeCompanyWithCustomers2 = await connection.selectFrom(tCompany).leftJoin(tCustomerLeftJoin).on(tCustomerLeftJoin.companyId.equals(tCompany.id))
+            .where(tCompany.id.equals(1))
+            .select({
+                id: tCompany.id,
+                name: tCompany.name,
+                customers: connection.aggregateAsArray({
+                    id: tCustomerLeftJoin.id,
+                    firstName: tCustomerLeftJoin.firstName,
+                    lastName: tCustomerLeftJoin.lastName
+                }).useEmptyArrayForNoValue()
+            })
+            .groupBy('id', 'name')
+            .executeSelectOne()
+        acmeCompanyWithCustomers2.customers!.sort((a, b) => {
+            return a.id - b.id
+        })
+        assertEquals(acmeCompanyWithCustomers2, {
+            id: 1,
+            name: 'ACME',
+            customers: [
+                { id: 1, firstName: 'John', lastName: 'Smith' },
+                { id: 2, firstName: 'Other', lastName: 'Person' },
+                { id: 3, firstName: 'Jane', lastName: 'Doe' }
+            ]
+        })
+
+        const aggregatedCustomersOfAcme3 = connection.subSelectUsing(tCompany).from(tCustomer)
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .selectOneColumn(connection.aggregateAsArrayOfOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName)))
+            .forUseAsInlineQueryValue()
+
+        const acmeCompanyWithCustomers3 = await connection.selectFrom(tCompany)
+            .where(tCompany.id.equals(1))
+            .select({
+                id: tCompany.id,
+                name: tCompany.name,
+                customers: aggregatedCustomersOfAcme3.useEmptyArrayForNoValue()
+            })
+            .executeSelectOne()
+        acmeCompanyWithCustomers3.customers.sort()
+        assertEquals(acmeCompanyWithCustomers3, {
+            id: 1,
+            name: 'ACME',
+            customers: [
+                'Jane Doe',
+                'John Smith',
+                'Other Person'
+            ]
+        })
+
         i = await connection.increment(10)
         assertEquals(i, 11)
 

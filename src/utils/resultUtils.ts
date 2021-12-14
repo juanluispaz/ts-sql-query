@@ -130,6 +130,8 @@ type InnerResultObjectValues<COLUMNS> =
             : InnerResultObjectValues<NonNullable<COLUMNS[P]>>
     }> | undefined
 
+export type InnerResultObjectValuesForAggregatedArray<COLUMNS> = NonNullable<InnerResultObjectValues<COLUMNS>>
+
 type ContainsRequiredInOptionalObject<TYPE> = FalseWhenNever<(
     { [K in keyof TYPE]-?: 
         TYPE[K] extends IValueSource<any, any, any, infer OPTIONAL_TYPE>  | undefined // Undefined is to deal with picking columns

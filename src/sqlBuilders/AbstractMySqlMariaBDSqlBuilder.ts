@@ -1,7 +1,7 @@
-import { ToSql, SelectData, InsertData, UpdateData, DeleteData, getQueryColumn } from "./SqlBuilder"
+import { ToSql, SelectData, InsertData, UpdateData, DeleteData, getQueryColumn, FlatQueryColumns, flattenQueryColumns } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
-import type { AnyValueSource } from "../expressions/values"
+import { AnyValueSource, IAggregatedArrayValueSource, isValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn } from "../utils/Column"
@@ -329,5 +329,25 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return this._trueValueForCondition
         }
         return super._notIn(params, valueSource, value, columnType, typeAdapter)
+    }
+    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {
+        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
+        if (isValueSource(aggregatedArrayColumns)) {
+            return 'json_arrayagg(' + this._appendSql(aggregatedArrayColumns, params) + ')'
+        } else {
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            let result = ''
+            for (let prop in columns) {
+                if (result) {
+                    result += ', '
+                }
+                result += "'" + prop + "', " + this._appendSql(columns[prop]!, params)
+            }
+
+            return 'json_arrayagg(json_object(' + result + '))'
+        }
     }
 }

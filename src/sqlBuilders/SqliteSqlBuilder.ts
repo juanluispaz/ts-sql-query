@@ -1,7 +1,7 @@
-import { ToSql, SelectData, InsertData, UpdateData, getQueryColumn } from "./SqlBuilder"
+import { ToSql, SelectData, InsertData, UpdateData, getQueryColumn, FlatQueryColumns, flattenQueryColumns } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
-import { AnyValueSource, isValueSource } from "../expressions/values"
+import { AnyValueSource, IAggregatedArrayValueSource, isValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn } from "../utils/Column"
@@ -443,6 +443,26 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             return 'group_concat(distinct ' + this._appendSql(value, params) + ", '')"
         } else {
             return 'group_concat(distinct ' + this._appendSql(value, params) + ', ' + this._appendValue(separator, params, 'string', undefined) + ')'
+        }
+    }
+    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {
+        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
+        if (isValueSource(aggregatedArrayColumns)) {
+            return 'json_group_array(' + this._appendSql(aggregatedArrayColumns, params) + ')'
+        } else {
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            let result = ''
+            for (let prop in columns) {
+                if (result) {
+                    result += ', '
+                }
+                result += "'" + prop + "', " + this._appendSql(columns[prop]!, params)
+            }
+
+            return 'json_group_array(json_object(' + result + '))'
         }
     }
 }

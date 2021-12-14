@@ -2,7 +2,7 @@ import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { InsertExpression } from "../expressions/insert"
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expressions/update"
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, TypeSafeBigintValueSource, ITypeSafeBigintValueSource, AlwaysIfValueSource, ValueSourceOf, ValueSourceOfDB, RemapValueSourceTypeWithOptionalType } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, TypeSafeBigintValueSource, ITypeSafeBigintValueSource, AlwaysIfValueSource, ValueSourceOf, ValueSourceOfDB, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource } from "../expressions/values"
 import type { Default } from "../expressions/Default"
 import { TableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf, ITableOrView, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from "../expressions/select"
@@ -16,19 +16,20 @@ import { InsertQueryBuilder } from "../queryBuilders/InsertQueryBuilder"
 import { UpdateQueryBuilder } from "../queryBuilders/UpdateQueryBuilder"
 import { DeleteQueryBuilder } from "../queryBuilders/DeleteQueryBuilder"
 import { __getValueSourcePrivate, Argument } from "../expressions/values"
-import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop, SqlOperationStaticBooleanValueSource, TableOrViewRawFragmentValueSource } from "../internal/ValueSourceImpl"
+import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop, SqlOperationStaticBooleanValueSource, TableOrViewRawFragmentValueSource, AggregateValueAsArrayValueSource } from "../internal/ValueSourceImpl"
 import { DefaultImpl } from "../expressions/Default"
 import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
 import ChainedError from "chained-error"
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue } from "../queryBuilders/FragmentQueryBuilder"
 import { attachSource, attachTransactionSource } from "../utils/attachSource"
-import { database, tableOrViewRef, type } from "../utils/symbols"
+import { database, tableOrView, tableOrViewRef, type, valueType } from "../utils/symbols"
 import { callDeferredFunctions, UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
 import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilder"
 import { RawFragment } from "../utils/RawFragment"
 import { RawFragmentImpl } from "../internal/RawFragmentImpl"
 import { CustomizedTableOrView } from "../utils/tableOrViewUtils"
+import { InnerResultObjectValuesForAggregatedArray } from "../utils/resultUtils"
 
 export abstract class AbstractConnection<DB extends AnyDB> implements IConnection<DB> {
     [database]: DB
@@ -762,6 +763,13 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
 
+    aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSource<TableOrViewOfAggregatedArray<COLUMNS>, Array<{ [P in keyof InnerResultObjectValuesForAggregatedArray<COLUMNS>]: InnerResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, 'required'> {
+        return new AggregateValueAsArrayValueSource(columns, 'InnerResultObject', 'required')
+    }
+    aggregateAsArrayOfOneColumn<VALUE extends IValueSource<TableOrViewRef<DB>, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof tableOrView], Array<VALUE[typeof valueType]>, 'required'> {
+        return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required')
+    }
+
     dynamicConditionFor<DEFINITION extends Filterable>(definition: DEFINITION): DynamicConditionExpression<DEFINITION> {
         return new DynamicConditionBuilder(this.__sqlBuilder, definition)
     }
@@ -937,6 +945,9 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                 (result as any).___type___ = 'LocalDateTime'
                 return result
             }
+            case 'aggregatedArray': {
+                throw new Error('This would not happened, something went wrong handling aggregate arrays coming from the database')
+            }
             default:
                 return value
         }
@@ -1048,6 +1059,9 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                     return value
                 }
                 throw new Error('Invalid localDateTime value to send to the db: ' + value)
+            case 'aggregatedArray': {
+                throw new Error('This would not happened, something went wrong handling aggregate arrays, aggregated arrays cannot be sent to the database')
+            }
             default:
                 return value
         }
@@ -1071,3 +1085,12 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     }
 
 }
+
+export type AggregatedArrayColumns<DB extends AnyDB> = {
+    [P: string]: ValueSourceOfDB<DB> | AggregatedArrayColumns<DB>
+}
+
+type TableOrViewOfAggregatedArray<TYPE> = ({
+    // TYPE[KEY] extends {} added to avoid infinite instantation in TypeScript
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TYPE[KEY] extends {} ? TableOrViewOfAggregatedArray<TYPE[KEY]> : never
+})[keyof TYPE]

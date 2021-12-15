@@ -79,7 +79,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return this._appendRawColumnName(column, params)
     }
     _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string {
-        const result = '((' + this._buildSelectWithColumnsInfo(query, params, {}) + ') = 1)'
+        const result = '((' + this._buildInlineSelect(query, params) + ') = 1)'
         return result
     }
     _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined): string {

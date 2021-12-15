@@ -9,7 +9,7 @@ import { __getValueSourcePrivate } from "../expressions/values"
 import ChainedError from "chained-error"
 import { AggregateFunctions0ValueSource, InlineSelectValueSource } from "../internal/ValueSourceImpl"
 import { attachSource } from "../utils/attachSource"
-import { columnsType, database, requiredTableOrView, resultType, type, compoundableColumns } from "../utils/symbols"
+import { columnsType, database, requiredTableOrView, resultType, type, compoundableColumns, isSelectQueryObject } from "../utils/symbols"
 import { asAlwaysIfValueSource } from "../expressions/values"
 import { WithViewImpl } from "../internal/WithViewImpl"
 import { createColumnsFrom } from "../internal/ColumnImpl"
@@ -25,6 +25,8 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
 
     [resultType]: any
     [columnsType]: any
+
+    [isSelectQueryObject]: true = true
 
     __columns: QueryColumns = {}
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
@@ -439,11 +441,11 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     abstract __asSelectData(): SelectData
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         this.__finishJoinHaving()
-        return sqlBuilder._buildSelect(this.__asSelectData(), params)
+        return sqlBuilder._buildInlineSelect(this.__asSelectData(), params)
     }
     __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
         this.__finishJoinHaving()
-        return sqlBuilder._buildSelect(this.__asSelectData(), params)
+        return sqlBuilder._buildInlineSelect(this.__asSelectData(), params)
     }
 
     forUseInQueryAs(as: string): WithView<any, any> {
@@ -482,6 +484,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         for (let columnName in currentColumns) {
             columns[columnName] = (recursiveView as any)[columnName]
         }
+        recursiveSelect.__subSelectUsing = this.__subSelectUsing
 
         this.__recursiveInternalView = recursiveInternalView
         this.__recursiveView = recursiveView
@@ -502,6 +505,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             result.__columns = current.__columns
             result.__withs = current.__withs.concat()
             result.__joins = current.__joins.concat()
+            result.__subSelectUsing = this.__subSelectUsing
             result.join(view).on(fn(view))
             return result as any
         }
@@ -576,6 +580,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             withView.__addWiths(withs)
             
             const selectCountData: PlainSelectData = {
+                [isSelectQueryObject]: true,
                 __type: 'plain',
                 __distinct: false,
                 __columns: { '': countAll },
@@ -583,12 +588,14 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
                 __joins: [],
                 __where: undefined,
                 __groupBy: [],
-                __withs: withs
+                __withs: withs,
+                __subSelectUsing: this.__subSelectUsing
             }
             return this.__sqlBuilder._buildSelect(selectCountData, params)
         }
 
         const selectCountData: PlainSelectData = {
+            [isSelectQueryObject]: true,
             __type: 'plain',
             __distinct: false,
             __columns: { '': countAll },
@@ -596,7 +603,8 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __joins: this.__joins,
             __where: this.__where,
             __groupBy: [],
-            __withs: this.__withs
+            __withs: this.__withs,
+            __subSelectUsing: this.__subSelectUsing
         }
         return this.__sqlBuilder._buildSelect(selectCountData, params)
     }
@@ -948,6 +956,26 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         this.__compoundOperator = compoundOperator
         this.__secondQuery = secondQuery
 
+        if (firstQuery.__subSelectUsing && secondQuery.__subSelectUsing) {
+            const subSelectUsing: Array<ITableOrView<any>> = []
+            firstQuery.__subSelectUsing.forEach(value => {
+                if (!subSelectUsing.includes(value)) {
+                    subSelectUsing.push(value)
+                }
+            })
+            secondQuery.__subSelectUsing.forEach(value => {
+                if (!subSelectUsing.includes(value)) {
+                    subSelectUsing.push(value)
+                }
+            })
+            this.__subSelectUsing = subSelectUsing
+        } else {
+            this.__subSelectUsing = firstQuery.__subSelectUsing || secondQuery.__subSelectUsing
+            if (this.__subSelectUsing) {
+                this.__subSelectUsing = this.__subSelectUsing.concat()
+            }
+        }
+
         createColumnsFrom(firstQuery.__columns, this.__columns, new View(''))
     }
 
@@ -962,6 +990,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         withView.__addWiths(withs)
         
         const selectCountData: PlainSelectData = {
+            [isSelectQueryObject]: true,
             __type: 'plain',
             __distinct: false,
             __columns: { '': countAll },
@@ -969,7 +998,8 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
             __joins: [],
             __where: undefined,
             __groupBy: [],
-            __withs: withs
+            __withs: withs,
+            __subSelectUsing: this.__subSelectUsing
         }
         return this.__sqlBuilder._buildSelect(selectCountData, params)
     }

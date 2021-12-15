@@ -5,6 +5,7 @@
 // Type marks
 export const isValueSourceObject: unique symbol = Symbol('isValueSourceObject')
 export const isColumnObject: unique symbol = Symbol('isColumnObject')
+export const isSelectQueryObject: unique symbol = Symbol('isSelectQueryObject')
 
 // General Symbols
 export const type: unique symbol = Symbol('type')

@@ -2,7 +2,7 @@ import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation
 import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, TypeSafeBigintValueSource, isValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode } from "../expressions/values"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { HasAddWiths, ITableOrView, IWithView, __getOldValues, __getTableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import { database, tableOrView, valueSourceType, valueType as valueType_, optionalType as optionalType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType, valueSourceTypeName, anyBooleanValueSourceType, optionalType, isValueSourceObject, aggregatedArrayValueSourceType } from "../utils/symbols"
+import { database, tableOrView, valueSourceType, valueType as valueType_, optionalType as optionalType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType, valueSourceTypeName, anyBooleanValueSourceType, optionalType, isValueSourceObject, aggregatedArrayValueSourceType, isSelectQueryObject } from "../utils/symbols"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { ProxyTypeAdapter } from "./ProxyTypeAdapter"
@@ -955,7 +955,11 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
                 __addWiths(values[i], withs)
             }
         } else {
-            __addWiths(values, withs)
+            if (isSelectQuery(values)) {
+                __addInlineQueryWiths(withs, values)
+            } else {
+                __addWiths(values, withs)
+            }
         }
     }
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
@@ -1611,7 +1615,7 @@ export class InlineSelectValueSource extends ValueSourceImpl implements HasOpera
         return sqlBuilder._inlineSelectAsValueForCondition(this.__selectData, params)
     }
     __addWiths(withs: IWithView<any>[]): void {
-        this.__selectData.__addWiths(withs)
+        __addInlineQueryWiths(withs, this.__selectData)
     }
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
         this.__selectData.__registerTableOrView(requiredTablesOrViews)
@@ -1623,6 +1627,37 @@ export class InlineSelectValueSource extends ValueSourceImpl implements HasOpera
         return this.__selectData.__getOldValues()
     }
 }
+
+function __addInlineQueryWiths(withs: IWithView<any>[], selectData: InlineSelectData): void {
+    const withViews: IWithView<any>[] = []
+    const subSelectUsing = selectData.__subSelectUsing || []
+    selectData.__addWiths(withViews)
+    for (let i = 0, length = withViews.length; i < length; i++) {
+        const withView = withViews[i]!
+        if (subSelectUsing.includes(withView)) {
+            continue
+        }
+        if (withs.includes(withView)) {
+            continue
+        }
+        const withViewPrivate = __getTableOrViewPrivate(withView)
+        if (withViewPrivate.__hasExternalDependencies) {
+            continue
+        }
+        withViewPrivate.__addWiths(withs)
+    }
+}
+
+function isSelectQuery(value: any): value is InlineSelectData {
+    if (value === undefined || value === null) {
+        return false
+    }
+    if (typeof value === 'object') {
+        return !!value[isSelectQueryObject]
+    }
+    return false
+}
+
 
 function valueSourceInitializationForInlineSelect(selectData: SelectData) {
     const result = selectData.__columns['result']

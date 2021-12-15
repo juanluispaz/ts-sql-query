@@ -76,6 +76,7 @@ export interface __ITableOrViewPrivate extends HasAddWiths {
     __template?: RawFragment<any>
     __customizationName?: string
     __oldValues?: boolean
+    __hasExternalDependencies?: boolean
 }
 
 export function __getTableOrViewPrivate(table: ITableOrView<any> | OuterJoinSource<any, any>): __ITableOrViewPrivate {

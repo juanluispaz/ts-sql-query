@@ -2345,6 +2345,58 @@ async function main() {
         .executeSelectOne()
     
     assertEquals(acmeCompanyWithCustomers3, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (with inner2 as (select id as id, name as name from custom_company where id = customer.company_id) select inner2.id as result from company inner join inner2 on company.id = inner2.id where company.name like concat('%', ?), '%'))`)
+    expectedParams.push(`["Cia."]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const inner2 = connection.subSelectUsing(tCustomer).from(tCustomCompany).where(tCustomCompany.id.equals(tCustomer.companyId)).select({id: tCustomCompany.id, name: tCustomCompany.name}).forUseInQueryAs('inner2')
+    
+    const customerWithSelectedCompanies2 = await connection.selectFrom(tCustomer)
+        .where(tCustomer.companyId.in(
+            connection.selectFrom(tCompany).innerJoin(inner2).on(tCompany.id.equals(inner2.id))
+                .where(tCompany.name.contains('Cia.'))
+                .selectOneColumn(inner2.id)
+        )).select({
+            customerId: tCustomer.id,
+            customerFirstName: tCustomer.firstName,
+            customerLastName: tCustomer.lastName
+        })
+        .executeSelectMany()
+    
+    assertEquals(customerWithSelectedCompanies2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`with inner3 as (select id as id, name as name from custom_company) select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select inner3.id as result from company inner join inner3 on company.id = inner3.id where company.name like concat('%', ?), '%'))`)
+    expectedParams.push(`["Cia."]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const inner3 = connection.selectFrom(tCustomCompany).select({id: tCustomCompany.id, name: tCustomCompany.name}).forUseInQueryAs('inner3')
+    
+    const customerWithSelectedCompanies3 = await connection.selectFrom(tCustomer)
+        .where(tCustomer.companyId.in(
+            connection.selectFrom(tCompany).innerJoin(inner3).on(tCompany.id.equals(inner3.id))
+                .where(tCompany.name.contains('Cia.'))
+                .selectOneColumn(inner3.id)
+        )).select({
+            customerId: tCustomer.id,
+            customerFirstName: tCustomer.firstName,
+            customerLastName: tCustomer.lastName
+        })
+        .executeSelectMany()
+    
+    assertEquals(customerWithSelectedCompanies3, result)
 }
 
 main().then(() => {

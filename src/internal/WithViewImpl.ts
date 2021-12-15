@@ -27,10 +27,14 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
     __recursive?: boolean
     // @ts-ignore
     __template?: RawFragment<any>
+    __hasExternalDependencies?: boolean
 
     constructor(name: string, selectData: SelectData) {
         this.__name = name
         this.__selectData = selectData
+        if (selectData.__subSelectUsing) {
+            this.__hasExternalDependencies = selectData.__subSelectUsing.length > 0
+        }
         
         const columns = selectData.__columns
         createColumnsFrom(columns, this as any, this)

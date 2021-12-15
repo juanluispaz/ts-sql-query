@@ -96,6 +96,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
             configurable: true
         })
     }
+    _generateExternalWith(params: any[]): boolean {
+        return !!(params as any)._generateExternalWith
+    }
+    _setGenerateExternalWith(params: any[], value: boolean): void {
+        Object.defineProperty(params, '_generateExternalWith', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
     _isWithGenerated(params: any[]): boolean {
         return !!(params as any)._withGenerated
     }
@@ -417,11 +428,21 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._escape(name, true)
     }
     _buildWith(withData: WithQueryData, params: any[]): string {
+        let withs = withData.__withs
         if (this._isWithGenerated(params)) {
-            return ''
+            if (this._generateExternalWith(params)) {
+                withs = withData.__withs.filter(value => {
+                    return __getTableOrViewPrivate(value).__hasExternalDependencies
+                })
+                this._setGenerateExternalWith(params, false)
+            } else {
+                return ''
+            }
+        } else {
+            withs = withData.__withs
+            this._setWithGenerated(params, true)
         }
-        this._setWithGenerated(params, true)
-        const withs = withData.__withs
+
         if (withs.length <= 0) {
             this._setWithGeneratedFinished(params, true)
             return ''
@@ -446,11 +467,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'with ' + result + ' '
     }
     _inlineSelectAsValue(query: SelectData, params: any[]): string {
-        const result = '(' + this._buildSelectWithColumnsInfo(query, params, {}) + ')'
+        const result = '(' + this._buildInlineSelect(query, params) + ')'
         return result
     }
     _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string {
-        const result = '(' + this._buildSelectWithColumnsInfo(query, params, {}) + ')'
+        const result = '(' + this._buildInlineSelect(query, params) + ')'
+        return result
+    }
+    _buildInlineSelect(query: SelectData, params: any[]): string {
+        const oldWithGeneratedFinished = this._isWithGeneratedFinished(params)
+        const oldGenerateExternalWith = this._generateExternalWith(params)
+        this._setGenerateExternalWith(params, true)
+        const result = this._buildSelectWithColumnsInfo(query, params, {})
+        this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
+        this._setGenerateExternalWith(params, oldGenerateExternalWith)
         return result
     }
     _buildSelect(query: SelectData, params: any[]): string {

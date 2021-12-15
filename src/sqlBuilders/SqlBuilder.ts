@@ -9,6 +9,7 @@ import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 import type { UpdateCustomization } from "../expressions/update"
 import type { DeleteCustomization } from "../expressions/delete"
 import type { InsertCustomization } from "../expressions/insert"
+import type { isSelectQueryObject } from "../utils/symbols"
 
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
 export type FlatQueryColumns = { [property: string]: AnyValueSource }
@@ -76,11 +77,13 @@ export interface JoinData {
 export interface WithQueryData {
     __withs: Array<IWithView<any>>
     __customization?: SelectCustomization<any>
+    __subSelectUsing?: Array<ITableOrView<any>>
 }
 
 export type SelectData = PlainSelectData | CompoundSelectData
 
 export interface PlainSelectData extends WithQueryData {
+    [isSelectQueryObject]: true
     __type: 'plain'
     __distinct: boolean
     __columns: QueryColumns
@@ -98,6 +101,7 @@ export interface PlainSelectData extends WithQueryData {
 export type CompoundOperator = 'union' | 'unionAll' | 'intersect' | 'intersectAll' | 'except' | 'exceptAll' | 'minus' | 'minusAll'
 
 export interface CompoundSelectData extends WithQueryData {
+    [isSelectQueryObject]: true
     __type: 'compound'
     __firstQuery: SelectData
     __compoundOperator: CompoundOperator
@@ -150,6 +154,7 @@ export interface SqlBuilder extends SqlOperation {
     _appendColumnName(column: Column, params: any[]): string
     _appendColumnNameForCondition(column: Column, params: any[]): string
     _buildSelect(query: SelectData, params: any[]): string
+    _buildInlineSelect(query: SelectData, params: any[]): string
     _buildInsertDefaultValues(query: InsertData, params: any[]): string
     _buildInsert(query: InsertData, params: any[]): string
     _buildInsertFromSelect(query: InsertData, params: any[]): string

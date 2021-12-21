@@ -1,5 +1,33 @@
 # Change Log
 
+## v1.24.0 (21 Dec 2021)
+
+**Changes**:
+
+- Manage complex projections in compound operations (union, intercept, etc.)
+- Ensure the dynamic conditions cannot create conditions when null/undefined values are provided to functions that doesn't expect it
+- Detect when null/undefined values are provided to an operation with a value coming from a left join where a not null/undefined value must be provided
+- Deprecate all value source methods overload that can produce unexpected falsy/null values because the provided value in JavaScript is null or undefined. Now all value source methods doesn't admit null or undefined values (except the `*IfValue`, `is`, `isNot` methods). In the odd case you need to use a nullable value from JavaScript, and you want to maintain the falsy/null output use an optional constant with the JavaScript value
+- Add the methods `trueWhenNoValue` and `falseWhenNoValue` to allows specify a boolean value when the `*IfValue` function produces no value. This can help to manage optional values coming from JavaScript in complex logic without need to use the deprecated methods that can produce unexpected falsy/null values
+- Allows to negate the result of a `*IfValue` function
+- Improve boolean expression reduction when the negate method is used
+- Detect invalid columns to be returned in a select (non-string key)
+
+**Preview of upcoming changes**:
+
+- Implements `aggregateAsArray` aggregation function, that allows to create an value that contains, per each row, an array of a single column, or an array with several columns represented as an object
+- Add support to subqueries that contains with clause with external/contextual dependencies
+
+**Documentation changes**:
+
+- Clean up `sync` helper function to handle synchronous promises in BetterSqlite3 with a stricter typing and better readability
+
+**Bug fixes**:
+
+- Ensure any boolean operation apply over a boolean created using `dynamicBooleanExpressionUsing` is asignable to the initial type
+- Fix invalid result type of calling `asOptional` or `asRequiredInOptionalObject` when the type is different to `int`
+- Fix BetterSqlite3 implementation that returns a real promise instead of a synchronous promise when there is no columns to set
+
 ## v1.23.0 (8 Dec 2021)
 
 **Changes**:

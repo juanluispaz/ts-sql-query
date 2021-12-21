@@ -120,28 +120,39 @@ In the case of [synchronous-promise](https://www.npmjs.com/package/synchronous-p
 
 ```ts
 /**
- * This function unwraps the synchronous promise in a synchronous way returning the result.
+ * This function unwraps the synchronous promise in a synchronous way,
+ * returning the result.
  */
 function sync<T>(promise: Promise<T>): T {
-    let returned = false
-    let errorReturned = false
-    let result: any
-    let error: any
-    promise.then(r => {
-        returned = true
-        result = r
-    }, e => {
-        errorReturned = true
-        error = e
-    })
+    const UNSET = Symbol('unset');
 
-    if (!returned && !errorReturned) {
-        throw new Error('You performed a real async operation, not a database operation, inside the function dedicated to calling the database')
+    let result: T | typeof UNSET = UNSET;
+    let error: unknown | typeof UNSET = UNSET;
+
+    promise.then(
+        (r) => (result = r),
+        (e) => (error = e),
+    );
+
+    // Propagate error, if available
+    if (error !== UNSET) {
+        throw error;
     }
-    if (errorReturned) {
-        throw error
+
+    // Propagate result, if available
+    if (result !== UNSET) {
+        return result;
     }
-    return result
+
+    // Note: This wrapper is to be used in combination with the `SynchronousPromise` type,
+    // which is not strictly Promise-spec-compliant because it does not defer when calling
+    // `.then`. See https://www.npmjs.com/package/synchronous-promise for more details.
+    // To ensure that we're indeed using a synchronous promise, ensure that the promise resolved
+    // immediately.
+    throw new Error(
+        'You performed a real async operation, not a database operation, ' +
+            'inside the function dedicated to calling the database',
+    );
 }
 ```
 

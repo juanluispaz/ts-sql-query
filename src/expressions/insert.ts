@@ -189,6 +189,7 @@ type ReturningOneColumnFromSelectFnType<TABLE extends ITableOrView<any>> =
 
 export type InsertColumns<TABLE extends ITableOrView<any>> = {
     [P: string]: ValueSourceOf<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>> | InsertColumns<TABLE>
+    [P: number | symbol]: never
 }
 
 

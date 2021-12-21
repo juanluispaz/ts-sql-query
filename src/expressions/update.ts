@@ -317,4 +317,5 @@ type ReturningOneColumnFnType<TABLE extends ITableOrView<any>, USING extends ITa
 
 export type UpdateColumns<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
     [P: string]: ValueSourceOf<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | OLD<TABLE[typeof tableOrViewRef]>> | UpdateColumns<TABLE, USING>
+    [P: number | symbol]: never
 }

@@ -238,4 +238,5 @@ type ReturningOneColumnFnType<TABLE extends ITableOrView<any>, USING extends ITa
 
 export type DeleteColumns<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
     [P: string]: ValueSourceOf<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>> | DeleteColumns<TABLE, USING>
+    [P: number | symbol]: never
 }

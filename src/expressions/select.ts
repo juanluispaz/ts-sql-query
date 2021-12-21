@@ -482,6 +482,7 @@ export interface SelectExpressionFromNoTable<DB extends AnyDB> extends SelectWhe
 
 export type SelectColumns<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> = {
     [P: string]: ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>> | SelectColumns<DB, TABLE_OR_VIEW>
+    [P: number | symbol]: never
 }
 
 type SelectPageWithExtras<COLUMNS, RESULT, EXTRAS> = { data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: int } & Omit<EXTRAS, 'data' | 'count'>

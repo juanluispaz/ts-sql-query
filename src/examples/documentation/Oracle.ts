@@ -304,7 +304,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select customer.id as "id", customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as "birthday", comp.name as "companyName" from customer inner join company as comp on customer.company_id = comp.id where lower(customer.first_name) like lower(:0 || '%') escape '\\' order by lower("firstName"), lower("lastName") asc`)
+    expectedQuery.push(`select customer.id as "id", customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as "birthday", comp.name as "companyName" from customer inner join company comp on customer.company_id = comp.id where lower(customer.first_name) like lower(:0 || '%') escape '\\' order by lower("firstName"), lower("lastName") asc`)
     expectedParams.push(`["John"]`)
     expectedType.push(`selectManyRows`)
 
@@ -1310,7 +1310,7 @@ async function main() {
         parentId: 18,
         parentName: 'name'
     }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parentId", parent.name as "parentName" from company left join company as parent on company.parent_id = parent.id`)
+    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parentId", parent.name as "parentName" from company left join company parent on company.parent_id = parent.id`)
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -1354,7 +1354,7 @@ async function main() {
         'parent.id': 18,
         'parent.name': 'name'
     }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parent.id", parent.name as "parent.name" from company left join company as parent on company.parent_id = parent.id`)
+    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parent.id", parent.name as "parent.name" from company left join company parent on company.parent_id = parent.id`)
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -1868,7 +1868,7 @@ async function main() {
         parentName: 'name',
         parentParentId: null
     }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parentId", parent.name as "parentName", parent.parent_id as "parentParentId" from company left join company as parent on company.parent_id = parent.id`)
+    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parentId", parent.name as "parentName", parent.parent_id as "parentParentId" from company left join company parent on company.parent_id = parent.id`)
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -1921,7 +1921,7 @@ async function main() {
         'parent.name': 'name',
         'parent.parentId': 8
     }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parent.id", parent.name as "parent.name", parent.parent_id as "parent.parentId" from company left join company as parent on company.parent_id = parent.id`)
+    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parent.id", parent.name as "parent.name", parent.parent_id as "parent.parentId" from company left join company parent on company.parent_id = parent.id`)
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -1959,7 +1959,7 @@ async function main() {
         parentId: 18,
         parentName: 'name'
     }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parentId", parent.name as "parentName", parent.parent_id as "parentParentId" from company left join company as parent on company.parent_id = parent.id`)
+    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parentId", parent.name as "parentName", parent.parent_id as "parentParentId" from company left join company parent on company.parent_id = parent.id`)
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -2010,7 +2010,7 @@ async function main() {
         'parent.name': 'name',
         'parent.parentId': 8
     }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parent.id", parent.name as "parent.name", parent.parent_id as "parent.parentId" from company left join company as parent on company.parent_id = parent.id`)
+    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parent.id", parent.name as "parent.name", parent.parent_id as "parent.parentId" from company left join company parent on company.parent_id = parent.id`)
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -2072,7 +2072,7 @@ async function main() {
         parentParentName: 'name',
         parentParentParentId: 17
     }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parentId", parent.name as "parentName", parentParent.id as "parentParentId", parentParent.name as "parentParentName", parentParent.parent_id as "parentParentParentId" from company left join company as parent on company.parent_id = parent.id left join company as parentParent on parent.parent_id = parentParent.id`)
+    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parentId", parent.name as "parentName", parentParent.id as "parentParentId", parentParent.name as "parentParentName", parentParent.parent_id as "parentParentParentId" from company left join company parent on company.parent_id = parent.id left join company parentParent on parent.parent_id = parentParent.id`)
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
@@ -2146,7 +2146,7 @@ async function main() {
         'parent.parent.name': 'name',
         'parent.parent.parentId': 17
     }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parent.id", parent.name as "parent.name", parentParent.id as "parent.parent.id", parentParent.name as "parent.parent.name", parentParent.parent_id as "parent.parent.parentId" from company left join company as parent on company.parent_id = parent.id left join company as parentParent on parent.parent_id = parentParent.id`)
+    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parent.id", parent.name as "parent.name", parentParent.id as "parent.parent.id", parentParent.name as "parent.parent.name", parentParent.parent_id as "parent.parent.parentId" from company left join company parent on company.parent_id = parent.id left join company parentParent on parent.parent_id = parentParent.id`)
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     

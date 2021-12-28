@@ -26,6 +26,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _fromNoTable() {
         return ' from dual'
     }
+    _supportTableAliasWithAs = false
     _trueValue = '1'
     _falseValue = '0'
     _trueValueForCondition = '(1=1)'

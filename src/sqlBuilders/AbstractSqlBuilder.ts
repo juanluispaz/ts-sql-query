@@ -296,6 +296,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
+    _supportTableAliasWithAs = true
     _appendTableOrViewName(table: ITableOrView<any>, params: any[]) {
         const t = __getTableOrViewPrivate(table)
         if (t.__template) {
@@ -307,9 +308,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         let result = this._escape(t.__name, false)
         if (forceAliasFor === table && forceAliasAs) {
-            result += ' as ' + this._escape(forceAliasAs, true)
+            if (this._supportTableAliasWithAs) {
+                result += ' as '
+            } else {
+                result += ' '
+            }
+            result += this._escape(forceAliasAs, true)
         } else if (t.__as) {
-            result += ' as ' + this._escape(t.__as, true)
+            if (this._supportTableAliasWithAs) {
+                result += ' as '
+            } else {
+                result += ' '
+            }
+            result += this._escape(t.__as, true)
         }
         return result
     }
@@ -1591,7 +1602,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         from += this._appendUpdateOldValueForUpdate(query, updatePrimaryKey, requiredTables, params)
-        from += ') as ' + this._escape(oldValuesPrivate.__as, true)
+        from += ')' 
+        
+        if (this._supportTableAliasWithAs) {
+            from += ' as '
+        } else {
+            from += ' '
+        }
+        
+        from += this._escape(oldValuesPrivate.__as, true)
 
         this._setForceAliasFor(params, oldForceAliasFor)
         this._setForceAliasAs(params, oldForceAliasAs)

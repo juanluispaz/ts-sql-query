@@ -100,6 +100,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         const result = '((' + this._buildInlineSelect(query, params) + ') = 1)'
         return result
     }
+    _appendWithKeyword(_recursive: boolean): string {
+        // Sql Server doesn't uses the recursive keyword
+        return 'with'
+    }
     _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined): string {
         if (columnForInsert) {
             const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)

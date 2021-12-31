@@ -472,10 +472,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
             recursive = recursive || !!withView.__recursive
         }
         this._setWithGeneratedFinished(params, true)
+        return this._appendWithKeyword(recursive) + ' ' + result + ' '
+    }
+    _appendWithKeyword(recursive: boolean): string {
         if (recursive) {
-            return 'with recursive ' + result + ' '
+            return 'with recursive'
         }
-        return 'with ' + result + ' '
+        return 'with'
     }
     _inlineSelectAsValue(query: SelectData, params: any[]): string {
         const result = '(' + this._buildInlineSelect(query, params) + ')'

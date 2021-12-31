@@ -249,7 +249,9 @@ export class ComposeSplitQueryBuilder {
             const data = dataList[i]
             const externalValue = data[externalProperty]
             dataMap[externalValue] = data
-            ids.push(data[externalProperty])
+            if (externalValue !== null || externalValue !== undefined) {
+                ids.push(data[externalProperty])
+            }
             if (composition.deleteExternal) {
                 delete data[externalProperty]
             }
@@ -263,6 +265,9 @@ export class ComposeSplitQueryBuilder {
             throw new Error('Illegal state')
         }
 
+        if (ids.length <= 0) {
+            return dataResult
+        }
         return fn(ids).then((internalList) => {
             try {
                 this.__processCompositionResult(internalList, dataList, dataMap, composition)

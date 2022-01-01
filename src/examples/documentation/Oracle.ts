@@ -1192,7 +1192,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`with recursive recursive_select_1 as (select id as id, name as name, parent_id as parentId from company where id = :0 union select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.parentId = company.id) select id as "id", name as "name", parentId as "parentId" from recursive_select_1`)
+    expectedQuery.push(`with recursive_select_1(id, name, parentId) as (select id as id, name as name, parent_id as parentId from company where id = :0 union select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.parentId = company.id) select id as "id", name as "name", parentId as "parentId" from recursive_select_1`)
     expectedParams.push(`[10]`)
     expectedType.push(`selectManyRows`)
     
@@ -1220,7 +1220,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`with recursive recursive_select_1 as (select id as id, name as name, parent_id as parentId from company where id = :0 union select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.parentId = company.id) select id as "id", name as "name", parentId as "parentId" from recursive_select_1`)
+    expectedQuery.push(`with recursive_select_1(id, name, parentId) as (select id as id, name as name, parent_id as parentId from company where id = :0 union select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.parentId = company.id) select id as "id", name as "name", parentId as "parentId" from recursive_select_1`)
     expectedParams.push(`[10]`)
     expectedType.push(`selectManyRows`)
     
@@ -1242,7 +1242,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`with recursive recursive_select_1 as (select id as id, name as name, parent_id as parentId from company where id = :0 union all select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.id = company.parent_id) select id as "id", name as "name", parentId as "parentId" from recursive_select_1`)
+    expectedQuery.push(`with recursive_select_1(id, name, parentId) as (select id as id, name as name, parent_id as parentId from company where id = :0 union all select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.id = company.parent_id) select id as "id", name as "name", parentId as "parentId" from recursive_select_1`)
     expectedParams.push(`[10]`)
     expectedType.push(`selectManyRows`)
     
@@ -1270,7 +1270,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`with recursive recursive_select_1 as (select id as id, name as name, parent_id as parentId from company where id = :0 union all select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.id = company.parent_id) select id as "id", name as "name", parentId as "parentId" from recursive_select_1`)
+    expectedQuery.push(`with recursive_select_1(id, name, parentId) as (select id as id, name as name, parent_id as parentId from company where id = :0 union all select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.id = company.parent_id) select id as "id", name as "name", parentId as "parentId" from recursive_select_1`)
     expectedParams.push(`[10]`)
     expectedType.push(`selectManyRows`)
     
@@ -2360,7 +2360,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as "customerId", first_name as "customerFirstName", last_name as "customerLastName" from customer where company_id in (with inner2 as (select id as "id", name as "name" from custom_company where id = customer.company_id) select inner2.id as "result" from company inner join inner2 on company.id = inner2.id where company.name like ('%' || :0 || '%') escape '\\')`)
+    expectedQuery.push(`select id as "customerId", first_name as "customerFirstName", last_name as "customerLastName" from customer where company_id in (with inner2 as (select id as id, name as name from custom_company where id = customer.company_id) select inner2.id as "result" from company inner join inner2 on company.id = inner2.id where company.name like ('%' || :0 || '%') escape '\\')`)
     expectedParams.push(`["Cia."]`)
     expectedType.push(`selectManyRows`)
 

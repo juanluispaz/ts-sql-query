@@ -466,6 +466,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
             const withView = getWithData(withs[i]!)
             result += withView.__name
+            result += this._appendWithColumns(withView, params)
             result += ' as ('
             result += this._buildSelect(withView.__selectData, params)
             result += ')'
@@ -473,6 +474,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         this._setWithGeneratedFinished(params, true)
         return this._appendWithKeyword(recursive) + ' ' + result + ' '
+    }
+    _appendWithColumns(_withData: WithData, _params: any[]): string {
+        return ''
     }
     _appendWithKeyword(recursive: boolean): string {
         if (recursive) {

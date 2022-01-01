@@ -83,6 +83,28 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const result = '((' + this._buildInlineSelect(query, params) + ') = 1)'
         return result
     }
+    _appendWithColumns(withData: WithData, params: any[]): string {
+        if (withData.__selectData.__type === 'plain') {
+            return ''
+        }
+        
+        const columns: FlatQueryColumns = {}
+        flattenQueryColumns(withData.__selectData.__columns, columns, '')
+
+        let result = ''
+        for (const property in columns) {
+            if (result) {
+                result += ', '
+            }
+            result += this._appendColumnAlias(property, params)
+        }
+
+        return '(' + result + ')'
+    }
+    _appendWithKeyword(_recursive: boolean): string {
+        // Oracle doesn't uses the recursive keyword
+        return 'with'
+    }
     _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined): string {
         if (columnForInsert) {
             const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)

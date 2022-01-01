@@ -1658,19 +1658,25 @@ function isSelectQuery(value: any): value is InlineSelectData {
     return false
 }
 
-
 function valueSourceInitializationForInlineSelect(selectData: SelectData) {
-    const result = selectData.__columns['result']
-    if (!isValueSource(result)) {
-        throw new Error('Illegal state: result column for a select one column not found')
+    if (selectData.__asInlineAggregatedArrayValue) {
+        // Note: Aggregared array infor will be set later
+        return ['aggregatedArray', 'required', undefined, undefined, undefined] as const
+    } else if (selectData.__oneColumn) {
+        const result = selectData.__columns['result']
+        if (!isValueSource(result)) {
+            throw new Error('Illegal state: result column for a select one column not found')
+        }
+        const valueSourcePrivate = __getValueSourcePrivate(result)
+        let typeAdapter = valueSourcePrivate.__typeAdapter
+        if (typeAdapter instanceof CustomBooleanTypeAdapter) {
+            // Avoid treat the column as a custom boolean
+            typeAdapter = new ProxyTypeAdapter(typeAdapter)
+        }
+        return [valueSourcePrivate.__valueType, valueSourcePrivate.__optionalType, typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode] as const
+    } else {
+        throw new Error('Illega state: unexpected inline select')
     }
-    const valueSourcePrivate = __getValueSourcePrivate(result)
-    let typeAdapter = valueSourcePrivate.__typeAdapter
-    if (typeAdapter instanceof CustomBooleanTypeAdapter) {
-        // Avoid treat the column as a custom boolean
-        typeAdapter = new ProxyTypeAdapter(typeAdapter)
-    }
-    return [valueSourcePrivate.__valueType, valueSourcePrivate.__optionalType, typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode] as const
 }
 
 export class AggregateValueAsArrayValueSource implements ValueSource<any, any, any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, __ValueSourcePrivate, ToSql {

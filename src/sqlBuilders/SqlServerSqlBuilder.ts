@@ -1,6 +1,6 @@
 import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData, flattenQueryColumns, FlatQueryColumns, getQueryColumn, QueryColumns } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { AnyValueSource, IAggregatedArrayValueSource, isValueSource } from "../expressions/values"
+import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import type { OrderByMode } from "../expressions/select"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnPrivate } from "../utils/Column"
@@ -669,9 +669,64 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return 'substring(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(value2, params, columnType, typeAdapter) + ' - ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
     }
-    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
+    _useForJsonInAggreagteArrayWhenPossible = true
+    _buildSelectAsAggregatedArray(query: SelectData, _params: any[]): string {
+        if (this._useForJsonInAggreagteArrayWhenPossible && query.__asInlineAggregatedArrayValue && !query.__oneColumn && query.__type === 'plain') {
+            return ' for json path'
+        }
+        return ''
+    }
+    _needAgggregateArrayColumnsTransformation(query: SelectData, _params: any[]): boolean {
+        if (!query.__asInlineAggregatedArrayValue) {
+            return false
+        }
+        if (!this._useForJsonInAggreagteArrayWhenPossible) {
+            return true
+        }
+        if (query.__oneColumn) {
+            return true
+        }
+        return false
+    }
+    _needAgggregateArrayWrapper(query: SelectData, params: any[]): boolean {
+        if (this._useForJsonInAggreagteArrayWhenPossible && query.__asInlineAggregatedArrayValue && !query.__oneColumn && query.__type === 'plain') {
+            return false
+        }
+        return super._needAgggregateArrayWrapper(query, params)
+    }
+    _appendAggragateArrayWrapperBegin(query: SelectData, params: any[], aggregateId: number): string {
+        if (this._useForJsonInAggreagteArrayWhenPossible && query.__type === 'compound' && !query.__oneColumn) {
+            const columns = query.__columns
+            let requireComma = false
+            let result = ''
+            for (const property in columns) {
+                if (requireComma) {
+                    result += ', '
+                }
+                result += 'a_' + aggregateId + '_.' + this._escape(property, true)
+                if (property) {
+                    result += ' as ' + this._appendColumnAlias(property, params)
+                }
+                requireComma = true
+            }
+            return 'select ' + result + ' from ('
+        }
+        return super._appendAggragateArrayWrapperBegin(query, params, aggregateId)
+    }
+    _appendAggragateArrayWrapperEnd(query: SelectData, params: any[], aggregateId: number): string {
+        if (this._useForJsonInAggreagteArrayWhenPossible && query.__type === 'compound' && !query.__oneColumn) {
+            let result =  ')' 
+            if (this._supportTableAliasWithAs) {
+                result += ' as '
+            } else {
+                result += ' '
+            }
+            result += 'a_' + aggregateId + '_ for json path'
+            return result
+        }
+        return super._appendAggragateArrayWrapperEnd(query, params, aggregateId)
+    }
+    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
         if (isValueSource(aggregatedArrayColumns)) {
             return "concat('[', string_agg(" + this._appendJsonValueForAggregate(aggregatedArrayColumns, params) + ", ','), ']')"
         } else {
@@ -726,6 +781,71 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             break
         default:
             result = 'convert(nvarchar, ' + this._appendSql(valueSource, params) + ')'
+            result = 'string_escape(' + result + ", 'json')"
+            result = `'"' + ` + result + ` + '"'`
+        }
+
+        if (valueSourcePrivate.__optionalType !== 'required') {
+            result = `isnull(` + result + `, 'null')`
+        }
+        
+        return result
+    }
+    _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], aggregateId: number): string {
+        if (isValueSource(aggregatedArrayColumns)) {
+            return "concat('[', string_agg(" + this._appendJsonValueForWrappedAggregate('result', aggregatedArrayColumns, params, aggregateId) + ", ','), ']')"
+        } else {
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            let result = ''
+            for (let prop in columns) {
+                if (result) {
+                    result += `, ', "`+ prop + `": ', ` + this._appendJsonValueForWrappedAggregate(prop, columns[prop]!, params, aggregateId)
+                } else {
+                    result += `'"`+ prop + `": ', ` + this._appendJsonValueForWrappedAggregate(prop, columns[prop]!, params, aggregateId)
+                }
+            }
+
+            return `concat('[', string_agg(concat('{', ` + result + `, '}'), ','), ']')`
+        }
+    }
+    _appendJsonValueForWrappedAggregate(prop: string, valueSource: AnyValueSource, _params: any[], aggregateId: number): string {
+        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+        const type = valueSourcePrivate.__valueType
+
+        let result: string
+
+        switch(type) {
+        case 'boolean':
+            if (valueSourcePrivate.__optionalType === 'required') {
+                return 'case when a_' + aggregateId + '_.' + this._escape(prop, true) + " = 1 then 'true' else 'false' end"
+            } else {
+                return 'case when a_' + aggregateId + '_.' + this._escape(prop, true) + " = 1 then 'true' when a_." + this._escape(prop, true) + " = 0 then 'false' else 'null' end"
+            }
+        case 'int':
+        case 'double':
+            result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
+            break
+        case 'stringInt':
+        case 'stringDouble':
+        case 'bigint':
+            result = `'"' + convert(nvarchar, a_` + aggregateId + `_.` + this._escape(prop, true) + ` + '"')`
+            break
+        case 'string':
+        case 'aggregatedArray':
+            result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
+            result = 'string_escape(' + result + ", 'json')"
+            result = `'"' + ` + result + ` + '"'`
+            break
+        case 'localDate':
+        case 'localTime':
+        case 'localDateTime':
+            result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ', 127)'
+            result = `'"' + ` + result + ` + '"'`
+            break
+        default:
+            result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
             result = 'string_escape(' + result + ", 'json')"
             result = `'"' + ` + result + ` + '"'`
         }

@@ -1,4 +1,4 @@
-import { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, flattenQueryColumns, getQueryColumn } from "./SqlBuilder"
+import { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, flattenQueryColumns, getQueryColumn, WithData } from "./SqlBuilder"
 import { ITableOrView, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableSelectQuery, isValueSource, __AggregatedArrayColumns, __getValueSourceOfObject, __ValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
@@ -123,6 +123,17 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _setWithGeneratedFinished(params: any[], value: boolean): void {
         Object.defineProperty(params, '_withGeneratedFinished', {
+            value: value,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    _isAggregateArrayWrapped(params: any[]): boolean {
+        return !!(params as any)._isAggregateArrayWrapped
+    }
+    _setAggregateArrayWrapped(params: any[], value: boolean): void {
+        Object.defineProperty(params, '_isAggregateArrayWrapped', {
             value: value,
             writable: true,
             enumerable: false,
@@ -496,6 +507,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const oldWithGeneratedFinished = this._isWithGeneratedFinished(params)
         const oldGenerateExternalWith = this._generateExternalWith(params)
         this._setGenerateExternalWith(params, true)
+        this._setWithGeneratedFinished(params, false)
         const result = this._buildSelectWithColumnsInfo(query, params, {})
         this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
         this._setGenerateExternalWith(params, oldGenerateExternalWith)
@@ -594,28 +606,48 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
         const oldWithGenerated = this._isWithGenerated(params)
         const oldWithGeneratedFinished = this._isWithGeneratedFinished(params)
+        const oldAggregateArrayWrapped = this._isAggregateArrayWrapped(params)
 
         const customization = query.__customization
+        const needAgggregateArrayWrapper = this._needAgggregateArrayWrapper(query, params)
+        const aggregateId = needAgggregateArrayWrapper ? this._generateUnique() : 0
 
         if (query.__type === 'compound') {
             this._setSafeTableOrView(params, undefined)
 
-            const withClause = this._buildWith(query, params)
-            let selectQuery = withClause
+            let selectQuery = ''
+            
+            if (needAgggregateArrayWrapper) {
+                selectQuery += this._appendAggragateArrayWrapperBegin(query, params, aggregateId)
+                this._setAggregateArrayWrapped(params, true)
+            }
+            
+            selectQuery += this._buildWith(query, params)
             selectQuery += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert)
             selectQuery += this._appendCompoundOperator(query.__compoundOperator, params)
             selectQuery += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, params, columnsForInsert)
 
-            selectQuery += this._buildSelectOrderBy(query, params)
-            selectQuery += this._buildSelectLimitOffset(query, params)
+            if (!query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
+                selectQuery += this._buildSelectOrderBy(query, params)
+            }
+            if (!query.__asInlineAggregatedArrayValue || !this._supportLimitWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
+                selectQuery += this._buildSelectLimitOffset(query, params)
+            }
+
+            selectQuery += this._buildSelectAsAggregatedArray(query, params)
 
             if (customization && customization.afterQuery) {
                 selectQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
             }
 
+            if (needAgggregateArrayWrapper) {
+                selectQuery += this._appendAggragateArrayWrapperEnd(query, params, aggregateId)
+            }
+
             this._setSafeTableOrView(params, oldSafeTableOrView)
             this._setWithGenerated(params, oldWithGenerated)
             this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
+            this._setAggregateArrayWrapped(params, oldAggregateArrayWrapped)
             return selectQuery
         }
 
@@ -650,8 +682,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
             this._setSafeTableOrView(params, undefined)
         }
 
-        const withClause = this._buildWith(query, params)
-        let selectQuery = withClause + 'select '
+        let selectQuery = ''
+            
+        if (needAgggregateArrayWrapper) {
+            selectQuery += this._appendAggragateArrayWrapperBegin(query, params, aggregateId)
+            this._setAggregateArrayWrapped(params, true)
+        }
+
+        selectQuery += this._buildWith(query, params)
+        selectQuery += 'select '
 
         if (customization && customization.afterSelectKeyword) {
             selectQuery += this._appendRawFragment(customization.afterSelectKeyword, params) + ' '
@@ -668,17 +707,30 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const columns: FlatQueryColumns = {}
         flattenQueryColumns(query.__columns, columns, '')
 
-        let requireComma = false
-        for (const property in columns) {
-            if (requireComma) {
-                selectQuery += ', '
+        if (needAgggregateArrayWrapper || !this._needAgggregateArrayColumnsTransformation(query, params)) {
+            let requireComma = false
+            for (const property in columns) {
+                if (requireComma) {
+                    selectQuery += ', '
+                }
+                const columnForInsert = columnsForInsert[property]
+                selectQuery += this._appendSelectColumn(columns[property]!, params, columnForInsert)
+                if (property) {
+                    selectQuery += ' as ' + this._appendColumnAlias(property, params)
+                }
+                requireComma = true
             }
-            const columnForInsert = columnsForInsert[property]
-            selectQuery += this._appendSelectColumn(columns[property]!, params, columnForInsert)
-            if (property) {
-                selectQuery += ' as ' + this._appendColumnAlias(property, params)
+        } else {
+            let aggregatedArrayColumns
+            if (query.__oneColumn) {
+                aggregatedArrayColumns = query.__columns['result']
+                if (!aggregatedArrayColumns) {
+                    throw new Error('Illegal state: result column for a select one column not found')
+                }
+            } else {
+                aggregatedArrayColumns = query.__columns
             }
-            requireComma = true
+            selectQuery += this._appendAggragateArrayColumns(aggregatedArrayColumns, params, query)
         }
 
         if (tablesLength <= 0) {
@@ -696,7 +748,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        requireComma = false
+        let requireComma = false
         const groupBy = query.__groupBy
         for (let i = 0, length = groupBy.length; i < length; i++) {
             if (requireComma) {
@@ -721,17 +773,28 @@ export class AbstractSqlBuilder implements SqlBuilder {
             selectQuery += this._appendRawFragment(customization.customWindow, params)
         }
 
-        selectQuery += this._buildSelectOrderBy(query, params)
-        selectQuery += this._buildSelectLimitOffset(query, params)
+        if (!query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
+            selectQuery += this._buildSelectOrderBy(query, params)
+        }
+        if (!query.__asInlineAggregatedArrayValue || !this._supportLimitWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
+            selectQuery += this._buildSelectLimitOffset(query, params)
+        }
+
+        selectQuery += this._buildSelectAsAggregatedArray(query, params)
 
         if (customization && customization.afterQuery) {
             selectQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
+        }
+
+        if (needAgggregateArrayWrapper) {
+            selectQuery += this._appendAggragateArrayWrapperEnd(query, params, aggregateId)
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
         this._setFakeNamesOf(params, oldFakeNameOf)
         this._setWithGenerated(params, oldWithGenerated)
         this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
+        this._setAggregateArrayWrapped(params, oldAggregateArrayWrapped)
         return selectQuery
     }
     _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined): string {
@@ -2307,6 +2370,70 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
+        return this._appendAggragateArrayColumns(aggregatedArrayColumns, params, undefined)
+    }
+    _needAgggregateArrayColumnsTransformation(query: SelectData, _params: any[]): boolean {
+        return !!query.__asInlineAggregatedArrayValue
+    }
+    _supportOrderByWhenAggregateArray = false
+    _supportLimitWhenAggregateArray = false
+    _needAgggregateArrayWrapper(query: SelectData, _params: any[]): boolean {
+        if (!query.__asInlineAggregatedArrayValue) {
+            return false
+        }
+        if (query.__type === 'compound') {
+            return true
+        }
+        if (query.__distinct) {
+            return true
+        }
+        if (query.__groupBy.length > 0) {
+            return true
+        }
+        if (query.__having) {
+            return true
+        }
+        if (!this._supportOrderByWhenAggregateArray) {
+            if (query.__orderBy) {
+                return true
+            }
+        }
+        if (!this._supportLimitWhenAggregateArray) {
+            if (query.__limit !== undefined) {
+                return true
+            }
+            if (query.__offset !== undefined) {
+                return true
+            }
+        }
+        return false
+    }
+    _buildSelectAsAggregatedArray(_query: SelectData, _params: any[]): string {
+        return ''
+    }
+    _appendAggragateArrayWrapperBegin(query: SelectData, params: any[], aggregateId: number): string {
+        let aggregatedArrayColumns
+        if (query.__oneColumn) {
+            aggregatedArrayColumns = query.__columns['result']
+            if (!aggregatedArrayColumns) {
+                throw new Error('Illegal state: result column for a select one column not found')
+            }
+        } else {
+            aggregatedArrayColumns = query.__columns
+        }
+        return 'select ' +  this._appendAggragateArrayWrappedColumns(aggregatedArrayColumns, params, aggregateId) + ' from ('
+    }
+    _appendAggragateArrayWrapperEnd(_query: SelectData, _params: any[], aggregateId: number): string {
+        let result =  ')' 
+        if (this._supportTableAliasWithAs) {
+            result += ' as '
+        } else {
+            result += ' '
+        }
+        result += 'a_' + aggregateId + '_'
+        return result
+    }
+    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
         if (isValueSource(aggregatedArrayColumns)) {
             return 'json_agg(' + this._appendSql(aggregatedArrayColumns, params) + ')'
         } else {
@@ -2319,6 +2446,24 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     result += ', '
                 }
                 result += "'" + prop + "', " + this._appendSql(columns[prop]!, params)
+            }
+
+            return 'json_agg(json_build_object(' + result + '))'
+        }
+    }
+    _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
+        if (isValueSource(aggregatedArrayColumns)) {
+            return 'json_agg(a_' + aggregateId + '_.result)'
+        } else {
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            let result = ''
+            for (let prop in columns) {
+                if (result) {
+                    result += ', '
+                }
+                result += "'" + prop + "', a_" + aggregateId + "_." + this._escape(prop, true)
             }
 
             return 'json_agg(json_build_object(' + result + '))'

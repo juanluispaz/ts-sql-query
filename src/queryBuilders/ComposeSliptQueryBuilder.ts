@@ -514,7 +514,7 @@ export class ComposeSplitQueryBuilder {
             }
         } else if (valueSourcePrivate.__aggregatedArrayMode === 'ResultObject') {
             for (let i = 0, lenght = json.length; i < lenght; i++) {
-                const row = json[i]
+                let row = json[i]
                 const resultObject = this.__transformRootObject(errorPrefix + '[' + i + '].', columns, row, index)
                 if (resultObject === null || resultObject === undefined) {
                     continue
@@ -557,7 +557,18 @@ export class ComposeSplitQueryBuilder {
         for (let prop in columns) {
             const valueSource = columns[prop]!
             const propName = pathPrefix + prop
-            let value = row[propName]
+            let value 
+            if (propName in row) {
+                value = row[propName]
+            } else {
+                value = row
+                const parts = propName.split('.')
+                for (let i = 0, length = parts.length; i < length; i++) {
+                    if (value) {
+                        value = value[parts[i]!]
+                    }
+                }
+            }
             let transformed 
             if (isValueSource(valueSource)) {
                 const valueSourcePrivate = __getValueSourcePrivate(valueSource)

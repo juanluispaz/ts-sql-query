@@ -2407,6 +2407,468 @@ async function main() {
         .executeSelectMany()
     
     assertEquals(customerWithSelectedCompanies3, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            { id: 1, firstName: 'John', lastName: 'Smith' },
+            { id: 2, firstName: 'Other', lastName: 'Person' },
+            { id: 3, firstName: 'Jane', lastName: 'Doe' }
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", name as "name", (select json_arrayagg(json_object('id' value id, 'firstName' value first_name, 'lastName' value last_name)) from customer where company_id = company.id) as "customers" from company where id = :0`)
+    expectedParams.push(`[1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedCustomersOfAcme4 = connection.subSelectUsing(tCompany).from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .forUseAsInlineAggregatedArrayValue()
+
+    const acmeCompanyWithCustomers4 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            customers: aggregatedCustomersOfAcme4
+        })
+        .executeSelectOne()
+
+    assertEquals(acmeCompanyWithCustomers4, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            { id: 1, firstName: 'John', lastName: 'Smith' },
+            { id: 2, firstName: 'Other', lastName: 'Person' },
+            { id: 3, firstName: 'Jane', lastName: 'Doe' }
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", name as "name", (select json_arrayagg(json_object('id' value a_1_.id, 'firstName' value a_1_.firstName, 'lastName' value a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id order by id offset 0 rows) a_1_) as "customers" from company where id = :0`)
+    expectedParams.push(`[1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedCustomersOfAcme5 = connection.subSelectUsing(tCompany).from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .orderBy('id')
+        .forUseAsInlineAggregatedArrayValue()
+
+    const acmeCompanyWithCustomers5 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            customers: aggregatedCustomersOfAcme5
+        })
+        .executeSelectOne()
+
+    assertEquals(acmeCompanyWithCustomers5, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            'Jane Doe',
+            'John Smith',
+            'Other Person'
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", name as "name", (select json_arrayagg(first_name || :0 || last_name) from customer where company_id = company.id) as "customers" from company where id = :1`)
+    expectedParams.push(`[" ",1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedCustomersOfAcme6 = connection.subSelectUsing(tCompany).from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
+        .forUseAsInlineAggregatedArrayValue()
+
+    const acmeCompanyWithCustomers6 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            customers: aggregatedCustomersOfAcme6.useEmptyArrayForNoValue()
+        })
+        .executeSelectOne()
+
+    assertEquals(acmeCompanyWithCustomers6, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            'Jane Doe',
+            'John Smith',
+            'Other Person'
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", name as "name", (select json_arrayagg(a_1_.result) from (select first_name || :0 || last_name as result from customer where company_id = company.id order by result offset 0 rows) a_1_) as "customers" from company where id = :1`)
+    expectedParams.push(`[" ",1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedCustomersOfAcme7 = connection.subSelectUsing(tCompany).from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
+        .orderBy('result')
+        .forUseAsInlineAggregatedArrayValue()
+
+    const acmeCompanyWithCustomers7 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            customers: aggregatedCustomersOfAcme7.useEmptyArrayForNoValue()
+        })
+        .executeSelectOne()
+
+    assertEquals(acmeCompanyWithCustomers7, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            { id: 1, firstName: 'John', lastName: 'Smith' },
+            { id: 2, firstName: 'Other', lastName: 'Person' },
+            { id: 3, firstName: 'Jane', lastName: 'Doe' }
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", name as "name", (select json_arrayagg(json_object('id' value a_1_.id, 'firstName' value a_1_.firstName, 'lastName' value a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id union select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id) a_1_) as "customers" from company where id = :0`)
+    expectedParams.push(`[1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedCustomersOfAcme8 = connection.subSelectUsing(tCompany).from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        }).union(
+            connection.subSelectUsing(tCompany).from(tCustomer)
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .select({
+                id: tCustomer.id,
+                firstName: tCustomer.firstName,
+                lastName: tCustomer.lastName
+            })
+        )
+        .forUseAsInlineAggregatedArrayValue()
+
+    const acmeCompanyWithCustomers8 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            customers: aggregatedCustomersOfAcme8
+        })
+        .executeSelectOne()
+
+    assertEquals(acmeCompanyWithCustomers8, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            { id: 1, firstName: 'John', lastName: 'Smith' },
+            { id: 2, firstName: 'Other', lastName: 'Person' },
+            { id: 3, firstName: 'Jane', lastName: 'Doe' }
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", name as "name", (select json_arrayagg(json_object('id' value a_1_.id, 'firstName' value a_1_.firstName, 'lastName' value a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id union select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id order by 1 offset 0 rows) a_1_) as "customers" from company where id = :0`)
+    expectedParams.push(`[1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedCustomersOfAcme9 = connection.subSelectUsing(tCompany).from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        }).union(
+            connection.subSelectUsing(tCompany).from(tCustomer)
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .select({
+                id: tCustomer.id,
+                firstName: tCustomer.firstName,
+                lastName: tCustomer.lastName
+            })
+        ).orderBy('id')
+        .forUseAsInlineAggregatedArrayValue()
+
+    const acmeCompanyWithCustomers9 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            customers: aggregatedCustomersOfAcme9
+        })
+        .executeSelectOne()
+
+    assertEquals(acmeCompanyWithCustomers9, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            'Jane Doe',
+            'John Smith',
+            'Other Person'
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", name as "name", (select json_arrayagg(a_1_.result) from (select first_name || :0 || last_name as result from customer where company_id = company.id union select first_name || :1 || last_name as result from customer where company_id = company.id) a_1_) as "customers" from company where id = :2`)
+    expectedParams.push(`[" "," ",1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedCustomersOfAcme10 = connection.subSelectUsing(tCompany).from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
+        .union(
+            connection.subSelectUsing(tCompany).from(tCustomer)
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
+        )
+        .forUseAsInlineAggregatedArrayValue()
+
+    const acmeCompanyWithCustomers10 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            customers: aggregatedCustomersOfAcme10.useEmptyArrayForNoValue()
+        })
+        .executeSelectOne()
+
+    assertEquals(acmeCompanyWithCustomers10, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            'Jane Doe',
+            'John Smith',
+            'Other Person'
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", name as "name", (select json_arrayagg(a_1_.result) from (select first_name || :0 || last_name as result from customer where company_id = company.id union select first_name || :1 || last_name as result from customer where company_id = company.id order by 1 offset 0 rows) a_1_) as "customers" from company where id = :2`)
+    expectedParams.push(`[" "," ",1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedCustomersOfAcme11 = connection.subSelectUsing(tCompany).from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
+        .union(
+            connection.subSelectUsing(tCompany).from(tCustomer)
+            .where(tCustomer.companyId.equals(tCompany.id))
+            .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
+        ).orderBy('result')
+        .forUseAsInlineAggregatedArrayValue()
+
+    const acmeCompanyWithCustomers11 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            customers: aggregatedCustomersOfAcme11.useEmptyArrayForNoValue()
+        })
+        .executeSelectOne()
+
+    assertEquals(acmeCompanyWithCustomers11, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = { 
+        id: 10, 
+        name: 'Low Company', 
+        parentId: 9, 
+        parents: [
+            { id: 9, name: 'Mic Company', parentId: 8 }, 
+            { id: 8, name: 'Top Company' }
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", name as "name", parent_id as "parentId", (with recursive_select_1(id, name, parentId) as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company parentCompany where parentCompany.id = company.parent_id union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select json_arrayagg(json_object('id' value id, 'name' value name, 'parentId' value parentId)) from recursive_select_1) as "parents" from company where id = :0`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const parentCompany2 = tCompany.as('parentCompany')
+
+    const parentCompanies = connection.subSelectUsing(tCompany)
+        .from(parentCompany2)
+        .select({
+            id: parentCompany2.id,
+            name: parentCompany2.name,
+            parentId: parentCompany2.parentId
+        })
+        .where(parentCompany2.id.equals(tCompany.parentId))
+        .recursiveUnionAllOn((child) => {
+            return child.parentId.equals(parentCompany2.id)
+        })
+        .forUseAsInlineAggregatedArrayValue()
+
+    const lowCompany = await connection.selectFrom(tCompany)
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            parentId: tCompany.parentId,
+            parents: parentCompanies
+        })
+        .where(tCompany.id.equals(10))
+        .executeSelectOne()
+    
+    assertEquals(lowCompany, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = { 
+        id: 10, 
+        name: 'Low Company', 
+        parentId: 9, 
+        parents: [
+            { id: 9, name: 'Mic Company', parentId: 8 }, 
+            { id: 8, name: 'Top Company' }
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`with recursive_select_1(id, name, parentId) as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company parentCompany where parentCompany.id = :0 union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select id as "id", name as "name", parent_id as "parentId", (select json_arrayagg(json_object('id' value id, 'name' value name, 'parentId' value parentId)) from recursive_select_1) as "parents" from company where id = :1`)
+    expectedParams.push(`[9,10]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const parentCompanies2 = connection.selectFrom(parentCompany2)
+        .select({
+            id: parentCompany2.id,
+            name: parentCompany2.name,
+            parentId: parentCompany2.parentId
+        })
+        .where(parentCompany2.id.equals(9))
+        .recursiveUnionAllOn((child) => {
+            return child.parentId.equals(parentCompany2.id)
+        })
+        .forUseAsInlineAggregatedArrayValue()
+
+    const lowCompany2 = await connection.selectFrom(tCompany)
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            parentId: tCompany.parentId,
+            parents: parentCompanies2
+        })
+        .where(tCompany.id.equals(10))
+        .executeSelectOne()
+    
+    assertEquals(lowCompany2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = { 
+        id: 10, 
+        name: 'Low Company', 
+        parentId: 9, 
+        parents: [
+            { id: 9, name: 'Mic Company', parentId: 8 }, 
+            { id: 8, name: 'Top Company' }
+        ]
+    }
+    expectedResult.push({ id: 10, name: 'Low Company', parentId: 9 })
+    expectedQuery.push(`select id as "id", name as "name", parent_id as "parentId" from company where id = :0`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+
+    expectedResult.push([{ startId: 9, id: 9, name: 'Mic Company', parentId: 8 }, { startId: 9, id: 8, name: 'Top Company' }])
+    expectedQuery.push(`with recursive_select_1(id, name, parentId, startId) as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId, parentCompany.id as startId from company parentCompany where parentCompany.id in (:0) union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId, recursive_select_1.startId as startId from company parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select id as "id", name as "name", parentId as "parentId", startId as "startId" from recursive_select_1`)
+    expectedParams.push(`[9]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const lowCompany3 = await connection.selectFrom(tCompany)
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            parentId: tCompany.parentId
+        })
+        .where(tCompany.id.equals(10))
+        .composeDeletingInternalProperty({
+            externalProperty: 'parentId',
+            internalProperty: 'startId',
+            propertyName: 'parents'
+        }).withMany((ids) => {
+            return connection.selectFrom(parentCompany2)
+                .select({
+                    id: parentCompany2.id,
+                    name: parentCompany2.name,
+                    parentId: parentCompany2.parentId,
+                    startId: parentCompany2.id
+                })
+                .where(parentCompany2.id.in(ids))
+                .recursiveUnionAll((child) => {
+                    return connection.selectFrom(parentCompany2)
+                        .join(child).on(child.parentId.equals(parentCompany2.id))
+                        .select({
+                            id: parentCompany2.id,
+                            name: parentCompany2.name,
+                            parentId: parentCompany2.parentId,
+                            startId: child.startId
+                        })
+                })
+                .executeSelectMany()
+        })
+        .executeSelectOne()
+    
+    assertEquals(lowCompany3, result)
 }
 
 main().then(() => {

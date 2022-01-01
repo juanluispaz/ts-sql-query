@@ -1,7 +1,7 @@
 import { ToSql, SelectData, InsertData, UpdateData, getQueryColumn, FlatQueryColumns, flattenQueryColumns } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
-import { AnyValueSource, IAggregatedArrayValueSource, isValueSource } from "../expressions/values"
+import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn } from "../utils/Column"
@@ -445,9 +445,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             return 'group_concat(distinct ' + this._appendSql(value, params) + ', ' + this._appendValue(separator, params, 'string', undefined) + ')'
         }
     }
-    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
+    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
         if (isValueSource(aggregatedArrayColumns)) {
             return 'json_group_array(' + this._appendSql(aggregatedArrayColumns, params) + ')'
         } else {
@@ -460,6 +458,24 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                     result += ', '
                 }
                 result += "'" + prop + "', " + this._appendSql(columns[prop]!, params)
+            }
+
+            return 'json_group_array(json_object(' + result + '))'
+        }
+    }
+    _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
+        if (isValueSource(aggregatedArrayColumns)) {
+            return 'json_group_array(a_' + aggregateId + '_.result)'
+        } else {
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            let result = ''
+            for (let prop in columns) {
+                if (result) {
+                    result += ', '
+                }
+                result += "'" + prop + "', a_" + aggregateId + "_." + this._escape(prop, true)
             }
 
             return 'json_group_array(json_object(' + result + '))'

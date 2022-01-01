@@ -60,6 +60,7 @@ ts-node ./src/examples/PrismaMariaDBExample.ts || { docker stop ts-sql-query-mar
 docker stop ts-sql-query-mariadb
 docker rm ts-sql-query-mariadb
 
+# docker run --name ts-sql-query-sqlserver -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=yourStrong(!)Password' -e 'MSSQL_PID=Express' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
 docker run --name ts-sql-query-sqlserver -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=yourStrong(!)Password' -e 'MSSQL_PID=Express' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2017-latest-ubuntu
 sleep 20
 ts-node ./src/examples/TediousExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
@@ -70,6 +71,7 @@ ts-node ./src/examples/PrismaSqlServerExample.ts || { docker stop ts-sql-query-s
 docker stop ts-sql-query-sqlserver
 docker rm ts-sql-query-sqlserver
 
+# docker run --name ts-sql-query-oracle -d -p 1521:1521 -e ORACLE_PASSWORD=Oracle18 gvenzl/oracle-xe
 docker run --name ts-sql-query-oracle -d -p 1521:1521 quillbuilduser/oracle-18-xe
 sleep 60
 ts-node ./src/examples/OracleDBExample.ts || { docker stop ts-sql-query-oracle; docker rm ts-sql-query-oracle; exit 1; }

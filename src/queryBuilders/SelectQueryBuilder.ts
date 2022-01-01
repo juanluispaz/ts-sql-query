@@ -47,6 +47,8 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
 
     __subSelectUsing?: ITableOrView<any>[]
 
+    __asInlineAggregatedArrayValue?: boolean
+
     constructor(sqlBuilder: SqlBuilder) {
         super(sqlBuilder)
     }
@@ -459,11 +461,24 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             return recursiveView as any
         }
         return new WithViewImpl<any, any>(as, this.__asSelectData()) as any
-    };
+    }
 
     forUseAsInlineQueryValue(): any {
         return new InlineSelectValueSource(this.__asSelectData() as any)
-    };
+    }
+
+    forUseAsInlineAggregatedArrayValue(): any {
+        const selectData = this.__asSelectData()
+        selectData.__asInlineAggregatedArrayValue = true
+        const result = new InlineSelectValueSource(selectData as any)
+        if (this.__oneColumn) {
+            result.__aggregatedArrayColumns = this.__columns['result']!
+        } else {
+            result.__aggregatedArrayColumns = this.__columns
+        }
+        result.__aggregatedArrayMode = 'ResultObject'
+        return result
+    }
 
     __buildRecursive(fn: (view: any) => ICompoundableSelect<any, any, any, any>, unionAll: boolean): void {
         const sqlBuilder = this.__sqlBuilder
@@ -584,6 +599,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
                 __type: 'plain',
                 __distinct: false,
                 __columns: { '': countAll },
+                __oneColumn: true,
                 __tablesOrViews: [withView],
                 __joins: [],
                 __where: undefined,
@@ -599,6 +615,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __type: 'plain',
             __distinct: false,
             __columns: { '': countAll },
+            __oneColumn: true,
             __tablesOrViews: this.__tablesOrViews,
             __joins: this.__joins,
             __where: this.__where,
@@ -955,6 +972,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         this.__firstQuery = firstQuery
         this.__compoundOperator = compoundOperator
         this.__secondQuery = secondQuery
+        this.__oneColumn = firstQuery.__oneColumn
 
         if (firstQuery.__subSelectUsing && secondQuery.__subSelectUsing) {
             const subSelectUsing: Array<ITableOrView<any>> = []
@@ -994,6 +1012,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
             __type: 'plain',
             __distinct: false,
             __columns: { '': countAll },
+            __oneColumn: true,
             __tablesOrViews: [withView],
             __joins: [],
             __where: undefined,

@@ -1,9 +1,9 @@
-import type { IBooleanValueSource, INumberValueSource, IIntValueSource, IIfValueSource, IExecutableSelectQuery, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapValueSourceTypeWithOptionalType } from "./values"
+import type { IBooleanValueSource, INumberValueSource, IIntValueSource, IIfValueSource, IExecutableSelectQuery, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource } from "./values"
 import type { ITableOrView, ITableOrViewOf, NoTableOrViewRequired, NoTableOrViewRequiredView, OuterJoinSource } from "../utils/ITableOrView"
 import type { OuterJoinTableOrView, WithView, WITH_VIEW } from "../utils/tableOrViewUtils"
 import type { AnyDB, TypeWhenSafeDB, TypeSafeDB, NoopDB, MariaDB, PostgreSql, Sqlite, Oracle, SqlServer } from "../databases"
 import type { int } from "ts-extended-types"
-import type { columnsType, database, requiredTableOrView, tableOrViewRef, resultType, compoundableColumns } from "../utils/symbols"
+import type { columnsType, database, requiredTableOrView, tableOrViewRef, resultType, compoundableColumns, valueType } from "../utils/symbols"
 import type { RawFragment } from "../utils/RawFragment"
 import type { ColumnGuard, GuidedObj, GuidedPropName, RequiredKeysOfPickingColumns, ResultObjectValues, FixOptionalProperties, ValueOf, RequiredColumnNames, ColumnsForCompound } from "../utils/resultUtils"
 
@@ -154,11 +154,13 @@ export interface ComposeExpressionDeletingExternalPropertyWithoutWhere<EXTERNAL_
 export interface WithableExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends ExecutableSelectWithWhere<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>, IExecutableSelectQuery<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW>, ICompoundableSelect<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW> {
     forUseInQueryAs: ForUseInQueryAs<DB, COLUMNS>
     forUseAsInlineQueryValue: ForUseAsInlineQueryValue<COLUMNS, REQUIRED_TABLE_OR_VIEW>
+    forUseAsInlineAggregatedArrayValue: ForUseAsInlineAggregatedArrayValue<COLUMNS, REQUIRED_TABLE_OR_VIEW>
 }
 
 export interface WithableExecutableSelectWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends ExecutableSelectWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>, IExecutableSelectQuery<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW>, ICompoundableSelect<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW> {
     forUseInQueryAs: ForUseInQueryAs<DB, COLUMNS>
     forUseAsInlineQueryValue: ForUseAsInlineQueryValue<COLUMNS, REQUIRED_TABLE_OR_VIEW>
+    forUseAsInlineAggregatedArrayValue: ForUseAsInlineAggregatedArrayValue<COLUMNS, REQUIRED_TABLE_OR_VIEW>
 }
 
 export interface CompoundedCustomizableExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends WithableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW> {
@@ -500,6 +502,16 @@ type ForUseAsInlineQueryValue<COLUMNS, REQUIRED_TABLE_OR_VIEW> =
         ? () => RemapValueSourceTypeWithOptionalType<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS, 'optional'>
         : never
     ) : never
+
+type ForUseAsInlineAggregatedArrayValue<COLUMNS, REQUIRED_TABLE_OR_VIEW> =
+    COLUMNS extends IValueSource<any, any, any, any>
+    ? (REQUIRED_TABLE_OR_VIEW extends ITableOrView<any>
+        ? () => AggregatedArrayValueSource<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], Array<COLUMNS[typeof valueType]>, 'required'>
+        : never
+    ) : (REQUIRED_TABLE_OR_VIEW extends ITableOrView<any>
+        ? () => AggregatedArrayValueSource<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], Array<{ [P in keyof ResultObjectValues<COLUMNS>]: ResultObjectValues<COLUMNS>[P] }>, 'required'>
+        : never
+    )
 
 type CompoundFunction<SUPPORTED_DB extends AnyDB, DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> = 
     DB extends SUPPORTED_DB

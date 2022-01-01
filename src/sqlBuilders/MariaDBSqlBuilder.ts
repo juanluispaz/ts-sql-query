@@ -1,5 +1,6 @@
+import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractMySqlMariaDBSqlBuilder } from "./AbstractMySqlMariaBDSqlBuilder"
-import { CompoundOperator } from "./SqlBuilder"
+import { CompoundOperator, FlatQueryColumns, flattenQueryColumns, SelectData } from "./SqlBuilder"
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mariaDB: true = true
@@ -27,6 +28,36 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
             default:
                 throw new Error('Invalid compound operator: ' + compoundOperator)
         }   
+    }
+    _supportOrderByWhenAggregateArray = true
+    _supportLimitWhenAggregateArray = true
+    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], query: SelectData | undefined): string {
+        let result = ''
+        if (isValueSource(aggregatedArrayColumns)) {
+            result += 'json_arrayagg(' + this._appendSql(aggregatedArrayColumns, params)
+        } else {
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            for (let prop in columns) {
+                if (result) {
+                    result += ', '
+                }
+                result += "'" + prop + "', " + this._appendSql(columns[prop]!, params)
+            }
+
+            result = 'json_arrayagg(json_object(' + result + ')'
+        }
+
+        if (query && query.__asInlineAggregatedArrayValue && !this._isAggregateArrayWrapped(params)) {
+            if (this._supportOrderByWhenAggregateArray) {
+                result += this._buildAggregateArrayOrderBy(query, params, true)
+            }
+            if (this._supportLimitWhenAggregateArray) {
+                result += this._buildSelectLimitOffset(query, params)
+            }
+        }
+        return result + ')'
     }
 }
 

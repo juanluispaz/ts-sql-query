@@ -87,6 +87,7 @@ export interface PlainSelectData extends WithQueryData {
     __type: 'plain'
     __distinct: boolean
     __columns: QueryColumns
+    __oneColumn: boolean
     __tablesOrViews: Array<ITableOrView<any>>
     __joins: Array<JoinData>
     __where?: AlwaysIfValueSource<any, any>
@@ -96,6 +97,7 @@ export interface PlainSelectData extends WithQueryData {
     __limit?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __offset?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __requiredTablesOrViews?: Set<ITableOrView<any>>
+    __asInlineAggregatedArrayValue?: boolean
 }
 
 export type CompoundOperator = 'union' | 'unionAll' | 'intersect' | 'intersectAll' | 'except' | 'exceptAll' | 'minus' | 'minusAll'
@@ -107,9 +109,11 @@ export interface CompoundSelectData extends WithQueryData {
     __compoundOperator: CompoundOperator
     __secondQuery: SelectData
     __columns: QueryColumns
+    __oneColumn: boolean
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
     __limit?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __offset?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
+    __asInlineAggregatedArrayValue?: boolean
 }
 
 export interface InsertData extends WithQueryData {

@@ -1086,7 +1086,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
 
 }
 
-export type AggregatedArrayColumns<DB extends AnyDB> = {
+type AggregatedArrayColumns<DB extends AnyDB> = {
     [P: string]: ValueSourceOfDB<DB> | AggregatedArrayColumns<DB>
 }
 

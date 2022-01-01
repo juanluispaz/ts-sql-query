@@ -114,6 +114,7 @@ export function createColumnsFrom(columns: QueryColumns, target: QueryColumns, t
             withColumn.__optionalType = columnPrivate.__optionalType
             if (columnPrivate.__aggregatedArrayColumns) {
                 withColumn.__aggregatedArrayColumns = columnPrivate.__aggregatedArrayColumns
+                withColumn.__aggregatedArrayMode = columnPrivate.__aggregatedArrayMode
             }
             target[property] = withColumn
         } else {

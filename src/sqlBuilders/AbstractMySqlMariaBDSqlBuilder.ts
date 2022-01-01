@@ -1,7 +1,7 @@
 import { ToSql, SelectData, InsertData, UpdateData, DeleteData, getQueryColumn, FlatQueryColumns, flattenQueryColumns } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode } from "../expressions/select"
-import { AnyValueSource, IAggregatedArrayValueSource, isValueSource } from "../expressions/values"
+import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn } from "../utils/Column"
@@ -80,6 +80,70 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return ' order by ' + orderByColumns
     }
+    _buildAggregateArrayOrderBy(query: SelectData, params: any[], addSpace: boolean): string {
+        const orderBy = query.__orderBy
+        if (!orderBy) {
+            return ''
+        }
+        const columns = query.__columns
+        let orderByColumns = ''
+        for (const property in orderBy) {
+            if (orderByColumns) {
+                orderByColumns += ', '
+            }
+            const column = getQueryColumn(columns, property)
+            if (!column) {
+                throw new Error('Column ' + property + ' included in the order by not found in the select clause')
+            }
+            const order = orderBy[property]
+            if (!order) {
+                orderByColumns += this._appendSql(column, params)
+            } else switch (order as OrderByMode) {
+                case 'asc':
+                case 'asc nulls first':
+                    orderByColumns += this._appendSql(column, params) + ' asc'
+                    break
+                case 'desc':
+                case 'desc nulls last':
+                    orderByColumns += this._appendSql(column, params) + ' desc'
+                    break
+                case 'asc nulls last':
+                    orderByColumns += this._appendSql(column, params) + ' is null, ' + this._appendSql(column, params) + ' asc'
+                    break
+                case 'desc nulls first':
+                    orderByColumns += this._appendSql(column, params) + ' is not null, ' + this._appendSql(column, params) + ' desc'
+                    break
+                case 'insensitive':
+                    orderByColumns += this.__appendColumnInsensitive(column, params)
+                    break
+                case 'asc insensitive':
+                case 'asc nulls first insensitive':
+                    orderByColumns += this.__appendColumnInsensitive(column, params) + ' asc'
+                    break
+                case 'desc insensitive':
+                case 'desc nulls last insensitive':
+                    orderByColumns += this.__appendColumnInsensitive(column, params) + ' desc'
+                    break
+                case 'asc nulls last insensitive':
+                    orderByColumns += this._appendSql(column, params) + ' is null, ' + this.__appendColumnInsensitive(column, params) + ' asc'
+                    break
+                case 'desc nulls first insensitive':
+                    orderByColumns += this._appendSql(column, params) + ' is not null, ' + this.__appendColumnInsensitive(column, params) + ' desc'
+                    break
+                default:
+                    throw new Error('Invalid order by: ' + property + ' ' + order)
+            }
+        }
+        
+        if (!orderByColumns) {
+            return ''
+        }
+        if (addSpace) {
+            return ' order by ' + orderByColumns
+        } else {
+            return 'order by ' + orderByColumns
+        }
+    }
     __appendColumnAliasInsensitive(identifier: string, column: AnyValueSource, params: any[]) {
         const collation = this._connectionConfiguration.insesitiveCollation
         const columnType = __getValueSourcePrivate(column).__valueType
@@ -93,6 +157,20 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         } else {
             return 'lower(' + this._appendColumnAlias(identifier, params) + ')'
         }
+    }
+    __appendColumnInsensitive(column: AnyValueSource, params: any[]) {
+        const collation = this._connectionConfiguration.insesitiveCollation
+        const columnType = __getValueSourcePrivate(column).__valueType
+        if (columnType != 'string') {
+            // Ignore the insensitive term, it do nothing
+            return this._appendSql(column, params)
+        } else if (collation) {
+            return this._appendSqlParenthesis(column, params) + ' collate ' + collation
+        } else if (collation === '') {
+            return this._appendSql(column, params)
+        } else {
+            return 'lower(' + this._appendSql(column, params) + ')'
+        }
     } 
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = ''
@@ -105,6 +183,10 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         const offset = query.__offset
         if (offset !== null && offset !== undefined) {
             result += ' offset ' + this._appendValue(offset, params, 'int', undefined)
+        }
+
+        if (!result && this._isAggregateArrayWrapped(params) && query.__orderBy) {
+            result += ' limit 2147483647' // Workaround to force mysql/maraiadb to order the result (if not the order by is ignored), the number is the max value of an int
         }
         return result
     }
@@ -330,9 +412,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return super._notIn(params, valueSource, value, columnType, typeAdapter)
     }
-    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
+    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
         if (isValueSource(aggregatedArrayColumns)) {
             return 'json_arrayagg(' + this._appendSql(aggregatedArrayColumns, params) + ')'
         } else {
@@ -345,6 +425,24 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                     result += ', '
                 }
                 result += "'" + prop + "', " + this._appendSql(columns[prop]!, params)
+            }
+
+            return 'json_arrayagg(json_object(' + result + '))'
+        }
+    }
+    _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
+        if (isValueSource(aggregatedArrayColumns)) {
+            return 'json_arrayagg(a_' + aggregateId + '_.result)'
+        } else {
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            let result = ''
+            for (let prop in columns) {
+                if (result) {
+                    result += ', '
+                }
+                result += "'" + prop + "', a_" + aggregateId + "_." + this._escape(prop, true)
             }
 
             return 'json_arrayagg(json_object(' + result + '))'

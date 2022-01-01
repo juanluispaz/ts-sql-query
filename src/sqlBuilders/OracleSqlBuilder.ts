@@ -1,6 +1,6 @@
-import { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, flattenQueryColumns } from "./SqlBuilder"
+import { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, flattenQueryColumns, WithData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { AnyValueSource, IAggregatedArrayValueSource, isValueSource } from "../expressions/values"
+import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -129,6 +129,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             // Avoid quote identifiers when the with clause is generated
             return this._escape(name, true)
         }
+        if (this._isAggregateArrayWrapped(params)) {
+            // Avoid quote identifiers when the aggregate array query wrapper is generated
+            return this._escape(name, true)
+        }
         // Avoid automatically uppercase identifiers by oracle
         return this._forceAsIdentifier(name)
     }
@@ -230,6 +234,14 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return ''
         }
         return ' order by ' + orderByColumns
+    }
+    _buildSelectLimitOffset(query: SelectData, params: any[]): string {
+        let result = super._buildSelectLimitOffset(query, params)
+
+        if (!result && this._isAggregateArrayWrapped(params) && query.__orderBy) {
+            result += ' offset 0 rows' // Workaround to force oracle to order the result (if not the order by is ignored)
+        }
+        return result
     }
     _buildInsertMultiple(query: InsertData, params: any[]): string {
         const multiple = query.__multiple
@@ -741,10 +753,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return this._trueValueForCondition
         }
         return super._notIn(params, valueSource, value, columnType, typeAdapter)
-    }
-    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {
-        const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
+    }    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
         if (isValueSource(aggregatedArrayColumns)) {
             return 'json_arrayagg(' + this._appendSql(aggregatedArrayColumns, params) + ')'
         } else {
@@ -757,6 +766,24 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     result += ', '
                 }
                 result += "'" + prop + "' value " + this._appendSql(columns[prop]!, params)
+            }
+
+            return 'json_arrayagg(json_object(' + result + '))'
+        }
+    }
+    _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
+        if (isValueSource(aggregatedArrayColumns)) {
+            return 'json_arrayagg(a_' + aggregateId + '_.result)'
+        } else {
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            let result = ''
+            for (let prop in columns) {
+                if (result) {
+                    result += ', '
+                }
+                result += "'" + prop + "' value a_" + aggregateId + "_." + this._escape(prop, true)
             }
 
             return 'json_arrayagg(json_object(' + result + '))'

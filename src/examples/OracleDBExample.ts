@@ -677,29 +677,29 @@ async function main() {
 
         // Oracle doesn't support recursives queries that have outer tables that depends on
 
-        const parentCompanies = connection.subSelectUsing(tCompany)
-            .from(parentCompany)
-            .select({
-                id: parentCompany.id,
-                name: parentCompany.name,
-                parentId: parentCompany.parentId
-            })
-            .where(parentCompany.id.equals(tCompany.parentId))
-            .recursiveUnionAllOn((child) => {
-                return child.parentId.equals(parentCompany.id)
-            })
-            .forUseAsInlineAggregatedArrayValue()
+        // const parentCompanies = connection.subSelectUsing(tCompany)
+        //     .from(parentCompany)
+        //     .select({
+        //         id: parentCompany.id,
+        //         name: parentCompany.name,
+        //         parentId: parentCompany.parentId
+        //     })
+        //     .where(parentCompany.id.equals(tCompany.parentId))
+        //     .recursiveUnionAllOn((child) => {
+        //         return child.parentId.equals(parentCompany.id)
+        //     })
+        //     .forUseAsInlineAggregatedArrayValue()
 
-        const lowCompany = await connection.selectFrom(tCompany)
-            .select({
-                id: tCompany.id,
-                name: tCompany.name,
-                parentId: tCompany.parentId,
-                parents: parentCompanies
-            })
-            .where(tCompany.id.equals(10))
-            .executeSelectOne()
-        assertEquals(lowCompany, { id: 10, name: 'Low Company', parentId: 9, parents: [{ id: 9, name: 'Mic Company', parentId: 8 }, { id: 8, name: 'Top Company' }] })
+        // const lowCompany = await connection.selectFrom(tCompany)
+        //     .select({
+        //         id: tCompany.id,
+        //         name: tCompany.name,
+        //         parentId: tCompany.parentId,
+        //         parents: parentCompanies
+        //     })
+        //     .where(tCompany.id.equals(10))
+        //     .executeSelectOne()
+        // assertEquals(lowCompany, { id: 10, name: 'Low Company', parentId: 9, parents: [{ id: 9, name: 'Mic Company', parentId: 8 }, { id: 8, name: 'Top Company' }] })
 
         const parentCompanies2 = connection.selectFrom(parentCompany)
             .select({

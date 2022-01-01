@@ -2531,29 +2531,31 @@ async function main() {
     
     /* *** Preparation ************************************************************/
 
-    result = []
-    expectedResult.push(result)
-    expectedQuery.push(`select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (with inner2 as (select id as id, name as name from custom_company where id = customer.company_id) select inner2.id as [result] from company inner join inner2 on company.id = inner2.id where company.name like ('%' + @0 + '%'))`)
-    expectedParams.push(`["Cia."]`)
-    expectedType.push(`selectManyRows`)
+    // result = []
+    // expectedResult.push(result)
+    // expectedQuery.push(`select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (with inner2 as (select id as id, name as name from custom_company where id = customer.company_id) select inner2.id as [result] from company inner join inner2 on company.id = inner2.id where company.name like ('%' + @0 + '%'))`)
+    // expectedParams.push(`["Cia."]`)
+    // expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/
 
-    const inner2 = connection.subSelectUsing(tCustomer).from(tCustomCompany).where(tCustomCompany.id.equals(tCustomer.companyId)).select({id: tCustomCompany.id, name: tCustomCompany.name}).forUseInQueryAs('inner2')
+    // SqlServer doesn't support forUseInQueryAs (with clause) queries that have outer tables that depends on
+
+    // const inner2 = connection.subSelectUsing(tCustomer).from(tCustomCompany).where(tCustomCompany.id.equals(tCustomer.companyId)).select({id: tCustomCompany.id, name: tCustomCompany.name}).forUseInQueryAs('inner2')
     
-    const customerWithSelectedCompanies2 = await connection.selectFrom(tCustomer)
-        .where(tCustomer.companyId.in(
-            connection.selectFrom(tCompany).innerJoin(inner2).on(tCompany.id.equals(inner2.id))
-                .where(tCompany.name.contains('Cia.'))
-                .selectOneColumn(inner2.id)
-        )).select({
-            customerId: tCustomer.id,
-            customerFirstName: tCustomer.firstName,
-            customerLastName: tCustomer.lastName
-        })
-        .executeSelectMany()
+    // const customerWithSelectedCompanies2 = await connection.selectFrom(tCustomer)
+    //     .where(tCustomer.companyId.in(
+    //         connection.selectFrom(tCompany).innerJoin(inner2).on(tCompany.id.equals(inner2.id))
+    //             .where(tCompany.name.contains('Cia.'))
+    //             .selectOneColumn(inner2.id)
+    //     )).select({
+    //         customerId: tCustomer.id,
+    //         customerFirstName: tCustomer.firstName,
+    //         customerLastName: tCustomer.lastName
+    //     })
+    //     .executeSelectMany()
     
-    assertEquals(customerWithSelectedCompanies2, result)
+    // assertEquals(customerWithSelectedCompanies2, result)
 
     /* *** Preparation ************************************************************/
 
@@ -2899,48 +2901,50 @@ async function main() {
 
     /* *** Preparation ************************************************************/
 
-    result = { 
-        id: 10, 
-        name: 'Low Company', 
-        parentId: 9, 
-        parents: [
-            { id: 9, name: 'Mic Company', parentId: 8 }, 
-            { id: 8, name: 'Top Company' }
-        ]
-    }
-    expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, parent_id as parentId, (with recursive_select_1 as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany where parentCompany.id = company.parent_id union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select id as id, name as name, parentId as parentId from recursive_select_1 for json path) as parents from company where id = @0`)
-    expectedParams.push(`[10]`)
-    expectedType.push(`selectOneRow`)
+    // result = { 
+    //     id: 10, 
+    //     name: 'Low Company', 
+    //     parentId: 9, 
+    //     parents: [
+    //         { id: 9, name: 'Mic Company', parentId: 8 }, 
+    //         { id: 8, name: 'Top Company' }
+    //     ]
+    // }
+    // expectedResult.push(result)
+    // expectedQuery.push(`select id as id, name as name, parent_id as parentId, (with recursive_select_1 as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany where parentCompany.id = company.parent_id union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select id as id, name as name, parentId as parentId from recursive_select_1 for json path) as parents from company where id = @0`)
+    // expectedParams.push(`[10]`)
+    // expectedType.push(`selectOneRow`)
 
     /* *** Example ****************************************************************/
 
     const parentCompany2 = tCompany.as('parentCompany')
 
-    const parentCompanies = connection.subSelectUsing(tCompany)
-        .from(parentCompany2)
-        .select({
-            id: parentCompany2.id,
-            name: parentCompany2.name,
-            parentId: parentCompany2.parentId
-        })
-        .where(parentCompany2.id.equals(tCompany.parentId))
-        .recursiveUnionAllOn((child) => {
-            return child.parentId.equals(parentCompany2.id)
-        })
-        .forUseAsInlineAggregatedArrayValue()
+    // SqlServer doesn't support recursives queries that have outer tables that depends on
 
-    const lowCompany = await connection.selectFrom(tCompany)
-        .select({
-            id: tCompany.id,
-            name: tCompany.name,
-            parentId: tCompany.parentId,
-            parents: parentCompanies
-        })
-        .where(tCompany.id.equals(10))
-        .executeSelectOne()
+    // const parentCompanies = connection.subSelectUsing(tCompany)
+    //     .from(parentCompany2)
+    //     .select({
+    //         id: parentCompany2.id,
+    //         name: parentCompany2.name,
+    //         parentId: parentCompany2.parentId
+    //     })
+    //     .where(parentCompany2.id.equals(tCompany.parentId))
+    //     .recursiveUnionAllOn((child) => {
+    //         return child.parentId.equals(parentCompany2.id)
+    //     })
+    //     .forUseAsInlineAggregatedArrayValue()
+
+    // const lowCompany = await connection.selectFrom(tCompany)
+    //     .select({
+    //         id: tCompany.id,
+    //         name: tCompany.name,
+    //         parentId: tCompany.parentId,
+    //         parents: parentCompanies
+    //     })
+    //     .where(tCompany.id.equals(10))
+    //     .executeSelectOne()
     
-    assertEquals(lowCompany, result)
+    // assertEquals(lowCompany, result)
 
     /* *** Preparation ************************************************************/
 

@@ -2348,29 +2348,31 @@ async function main() {
     
     /* *** Preparation ************************************************************/
 
-    result = []
-    expectedResult.push(result)
-    expectedQuery.push(`select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (with inner2 as (select id as id, name as name from custom_company where id = customer.company_id) select inner2.id as result from company inner join inner2 on company.id = inner2.id where company.name like concat('%', ?), '%'))`)
-    expectedParams.push(`["Cia."]`)
-    expectedType.push(`selectManyRows`)
+    // result = []
+    // expectedResult.push(result)
+    // expectedQuery.push(`select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (with inner2 as (select id as id, name as name from custom_company where id = customer.company_id) select inner2.id as result from company inner join inner2 on company.id = inner2.id where company.name like concat('%', ?), '%'))`)
+    // expectedParams.push(`["Cia."]`)
+    // expectedType.push(`selectManyRows`)
 
     /* *** Example ****************************************************************/
 
-    const inner2 = connection.subSelectUsing(tCustomer).from(tCustomCompany).where(tCustomCompany.id.equals(tCustomer.companyId)).select({id: tCustomCompany.id, name: tCustomCompany.name}).forUseInQueryAs('inner2')
+    // MariaDB doesn't support forUseInQueryAs (with clause) queries that have outer tables that depends on
+
+    // const inner2 = connection.subSelectUsing(tCustomer).from(tCustomCompany).where(tCustomCompany.id.equals(tCustomer.companyId)).select({id: tCustomCompany.id, name: tCustomCompany.name}).forUseInQueryAs('inner2')
     
-    const customerWithSelectedCompanies2 = await connection.selectFrom(tCustomer)
-        .where(tCustomer.companyId.in(
-            connection.selectFrom(tCompany).innerJoin(inner2).on(tCompany.id.equals(inner2.id))
-                .where(tCompany.name.contains('Cia.'))
-                .selectOneColumn(inner2.id)
-        )).select({
-            customerId: tCustomer.id,
-            customerFirstName: tCustomer.firstName,
-            customerLastName: tCustomer.lastName
-        })
-        .executeSelectMany()
+    // const customerWithSelectedCompanies2 = await connection.selectFrom(tCustomer)
+    //     .where(tCustomer.companyId.in(
+    //         connection.selectFrom(tCompany).innerJoin(inner2).on(tCompany.id.equals(inner2.id))
+    //             .where(tCompany.name.contains('Cia.'))
+    //             .selectOneColumn(inner2.id)
+    //     )).select({
+    //         customerId: tCustomer.id,
+    //         customerFirstName: tCustomer.firstName,
+    //         customerLastName: tCustomer.lastName
+    //     })
+    //     .executeSelectMany()
     
-    assertEquals(customerWithSelectedCompanies2, result)
+    // assertEquals(customerWithSelectedCompanies2, result)
 
     /* *** Preparation ************************************************************/
 
@@ -2556,21 +2558,23 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, name as name, (select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id union select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id) as a_1_) as customers from company where id = ?")
-    expectedParams.push(`[1]`)
+    expectedQuery.push("select id as id, name as name, (select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = ? union select id as id, first_name as firstName, last_name as lastName from customer where company_id = ?) as a_1_) as customers from company where id = ?")
+    expectedParams.push(`[1,1,1]`)
     expectedType.push(`selectOneRow`)
 
     /* *** Example ****************************************************************/
 
-    const aggregatedCustomersOfAcme8 = connection.subSelectUsing(tCompany).from(tCustomer)
-        .where(tCustomer.companyId.equals(tCompany.id))
+    // MariaDB doesn't support subqueries that references a outer table in a from, in consequence it is not possible to create a union that references to an outside query
+
+    const aggregatedCustomersOfAcme8 = connection.selectFrom(tCustomer)
+        .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
         .select({
             id: tCustomer.id,
             firstName: tCustomer.firstName,
             lastName: tCustomer.lastName
         }).union(
-            connection.subSelectUsing(tCompany).from(tCustomer)
-            .where(tCustomer.companyId.equals(tCompany.id))
+            connection.selectFrom(tCustomer)
+            .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
             .select({
                 id: tCustomer.id,
                 firstName: tCustomer.firstName,
@@ -2602,21 +2606,23 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, name as name, (select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id union select id as id, first_name as firstName, last_name as lastName from customer where company_id = company.id order by id limit 2147483647) as a_1_) as customers from company where id = ?")
-    expectedParams.push(`[1]`)
+    expectedQuery.push("select id as id, name as name, (select json_arrayagg(json_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) from (select id as id, first_name as firstName, last_name as lastName from customer where company_id = ? union select id as id, first_name as firstName, last_name as lastName from customer where company_id = ? order by id limit 2147483647) as a_1_) as customers from company where id = ?")
+    expectedParams.push(`[1,1,1]`)
     expectedType.push(`selectOneRow`)
 
     /* *** Example ****************************************************************/
 
-    const aggregatedCustomersOfAcme9 = connection.subSelectUsing(tCompany).from(tCustomer)
-        .where(tCustomer.companyId.equals(tCompany.id))
+    // MariaDB doesn't support subqueries that references a outer table in a from, in consequence it is not possible to create a union that references to an outside query
+
+    const aggregatedCustomersOfAcme9 = connection.selectFrom(tCustomer)
+        .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
         .select({
             id: tCustomer.id,
             firstName: tCustomer.firstName,
             lastName: tCustomer.lastName
         }).union(
-            connection.subSelectUsing(tCompany).from(tCustomer)
-            .where(tCustomer.companyId.equals(tCompany.id))
+            connection.selectFrom(tCustomer)
+            .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
             .select({
                 id: tCustomer.id,
                 firstName: tCustomer.firstName,
@@ -2648,18 +2654,20 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, name as name, (select json_arrayagg(a_1_.result) from (select concat(concat(first_name, ?), last_name) as result from customer where company_id = company.id union select concat(concat(first_name, ?), last_name) as result from customer where company_id = company.id) as a_1_) as customers from company where id = ?")
-    expectedParams.push(`[" "," ",1]`)
+    expectedQuery.push("select id as id, name as name, (select json_arrayagg(a_1_.result) from (select concat(concat(first_name, ?), last_name) as result from customer where company_id = ? union select concat(concat(first_name, ?), last_name) as result from customer where company_id = ?) as a_1_) as customers from company where id = ?")
+    expectedParams.push(`[" ",1," ",1,1]`)
     expectedType.push(`selectOneRow`)
 
     /* *** Example ****************************************************************/
 
-    const aggregatedCustomersOfAcme10 = connection.subSelectUsing(tCompany).from(tCustomer)
-        .where(tCustomer.companyId.equals(tCompany.id))
+    // MariaDB doesn't support subqueries that references a outer table in a from, in consequence it is not possible to create a union that references to an outside query
+
+    const aggregatedCustomersOfAcme10 = connection.selectFrom(tCustomer)
+        .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
         .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
         .union(
-            connection.subSelectUsing(tCompany).from(tCustomer)
-            .where(tCustomer.companyId.equals(tCompany.id))
+            connection.selectFrom(tCustomer)
+            .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
             .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
         )
         .forUseAsInlineAggregatedArrayValue()
@@ -2687,18 +2695,20 @@ async function main() {
         ]
     }
     expectedResult.push(result)
-    expectedQuery.push("select id as id, name as name, (select json_arrayagg(a_1_.result) from (select concat(concat(first_name, ?), last_name) as result from customer where company_id = company.id union select concat(concat(first_name, ?), last_name) as result from customer where company_id = company.id order by result limit 2147483647) as a_1_) as customers from company where id = ?")
-    expectedParams.push(`[" "," ",1]`)
+    expectedQuery.push("select id as id, name as name, (select json_arrayagg(a_1_.result) from (select concat(concat(first_name, ?), last_name) as result from customer where company_id = ? union select concat(concat(first_name, ?), last_name) as result from customer where company_id = ? order by result limit 2147483647) as a_1_) as customers from company where id = ?")
+    expectedParams.push(`[" ",1," ",1,1]`)
     expectedType.push(`selectOneRow`)
 
     /* *** Example ****************************************************************/
 
-    const aggregatedCustomersOfAcme11 = connection.subSelectUsing(tCompany).from(tCustomer)
-        .where(tCustomer.companyId.equals(tCompany.id))
+    // MariaDB doesn't support subqueries that references a outer table in a from, in consequence it is not possible to create a union that references to an outside query
+
+    const aggregatedCustomersOfAcme11 = connection.selectFrom(tCustomer)
+        .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
         .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
         .union(
-            connection.subSelectUsing(tCompany).from(tCustomer)
-            .where(tCustomer.companyId.equals(tCompany.id))
+            connection.selectFrom(tCustomer)
+            .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
             .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
         ).orderBy('result')
         .forUseAsInlineAggregatedArrayValue()
@@ -2716,48 +2726,50 @@ async function main() {
 
     /* *** Preparation ************************************************************/
 
-    result = { 
-        id: 10, 
-        name: 'Low Company', 
-        parentId: 9, 
-        parents: [
-            { id: 9, name: 'Mic Company', parentId: 8 }, 
-            { id: 8, name: 'Top Company' }
-        ]
-    }
-    expectedResult.push(result)
-    expectedQuery.push("select id as id, name as name, parent_id as parentId, (with recursive recursive_select_1 as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany where parentCompany.id = company.parent_id union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select json_arrayagg(json_object('id', id, 'name', name, 'parentId', parentId)) from recursive_select_1) as parents from company where id = ?")
-    expectedParams.push(`[10]`)
-    expectedType.push(`selectOneRow`)
+    // result = { 
+    //     id: 10, 
+    //     name: 'Low Company', 
+    //     parentId: 9, 
+    //     parents: [
+    //         { id: 9, name: 'Mic Company', parentId: 8 }, 
+    //         { id: 8, name: 'Top Company' }
+    //     ]
+    // }
+    // expectedResult.push(result)
+    // expectedQuery.push("select id as id, name as name, parent_id as parentId, (with recursive recursive_select_1 as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany where parentCompany.id = company.parent_id union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select json_arrayagg(json_object('id', id, 'name', name, 'parentId', parentId)) from recursive_select_1) as parents from company where id = ?")
+    // expectedParams.push(`[10]`)
+    // expectedType.push(`selectOneRow`)
 
     /* *** Example ****************************************************************/
 
     const parentCompany2 = tCompany.as('parentCompany')
 
-    const parentCompanies = connection.subSelectUsing(tCompany)
-        .from(parentCompany2)
-        .select({
-            id: parentCompany2.id,
-            name: parentCompany2.name,
-            parentId: parentCompany2.parentId
-        })
-        .where(parentCompany2.id.equals(tCompany.parentId))
-        .recursiveUnionAllOn((child) => {
-            return child.parentId.equals(parentCompany2.id)
-        })
-        .forUseAsInlineAggregatedArrayValue()
+    // MariaDB doesn't support recursives queries that have outer tables that depends on
 
-    const lowCompany = await connection.selectFrom(tCompany)
-        .select({
-            id: tCompany.id,
-            name: tCompany.name,
-            parentId: tCompany.parentId,
-            parents: parentCompanies
-        })
-        .where(tCompany.id.equals(10))
-        .executeSelectOne()
+    // const parentCompanies = connection.subSelectUsing(tCompany)
+    //     .from(parentCompany2)
+    //     .select({
+    //         id: parentCompany2.id,
+    //         name: parentCompany2.name,
+    //         parentId: parentCompany2.parentId
+    //     })
+    //     .where(parentCompany2.id.equals(tCompany.parentId))
+    //     .recursiveUnionAllOn((child) => {
+    //         return child.parentId.equals(parentCompany2.id)
+    //     })
+    //     .forUseAsInlineAggregatedArrayValue()
+
+    // const lowCompany = await connection.selectFrom(tCompany)
+    //     .select({
+    //         id: tCompany.id,
+    //         name: tCompany.name,
+    //         parentId: tCompany.parentId,
+    //         parents: parentCompanies
+    //     })
+    //     .where(tCompany.id.equals(10))
+    //     .executeSelectOne()
     
-    assertEquals(lowCompany, result)
+    // assertEquals(lowCompany, result)
 
     /* *** Preparation ************************************************************/
 

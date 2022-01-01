@@ -650,7 +650,7 @@ async function main() {
 
         const parentCompany = tCompany.as('parentCompany')
 
-        // MariaDB doesn't support subqueries in a from with an outer reference, in consequence it is not possible to create a union that references to an outside query
+        // MariaDB doesn't support recursives queries that have outer tables that depends on
 
         // const parentCompanies = connection.subSelectUsing(tCompany)
         //     .from(parentCompany)

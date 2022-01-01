@@ -207,27 +207,27 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     deleteAllowingNoWhereFrom<TABLE extends ITableOf<DB, any>>(table: TABLE): DeleteExpressionAllowingNoWhere<TABLE, TABLE> {
         return new DeleteQueryBuilder(this.__sqlBuilder, table, true) as any
     }
-    selectFrom<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpression<DB, TABLE_OR_VIEW, NoTableOrViewRequiredView<DB>> {
+    selectFrom<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpression<DB, TABLE_OR_VIEW, NoTableOrViewRequiredView<DB>, never> {
         return new SelectQueryBuilder(this.__sqlBuilder, [table], false) as any // cast to any to improve typescript performace
     }
-    selectDistinctFrom<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpression<DB, TABLE_OR_VIEW, NoTableOrViewRequiredView<DB>> {
+    selectDistinctFrom<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpression<DB, TABLE_OR_VIEW, NoTableOrViewRequiredView<DB>, 'distinct'> {
         return new SelectQueryBuilder(this.__sqlBuilder, [table], true) as any // cast to any to improve typescript performace
     }
-    selectFromNoTable(): SelectExpressionFromNoTable<DB> {
+    selectFromNoTable(): SelectExpressionFromNoTable<DB, never> {
         return new SelectQueryBuilder(this.__sqlBuilder, [], false) as any // cast to any to improve typescript performace
     }
-    subSelectUsing<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW>
-    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2>
-    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3>
-    subSelectUsing(...tables: ITableOrView<any>[]): SelectExpressionSubquery<DB, any> {
+    subSelectUsing<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW, never>
+    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2, never>
+    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, never>
+    subSelectUsing(...tables: ITableOrView<any>[]): SelectExpressionSubquery<DB, any, never> {
         const result = new SelectQueryBuilder(this.__sqlBuilder, [], false)
         result.__subSelectUsing = tables
         return result as any // cast to any to improve typescript performace
     }
-    subSelectDistinctUsing<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW>
-    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2>
-    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3>
-    subSelectDistinctUsing(...tables: ITableOrView<any>[]): SelectExpressionSubquery<DB, any> {
+    subSelectDistinctUsing<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW, 'distinct'>
+    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2, 'distinct'>
+    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, 'distinct'>
+    subSelectDistinctUsing(...tables: ITableOrView<any>[]): SelectExpressionSubquery<DB, any, 'distinct'> {
         const result = new SelectQueryBuilder(this.__sqlBuilder, [], false)
         result.__subSelectUsing = tables
         return result as any // cast to any to improve typescript performace

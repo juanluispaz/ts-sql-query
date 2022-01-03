@@ -513,6 +513,11 @@ const companyPrefixed: Promise<{
 
 ## Merge types
 
+**Note**: Before use merge types verify:
+
+- **First**: If you can use `IfValue` functions described at [Easy dynamic queries](queries/dynamic-queries.md#easy-dynamic-queries) instead.
+- **Second**: If you can use `dynamicBooleanExpresionUsing` function described at [Complex dynamic boolean expressions](queries/dynamic-queries.md#complex-dynamic-boolean-expressions) instead.
+
 Sometimes, when you write advanced dynamic queries, you end in a situation when you have a variable with type a union of several types of value source, and you want to use it in a query. ts-sql-query doesn't handle the union of value source types due to the complexity of inferring the proper resulting type. However, the function `mergeType` (defined in the `ts-sql-query/extras/utils` file) can merge the types allowing you to use the value source in other parts of the query.
 
 ```ts

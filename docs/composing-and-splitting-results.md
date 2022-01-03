@@ -50,7 +50,8 @@ Then you must call one of the next methods:
 
 - `withNoneOrOne`: That indicates the cardinality of the property to be added to the external result is an optional object.
 - `withOne`: That indicates the cardinality of the property to be added to the external result is a required object.
-- `withMany`: That indicates the cardinality of the property to be added to the external result is a required array with objects.
+- `withMany`: That indicates the cardinality of the property to be added to the external result is a required array with objects. No values are represented with an empty array.
+- `withOptionalMany`: That indicates the cardinality of the property to be added to the external result is an optional array with objects. No values are represented with an `undefined` value.
 
 This method receives a function with argument an array with the ids and returns a promise with an array that contains the result of the second query (the internal one).
 

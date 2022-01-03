@@ -13,7 +13,7 @@ interface Compose {
     }
     deleteInternal: boolean,
     deleteExternal: boolean,
-    cardinality?: 'noneOrOne' | 'one' | 'many'
+    cardinality?: 'noneOrOne' | 'one' | 'many' | 'optionalMany'
     fn?: (ids: any[]) => Promise<any[]>
 }
 
@@ -101,6 +101,17 @@ export class ComposeSplitQueryBuilder {
         this.__lastComposition = undefined
         last.fn = fn
         last.cardinality = 'many'
+        this.__compositions.push(last)
+        return this
+    }
+    withOptionalMany(fn: (ids: any[]) => Promise<any[]>): any {
+        const last = this.__lastComposition
+        if (!last) {
+            throw new Error('Illegal state')
+        }
+        this.__lastComposition = undefined
+        last.fn = fn
+        last.cardinality = 'optionalMany'
         this.__compositions.push(last)
         return this
     }
@@ -358,7 +369,7 @@ export class ComposeSplitQueryBuilder {
             if (dataList.length !== internalList.length) {
                 throw new Error('The internal query in a query composition returned ' + internalList.length + ' rows when ' + dataList.length + ' was expected')
             }
-        } else if (cardinality === 'many') {
+        } else if (cardinality === 'many' || cardinality === 'optionalMany') {
             for(let i = 0, length = dataList.length; i < length; i++) {
                 const data = dataList[i]
                 data[resultProperty] = []
@@ -389,6 +400,15 @@ export class ComposeSplitQueryBuilder {
                 data[resultProperty] = internalData
             } else {
                 throw new Error('Illegal state')
+            }
+        }
+
+        if (cardinality === 'optionalMany') {
+            for(let i = 0, length = dataList.length; i < length; i++) {
+                const data = dataList[i]
+                if (data[resultProperty].lenght <= 0) {
+                    delete data[resultProperty]
+                }
             }
         }
     }

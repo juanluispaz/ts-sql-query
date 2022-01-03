@@ -318,6 +318,15 @@ interface DateTimeValueSource extends ComparableValueSource {
     /** Gets the time value in milliseconds */
     getTime(): number
 }
+
+/**
+ * Represents the result of an aggregate as object array
+ */
+interface AggregatedArrayValueSource extends ValueSource {
+    useEmptyArrayForNoValue(): AggregatedArrayValueSource
+    asOptionalNonEmptyArray(): AggregatedArrayValueSource
+    asRequiredInOptionalObject(): AggregatedArrayValueSource
+}
 ```
 
 ## Connection definition
@@ -432,6 +441,9 @@ interface Connection {
     stringConcat(value: StringValueSource, separator?: string): StringValueSource
     /** group_concat(distinct value, separator) sometimes called string_agg or listagg. The default separator is ',' */
     stringConcatDistinct(value: StringValueSource, separator?: string): StringValueSource
+    /** Aggregate as object array */
+    aggregateAsArray(columns: SelectValues): AggregatedArrayValueSource
+    aggregateAsArrayOfOneColumn(value: ValueSource): AggregatedArrayValueSource
 
     // Methods that allows create SQL fragments
     fragmentWithType(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
@@ -1459,6 +1471,11 @@ interface SelectExpression {
      * Allows to use a select query as an inline query value in another select. 
      */
     forUseAsInlineQueryValue(): ValueSource
+
+    /**
+     * Allows to use a select query as an inline object array value in another select. 
+     */
+    forUseAsInlineAggregatedArrayValue(): AggregatedArrayValueSource
     
     /** Returns the sql query to be executed in the database */
     query(): string

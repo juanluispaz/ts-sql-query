@@ -27,6 +27,7 @@ nav:
     - Delete: queries/delete.md
     - Transaction: queries/transaction.md
     - Complex projections: queries/complex-projections.md
+    - Aggregate as an object array: queries/aggregate-as-object-array.md
   - Connection, tables & views: connection-tables-views.md
   - Column types: column-types.md
   - Composing and splitting results: composing-and-splitting-results.md

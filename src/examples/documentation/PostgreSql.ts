@@ -2488,7 +2488,7 @@ async function main() {
                 id: tCustomerLeftJoin.id,
                 firstName: tCustomerLeftJoin.firstName,
                 lastName: tCustomerLeftJoin.lastName
-            }).useEmptyArrayForNoValue()
+            }).asOptionalNonEmptyArray()
         })
         .groupBy('id')
         .executeSelectOne()
@@ -2528,6 +2528,37 @@ async function main() {
         .executeSelectOne()
     
     assertEquals(acmeCompanyWithCustomers3, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            'Jane Doe',
+            'John Smith',
+            'Other Person'
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select company.id as id, company.name as name, json_agg(customer.first_name || $1 || customer.last_name) as customers from company left join customer on customer.company_id = company.id where company.id = $2 group by company.id`)
+    expectedParams.push(`[" ",1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    // const tCustomerLeftJoin = tCustomer.forUseInLeftJoin()
+    const acmeCompanyWithCustomers3_1 = await connection.selectFrom(tCompany).leftJoin(tCustomerLeftJoin).on(tCustomerLeftJoin.companyId.equals(tCompany.id))
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            customers: connection.aggregateAsArrayOfOneColumn(tCustomerLeftJoin.firstName.concat(' ').concat(tCustomerLeftJoin.lastName))
+        })
+        .groupBy('id')
+        .executeSelectOne()
+    
+    assertEquals(acmeCompanyWithCustomers3_1, result)
     
     /* *** Preparation ************************************************************/
 

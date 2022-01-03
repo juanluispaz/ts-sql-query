@@ -23,6 +23,8 @@ echo '\n# queries/transaction.md\n' >> dist/doc.md
 cat docs/queries/transaction.md >> dist/doc.md
 echo '\n# queries/complex-projections.md\n' >> dist/doc.md
 cat docs/queries/complex-projections.md >> dist/doc.md
+echo '\n# queries/aggregate-as-object-array.md\n' >> dist/doc.md
+cat docs/queries/aggregate-as-object-array.md >> dist/doc.md
 echo '\n# connection-tables-views.md\n' >> dist/doc.md
 cat docs/connection-tables-views.md >> dist/doc.md
 echo '\n# column-types.md\n' >> dist/doc.md

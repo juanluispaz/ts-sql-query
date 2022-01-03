@@ -302,6 +302,15 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         }
         return this
     }
+    orderByFromStringIfValue(orderBy: string | null | undefined): any {
+        if (this.__isValue(orderBy)) {
+            return this.orderByFromString(orderBy)
+        } else {
+            this.__finishJoinHaving()
+            this.__query = ''
+            return this
+        }
+    }
     limit(limit: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
@@ -309,12 +318,30 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         __addWiths(limit, this.__withs)
         return this
     }
+    limitIfValue(limit: int | number | null | undefined): any {
+        if (this.__isValue(limit)) {
+            return this.limit(limit)
+        } else {
+            this.__finishJoinHaving()
+            this.__query = ''
+            return this
+        }
+    }
     offset(offset: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         this.__offset = offset
         __addWiths(offset, this.__withs)
         return this
+    }
+    offsetIfValue(offset: int | number | null | undefined): any {
+        if (this.__isValue(offset)) {
+            return this.offset(offset)
+        } else {
+            this.__finishJoinHaving()
+            this.__query = ''
+            return this
+        }
     }
 
     __combineSubSelectUsing(select: ICompoundableSelect<any, any, any, any>, result: CompoundSelectQueryBuilder) {

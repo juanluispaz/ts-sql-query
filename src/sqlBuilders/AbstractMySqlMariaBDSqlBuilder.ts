@@ -182,6 +182,10 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
 
         const offset = query.__offset
         if (offset !== null && offset !== undefined) {
+            if (!result) {
+                // MySql/MariaDB doesn't support an offset without a limit, let put the the max value of an int
+                result += ' limit 2147483647'
+            }
             result += ' offset ' + this._appendValue(offset, params, 'int', undefined)
         }
 

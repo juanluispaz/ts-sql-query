@@ -44,6 +44,10 @@ export class ComposeSplitQueryBuilder {
         this.__sqlBuilder = sqlBuilder
     }
 
+    __isValue<T>(value: T): value is NonNullable<T> {
+        return this.__sqlBuilder._isValue(value)
+    }
+
     compose(config: any): any {
         this.__lastComposition = {
             type: 'compose',

@@ -1399,11 +1399,14 @@ interface SelectExpression {
     orderBy(column: string, mode?: OrderByMode): this
     /** Allows to specify an order by dynamically, it is parsed from the provided string */
     orderByFromString(orderBy: string): this
+    orderByFromStringIfValue(orderBy: string | null | undefined): this
 
     /** Allows to specify the maximum number of rows that will be returned by the query */
     limit(limit: number): this
+    limitIfValue(limit: number | null | undefined): this
      /** Allows to specify the number of first rows ignored by the query */
     offset(offset: number): this
+    offsetIfValue(offset: number | null | undefined): this
 
 
     /** Allows to extends the where, or the on clause of a join, or the having clause using an and */

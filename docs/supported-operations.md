@@ -958,6 +958,7 @@ interface InsertExpression {
     withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     split(propertyName: string, mappig: { [property: string]: string }): this
     splitRequired(propertyName: string, mappig: { [property: string]: string }): this
     splitOptional(propertyName: string, mappig: { [property: string]: string }): this
@@ -1131,6 +1132,7 @@ interface UpdateExpression {
     withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     split(propertyName: string, mappig: { [property: string]: string }): this
     splitRequired(propertyName: string, mappig: { [property: string]: string }): this
     splitOptional(propertyName: string, mappig: { [property: string]: string }): this
@@ -1272,6 +1274,7 @@ interface DeleteExpression {
     withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     split(propertyName: string, mappig: { [property: string]: string }): this
     splitRequired(propertyName: string, mappig: { [property: string]: string }): this
     splitOptional(propertyName: string, mappig: { [property: string]: string }): this
@@ -1489,6 +1492,7 @@ interface SelectExpression {
     withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
     split(propertyName: string, mappig: { [property: string]: string }): this
     splitRequired(propertyName: string, mappig: { [property: string]: string }): this
     splitOptional(propertyName: string, mappig: { [property: string]: string }): this

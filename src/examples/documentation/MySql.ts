@@ -901,6 +901,155 @@ async function main() {
     assertEquals(companiesWithCustomers, result)
     
     /* *** Preparation ************************************************************/
+
+    result = [{
+        id: 10,
+        name: 'ACME Inc.',
+        customers: [{
+            id: 12,
+            firstName: 'John',
+            lastName: 'Smith',
+            birthday: new Date('1990/1/14Z')
+        }, {
+            id: 13,
+            firstName: 'Jorge',
+            lastName: 'Justo',
+            birthday: new Date('1991/2/16Z')
+        }]
+    }, {
+        id: 11,
+        name: 'ACME Corp.'
+    }]
+    expectedResult.push([{
+        id: 10,
+        name: 'ACME Inc.'
+    }, {
+        id: 11,
+        name: 'ACME Corp.'
+    }])
+    expectedQuery.push("select id as id, `name` as `name` from company where lower(`name`) like concat('%', lower(?), '%')")
+    expectedParams.push(`["ACME"]`)
+    expectedType.push(`selectManyRows`)
+    expectedResult.push([{
+        id: 12,
+        firstName: 'John',
+        lastName: 'Smith',
+        birthday: new Date('1990/1/14Z'),
+        companyId: 10
+    }, {
+        id: 13,
+        firstName: 'Jorge',
+        lastName: 'Justo',
+        birthday: new Date('1991/2/16Z'),
+        companyId: 10
+    }])
+    expectedQuery.push(`select id as id, first_name as firstName, last_name as lastName, birthday as birthday, company_id as companyId from customer where company_id in (?, ?)`)
+    expectedParams.push(`[10,11]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const companiesWithCustomers2 = await connection.selectFrom(tCompany)
+            .select({
+                id: tCompany.id,
+                name: tCompany.name
+            }).where(
+                tCompany.name.containsInsensitive('ACME')
+            ).composeDeletingInternalProperty({
+                externalProperty: 'id',
+                internalProperty: 'companyId',
+                propertyName: 'customers'
+            }).withOptionalMany((ids) => {
+                return connection.selectFrom(tCustomer)
+                    .select({
+                        id: tCustomer.id,
+                        firstName: tCustomer.firstName,
+                        lastName: tCustomer.lastName,
+                        birthday: tCustomer.birthday,
+                        companyId: tCustomer.companyId
+                    }).where(
+                        tCustomer.companyId.in(ids)
+                    ).executeSelectMany()
+            }).executeSelectMany()
+    
+    assertEquals(companiesWithCustomers2, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = [{
+        id: 10,
+        name: 'ACME Inc.',
+        customers: [{
+            id: 12,
+            firstName: 'John',
+            lastName: 'Smith',
+            birthday: new Date('1990/1/14Z')
+        }, {
+            id: 13,
+            firstName: 'Jorge',
+            lastName: 'Justo',
+            birthday: new Date('1991/2/16Z')
+        }]
+    }, {
+        id: 11,
+        name: 'ACME Corp.',
+        customers: []
+    }]
+    expectedResult.push([{
+        id: 10,
+        name: 'ACME Inc.'
+    }, {
+        id: 11,
+        name: 'ACME Corp.'
+    }])
+    expectedQuery.push("select id as id, `name` as `name` from company where lower(`name`) like concat('%', lower(?), '%')")
+    expectedParams.push(`["ACME"]`)
+    expectedType.push(`selectManyRows`)
+    expectedResult.push([{
+        id: 12,
+        firstName: 'John',
+        lastName: 'Smith',
+        birthday: new Date('1990/1/14Z'),
+        companyId: 10
+    }, {
+        id: 13,
+        firstName: 'Jorge',
+        lastName: 'Justo',
+        birthday: new Date('1991/2/16Z'),
+        companyId: 10
+    }])
+    expectedQuery.push(`select id as id, first_name as firstName, last_name as lastName, birthday as birthday, company_id as companyId from customer where company_id in (?, ?)`)
+    expectedParams.push(`[10,11]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const companiesWithCustomers3 = await connection.selectFrom(tCompany)
+            .select({
+                id: tCompany.id,
+                name: tCompany.name
+            }).where(
+                tCompany.name.containsInsensitive('ACME')
+            ).composeDeletingInternalProperty({
+                externalProperty: 'id',
+                internalProperty: 'companyId',
+                propertyName: 'customers'
+            }).withMany((ids) => {
+                return connection.selectFrom(tCustomer)
+                    .select({
+                        id: tCustomer.id,
+                        firstName: tCustomer.firstName,
+                        lastName: tCustomer.lastName,
+                        birthday: tCustomer.birthday,
+                        companyId: tCustomer.companyId
+                    }).where(
+                        tCustomer.companyId.in(ids)
+                    ).executeSelectMany()
+            }).executeSelectMany()
+    
+    assertEquals(companiesWithCustomers3, result)
+    
+    /* *** Preparation ************************************************************/
     
     result = {
         id: 12,

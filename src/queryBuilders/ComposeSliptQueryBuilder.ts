@@ -389,7 +389,7 @@ export class ComposeSplitQueryBuilder {
                 throw new Error('The internal query in a query composition returned an element identified with ' + internalValue + ' that is not pressent in the external query result')
             }
 
-            if (cardinality === 'many') {
+            if (cardinality === 'many' || cardinality === 'optionalMany') {
                 const resultList = data[resultProperty] as any[]
                 resultList.push(internalData)
             } else if (cardinality === 'noneOrOne' || cardinality === 'one') {
@@ -406,7 +406,7 @@ export class ComposeSplitQueryBuilder {
         if (cardinality === 'optionalMany') {
             for(let i = 0, length = dataList.length; i < length; i++) {
                 const data = dataList[i]
-                if (data[resultProperty].lenght <= 0) {
+                if (data[resultProperty].length <= 0) {
                     delete data[resultProperty]
                 }
             }

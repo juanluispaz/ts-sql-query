@@ -193,7 +193,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, concat(concat(first_name, ?), last_name) as `name`, birthday as birthday from customer where first_name like concat('%', ?), '%') order by lower(`name`), birthday is null, birthday asc")
+    expectedQuery.push("select id as id, concat(concat(first_name, ?), last_name) as `name`, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(`name`), birthday is null, birthday asc")
     expectedParams.push(`[" ","ohn"]`)
     expectedType.push(`selectManyRows`)
 
@@ -225,7 +225,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, concat(concat(first_name, ?), last_name) as `name`, birthday as birthday from customer where first_name like concat('%', ?), '%') order by lower(`name`), birthday is null, birthday asc")
+    expectedQuery.push("select id as id, concat(concat(first_name, ?), last_name) as `name`, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(`name`), birthday is null, birthday asc")
     expectedParams.push(`[" ","ohn"]`)
     expectedType.push(`selectManyRows`)
 
@@ -258,7 +258,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as id, concat(concat(first_name, ?), last_name) as `name`, birthday as birthday from customer where first_name like concat('%', ?), '%') order by lower(`name`), birthday is null, birthday asc")
+    expectedQuery.push("select id as id, concat(concat(first_name, ?), last_name) as `name`, birthday as birthday from customer where first_name like concat('%', ?, '%') order by lower(`name`), birthday is null, birthday asc")
     expectedParams.push(`[" ","ohn"]`)
     expectedType.push(`selectManyRows`)
 
@@ -335,7 +335,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select id as result from company where `name` like concat('%', ?), '%')) order by customerFirstName asc, customerLastName")
+    expectedQuery.push("select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select id as result from company where `name` like concat('%', ?, '%')) order by customerFirstName asc, customerLastName")
     expectedParams.push(`["Cia."]`)
     expectedType.push(`selectManyRows`)
 
@@ -2530,7 +2530,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (with inner2 as (select id as id, `name` as `name` from custom_company where id = customer.company_id) select inner2.id as result from company inner join inner2 on company.id = inner2.id where company.`name` like concat('%', ?), '%'))")
+    expectedQuery.push("select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (with inner2 as (select id as id, `name` as `name` from custom_company where id = customer.company_id) select inner2.id as result from company inner join inner2 on company.id = inner2.id where company.`name` like concat('%', ?, '%'))")
     expectedParams.push(`["Cia."]`)
     expectedType.push(`selectManyRows`)
 
@@ -2556,7 +2556,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("with inner3 as (select id as id, `name` as `name` from custom_company) select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select inner3.id as result from company inner join inner3 on company.id = inner3.id where company.`name` like concat('%', ?), '%'))")
+    expectedQuery.push("with inner3 as (select id as id, `name` as `name` from custom_company) select id as customerId, first_name as customerFirstName, last_name as customerLastName from customer where company_id in (select inner3.id as result from company inner join inner3 on company.id = inner3.id where company.`name` like concat('%', ?, '%'))")
     expectedParams.push(`["Cia."]`)
     expectedType.push(`selectManyRows`)
 

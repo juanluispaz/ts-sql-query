@@ -449,6 +449,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendColumnAlias(name: string, _params: any[]): string {
         return this._escape(name, true)
     }
+    _appendColumnValue(value: AnyValueSource, params: any[], _isOutermostQuery: boolean): string {
+        return this._appendSql(value, params)
+    }
     _buildWith(withData: WithQueryData, params: any[]): string {
         let withs = withData.__withs
         if (this._isWithGenerated(params)) {
@@ -508,14 +511,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const oldGenerateExternalWith = this._generateExternalWith(params)
         this._setGenerateExternalWith(params, true)
         this._setWithGeneratedFinished(params, false)
-        const result = this._buildSelectWithColumnsInfo(query, params, {})
+        const result = this._buildSelectWithColumnsInfo(query, params, {}, false)
         this._setWithGeneratedFinished(params, oldWithGeneratedFinished)
         this._setGenerateExternalWith(params, oldGenerateExternalWith)
         return result
     }
     _buildSelect(query: SelectData, params: any[]): string {
         this._ensureRootQuery(query, params)
-        const result = this._buildSelectWithColumnsInfo(query, params, {})
+        const isOutermostQuery = this._isCurrentRootQuery(query, params)
+        const result = this._buildSelectWithColumnsInfo(query, params, {}, isOutermostQuery)
         this._resetRootQuery(query, params)
         return result
     }
@@ -541,8 +545,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 throw new Error('Invalid compound operator: ' + compoundOperator)
         }   
     }
-    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }): string {
-        const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert)
+    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
+        const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
         if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy !== undefined) {
             return '(' + result + ')'
         }
@@ -602,7 +606,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         return fromJoins
     }
-    _buildSelectWithColumnsInfo(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }): string {
+    _buildSelectWithColumnsInfo(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
         const oldWithGenerated = this._isWithGenerated(params)
         const oldWithGeneratedFinished = this._isWithGeneratedFinished(params)
@@ -623,9 +627,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
             
             selectQuery += this._buildWith(query, params)
-            selectQuery += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert)
+            selectQuery += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert, isOutermostQuery)
             selectQuery += this._appendCompoundOperator(query.__compoundOperator, params)
-            selectQuery += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, params, columnsForInsert)
+            selectQuery += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, params, columnsForInsert, isOutermostQuery)
 
             if (!query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
                 selectQuery += this._buildSelectOrderBy(query, params)
@@ -714,7 +718,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     selectQuery += ', '
                 }
                 const columnForInsert = columnsForInsert[property]
-                selectQuery += this._appendSelectColumn(columns[property]!, params, columnForInsert)
+                selectQuery += this._appendSelectColumn(columns[property]!, params, columnForInsert, isOutermostQuery)
                 if (property) {
                     selectQuery += ' as ' + this._appendColumnAlias(property, params)
                 }
@@ -756,7 +760,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             } else {
                 selectQuery += ' group by '
             }
-            selectQuery += this._appendSelectColumn(groupBy[i]!, params, undefined)
+            selectQuery += this._appendSelectColumn(groupBy[i]!, params, undefined, isOutermostQuery)
             requireComma = true
         }
 
@@ -797,14 +801,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setAggregateArrayWrapped(params, oldAggregateArrayWrapped)
         return selectQuery
     }
-    _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined): string {
+    _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined, isOutermostQuery: boolean): string {
         if (columnForInsert) {
             const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)
             if (sql) {
                 return sql
             }
         }
-        return this._appendSql(value, params)
+        return this._appendColumnValue(value, params, isOutermostQuery)
     }
     _fromNoTable() {
         return ''
@@ -1307,7 +1311,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         insertQuery += ' (' + columns + ')'
         insertQuery += this._buildInsertOutput(query, params)
-        insertQuery += ' ' + this._buildSelectWithColumnsInfo(from, params, columnsForInsert)
+        insertQuery += ' ' + this._buildSelectWithColumnsInfo(from, params, columnsForInsert, false)
         insertQuery += this._buildInsertReturning(query, params)
         if (customization && customization.afterQuery) {
             insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
@@ -1333,11 +1337,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return ' returning ' + this._appendSql(idColumn, params)
         }
 
-        const result = this._buildQueryReturning(query.__columns, params)
+
+        const isOutermostQuery = this._isCurrentRootQuery(query, params)
+        const result = this._buildQueryReturning(query.__columns, params, isOutermostQuery)
         this._setContainsInsertReturningClause(params, !!result)
         return result
     }
-    _buildQueryReturning(queryColumns: QueryColumns | undefined, params: any[]): string {
+    _buildQueryReturning(queryColumns: QueryColumns | undefined, params: any[], isOutermostQuery: boolean): string {
         if (!queryColumns) {
             return ''
         }
@@ -1350,7 +1356,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (requireComma) {
                 result += ', '
             }
-            result += this._appendSql(columns[property]!, params)
+            result += this._appendColumnValue(columns[property]!, params, isOutermostQuery)
             if (property) {
                 result += ' as ' + this._appendColumnAlias(property, params)
             }
@@ -1691,7 +1697,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return ''
     }
     _buildUpdateReturning(query: UpdateData, params: any[]): string {
-        return this._buildQueryReturning(query.__columns, params)
+        const isOutermostQuery = this._isCurrentRootQuery(query, params)
+        return this._buildQueryReturning(query.__columns, params, isOutermostQuery)
     }
     _buildDelete(query: DeleteData, params: any[]): string {
         this._ensureRootQuery(query, params)
@@ -1754,7 +1761,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return ''
     }
     _buildDeleteReturning(query: DeleteData, params: any[]): string {
-        return this._buildQueryReturning(query.__columns, params)
+        const isOutermostQuery = this._isCurrentRootQuery(query, params)
+        return this._buildQueryReturning(query.__columns, params, isOutermostQuery)
     }
 
     /*
@@ -2131,6 +2139,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _getMilliseconds(params: any[], valueSource: ToSql): string {
         return 'extract(millisecond from ' + this._appendSql(valueSource, params) + ') % 1000'
+    }
+    _asString(params: any[], valueSource: ToSql): string {
+        // Transform an uuid to string
+        return this._appendSqlParenthesis(valueSource, params) 
     }
     // SqlFunction1
     _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {

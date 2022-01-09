@@ -10,6 +10,8 @@ import { SqliteConnection } from "../connections/SqliteConnection";
 import { createLoopBackQueryRunner } from "../queryRunners/LoopBackQueryRunner";
 
 class DBConection extends SqliteConnection<'DBConnection'> {
+    protected uuidStrategy = 'string' as const
+    
     increment(i: number) {
         // Fake implentation for testing purposes
         return this.selectFromNoTable().selectOneColumn(this.const(i, 'int').add(1)).executeSelectOne()
@@ -43,6 +45,14 @@ const tCustomer = new class TCustomer extends Table<DBConection, 'TCustomer'> {
     }
 }()
 
+const tRecord = new class TRecord extends Table<DBConection, 'TRecord'> {
+    id = this.primaryKey('id', 'uuid');
+    title = this.column('title', 'string');
+    constructor() {
+        super('record'); // table name in the database
+    }
+}()
+
 const db = new DataSource({
     name: 'db',
     connector: 'sqlite3',
@@ -72,6 +82,14 @@ async function main() {
                 last_name varchar(100) not null,
                 birthday date,
                 company_id int not null references company(id)
+            )
+        `)
+
+        await connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists record`)
+        await connection.queryRunner.executeDatabaseSchemaModification(`
+            create table record (
+                id varchar(36) primary key,
+                title varchar(100) not null
             )
         `)
 
@@ -709,6 +727,21 @@ async function main() {
             })
             .executeSelectOne()
         assertEquals(lowCompany3, { id: 10, name: 'Low Company', parentId: 9, parents: [{ id: 9, name: 'Mic Company', parentId: 8 }, { id: 8, name: 'Top Company' }] })
+
+        i = await connection.insertInto(tRecord).values({
+                id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+                title: 'My voice memo'
+            }).executeInsert()
+        assertEquals(i, 1)
+
+        const record = await connection.selectFrom(tRecord)
+            .select({
+                id: tRecord.id,
+                title: tRecord.title
+            })
+            .where(tRecord.id.asString().contains('7002'))
+            .executeSelectOne()
+        assertEquals(record, { id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' })
 
         await connection.commit()
     } catch(e) {

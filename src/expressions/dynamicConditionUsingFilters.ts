@@ -1,5 +1,5 @@
-import { double, int, LocalDate, LocalDateTime, LocalTime, stringDouble, stringInt } from "ts-extended-types";
-import { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, IDateTimeValueSource, IDateValueSource, IDoubleValueSource, IEqualableValueSource, IIntValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, ILocalTimeValueSource, INullableValueSource, INumberValueSource, IStringDoubleValueSource, IStringIntValueSource, IStringNumberValueSource, IStringValueSource, ITimeValueSource, ITypeSafeBigintValueSource, ITypeSafeStringValueSource, IValueSource, MergeOptionalUnion, ValueSourceOf } from "./values";
+import { double, int, LocalDate, LocalDateTime, LocalTime, stringDouble, stringInt, uuid } from "ts-extended-types";
+import { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, IDateTimeValueSource, IDateValueSource, IDoubleValueSource, IEqualableValueSource, IIntValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, ILocalTimeValueSource, INullableValueSource, INumberValueSource, IStringDoubleValueSource, IStringIntValueSource, IStringNumberValueSource, IStringValueSource, ITimeValueSource, ITypeSafeBigintValueSource, ITypeSafeStringValueSource, ITypeSafeUuidValueSource, IUuidValueSource, IValueSource, MergeOptionalUnion, ValueSourceOf } from "./values";
 
 export interface Filter {
 }
@@ -104,6 +104,44 @@ export interface LocalDateFilter extends ComparableFilter<LocalDate> { }
 export interface LocalTimeFilter extends ComparableFilter<LocalTime> { }
 export interface LocalDateTimeFilter extends ComparableFilter<LocalDateTime> { }
 
+export interface UuidFilter extends ComparableFilter<uuid> {
+    equalsInsensitiveIfValue?: string | null | undefined
+    equalsInsensitive?: string
+    notEqualsInsensitiveIfValue?: string | null | undefined
+    likeIfValue?: string | null | undefined
+    like?: string
+    notLikeIfValue?: string | null | undefined
+    notLike?: string
+    likeInsensitiveIfValue?: string | null | undefined
+    likeInsensitive?: string
+    notLikeInsensitiveIfValue?: string | null | undefined
+    notLikeInsensitive?: string
+    startsWithIfValue?: string | null | undefined
+    startsWith?: string
+    notStartsWithIfValue?: string | null | undefined
+    notStartsWith?: string
+    endsWithIfValue?: string | null | undefined
+    endsWith?: string
+    notEndsWithIfValue?: string | null | undefined
+    notEndsWith?: string
+    startsWithInsensitiveIfValue?: string | null | undefined
+    startsWithInsensitive?: string
+    notStartsWithInsensitiveIfValue?: string | null | undefined
+    notStartsWithInsensitive?: string
+    endsWithInsensitiveIfValue?: string | null | undefined
+    endsWithInsensitive?: string
+    notEndsWithInsensitiveIfValue?: string | null | undefined
+    notEndsWithInsensitive?: string
+    containsIfValue?: string | null | undefined
+    contains?: string
+    notContainsIfValue?: string | null | undefined
+    notContains?: string
+    containsInsensitiveIfValue?: string | null | undefined
+    containsInsensitive?: string
+    notContainsInsensitiveIfValue?: string | null | undefined
+    notContainsInsensitive?: string
+}
+
 export type FilterTypeOf<TYPE> = TYPE extends 'boolean' ? BooleanFilter :
     TYPE extends 'stringInt' ? StringNumberFilter :
     TYPE extends 'int' ? NumberFilter :
@@ -111,6 +149,7 @@ export type FilterTypeOf<TYPE> = TYPE extends 'boolean' ? BooleanFilter :
     TYPE extends 'stringDouble' ? StringNumberFilter :
     TYPE extends 'double' ? NumberFilter :
     TYPE extends 'string' ? StringFilter :
+    TYPE extends 'uuid' ? StringFilter :
     TYPE extends 'localDate' ? DateFilter :
     TYPE extends 'localTime' ? TimeFilter :
     TYPE extends 'localDateTime' ? DateTimeFilter :
@@ -126,6 +165,7 @@ export type TypeSafeFilterTypeOf<TYPE> = TYPE extends 'boolean' ? BooleanFilter 
     TYPE extends 'stringDouble' ? StringDoubleFilter :
     TYPE extends 'double' ? DoubleFilter :
     TYPE extends 'string' ? StringFilter :
+    TYPE extends 'uuid' ? UuidFilter :
     TYPE extends 'localDate' ? LocalDateFilter :
     TYPE extends 'localTime' ? LocalTimeFilter :
     TYPE extends 'localDateTime' ? LocalDateTimeFilter :
@@ -135,7 +175,7 @@ export type TypeSafeFilterTypeOf<TYPE> = TYPE extends 'boolean' ? BooleanFilter 
     never
 
 export type DynamicColumnType<T> = 'boolean' | 'stringInt' | 'int' | 'bigint' | 'stringDouble' | 'double' |
-    'string' | 'localDate' | 'localTime' | 'localDateTime' | ['enum', T] | ['custom', T] | ['customComparable', T]
+    'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | ['enum', T] | ['custom', T] | ['customComparable', T]
 
 export type DynamicDefinition = {
     [key: string]: DynamicColumnType<any> | DynamicDefinition
@@ -170,6 +210,8 @@ export type MapValueSourceToFilter<TYPE> =
         TYPE extends INumberValueSource<any, any> ? NumberFilter :
         TYPE extends ITypeSafeStringValueSource<any, any> ? StringFilter :
         TYPE extends IStringValueSource<any, any> ? StringFilter :
+        TYPE extends ITypeSafeUuidValueSource<any, any> ? UuidFilter :
+        TYPE extends IUuidValueSource<any, any> ? StringFilter :
         TYPE extends ILocalDateTimeValueSource<any, any> ? LocalDateTimeFilter :
         TYPE extends IDateTimeValueSource<any, any> ? DateTimeFilter :
         TYPE extends ILocalDateValueSource<any, any> ? LocalDateFilter :

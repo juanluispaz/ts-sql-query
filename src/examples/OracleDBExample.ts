@@ -47,6 +47,14 @@ const tCustomer = new class TCustomer extends Table<DBConection, 'TCustomer'> {
     }
 }()
 
+const tRecord = new class TRecord extends Table<DBConection, 'TRecord'> {
+    id = this.primaryKey('id', 'uuid');
+    title = this.column('title', 'string');
+    constructor() {
+        super('record'); // table name in the database
+    }
+}()
+
 const connectionPromise = oracledb.getConnection({
     user: 'sys',
     password: 'Oracle18',
@@ -103,6 +111,46 @@ async function main() {
                 begin
                     update company set name = name || aditional;
                 end append_to_all_companies_name;
+        `)
+
+        try {
+            await connection.queryRunner.executeDatabaseSchemaModification(`drop table record`)
+        } catch { /* do nothing*/ }
+        try {
+            await connection.queryRunner.executeDatabaseSchemaModification(`drop function uuid_to_raw`)
+        } catch { /* do nothing*/ }
+        try {
+            await connection.queryRunner.executeDatabaseSchemaModification(`drop function raw_to_uuid`)
+        } catch { /* do nothing*/ }
+        await connection.queryRunner.executeDatabaseSchemaModification(`
+            create table record (
+                id RAW(16) primary key,
+                title varchar(100) not null
+            )
+        `)
+        await connection.queryRunner.executeDatabaseSchemaModification(`
+            CREATE FUNCTION uuid_to_raw(uuid IN char) RETURN raw IS
+                hex_text nvarchar2(36);
+            BEGIN 
+                hex_text := REPLACE(uuid, '-');
+                RETURN HEXTORAW(SUBSTR (hex_text, 13, 4) || 
+                                SUBSTR (hex_text, 9, 4) || 
+                                SUBSTR (hex_text, 0, 8) || 
+                                SUBSTR (hex_text, 17));
+            END uuid_to_raw;
+        `)
+        await connection.queryRunner.executeDatabaseSchemaModification(`
+            CREATE FUNCTION raw_to_uuid(raw_uuid IN raw) RETURN char IS
+                hex_text char(32);
+            BEGIN 
+                hex_text := RAWTOHEX(raw_uuid);
+                RETURN LOWER(
+                    SUBSTR (hex_text, 9, 8) || '-' || 
+                    SUBSTR (hex_text, 5, 4) || '-' || 
+                    SUBSTR (hex_text, 0, 4) || '-' || 
+                    SUBSTR (hex_text, 17, 4) || '-' || 
+                    SUBSTR (hex_text, 21));
+            END raw_to_uuid;
         `)
 
         let i = await connection
@@ -758,6 +806,21 @@ async function main() {
             })
             .executeSelectOne()
         assertEquals(lowCompany3, { id: 10, name: 'Low Company', parentId: 9, parents: [{ id: 9, name: 'Mic Company', parentId: 8 }, { id: 8, name: 'Top Company' }] })
+
+        i = await connection.insertInto(tRecord).values({
+                id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+                title: 'My voice memo'
+            }).executeInsert()
+        assertEquals(i, 1)
+
+        const record = await connection.selectFrom(tRecord)
+            .select({
+                id: tRecord.id,
+                title: tRecord.title
+            })
+            .where(tRecord.id.asString().contains('7002'))
+            .executeSelectOne()
+        assertEquals(record, { id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' })
 
         await connection.commit()
     } catch(e) {

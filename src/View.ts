@@ -1,4 +1,4 @@
-import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource, __getValueSourceOfObject, __getValueSourcePrivate } from "./expressions/values"
+import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource, __getValueSourceOfObject, __getValueSourcePrivate, TypeSafeUuidValueSource, UuidValueSource } from "./expressions/values"
 import { IView, IWithView, TableOrViewOf, TableOrViewRef, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
 import type { TypeAdapter } from "./TypeAdapter"
 import type { AliasedTableOrView, OuterJoinSourceOf } from "./utils/tableOrViewUtils"
@@ -72,6 +72,8 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     protected column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & Column
     protected column(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'string', adapter?: TypeAdapter): TypeSafeStringValueSource<REF, 'required'> & Column
     protected column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<REF, 'required'> & Column
+    protected column(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'uuid', adapter?: TypeAdapter): TypeSafeUuidValueSource<REF, 'required'> & Column
+    protected column(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<REF, 'required'> & Column
     protected column(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<REF, 'required'> & Column
     protected column(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource<REF, 'required'> & Column
     protected column(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<REF, 'required'> & Column
@@ -104,6 +106,8 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     protected optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'string', adapter?: TypeAdapter): TypeSafeStringValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<REF, 'optional'> & OptionalColumn
+    protected optionalColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'uuid', adapter?: TypeAdapter): TypeSafeUuidValueSource<REF, 'optional'> & OptionalColumn
+    protected optionalColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(this: TableOrViewOf<TypeSafeDB>, name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<REF, 'optional'> & OptionalColumn

@@ -131,6 +131,7 @@ export class TediousQueryRunner extends PromiseBasedQueryRunner {
         stringDouble: TYPES.Float,
         double: TYPES.Real,
         string: TYPES.NVarChar,
+        uuid: TYPES.UniqueIdentifier,
         localDate: TYPES.Date,
         localTime: TYPES.Time,
         localDateTime: TYPES.DateTime2
@@ -195,6 +196,8 @@ export class TediousQueryRunner extends PromiseBasedQueryRunner {
                 return TYPES.DateTimeOffset
             } else if (/^\d{4}-\d{2}-\d{2}T\d{2}\:\d{2}\:\d{2}(?:\.\d+)?(?:[\+\-]\d{2}\:\d{2}|Z)?$/.test(value)) {
                 return TYPES.DateTimeOffset
+            } else if (/^([a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}|00000000-0000-0000-0000-000000000000)$/i.test(value)) {
+                return TYPES.UniqueIdentifier
             } else {
                 return TYPES.NVarChar
             }

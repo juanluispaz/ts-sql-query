@@ -42,6 +42,14 @@ const tCustomer = new class TCustomer extends Table<DBConection, 'TCustomer'> {
     }
 }()
 
+const tRecord = new class TRecord extends Table<DBConection, 'TRecord'> {
+    id = this.primaryKey('id', 'uuid');
+    title = this.column('title', 'string');
+    constructor() {
+        super('record'); // table name in the database
+    }
+}()
+
 
 const pool = createPool('postgres://postgres:mysecretpassword@localhost/postgres', {
     min: 5,
@@ -91,6 +99,14 @@ async function main() {
             create procedure append_to_all_companies_name(aditional varchar) as $$
                 update company set name = name || aditional;
             $$ language sql
+        `)
+
+        await connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists record`)
+        await connection.queryRunner.executeDatabaseSchemaModification(`
+            create table record (
+                id uuid primary key,
+                title varchar(100) not null
+            )
         `)
 
         let i = await connection
@@ -839,6 +855,21 @@ async function main() {
             })
             .executeSelectOne()
         assertEquals(lowCompany3, { id: 10, name: 'Low Company', parentId: 9, parents: [{ id: 9, name: 'Mic Company', parentId: 8 }, { id: 8, name: 'Top Company' }] })
+
+        i = await connection.insertInto(tRecord).values({
+                id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+                title: 'My voice memo'
+            }).executeInsert()
+        assertEquals(i, 1)
+
+        const record = await connection.selectFrom(tRecord)
+            .select({
+                id: tRecord.id,
+                title: tRecord.title
+            })
+            .where(tRecord.id.asString().contains('7002'))
+            .executeSelectOne()
+        assertEquals(record, { id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' })
 
         await connection.commit()
     } catch(e) {

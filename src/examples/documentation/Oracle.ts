@@ -81,6 +81,14 @@ const tCustomCompany = new class TCustomCompany extends Table<DBConection, 'TCus
     }
 }()
 
+const tRecord = new class TRecord extends Table<DBConection, 'TRecord'> {
+    id = this.primaryKey('id', 'uuid');
+    title = this.column('title', 'string');
+    constructor() {
+        super('record'); // table name in the database
+    }
+}()
+
 async function main() {
     let result: any
     const expectedResult: any[] = []
@@ -3053,6 +3061,145 @@ async function main() {
         .executeSelectOne()
     
     assertEquals(lowCompany3, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into record (id, title) values (uuid_to_raw(:0), :1)`)
+    expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo"]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    const insertUuid = await connection.insertInto(tRecord)
+        .values({
+            id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+            title: 'My voice memo'
+        }).executeInsert()
+    assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = { id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' }
+    expectedResult.push(result)
+    expectedQuery.push(`select raw_to_uuid(id) as "id", title as "title" from record where raw_to_uuid(id) like ('%' || :0 || '%') escape '\\'`)
+    expectedParams.push(`["7002"]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const selectUuid = await connection.selectFrom(tRecord)
+        .select({
+            id: tRecord.id,
+            title: tRecord.title
+        })
+        .where(tRecord.id.asString().contains('7002'))
+        .executeSelectOne()
+
+    assertEquals(selectUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = { id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' }
+    expectedResult.push(result)
+    expectedQuery.push(`with with_uuit as (select id as id, title as title from record) select raw_to_uuid(id) as "id", title as "title" from with_uuit where raw_to_uuid(id) like ('%' || :0 || '%') escape '\\'`)
+    expectedParams.push(`["7002"]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const withSselectUuid = await connection.selectFrom(tRecord)
+        .select({
+            id: tRecord.id,
+            title: tRecord.title
+        })
+        .forUseInQueryAs('with_uuit');
+
+    const selectUuid2 = await connection.selectFrom(withSselectUuid)
+        .select({
+            id: withSselectUuid.id,
+            title: withSselectUuid.title
+        })
+        .where(withSselectUuid.id.asString().contains('7002'))
+        .executeSelectOne()
+
+    assertEquals(selectUuid2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = { records: [{ id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' }] }
+    expectedResult.push(result)
+    expectedQuery.push(`select (select json_arrayagg(json_object('id' value raw_to_uuid(id), 'title' value title)) from record where raw_to_uuid(id) like ('%' || :0 || '%') escape '\\') as "records" from dual`)
+    expectedParams.push(`["7002"]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedUuid = await connection.selectFrom(tRecord)
+        .select({
+            id: tRecord.id,
+            title: tRecord.title
+        })
+        .where(tRecord.id.asString().contains('7002'))
+        .forUseAsInlineAggregatedArrayValue()
+
+    const selectUuid3 = await connection.selectFromNoTable()
+        .select({
+            records: aggregatedUuid,
+        })
+        .executeSelectOne()
+
+    assertEquals(selectUuid3, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = { records: [{ id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' }] }
+    expectedResult.push(result)
+    expectedQuery.push(`select (select json_arrayagg(json_object('id' value raw_to_uuid(a_1_.id), 'title' value a_1_.title)) from (select id as id, title as title from record where raw_to_uuid(id) like ('%' || :0 || '%') escape '\\' order by id offset 0 rows) a_1_) as "records" from dual`)
+    expectedParams.push(`["7002"]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedUuid2 = await connection.selectFrom(tRecord)
+        .select({
+            id: tRecord.id,
+            title: tRecord.title
+        })
+        .where(tRecord.id.asString().contains('7002'))
+        .orderBy('id')
+        .forUseAsInlineAggregatedArrayValue()
+
+    const selectUuid4 = await connection.selectFromNoTable()
+        .select({
+            records: aggregatedUuid2,
+        })
+        .executeSelectOne()
+
+    assertEquals(selectUuid4, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = { records: [{ id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' }] }
+    expectedResult.push(result)
+    expectedQuery.push(`select json_arrayagg(json_object('id' value raw_to_uuid(id), 'title' value title)) as "records" from record where raw_to_uuid(id) like ('%' || :0 || '%') escape '\\'`)
+    expectedParams.push(`["7002"]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const selectUuid5 = await connection.selectFrom(tRecord)
+        .select({
+            records: connection.aggregateAsArray({
+                id: tRecord.id,
+                title: tRecord.title
+            })
+        })
+        .where(tRecord.id.asString().contains('7002'))
+        .executeSelectOne()
+
+    assertEquals(selectUuid5, result)
 }
 
 main().then(() => {

@@ -13,6 +13,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     _getDateTimeFormat(type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return this._connectionConfiguration.getDateTimeFormat!(type) as any
     }
+    _getUuidStrategy(): 'string' | 'uuid-extension' {
+        return this._connectionConfiguration.uuidStrategy as any || 'uuid-extension'
+    }
     _getValueSourceDateTimeFormat(valueSource: ToSql): SqliteDateTimeFormat {
         if (isValueSource(valueSource)) {
             const type = __getValueSourcePrivate(valueSource).__valueType
@@ -32,8 +35,8 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
-    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }): string {
-        const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert)
+    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
+        const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
         if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy !== undefined) {
             return 'select * from (' + result + ')'
         }
@@ -449,8 +452,33 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             return 'group_concat(distinct ' + this._appendSql(value, params) + ', ' + this._appendValue(separator, params, 'string', undefined) + ')'
         }
     }
+    _appendParam(value: any, params: any[], columnType: string): string {
+        if (columnType === 'uuid' && this._getUuidStrategy() === 'uuid-extension') {
+            return 'uuid_blob(' + super._appendParam(value, params, columnType) + ')'
+        }
+        return super._appendParam(value, params, columnType)
+    }
+    _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
+        if (isOutermostQuery && this._getUuidStrategy() === 'uuid-extension') {
+            if (__getValueSourcePrivate(value).__valueType === 'uuid') {
+                return 'uuid_str(' + this._appendSql(value, params) + ')'
+            }
+        }
+        return this._appendSql(value, params)
+    }
+    _asString(params: any[], valueSource: ToSql): string {
+        // Transform an uuid to string
+        if (this._getUuidStrategy() === 'string') {
+            // No conversion required
+            return this._appendSql(valueSource, params)
+        }
+        return 'uuid_str(' + this._appendSql(valueSource, params) + ')'
+    }
     _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
         if (isValueSource(aggregatedArrayColumns)) {
+            if (__getValueSourcePrivate(aggregatedArrayColumns).__valueType === 'uuid' && this._getUuidStrategy() === 'uuid-extension') {
+                return 'json_group_array(uuid_str(' + this._appendSql(aggregatedArrayColumns, params) + '))'
+            }
             return 'json_group_array(' + this._appendSql(aggregatedArrayColumns, params) + ')'
         } else {
             const columns: FlatQueryColumns = {}
@@ -461,7 +489,13 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 if (result) {
                     result += ', '
                 }
-                result += "'" + prop + "', " + this._appendSql(columns[prop]!, params)
+                result += "'" + prop + "', "
+                const column = columns[prop]!
+                if (__getValueSourcePrivate(column).__valueType === 'uuid' && this._getUuidStrategy() === 'uuid-extension') {
+                    result += 'uuid_str(' + this._appendSql(column, params) + ')'
+                } else {
+                    result += this._appendSql(column, params)
+                }
             }
 
             return 'json_group_array(json_object(' + result + '))'
@@ -469,6 +503,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
+            if (__getValueSourcePrivate(aggregatedArrayColumns).__valueType === 'uuid' && this._getUuidStrategy() === 'uuid-extension') {
+                return 'json_group_array(uuid_str(a_' + aggregateId + '_.result))'
+            }
             return 'json_group_array(a_' + aggregateId + '_.result)'
         } else {
             const columns: FlatQueryColumns = {}
@@ -479,7 +516,13 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 if (result) {
                     result += ', '
                 }
-                result += "'" + prop + "', a_" + aggregateId + "_." + this._escape(prop, true)
+                result += "'" + prop + "', "
+                const column = columns[prop]!
+                if (__getValueSourcePrivate(column).__valueType === 'uuid' && this._getUuidStrategy() === 'uuid-extension') {
+                    result += 'uuid_str(a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
+                } else {
+                    result += 'a_' + aggregateId + '_.' + this._escape(prop, true)
+                }
             }
 
             return 'json_group_array(json_object(' + result + '))'

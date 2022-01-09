@@ -14,6 +14,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
 
     _insertSupportWith = false
+    _getUuidStrategy(): 'string' | 'custom-functions' {
+        return this._connectionConfiguration.uuidStrategy as any || 'custom-functions'
+    }
     _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
@@ -105,7 +108,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // Oracle doesn't uses the recursive keyword
         return 'with'
     }
-    _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined): string {
+    _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined, isOutermostQuery: boolean): string {
         if (columnForInsert) {
             const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)
             if (sql) {
@@ -122,7 +125,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
         }
 
-        return this._appendSql(value, params)
+        return this._appendColumnValue(value, params, isOutermostQuery)
     }
     _appendColumnAlias(name: string, params: any[]): string {
         if (!this._isWithGeneratedFinished(params)) {
@@ -135,6 +138,28 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         // Avoid automatically uppercase identifiers by oracle
         return this._forceAsIdentifier(name)
+    }
+    _appendParam(value: any, params: any[], columnType: string): string {
+        if (columnType === 'uuid' && this._getUuidStrategy() === 'custom-functions') {
+            return 'uuid_to_raw(' + super._appendParam(value, params, columnType) + ')'
+        }
+        return super._appendParam(value, params, columnType)
+    }
+    _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
+        if (isOutermostQuery && this._getUuidStrategy() === 'custom-functions') {
+            if (__getValueSourcePrivate(value).__valueType === 'uuid') {
+                return 'raw_to_uuid(' + this._appendSql(value, params) + ')'
+            }
+        }
+        return this._appendSql(value, params)
+    }
+    _asString(params: any[], valueSource: ToSql): string {
+        // Transform an uuid to string
+        if (this._getUuidStrategy() === 'string') {
+            // No conversion required
+            return this._appendSql(valueSource, params)
+        }
+        return 'raw_to_uuid(' + this._appendSql(valueSource, params) + ')'
     }
     _appendCompoundOperator(compoundOperator: CompoundOperator, _params: any[]): string {
         switch(compoundOperator) {
@@ -158,8 +183,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 throw new Error('Invalid compound operator: ' + compoundOperator)
         }   
     }
-    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }): string {
-        const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert)
+    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
+        const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
         if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy !== undefined) {
             return 'select * from (' + result + ')'
         }
@@ -753,8 +778,12 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return this._trueValueForCondition
         }
         return super._notIn(params, valueSource, value, columnType, typeAdapter)
-    }    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
+    }
+    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
         if (isValueSource(aggregatedArrayColumns)) {
+            if (__getValueSourcePrivate(aggregatedArrayColumns).__valueType === 'uuid' && this._getUuidStrategy() === 'custom-functions') {
+                return 'json_arrayagg(raw_to_uuid' + this._appendSql(aggregatedArrayColumns, params) + '))'
+            }
             return 'json_arrayagg(' + this._appendSql(aggregatedArrayColumns, params) + ')'
         } else {
             const columns: FlatQueryColumns = {}
@@ -765,7 +794,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 if (result) {
                     result += ', '
                 }
-                result += "'" + prop + "' value " + this._appendSql(columns[prop]!, params)
+                result += "'" + prop + "' value "
+                const column = columns[prop]!
+                if (__getValueSourcePrivate(column).__valueType === 'uuid' && this._getUuidStrategy() === 'custom-functions') {
+                    result += 'raw_to_uuid(' + this._appendSql(column, params) + ')'
+                } else {
+                    result += this._appendSql(column, params)
+                }
             }
 
             return 'json_arrayagg(json_object(' + result + '))'
@@ -773,6 +808,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
+            if (__getValueSourcePrivate(aggregatedArrayColumns).__valueType === 'uuid' && this._getUuidStrategy() === 'custom-functions') {
+                return 'json_arrayagg(raw_to_uuida_' + aggregateId + '_.result))'
+            }
             return 'json_arrayagg(a_' + aggregateId + '_.result)'
         } else {
             const columns: FlatQueryColumns = {}
@@ -783,7 +821,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 if (result) {
                     result += ', '
                 }
-                result += "'" + prop + "' value a_" + aggregateId + "_." + this._escape(prop, true)
+                result += "'" + prop + "' value "
+                const column = columns[prop]!
+                if (__getValueSourcePrivate(column).__valueType === 'uuid' && this._getUuidStrategy() === 'custom-functions') {
+                    result += 'raw_to_uuid(a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
+                } else {
+                    result += 'a_' + aggregateId + '_.' + this._escape(prop, true)
+                }
             }
 
             return 'json_arrayagg(json_object(' + result + '))'

@@ -4,4 +4,5 @@ export interface ConnectionConfiguration {
     insesitiveCollation?: string
     getDateTimeFormat?(type: string): string
     compatibilityMode?: boolean
+    uuidStrategy?: string
 }

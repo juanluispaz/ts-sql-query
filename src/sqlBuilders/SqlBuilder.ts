@@ -311,6 +311,8 @@ export interface SqlFunction0 {
     _getMinutes(params: any[], valueSource: ToSql): string
     _getSeconds(params: any[], valueSource: ToSql): string
     _getMilliseconds(params: any[], valueSource: ToSql): string
+    // Uuid
+    _asString(params: any[], valueSource: ToSql): string
 }
 
 export interface SqlFunction1 {

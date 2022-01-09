@@ -53,7 +53,8 @@ ts-node ./src/examples/PrismaMySqlExample.ts || { docker stop ts-sql-query-mysql
 docker stop ts-sql-query-mysql
 docker rm ts-sql-query-mysql
 
-docker run --name ts-sql-query-mariadb -p 3306:3306 -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mariadb
+# TODO: remove the version when MariaDB 10.7 reach GA
+docker run --name ts-sql-query-mariadb -p 3306:3306 -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mariadb:10.7.1
 sleep 30
 ts-node ./src/examples/MariaDBExample.ts || { docker stop ts-sql-query-mariadb; docker rm ts-sql-query-mariadb; exit 1; }
 ts-node ./src/examples/PrismaMariaDBExample.ts || { docker stop ts-sql-query-mariadb; docker rm ts-sql-query-mariadb; exit 1; }

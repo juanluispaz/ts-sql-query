@@ -1,14 +1,14 @@
 import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData } from "../sqlBuilders/SqlBuilder"
-import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, TypeSafeBigintValueSource, isValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode } from "../expressions/values"
+import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, TypeSafeBigintValueSource, isValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode, UuidValueSource, TypeSafeUuidValueSource } from "../expressions/values"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { HasAddWiths, ITableOrView, IWithView, __getOldValues, __getTableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import { database, tableOrView, valueSourceType, valueType as valueType_, optionalType as optionalType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType, valueSourceTypeName, anyBooleanValueSourceType, optionalType, isValueSourceObject, aggregatedArrayValueSourceType, isSelectQueryObject } from "../utils/symbols"
+import { database, tableOrView, valueSourceType, valueType as valueType_, optionalType as optionalType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType, valueSourceTypeName, anyBooleanValueSourceType, optionalType, isValueSourceObject, aggregatedArrayValueSourceType, isSelectQueryObject, uuidValueSourceType, typeSafeUuidValueSourceType } from "../utils/symbols"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { ProxyTypeAdapter } from "./ProxyTypeAdapter"
 import { Column } from "../utils/Column"
 
-export abstract class ValueSourceImpl implements IValueSource<any, any, any, any>, NullableValueSource<any, any, any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, BigintValueSource<any, any>, TypeSafeBigintValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, AlwaysIfValueSource<any, any>, IAnyBooleanValueSource<any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, ToSql, __ValueSourcePrivate {
+export abstract class ValueSourceImpl implements IValueSource<any, any, any, any>, NullableValueSource<any, any, any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, BigintValueSource<any, any>, TypeSafeBigintValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, AlwaysIfValueSource<any, any>, IAnyBooleanValueSource<any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, UuidValueSource<any, any>, TypeSafeUuidValueSource<any, any>, ToSql, __ValueSourcePrivate {
     [valueSourceType]: 'ValueSource'
     [nullableValueSourceType]: 'NullableValueSource'
     [equalableValueSourceType]: 'EqualableValueSource'
@@ -33,6 +33,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     [localDateTimeValueSourceType]: 'LocalDateTimeValueSource'
     [anyBooleanValueSourceType]: 'AnyBooleanValueSource'
     [aggregatedArrayValueSourceType]: 'AggregatedArrayValueSource'
+    [uuidValueSourceType]: 'UuidValueSource'
+    [typeSafeUuidValueSourceType]: 'TypeSafeUuidValueSource'
     [valueSourceTypeName]: any
 
     [database]: any
@@ -47,14 +49,18 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     __isBooleanForCondition?: boolean
     __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource
     __aggregatedArrayMode?: __AggregatedArrayMode
+    __uuidString?: boolean
 
-    constructor(valueType: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode) {
+    constructor(valueType: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, uuidString?: boolean) {
         this.__valueType = valueType
         this.__optionalType = optionalType
         this.__typeAdapter = typeAdapter
         if (aggregatedArrayColumns) {
             this.__aggregatedArrayColumns = aggregatedArrayColumns
             this.__aggregatedArrayMode = aggregatedArrayMode
+        }
+        if (uuidString) {
+            this.__uuidString = uuidString
         }
     }
     abstract __toSql(sqlBuilder: SqlBuilder, params: any[]): string
@@ -80,13 +86,20 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         throw new Error('You are trying to access to the const value when the expression is not const')
     }
     asOptional(): any {
-        return new NoopValueSource(this, this.__valueType, 'optional', this.__typeAdapter)
+        const result = new NoopValueSource(this, this.__valueType, 'optional', this.__typeAdapter)
+        if (this.__uuidString) {
+            result.__uuidString = this.__uuidString
+        }
+        return result
     }
     asRequiredInOptionalObject(): any {
         const result = new NoopValueSource(this, this.__valueType, 'requiredInOptionalObject', this.__typeAdapter)
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
+        }
+        if (this.__uuidString) {
+            result.__uuidString = this.__uuidString
         }
         return result
     }
@@ -96,6 +109,9 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
         }
+        if (this.__uuidString) {
+            result.__uuidString = this.__uuidString
+        }
         return result
     }
     asOptionalNonEmptyArray(): any {
@@ -103,6 +119,9 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         if (this.__aggregatedArrayColumns) {
             result.__aggregatedArrayColumns = this.__aggregatedArrayColumns
             result.__aggregatedArrayMode = this.__aggregatedArrayMode
+        }
+        if (this.__uuidString) {
+            result.__uuidString = this.__uuidString
         }
         return result
     }
@@ -138,8 +157,10 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     isNot(value: any): any {
         return condition(new SqlOperation1NotOptionalValueSource('_isNot', this, value, 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
-    asString(): any { // test function
-        return this
+    asString(): any {
+        const result = new SqlOperation0ValueSource('_asString', this, 'string', this.__optionalType, this.__typeAdapter)
+        result.__uuidString = this.__valueType === 'uuid'
+        return result
     }
     equalsInsensitiveIfValue(value: any): any {
         return condition(new SqlOperation1ValueSourceIfValueOrNoop('_equalsInsensitive', this, value, 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
@@ -1661,7 +1682,7 @@ function isSelectQuery(value: any): value is InlineSelectData {
 function valueSourceInitializationForInlineSelect(selectData: SelectData) {
     if (selectData.__asInlineAggregatedArrayValue) {
         // Note: Aggregared array infor will be set later
-        return ['aggregatedArray', 'required', undefined, undefined, undefined] as const
+        return ['aggregatedArray', 'required', undefined, undefined, undefined, undefined] as const
     } else if (selectData.__oneColumn) {
         const result = selectData.__columns['result']
         if (!isValueSource(result)) {
@@ -1673,7 +1694,7 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData) {
             // Avoid treat the column as a custom boolean
             typeAdapter = new ProxyTypeAdapter(typeAdapter)
         }
-        return [valueSourcePrivate.__valueType, valueSourcePrivate.__optionalType, typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode] as const
+        return [valueSourcePrivate.__valueType, valueSourcePrivate.__optionalType, typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__uuidString] as const
     } else {
         throw new Error('Illega state: unexpected inline select')
     }

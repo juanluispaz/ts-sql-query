@@ -22,6 +22,28 @@ async function main() {
 
 **Note**: better-sqlite3 supports synchronous query execution. See [Synchronous query runners](../advanced-usage.md#synchronous-query-runners) for more information.
 
+### better-sqlite3 and UUIDs
+
+To work with [UUIDs in Sqlite](supported-databases.md#uuid-strategies-in-sqlite) the default strategy is `uuid-extension` that requires the [uuid extension](https://sqlite.org/src/file?name=ext/misc/uuid.c); you can provide a compatible implementation as indicated here:
+
+```ts
+import * as betterSqlite3 from "better-sqlite3";
+import { fromBinaryUUID, toBinaryUUID } from "binary-uuid";
+import { v1 as uuidv1 } from "uuid";
+
+const db = betterSqlite3(/* ... */);
+
+// Implement uuid extension functions
+
+db.function('uuid', uuidv1)
+db.function('uuid_str', fromBinaryUUID)
+db.function('uuid_blob', toBinaryUUID)
+
+// ...
+```
+
+**Note**: The binary representation of this implementation is not aimed to be compatible with the uuid extension.
+
 ## mariadb
 
 ### mariadb (with a connection pool)

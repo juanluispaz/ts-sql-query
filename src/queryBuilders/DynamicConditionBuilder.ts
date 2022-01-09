@@ -95,7 +95,11 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any> 
                     condition = condition.negate()
                 }
             } else {
-                condition = valueSource[key](value)
+                if (valueSourcePrivate.__valueType === 'uuid' && useAsStringInUuid[key]) {
+                    condition = valueSource.asString()[key](value)
+                } else {
+                    condition = valueSource[key](value)
+                }
             }
             result = result.and(condition)
         }
@@ -160,6 +164,44 @@ const allowedOpreations: { [operation: string]: true | undefined } = {
     largeAsIfValue: true,
     /** @deprecated use greaterOrEquals instead */
     largeAs: true,
+    equalsInsensitiveIfValue: true,
+    equalsInsensitive: true,
+    notEqualsInsensitiveIfValue: true,
+    likeIfValue: true,
+    like: true,
+    notLikeIfValue: true,
+    notLike: true,
+    likeInsensitiveIfValue: true,
+    likeInsensitive: true,
+    notLikeInsensitiveIfValue: true,
+    notLikeInsensitive: true,
+    startsWithIfValue: true,
+    startsWith: true,
+    notStartsWithIfValue: true,
+    notStartsWith: true,
+    endsWithIfValue: true,
+    endsWith: true,
+    notEndsWithIfValue: true,
+    notEndsWith: true,
+    startsWithInsensitiveIfValue: true,
+    startsWithInsensitive: true,
+    notStartsWithInsensitiveIfValue: true,
+    notStartsWithInsensitive: true,
+    endsWithInsensitiveIfValue: true,
+    endsWithInsensitive: true,
+    notEndsWithInsensitiveIfValue: true,
+    notEndsWithInsensitive: true,
+    containsIfValue: true,
+    contains: true,
+    notContainsIfValue: true,
+    notContains: true,
+    containsInsensitiveIfValue: true,
+    containsInsensitive: true,
+    notContainsInsensitiveIfValue: true,
+    notContainsInsensitive: true
+}
+
+const useAsStringInUuid: { [operation: string]: true | undefined } = {
     equalsInsensitiveIfValue: true,
     equalsInsensitive: true,
     notEqualsInsensitiveIfValue: true,

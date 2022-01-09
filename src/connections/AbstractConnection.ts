@@ -2,15 +2,15 @@ import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { InsertExpression } from "../expressions/insert"
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expressions/update"
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, TypeSafeBigintValueSource, ITypeSafeBigintValueSource, AlwaysIfValueSource, ValueSourceOf, ValueSourceOfDB, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, TypeSafeBigintValueSource, ITypeSafeBigintValueSource, AlwaysIfValueSource, ValueSourceOf, ValueSourceOfDB, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource, TypeSafeUuidValueSource, UuidValueSource } from "../expressions/values"
 import type { Default } from "../expressions/Default"
 import { TableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf, ITableOrView, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from "../expressions/select"
 import type { TypeAdapter, DefaultTypeAdapter } from "../TypeAdapter"
-import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble } from "ts-extended-types"
+import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble, uuid } from "ts-extended-types"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { IConnection } from "../utils/IConnection"
-import type { BooleanFragmentExpression, StringIntFragmentExpression, StringNumberFragmentExpression, IntFragmentExpression, NumberFragmentExpression, StringDoubleFragmentExpression, DoubleFragmentExpression, TypeSafeStringFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, DateFragmentExpression, LocalTimeFragmentExpression, TimeFragmentExpression, LocalDateTimeFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder1TypeSafe, FragmentBuilder0, FragmentBuilder1TypeUnsafe, FragmentBuilder2TypeSafe, FragmentBuilder2TypeUnsafe, FragmentBuilder3TypeSafe, FragmentBuilder3TypeUnsafe, FragmentBuilder4TypeSafe, FragmentBuilder4TypeUnsafe, FragmentBuilder5TypeSafe, FragmentBuilder5TypeUnsafe, FragmentBuilder0IfValue, FragmentBuilder1IfValueTypeSafe, FragmentBuilder1IfValueTypeUnsafe, FragmentBuilder2IfValueTypeSafe, FragmentBuilder2IfValueTypeUnsafe, FragmentBuilder3IfValueTypeSafe, FragmentBuilder3IfValueTypeUnsafe, FragmentBuilder4IfValueTypeSafe, FragmentBuilder4IfValueTypeUnsafe, FragmentBuilder5IfValueTypeSafe, FragmentBuilder5IfValueTypeUnsafe, BigintFragmentExpression, TypeSafeBigintFragmentExpression } from "../expressions/fragment"
+import type { BooleanFragmentExpression, StringIntFragmentExpression, StringNumberFragmentExpression, IntFragmentExpression, NumberFragmentExpression, StringDoubleFragmentExpression, DoubleFragmentExpression, TypeSafeStringFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, DateFragmentExpression, LocalTimeFragmentExpression, TimeFragmentExpression, LocalDateTimeFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder1TypeSafe, FragmentBuilder0, FragmentBuilder1TypeUnsafe, FragmentBuilder2TypeSafe, FragmentBuilder2TypeUnsafe, FragmentBuilder3TypeSafe, FragmentBuilder3TypeUnsafe, FragmentBuilder4TypeSafe, FragmentBuilder4TypeUnsafe, FragmentBuilder5TypeSafe, FragmentBuilder5TypeUnsafe, FragmentBuilder0IfValue, FragmentBuilder1IfValueTypeSafe, FragmentBuilder1IfValueTypeUnsafe, FragmentBuilder2IfValueTypeSafe, FragmentBuilder2IfValueTypeUnsafe, FragmentBuilder3IfValueTypeSafe, FragmentBuilder3IfValueTypeUnsafe, FragmentBuilder4IfValueTypeSafe, FragmentBuilder4IfValueTypeUnsafe, FragmentBuilder5IfValueTypeSafe, FragmentBuilder5IfValueTypeUnsafe, BigintFragmentExpression, TypeSafeBigintFragmentExpression, TypeSafeUuidFragmentExpression, UuidFragmentExpression } from "../expressions/fragment"
 import type { AnyDB, TypeSafeDB, TypeUnsafeDB } from "../databases"
 import { InsertQueryBuilder } from "../queryBuilders/InsertQueryBuilder"
 import { UpdateQueryBuilder } from "../queryBuilders/UpdateQueryBuilder"
@@ -280,6 +280,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     const(this: IConnection<TypeUnsafeDB>, value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, 'required'>
     const(this: IConnection<TypeSafeDB>, value: string, type: 'string', adapter?: TypeAdapter): TypeSafeStringValueSource<NoTableOrViewRequired<DB>, 'required'>
     const(this: IConnection<TypeUnsafeDB>, value: string, type: 'string', adapter?: TypeAdapter): StringValueSource<NoTableOrViewRequired<DB>, 'required'>
+    const(this: IConnection<TypeSafeDB>, value: string, type: 'uuid', adapter?: TypeAdapter): TypeSafeUuidValueSource<NoTableOrViewRequired<DB>, 'required'>
+    const(this: IConnection<TypeUnsafeDB>, value: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<NoTableOrViewRequired<DB>, 'required'>
     const(this: IConnection<TypeSafeDB>, value: LocalDate, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<NoTableOrViewRequired<DB>, 'required'>
     const(this: IConnection<TypeUnsafeDB>, value: Date, type: 'localDate', adapter?: TypeAdapter): DateValueSource<NoTableOrViewRequired<DB>, 'required'>
     const(this: IConnection<TypeSafeDB>, value: LocalTime, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<NoTableOrViewRequired<DB>, 'required'>
@@ -312,6 +314,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     optionalConst(this: IConnection<TypeUnsafeDB>, value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, 'optional'>
     optionalConst(this: IConnection<TypeSafeDB>, value: string | null | undefined, type: 'string', adapter?: TypeAdapter): TypeSafeStringValueSource<NoTableOrViewRequired<DB>, 'optional'>
     optionalConst(this: IConnection<TypeUnsafeDB>, value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource<NoTableOrViewRequired<DB>, 'optional'>
+    optionalConst(this: IConnection<TypeSafeDB>, value: string | null | undefined, type: 'uuid', adapter?: TypeAdapter): TypeSafeUuidValueSource<NoTableOrViewRequired<DB>, 'optional'>
+    optionalConst(this: IConnection<TypeUnsafeDB>, value: string | null | undefined, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<NoTableOrViewRequired<DB>, 'optional'>
     optionalConst(this: IConnection<TypeSafeDB>, value: LocalDate | null | undefined, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<NoTableOrViewRequired<DB>, 'optional'>
     optionalConst(this: IConnection<TypeUnsafeDB>, value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): DateValueSource<NoTableOrViewRequired<DB>, 'optional'>
     optionalConst(this: IConnection<TypeSafeDB>, value: LocalTime | null | undefined, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<NoTableOrViewRequired<DB>, 'optional'>
@@ -381,6 +385,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'double', required: 'optional', adapter?: TypeAdapter): Promise<number | null>
     protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'string', required: 'required', adapter?: TypeAdapter): Promise<string>
     protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'string', required: 'optional', adapter?: TypeAdapter): Promise<string | null>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'uuid', required: 'required', adapter?: TypeAdapter): Promise<uuid>
+    protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'uuid', required: 'optional', adapter?: TypeAdapter): Promise<uuid | null>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'uuid', required: 'required', adapter?: TypeAdapter): Promise<string>
+    protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'uuid', required: 'optional', adapter?: TypeAdapter): Promise<string | null>
     protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'localDate', required: 'required', adapter?: TypeAdapter): Promise<LocalDate>
     protected executeFunction(this: IConnection<TypeSafeDB>, functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'localDate', required: 'optional', adapter?: TypeAdapter): Promise<LocalDate | null>
     protected executeFunction(this: IConnection<TypeUnsafeDB>, functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'localDate', required: 'required', adapter?: TypeAdapter): Promise<Date>
@@ -465,6 +473,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     fragmentWithType(this: IConnection<TypeSafeDB>, type: 'string', required: 'optional', adapter?: TypeAdapter): TypeSafeStringFragmentExpression<DB, 'optional'>
     fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'string', required: 'required', adapter?: TypeAdapter): StringFragmentExpression<DB, 'required'>
     fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'string', required: 'optional', adapter?: TypeAdapter): StringFragmentExpression<DB, 'optional'>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): TypeSafeUuidFragmentExpression<DB, 'required'>
+    fragmentWithType(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): TypeSafeUuidFragmentExpression<DB, 'optional'>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): UuidFragmentExpression<DB, 'required'>
+    fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): UuidFragmentExpression<DB, 'optional'>
     fragmentWithType(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter): LocalDateFragmentExpression<DB, 'required'>
     fragmentWithType(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'optional', adapter?: TypeAdapter): LocalDateFragmentExpression<DB, 'optional'>
     fragmentWithType(this: IConnection<TypeUnsafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter):  DateFragmentExpression<DB, 'required'>
@@ -521,6 +533,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected arg(this: IConnection<TypeUnsafeDB>, type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', 'combined', number>
     protected arg(type: 'string', required: 'required', adapter?: TypeAdapter): Argument<'string', 'required', 'combined', string>
     protected arg(type: 'string', required: 'optional', adapter?: TypeAdapter): Argument<'string', 'optional', 'combined', string>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'combined', string>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'combined', string>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'combined', uuid>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'combined', uuid>
     protected arg(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', 'combined', LocalDate>
     protected arg(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', 'combined', LocalDate>
     protected arg(this: IConnection<TypeUnsafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', 'combined', Date>
@@ -575,6 +591,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', 'value', number>
     protected valueArg(type: 'string', required: 'required', adapter?: TypeAdapter): Argument<'string', 'required', 'value', string>
     protected valueArg(type: 'string', required: 'optional', adapter?: TypeAdapter): Argument<'string', 'optional', 'value', string>
+    protected valueArg(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'value', string>
+    protected valueArg(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'value', string>
+    protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'value', uuid>
+    protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'value', uuid>
     protected valueArg(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', 'value', LocalDate>
     protected valueArg(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', 'value', LocalDate>
     protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', 'value', Date>
@@ -895,6 +915,11 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                     return value
                 }
                 throw new Error('Invalid string value received from the db: ' + value)
+            case 'uuid':
+                if (typeof value === 'string') {
+                    return value
+                }
+                throw new Error('Invalid uuid value received from the db: ' + value)
             case 'localDate': {
                 let result: Date
                 if (value instanceof Date) {
@@ -1016,6 +1041,11 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                     return value
                 }
                 throw new Error('Invalid string value to send to the db: ' + value)
+            case 'uuid':
+                if (typeof value === 'string') {
+                    return value
+                }
+                throw new Error('Invalid uuid value to send to the db: ' + value)
             case 'localDate':
                 if (value instanceof Date && !isNaN(value.getTime())) {
                     return value

@@ -1,9 +1,90 @@
+import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __getValueSourcePrivate } from "../expressions/values"
 import { AbstractMySqlMariaDBSqlBuilder } from "./AbstractMySqlMariaBDSqlBuilder"
+import { FlatQueryColumns, flattenQueryColumns, SelectData, ToSql } from "./SqlBuilder"
 
 export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mySql: true = true
+    _getUuidStrategy(): 'string' | 'binary' {
+        return this._connectionConfiguration.uuidStrategy as any || 'binary'
+    }
     _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
+    }
+    _appendParam(value: any, params: any[], columnType: string): string {
+        if (columnType === 'uuid' && this._getUuidStrategy() === 'binary') {
+            return 'uuid_to_bin(' + super._appendParam(value, params, columnType) + ')'
+        }
+        return super._appendParam(value, params, columnType)
+    }
+    _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
+        if (isOutermostQuery && this._getUuidStrategy() === 'binary') {
+            if (__getValueSourcePrivate(value).__valueType === 'uuid') {
+                return 'bin_to_uuid(' + this._appendSql(value, params) + ')'
+            }
+        }
+        return this._appendSql(value, params)
+    }
+    _asString(params: any[], valueSource: ToSql): string {
+        // Transform an uuid to string
+        if (this._getUuidStrategy() === 'string') {
+            // No conversion required
+            return this._appendSql(valueSource, params)
+        }
+        return 'bin_to_uuid(' + this._appendSql(valueSource, params) + ')'
+    }
+    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
+        if (isValueSource(aggregatedArrayColumns)) {
+            if (__getValueSourcePrivate(aggregatedArrayColumns).__valueType === 'uuid' && this._getUuidStrategy() === 'binary') {
+                return 'json_arrayagg(bin_to_uuid(' + this._appendSql(aggregatedArrayColumns, params) + '))'
+            }
+            return 'json_arrayagg(' + this._appendSql(aggregatedArrayColumns, params) + ')'
+        } else {
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            let result = ''
+            for (let prop in columns) {
+                if (result) {
+                    result += ', '
+                }
+                result += "'" + prop + "', "
+                const column = columns[prop]!
+                if (__getValueSourcePrivate(column).__valueType === 'uuid' && this._getUuidStrategy() === 'binary') {
+                    result += 'bin_to_uuid(' + this._appendSql(column, params) + ')'
+                } else {
+                    result += this._appendSql(column, params)
+                }
+            }
+
+            return 'json_arrayagg(json_object(' + result + '))'
+        }
+    }
+    _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
+        if (isValueSource(aggregatedArrayColumns)) {
+            if (__getValueSourcePrivate(aggregatedArrayColumns).__valueType === 'uuid' && this._getUuidStrategy() === 'binary') {
+                return 'json_arrayagg(bin_to_uuid(a_' + aggregateId + '_.result))'
+            }
+            return 'json_arrayagg(a_' + aggregateId + '_.result)'
+        } else {
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            let result = ''
+            for (let prop in columns) {
+                if (result) {
+                    result += ', '
+                }
+                result += "'" + prop + "', "
+                const column = columns[prop]!
+                if (__getValueSourcePrivate(column).__valueType === 'uuid' && this._getUuidStrategy() === 'binary') {
+                    result += 'bin_to_uuid(a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
+                } else {
+                    result += 'a_' + aggregateId + '_.' + this._escape(prop, true)
+                }
+            }
+
+            return 'json_arrayagg(json_object(' + result + '))'
+        }
     }
 }
 

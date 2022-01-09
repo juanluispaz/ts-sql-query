@@ -4,7 +4,7 @@
 
 ts-sql-query allows you to define the columns with the following types:
 
-| Comunn type        | Typescript Type      | Extended type   | Description                                                       |
+| Column type        | Typescript Type      | Extended type   | Description                                                       |
 |--------------------|----------------------|-----------------|-------------------------------------------------------------------|
 | `boolean`          | `boolean`            | `boolean`       | Boolean value                                                     |
 | `stringInt`        | `string` or `number` | `stringInt`     | Integer number reprecented as number or string when it is too big |
@@ -13,6 +13,7 @@ ts-sql-query allows you to define the columns with the following types:
 | `stringDouble`     | `string` or `number` | `stringDouble`  | Floating point number reprecented as number or string             |
 | `double`           | `number`             | `double`        | Floating point number                                             |
 | `string`           | `string`             | `string`        | String value                                                      |
+| `uuid`             | `string`             | `uuid`          | UUID value                                                        |
 | `localDate`        | `Date`               | `LocalDate`     | Date without time                                                 |
 | `localTime`        | `Date`               | `LocalTime`     | Time without date                                                 |
 | `localDateTime`    | `Date`               | `LocalDateTime` | Date with time                                                    |
@@ -32,6 +33,7 @@ this.column('ColumnName', 'bigint')
 this.column('ColumnName', 'stringDouble')
 this.column('ColumnName', 'double')
 this.column('ColumnName', 'string')
+this.column('ColumnName', 'uuid')
 this.column('ColumnName', 'localDate')
 this.column('ColumnName', 'localTime')
 this.column('ColumnName', 'localDateTime')

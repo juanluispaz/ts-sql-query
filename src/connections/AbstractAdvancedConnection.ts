@@ -1,7 +1,7 @@
 import type { AnyDB, TypeSafeDB } from "../databases"
 import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { BooleanValueSource, StringIntValueSource, StringNumberValueSource, IntValueSource, NumberValueSource, StringDoubleValueSource, DoubleValueSource, TypeSafeStringValueSource, StringValueSource, LocalDateValueSource, DateValueSource, LocalTimeValueSource, TimeValueSource, LocalDateTimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource } from "../expressions/values"
+import type { BooleanValueSource, StringIntValueSource, StringNumberValueSource, IntValueSource, NumberValueSource, StringDoubleValueSource, DoubleValueSource, TypeSafeStringValueSource, StringValueSource, LocalDateValueSource, DateValueSource, LocalTimeValueSource, TimeValueSource, LocalDateTimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource, TypeSafeUuidValueSource, UuidValueSource } from "../expressions/values"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { IConnection } from "../utils/IConnection"
 import type { Sequence } from "../expressions/sequence";
@@ -28,6 +28,8 @@ export abstract class AbstractAdvancedConnection<DB extends AnyDB> extends Abstr
     protected sequence(name: string, type: 'double', adapter?: TypeAdapter): Sequence<NumberValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'string', adapter?: TypeAdapter): Sequence<TypeSafeStringValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'string', adapter?: TypeAdapter): Sequence<StringValueSource<NoTableOrViewRequired<DB>, 'required'>>
+    protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'uuid', adapter?: TypeAdapter): Sequence<TypeSafeUuidValueSource<NoTableOrViewRequired<DB>, 'required'>>
+    protected sequence(name: string, type: 'uuid', adapter?: TypeAdapter): Sequence<UuidValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'localDate', adapter?: TypeAdapter): Sequence<LocalDateValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'localDate', adapter?: TypeAdapter): Sequence<DateValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<LocalTimeValueSource<NoTableOrViewRequired<DB>, 'required'>>

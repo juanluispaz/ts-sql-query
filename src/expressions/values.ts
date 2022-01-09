@@ -1,8 +1,8 @@
 import type { ITableOrView, ITableOrViewOf, TableOrViewRef, HasAddWiths } from "../utils/ITableOrView"
 import type { AnyDB } from "../databases"
-import type { int, double, /*LocalDate, LocalTime, LocalDateTime,*/ stringDouble, stringInt, LocalTime, LocalDateTime, LocalDate } from "ts-extended-types"
+import type { int, double, /*LocalDate, LocalTime, LocalDateTime,*/ stringDouble, stringInt, LocalTime, LocalDateTime, LocalDate, uuid } from "ts-extended-types"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { aggregatedArrayValueSourceType, anyBooleanValueSourceType, bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, optionalType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, valueSourceType } from "../utils/symbols"
+import type { aggregatedArrayValueSourceType, anyBooleanValueSourceType, bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, optionalType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, typeSafeUuidValueSourceType, uuidValueSourceType, valueSourceType } from "../utils/symbols"
 import { valueType, valueSourceTypeName, isValueSourceObject } from "../utils/symbols"
 
 export type OptionalType = 'required' | 'requiredInOptionalObject'  | 'originallyRequired' | 'optional' // sorted from the more strict to less strict
@@ -72,6 +72,7 @@ export interface __ValueSourcePrivate extends HasAddWiths {
     __isBooleanForCondition?: boolean
     __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource
     __aggregatedArrayMode?: __AggregatedArrayMode
+    __uuidString?: boolean
 
     isConstValue(): boolean
     getConstValue(): any
@@ -1613,6 +1614,32 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     asRequiredInOptionalObject(): TypeSafeStringValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
 }
 
+export interface IUuidValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, string, 'UuidValueSource', OPTIONAL_TYPE> {
+    [uuidValueSourceType]: 'UuidValueSource'
+}
+
+export interface UuidValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, string, 'UuidValueSource', OPTIONAL_TYPE>, IUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
+    asString(): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // Redefined methods
+    valueWhenNull(value: string): UuidValueSource<TABLE_OR_VIEW, 'required'>
+    valueWhenNull<VALUE extends IValueSource<TableOrViewRef<this[typeof database]>, string, this[typeof valueSourceTypeName], any>>(value: VALUE): UuidValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], VALUE[typeof optionalType]>
+    asOptional(): UuidValueSource<TABLE_OR_VIEW, 'optional'>
+    asRequiredInOptionalObject(): UuidValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+}
+
+export interface ITypeSafeUuidValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, uuid, 'TypeSafeUuidValueSource', OPTIONAL_TYPE> {
+    [typeSafeUuidValueSourceType]: 'TypeSafeUuidValueSource'
+}
+
+export interface TypeSafeUuidValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, uuid, 'TypeSafeUuidValueSource', OPTIONAL_TYPE>, ITypeSafeUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
+    asString(): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // Redefined methods
+    valueWhenNull(value: uuid): TypeSafeUuidValueSource<TABLE_OR_VIEW, 'required'>
+    valueWhenNull<VALUE extends IValueSource<TableOrViewRef<this[typeof database]>, uuid, this[typeof valueSourceTypeName], any>>(value: VALUE): TypeSafeUuidValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], VALUE[typeof optionalType]>
+    asOptional(): TypeSafeUuidValueSource<TABLE_OR_VIEW, 'optional'>
+    asRequiredInOptionalObject(): TypeSafeUuidValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+}
+
 export interface IDateValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, Date, 'DateValueSource', OPTIONAL_TYPE> {
     [dateValueSourceType]: 'DateValueSource'
 }
@@ -1776,6 +1803,8 @@ export type RemapValueSourceType<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TY
         TYPE extends INumberValueSource<any, any> ? NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ITypeSafeStringValueSource<any, any> ? TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IStringValueSource<any, any> ? StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ITypeSafeUuidValueSource<any, any> ? TypeSafeUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends IUuidValueSource<any, any> ? UuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ILocalDateTimeValueSource<any, any> ? LocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IDateTimeValueSource<any, any> ? DateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ILocalDateValueSource<any, any> ? LocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1803,6 +1832,8 @@ export type RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW extends TableOrVi
         TYPE extends INumberValueSource<any, any> ? NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ITypeSafeStringValueSource<any, any> ? TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IStringValueSource<any, any> ? StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ITypeSafeUuidValueSource<any, any> ? TypeSafeUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends IUuidValueSource<any, any> ? UuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ILocalDateTimeValueSource<any, any> ? LocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IDateTimeValueSource<any, any> ? DateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ILocalDateValueSource<any, any> ? LocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1829,6 +1860,8 @@ export type RemapIValueSourceType<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, T
         TYPE extends INumberValueSource<any, any> ? INumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ITypeSafeStringValueSource<any, any> ? ITypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IStringValueSource<any, any> ? IStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ITypeSafeUuidValueSource<any, any> ? ITypeSafeUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends IUuidValueSource<any, any> ? IUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ILocalDateTimeValueSource<any, any> ? ILocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IDateTimeValueSource<any, any> ? IDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ILocalDateValueSource<any, any> ? ILocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1855,6 +1888,8 @@ export type RemapIValueSourceTypeWithOptionalType<TABLE_OR_VIEW extends TableOrV
         TYPE extends INumberValueSource<any, any> ? INumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ITypeSafeStringValueSource<any, any> ? ITypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IStringValueSource<any, any> ? IStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ITypeSafeUuidValueSource<any, any> ? ITypeSafeUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends IUuidValueSource<any, any> ? IUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ILocalDateTimeValueSource<any, any> ? ILocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IDateTimeValueSource<any, any> ? IDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ILocalDateValueSource<any, any> ? ILocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1870,7 +1905,7 @@ export type RemapIValueSourceTypeWithOptionalType<TABLE_OR_VIEW extends TableOrV
 
 
 
-export type ArgumentType = 'boolean' | 'stringInt' | 'int' | 'stringDouble' | 'double' | 'bigint' | 'string' | 'localDateTime' | 'localDate' | 'localTime' | 'customComparable' | 'enum' | 'custom'
+export type ArgumentType = 'boolean' | 'stringInt' | 'int' | 'stringDouble' | 'double' | 'bigint' | 'string' | 'uuid' | 'localDateTime' | 'localDate' | 'localTime' | 'customComparable' | 'enum' | 'custom'
 export type ArgumentOptionalType = 'required' | 'optional'
 export type ArgumentMode = 'value' | 'combined'
 export class Argument<T extends ArgumentType, OPTIONAL_TYPE extends ArgumentOptionalType, MODE extends ArgumentMode, TYPE, TYPE_NAME = any> {
@@ -1902,6 +1937,7 @@ export type MapArgumentToTypeSafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, A
         TYPE extends 'double' ? DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'bigint' ? TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'string' ? TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'uuid' ? TypeSafeUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localDateTime' ? LocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localDate' ? LocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localTime' ? LocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1920,6 +1956,7 @@ export type MapArgumentToTypeUnsafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>,
         TYPE extends 'double' ? NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'bigint' ? BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'string' ? StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'uuid' ? UuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localDateTime' ? DateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localDate' ? DateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localTime' ? TimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1938,6 +1975,7 @@ export type MapArgumentToITypeSafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, 
         TYPE extends 'double' ? IDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'bigint' ? ITypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'string' ? ITypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'uuid' ? ITypeSafeUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localDateTime' ? ILocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localDate' ? ILocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localTime' ? ILocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1956,6 +1994,7 @@ export type MapArgumentToITypeUnsafe<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
         TYPE extends 'double' ? INumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'bigint' ? IBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'string' ? IStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'uuid' ? IUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localDateTime' ? IDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localDate' ? IDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localTime' ? ITimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1974,6 +2013,7 @@ export type MapArgumentToITypeSafeAsAnyOptionalType<TABLE_OR_VIEW extends TableO
         TYPE extends 'double' ? IDoubleValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'bigint' ? ITypeSafeBigintValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'string' ? ITypeSafeStringValueSource<TABLE_OR_VIEW, any> :
+        TYPE extends 'uuid' ? ITypeSafeUuidValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'localDateTime' ? ILocalDateTimeValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'localDate' ? ILocalDateValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'localTime' ? ILocalTimeValueSource<TABLE_OR_VIEW, any> :
@@ -1992,6 +2032,7 @@ export type MapArgumentToITypeUnsafeAsAnyOptionalType<TABLE_OR_VIEW extends Tabl
         TYPE extends 'double' ? INumberValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'bigint' ? IBigintValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'string' ? IStringValueSource<TABLE_OR_VIEW, any> :
+        TYPE extends 'uuid' ? IUuidValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'localDateTime' ? IDateTimeValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'localDate' ? IDateValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'localTime' ? ITimeValueSource<TABLE_OR_VIEW, any> :

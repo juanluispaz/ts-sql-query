@@ -10,12 +10,46 @@ import { TypeSafeMariaDBConnection } from "ts-sql-query/connections/TypeSafeMari
 class DBConection extends TypeSafeMariaDBConnection<'DBConnection'> { }
 ```
 
+### UUID strategies in MariaDB
+
+ts-sql-query offers you different strategies to handle UUIDs in MariaDB:
+
+- `uuid`: *(default strategy)* In this case, the UUID is represented as string and stored in a column with `uuid` data type. This requires MariaDB 10.7 or higher.
+- `string`: In this case, the UUID is represented as string and stored in a column with `char`/`varchar`/`text` data type and length 36 characters.
+
+To change the UUID strategy, you must set the `uuidStrategy` field in the connection object:
+
+```ts
+import { TypeSafeMariaDBConnection } from "ts-sql-query/connections/TypeSafeMariaDBConnection";
+
+class DBConection extends TypeSafeMariaDBConnection<'DBConnection'> {
+    protected uuidStrategy = 'string' as const
+}
+```
+
 ## MySql
 
 ```ts
 import { TypeSafeMySqlConnection } from "ts-sql-query/connections/TypeSafeMySqlConnection";
 
 class DBConection extends TypeSafeMySqlConnection<'DBConnection'> { }
+```
+
+### UUID strategies in MySql
+
+ts-sql-query offers you different strategies to handle UUIDs in MySql:
+
+- `binary`: *(default strategy)* In this case, the UUID is represented and stored as `binary` data type of lenght 16. This requires MySql 8 as minimum.
+- `string`: In this case, the UUID is represented as string and stored in a column with `char`/`varchar`/`text` data type and length 36 characters.
+
+To change the UUID strategy, you must set the `uuidStrategy` field in the connection object:
+
+```ts
+import { TypeSafeMySqlConnection } from "ts-sql-query/connections/TypeSafeMySqlConnection";
+
+class DBConection extends TypeSafeMySqlConnection<'DBConnection'> {
+    protected uuidStrategy = 'string' as const
+}
 ```
 
 ## Oracle
@@ -27,6 +61,74 @@ class DBConection extends TypeSafeOracleConnection<'DBConnection'> { }
 ```
 
 **Note**: Oracle doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a number where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](advanced-usage.md#custom-booleans-values) for more information.
+
+### UUID strategies in Oracle
+
+ts-sql-query offers you different strategies to handle UUIDs in Sqlite:
+
+- `custom-functions`: *(default strategy)* In this case, the UUID is represented and stored as `raw` data type of lenght 16. This requires you must define in the database the functions `uuid_to_raw` and `raw_to_uuid` that allows to transform the uuid string to a raw value.
+- `string`: In this case, the UUID is represented as string and stored in a column with `char` data type and length 36 characters.
+
+To change the UUID strategy, you must set the `uuidStrategy` field in the connection object:
+
+```ts
+import { TypeSafeOracleConnection } from "ts-sql-query/connections/TypeSafeOracleConnection";
+
+class DBConection extends TypeSafeOracleConnection<'DBConnection'> {
+    protected uuidStrategy = 'string' as const
+}
+```
+
+### UUID utility functions for Oracle
+
+The `custom-functions` required `uuid_to_raw` and `raw_to_uuid` functions exists in the database.
+
+An implemntation of these functions based on [binary-uuid](https://github.com/odo-network/binary-uuid) and optimized fo UUID v1 is:
+
+```sql
+CREATE FUNCTION uuid_to_raw(uuid IN char) RETURN raw IS
+	hex_text nvarchar2(36);
+BEGIN 
+	hex_text := REPLACE(uuid, '-');
+	RETURN HEXTORAW(SUBSTR (hex_text, 13, 4) || 
+                    SUBSTR (hex_text, 9, 4) || 
+                    SUBSTR (hex_text, 0, 8) || 
+                    SUBSTR (hex_text, 17));
+END uuid_to_raw;
+
+CREATE FUNCTION raw_to_uuid(raw_uuid IN raw) RETURN char IS
+	hex_text char(32);
+BEGIN 
+	hex_text := RAWTOHEX(raw_uuid);
+    -- If you want the lower-case version wrap the expression in lower( ... )
+    RETURN SUBSTR (hex_text, 9, 8) || '-' || 
+           SUBSTR (hex_text, 5, 4) || '-' || 
+           SUBSTR (hex_text, 0, 4) || '-' || 
+           SUBSTR (hex_text, 17, 4) || '-' || 
+           SUBSTR (hex_text, 21);
+END raw_to_uuid;
+```
+
+The simplest implementation of these functions that doesn't reorder the bytes is:
+
+```sql
+CREATE FUNCTION uuid_to_raw(uuid IN char) RETURN raw AS
+BEGIN 
+    RETURN HEXTORAW(REPLACE(uuid, '-'));
+END uuid_to_raw;
+
+CREATE FUNCTION raw_to_uuid(raw_uuid IN raw) RETURN char IS
+	hex_text char(32);
+BEGIN 
+	hex_text := RAWTOHEX(raw_uuid);
+    -- If you want the lower-case version wrap the expression in lower( ... )
+    RETURN SUBSTR (hex_text, 1, 8) || '-' || 
+           SUBSTR (hex_text, 9, 4) || '-' || 
+           SUBSTR (hex_text, 13, 4) || '-' || 
+           SUBSTR (hex_text, 17, 4) || '-' || 
+           SUBSTR (hex_text, 21);
+END raw_to_uuid;
+```
 
 ## PostgreSql
 
@@ -51,10 +153,10 @@ class DBConection extends TypeSafeSqliteConnection<'DBConnection'> { }
 ts-sql-query offers you different strategies to handle date and time in the database compatible with [sqlite date and time functions](https://www.sqlite.org/lang_datefunc.html). To define the strategy to be used, you must overwrite the `getDateTimeFormat` function; this function receives as an argument the type of date to handle (`date`, `time`, `dateTime`) and returns the strategy to use for that specific case. In addition, there are three properties (`treatUnexpectedIntegerDateTimeAsJulian`, `treatUnexpectedStringDateTimeAsUTC`, and `unexpectedUnixDateTimeAreMilliseconds`) that allow controlling how to deal with the cases when the expected format is not the one stored in the database. Example:
 
 ```ts
-import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
+import { TypeSafeMySqlConnection } from "ts-sql-query/connections/TypeSafeMySqlConnection";
 import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "ts-sql-query/connections/SqliteConfiguration";
 
-class DBConnection extends SqliteConnection<'DBConnection'> {
+class DBConection extends TypeSafeMySqlConnection<'DBConnection'> {
     protected getDateTimeFormat(type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         switch(type) {
             case 'date':
@@ -144,6 +246,23 @@ When a value is returned from the database that is different from the defined st
     - By default, this unexpected UNIX time is understood as the number of seconds from the beginning of the UNIX time (*1970-01-01*).
     - If you set this property to *true*, you force to treat this UNIX time as the number of milliseconds from the beginning of the UNIX time (*1970-01-01*).
 
+### UUID strategies in Sqlite
+
+ts-sql-query offers you different strategies to handle UUIDs in Sqlite:
+
+- `uuid-extension`: *(default strategy)* In this case, the UUID is represented and stored as `blob` data type of lenght 16. This requires the [uuid extension](https://sqlite.org/src/file?name=ext/misc/uuid.c) or any other compatible implementation (if you use better-sqlite3 you can [provide your own one](query-runners/recommended-query-runners.md#better-sqlite3-and-uuids))
+- `string`: In this case, the UUID is represented as string and stored in a column with `text` data type and length 36 characters.
+
+To change the UUID strategy, you must set the `uuidStrategy` field in the connection object:
+
+```ts
+import { TypeSafeSqliteConnection } from "ts-sql-query/connections/TypeSafeSqliteConnection";
+
+class DBConection extends TypeSafeSqliteConnection<'DBConnection'> {
+    protected uuidStrategy = 'string' as const
+}
+```
+
 ### Compatibility mode
 
 The compatibility mode avoid to use the newer syntax introduces in the newer versions of sqlite
@@ -156,8 +275,10 @@ The newer syntax are:
 By default the compatibility mode is enabled. To disable the compatibility mode you must set the `compatibilityMode` property of the connection to false.
 
 ```ts
-class DBConection extends SqliteConnection<'DBConnection'> {
-    compatibilityMode = false
+import { TypeSafeSqliteConnection } from "ts-sql-query/connections/TypeSafeSqliteConnection";
+
+class DBConection extends TypeSafeSqliteConnection<'DBConnection'> {
+    protected compatibilityMode = false
 }
 ```
 
@@ -172,3 +293,30 @@ class DBConection extends TypeSafeSqlServerConnection<'DBConnection'> { }
 **Note**: An empty string will be treated as a null value; if you need to allow empty string set the `allowEmptyString` property to true in the connection object.
 
 **Note**: Sql Server doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a bit where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](advanced-usage.md#custom-booleans-values) for more information.
+
+### UUID in SqlServer
+
+Is SqlServer UUID are stored in a column of type `uniqueidentifier` that keeps the UUIDs in upper-case, if you whant to transform to lower-case during the projection you can do the following:
+
+```ts
+import { TypeSafeSqlServerConnection } from "ts-sql-query/connections/TypeSafeSqlServerConnection";
+
+class DBConection extends TypeSafeSqlServerConnection<'DBConnection'> {
+    protected transformValueFromDB(value: unknown, type: string): unknown {
+        const result = super.transformValueFromDB(value, type);
+        if (result && type === 'uuid') {
+            return (result as string).toLowerCase();
+        }
+        return result;
+    }
+    protected transformValueToDB(value: unknown, type: string): unknown {
+        const result = super.transformValueToDB(value, type);
+        if (result && type === 'uuid') {
+            return (result as string).toUpperCase();
+        }
+        return result;
+    }
+}
+```
+
+**Note**: If you use Prisma, this is done automatically.

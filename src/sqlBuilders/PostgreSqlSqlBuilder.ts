@@ -39,6 +39,10 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     _asDouble(params: any[], valueSource: ToSql): string {
         return this._appendSqlParenthesis(valueSource, params) + '::float'
     }
+    _asString(params: any[], valueSource: ToSql): string {
+        // Transform an uuid to string
+        return this._appendSqlParenthesis(valueSource, params) + '::text'
+    }
     _divide(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + '::float / ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + '::float'
     }

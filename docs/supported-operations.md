@@ -268,6 +268,13 @@ interface StringValueSource extends ComparableValueSource {
 }
 
 /**
+ * Represents an UUID
+ */
+ interface UuidValueSource extends ComparableValueSource {
+    asString(): string
+ }
+
+/**
  * Represents a local date without time (using a Date object)
  */
 interface DateValueSource extends ComparableValueSource {
@@ -388,6 +395,7 @@ interface Connection {
     const(value: number | string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     const(value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource
     const(value: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    const(value: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     const(value: Date, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     const(value: Date, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     const(value: Date, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
@@ -403,6 +411,7 @@ interface Connection {
     optionalConst(value: number | string | null | undefined, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalConst(value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalConst(value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource
+    optionalConst(value: string | null | undefined, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     optionalConst(value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     optionalConst(value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     optionalConst(value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
@@ -453,13 +462,14 @@ interface Connection {
     fragmentWithType(type: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    fragmentWithType(type: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType<T, TYPE_NAME = T>(type: 'enum', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType<T, TYPE_NAME = T>(type: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
-
+    
     /** 
      * This is a template, you can call as: .rawFragment`sql text with ${valueSourceParam}` 
      */
@@ -476,6 +486,7 @@ interface Connection {
     executeFunction(functionName: string, params: ValueSource[], returnType: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
     executeFunction(functionName: string, params: ValueSource[], returnType: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
     executeFunction(functionName: string, params: ValueSource[], returnType: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
+    executeFunction(functionName: string, params: ValueSource[], returnType: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
     executeFunction(functionName: string, params: ValueSource[], returnType: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
     executeFunction(functionName: string, params: ValueSource[], returnType: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
     executeFunction(functionName: string, params: ValueSource[], returnType: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
@@ -491,6 +502,7 @@ interface Connection {
     sequence(name: string, type: 'stringDouble', adapter?: TypeAdapter): Sequence<StringNumberValueSource>
     sequence(name: string, type: 'double', adapter?: TypeAdapter): Sequence<NumberValueSource>
     sequence(name: string, type: 'string', adapter?: TypeAdapter): Sequence<StringValueSource>
+    sequence(name: string, type: 'uuid', adapter?: TypeAdapter): Sequence<UuidValueSource>
     sequence(name: string, type: 'localDate', adapter?: TypeAdapter): Sequence<DateValueSource>
     sequence(name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<TimeValueSource>
     sequence(name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<DateTimeValueSource>
@@ -509,6 +521,7 @@ interface Connection {
     arg(type: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    arg(type: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
@@ -526,6 +539,7 @@ interface Connection {
     valueArg(type: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    valueArg(type: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
@@ -654,6 +668,7 @@ interface Table {
     column(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    column(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     column(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     column(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     column(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
@@ -669,6 +684,7 @@ interface Table {
     optionalColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    optionalColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
@@ -684,6 +700,7 @@ interface Table {
     columnWithDefaultValue(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     columnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     columnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    columnWithDefaultValue(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     columnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     columnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     columnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
@@ -699,6 +716,7 @@ interface Table {
     optionalColumnWithDefaultValue(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    optionalColumnWithDefaultValue(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     optionalColumnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     optionalColumnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     optionalColumnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
@@ -715,6 +733,7 @@ interface Table {
     autogeneratedPrimaryKey(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     autogeneratedPrimaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     autogeneratedPrimaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    autogeneratedPrimaryKey(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     autogeneratedPrimaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     autogeneratedPrimaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     autogeneratedPrimaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
@@ -731,6 +750,7 @@ interface Table {
     primaryKey(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     primaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     primaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    primaryKey(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     primaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     primaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     primaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
@@ -748,6 +768,7 @@ interface Table {
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
@@ -763,6 +784,7 @@ interface Table {
     computedColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     computedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     computedColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    computedColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     computedColumn(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     computedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     computedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
@@ -778,6 +800,7 @@ interface Table {
     optionalComputedColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalComputedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalComputedColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    optionalComputedColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     optionalComputedColumn(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     optionalComputedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     optionalComputedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
@@ -806,6 +829,7 @@ interface View {
     column(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    column(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     column(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     column(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     column(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
@@ -821,6 +845,7 @@ interface View {
     optionalColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
+    optionalColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource
     optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
@@ -1582,6 +1607,7 @@ type FilterType = DynamicCondition<{
     myStringDouble: 'stringDouble'
     myDouble: 'double'
     myString: 'string'
+    myUuid: 'uuid'
     myLocalDate: 'localDate'
     myLocalTime: 'localTime'
     myLocalDateTime: 'localDateTime'
@@ -1605,6 +1631,7 @@ type FilterType = {
     myStringDouble: ComparableFilter<string | number>
     myDouble: ComparableFilter<number>
     myString: StringFilter
+    myString: StringFilter
     myLocalDate: ComparableFilter<Date>
     myLocalTime: ComparableFilter<Date>
     myLocalDateTime: ComparableFilter<Date>
@@ -1614,6 +1641,8 @@ type FilterType = {
 }
 
 ```
+
+**Note**: for convenience, `uuid` type will be treated as string type, calling `asString()` method automatically in all methods defined in the `StringFilter` interface.
 
 You can use the properties `and`, `or` and `not` to perform the logical operations. If you specify multiple elements to the `FilterType`, all of them will be joined using the and operator. The same happens with the elements specified in the `and` array. But the elements will be joined using the or operator in the case of the `or` array.
 

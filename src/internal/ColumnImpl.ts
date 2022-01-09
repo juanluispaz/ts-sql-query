@@ -116,6 +116,9 @@ export function createColumnsFrom(columns: QueryColumns, target: QueryColumns, t
                 withColumn.__aggregatedArrayColumns = columnPrivate.__aggregatedArrayColumns
                 withColumn.__aggregatedArrayMode = columnPrivate.__aggregatedArrayMode
             }
+            if (columnPrivate.__uuidString) {
+                withColumn.__uuidString = columnPrivate.__uuidString
+            }
             target[property] = withColumn
         } else {
             const newTarget = {}
@@ -166,6 +169,9 @@ export function createColumnsFromInnerObject(columns: QueryColumns, target: Quer
             if (columnPrivate.__aggregatedArrayColumns) {
                 withColumn.__aggregatedArrayColumns = columnPrivate.__aggregatedArrayColumns
                 withColumn.__aggregatedArrayMode = columnPrivate.__aggregatedArrayMode
+            }
+            if (columnPrivate.__uuidString) {
+                withColumn.__uuidString = columnPrivate.__uuidString
             }
             target[property] = withColumn
         } else {

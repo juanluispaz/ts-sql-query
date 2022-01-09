@@ -6,6 +6,8 @@ import { AbstractConnection } from "./AbstractConnection"
 
 export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB | TypeSafeDB)> extends AbstractConnection<DB> {
 
+    protected uuidStrategy: 'string' | 'uuid-extension' = 'uuid-extension'
+    
     constructor(queryRunner: QueryRunner, sqlBuilder: SqliteSqlBuilder) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('sqlite')

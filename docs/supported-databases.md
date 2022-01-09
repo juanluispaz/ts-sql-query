@@ -309,13 +309,6 @@ class DBConection extends SqlServerConnection<'DBConnection'> {
         }
         return result;
     }
-    protected transformValueToDB(value: unknown, type: string): unknown {
-        const result = super.transformValueToDB(value, type);
-        if (result && type === 'uuid') {
-            return (result as string).toUpperCase();
-        }
-        return result;
-    }
 }
 ```
 

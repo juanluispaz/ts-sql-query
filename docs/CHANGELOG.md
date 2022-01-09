@@ -1,5 +1,32 @@
 # Change Log
 
+## v1.25.0 (9 Jan 2022)
+
+**Changes**:
+
+- Implements `forUseAsInlineAggregatedArrayValue` function, that allows to transform a query in create an array value of a single column (if it is single-column query), or an object where the rows are represented as an object
+- Implements `aggregateAsArray` aggregation function, that allows to create an value that contains, per each row, an array of a single column, or an array with several columns represented as an object
+- Add support to the `uuid` type
+- Add support to `orderByFromStringIfValue`, `limitIfValue` and `offsetIfValue`
+- Add support to subqueries that contains with clause with external/contextual dependencies
+- Add support to compose over optional properties
+- Add support to `withOptionalMany` composing rule that allows to use undefined instead of an empty array when no value
+- Detect invalid queries in SqlServer, Oracle and MariaDB when an outer reference is used to create a query that is not supported by the database because no outer references are allowed in inner with, or, in MariaDB, no outer references are allowed in inner from
+- Combine multiple concat expressions in a single concat function call in MySql and MariaDB
+
+**Documentation changes**:
+
+- Add a note in the `mergeType` function documentation warning about the reader evaluate the preferred alternatives first
+
+**Bug fixes**:
+
+- Fix invalid query when a table alias is specified in Oracle
+- Fix invalid recursive query in Sql Server
+- Fix invalid recursive query in Oracle
+- Fix invalid query when `contains` method of a string value source is called in MySql/MariaDB
+- Fix `substrToEnd`, `substringToEnd`, `substr` and `substring`: now the index is according to JavaScript definition (the count start in 0) and the parameters have the correct type
+- Fix invalid type when a mathematical function is used and the provided value is not the same type that the column
+
 ## v1.24.0 (21 Dec 2021)
 
 **Changes**:

@@ -2217,11 +2217,19 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _concat(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesisExcluding(valueSource, params, '_concat') + ' || ' + this._appendValueParenthesisExcluding(value, params, columnType, typeAdapter, '_concat')
     }
-    _substrToEnd(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+    _substrToEnd(params: any[], valueSource: ToSql, value: any, _columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (typeof value === 'number') {
+            return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', typeAdapter) + ')'
+        } else {
+            return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', typeAdapter) + ' + 1)'
+        }
     }
-    _substringToEnd(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+    _substringToEnd(params: any[], valueSource: ToSql, value: any, _columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (typeof value === 'number') {
+            return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', typeAdapter) + ')'
+        } else {
+            return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', typeAdapter) + ' + 1)'
+        }
     }
     _power(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'power(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
@@ -2257,15 +2265,23 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'atan2(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
     }
     // SqlFunction2
-    _substr(params: any[], valueSource: ToSql, value: any, value2: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(value2, params, columnType, typeAdapter) + ')'
+    _substr(params: any[], valueSource: ToSql, value: any, value2: any, _columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (typeof value === 'number') {
+            return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', typeAdapter) + ', ' + this._appendValue(value2, params, 'int', typeAdapter) + ')'
+        } else {
+            return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', typeAdapter) + ' + 1, ' + this._appendValue(value2, params, 'int', typeAdapter) + ')'
+        }
     }
-    _substring(params: any[], valueSource: ToSql, value: any, value2: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _substring(params: any[], valueSource: ToSql, value: any, value2: any, _columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeof value === 'number' && typeof value2 === 'number') {
             const count = value2 - value
-            return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(count, params, columnType, typeAdapter) + ')'
+            return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', typeAdapter) + ', ' + this._appendValue(count, params, 'int', typeAdapter) + ')'
         }
-        return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(value2, params, columnType, typeAdapter) + ' - ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+        if (typeof value === 'number') {
+            return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', typeAdapter) + ', ' + this._appendValue(value2, params, 'int', typeAdapter) + ' - ' + this._appendValue(value, params, 'int', typeAdapter) + ')'
+        } else {
+            return 'substr(' + this._appendSql(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', typeAdapter) + ' + 1, ' + this._appendValue(value2, params, 'int', typeAdapter) + ' - ' + this._appendValue(value, params, 'int', typeAdapter) + ')'
+        }
     }
     _replaceAll(params: any[], valueSource: ToSql, value: any, value2: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'replace(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendValue(value2, params, columnType, typeAdapter) + ')'

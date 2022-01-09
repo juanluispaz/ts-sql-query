@@ -573,7 +573,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'nvl(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
     }
     _divide(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params) + ' / ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
+        return this._appendSqlParenthesis(valueSource, params) + ' / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, value), typeAdapter)
     }
     _asDouble(params: any[], valueSource: ToSql): string {
         return 'cast(' + this._appendSql(valueSource, params) + ' as float)'

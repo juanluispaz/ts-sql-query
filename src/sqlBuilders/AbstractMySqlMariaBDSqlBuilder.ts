@@ -252,7 +252,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return 'not (' + this._appendSqlParenthesis(valueSource, params) + ' <=> ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + ')'
     }
     _divide(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params) + ' / ' + this._appendValueParenthesis(value, params, columnType, typeAdapter)
+        return this._appendSqlParenthesis(valueSource, params) + ' / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, value), typeAdapter)
     }
     _asDouble(params: any[], valueSource: ToSql): string {
         return this._appendSqlParenthesis(valueSource, params) + ' * 1.0'
@@ -398,7 +398,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return 'power(' + this._appendSql(valueSource, params) + ', 3)'
     }
     _logn(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'log(' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ')'
+        return 'log(' + this._appendValue(value, params, this._getMathArgumentType(columnType, value), typeAdapter) + ', ' + this._appendSql(valueSource, params) + ')'
     }
     _getDate(params: any[], valueSource: ToSql): string {
         return 'dayofmonth(' + this._appendSql(valueSource, params) + ')'

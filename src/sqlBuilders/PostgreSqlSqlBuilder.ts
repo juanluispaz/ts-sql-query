@@ -44,7 +44,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         return this._appendSqlParenthesis(valueSource, params) + '::text'
     }
     _divide(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params) + '::float / ' + this._appendValueParenthesis(value, params, columnType, typeAdapter) + '::float'
+        return this._appendSqlParenthesis(valueSource, params) + '::float / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, value), typeAdapter) + '::float'
     }
     _equalsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation

@@ -598,7 +598,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 'rand()'
     }
     _divide(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'cast(' + this._appendSql(valueSource, params) + ' as float) / cast(' + this._appendValue(value, params, columnType, typeAdapter) + ' as float)'
+        return 'cast(' + this._appendSql(valueSource, params) + ' as float) / cast(' + this._appendValue(value, params, this._getMathArgumentType(columnType, value), typeAdapter) + ' as float)'
     }
     _asDouble(params: any[], valueSource: ToSql): string {
         return 'cast(' + this._appendSql(valueSource, params) + 'as float)'
@@ -631,26 +631,28 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 'power(' + valueSource.__toSql(this, params) + ', 3)'
     }
     _atan2(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'atn2(' + valueSource.__toSql(this, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+        return 'atn2(' + valueSource.__toSql(this, params) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, value), typeAdapter) + ')'
     }
     _minValue(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'iif(' + this._appendSql(valueSource, params) + ' < ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+        const argumentType = this._getMathArgumentType(columnType, value)
+        return 'iif(' + this._appendSql(valueSource, params) + ' < ' + this._appendValue(value, params, argumentType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, argumentType, typeAdapter) + ')'
         // Alternative implementation that avoid evaluate multiple times the arguments
         // if (isColumn(valueSource) || !isValueSource(valueSource) || valueSource.isConstValue()) {
         //     if (isColumn(value) || !isValueSource(value) || value.isConstValue()) {
         //         // Both values are repeteables, then, we can use the sql that compare both values repeting them
-        //         return 'iif(' + this._appendSql(valueSource, params) + ' < ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+        //         return 'iif(' + this._appendSql(valueSource, params) + ' < ' + this._appendValue(value, params, argumentType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, argumentType, typeAdapter) + ')'
         //     }
         // }
         // return '(select min(__minValue__) from (values (' + this._appendSql(valueSource, params) + '), (' + this._appendSql(valueSource, params) + ')) as __minValueTable__(__minValue__))'
     }
     _maxValue(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'iif(' + this._appendSql(valueSource, params) + ' > ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+        const argumentType = this._getMathArgumentType(columnType, value)
+        return 'iif(' + this._appendSql(valueSource, params) + ' > ' + this._appendValue(value, params, argumentType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, argumentType, typeAdapter) + ')'
         // Alternative implementation that avoid evaluate multiple times the arguments
         // if (isColumn(valueSource) || !isValueSource(valueSource) || valueSource.getConstValue()) {
         //     if (isColumn(value) || !isValueSource(value) || value.isConstValue()) {
         //         // Both values are repeteables, then, we can use the sql that compare both values repeting them
-        //         return 'iif(' + this._appendSql(valueSource, params) + ' > ' + this._appendValue(value, params, columnType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+        //         return 'iif(' + this._appendSql(valueSource, params) + ' > ' + this._appendValue(value, params, argumentType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, argumentType, typeAdapter) + ')'
         //     }
         // }
         // return '(select max(__maxValue__) from (values (' + this._appendSql(valueSource, params) + '), (' + this._appendSql(valueSource, params) + ')) as __maxValueTable__(__maxValue__))'

@@ -238,7 +238,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return 'ifnull(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
     }
     _divide(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'cast(' + this._appendSql(valueSource, params) + ' as real) / cast(' + this._appendValue(value, params, columnType, typeAdapter) + ' as real)'
+        return 'cast(' + this._appendSql(valueSource, params) + ' as real) / cast(' + this._appendValue(value, params, this._getMathArgumentType(columnType, value), typeAdapter) + ' as real)'
     }
     _asDouble(params: any[], valueSource: ToSql): string {
         return 'cast(' + this._appendSql(valueSource, params) + 'as real)'
@@ -253,10 +253,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return 'power(' + this._appendSql(valueSource, params) + ', 3)'
     }
     _minValue(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'min(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+        return 'min(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, value), typeAdapter) + ')'
     }
     _maxValue(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'max(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+        return 'max(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, value), typeAdapter) + ')'
     }
     _getDate(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {

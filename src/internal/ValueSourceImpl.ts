@@ -1487,8 +1487,8 @@ function mergeOptional(op1: OptionalType, op2: OptionalType): OptionalType {
 }
 
 function getOptionalType2(a: ValueSourceImpl, b: any): OptionalType {
-    if (b instanceof ValueSourceImpl) {
-        return mergeOptional(a.__optionalType, b.__optionalType)
+    if (isValueSource(b)) {
+        return mergeOptional(a.__optionalType, __getValueSourcePrivate(b).__optionalType)
     }
     return a.__optionalType
 }
@@ -1496,11 +1496,14 @@ function getOptionalType2(a: ValueSourceImpl, b: any): OptionalType {
 
 function getOptionalType3(a: ValueSourceImpl, b: any, c: any): OptionalType {
     let result = a.__optionalType
-    if (b instanceof ValueSourceImpl && b.__typeAdapter) {
-        result = mergeOptional(result, b.__optionalType)
+    if (isValueSource(b)) {
+        const bPrivate = __getValueSourcePrivate(b)
+        if (bPrivate.__typeAdapter) {
+            result = mergeOptional(result, bPrivate.__optionalType)
+        }
     }
-    if (c instanceof ValueSourceImpl) {
-        result = mergeOptional(result, c.__optionalType)
+    if (isValueSource(c)) {
+        result = mergeOptional(result, __getValueSourcePrivate(c).__optionalType)
     }
     return result
 }
@@ -1509,8 +1512,8 @@ function getTypeAdapter2(a: ValueSourceImpl, b: any): TypeAdapter | undefined {
     if (a.__typeAdapter) {
         return a.__typeAdapter
     }
-    if (b instanceof ValueSourceImpl) {
-        return b.__typeAdapter
+    if (isValueSource(b)) {
+        return __getValueSourcePrivate(b).__typeAdapter
     }
     return undefined
 }
@@ -1520,11 +1523,14 @@ function getTypeAdapter3(a: ValueSourceImpl, b: any, c: any): TypeAdapter | unde
     if (a.__typeAdapter) {
         return a.__typeAdapter
     }
-    if (b instanceof ValueSourceImpl && b.__typeAdapter) {
-        return b.__typeAdapter
+    if (isValueSource(b)) {
+        const bPrivate = __getValueSourcePrivate(b)
+        if (bPrivate.__typeAdapter) {
+            return bPrivate.__typeAdapter
+        }
     }
-    if (c instanceof ValueSourceImpl) {
-        return c.__typeAdapter
+    if (isValueSource(c)) {
+        return __getValueSourcePrivate(c).__typeAdapter
     }
     return undefined
 }
@@ -1534,8 +1540,9 @@ function createSqlOperation1ofOverloadedNumber(thiz: ValueSourceImpl, value: any
         return new SqlOperation1ValueSource(operation, thiz, value, thiz.__valueType, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
     }
     if (thiz.__valueType === 'stringInt') {
-        if (value instanceof ValueSourceImpl) {
-            if (value.__valueType === 'int' || value.__valueType === 'stringInt') {
+        if (isValueSource(value)) {
+            const valuePrivate = __getValueSourcePrivate(value)
+            if (valuePrivate.__valueType === 'int' || valuePrivate.__valueType === 'stringInt') {
                 return new SqlOperation1ValueSource(operation, thiz, value, 'stringInt', getOptionalType2(thiz, value), thiz.__typeAdapter)
             } else {
                 return new SqlOperation1ValueSource(operation, thiz, value, 'stringDouble', getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
@@ -1547,12 +1554,13 @@ function createSqlOperation1ofOverloadedNumber(thiz: ValueSourceImpl, value: any
             return new SqlOperation1ValueSource(operation, thiz, value, 'stringDouble', getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
         }
     } else {
-        if (value instanceof ValueSourceImpl) {
-            if (value.__valueType === 'int') {
+        if (isValueSource(value)) {
+            const valuePrivate = __getValueSourcePrivate(value)
+            if (valuePrivate.__valueType === 'int') {
                 return new SqlOperation1ValueSource(operation, thiz, value, 'int', getOptionalType2(thiz, value), thiz.__typeAdapter)
-            } else if (value.__valueType === 'stringInt') {
+            } else if (valuePrivate.__valueType === 'stringInt') {
                 return new SqlOperation1ValueSource(operation, thiz, value, 'stringInt', getOptionalType2(thiz, value), thiz.__typeAdapter)
-            } else if (value.__valueType === 'stringDouble') {
+            } else if (valuePrivate.__valueType === 'stringDouble') {
                 return new SqlOperation1ValueSource(operation, thiz, value, 'stringDouble', getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
             } else {
                 return new SqlOperation1ValueSource(operation, thiz, value, 'double', getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))

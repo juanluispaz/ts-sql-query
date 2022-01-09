@@ -6,6 +6,7 @@ import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn } from "../utils/Column"
 import { ITableOrView } from "../utils/ITableOrView"
+import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from "../internal/ValueSourceImpl"
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     constructor() {
@@ -348,7 +349,47 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
     }
     _concat(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'concat(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+        let result = 'concat(' 
+        if (isValueSource(valueSource)) {
+            result += this._appendMaybeInnerConcat(valueSource, params)
+        } else {
+            result += this._appendSql(valueSource, params) 
+        }
+        result += ', ' 
+        if (isValueSource(value)) {
+            result += this._appendMaybeInnerConcat(value, params)
+        } else {
+            result += this._appendValue(value, params, columnType, typeAdapter) 
+        }
+        result += ')'
+        return result
+    }
+    _appendMaybeInnerConcat(valueSource: AnyValueSource, params: any[]): string {
+        if (valueSource instanceof SqlOperation1ValueSource && valueSource.__operation === '_concat') {
+            let result = this._appendMaybeInnerConcat(valueSource.__valueSource, params)
+            const value = valueSource.__value
+            result += ', '
+            if (isValueSource(value)) {
+                result += this._appendMaybeInnerConcat(value, params)
+            } else {
+                result += this._appendValue(value, params, valueSource.__valueType, valueSource.__typeAdapter) 
+            }
+            return result
+        }
+        if (valueSource instanceof SqlOperation1ValueSourceIfValueOrIgnore && valueSource.__operation === '_concat') {
+            let result = this._appendMaybeInnerConcat(valueSource.__valueSource, params)
+            const value = valueSource.__value
+            if (this._isValue(value)) {
+                result += ', '
+                if (isValueSource(value)) {
+                    result += this._appendMaybeInnerConcat(value, params)
+                } else {
+                    result += this._appendValue(value, params, valueSource.__valueType, valueSource.__typeAdapter) 
+                }
+            }
+            return result
+        }
+        return this._appendSql(valueSource, params)
     }
     _log10(params: any[], valueSource: ToSql): string {
         return 'log10(' +this._appendSql(valueSource, params) + ')'

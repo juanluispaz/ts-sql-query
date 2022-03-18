@@ -1,20 +1,22 @@
-import type { SqlBuilder, InsertData, SelectData, QueryColumns } from "../sqlBuilders/SqlBuilder"
+import type { SqlBuilder, InsertData, SelectData, QueryColumns, ToSql } from "../sqlBuilders/SqlBuilder"
 import{ ITable, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*, MissingKeysInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturning, CustomiableExecutableInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns } from "../expressions/insert"
 import type { Column } from "../utils/Column"
 import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
-import { database, tableOrView } from "../utils/symbols"
+import { database, resultType, tableOrView, type } from "../utils/symbols"
 import { AnyValueSource, IExecutableSelectQuery, isValueSource, __getValueSourcePrivate } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
 import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
 
 // one implement ommited intentionally to don't confuse TypeScript
 
-export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements InsertExpression<any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, CustomizableExecutableMultipleInsert<any>, CustomizableExecutableInsertFromSelect<any>, CustomizableExecutableInsertReturning<any, any>, CustomiableExecutableInsert<any>, /*MissingKeysInsertExpression<any, any>,*/ InsertData, ComposableExecutableInsert<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any> {
+export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSql, InsertExpression<any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, CustomizableExecutableMultipleInsert<any>, CustomizableExecutableInsertFromSelect<any>, CustomizableExecutableInsertReturning<any, any>, CustomiableExecutableInsert<any>, /*MissingKeysInsertExpression<any, any>,*/ InsertData, ComposableExecutableInsert<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any> {
+    [type]: any
     [database]: any
     [tableOrView]: any
+    [resultType]: any
 
     __table: ITable<any>
     __sets: { [property: string]: any } = {}
@@ -278,6 +280,21 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements Inse
             this.query()
         }
         return this.__params
+    }
+
+    __toSql(_sqlBuilder: SqlBuilder, params: any[]): string {
+        if (this.__from) {
+            return this.__sqlBuilder._buildInsertFromSelect(this, params)
+        } else if (this.__multiple) {
+            return this.__sqlBuilder._buildInsertMultiple(this, params)
+        } else if (this.__sets === DEFAULT_VALUES) {
+            return this.__sqlBuilder._buildInsertDefaultValues(this, params)
+        } else {
+            return this.__sqlBuilder._buildInsert(this, params)
+        }
+    }
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+        return this.__toSql(sqlBuilder, params)
     }
 
     dynamicSet(): any {

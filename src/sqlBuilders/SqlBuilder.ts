@@ -1,5 +1,5 @@
 import type { ITableOrView, ITable, IWithView } from "../utils/ITableOrView"
-import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IIntValueSource, isValueSource, IAggregatedArrayValueSource } from "../expressions/values"
+import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IIntValueSource, isValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode, SelectCustomization } from "../expressions/select"
@@ -170,7 +170,7 @@ export interface SqlBuilder extends SqlOperation {
     _generateUnique(): number
     _resetUnique(): void
 
-    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any, any>>): string
+    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): string
     _rawFragmentTableName(params: any[], tableOrView: ITableOrView<any>): string
     _rawFragmentTableAlias(params: any[], tableOrView: ITableOrView<any>): string
 

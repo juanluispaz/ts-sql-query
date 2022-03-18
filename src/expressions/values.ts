@@ -135,6 +135,27 @@ export interface IExecutableSelectQuery<DB extends AnyDB, RESULT, COLUMNS, REQUI
     [columnsType]: COLUMNS
 }
 
+export interface IExecutableInsertQuery<TABLE extends ITableOrView<any>, RESULT> {
+    [type]: 'ExecutableInsertQuery'
+    [database]: TABLE[typeof database]
+    [tableOrView]: TABLE
+    [resultType]: RESULT
+}
+
+export interface IExecutableUpdateQuery<TABLE extends ITableOrView<any>, RESULT> {
+    [type]: 'ExecutableUpdateQuery'
+    [database]: TABLE[typeof database]
+    [tableOrView]: TABLE
+    [resultType]: RESULT
+}
+
+export interface IExecutableDeleteQuery<TABLE extends ITableOrView<any>, RESULT> {
+    [type]: 'ExecutableDeleteQuery'
+    [database]: TABLE[typeof database]
+    [tableOrView]: TABLE
+    [resultType]: RESULT
+}
+
 export interface IEqualableValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends INullableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     [equalableValueSourceType]: 'EqualableValueSource'
 }

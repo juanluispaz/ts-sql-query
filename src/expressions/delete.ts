@@ -1,4 +1,4 @@
-import type { AnyValueSource, IBooleanValueSource, IIfValueSource, ValueSourceOf, ValueSourceValueTypeForResult } from "./values"
+import type { AnyValueSource, IBooleanValueSource, IExecutableDeleteQuery, IIfValueSource, ValueSourceOf, ValueSourceValueTypeForResult } from "./values"
 import type { ITableOrView, ITableOrViewOf, NoTableOrViewRequired, OuterJoinSource } from "../utils/ITableOrView"
 import type { AnyDB, MariaDB, MySql, NoopDB, Oracle, PostgreSql, Sqlite, SqlServer, TypeSafeDB } from "../databases"
 import type { int } from "ts-extended-types"
@@ -20,7 +20,7 @@ export interface DeleteExpressionBase<TABLE extends ITableOrView<any>> extends D
     [tableOrView]: TABLE
 }
 
-export interface ExecutableDelete<TABLE extends ITableOrView<any>> extends DeleteExpressionBase<TABLE> {
+export interface ExecutableDelete<TABLE extends ITableOrView<any>> extends DeleteExpressionBase<TABLE>, IExecutableDeleteQuery<TABLE, number> {
     executeDelete(this: DeleteExpressionOf<TypeSafeDB>, min?: number, max?: number): Promise<int>
     executeDelete(min?: number, max?: number): Promise<number>
     query(): string
@@ -169,7 +169,7 @@ export interface ReturnableExecutableDelete<TABLE extends ITableOrView<any>, USI
     returningOneColumn: ReturningOneColumnFnType<TABLE, USING>
 }
 
-export interface ExecutableDeleteReturning<TABLE extends ITableOrView<any>, COLUMNS, RESULT> extends DeleteExpressionBase<TABLE> {
+export interface ExecutableDeleteReturning<TABLE extends ITableOrView<any>, COLUMNS, RESULT> extends DeleteExpressionBase<TABLE>, IExecutableDeleteQuery<TABLE, RESULT> {
     executeDeleteNoneOrOne(): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] }) | null>
     executeDeleteOne(): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })>
     executeDeleteMany(min?: number, max?: number): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[]>

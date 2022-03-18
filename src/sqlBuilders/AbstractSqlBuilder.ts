@@ -1,6 +1,6 @@
 import { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, flattenQueryColumns, getQueryColumn, WithData } from "./SqlBuilder"
 import { ITableOrView, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableSelectQuery, isValueSource, __AggregatedArrayColumns, __getValueSourceOfObject, __ValueSourcePrivate } from "../expressions/values"
+import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, isValueSource, __AggregatedArrayColumns, __getValueSourceOfObject, __ValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
 import { CustomBooleanTypeAdapter, DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
@@ -356,7 +356,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendCondition(condition, params)
     }
-    _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any, any>, params: any[]): string {
+    _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>, params: any[]): string {
         return (value as ToSql).__toSql(this, params) // All ValueSource or Column have a hidden implemetation of ToSql
     }
     _appendSqlParenthesis(value: ToSql | AnyValueSource, params: any[]): string {
@@ -2346,7 +2346,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         result += sql[sql.length - 1]
         return result
     }
-    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any, any>>): string {
+    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): string {
         if (sqlParams.length <= 0) {
             return sql[0]!
         }

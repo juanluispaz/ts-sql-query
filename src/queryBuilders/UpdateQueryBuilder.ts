@@ -1,19 +1,21 @@
-import type { JoinData, QueryColumns, SqlBuilder, UpdateData } from "../sqlBuilders/SqlBuilder"
+import type { JoinData, QueryColumns, SqlBuilder, ToSql, UpdateData } from "../sqlBuilders/SqlBuilder"
 import { ITable, ITableOrView, IWithView, OuterJoinSource, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import { AlwaysIfValueSource, AnyValueSource, IBooleanValueSource, IIfValueSource, isValueSource } from "../expressions/values"
 import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, ComposableExecutableUpdate, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableUpdate, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere } from "../expressions/update"
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
-import { database, tableOrView } from "../utils/symbols"
+import { database, resultType, tableOrView, type } from "../utils/symbols"
 import { asAlwaysIfValueSource } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
 
-export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any>, CustomizableExecutableUpdate<any>, ExecutableUpdateExpression<any, any>, NotExecutableUpdateExpression<any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData, ComposableExecutableUpdate<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableUpdate<any, any, any>, ReturnableExecutableUpdate<any, any>, ExecutableUpdateReturning<any, any, any>, UpdateSetExpression<any, any>, UpdateSetExpressionAllowingNoWhere<any, any>, UpdateSetJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, UpdateExpressionWithoutJoin<any, any>, UpdateFromExpression<any, any>, UpdateSetJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, UpdateExpressionWithoutJoinAllowingNoWhere<any, any>, UpdateFromExpressionAllowingNoWhere<any, any> {
+export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements ToSql, UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any>, CustomizableExecutableUpdate<any>, ExecutableUpdateExpression<any, any>, NotExecutableUpdateExpression<any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData, ComposableExecutableUpdate<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableUpdate<any, any, any>, ReturnableExecutableUpdate<any, any>, ExecutableUpdateReturning<any, any, any>, UpdateSetExpression<any, any>, UpdateSetExpressionAllowingNoWhere<any, any>, UpdateSetJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, UpdateExpressionWithoutJoin<any, any>, UpdateFromExpression<any, any>, UpdateSetJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, UpdateExpressionWithoutJoinAllowingNoWhere<any, any>, UpdateFromExpressionAllowingNoWhere<any, any> {
+    [type]: any
     [database]: any
     [tableOrView]: any
+    [resultType]: any
 
     __table: ITable<any>
     __sets: { [property: string] : any} = {}
@@ -220,6 +222,13 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements Upda
             this.query()
         }
         return this.__params
+    }
+
+    __toSql(_sqlBuilder: SqlBuilder, params: any[]): string {
+        return this.__sqlBuilder._buildUpdate(this, params)
+    }
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+        return this.__toSql(sqlBuilder, params)
     }
 
     dynamicSet(): this {

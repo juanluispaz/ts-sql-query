@@ -1,4 +1,4 @@
-import type { AnyValueSource, IBooleanValueSource, IIfValueSource, RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from "./values"
+import type { AnyValueSource, IBooleanValueSource, IExecutableUpdateQuery, IIfValueSource, RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from "./values"
 import type { ITableOrView, ITableOrViewOf, NoTableOrViewRequired, OLD, OuterJoinSource } from "../utils/ITableOrView"
 import type { AnyDB, MariaDB, MySql, NoopDB, Oracle, PostgreSql, Sqlite, SqlServer, TypeSafeDB } from "../databases"
 import type { int } from "ts-extended-types"
@@ -22,7 +22,7 @@ export interface UpdateExpressionBase<TABLE extends ITableOrView<any>> extends U
     [tableOrView]: TABLE
 }
 
-export interface ExecutableUpdate<TABLE extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
+export interface ExecutableUpdate<TABLE extends ITableOrView<any>> extends UpdateExpressionBase<TABLE>, IExecutableUpdateQuery<TABLE, number> {
     executeUpdate(this: UpdateExpressionOf<TypeSafeDB>, min?: number, max?: number): Promise<int>
     executeUpdate(min?: number, max?: number): Promise<number>
     query(): string
@@ -244,7 +244,7 @@ export interface ReturnableExecutableUpdate<TABLE extends ITableOrView<any>, USI
     returningOneColumn: ReturningOneColumnFnType<TABLE, USING>
 }
 
-export interface ExecutableUpdateReturning<TABLE extends ITableOrView<any>, COLUMNS, RESULT> extends UpdateExpressionBase<TABLE> {
+export interface ExecutableUpdateReturning<TABLE extends ITableOrView<any>, COLUMNS, RESULT> extends UpdateExpressionBase<TABLE>, IExecutableUpdateQuery<TABLE, RESULT> {
     executeUpdateNoneOrOne(): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] }) | null>
     executeUpdateOne(): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })>
     executeUpdateMany(min?: number, max?: number): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[]>

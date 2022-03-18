@@ -1,18 +1,20 @@
-import type { SqlBuilder, DeleteData, JoinData, QueryColumns } from "../sqlBuilders/SqlBuilder"
+import type { SqlBuilder, DeleteData, JoinData, QueryColumns, ToSql } from "../sqlBuilders/SqlBuilder"
 import { ITable, ITableOrView, IWithView, OuterJoinSource, __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import { IBooleanValueSource, IIfValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableExecutableDelete, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere } from "../expressions/delete"
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
-import { database, tableOrView } from "../utils/symbols"
+import { database, resultType, tableOrView, type } from "../utils/symbols"
 import { asAlwaysIfValueSource } from "../expressions/values"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
 
-export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableExecutableDelete<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableDelete<any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any> {
+export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableExecutableDelete<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableDelete<any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any> {
+    [type]: any
     [database]: any
     [tableOrView]: any
+    [resultType]: any
 
     __table: ITable<any>
     __where?: AlwaysIfValueSource<any, any>
@@ -196,6 +198,13 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements Dele
             this.query()
         }
         return this.__params
+    }
+
+    __toSql(_sqlBuilder: SqlBuilder, params: any[]): string {
+        return this.__sqlBuilder._buildDelete(this, params)
+    }
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+        return this.__toSql(sqlBuilder, params)
     }
 
     dynamicWhere(): this {

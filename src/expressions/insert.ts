@@ -1,4 +1,4 @@
-import type { IExecutableSelectQuery, RemapIValueSourceType, ValueSourceValueType, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapIValueSourceTypeWithOptionalType } from "./values"
+import type { IExecutableSelectQuery, RemapIValueSourceType, ValueSourceValueType, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapIValueSourceTypeWithOptionalType, IExecutableInsertQuery } from "./values"
 import type { ITableOrView, NoTableOrViewRequired, NoTableOrViewRequiredView } from "../utils/ITableOrView"
 import type { AnyDB, TypeSafeDB, NoopDB, PostgreSql, SqlServer, Oracle, Sqlite } from "../databases"
 import type { int } from "ts-extended-types"
@@ -22,14 +22,14 @@ export interface InsertExpressionBase<TABLE extends ITableOrView<any>> extends I
     [tableOrView]: TABLE
 }
 
-export interface ExecutableInsert<TABLE extends ITableOrView<any>> extends InsertExpressionBase<TABLE> {
+export interface ExecutableInsert<TABLE extends ITableOrView<any>> extends InsertExpressionBase<TABLE>, IExecutableInsertQuery<TABLE, number> {
     executeInsert(this: InsertExpressionOf<TypeSafeDB>, min?: number, max?: number): Promise<int>
     executeInsert(min?: number, max?: number): Promise<number>
     query(): string
     params(): any[]
 }
 
-export interface ExecutableInsertReturningLastInsertedId<TABLE extends ITableOrView<any>, RESULT> extends InsertExpressionBase<TABLE> {
+export interface ExecutableInsertReturningLastInsertedId<TABLE extends ITableOrView<any>, RESULT> extends InsertExpressionBase<TABLE>, IExecutableInsertQuery<TABLE, RESULT> {
     executeInsert(min?: number, max?: number): Promise<RESULT>
     query(): string
     params(): any[]
@@ -110,7 +110,7 @@ export interface InsertExpression<TABLE extends ITableOrView<any>> extends Inser
 
 
 
-export interface ExecutableInsertReturning<TABLE extends ITableOrView<any>, COLUMNS, RESULT> extends InsertExpressionBase<TABLE> {
+export interface ExecutableInsertReturning<TABLE extends ITableOrView<any>, COLUMNS, RESULT> extends InsertExpressionBase<TABLE>, IExecutableInsertQuery<TABLE, RESULT> {
     executeInsertNoneOrOne(): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] }) | null>
     executeInsertOne(): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })>
     executeInsertMany(min?: number, max?: number): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[]>

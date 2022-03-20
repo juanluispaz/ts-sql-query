@@ -308,6 +308,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
                 }
             }
+            insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
             insertQuery += 'into '
             insertQuery += this._appendTableOrViewName(table, params)
 
@@ -381,6 +382,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
 
             insertQuery += ' values (' + values + ')'
+            insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
             insertQuery += this._buildInsertReturning(query, params)
             if (customization && customization.afterQuery) {
                 insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
@@ -421,6 +423,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (customization && customization.afterInsertKeyword) {
             insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
         }
+        insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
         insertQuery += 'into '
         insertQuery += this._appendTableOrViewName(table, params)
 
@@ -461,6 +464,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         
         insertQuery += ' values (' + values + ')'
+        insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
         insertQuery += this._buildInsertReturning(query, params)
         if (customization && customization.afterQuery) {
             insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)

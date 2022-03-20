@@ -60,7 +60,7 @@ export abstract class AbstractQueryRunner implements QueryRunner {
                 }
                 return row[columns[0]!] // Value in the row of the first column without care about the name
             }
-            throw new Error('Unable to find the last inserted id')
+            return undefined
         })
     }
     executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {

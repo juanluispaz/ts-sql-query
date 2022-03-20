@@ -3058,7 +3058,7 @@ async function main() {
 
     /* *** Example ****************************************************************/
 
-    const insertUuid = await connection.insertInto(tRecord)
+    let insertUuid = await connection.insertInto(tRecord)
         .values({
             id: '89bf68fc-7002-11ec-90d6-0242ac120003',
             title: 'My voice memo'
@@ -3186,6 +3186,46 @@ async function main() {
         .executeSelectOne()
 
     assertEquals(selectUuid5, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert ignore into record (id, title) values (uuid_to_bin(?), ?)`)
+    expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo"]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    insertUuid = await connection.insertInto(tRecord)
+        .values({
+            id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+            title: 'My voice memo'
+        })
+        .onConflictDoNothing()
+        .executeInsert()
+    assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into record (id, title) values (uuid_to_bin(?), ?) on duplicate key update title = ?`)
+    expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","My voice memo 2"]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    insertUuid = await connection.insertInto(tRecord)
+        .values({
+            id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+            title: 'My voice memo'
+        })
+        .onConflictDoUpdateSet({
+            title: 'My voice memo 2'
+        })
+        .executeInsert()
+    assertEquals(insertUuid, result)
 }
 
 main().then(() => {

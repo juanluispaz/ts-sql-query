@@ -916,6 +916,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (customization && customization.afterInsertKeyword) {
             insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
         }
+        insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
         insertQuery += 'into '
         insertQuery += this._appendTableOrViewName(table, params)
 
@@ -1010,6 +1011,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         insertQuery += ' values ' + multipleValues
+        insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
         insertQuery += this._buildInsertReturning(query, params)
         if (customization && customization.afterQuery) {
             insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
@@ -1089,6 +1091,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (customization && customization.afterInsertKeyword) {
             insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
         }
+        insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
         insertQuery += 'into '
         insertQuery += this._appendTableOrViewName(table, params)
 
@@ -1132,6 +1135,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             insertQuery += ' default values'
         }
+        insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
         insertQuery += this._buildInsertReturning(query, params)
         if (customization && customization.afterQuery) {
             insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
@@ -1162,6 +1166,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (customization && customization.afterInsertKeyword) {
             insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
         }
+        insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
         insertQuery += 'into '
         insertQuery += this._appendTableOrViewName(table, params)
 
@@ -1234,6 +1239,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         insertQuery += ' values (' + values + ')'
+        insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
         insertQuery += this._buildInsertReturning(query, params)
         if (customization && customization.afterQuery) {
             insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
@@ -1269,6 +1275,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (customization && customization.afterInsertKeyword) {
             insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
         }
+        insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
         insertQuery += 'into '
         insertQuery += this._appendTableOrViewName(table, params)
 
@@ -1312,6 +1319,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         insertQuery += ' (' + columns + ')'
         insertQuery += this._buildInsertOutput(query, params)
         insertQuery += ' ' + this._buildSelectWithColumnsInfo(from, params, columnsForInsert, false)
+        insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
         insertQuery += this._buildInsertReturning(query, params)
         if (customization && customization.afterQuery) {
             insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
@@ -1366,6 +1374,125 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return ''
         }
         return ' returning ' + result
+    }
+    _buildInsertOnConflictBeforeInto(_query: InsertData, _params: any[]): string {
+        return ''
+    }
+    _buildInsertOnConflictBeforeReturning(query: InsertData, params: any[]): string {
+        if (!query.__onConflictDoNothing && !query.__onConflictUpdateSets) {
+            return ''
+        }
+
+        let result = ' on conflict'
+
+        const onConflictOnColumns = query.__onConflictOnColumns
+        if (onConflictOnColumns) {
+            result += ' ('
+            for (let i = 0, length = onConflictOnColumns.length; i < length; i++) {
+                if (i > 0) {
+                    result += ', '
+                }
+                const column = onConflictOnColumns[i]!
+                result += this._appendSql(column, params)
+            }
+            result += ')'
+            const where = query.__onConflictOnColumnsWhere
+            if (where) {
+                result += ' where '
+                result += this._appendCondition(where, params)
+            }
+        }
+
+        const constraint = query.__onConflictOnConstraint
+        if (constraint) {
+            result += ' on constraint '
+            result += this._appendValue(constraint, params, 'string', undefined)
+        }
+
+        if (query.__onConflictDoNothing) {
+            result += ' do nothing'
+        }
+
+        let columns = ''
+        const table = query.__table
+        const sets = query.__onConflictUpdateSets
+        if (sets) {
+            const properties = Object.getOwnPropertyNames(sets)
+            for (let i = 0, length = properties.length; i < length; i++) {
+                const property = properties[i]!
+                const column = __getColumnOfObject(table, property)
+                if (!column) {
+                    // Additional property provided in the value object
+                    // Skipped because it is not part of the table
+                    // This allows to have more complex objects used in the query
+                    continue
+                }
+    
+                if (columns) {
+                    columns += ', '
+                }
+                const value = sets[property]
+                columns += this._appendColumnNameForUpdate(column, params)
+                columns += ' = '
+                columns += this._appendValueForColumn(column, value, params)
+            }
+            if (!columns) {
+                // Let create a fake update on conflict with a non primary key field
+                const insertProperties = Object.getOwnPropertyNames(query.__multiple?.[0] || query.__from?.__columns || query.__sets)
+                for (let i = 0, length = insertProperties.length; i < length; i++) {
+                    const property = insertProperties[i]!
+                    const column = __getColumnOfObject(table, property)
+                    if (!column) {
+                        // Additional property provided in the value object
+                        // Skipped because it is not part of the table
+                        // This allows to have more complex objects used in the query
+                        continue
+                    }
+                    if (__getColumnPrivate(column).__isPrimaryKey) {
+                        continue
+                    }
+
+                    columns += this._appendColumnNameForUpdate(column, params)
+                    columns += ' = '
+                    columns += this._appendColumnNameForUpdate(column, params)
+                    break
+                }
+            }
+            if (!columns) {
+                // Let create a fake update on conflict with a primary key field
+                const insertProperties = Object.getOwnPropertyNames(query.__multiple?.[0] || query.__from?.__columns || query.__sets)
+                for (let i = 0, length = insertProperties.length; i < length; i++) {
+                    const property = insertProperties[i]!
+                    const column = __getColumnOfObject(table, property)
+                    if (!column) {
+                        // Additional property provided in the value object
+                        // Skipped because it is not part of the table
+                        // This allows to have more complex objects used in the query
+                        continue
+                    }
+                    if (!__getColumnPrivate(column).__isPrimaryKey) {
+                        continue
+                    }
+
+                    columns += this._appendColumnNameForUpdate(column, params)
+                    columns += ' = '
+                    columns += this._appendColumnNameForUpdate(column, params)
+                    break
+                }
+            }
+            if (!columns) {
+                throw new Error('Unable to build a on conflict do update set clause for an insert, no fields in the set found')
+            }
+            
+            result += ' do update set ' + columns
+            const where = query.__onConflictUpdateWhere
+            if (where) {
+                result += ' where '
+                result += this._appendCondition(where, params)
+            }
+        }
+
+        return result
     }
     _nextSequenceValue( _params: any[], sequenceName: string) {
         return "nextval('" + sequenceName + "')"

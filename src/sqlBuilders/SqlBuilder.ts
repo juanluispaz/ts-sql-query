@@ -1,5 +1,5 @@
 import type { ITableOrView, ITable, IWithView } from "../utils/ITableOrView"
-import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IIntValueSource, isValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery } from "../expressions/values"
+import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IIntValueSource, isValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, IStringValueSource, ITypeSafeStringValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode, SelectCustomization } from "../expressions/select"
@@ -10,6 +10,7 @@ import type { UpdateCustomization } from "../expressions/update"
 import type { DeleteCustomization } from "../expressions/delete"
 import type { InsertCustomization } from "../expressions/insert"
 import type { isSelectQueryObject } from "../utils/symbols"
+import { RawFragment } from "../utils/RawFragment"
 
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
 export type FlatQueryColumns = { [property: string]: AnyValueSource }
@@ -124,6 +125,12 @@ export interface InsertData extends WithQueryData {
     __from?: SelectData
     __customization?: InsertCustomization<any>
     __columns?: QueryColumns
+    __onConflictOnConstraint?: string | IStringValueSource<any, any> | ITypeSafeStringValueSource<any, any> | RawFragment<any>
+    __onConflictOnColumns?: AnyValueSource[]
+    __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any>
+    __onConflictDoNothing?: boolean
+    __onConflictUpdateSets?: { [property: string]: any }
+    __onConflictUpdateWhere?: AlwaysIfValueSource<any, any>
 }
 
 export interface UpdateData extends WithQueryData {

@@ -4,7 +4,7 @@ import type { OrderByMode } from "../expressions/select"
 import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
-import { Column, isColumn } from "../utils/Column"
+import { Column, isColumn, __getColumnOfObject } from "../utils/Column"
 import { ITableOrView } from "../utils/ITableOrView"
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from "../internal/ValueSourceImpl"
 
@@ -202,7 +202,10 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         if (customization && customization.afterInsertKeyword) {
             insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
         }
+        insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
         insertQuery += 'into ' + this._appendTableOrViewName(query.__table, params) + ' () values ()'
+        insertQuery += this._buildInsertOnConflictBeforeReturning(query, params)
+        insertQuery += this._buildInsertReturning(query, params)
         if (customization && customization.afterQuery) {
             insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
         }
@@ -215,6 +218,44 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     _buildInsertReturning(_query: InsertData, params: any[]): string {
         this._setContainsInsertReturningClause(params, false)
         return ''
+    }
+    _buildInsertOnConflictBeforeInto(query: InsertData, _params: any[]): string {
+        if (query.__onConflictDoNothing) {
+            return 'ignore '
+        }
+
+        return ''
+    }
+    _buildInsertOnConflictBeforeReturning(query: InsertData, params: any[]): string {
+        let columns = ''
+        const table = query.__table
+        const sets = query.__onConflictUpdateSets
+        if (sets) {
+            const properties = Object.getOwnPropertyNames(sets)
+            for (let i = 0, length = properties.length; i < length; i++) {
+                const property = properties[i]!
+                const column = __getColumnOfObject(table, property)
+                if (!column) {
+                    // Additional property provided in the value object
+                    // Skipped because it is not part of the table
+                    // This allows to have more complex objects used in the query
+                    continue
+                }
+    
+                if (columns) {
+                    columns += ', '
+                }
+                const value = sets[property]
+                columns += this._appendColumnNameForUpdate(column, params)
+                columns += ' = '
+                columns += this._appendValueForColumn(column, value, params)
+            }
+        }
+        if (columns) {
+            return ' on duplicate key update ' + columns
+        } else {
+            return ''
+        }
     }
     _appendColumnNameForUpdate(column: Column, params: any[]) {
         return this._appendRawColumnName(column, params)

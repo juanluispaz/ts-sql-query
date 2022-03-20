@@ -148,7 +148,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return ''
     }
     _buildInsertReturning(query: InsertData, params: any[]): string {
-        if (!this._connectionConfiguration.compatibilityMode || query.__from || query.__multiple || query.__columns) {
+        if (!this._connectionConfiguration.compatibilityMode || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
             return super._buildInsertReturning(query, params)
         }
         this._setContainsInsertReturningClause(params, false)

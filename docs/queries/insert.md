@@ -144,3 +144,95 @@ You can execute the query using:
 - `executeInsertMany(min?: number, max?: number): Promise<RESULT[]>`: Execute the insert query that returns zero or many results from the database.
 
 Aditionally, if you want to return the value of a single column, you can use `returningOneColumn(column)` instead of `returning({...})`.
+
+## Insert on confict do nothing
+
+If you are using `PostgreSql`, `Sqlite`, `MariaDB` or `MySql` you can specify the insert must do nothing in case of conflict.
+
+```ts
+const insertReturningCustomerData = connection.insertInto(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 1
+    })
+    .onConflictDoNothing()
+    .returning({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName
+    })
+    .executeInsertNoneOrOne()
+```
+
+The executed query is:
+```sql
+insert into customer (first_name, last_name, company_id) 
+values ($1, $2, $3) 
+on conflict do nothing 
+returning id as id, first_name as firstName, last_name as lastName
+```
+
+The parameters are: `[ 'John', 'Smith', 1 ]`
+
+The result type is a promise with the information of the inserted rows:
+```tsx
+const insertReturningCustomerData: Promise<{
+    id: number;
+    firstName: string;
+    lastName: string;
+} | null>
+```
+
+**Notes**
+
+- On `PostgreSql` and `Sqlite`, you can specify the columns that can create the conflict (including a `where` clause for that columns).
+- On `PostgreSql` you can specify the constraint name that raise the conflict.
+- You can combine this with other insert's features, e.g. return some columns.
+
+## Insert on confict do update
+
+If you are using `PostgreSql`, `Sqlite`, `MariaDB` or `MySql` you can specify the insert must do an update in case of conflict.
+
+```ts
+const insertReturningCustomerData = connection.insertInto(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 1
+    })
+    .onConflictDoUpdateSet({
+        companyId: 1
+    })
+    .returning({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName
+    })
+    .executeInsertOne()
+```
+
+The executed query is:
+```sql
+insert into customer (first_name, last_name, company_id) 
+values ($1, $2, $3) 
+on conflict do update set 
+    company_id = $4 
+returning id as id, first_name as firstName, last_name as lastName
+```
+
+The parameters are: `[ 'John', 'Smith', 1, 1 ]`
+
+The result type is a promise with the information of the inserted rows:
+```tsx
+const insertReturningCustomerData: Promise<{
+    id: number;
+    firstName: string;
+    lastName: string;
+}>
+```
+
+**Notes**
+
+- On `PostgreSql` and `Sqlite`, you can specify `where` clause that idicates when the update must be permormed.
+- On `PostgreSql` and `Sqlite`, you can specify the columns that can create the conflict (including a `where` clause for that columns).
+- On `PostgreSql` you can specify the constraint name that raise the conflict.
+- You can combine this with other insert's features, e.g. return some columns.

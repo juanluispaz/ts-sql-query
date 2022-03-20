@@ -2429,6 +2429,66 @@ async function main() {
 
     /* *** Preparation ************************************************************/
 
+    result = {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Smith',
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?) on conflict do nothing returning id as id, first_name as firstName, last_name as lastName`)
+    expectedParams.push(`["John","Smith",1]`)
+    expectedType.push(`insertReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const insertReturningCustomerData2 = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        })
+        .onConflictDoNothing()
+        .returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertNoneOrOne()
+
+    assertEquals(insertReturningCustomerData2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Smith',
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?) on conflict do update set company_id = ? returning id as id, first_name as firstName, last_name as lastName`)
+    expectedParams.push(`["John","Smith",1,1]`)
+    expectedType.push(`insertReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const insertReturningCustomerData3 = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        })
+        .onConflictDoUpdateSet({
+            companyId: 1
+        })
+        .returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertOne()
+
+    assertEquals(insertReturningCustomerData3, result)
+
+    /* *** Preparation ************************************************************/
+
     result = 1
     expectedResult.push(result)
     expectedQuery.push(`update customer set last_name = customer.last_name || ? || company.name from company where customer.company_id = company.id and lower(company.name) like lower('%' || ? || '%') escape '\\'`)
@@ -3110,7 +3170,7 @@ async function main() {
 
     /* *** Example ****************************************************************/
 
-    const insertUuid = await connection.insertInto(tRecord)
+    let insertUuid = await connection.insertInto(tRecord)
         .values({
             id: '89bf68fc-7002-11ec-90d6-0242ac120003',
             title: 'My voice memo'
@@ -3238,6 +3298,201 @@ async function main() {
         .executeSelectOne()
 
     assertEquals(selectUuid5, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into record (id, title) values (uuid_blob(?), ?) on conflict do nothing`)
+    expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo"]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    insertUuid = await connection.insertInto(tRecord)
+        .values({
+            id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+            title: 'My voice memo'
+        })
+        .onConflictDoNothing()
+        .executeInsert()
+    assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into record (id, title) values (uuid_blob(?), ?) on conflict (title) do nothing`)
+    expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo"]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    insertUuid = await connection.insertInto(tRecord)
+        .values({
+            id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+            title: 'My voice memo'
+        })
+        .onConflictOn(tRecord.title)
+        .doNothing()
+        .executeInsert()
+    assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into record (id, title) values (uuid_blob(?), ?) on conflict (title) where lower(title) like lower('%' || ? || '%') escape '\\' do nothing`)
+    expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","memo"]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    insertUuid = await connection.insertInto(tRecord)
+        .values({
+            id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+            title: 'My voice memo'
+        })
+        .onConflictOn(tRecord.title)
+        .where(tRecord.title.containsInsensitive('memo'))
+        .doNothing()
+        .executeInsert()
+    assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into record (id, title) values (uuid_blob(?), ?) on conflict do update set title = ?`)
+    expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","My voice memo 2"]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    insertUuid = await connection.insertInto(tRecord)
+        .values({
+            id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+            title: 'My voice memo'
+        })
+        .onConflictDoUpdateSet({
+            title: 'My voice memo 2'
+        })
+        .executeInsert()
+    assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into record (id, title) values (uuid_blob(?), ?) on conflict (title) do update set title = ?`)
+    expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","My voice memo 2"]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    insertUuid = await connection.insertInto(tRecord)
+        .values({
+            id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+            title: 'My voice memo'
+        })
+        .onConflictOn(tRecord.title)
+        .doUpdateSet({
+            title: 'My voice memo 2'
+        })
+        .executeInsert()
+    assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into record (id, title) values (uuid_blob(?), ?) on conflict (title) where lower(title) like lower('%' || ? || '%') escape '\\' do update set title = ?`)
+    expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","memo","My voice memo 2"]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    insertUuid = await connection.insertInto(tRecord)
+        .values({
+            id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+            title: 'My voice memo'
+        })
+        .onConflictOn(tRecord.title)
+        .where(tRecord.title.containsInsensitive('memo'))
+        .doUpdateSet({
+            title: 'My voice memo 2'
+        })
+        .executeInsert()
+    assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into record (id, title) values (uuid_blob(?), ?) on conflict do update set title = ? where lower(title) like lower('%' || ? || '%') escape '\\'`)
+    expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","My voice memo 2","My"]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    insertUuid = await connection.insertInto(tRecord)
+        .values({
+            id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+            title: 'My voice memo'
+        })
+        .onConflictDoUpdateSet({
+            title: 'My voice memo 2'
+        })
+        .where(tRecord.title.containsInsensitive('My'))
+        .executeInsert()
+    assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into record (id, title) values (uuid_blob(?), ?) on conflict (title) do update set title = ? where lower(title) like lower('%' || ? || '%') escape '\\'`)
+    expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","My voice memo 2","My"]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    insertUuid = await connection.insertInto(tRecord)
+        .values({
+            id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+            title: 'My voice memo'
+        })
+        .onConflictOn(tRecord.title)
+        .doUpdateSet({
+            title: 'My voice memo 2'
+        })
+        .where(tRecord.title.containsInsensitive('My'))
+        .executeInsert()
+    assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into record (id, title) values (uuid_blob(?), ?) on conflict (title) where lower(title) like lower('%' || ? || '%') escape '\\' do update set title = ? where lower(title) like lower('%' || ? || '%') escape '\\'`)
+    expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","memo","My voice memo 2","My"]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    insertUuid = await connection.insertInto(tRecord)
+        .values({
+            id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+            title: 'My voice memo'
+        })
+        .onConflictOn(tRecord.title)
+        .where(tRecord.title.containsInsensitive('memo'))
+        .doUpdateSet({
+            title: 'My voice memo 2'
+        })
+        .where(tRecord.title.containsInsensitive('My'))
+        .executeInsert()
+    assertEquals(insertUuid, result)
 }
 
 main().then(() => {

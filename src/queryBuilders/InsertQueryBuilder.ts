@@ -1,18 +1,19 @@
 import type { SqlBuilder, InsertData, SelectData, QueryColumns, ToSql } from "../sqlBuilders/SqlBuilder"
 import{ ITable, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
-import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*, MissingKeysInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturning, CustomiableExecutableInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns } from "../expressions/insert"
+import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*, MissingKeysInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional } from "../expressions/insert"
 import type { Column } from "../utils/Column"
 import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { database, resultType, tableOrView, type } from "../utils/symbols"
-import { AnyValueSource, IExecutableSelectQuery, isValueSource, __getValueSourcePrivate } from "../expressions/values"
+import { AlwaysIfValueSource, AnyValueSource, asAlwaysIfValueSource, IBooleanValueSource, IExecutableSelectQuery, IIfValueSource, IStringValueSource, isValueSource, ITypeSafeStringValueSource, __getValueSourcePrivate } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
 import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
+import { RawFragment } from "../utils/RawFragment"
 
 // one implement ommited intentionally to don't confuse TypeScript
 
-export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSql, InsertExpression<any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, CustomizableExecutableMultipleInsert<any>, CustomizableExecutableInsertFromSelect<any>, CustomizableExecutableInsertReturning<any, any>, CustomiableExecutableInsert<any>, /*MissingKeysInsertExpression<any, any>,*/ InsertData, ComposableExecutableInsert<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any> {
+export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSql, InsertExpression<any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, CustomizableExecutableMultipleInsert<any>, CustomizableExecutableInsertFromSelect<any>, CustomizableExecutableInsertReturningLastInsertedId<any, any>, CustomizableExecutableSimpleInsert<any>, /*MissingKeysInsertExpression<any, any>,*/ InsertData, ComposableExecutableInsert<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any>, ExecutableInsert<any>, CustomizableExecutableInsert<any>, OnConflictDoMultipleInsert<any>, InsertOnConflictSetsExpression<any, any, any>, DynamicOnConflictWhereExpression<any, any>, OnConflictOnColumnWhere<any, any>, CustomizableExecutableInsertFromSelectOnConflict<any>, CustomizableExecutableSimpleInsertOnConflict<any>, OnConflictDoSimpleInsert<any>, CustomizableExecutableMultipleInsertOnConfict<any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any>, CustomizableExecutableSimpleInsertOnConflictOptional<any>, CustomizableExecutableMultipleInsertOnConfictOptional<any> {
     [type]: any
     [database]: any
     [tableOrView]: any
@@ -27,6 +28,12 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
     __withs: Array<IWithView<any>> = []
     __customization?: InsertCustomization<any>
     __columns?: QueryColumns
+    __onConflictOnConstraint?: string | IStringValueSource<any, any> | ITypeSafeStringValueSource<any, any> | RawFragment<any>
+    __onConflictOnColumns?: AnyValueSource[]
+    __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any>
+    __onConflictDoNothing?: boolean
+    __onConflictUpdateSets?: { [property: string]: any }
+    __onConflictUpdateWhere?: AlwaysIfValueSource<any, any>
 
     __oneColumn?: boolean
 
@@ -71,7 +78,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
                     } else {
                         result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__valueType)
                     }
-                    if (result === null || result === undefined) {
+                    if (!this.onConflictDoNothing && (result === null || result === undefined)) {
                         throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
                     }
                     if (this.__isMultiple) {
@@ -307,7 +314,12 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
             return this
         }
 
-        let sets = this.__sets
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
@@ -322,7 +334,12 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
             return this
         }
 
-        let sets = this.__sets
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
@@ -340,7 +357,12 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
             return this
         }
 
-        let sets = this.__sets
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
@@ -358,7 +380,12 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
             return this
         }
 
-        let sets = this.__sets
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
@@ -379,7 +406,12 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
             return this
         }
 
-        let sets = this.__sets
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
@@ -397,7 +429,12 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
             return this
         }
 
-        let sets = this.__sets
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
@@ -414,7 +451,13 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
     }
     ignoreIfSet(...columns: any[]): this {
         this.__query = ''
-        let sets = this.__sets
+
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         for (let i = 0, length = columns.length; i < length; i++) {
             let column = columns[i]
             delete sets[column]
@@ -428,7 +471,12 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
             return this
         }
 
-        let sets = this.__sets
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
@@ -446,7 +494,12 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
             return this
         }
 
-        let sets = this.__sets
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
@@ -467,7 +520,12 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
             return this
         }
 
-        let sets = this.__sets
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
@@ -485,7 +543,12 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
             return this
         }
 
-        let sets = this.__sets
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
@@ -502,7 +565,13 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
     }
     ignoreIfHasValue(...columns: any[]): this {
         this.__query = ''
-        let sets = this.__sets
+
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         for (let i = 0, length = columns.length; i < length; i++) {
             let column = columns[i]
             if (!this.__sqlBuilder._isValue(sets[column])) {
@@ -514,7 +583,13 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
     }
     ignoreIfHasNoValue(...columns: any[]): this {
         this.__query = ''
-        let sets = this.__sets
+
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         for (let i = 0, length = columns.length; i < length; i++) {
             let column = columns[i]
             if (this.__sqlBuilder._isValue(sets[column])) {
@@ -526,7 +601,13 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
     }
     ignoreAnySetWithNoValue(): this {
         this.__query = ''
-        let sets = this.__sets
+
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else {
+            sets = this.__sets
+        }
         const properties = Object.getOwnPropertyNames(sets)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
@@ -605,7 +686,209 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
         this.__columns = { 'result': column }
         __getValueSourcePrivate(column).__addWiths(this.__withs)
         return this
-    };
+    }
+
+    onConflictDoNothing(): this {
+        this.__query = ''
+        this.__onConflictDoNothing = true
+        return this
+    }
+    onConflictDoUpdateDynamicSet(): any {
+        this.__query = ''
+        if (this.__onConflictUpdateSets) {
+            throw new Error('Illegal state')
+        }
+        this.__onConflictUpdateSets = {}
+        return this
+    }
+    onConflictDoUpdateSet(columns: any): any {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        if (this.__onConflictUpdateSets) {
+            throw new Error('Illegal state')
+        }
+
+        this.__onConflictUpdateSets = {}
+        let sets = this.__onConflictUpdateSets!
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            sets[property] = value
+        }
+        return this
+    }
+    onConflictDoUpdateSetIfValue(columns: any): any {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        if (this.__onConflictUpdateSets) {
+            throw new Error('Illegal state')
+        }
+
+        this.__onConflictUpdateSets = {}
+        let sets = this.__onConflictUpdateSets!
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            if (!this.__sqlBuilder._isValue(value)) {
+                continue
+            }
+            sets[property] = value
+        }
+        return this
+    }
+    onConflictOn(...columns: AnyValueSource[]): this {
+        this.__query = ''
+        if (this.__onConflictOnColumns) {
+            throw new Error('Illegal state')
+        }
+        this.__onConflictOnColumns = columns
+        for (let i = 0, length = columns.length; i < length; i++) {
+            __getValueSourcePrivate(columns[i]!).__addWiths(this.__withs)
+        }
+        return this
+    }
+    onConflictOnConstraint(constraint: string | IStringValueSource<any, any> | ITypeSafeStringValueSource<any, any> | RawFragment<any>): this {
+        this.__query = ''
+        if (this.__onConflictOnConstraint) {
+            throw new Error('Illegal state')
+        }
+        this.__onConflictOnConstraint = constraint
+        __addWiths(constraint, this.__withs)
+        return this
+    }
+
+    doNothing(): this {
+        this.__query = ''
+        this.__onConflictDoNothing = true
+        return this
+    }
+    doUpdateDynamicSet(): any {
+        this.__query = ''
+        if (this.__onConflictUpdateSets) {
+            throw new Error('Illegal state')
+        }
+        this.__onConflictUpdateSets = {}
+        return this
+    }
+    doUpdateSet(columns: any): any {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        if (this.__onConflictUpdateSets) {
+            throw new Error('Illegal state')
+        }
+
+        this.__onConflictUpdateSets = {}
+        let sets = this.__onConflictUpdateSets!
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            sets[property] = value
+        }
+        return this
+    }
+    doUpdateSetIfValue(columns: any): any {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        if (this.__onConflictUpdateSets) {
+            throw new Error('Illegal state')
+        }
+
+        this.__onConflictUpdateSets = {}
+        let sets = this.__onConflictUpdateSets!
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            if (!this.__sqlBuilder._isValue(value)) {
+                continue
+            }
+            sets[property] = value
+        }
+        return this
+    }
+
+
+    dynamicWhere(): this {
+        this.__query = ''
+        return this
+    }
+    where(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+        this.__query = ''
+
+        if (this.__onConflictUpdateSets) {
+            if (this.__onConflictUpdateWhere) {
+                throw new Error('Illegal state')
+            }
+            this.__onConflictUpdateWhere = asAlwaysIfValueSource(condition)
+            __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        } else if (this.__onConflictOnColumns) {
+            if (this.__onConflictOnColumnsWhere) {
+                throw new Error('Illegal state')
+            }
+            this.__onConflictOnColumnsWhere = asAlwaysIfValueSource(condition)
+            __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        } else {
+            throw new Error('Illegal state')
+        }
+        return this
+    }
+    and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+        this.__query = ''
+        if (this.__onConflictUpdateSets) {
+            if (!this.__onConflictUpdateWhere) {
+                this.__onConflictUpdateWhere = asAlwaysIfValueSource(condition)
+            } else {
+                this.__onConflictUpdateWhere = this.__onConflictUpdateWhere.and(asAlwaysIfValueSource(condition))
+            }
+            __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        } else if (this.__onConflictOnColumns) {
+            if (!this.__onConflictOnColumnsWhere) {
+                this.__onConflictOnColumnsWhere = asAlwaysIfValueSource(condition)
+            } else {
+                this.__onConflictOnColumnsWhere = this.__onConflictOnColumnsWhere.and(asAlwaysIfValueSource(condition))
+            }
+            __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        } else {
+            throw new Error('Illegal state')
+        }
+        return this
+    }
+    or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+        this.__query = ''
+        if (this.__onConflictUpdateSets) {
+            if (!this.__onConflictUpdateWhere) {
+                this.__onConflictUpdateWhere = asAlwaysIfValueSource(condition)
+            } else {
+                this.__onConflictUpdateWhere = this.__onConflictUpdateWhere.or(asAlwaysIfValueSource(condition))
+            }
+            __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        } else if (this.__onConflictOnColumns) {
+            if (!this.__onConflictOnColumnsWhere) {
+                this.__onConflictOnColumnsWhere = asAlwaysIfValueSource(condition)
+            } else {
+                this.__onConflictOnColumnsWhere = this.__onConflictOnColumnsWhere.or(asAlwaysIfValueSource(condition))
+            }
+            __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        } else {
+            throw new Error('Illegal state')
+        }
+        return this
+    }
 }
 
 const DEFAULT_VALUES = {}

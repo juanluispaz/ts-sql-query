@@ -1,5 +1,5 @@
 import type { SqlBuilder, InsertData, SelectData, QueryColumns, ToSql } from "../sqlBuilders/SqlBuilder"
-import{ ITable, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
+import{ HasAddWiths, ITable, ITableOrView, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*, MissingKeysInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional } from "../expressions/insert"
 import type { Column } from "../utils/Column"
 import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
@@ -13,7 +13,7 @@ import { RawFragment } from "../utils/RawFragment"
 
 // one implement ommited intentionally to don't confuse TypeScript
 
-export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSql, InsertExpression<any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, CustomizableExecutableMultipleInsert<any>, CustomizableExecutableInsertFromSelect<any>, CustomizableExecutableInsertReturningLastInsertedId<any, any>, CustomizableExecutableSimpleInsert<any>, /*MissingKeysInsertExpression<any, any>,*/ InsertData, ComposableExecutableInsert<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any>, ExecutableInsert<any>, CustomizableExecutableInsert<any>, OnConflictDoMultipleInsert<any>, InsertOnConflictSetsExpression<any, any, any>, DynamicOnConflictWhereExpression<any, any>, OnConflictOnColumnWhere<any, any>, CustomizableExecutableInsertFromSelectOnConflict<any>, CustomizableExecutableSimpleInsertOnConflict<any>, OnConflictDoSimpleInsert<any>, CustomizableExecutableMultipleInsertOnConfict<any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any>, CustomizableExecutableSimpleInsertOnConflictOptional<any>, CustomizableExecutableMultipleInsertOnConfictOptional<any> {
+export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasAddWiths, ToSql, InsertExpression<any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, CustomizableExecutableMultipleInsert<any>, CustomizableExecutableInsertFromSelect<any>, CustomizableExecutableInsertReturningLastInsertedId<any, any>, CustomizableExecutableSimpleInsert<any>, /*MissingKeysInsertExpression<any, any>,*/ InsertData, ComposableExecutableInsert<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any>, ExecutableInsert<any>, CustomizableExecutableInsert<any>, OnConflictDoMultipleInsert<any>, InsertOnConflictSetsExpression<any, any, any>, DynamicOnConflictWhereExpression<any, any>, OnConflictOnColumnWhere<any, any>, CustomizableExecutableInsertFromSelectOnConflict<any>, CustomizableExecutableSimpleInsertOnConflict<any>, OnConflictDoSimpleInsert<any>, CustomizableExecutableMultipleInsertOnConfict<any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any>, CustomizableExecutableSimpleInsertOnConflictOptional<any>, CustomizableExecutableMultipleInsertOnConfictOptional<any> {
     [type]: any
     [database]: any
     [tableOrView]: any
@@ -888,6 +888,24 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
             throw new Error('Illegal state')
         }
         return this
+    }
+
+    __addWiths(withs: Array<IWithView<any>>): void {
+        const withViews = this.__withs
+        for (let i = 0, length = withViews.length; i < length; i++) {
+            const withView = withViews[i]!
+            __getTableOrViewPrivate(withView).__addWiths(withs)
+        }
+    }
+    __registerTableOrView(_requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        // do nothing because it is not possible to add external dependency
+    }
+    __registerRequiredColumn(_requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        // do nothing because it is not possible to add external dependency
+    }
+    __getOldValues(): ITableOrView<any> | undefined {
+        // old values fake table is not possible to be used here
+        return undefined
     }
 }
 

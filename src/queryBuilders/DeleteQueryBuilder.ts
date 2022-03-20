@@ -1,5 +1,5 @@
 import type { SqlBuilder, DeleteData, JoinData, QueryColumns, ToSql } from "../sqlBuilders/SqlBuilder"
-import { ITable, ITableOrView, IWithView, OuterJoinSource, __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
+import { HasAddWiths, ITable, ITableOrView, IWithView, OuterJoinSource, __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import { IBooleanValueSource, IIfValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableExecutableDelete, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere } from "../expressions/delete"
 import type { int } from "ts-extended-types"
@@ -9,8 +9,9 @@ import { database, resultType, tableOrView, type } from "../utils/symbols"
 import { asAlwaysIfValueSource } from "../expressions/values"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
+import { Column } from "../utils/Column"
 
-export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableExecutableDelete<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableDelete<any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any> {
+export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasAddWiths, ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableExecutableDelete<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableDelete<any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any> {
     [type]: any
     [database]: any
     [tableOrView]: any
@@ -376,5 +377,23 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements ToSq
         this.__columns = { 'result': column }
         __getValueSourcePrivate(column).__addWiths(this.__withs)
         return this
+    }
+
+    __addWiths(withs: Array<IWithView<any>>): void {
+        const withViews = this.__withs
+        for (let i = 0, length = withViews.length; i < length; i++) {
+            const withView = withViews[i]!
+            __getTableOrViewPrivate(withView).__addWiths(withs)
+        }
+    }
+    __registerTableOrView(_requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        // do nothing because it is not possible to add external dependency
+    }
+    __registerRequiredColumn(_requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        // do nothing because it is not possible to add external dependency
+    }
+    __getOldValues(): ITableOrView<any> | undefined {
+        // old values fake table is not possible to be used here
+        return undefined
     }
 }

@@ -1807,7 +1807,7 @@ async function main() {
     
     /* *** Example ****************************************************************/
 
-    const customizedSelect = await connection.selectFrom(tCustomer)
+    let customizedSelect = await connection.selectFrom(tCustomer)
         .where(tCustomer.id.equals(10))
         .select({
             id: tCustomer.id,
@@ -1817,6 +1817,225 @@ async function main() {
         }).customizeQuery({
             afterSelectKeyword: connection.rawFragment`/*+ some hints */`,
             afterQuery: connection.rawFragment`for update`
+        })
+        .executeSelectOne()
+    
+    assertEquals(customizedSelect, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'First Name',
+        lastName: 'Last Name'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select /*+ some hints */ id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where id = ? order by my_column, my_id for update`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    customizedSelect = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(10))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        }).customizeQuery({
+            afterSelectKeyword: connection.rawFragment`/*+ some hints */`,
+            afterQuery: connection.rawFragment`for update`,
+            beforeOrderByItems: connection.rawFragment`my_column`,
+            afterOrderByItems: connection.rawFragment`my_id`
+        })
+        .executeSelectOne()
+    
+    assertEquals(customizedSelect, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'First Name',
+        lastName: 'Last Name'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select /*+ some hints */ id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where id = ? order by my_column for update`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    customizedSelect = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(10))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        }).customizeQuery({
+            afterSelectKeyword: connection.rawFragment`/*+ some hints */`,
+            afterQuery: connection.rawFragment`for update`,
+            beforeOrderByItems: connection.rawFragment`my_column`
+        })
+        .executeSelectOne()
+    
+    assertEquals(customizedSelect, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'First Name',
+        lastName: 'Last Name'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select /*+ some hints */ id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where id = ? order by my_id for update`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    customizedSelect = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(10))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        }).customizeQuery({
+            afterSelectKeyword: connection.rawFragment`/*+ some hints */`,
+            afterQuery: connection.rawFragment`for update`,
+            afterOrderByItems: connection.rawFragment`my_id`
+        })
+        .executeSelectOne()
+    
+    assertEquals(customizedSelect, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'First Name',
+        lastName: 'Last Name'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select /*+ some hints */ id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where id = ? order by id for update`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    customizedSelect = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(10))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        })
+        .orderBy('id')
+        .customizeQuery({
+            afterSelectKeyword: connection.rawFragment`/*+ some hints */`,
+            afterQuery: connection.rawFragment`for update`
+        })
+        .executeSelectOne()
+    
+    assertEquals(customizedSelect, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'First Name',
+        lastName: 'Last Name'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select /*+ some hints */ id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where id = ? order by my_column, id, my_id for update`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    customizedSelect = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(10))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        })
+        .orderBy('id')
+        .customizeQuery({
+            afterSelectKeyword: connection.rawFragment`/*+ some hints */`,
+            afterQuery: connection.rawFragment`for update`,
+            beforeOrderByItems: connection.rawFragment`my_column`,
+            afterOrderByItems: connection.rawFragment`my_id`
+        })
+        .executeSelectOne()
+    
+    assertEquals(customizedSelect, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'First Name',
+        lastName: 'Last Name'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select /*+ some hints */ id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where id = ? order by my_column, id for update`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    customizedSelect = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(10))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        })
+        .orderBy('id')
+        .customizeQuery({
+            afterSelectKeyword: connection.rawFragment`/*+ some hints */`,
+            afterQuery: connection.rawFragment`for update`,
+            beforeOrderByItems: connection.rawFragment`my_column`
+        })
+        .executeSelectOne()
+    
+    assertEquals(customizedSelect, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'First Name',
+        lastName: 'Last Name'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select /*+ some hints */ id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where id = ? order by id, my_id for update`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    customizedSelect = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(10))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        })
+        .orderBy('id')
+        .customizeQuery({
+            afterSelectKeyword: connection.rawFragment`/*+ some hints */`,
+            afterQuery: connection.rawFragment`for update`,
+            afterOrderByItems: connection.rawFragment`my_id`
         })
         .executeSelectOne()
     

@@ -547,7 +547,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
-        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy !== undefined) {
+        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return '(' + result + ')'
         }
         return result
@@ -816,10 +816,34 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildSelectOrderBy(query: SelectData, params: any[]): string {
         const orderBy = query.__orderBy
         if (!orderBy) {
-            return ''
+            let orderByColumns = ''
+
+            const customization = query.__customization
+            if (customization && customization.beforeOrderByItems) {
+                orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+            }
+
+            if (customization && customization.afterOrderByItems) {
+                if (orderByColumns) {
+                    orderByColumns += ', '
+                }
+                orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+            }
+
+            if (!orderByColumns) {
+                return ''
+            }
+            return ' order by ' + orderByColumns
         }
+
         const columns = query.__columns
         let orderByColumns = ''
+
+        const customization = query.__customization
+        if (customization && customization.beforeOrderByItems) {
+            orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+        }
+
         for (const property in orderBy) {
             if (orderByColumns) {
                 orderByColumns += ', '
@@ -869,6 +893,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 default:
                     throw new Error('Invalid order by: ' + property + ' ' + order)
             }
+        }
+
+        if (customization && customization.afterOrderByItems) {
+            if (orderByColumns) {
+                orderByColumns += ', '
+            }
+            orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
         }
 
         if (!orderByColumns) {
@@ -2573,7 +2604,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return true
         }
         if (!this._supportOrderByWhenAggregateArray) {
-            if (query.__orderBy) {
+            if (query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
                 return true
             }
         }

@@ -185,7 +185,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
-        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy !== undefined) {
+        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return 'select * from (' + result + ')'
         }
         return result
@@ -197,13 +197,36 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         const orderBy = query.__orderBy
         if (!orderBy) {
-            return ''
+            let orderByColumns = ''
+
+            const customization = query.__customization
+            if (customization && customization.beforeOrderByItems) {
+                orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+            }
+
+            if (customization && customization.afterOrderByItems) {
+                if (orderByColumns) {
+                    orderByColumns += ', '
+                }
+                orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+            }
+
+            if (!orderByColumns) {
+                return ''
+            }
+            return ' order by ' + orderByColumns
         }
 
         const columns: FlatQueryColumns = {}
         flattenQueryColumns(query.__columns, columns, '')
         const columnNames = Object.getOwnPropertyNames(columns)
         let orderByColumns = ''
+
+        const customization = query.__customization
+        if (customization && customization.beforeOrderByItems) {
+            orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+        }
+
         for (const property in orderBy) {
             if (orderByColumns) {
                 orderByColumns += ', '
@@ -255,6 +278,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             }
         }
 
+        if (customization && customization.afterOrderByItems) {
+            if (orderByColumns) {
+                orderByColumns += ', '
+            }
+            orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+        }
+
         if (!orderByColumns) {
             return ''
         }
@@ -263,7 +293,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = super._buildSelectLimitOffset(query, params)
 
-        if (!result && this._isAggregateArrayWrapped(params) && query.__orderBy) {
+        if (!result && this._isAggregateArrayWrapped(params) && (query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems)) {
             result += ' offset 0 rows' // Workaround to force oracle to order the result (if not the order by is ignored)
         }
         return result

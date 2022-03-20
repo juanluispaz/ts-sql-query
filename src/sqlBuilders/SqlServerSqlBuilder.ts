@@ -1,7 +1,6 @@
 import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData, flattenQueryColumns, FlatQueryColumns, getQueryColumn, QueryColumns } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AnyValueSource, IExecutableSelectQuery, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
-import type { OrderByMode } from "../expressions/select"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnPrivate } from "../utils/Column"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -141,7 +140,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
-        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy !== undefined) {
+        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return 'select * from (' + result + ') _t_' + this._generateUnique() + '_'
         }
         return result
@@ -150,6 +149,24 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // How to index it: http://www.sqlines.com/oracle/function_based_indexes
         const orderBy = query.__orderBy
         if (!orderBy) {
+            let orderByColumns = ''
+
+            const customization = query.__customization
+            if (customization && customization.beforeOrderByItems) {
+                orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+            }
+
+            if (customization && customization.afterOrderByItems) {
+                if (orderByColumns) {
+                    orderByColumns += ', '
+                }
+                orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+            }
+
+            if (orderByColumns) {
+                return ' order by ' + orderByColumns
+            }
+
             const limit = query.__limit
             const offset = query.__offset
             if ((offset !== null && offset !== undefined) || (limit !== null && limit !== undefined)) {
@@ -172,8 +189,15 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 return ''
             }
         }
+
         const columns = query.__columns
         let orderByColumns = ''
+
+        const customization = query.__customization
+        if (customization && customization.beforeOrderByItems) {
+            orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+        }
+
         for (const property in orderBy) {
             if (orderByColumns) {
                 orderByColumns += ', '
@@ -185,7 +209,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             const order = orderBy[property]
             if (!order) {
                 orderByColumns += this._appendColumnAlias(property, params)
-            } else switch (order as OrderByMode) {
+            } else switch (order) {
                 case 'asc':
                 case 'asc nulls first':
                     orderByColumns += this._appendColumnAlias(property, params) + ' asc'
@@ -220,6 +244,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 default:
                     throw new Error('Invalid order by: ' + property + ' ' + order)
             }
+        }
+
+        if (customization && customization.afterOrderByItems) {
+            if (orderByColumns) {
+                orderByColumns += ', '
+            }
+            orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
         }
 
         if (!orderByColumns) {
@@ -257,7 +288,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             result += ' fetch next ' + this._appendValue(limit, params, 'int', undefined) + ' rows only'
         }
 
-        if (!result && query.__orderBy && !this._isCurrentRootQuery(query, params)) {
+        if (!result && (query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) && !this._isCurrentRootQuery(query, params)) {
             // subqueries with order by requires always an offset, this add a noop offset
             result += ' offset 0 rows'
         }

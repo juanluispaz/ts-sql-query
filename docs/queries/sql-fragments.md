@@ -220,7 +220,9 @@ The supported extension point offered by `customizeQuery` are:
 
 - `afterSelectKeyword`: Place the fragment immediately after the `select` keyword.
 - `beforeColumns`: Place the fragment immediately before the column list and after the `distinct` keyword.
-- `customWindow`: Place the fragment as a `window` clause (the window keyboard will be added automatically).
+- `customWindow`: Place the fragment as a `window` clause (the `window` keyboard will be added automatically).
+- `beforeOrderByItems`: Place the fragment before the `order by` items produced by the query (the `order by` keyboard and the required commas will be added automatically).
+- `afterOrderByItems`: Place the fragment after the `order by` items produced by the query (the `order by` keyboard and the required commas will be added automatically).
 - `afterQuery`: Place the fragment at the end of the query.
 
 ```ts

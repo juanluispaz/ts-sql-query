@@ -1,6 +1,5 @@
 import { ToSql, SelectData, InsertData, UpdateData, getQueryColumn, FlatQueryColumns, flattenQueryColumns } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { OrderByMode } from "../expressions/select"
 import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -37,7 +36,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
-        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy !== undefined) {
+        if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return 'select * from (' + result + ')'
         }
         return result
@@ -48,10 +47,34 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         const orderBy = query.__orderBy
         if (!orderBy) {
-            return ''
+            let orderByColumns = ''
+
+            const customization = query.__customization
+            if (customization && customization.beforeOrderByItems) {
+                orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+            }
+
+            if (customization && customization.afterOrderByItems) {
+                if (orderByColumns) {
+                    orderByColumns += ', '
+                }
+                orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+            }
+
+            if (!orderByColumns) {
+                return ''
+            }
+            return ' order by ' + orderByColumns
         }
+
         const columns = query.__columns
         let orderByColumns = ''
+
+        const customization = query.__customization
+        if (customization && customization.beforeOrderByItems) {
+            orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+        }
+
         for (const property in orderBy) {
             if (orderByColumns) {
                 orderByColumns += ', '
@@ -63,7 +86,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             const order = orderBy[property]
             if (!order) {
                 orderByColumns += this._appendColumnAlias(property, params)
-            } else switch (order as OrderByMode) {
+            } else switch (order) {
                 case 'asc':
                 case 'asc nulls first':
                     orderByColumns += this._appendColumnAlias(property, params) + ' asc'
@@ -98,6 +121,13 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 default:
                     throw new Error('Invalid order by: ' + property + ' ' + order)
             }
+        }
+
+        if (customization && customization.afterOrderByItems) {
+            if (orderByColumns) {
+                orderByColumns += ', '
+            }
+            orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
         }
 
         if (!orderByColumns) {

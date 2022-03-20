@@ -1,6 +1,5 @@
 import { ToSql, SelectData, InsertData, UpdateData, DeleteData, getQueryColumn, FlatQueryColumns, flattenQueryColumns } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { OrderByMode } from "../expressions/select"
 import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -24,10 +23,34 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     _buildSelectOrderBy(query: SelectData, params: any[]): string {
         const orderBy = query.__orderBy
         if (!orderBy) {
-            return ''
+            let orderByColumns = ''
+
+            const customization = query.__customization
+            if (customization && customization.beforeOrderByItems) {
+                orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+            }
+
+            if (customization && customization.afterOrderByItems) {
+                if (orderByColumns) {
+                    orderByColumns += ', '
+                }
+                orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+            }
+
+            if (!orderByColumns) {
+                return ''
+            }
+            return ' order by ' + orderByColumns
         }
+
         const columns = query.__columns
         let orderByColumns = ''
+
+        const customization = query.__customization
+        if (customization && customization.beforeOrderByItems) {
+            orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+        }
+
         for (const property in orderBy) {
             if (orderByColumns) {
                 orderByColumns += ', '
@@ -39,7 +62,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             const order = orderBy[property]
             if (!order) {
                 orderByColumns += this._appendColumnAlias(property, params)
-            } else switch (order as OrderByMode) {
+            } else switch (order) {
                 case 'asc':
                 case 'asc nulls first':
                     orderByColumns += this._appendColumnAlias(property, params) + ' asc'
@@ -75,6 +98,13 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                     throw new Error('Invalid order by: ' + property + ' ' + order)
             }
         }
+
+        if (customization && customization.afterOrderByItems) {
+            if (orderByColumns) {
+                orderByColumns += ', '
+            }
+            orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+        }
         
         if (!orderByColumns) {
             return ''
@@ -84,10 +114,34 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     _buildAggregateArrayOrderBy(query: SelectData, params: any[], addSpace: boolean): string {
         const orderBy = query.__orderBy
         if (!orderBy) {
-            return ''
+            let orderByColumns = ''
+
+            const customization = query.__customization
+            if (customization && customization.beforeOrderByItems) {
+                orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+            }
+
+            if (customization && customization.afterOrderByItems) {
+                if (orderByColumns) {
+                    orderByColumns += ', '
+                }
+                orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
+            }
+
+            if (!orderByColumns) {
+                return ''
+            }
+            return ' order by ' + orderByColumns
         }
+
         const columns = query.__columns
         let orderByColumns = ''
+
+        const customization = query.__customization
+        if (customization && customization.beforeOrderByItems) {
+            orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
+        }
+
         for (const property in orderBy) {
             if (orderByColumns) {
                 orderByColumns += ', '
@@ -99,7 +153,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             const order = orderBy[property]
             if (!order) {
                 orderByColumns += this._appendSql(column, params)
-            } else switch (order as OrderByMode) {
+            } else switch (order) {
                 case 'asc':
                 case 'asc nulls first':
                     orderByColumns += this._appendSql(column, params) + ' asc'
@@ -134,6 +188,13 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                 default:
                     throw new Error('Invalid order by: ' + property + ' ' + order)
             }
+        }
+
+        if (customization && customization.afterOrderByItems) {
+            if (orderByColumns) {
+                orderByColumns += ', '
+            }
+            orderByColumns += this._appendRawFragment(customization.afterOrderByItems, params)
         }
         
         if (!orderByColumns) {
@@ -190,7 +251,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             result += ' offset ' + this._appendValue(offset, params, 'int', undefined)
         }
 
-        if (!result && this._isAggregateArrayWrapped(params) && query.__orderBy) {
+        if (!result && this._isAggregateArrayWrapped(params) && (query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems)) {
             result += ' limit 2147483647' // Workaround to force mysql/maraiadb to order the result (if not the order by is ignored), the number is the max value of an int
         }
         return result

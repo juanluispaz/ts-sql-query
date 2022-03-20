@@ -1120,7 +1120,51 @@ type AggregatedArrayColumns<DB extends AnyDB> = {
     [P: string]: ValueSourceOfDB<DB> | AggregatedArrayColumns<DB>
 }
 
+// Handled in a maximum of 12 levels to avoid infinite instantiation in TypeScript
 type TableOrViewOfAggregatedArray<TYPE> = ({
-    // TYPE[KEY] extends {} added to avoid infinite instantation in TypeScript
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TYPE[KEY] extends {} ? TableOrViewOfAggregatedArray<TYPE[KEY]> : never
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray2<TYPE[KEY]>
+})[keyof TYPE]
+
+type TableOrViewOfAggregatedArray2<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray3<TYPE[KEY]>
+})[keyof TYPE]
+
+type TableOrViewOfAggregatedArray3<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray4<TYPE[KEY]>
+})[keyof TYPE]
+
+type TableOrViewOfAggregatedArray4<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray5<TYPE[KEY]>
+})[keyof TYPE]
+
+type TableOrViewOfAggregatedArray5<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray6<TYPE[KEY]>
+})[keyof TYPE]
+
+type TableOrViewOfAggregatedArray6<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray7<TYPE[KEY]>
+})[keyof TYPE]
+
+type TableOrViewOfAggregatedArray7<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray8<TYPE[KEY]>
+})[keyof TYPE]
+
+type TableOrViewOfAggregatedArray8<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray9<TYPE[KEY]>
+})[keyof TYPE]
+
+type TableOrViewOfAggregatedArray9<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray10<TYPE[KEY]>
+})[keyof TYPE]
+
+type TableOrViewOfAggregatedArray10<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray11<TYPE[KEY]>
+})[keyof TYPE]
+
+type TableOrViewOfAggregatedArray11<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray12<TYPE[KEY]>
+})[keyof TYPE]
+
+type TableOrViewOfAggregatedArray12<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : never
 })[keyof TYPE]

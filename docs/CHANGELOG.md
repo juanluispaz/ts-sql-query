@@ -1,5 +1,21 @@
 # Change Log
 
+## v1.26.0 (20 Mar 2022)
+
+**Changes**:
+
+- Add support to "insert on conflict do nothing" and "insert on conflict do update" on PostgreSql, Sqlite, MariaDB and MySql
+- Add support to specify raw sql fragment in the order by; allowing complex order by in the select query
+- Allow insert, update and delete in raw sql fragments
+
+**Documentation changes**:
+
+- Add a demo video to the documentation
+
+**Bug fixes**:
+
+- Fix infinite instantiation in newer versions of TypeScript
+
 ## v1.25.0 (9 Jan 2022)
 
 **Changes**:

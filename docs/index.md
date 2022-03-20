@@ -4,11 +4,13 @@
 
 ## What is ts-sql-query?
 
-ts-sql-query is a type-safe SQL query builder like QueryDSL or JOOQ in Java for TypeScript with MariaDB, MySql, Oracle, PostgreSql, Sqlite and SqlServer support.
-
-ts-sql-query provides a way to build dynamic SQL queries in a type-safe way, that means, the TypeScript compiler verifies the queries. Note: this is not an ORM, and the most probably is you don't need one.
+ts-sql-query is a type-safe query builder that provides a way to build dynamic SQL queries in a type-safe way, that means, the TypeScript compiler verifies the queries. 
 
 Type-safe SQL means the mistakes writting a query will be detected during the compilation time. With ts-sql-query you don't need to be affraid of change the database, the problems caused by the change will be detected during compilation time.
+
+ts-sql-query supports MariaDB, MySql, Oracle, PostgreSql, Sqlite and SqlServer. Note: this is not an ORM, and the most probably is you don't need one.
+
+![](demo.gif)
 
 ## Why?
 

@@ -962,6 +962,54 @@ interface InsertExpression {
      */
     returningLastInsertedId(): this
 
+    // Methos to specify the on conflict clause
+    /** Allows to specify the "on conflict do nothing" clause */
+    onConflictDoNothing(): this
+    /** Allows to specify the "on conflict do update" clause and next specify the sets */
+    onConflictDoUpdateDynamicSet(): this
+    /** Allows to specify the "on conflict do update set" clause, setting the columns provided as argument */
+    onConflictDoUpdateSet(columns: UpdateSets): this
+    /** 
+     * Allows to specify the "on conflict do update set" clause, setting the columns provided as argument.
+     * Set a value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array 
+     */
+    onConflictDoUpdateSetIfValue(columns: UpdateSets): this
+    /**Allow to specify the "on conflit" clasue indicating the index column expected by this clause */
+    onConflictOn(column: ValueSource, ...columns: ValueSource[]): this
+    /**Allow to specify the "on conflit on constraint" clasue indicating the index name expected by this clause */
+    onConflictOnConstraint(constraint: string): this
+    /**Allow to specify the "on conflit on constraint" clasue indicating the index name expected by this clause */
+    onConflictOnConstraint(constraint: StringValueSource): this
+    /**Allow to specify the "on conflit on constraint" clasue indicating the index name expected by this clause */
+    onConflictOnConstraint(constraint: RawFragment): this
+
+    // Methods available when previously is called onConflictOn or onConflictOnConstraint
+    /** Allows to specify the "do nothing" clause */
+    doNothing(): this
+    /** Allows to specify the "do update" clause and next specify the sets */
+    doUpdateDynamicSet(): this
+    /** Allows to specify the do update set" clause, setting the columns provided as argument */
+    doUpdateSet(columns: UpdateSets): this
+    /** 
+     * Allows to specify the "do update set" clause, setting the columns provided as argument.
+     * Set a value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array 
+     */
+    doUpdateSetIfValue(columns: UpdateSets): this
+
+    // Methods available to specify a where clause inmediatelly after call onConflictOn or any do update method
+    /** Allows to create the where dynamically */
+    dynamicWhere(): this
+    /** Allows to specify the where */
+    where(condition: BooleanValueSource): this
+    /** Allows to extends the where using an and */
+    and(condition: BooleanValueSource): this
+    /** Allows to extends the where using an or */
+    or(condition: BooleanValueSource): this
+
     /**
      * Execute the insert, by default returns the number of inserted rows
      * 

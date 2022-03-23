@@ -475,7 +475,7 @@ type OnConflictOnConstraintFnType<TABLE extends ITableOrView<any>, NEXT> =
 
 interface OnConflictOnConstraintFnTypeInterface<TABLE extends ITableOrView<any>, NEXT> {
     (constraint: string): NEXT
-    (condition: TypeWhenSafeDB<TABLE[typeof database], IStringValueSource<NoTableOrViewRequired<TABLE[typeof database]>, 'required'>, ITypeSafeStringValueSource<NoTableOrViewRequired<TABLE[typeof database]>, 'required'>>): NEXT
+    (constraint: TypeWhenSafeDB<TABLE[typeof database], IStringValueSource<NoTableOrViewRequired<TABLE[typeof database]>, 'required'>, ITypeSafeStringValueSource<NoTableOrViewRequired<TABLE[typeof database]>, 'required'>>): NEXT
     (constraint: RawFragment<TABLE[typeof database]>): NEXT
 }
 

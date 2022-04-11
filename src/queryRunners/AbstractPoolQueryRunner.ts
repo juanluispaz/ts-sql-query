@@ -160,6 +160,10 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     private getQueryRunner(): Promise<QueryRunner> {
         if (!this.currentQueryRunner) {
             return this.createQueryRunner().then(queryRunner => {
+                if (this.currentQueryRunner) {
+                    this.releaseQueryRunner(queryRunner)
+                    throw new Error('Forbidden concurrent usage of the query runner was detected when it tried to get a database connection from the pool')
+                }
                 this.currentQueryRunner = queryRunner
                 if (this.transactionLevel > 0) {
                     return this.currentQueryRunner.executeBeginTransaction().then(() => {

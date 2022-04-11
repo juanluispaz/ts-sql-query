@@ -4,7 +4,7 @@ import type { databaseName } from "../utils/symbols"
 import { AbstractMariaDBConnection } from "./AbstractMariaDBConnection"
 import { MariaDBSqlBuilder } from "../sqlBuilders/MariaDBSqlBuilder"
 
-interface DB<NAME extends string> extends TypeUnsafeDB, MariaDB {
+export interface DB<NAME extends string> extends TypeUnsafeDB, MariaDB {
     [databaseName]: NAME
 }
 

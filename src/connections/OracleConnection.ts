@@ -4,7 +4,7 @@ import type { databaseName } from "../utils/symbols"
 import { AbstractOracleConnection } from "./AbstractOracleConnection"
 import { OracleSqlBuilder } from "../sqlBuilders/OracleSqlBuilder"
 
-interface DB<NAME extends string> extends TypeUnsafeDB, Oracle {
+export interface DB<NAME extends string> extends TypeUnsafeDB, Oracle {
     [databaseName]: NAME
 }
 

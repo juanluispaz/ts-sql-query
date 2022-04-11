@@ -5,7 +5,7 @@ import { AbstractNoopDBConnection } from "./AbstractNoopDBConnection"
 import { NoopDBSqlBuilder } from "../sqlBuilders/NoopDBSqlBuilder"
 import { NoopQueryRunner } from "../queryRunners/NoopQueryRunner"
 
-interface DB<NAME extends string> extends TypeSafeDB, NoopDB {
+export interface DB<NAME extends string> extends TypeSafeDB, NoopDB {
     [databaseName]: NAME
 }
 

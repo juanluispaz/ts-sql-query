@@ -4,7 +4,7 @@ import type { databaseName } from "../utils/symbols"
 import { AbstractSqlServerConnection } from "./AbstractSqlServerConnection"
 import { SqlServerSqlBuilder } from "../sqlBuilders/SqlServerSqlBuilder"
 
-interface DB<NAME extends string> extends TypeUnsafeDB, SqlServer {
+export interface DB<NAME extends string> extends TypeUnsafeDB, SqlServer {
     [databaseName]: NAME
 }
 

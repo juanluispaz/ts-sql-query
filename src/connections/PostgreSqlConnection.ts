@@ -4,7 +4,7 @@ import type { databaseName } from "../utils/symbols"
 import { AbstractPostgreSqlConnection } from "./AbstractPostgreSqlConnection"
 import { PostgreSqlSqlBuilder } from "../sqlBuilders/PostgreSqlSqlBuilder"
 
-interface DB<NAME extends string> extends TypeUnsafeDB, PostgreSql {
+export interface DB<NAME extends string> extends TypeUnsafeDB, PostgreSql {
     [databaseName]: NAME
 }
 

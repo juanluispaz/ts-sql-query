@@ -4,7 +4,7 @@ import type { databaseName } from "../utils/symbols"
 import { AbstractSqliteConnection } from "./AbstractSqliteConnection"
 import { SqliteSqlBuilder } from "../sqlBuilders/SqliteSqlBuilder"
 
-interface DB<NAME extends string> extends TypeSafeDB, Sqlite {
+export interface DB<NAME extends string> extends TypeSafeDB, Sqlite {
     [databaseName]: NAME
 }
 

@@ -4,7 +4,7 @@ import type { databaseName } from "../utils/symbols"
 import { AbstractMySqlConnection } from "./AbstractMySqlConnection"
 import { MySqlSqlBuilder } from "../sqlBuilders/MySqlSqlBuilder"
 
-interface DB<NAME extends string> extends TypeUnsafeDB, MySql {
+export interface DB<NAME extends string> extends TypeUnsafeDB, MySql {
     [databaseName]: NAME
 }
 

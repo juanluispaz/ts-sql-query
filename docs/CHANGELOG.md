@@ -1,5 +1,16 @@
 # Change Log
 
+## v1.27.0 (11 Apr 2022)
+
+**Documentation changes**:
+
+- Add the insert on conflict methods to the supported operation documentation page
+
+**Bug fixes**:
+
+- Fix TS4029 error when you need to emit the type definition (for use in a library) of the files that contains the database, tables and views
+- Avoid database connection leaks due a forbidden concurrent usage of a pooled query runner
+
 ## v1.26.0 (20 Mar 2022)
 
 **Changes**:

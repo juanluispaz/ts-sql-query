@@ -1,12 +1,7 @@
 import type { QueryRunner } from "../queryRunners/QueryRunner"
-import type { MariaDB, TypeUnsafeDB } from "../databases"
-import type { databaseName } from "../utils/symbols"
 import { AbstractMariaDBConnection } from "./AbstractMariaDBConnection"
 import { MariaDBSqlBuilder } from "../sqlBuilders/MariaDBSqlBuilder"
-
-export interface DB<NAME extends string> extends TypeUnsafeDB, MariaDB {
-    [databaseName]: NAME
-}
+import type { DB } from "../typeMarks/MariaDBDB"
 
 export abstract class MariaDBConnection<NAME extends string> extends AbstractMariaDBConnection<DB<NAME>> {
     constructor(queryRunner: QueryRunner, sqlBuilder = new MariaDBSqlBuilder()) {

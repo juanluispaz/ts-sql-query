@@ -1,12 +1,7 @@
 import type { QueryRunner } from "../queryRunners/QueryRunner"
-import type { MySql, TypeUnsafeDB } from "../databases"
-import type { databaseName } from "../utils/symbols"
 import { AbstractMySqlConnection } from "./AbstractMySqlConnection"
 import { MySqlSqlBuilder } from "../sqlBuilders/MySqlSqlBuilder"
-
-export interface DB<NAME extends string> extends TypeUnsafeDB, MySql {
-    [databaseName]: NAME
-}
+import type { DB } from "../typeMarks/MySqlDB"
 
 export abstract class MySqlConnection<NAME extends string> extends AbstractMySqlConnection<DB<NAME>> {
     constructor(queryRunner: QueryRunner, sqlBuilder = new MySqlSqlBuilder()) {

@@ -1,5 +1,5 @@
 import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource, __getValueSourceOfObject, __getValueSourcePrivate, TypeSafeUuidValueSource, UuidValueSource } from "./expressions/values"
-import { IView, IWithView, TableOrViewOf, TableOrViewRef, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
+import { IView, IWithView, TableOrViewOf, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
 import type { TypeAdapter } from "./TypeAdapter"
 import type { AliasedTableOrView, OuterJoinSourceOf } from "./utils/tableOrViewUtils"
 import { Column, OptionalColumn } from "./utils/Column"
@@ -8,11 +8,7 @@ import { ColumnImpl } from "./internal/ColumnImpl"
 import { database, tableOrViewRef, type, viewName } from "./utils/symbols"
 import { IConnection } from "./utils/IConnection"
 import { RawFragment } from "./utils/RawFragment"
-
-interface VIEW<DB extends AnyDB, NAME extends string> extends TableOrViewRef<DB> {
-    [viewName]: NAME
-    [type]: 'view'
-}
+import type { VIEW } from "./typeMarks/VIEW"
 
 class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     [database]: REF[typeof database]

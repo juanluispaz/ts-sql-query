@@ -64,6 +64,14 @@ export interface WithData {
     __recursive?: boolean
 }
 
+export function hasWithData(value: any): value is WithData {
+    if (value && value.__name && value.__selectData) {
+        return true
+    } else {
+        return false
+    }
+}
+
 export function getWithData(withView: IWithView<any>): WithData {
     return withView as any
 }

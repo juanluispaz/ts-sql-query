@@ -52,6 +52,22 @@ class DBConection extends TypeSafeMySqlConnection<'DBConnection'> {
 }
 ```
 
+### Compatibility mode
+
+The compatibility mode avoid to use with clasue to increase the compatibility with MySql 5.
+
+By default the compatibility mode is disabled. To enable the compatibility mode you must set the `compatibilityMode` property of the connection to true.
+
+```ts
+import { TypeSafeMySqlConnection } from "ts-sql-query/connections/TypeSafeMySqlConnection";
+
+class DBConection extends TypeSafeMySqlConnection<'DBConnection'> {
+    protected compatibilityMode = true
+}
+```
+
+**Note**: When the compatibility mode is enabled recursive queries are not supported and you will get an error if you try to use them.
+
 ## Oracle
 
 ```ts

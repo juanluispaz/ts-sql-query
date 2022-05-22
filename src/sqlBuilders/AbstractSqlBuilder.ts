@@ -308,7 +308,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return result
     }
     _supportTableAliasWithAs = true
-    _appendTableOrViewName(table: ITableOrView<any>, params: any[]) {
+    _appendTableOrViewName(table: ITableOrView<any>, params: any[]): string {
         const t = __getTableOrViewPrivate(table)
         if (t.__template) {
             return this._appendRawFragment(t.__template, params)
@@ -317,7 +317,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const forceAliasFor = this._getForceAliasFor(params)
         const forceAliasAs = this._getForceAliasAs(params)
 
-        let result = this._escape(t.__name, false)
+        let result = this._appendTableOrViewNameForFrom(table, params)
         if (forceAliasFor === table && forceAliasAs) {
             if (this._supportTableAliasWithAs) {
                 result += ' as '
@@ -332,8 +332,25 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 result += ' '
             }
             result += this._escape(t.__as, true)
+        } else {
+            const alias = this._appendTableOrViewNoAliasForFrom(table, params)
+            if (alias) {
+                if (this._supportTableAliasWithAs) {
+                    result += ' as '
+                } else {
+                    result += ' '
+                }
+                result += alias
+            }
         }
         return result
+    }
+    _appendTableOrViewNameForFrom(table: ITableOrView<any>, _params: any[]): string {
+        const t = __getTableOrViewPrivate(table)
+        return this._escape(t.__name, false)
+    }
+    _appendTableOrViewNoAliasForFrom(_table: ITableOrView<any>, _params: any[]): string {
+        return ''
     }
     _appendRawFragment(rawFragment: RawFragment<any>, params: any[]): string {
         return (rawFragment as any as ToSql).__toSql(this, params) // RawFragment has a hidden implemetation of ToSql
@@ -2516,9 +2533,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
         result += sql[sql.length - 1]
         return result
     }
-    _rawFragmentTableName(_params: any[], tableOrView: ITableOrView<any>): string {
-        const name = __getTableOrViewPrivate(tableOrView).__name
-        return this._escape(name, false)
+    _rawFragmentTableName(params: any[], tableOrView: ITableOrView<any>): string {
+        return this._appendTableOrViewNameForFrom(tableOrView, params)
     }
     _rawFragmentTableAlias(params: any[], tableOrView: ITableOrView<any>): string {
         const forceAliasFor = this._getForceAliasFor(params)

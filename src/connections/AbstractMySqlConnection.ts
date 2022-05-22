@@ -12,4 +12,14 @@ export abstract class AbstractMySqlConnection<DB extends MySql & (TypeUnsafeDB |
         queryRunner.useDatabase('mySql')
     }
 
+    /**
+     * The compatibility mode try to maximize the compatibility with older versions of MySQL (MySQL 5)
+     *
+     * The syntax avoided are:
+     * - With clause, instead the query is directly included in the from
+     * 
+     * Note: Recursive queries are not supported
+     */
+    protected compatibilityMode: boolean = false
+
 }

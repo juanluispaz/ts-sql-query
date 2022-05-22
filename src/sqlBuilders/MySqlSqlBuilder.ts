@@ -1,6 +1,7 @@
 import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __getValueSourcePrivate } from "../expressions/values"
+import { ITableOrView } from "../utils/ITableOrView"
 import { AbstractMySqlMariaDBSqlBuilder } from "./AbstractMySqlMariaBDSqlBuilder"
-import { FlatQueryColumns, flattenQueryColumns, SelectData, ToSql } from "./SqlBuilder"
+import { FlatQueryColumns, flattenQueryColumns, hasWithData, SelectData, ToSql, WithQueryData } from "./SqlBuilder"
 
 export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mySql: true = true
@@ -85,6 +86,46 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
 
             return 'json_arrayagg(json_object(' + result + '))'
         }
+    }
+
+    _buildWith(withData: WithQueryData, params: any[]): string {
+        if (this._connectionConfiguration.compatibilityMode) {
+            // No with should be generated
+            return ''
+        }
+        return super._buildWith(withData, params)
+    }
+    _appendTableOrViewNameForFrom(table: ITableOrView<any>, params: any[]): string {
+        if (this._connectionConfiguration.compatibilityMode) {
+            // The with clause must be expanded inline when it is required
+            if (hasWithData(table)) {
+                if (table.__recursive) {
+                    throw new Error('Recursive queries are not supported in MySql compatibility mode')
+                }
+                return '(' + this._buildSelect(table.__selectData, params) + ')'
+            }
+        }
+        return super._appendTableOrViewNameForFrom(table, params)
+    }
+    _appendTableOrViewNoAliasForFrom(table: ITableOrView<any>, params: any[]): string {
+        if (this._connectionConfiguration.compatibilityMode) {
+            // The with name must be used as alias
+            if (hasWithData(table)) {
+                return table.__name
+            }
+        }
+
+        return super._appendTableOrViewNoAliasForFrom(table, params)
+    }
+    _setSafeTableOrView(params: any[], tableOrView: ITableOrView<any> | undefined): void {
+        if (this._connectionConfiguration.compatibilityMode) {
+            // The inline query alias (from the with) always requires explicit name
+            if (hasWithData(tableOrView)) {
+                super._setSafeTableOrView(params, undefined)
+                return
+            }
+        }
+        super._setSafeTableOrView(params, tableOrView)
     }
 }
 

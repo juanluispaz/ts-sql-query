@@ -1,5 +1,12 @@
 # Change Log
 
+## v1.28.0 (23 May 2022)
+
+**Changes**:
+
+- Add compatibility mode to MySql to avoid use the with clause not supported by MySql 5
+- Add support to reference current value and value to insert in an insert on conflict do update
+
 ## v1.27.0 (11 Apr 2022)
 
 **Documentation changes**:

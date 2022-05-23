@@ -230,6 +230,48 @@ const insertReturningCustomerData: Promise<{
 }>
 ```
 
+If you want to use in the update the values to insert you can call them method `valuesForInsert()` over the table to get access to the table representation of the values to insert.
+
+```ts
+const tCustomerForInsert = tCustomer.valuesForInsert()
+const insertReturningCustomerData = await connection.insertInto(tCustomer).set({
+        firstName: 'John',
+        lastName: 'Smith',
+        companyId: 1
+    })
+    .onConflictDoUpdateSet({
+        firstName: tCustomer.firstName.concat(' - ').concat(tCustomerForInsert.firstName),
+        lastName: tCustomer.lastName.concat(' - ').concat(tCustomerForInsert.lastName)
+    })
+    .returning({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName
+    })
+    .executeInsertOne()
+```
+
+The executed query is:
+```sql
+insert into customer (first_name, last_name, company_id) 
+values ($1, $2, $3) 
+on conflict do update set 
+    first_name = customer.first_name || $4 || excluded.first_name, 
+    last_name = customer.last_name || $5 || excluded.last_name 
+returning id as id, first_name as firstName, last_name as lastName
+```
+
+The parameters are: `[ 'John', 'Smith', 1, ' - ', ' - ' ]`
+
+The result type is a promise with the information of the inserted rows:
+```tsx
+const insertReturningCustomerData: Promise<{
+    id: number;
+    firstName: string;
+    lastName: string;
+}>
+```
+
 **Notes**
 
 - On `PostgreSql` and `Sqlite`, you can specify `where` clause that idicates when the update must be permormed.

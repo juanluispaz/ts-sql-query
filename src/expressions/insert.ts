@@ -1,5 +1,5 @@
 import type { IExecutableSelectQuery, RemapIValueSourceType, ValueSourceValueType, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapIValueSourceTypeWithOptionalType, IExecutableInsertQuery, IIfValueSource, IBooleanValueSource, IStringValueSource, ITypeSafeStringValueSource } from "./values"
-import type { ITableOrView, NoTableOrViewRequired, NoTableOrViewRequiredView } from "../utils/ITableOrView"
+import type { ITableOrView, NoTableOrViewRequired, NoTableOrViewRequiredView, VALUES_FOR_INSERT } from "../utils/ITableOrView"
 import type { AnyDB, TypeSafeDB, NoopDB, PostgreSql, SqlServer, Oracle, Sqlite, MariaDB, MySql, TypeWhenSafeDB } from "../databases"
 import type { int } from "ts-extended-types"
 import type { database, tableOrView, tableOrViewRef } from "../utils/symbols"
@@ -558,13 +558,31 @@ type InputTypeOfOptionalColumn<TABLE extends ITableOrView<any>, K extends Column
     : never
 
 type OnConflictUpdateSets<TABLE extends ITableOrView<any>> = {
-    [P in RequiredColumnsForSetOf<TABLE>]?: InputTypeOfColumn<TABLE, P>
+    [P in RequiredColumnsForSetOf<TABLE>]?: OnConflictInputTypeOfColumn<TABLE, P>
 } & {
-    [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumn<TABLE, P>
+    [P in OptionalColumnsForSetOf<TABLE>]?: OnConflictInputTypeOfOptionalColumn<TABLE, P>
 }
 
 type OnConflictOptionalUpdateSets<TABLE extends ITableOrView<any>> = {
-    [P in RequiredColumnsForSetOf<TABLE>]?: InputTypeOfColumn<TABLE, P> | null | undefined
+    [P in RequiredColumnsForSetOf<TABLE>]?: OnConflictInputTypeOfColumn<TABLE, P> | null | undefined
 } & {
-    [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumn<TABLE, P> | null | undefined
+    [P in OptionalColumnsForSetOf<TABLE>]?: OnConflictInputTypeOfOptionalColumn<TABLE, P> | null | undefined
 }
+
+type OnConflictInputTypeOfColumn<TABLE extends ITableOrView<any>, K extends ColumnsOf<TABLE>> =
+    TABLE[K] extends ValueSourceOf<TABLE[typeof tableOrViewRef]> ?
+    (TABLE[K] extends ColumnWithDefaultValue ? (
+        ValueSourceValueType<TABLE[K]> | RemapIValueSourceType<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | VALUES_FOR_INSERT<TABLE[typeof tableOrViewRef]>, TABLE[K]> | Default
+    ) : (
+        ValueSourceValueType<TABLE[K]> | RemapIValueSourceType<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | VALUES_FOR_INSERT<TABLE[typeof tableOrViewRef]>, TABLE[K]>
+    ))
+    : never
+
+type OnConflictInputTypeOfOptionalColumn<TABLE extends ITableOrView<any>, K extends ColumnsOf<TABLE>> =
+    TABLE[K] extends ValueSourceOf<TABLE[typeof tableOrViewRef]> ?
+    (TABLE[K] extends ColumnWithDefaultValue ? (
+        ValueSourceValueType<TABLE[K]> | RemapIValueSourceTypeWithOptionalType<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | VALUES_FOR_INSERT<TABLE[typeof tableOrViewRef]>, TABLE[K], any> | Default
+    ) : (
+        ValueSourceValueType<TABLE[K]> | RemapIValueSourceTypeWithOptionalType<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | VALUES_FOR_INSERT<TABLE[typeof tableOrViewRef]>, TABLE[K], any>
+    ))
+    : never

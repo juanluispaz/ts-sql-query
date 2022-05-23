@@ -1,4 +1,4 @@
-import type { CUSTOMIZED_TABLE_OR_VIEW, ITable, ITableOrView, IView, IWithView, OuterJoinSource, TableOrViewAlias, TABLE_OR_VIEW_ALIAS, TableOrViewRef, OLD, OldTableOrView, OUTER_JOIN_SOURCE, TableOrViewOuterJoin } from "./ITableOrView"
+import type { CUSTOMIZED_TABLE_OR_VIEW, ITable, ITableOrView, IView, IWithView, OuterJoinSource, TableOrViewAlias, TABLE_OR_VIEW_ALIAS, TableOrViewRef, OLD, OldTableOrView, OUTER_JOIN_SOURCE, TableOrViewOuterJoin, VALUES_FOR_INSERT, ValuesForInsertTableOrView } from "./ITableOrView"
 import type { AnyValueSource, IValueSource, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType } from "../expressions/values"
 import type { tableOrViewRef, type, viewName } from "./symbols"
 import type { AnyDB } from "../databases"
@@ -8,6 +8,8 @@ export type ColumnsOf<TABLE_OR_VIEW extends ITableOrView<any>> = ({ [K in keyof 
 type ValueSourcesOf<TABLE_OR_VIEW> = ({ [K in keyof TABLE_OR_VIEW]-?: TABLE_OR_VIEW[K] extends AnyValueSource ? K : never })[keyof TABLE_OR_VIEW]
 
 export type OldValues<TABLE_OR_VIEW extends ITableOrView<any>> = { [K in ValueSourcesOf<TABLE_OR_VIEW>]: RemapValueSourceType<OLD<TABLE_OR_VIEW[typeof tableOrViewRef]>, TABLE_OR_VIEW[K]> } & OldTableOrView<TABLE_OR_VIEW>
+
+export type ValuesForInsert<TABLE_OR_VIEW extends ITableOrView<any>> = { [K in ValueSourcesOf<TABLE_OR_VIEW>]: RemapValueSourceType<VALUES_FOR_INSERT<TABLE_OR_VIEW[typeof tableOrViewRef]>, TABLE_OR_VIEW[K]> } & ValuesForInsertTableOrView<TABLE_OR_VIEW>
 
 export type AliasedTableOrView<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> = { [K in ValueSourcesOf<TABLE_OR_VIEW>]: RemapValueSourceType<TABLE_OR_VIEW_ALIAS<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>, TABLE_OR_VIEW[K]> } & TableOrViewAlias<TABLE_OR_VIEW, ALIAS>
 

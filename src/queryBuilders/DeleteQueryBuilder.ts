@@ -396,4 +396,8 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         // old values fake table is not possible to be used here
         return undefined
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        // values for insert fake table is not possible to be used here
+        return undefined
+    }
 }

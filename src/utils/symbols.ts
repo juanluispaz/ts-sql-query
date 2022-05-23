@@ -31,6 +31,7 @@ export const outerJoinDatabase: unique symbol = Symbol('outerJoinDatabase')
 export const outerJoinTableOrView: unique symbol = Symbol('outerJoinTableOrView')
 export const outerJoinAlias: unique symbol = Symbol('outerJoinAlias')
 export const oldValues: unique symbol = Symbol('oldValues')
+export const valuesForInsert: unique symbol = Symbol('valuesForInsert')
 
 // Columns
 export const valueType: unique symbol = Symbol('valueType')

@@ -269,6 +269,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const forceAliasAs = this._getForceAliasAs(params)
         const fakeNamesOf = this._getFakeNamesOf(params)
 
+        if (tablePrivate.__valuesForInsert) {
+            return this._appendRawColumnNameForValuesForInsert(column, params)
+        }
+
         if (forceAliasFor === tableOrView && forceAliasAs) {
             return this._escape(forceAliasAs, true) + '.' + this._escape(columnPrivate.__name, true)
         }
@@ -288,6 +292,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             return this._escape(tablePrivate.__name, false) + '.' + this._escape(columnPrivate.__name, true)
         }
+    }
+    _appendRawColumnNameForValuesForInsert(column: Column, _params: any[]): string {
+        const columnPrivate = __getColumnPrivate(column)
+        return 'excluded.' + this._escape(columnPrivate.__name, true)
     }
     _appendLiteralValue(value: number | string, _params: any[]) {
         if (typeof value === 'number') {
@@ -1461,6 +1469,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             result += ' do nothing'
         }
 
+        const oldSafeTableOrView = this._getSafeTableOrView(params)
+        this._setSafeTableOrView(params, undefined)
         let columns = ''
         const table = query.__table
         const sets = query.__onConflictUpdateSets
@@ -1540,6 +1550,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
+        this._setSafeTableOrView(params, oldSafeTableOrView)
         return result
     }
     _nextSequenceValue( _params: any[], sequenceName: string) {

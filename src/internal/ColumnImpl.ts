@@ -97,6 +97,9 @@ export class ColumnImpl extends ValueSourceImpl implements Column, __ColumnPriva
     __getOldValues(): ITableOrView<any> | undefined {
         return __getTableOrViewPrivate(this.__tableOrView).__getOldValues()
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return __getTableOrViewPrivate(this.__tableOrView).__getValuesForInsert()
+    }
 }
 
 export function createColumnsFrom(columns: QueryColumns, target: QueryColumns, table: ITableOrView<any>) {

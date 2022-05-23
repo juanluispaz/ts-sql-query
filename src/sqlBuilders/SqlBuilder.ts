@@ -139,6 +139,7 @@ export interface InsertData extends WithQueryData {
     __onConflictDoNothing?: boolean
     __onConflictUpdateSets?: { [property: string]: any }
     __onConflictUpdateWhere?: AlwaysIfValueSource<any, any>
+    __valuesForInsert?: ITableOrView<any>
 }
 
 export interface UpdateData extends WithQueryData {

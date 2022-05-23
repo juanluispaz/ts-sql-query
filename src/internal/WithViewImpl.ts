@@ -90,4 +90,7 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
     __getOldValues(): ITableOrView<any> | undefined {
         return undefined
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return undefined
+    }
 }

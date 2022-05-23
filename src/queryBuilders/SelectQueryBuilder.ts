@@ -1,6 +1,6 @@
 import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData, QueryColumns } from "../sqlBuilders/SqlBuilder"
 import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderByExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereOffsetExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, ExecutableSelectWithWhere, ExecutableSelectWithoutWhere, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, SplitedComposedExecutableSelectWithoutWhere, SplitedComposedDynamicWhereExecutableSelectExpression, WhereableCompoundableExecutableSelectExpressionWithoutWhere } from "../expressions/select"
-import { HasAddWiths, ITableOrView, IWithView, OuterJoinSource, __getOldValues, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
+import { HasAddWiths, ITableOrView, IWithView, OuterJoinSource, __getOldValues, __getValuesForInsert, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { WithView } from "../utils/tableOrViewUtils"
@@ -460,6 +460,20 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         for (let i = 0, length = subSelectUsing.length; i < length; i++) {
             const tableOrView = subSelectUsing[i]!
             const result = __getTableOrViewPrivate(tableOrView).__getOldValues()
+            if (result) {
+                return result
+            }
+        }
+        return undefined
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        const subSelectUsing = this.__subSelectUsing
+        if (!subSelectUsing) {
+            return undefined
+        }
+        for (let i = 0, length = subSelectUsing.length; i < length; i++) {
+            const tableOrView = subSelectUsing[i]!
+            const result = __getTableOrViewPrivate(tableOrView).__getValuesForInsert()
             if (result) {
                 return result
             }
@@ -986,6 +1000,21 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return undefined
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        let result = super.__getValuesForInsert()
+        if (result) {
+            return result
+        }
+        const tablesOrViews = this.__tablesOrViews
+        for (let i = 0, length = tablesOrViews.length; i < length; i++) {
+            const tableOrView = tablesOrViews[i]!
+            result = __getTableOrViewPrivate(tableOrView).__getValuesForInsert()
+            if (result) {
+                return result
+            }
+        }
+        return undefined
+    }
 }
 
 export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql, CompoundSelectData {
@@ -1061,5 +1090,8 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return super.__getOldValues() || __getOldValues(this.__firstQuery) || __getOldValues(this.__secondQuery)
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return super.__getValuesForInsert() || __getValuesForInsert(this.__firstQuery) || __getValuesForInsert(this.__secondQuery)
     }
 }

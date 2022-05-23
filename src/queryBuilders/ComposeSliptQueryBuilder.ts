@@ -691,6 +691,19 @@ export class ComposeSplitQueryBuilder {
         return undefined
     }
 
+    __getValuesForInsertOfColumns(columns: { [property: string]: any } | undefined): ITableOrView<any> | undefined {
+        for (const property in columns) {
+            const column = columns[property]!
+            if (isValueSource(column)) {
+                const oldValues = __getValueSourcePrivate(column).__getValuesForInsert()
+                if (oldValues) {
+                    return oldValues
+                }
+            }
+        }
+        return undefined
+    }
+
     __registerTableOrViewOfColumns(columns: QueryColumns | undefined, requiredTablesOrViews: Set<ITableOrView<any>>) {
         for (const property in columns) {
             const column = columns[property]!

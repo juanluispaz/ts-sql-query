@@ -3,7 +3,7 @@ import type { TypeAdapter } from "../TypeAdapter"
 import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
-import { Column, isColumn, __getColumnOfObject } from "../utils/Column"
+import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import { ITableOrView } from "../utils/ITableOrView"
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from "../internal/ValueSourceImpl"
 
@@ -317,6 +317,10 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         } else {
             return ''
         }
+    }
+    _appendRawColumnNameForValuesForInsert(column: Column, _params: any[]): string {
+        const columnPrivate = __getColumnPrivate(column)
+        return 'values(' + this._escape(columnPrivate.__name, true) + ')'
     }
     _appendColumnNameForUpdate(column: Column, params: any[]) {
         return this._appendRawColumnName(column, params)

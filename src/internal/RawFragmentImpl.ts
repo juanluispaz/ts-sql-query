@@ -1,7 +1,7 @@
 import { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from "../expressions/values"
 import { SqlBuilder, ToSql } from "../sqlBuilders/SqlBuilder"
 import { Column } from "../utils/Column"
-import { HasAddWiths, ITableOrView, IWithView, __addWiths, __getOldValues, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
+import { HasAddWiths, ITableOrView, IWithView, __addWiths, __getOldValues, __getValuesForInsert, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { RawFragment } from "../utils/RawFragment"
 import { database, rawFragment } from "../utils/symbols"
 
@@ -45,6 +45,16 @@ export class RawFragmentImpl implements RawFragment<any>, HasAddWiths, ToSql {
         const params = this.__params
         for (let i = 0, length = params.length; i < length; i++) {
             const result = __getOldValues(params[i])
+            if (result) {
+                return result
+            }
+        }
+        return undefined
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        const params = this.__params
+        for (let i = 0, length = params.length; i < length; i++) {
+            const result = __getValuesForInsert(params[i])
             if (result) {
                 return result
             }

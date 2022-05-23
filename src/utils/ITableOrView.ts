@@ -1,6 +1,6 @@
 import type { AnyDB } from "../databases"
 import { RawFragment } from "./RawFragment"
-import type { database, noTableOrViewRequired, oldValues, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, tableOrView, tableOrViewAlias, tableOrViewCustomName, tableOrViewRef, tableOrViewRefType, type } from "./symbols"
+import type { database, noTableOrViewRequired, oldValues, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, tableOrView, tableOrViewAlias, tableOrViewCustomName, tableOrViewRef, tableOrViewRefType, type, valuesForInsert } from "./symbols"
 
 export interface TableOrViewRef<DB extends AnyDB> {
     [database]: DB
@@ -29,6 +29,7 @@ export interface HasAddWiths {
     __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void
     __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void
     __getOldValues(): ITableOrView<any> | undefined
+    __getValuesForInsert(): ITableOrView<any> | undefined
 }
 
 export function __addWiths(value: any, withs: Array<IWithView<any>>): void {
@@ -68,6 +69,16 @@ export function __getOldValues(value: any): ITableOrView<any> | undefined {
     return undefined
 }
 
+export function __getValuesForInsert(value: any): ITableOrView<any> | undefined {
+    if (value === undefined || value === null) {
+        return undefined
+    }
+    if (typeof value === 'object' && typeof value.__getValuesForInsert === 'function') {
+        return (value as HasAddWiths).__getValuesForInsert()
+    }
+    return undefined
+}
+
 export interface __ITableOrViewPrivate extends HasAddWiths {
     __name: string
     __as?: string
@@ -76,6 +87,7 @@ export interface __ITableOrViewPrivate extends HasAddWiths {
     __template?: RawFragment<any>
     __customizationName?: string
     __oldValues?: boolean
+    __valuesForInsert?: boolean
     __hasExternalDependencies?: boolean
 }
 
@@ -115,6 +127,16 @@ export interface OLD<REF extends TableOrViewRef<AnyDB>> extends TableOrViewRef<R
 export interface OldTableOrView<TABLE_OR_VIEW extends ITableOrView<any>> extends ITableOrView<OLD<TABLE_OR_VIEW[typeof tableOrViewRef]>> {
     [tableOrView]: TABLE_OR_VIEW
     [oldValues]: 'OldValuesTableOrView'
+}
+
+export interface VALUES_FOR_INSERT<REF extends TableOrViewRef<AnyDB>> extends TableOrViewRef<REF[typeof database]> {
+    [tableOrViewRef]: REF
+    [valuesForInsert]: 'ValuesForInsert'
+}
+
+export interface ValuesForInsertTableOrView<TABLE_OR_VIEW extends ITableOrView<any>> extends ITableOrView<OLD<TABLE_OR_VIEW[typeof tableOrViewRef]>> {
+    [tableOrView]: TABLE_OR_VIEW
+    [valuesForInsert]: 'ValuesForInsertTableOrView'
 }
 
 export interface TABLE_OR_VIEW_ALIAS<REF extends TableOrViewRef<AnyDB>, ALIAS> extends TableOrViewRef<REF[typeof database]> {

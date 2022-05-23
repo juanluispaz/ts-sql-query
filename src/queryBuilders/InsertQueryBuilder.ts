@@ -34,6 +34,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     __onConflictDoNothing?: boolean
     __onConflictUpdateSets?: { [property: string]: any }
     __onConflictUpdateWhere?: AlwaysIfValueSource<any, any>
+    __valuesForInsert?: ITableOrView<any>
 
     __oneColumn?: boolean
 
@@ -317,6 +318,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
         }
@@ -337,6 +339,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
         }
@@ -360,6 +363,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
         }
@@ -383,6 +387,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
         }
@@ -409,6 +414,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
         }
@@ -432,6 +438,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
         }
@@ -474,6 +481,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
         }
@@ -497,6 +505,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
         }
@@ -523,6 +532,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
         }
@@ -546,6 +556,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
         }
@@ -719,6 +730,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             const value = columns[property]
             sets[property] = value
         }
+        this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         return this
     }
     onConflictDoUpdateSetIfValue(columns: any): any {
@@ -742,6 +754,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             }
             sets[property] = value
         }
+        this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         return this
     }
     onConflictOn(...columns: AnyValueSource[]): this {
@@ -796,6 +809,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             const value = columns[property]
             sets[property] = value
         }
+        this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         return this
     }
     doUpdateSetIfValue(columns: any): any {
@@ -819,6 +833,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             }
             sets[property] = value
         }
+        this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         return this
     }
 
@@ -835,7 +850,9 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
                 throw new Error('Illegal state')
             }
             this.__onConflictUpdateWhere = asAlwaysIfValueSource(condition)
-            __getValueSourcePrivate(condition).__addWiths(this.__withs)
+            const conditionPrivate = __getValueSourcePrivate(condition)
+            conditionPrivate.__addWiths(this.__withs)
+            this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert()
         } else if (this.__onConflictOnColumns) {
             if (this.__onConflictOnColumnsWhere) {
                 throw new Error('Illegal state')
@@ -855,7 +872,9 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             } else {
                 this.__onConflictUpdateWhere = this.__onConflictUpdateWhere.and(asAlwaysIfValueSource(condition))
             }
-            __getValueSourcePrivate(condition).__addWiths(this.__withs)
+            const conditionPrivate = __getValueSourcePrivate(condition)
+            conditionPrivate.__addWiths(this.__withs)
+            this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert()
         } else if (this.__onConflictOnColumns) {
             if (!this.__onConflictOnColumnsWhere) {
                 this.__onConflictOnColumnsWhere = asAlwaysIfValueSource(condition)
@@ -876,7 +895,9 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             } else {
                 this.__onConflictUpdateWhere = this.__onConflictUpdateWhere.or(asAlwaysIfValueSource(condition))
             }
-            __getValueSourcePrivate(condition).__addWiths(this.__withs)
+            const conditionPrivate = __getValueSourcePrivate(condition)
+            conditionPrivate.__addWiths(this.__withs)
+            this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert()
         } else if (this.__onConflictOnColumns) {
             if (!this.__onConflictOnColumnsWhere) {
                 this.__onConflictOnColumnsWhere = asAlwaysIfValueSource(condition)
@@ -905,6 +926,10 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     }
     __getOldValues(): ITableOrView<any> | undefined {
         // old values fake table is not possible to be used here
+        return undefined
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        // values for insert fake table is not possible to be used here
         return undefined
     }
 }

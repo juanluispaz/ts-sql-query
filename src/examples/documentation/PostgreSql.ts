@@ -3821,7 +3821,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict do update set title = $3 where title ilike ('%' || $4 || '%')`)
+    expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict do update set title = $3 where record.title ilike ('%' || $4 || '%')`)
     expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","My voice memo 2","My"]`)
     expectedType.push(`insert`)
 
@@ -3843,7 +3843,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict on constraint $3 do update set title = $4 where title ilike ('%' || $5 || '%')`)
+    expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict on constraint $3 do update set title = $4 where record.title ilike ('%' || $5 || '%')`)
     expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","title_constraint","My voice memo 2","My"]`)
     expectedType.push(`insert`)
 
@@ -3866,7 +3866,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict (title) do update set title = $3 where title ilike ('%' || $4 || '%')`)
+    expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict (title) do update set title = $3 where record.title ilike ('%' || $4 || '%')`)
     expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","My voice memo 2","My"]`)
     expectedType.push(`insert`)
 
@@ -3889,7 +3889,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict (title) where title ilike ('%' || $3 || '%') do update set title = $4 where title ilike ('%' || $5 || '%')`)
+    expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict (title) where title ilike ('%' || $3 || '%') do update set title = $4 where record.title ilike ('%' || $5 || '%')`)
     expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","memo","My voice memo 2","My"]`)
     expectedType.push(`insert`)
 
@@ -3908,6 +3908,59 @@ async function main() {
         .where(tRecord.title.containsInsensitive('My'))
         .executeInsert()
     assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict do update set title = record.title || $3 || excluded.title`)
+    expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo"," - "]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    const tRecordForInsert = tRecord.valuesForInsert()
+    insertUuid = await connection.insertInto(tRecord)
+        .values({
+            id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+            title: 'My voice memo'
+        })
+        .onConflictDoUpdateSet({
+            title: tRecord.title.concat(' - ').concat(tRecordForInsert.title)
+        })
+        .executeInsert()
+    assertEquals(insertUuid, result)/* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Smith',
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values ($1, $2, $3) on conflict do update set first_name = customer.first_name || $4 || excluded.first_name, last_name = customer.last_name || $5 || excluded.last_name returning id as id, first_name as "firstName", last_name as "lastName"`)
+    expectedParams.push(`["John","Smith",1," - "," - "]`)
+    expectedType.push(`insertReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const tCustomerForInsert = tCustomer.valuesForInsert()
+    const insertReturningCustomerData4 = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        })
+        .onConflictDoUpdateSet({
+            firstName: tCustomer.firstName.concat(' - ').concat(tCustomerForInsert.firstName),
+            lastName: tCustomer.lastName.concat(' - ').concat(tCustomerForInsert.lastName)
+        })
+        .returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertOne()
+
+    assertEquals(insertReturningCustomerData4, result)
 }
 
 main().then(() => {

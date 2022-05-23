@@ -1,7 +1,7 @@
 import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData } from "../sqlBuilders/SqlBuilder"
 import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, TypeSafeBigintValueSource, isValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode, UuidValueSource, TypeSafeUuidValueSource } from "../expressions/values"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { HasAddWiths, ITableOrView, IWithView, __getOldValues, __getTableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
+import { HasAddWiths, ITableOrView, IWithView, __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { database, tableOrView, valueSourceType, valueType as valueType_, optionalType as optionalType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType, valueSourceTypeName, anyBooleanValueSourceType, optionalType, isValueSourceObject, aggregatedArrayValueSourceType, isSelectQueryObject, uuidValueSourceType, typeSafeUuidValueSourceType } from "../utils/symbols"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -77,6 +77,9 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         // Do nothing
     }
     __getOldValues(): ITableOrView<any> | undefined {
+        return undefined
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
         return undefined
     }
     isConstValue(): boolean {
@@ -808,6 +811,9 @@ export class BooleanValueWhenNoValueValueSource extends ValueSourceImpl implemen
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues()
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert()
+    }
 }
 
 export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements HasOperation {
@@ -833,6 +839,9 @@ export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements H
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return __getOldValues(this.__value)
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return __getValuesForInsert(this.__value)
     }
 }
 
@@ -869,6 +878,9 @@ export class SqlOperationConstValueSource extends ValueSourceImpl implements Has
     __getOldValues(): ITableOrView<any> | undefined {
         return __getOldValues(this.__value)
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return __getValuesForInsert(this.__value)
+    }
 }
 
 export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOperation {
@@ -895,6 +907,9 @@ export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOper
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues()
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert()
+    }
 }
 
 export class SqlOperationIsNullValueSource extends ValueSourceImpl implements HasOperation {
@@ -920,6 +935,9 @@ export class SqlOperationIsNullValueSource extends ValueSourceImpl implements Ha
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues()
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert()
     }
 }
 
@@ -951,6 +969,9 @@ export class SqlOperation1ValueSource extends ValueSourceImpl implements HasOper
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value)
     }
 }
 
@@ -1023,6 +1044,24 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
         }
         return undefined
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        let result = this.__valueSource.__getValuesForInsert()
+        if (result) {
+            return result
+        }
+        const values = this.__value
+        if (Array.isArray(values)) {
+            for (let i = 0, length = values.length; i < length; i++) {
+                result = __getValuesForInsert(values[i])
+                if (result) {
+                    return result
+                }
+            }
+        } else {
+            return __getValuesForInsert(values)
+        }
+        return undefined
+    }
 }
 
 export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implements HasOperation {
@@ -1054,6 +1093,9 @@ export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implem
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value)
+    }
 }
 
 export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl implements HasOperation {
@@ -1084,6 +1126,9 @@ export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl impleme
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value)
     }
 }
 
@@ -1118,6 +1163,9 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value)
     }
 }
 
@@ -1189,6 +1237,24 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         }
         return undefined
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        let result = this.__valueSource.__getValuesForInsert()
+        if (result) {
+            return result
+        }
+        const values = this.__value
+        if (Array.isArray(values)) {
+            for (let i = 0, length = values.length; i < length; i++) {
+                result = __getValuesForInsert(values[i])
+                if (result) {
+                    return result
+                }
+            }
+        } else {
+            return __getValuesForInsert(values)
+        }
+        return undefined
+    }
 }
 
 export class SqlOperationValueSourceIfValueAlwaysNoop extends ValueSourceImpl {
@@ -1234,6 +1300,9 @@ export class SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value)
+    }
 }
 
 export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOperation {
@@ -1269,6 +1338,9 @@ export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOper
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value) || __getOldValues(this.__value2)
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value) || __getValuesForInsert(this.__value2)
     }
 }
 
@@ -1312,6 +1384,9 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues() || __getOldValues(this.__value) || __getOldValues(this.__value2)
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value) || __getValuesForInsert(this.__value2)
+    }
 }
 
 export class NoopValueSource extends ValueSourceImpl {
@@ -1334,6 +1409,9 @@ export class NoopValueSource extends ValueSourceImpl {
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__valueSource.__getOldValues()
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert()
     }
 }
 
@@ -1398,6 +1476,17 @@ export class FragmentValueSource extends ValueSourceImpl {
         }
         return undefined
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        const sqlParams = this.__sqlParams
+        for (let i = 0, length = sqlParams.length; i < length; i++) {
+            const value = __getValueSourcePrivate(sqlParams[i]!)
+            const result = value.__getValuesForInsert()
+            if (result) {
+                return result
+            }
+        }
+        return undefined
+    }
 }
 
 export class AggregateFunctions0ValueSource extends ValueSourceImpl implements HasOperation {
@@ -1436,6 +1525,9 @@ export class AggregateFunctions1ValueSource extends ValueSourceImpl implements H
     __getOldValues(): ITableOrView<any> | undefined {
         return __getOldValues(this.__value)
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return __getValuesForInsert(this.__value)
+    }
 }
 
 export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implements HasOperation {
@@ -1463,6 +1555,9 @@ export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implement
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return __getOldValues(this.__value)
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return __getValuesForInsert(this.__value)
     }
 }
 
@@ -1619,6 +1714,9 @@ export class TableOrViewRawFragmentValueSource implements ValueSource<any, any, 
     __getOldValues(): ITableOrView<any> | undefined {
         return undefined
     }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return undefined
+    }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__tableOrView)
     }
@@ -1654,6 +1752,9 @@ export class InlineSelectValueSource extends ValueSourceImpl implements HasOpera
     }
     __getOldValues(): ITableOrView<any> | undefined {
         return this.__selectData.__getOldValues()
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return this.__selectData.__getValuesForInsert()
     }
 }
 
@@ -1795,6 +1896,25 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
         } else {
             for (let prop in aggregatedArrayColumns) {
                 const result = this.__getOldValuesOf(aggregatedArrayColumns[prop])
+                if (result) {
+                    return result
+                }
+            }
+            return undefined
+        }
+    }
+    __getValuesForInsert(): ITableOrView<any> | undefined {
+        return this.__getValuesForInsertOf(this.__aggregatedArrayColumns)
+    }
+    __getValuesForInsertOf(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): ITableOrView<any> | undefined {
+        if (!aggregatedArrayColumns) {
+            return undefined
+        } else if (isValueSource(aggregatedArrayColumns)) {
+            const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
+            return valueSourcePrivate.__getValuesForInsert()
+        } else {
+            for (let prop in aggregatedArrayColumns) {
+                const result = this.__getValuesForInsertOf(aggregatedArrayColumns[prop])
                 if (result) {
                     return result
                 }

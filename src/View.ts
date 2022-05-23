@@ -143,6 +143,11 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     private __getOldValues(): ITableOrView<any> | undefined {
         return undefined
     }
+
+    // @ts-ignore
+    private __getValuesForInsert(): ITableOrView<any> | undefined {
+        return undefined
+    }
 }
 
 export class View<Connection extends IConnection<any>, NAME extends string> extends ViewOf<VIEW<Connection[typeof database], NAME>> {

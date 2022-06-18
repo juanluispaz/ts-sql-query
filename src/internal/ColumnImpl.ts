@@ -9,7 +9,7 @@ import { ProxyTypeAdapter } from "./ProxyTypeAdapter"
 import { isColumnObject, type } from "../utils/symbols"
 
 export class ColumnImpl extends ValueSourceImpl implements Column, __ColumnPrivate, ToSql {
-    [type]: 'column'
+    [type]!: 'column'
     [isColumnObject]: true = true
     __name: string
     __tableOrView: ITableOrView<any>
@@ -133,7 +133,7 @@ export function createColumnsFrom(columns: QueryColumns, target: QueryColumns, t
 
 export function createColumnsFromInnerObject(columns: QueryColumns, target: QueryColumns, table: ITableOrView<any>, prefix: string) {
     const rule = getInnerObjetRuleToApply(columns)
-    
+
     for (const property in columns) {
         const column = columns[property]!
         if (isValueSource(column)) {
@@ -197,7 +197,7 @@ export function getInnerObjetRuleToApply(columns: QueryColumns): 1 | 2 | 3 | 4 {
             const optionalType = columnPrivate.__optionalType
 
             switch (optionalType) {
-            case 'requiredInOptionalObject': 
+            case 'requiredInOptionalObject':
                 return 1 // Rule 1, there is requiredInOptionalObject
             case 'required':
                 containsRequired = true

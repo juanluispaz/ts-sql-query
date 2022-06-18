@@ -32,7 +32,7 @@ export type OptionalTypeRequiredOrAny<OPTIONAL_TYPE extends OptionalType> =
     OPTIONAL_TYPE extends 'any' ? any :
     OPTIONAL_TYPE extends 'required' ? 'required' : any
 
-type OptionalValueType<OPTIONAL_TYPE extends OptionalType> = 
+type OptionalValueType<OPTIONAL_TYPE extends OptionalType> =
     OPTIONAL_TYPE extends 'optional' ? null | undefined : never
 
 export type ValueSourceValueType<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | OptionalValueType<OPTIONAL_TYPE> : never
@@ -1597,7 +1597,7 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends TableOrViewRef<
     substr<VALUE2 extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(start: int, count: VALUE2): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
     substr<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(start: VALUE, count: int): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     substr<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>, VALUE2 extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(start: VALUE, count: VALUE2): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView] | VALUE2[typeof tableOrView], MergeOptional<MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>, VALUE2[typeof optionalType]>>
-    substring(start: int, end: int): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>    
+    substring(start: int, end: int): TypeSafeStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     substring<VALUE2 extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(start: int, end: VALUE2): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
     substring<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(start: VALUE, end: int): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     substring<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>, VALUE2 extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(start: VALUE, end: VALUE2): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView] | VALUE2[typeof tableOrView], MergeOptional<MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>, VALUE2[typeof optionalType]>>
@@ -1935,8 +1935,8 @@ export class Argument<T extends ArgumentType, OPTIONAL_TYPE extends ArgumentOpti
     readonly optionalType: OPTIONAL_TYPE
     readonly mode: MODE
     readonly adapter?: TypeAdapter
-    [valueType]: TYPE
-    [valueSourceTypeName]: TYPE_NAME
+    [valueType]!: TYPE
+    [valueSourceTypeName]!: TYPE_NAME
 
     constructor (argumentType: T, typeName: string, optionalType: OPTIONAL_TYPE, mode: MODE, adapter?: TypeAdapter) {
         this.type = argumentType

@@ -32,9 +32,9 @@ import { CustomizedTableOrView } from "../utils/tableOrViewUtils"
 import { InnerResultObjectValuesForAggregatedArray } from "../utils/resultUtils"
 
 export abstract class AbstractConnection<DB extends AnyDB> implements IConnection<DB> {
-    [database]: DB
-    [type]: 'Connection'
-    
+    [database]!: DB
+    [type]!: 'Connection'
+
     protected __sqlBuilder: SqlBuilder
     protected allowEmptyString: boolean = false
     protected insesitiveCollation?: string
@@ -62,7 +62,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
             }
             this.onCommitStack.push(this.onCommit)
             this.onCommit = undefined
-            
+
             if (!this.onRollbackStack) {
                 this.onRollbackStack = []
             }
@@ -163,7 +163,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                 this.popTransactionStack()
                 return callDeferredFunctions('after next commit', onCommit, undefined, source)
             }, (e) => {
-                // Transaction only closed when commit successful, in case of error there is still an open transaction 
+                // Transaction only closed when commit successful, in case of error there is still an open transaction
                 // No rollback yet, then no executeAfterNextRollback will be executed
                 throw attachSource(new ChainedError(e), source)
             })
@@ -202,7 +202,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new UpdateQueryBuilder(this.__sqlBuilder, table, true) as any
     }
     deleteFrom<TABLE extends ITableOf<DB, any>>(table: TABLE): DeleteExpression<TABLE, TABLE> {
-        return new DeleteQueryBuilder(this.__sqlBuilder, table, false) as any 
+        return new DeleteQueryBuilder(this.__sqlBuilder, table, false) as any
     }
     deleteAllowingNoWhereFrom<TABLE extends ITableOf<DB, any>>(table: TABLE): DeleteExpressionAllowingNoWhere<TABLE, TABLE> {
         return new DeleteQueryBuilder(this.__sqlBuilder, table, true) as any

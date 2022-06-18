@@ -9,9 +9,9 @@ import { RawFragment } from "../utils/RawFragment"
 import { Column } from "../utils/Column"
 
 export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME>> implements IWithView<REF>, WithData, __ITableOrViewPrivate {
-    [database]: REF[typeof database]
-    [type]: 'with'
-    [tableOrViewRef]: REF
+    [database]!: REF[typeof database]
+    [type]!: 'with'
+    [tableOrViewRef]!: REF
     /* implements __ITableOrViewPrivate as private members*/
     __name: string
     // @ts-ignore
@@ -35,13 +35,13 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
         if (selectData.__subSelectUsing) {
             this.__hasExternalDependencies = selectData.__subSelectUsing.length > 0
         }
-        
+
         const columns = selectData.__columns
         createColumnsFrom(columns, this as any, this)
     }
-    [type]: "with"
-    [tableOrViewRef]: REF
-    [database]: REF[typeof database]
+    [type]!: "with"
+    [tableOrViewRef]!: REF
+    [database]!: REF[typeof database]
 
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
         const result = new WithViewImpl(this.__name, this.__selectData)

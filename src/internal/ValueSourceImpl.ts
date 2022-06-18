@@ -9,33 +9,33 @@ import { ProxyTypeAdapter } from "./ProxyTypeAdapter"
 import { Column } from "../utils/Column"
 
 export abstract class ValueSourceImpl implements IValueSource<any, any, any, any>, NullableValueSource<any, any, any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, BigintValueSource<any, any>, TypeSafeBigintValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, AlwaysIfValueSource<any, any>, IAnyBooleanValueSource<any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, UuidValueSource<any, any>, TypeSafeUuidValueSource<any, any>, ToSql, __ValueSourcePrivate {
-    [valueSourceType]: 'ValueSource'
-    [nullableValueSourceType]: 'NullableValueSource'
-    [equalableValueSourceType]: 'EqualableValueSource'
-    [comparableValueSourceType]: 'ComparableValueSource'
-    [booleanValueSourceType]: 'BooleanValueSource'
-    [ifValueSourceType]: 'IfValueSource'
-    [numberValueSourceType]: 'NumberValueSource'
-    [stringNumberValueSourceType]: 'StringNumberValueSource'
-    [intValueSourceType]: 'IntValueSource'
-    [doubleValueSourceType]: 'DoubleValueSource'
-    [bigintValueSourceType]: 'BigintValueSource'
-    [typeSafeBigintValueSourceType]: 'TypeSafeBigintValueSource'
-    [stringIntValueSourceType]: 'StringIntValueSource'
-    [stringDoubleValueSourceType]: 'StringDoubleValueSource'
-    [stringValueSourceType]: 'StringValueSource'
-    [typeSafeStringValueSourceType]: 'TypeSafeStringValueSource'
-    [dateValueSourceType]: 'DateValueSource'
-    [timeValueSourceType]: 'TimeValueSource'
-    [dateTimeValueSourceType]: 'DateTimeValueSource'
-    [localDateValueSourceType]: 'LocalDateValueSource'
-    [localTimeValueSourceType]: 'LocalTimeValueSource'
-    [localDateTimeValueSourceType]: 'LocalDateTimeValueSource'
-    [anyBooleanValueSourceType]: 'AnyBooleanValueSource'
-    [aggregatedArrayValueSourceType]: 'AggregatedArrayValueSource'
-    [uuidValueSourceType]: 'UuidValueSource'
-    [typeSafeUuidValueSourceType]: 'TypeSafeUuidValueSource'
-    [valueSourceTypeName]: any
+    [valueSourceType]!: 'ValueSource'
+    [nullableValueSourceType]!: 'NullableValueSource'
+    [equalableValueSourceType]!: 'EqualableValueSource'
+    [comparableValueSourceType]!: 'ComparableValueSource'
+    [booleanValueSourceType]!: 'BooleanValueSource'
+    [ifValueSourceType]!: 'IfValueSource'
+    [numberValueSourceType]!: 'NumberValueSource'
+    [stringNumberValueSourceType]!: 'StringNumberValueSource'
+    [intValueSourceType]!: 'IntValueSource'
+    [doubleValueSourceType]!: 'DoubleValueSource'
+    [bigintValueSourceType]!: 'BigintValueSource'
+    [typeSafeBigintValueSourceType]!: 'TypeSafeBigintValueSource'
+    [stringIntValueSourceType]!: 'StringIntValueSource'
+    [stringDoubleValueSourceType]!: 'StringDoubleValueSource'
+    [stringValueSourceType]!: 'StringValueSource'
+    [typeSafeStringValueSourceType]!: 'TypeSafeStringValueSource'
+    [dateValueSourceType]!: 'DateValueSource'
+    [timeValueSourceType]!: 'TimeValueSource'
+    [dateTimeValueSourceType]!: 'DateTimeValueSource'
+    [localDateValueSourceType]!: 'LocalDateValueSource'
+    [localTimeValueSourceType]!: 'LocalTimeValueSource'
+    [localDateTimeValueSourceType]!: 'LocalDateTimeValueSource'
+    [anyBooleanValueSourceType]!: 'AnyBooleanValueSource'
+    [aggregatedArrayValueSourceType]!: 'AggregatedArrayValueSource'
+    [uuidValueSourceType]!: 'UuidValueSource'
+    [typeSafeUuidValueSourceType]!: 'TypeSafeUuidValueSource'
+    [valueSourceTypeName]!: any
 
     [database]: any
     [tableOrView]: any
@@ -422,7 +422,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         } else if (this.__valueType === 'stringDouble') {
             // Unsafe cast, it happens when TypeSafe is not in use, we round the value
             return new SqlOperation0ValueSource('_round', this, 'int', this.__optionalType, this.__typeAdapter)
-        } 
+        }
         return new NoopValueSource(this, 'int', this.__optionalType, this.__typeAdapter)
     }
     asStringInt(): any {
@@ -432,7 +432,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         } else if (this.__valueType === 'stringDouble') {
             // Unsafe cast, it happens when TypeSafe is not in use, we round the value
             return new SqlOperation0ValueSource('_round', this, 'stringInt', this.__optionalType, this.__typeAdapter)
-        } 
+        }
         return new NoopValueSource(this, 'stringInt', this.__optionalType, this.__typeAdapter)
     }
     asBigint(): any {
@@ -442,7 +442,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         } else if (this.__valueType === 'stringDouble') {
             // Unsafe cast, it happens when TypeSafe is not in use, we round the value
             return new SqlOperation0ValueSource('_round', this, 'bigint', this.__optionalType, this.__typeAdapter)
-        } 
+        }
         return new NoopValueSource(this, 'bigint', this.__optionalType, this.__typeAdapter)
     }
     abs(): any {
@@ -1258,7 +1258,7 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
 }
 
 export class SqlOperationValueSourceIfValueAlwaysNoop extends ValueSourceImpl {
-    
+
     constructor() {
         super('', 'required', undefined)
     }
@@ -1679,7 +1679,7 @@ export class TableOrViewRawFragmentValueSource implements ValueSource<any, any, 
     [valueType_]: any
     [optionalType_]: any
     [optionalType]: any
-    [valueSourceType]: "ValueSource"
+    [valueSourceType]!: "ValueSource"
     [database]: any
     [valueSourceTypeName]: any
 
@@ -1814,10 +1814,10 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
     [valueType_]: any
     [optionalType_]: any
     [optionalType]: any
-    [valueSourceType]: "ValueSource"
+    [valueSourceType]!: "ValueSource"
     [database]: any
     [valueSourceTypeName]: any
-    [aggregatedArrayValueSourceType]: 'AggregatedArrayValueSource'
+    [aggregatedArrayValueSourceType]!: 'AggregatedArrayValueSource'
 
     [isValueSourceObject]: true = true
     __valueType: string = 'aggregatedArray'

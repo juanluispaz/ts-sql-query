@@ -498,9 +498,9 @@ export type InsertColumns<TABLE extends ITableOrView<any>> = {
 
 type DefaultValueType<TABLE extends ITableOrView<any>> =
     unknown extends TABLE ? () => CustomizableExecutableSimpleInsertOnConflict<TABLE> : // this is the case when TABLE is any
-    keyof RequiredColumnsForSetOf<TABLE> extends never ? () => CustomizableExecutableSimpleInsertOnConflict<TABLE> : never
+    RequiredColumnsForSetOf<TABLE> extends never ? () => CustomizableExecutableSimpleInsertOnConflict<TABLE> : never
 
-type MaybeExecutableInsertExpression<TABLE extends ITableOrView<any>, MISSING_KEYS> = 
+type MaybeExecutableInsertExpression<TABLE extends ITableOrView<any>, MISSING_KEYS> =
     MISSING_KEYS extends never ? ExecutableInsertExpression<TABLE> :  MissingKeysInsertExpression<TABLE, MISSING_KEYS>
 
 type SelectForInsertResultType<TABLE extends ITableOrView<any>> = {

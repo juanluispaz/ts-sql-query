@@ -216,7 +216,7 @@ export interface ComposableExecutableInsert<TABLE extends ITableOrView<any>, COL
     splitRequired<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableInsert<TABLE, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }}>
     splitOptional<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableInsert<TABLE, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }}>
     split<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableInsert<TABLE, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & ( {} extends FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }> ? { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }} : { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }})>
-  
+
     guidedSplitRequired<RESULT_PROP extends string, MAPPED_PROPS extends keyof GuidedObj<RESULT> & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableInsert<TABLE, COLUMNS, Omit<RESULT, GuidedPropName<ValueOf<MAPPING>>> & { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>[Q] }}>
     guidedSplitOptional<RESULT_PROP extends string, MAPPED_PROPS extends keyof GuidedObj<RESULT> & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableInsert<TABLE, COLUMNS, Omit<RESULT, GuidedPropName<ValueOf<MAPPING>>> & { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>[Q] }}>
 }
@@ -283,7 +283,7 @@ export interface ComposableExecutableInsertOptional<TABLE extends ITableOrView<a
     splitRequired<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableInsertOptional<TABLE, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }}>
     splitOptional<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableInsertOptional<TABLE, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }}>
     split<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableInsertOptional<TABLE, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & ( {} extends FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }> ? { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }} : { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }})>
-  
+
     guidedSplitRequired<RESULT_PROP extends string, MAPPED_PROPS extends keyof GuidedObj<RESULT> & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableInsertOptional<TABLE, COLUMNS, Omit<RESULT, GuidedPropName<ValueOf<MAPPING>>> & { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>[Q] }}>
     guidedSplitOptional<RESULT_PROP extends string, MAPPED_PROPS extends keyof GuidedObj<RESULT> & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableInsertOptional<TABLE, COLUMNS, Omit<RESULT, GuidedPropName<ValueOf<MAPPING>>> & { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>[Q] }}>
 }
@@ -320,27 +320,27 @@ export interface ComposableCustomizableExecutableInsertOptional<TABLE extends IT
 
 
 type ReturningFnType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle)
     ? <COLUMNS extends InsertColumns<TABLE>>(columns: COLUMNS) => ComposableCustomizableExecutableInsert<TABLE, COLUMNS, ResultObjectValues<COLUMNS>>
     : never
 
 type ReturningOneColumnFnType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle)
     ? <COLUMN extends ValueSourceOf<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>>>(column: COLUMN) => ComposableCustomizableExecutableInsert<TABLE, COLUMN, ValueSourceValueTypeForResult<COLUMN>>
     : never
 
 type ReturningFromSelectFnType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite)
     ? <COLUMNS extends InsertColumns<TABLE>>(columns: COLUMNS) => ComposableCustomizableExecutableInsert<TABLE, COLUMNS, ResultObjectValues<COLUMNS>>
     : never
 
 type ReturningOneColumnFromSelectFnType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite)
     ? <COLUMN extends ValueSourceOf<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>>>(column: COLUMN) => ComposableCustomizableExecutableInsert<TABLE, COLUMN, ValueSourceValueTypeForResult<COLUMN>>
     : never
 
 type ReturningMultipleLastInsertedIdType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Oracle | Sqlite) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Oracle | Sqlite)
     ? AutogeneratedPrimaryKeyColumnsTypesOf<TABLE> extends never ? never : () =>  CustomizableExecutableInsertReturningLastInsertedId<TABLE, AutogeneratedPrimaryKeyColumnsTypesOf<TABLE>[]>
     : never
 
@@ -348,12 +348,12 @@ type ReturningLastInsertedIdType<TABLE extends ITableOrView<any>> =
     AutogeneratedPrimaryKeyColumnsTypesOf<TABLE> extends never ? never : () =>  CustomizableExecutableInsertReturningLastInsertedId<TABLE, AutogeneratedPrimaryKeyColumnsTypesOf<TABLE>>
 
 type OnConflictReturningLastInsertedIdType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql /*| SqlServer | Oracle not suported yet*/ | Sqlite) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql /*| SqlServer | Oracle not suported yet*/ | Sqlite)
     ? AutogeneratedPrimaryKeyColumnsTypesOf<TABLE> extends never ? never : () =>  CustomizableExecutableInsertReturningLastInsertedId<TABLE, AutogeneratedPrimaryKeyColumnsTypesOf<TABLE>>
     : never
 
 type ReturningLastInsertedIdFromSelectType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite)
     ? AutogeneratedPrimaryKeyColumnsTypesOf<TABLE> extends never ? never : () =>  CustomizableExecutableInsertReturningLastInsertedId<TABLE, AutogeneratedPrimaryKeyColumnsTypesOf<TABLE>[]>
     : never
 
@@ -361,37 +361,37 @@ type ReturningLastInsertedIdFromSelectType<TABLE extends ITableOrView<any>> =
 
 
 type ReturningOptionalFnType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle)
     ? <COLUMNS extends InsertColumns<TABLE>>(columns: COLUMNS) => ComposableCustomizableExecutableInsertOptional<TABLE, COLUMNS, ResultObjectValues<COLUMNS>>
     : never
 
 type ReturningOneColumnOptionalFnType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle)
     ? <COLUMN extends ValueSourceOf<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>>>(column: COLUMN) => ComposableCustomizableExecutableInsertOptional<TABLE, COLUMN, ValueSourceValueTypeForResult<COLUMN> | null>
     : never
 
 type ReturningFromSelectOptionalFnType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite)
     ? <COLUMNS extends InsertColumns<TABLE>>(columns: COLUMNS) => ComposableCustomizableExecutableInsertOptional<TABLE, COLUMNS, ResultObjectValues<COLUMNS> | null>
     : never
 
 type ReturningOneColumnFromSelectOptionalFnType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite)
     ? <COLUMN extends ValueSourceOf<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>>>(column: COLUMN) => ComposableCustomizableExecutableInsertOptional<TABLE, COLUMN, ValueSourceValueTypeForResult<COLUMN> | null>
     : never
 
 type ReturningMultipleLastInsertedIdOptionalType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Oracle | Sqlite) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Oracle | Sqlite)
     ? AutogeneratedPrimaryKeyColumnsTypesOf<TABLE> extends never ? never : () =>  CustomizableExecutableInsertReturningLastInsertedId<TABLE, AutogeneratedPrimaryKeyColumnsTypesOf<TABLE>[]>
     : never
 
 type OnConflictReturningLastInsertedIdOptionalType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql /*| SqlServer | Oracle not suported yet*/ | Sqlite) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql /*| SqlServer | Oracle not suported yet*/ | Sqlite)
     ? AutogeneratedPrimaryKeyColumnsTypesOf<TABLE> extends never ? never : () =>  CustomizableExecutableInsertReturningLastInsertedId<TABLE, AutogeneratedPrimaryKeyColumnsTypesOf<TABLE> | null>
     : never
 
 type ReturningLastInsertedIdFromSelectOptionalType<TABLE extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite)
     ? AutogeneratedPrimaryKeyColumnsTypesOf<TABLE> extends never ? never : () =>  CustomizableExecutableInsertReturningLastInsertedId<TABLE, AutogeneratedPrimaryKeyColumnsTypesOf<TABLE>[]>
     : never
 
@@ -434,27 +434,27 @@ export interface OnConflictOnColumnWhere<TABLE extends ITableOrView<any>, NEXT> 
 }
 
 type OnConflictDoNothingFnType<TABLE extends ITableOrView<any>, NEXT> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | Sqlite | MariaDB | MySql) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | Sqlite | MariaDB | MySql)
     ? () => NEXT
     : never
 
 type OnConflictDoUpdateDynamicSetFnType<TABLE extends ITableOrView<any>, NEXT, NEXT_WHERE> =
-        TABLE[typeof database] extends (NoopDB | PostgreSql | Sqlite | MariaDB | MySql) 
+        TABLE[typeof database] extends (NoopDB | PostgreSql | Sqlite | MariaDB | MySql)
         ? () => InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
         : never
 
 type OnConflictDoUpdateSetFnType<TABLE extends ITableOrView<any>, NEXT, NEXT_WHERE> =
-        TABLE[typeof database] extends (NoopDB | PostgreSql | Sqlite | MariaDB | MySql) 
+        TABLE[typeof database] extends (NoopDB | PostgreSql | Sqlite | MariaDB | MySql)
         ? (columns: OnConflictUpdateSets<TABLE>) => InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
         : never
 
 type OnConflictDoUpdateDynamicWhereFnType<TABLE extends ITableOrView<any>, NEXT> =
-        TABLE[typeof database] extends (NoopDB | PostgreSql | Sqlite) 
+        TABLE[typeof database] extends (NoopDB | PostgreSql | Sqlite)
         ? () => DynamicOnConflictWhereExpression<TABLE, NEXT> & NEXT
         : never
 
 type OnConflictDoUpdateWhereFnType<TABLE extends ITableOrView<any>, NEXT> =
-        TABLE[typeof database] extends (NoopDB | PostgreSql | Sqlite) 
+        TABLE[typeof database] extends (NoopDB | PostgreSql | Sqlite)
         ? OnConflictDoUpdateWhereFnTypeInterface<TABLE, NEXT>
         : never
 
@@ -464,12 +464,12 @@ interface OnConflictDoUpdateWhereFnTypeInterface<TABLE extends ITableOrView<any>
 }
 
 type OnConflictOnColumnFnType<TABLE extends ITableOrView<any>, NEXT> =
-        TABLE[typeof database] extends (NoopDB | PostgreSql | Sqlite) 
+        TABLE[typeof database] extends (NoopDB | PostgreSql | Sqlite)
         ? (column: ValueSourceOf<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>>, ...columns: ValueSourceOf<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>>[]) => NEXT & OnConflictOnColumnWhere<TABLE, NEXT>
         : never
 
 type OnConflictOnConstraintFnType<TABLE extends ITableOrView<any>, NEXT> =
-        TABLE[typeof database] extends (NoopDB | PostgreSql) 
+        TABLE[typeof database] extends (NoopDB | PostgreSql)
         ? OnConflictOnConstraintFnTypeInterface<TABLE, NEXT>
         : never
 
@@ -500,7 +500,7 @@ type DefaultValueType<TABLE extends ITableOrView<any>> =
     unknown extends TABLE ? () => CustomizableExecutableSimpleInsertOnConflict<TABLE> : // this is the case when TABLE is any
     keyof RequiredColumnsForSetOf<TABLE> extends never ? () => CustomizableExecutableSimpleInsertOnConflict<TABLE> : never
 
-type MaybeExecutableInsertExpression<TABLE extends ITableOrView<any>, MISSING_KEYS> = 
+type MaybeExecutableInsertExpression<TABLE extends ITableOrView<any>, MISSING_KEYS> =
     MISSING_KEYS extends never ? ExecutableInsertExpression<TABLE> :  MissingKeysInsertExpression<TABLE, MISSING_KEYS>
 
 type SelectForInsertResultType<TABLE extends ITableOrView<any>> = {
@@ -515,19 +515,19 @@ type SelectForInsertColumns<TABLE extends ITableOrView<any>> = {
     [P in OptionalColumnsForSetOf<TABLE>]?: RemapIValueSourceTypeWithOptionalType<any, TABLE[P], any>
 }
 
-type InsertSets<TABLE extends ITableOrView<any>> = {
+export type InsertSets<TABLE extends ITableOrView<any>> = {
     [P in RequiredColumnsForSetOf<TABLE>]?: InputTypeOfColumn<TABLE, P>
 } & {
     [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumn<TABLE, P>
 }
 
-type OptionalInsertSets<TABLE extends ITableOrView<any>> = {
+export type OptionalInsertSets<TABLE extends ITableOrView<any>> = {
     [P in RequiredColumnsForSetOf<TABLE>]?: InputTypeOfColumn<TABLE, P> | null | undefined
 } & {
     [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumn<TABLE, P> | null | undefined
 }
 
-type MandatoryInsertSets<TABLE extends ITableOrView<any>> = {
+export type MandatoryInsertSets<TABLE extends ITableOrView<any>> = {
     [P in RequiredColumnsForSetOf<TABLE>]: InputTypeOfColumn<TABLE, P>
 } & {
     [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumn<TABLE, P>

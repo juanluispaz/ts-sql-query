@@ -29,7 +29,7 @@ export function prefixMapForSplitCapitalized<O extends object, PREFIX extends st
 
 type CapitalizedGuided<PREFIX extends string, KEY extends string, REFERENCE extends object> = KEY extends keyof REFERENCE
     ? (
-        REFERENCE[KEY] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> 
+        REFERENCE[KEY] extends IValueSource<any, any, any, infer OPTIONAL_TYPE>
         ? (
             OPTIONAL_TYPE extends 'required'
             ? `${PREFIX}${Capitalize<KEY>}!`
@@ -55,7 +55,7 @@ export function prefixMapForGuidedSplitCapitalized<O extends object, R extends I
 
 type NameGuided<KEY extends string, REFERENCE extends object> = KEY extends keyof REFERENCE
     ? (
-        REFERENCE[KEY] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> 
+        REFERENCE[KEY] extends IValueSource<any, any, any, infer OPTIONAL_TYPE>
         ? (
             OPTIONAL_TYPE extends 'required'
             ? `${KEY}!`
@@ -103,7 +103,7 @@ export function prefixMapForSplitDotted<O extends object, PREFIX extends string>
 
 type DottedGuided<PREFIX extends string, KEY extends string, REFERENCE extends object> = KEY extends keyof REFERENCE
     ? (
-        REFERENCE[KEY] extends IValueSource<any, any, any, infer OPTIONAL_TYPE> 
+        REFERENCE[KEY] extends IValueSource<any, any, any, infer OPTIONAL_TYPE>
         ? (
             OPTIONAL_TYPE extends 'required'
             ? `${PREFIX}.${KEY}!`
@@ -127,7 +127,7 @@ export function prefixMapForGuidedSplitDotted<O extends object, R extends ITable
     return result
 }
 
-type ColumnKeys<O extends object> = { [K in keyof O]-?: O[K] extends Column ? K : never }[keyof O]
+export type ColumnKeys<O extends object> = { [K in keyof O]-?: O[K] extends Column ? K : never }[keyof O]
 
 export function extractColumnsFrom<O extends object>(obj: O): { [K in ColumnKeys<O>]: O[K] } {
     if (!obj) {

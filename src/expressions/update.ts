@@ -112,13 +112,13 @@ export interface UpdateExpressionAllowingNoWhere<TABLE extends ITableOrView<any>
     leftOuterJoin: OuterJoinOnExpressionFnTypeAllowingNoWhere<TABLE, USING>
 }
 
-type UpdateSets<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
+export type UpdateSets<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
     [P in RequiredColumnsForSetOf<TABLE>]?: InputTypeOfColumnAllowing<TABLE, P, USING>
 } & {
     [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumnAllowing<TABLE, P, USING>
 }
 
-type OptionalUpdateSets<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
+export type OptionalUpdateSets<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
     [P in RequiredColumnsForSetOf<TABLE>]?: InputTypeOfColumnAllowing<TABLE, P, USING> | null | undefined
 } & {
     [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumnAllowing<TABLE, P, USING> | null | undefined
@@ -174,17 +174,17 @@ export interface UpdateFromExpression<TABLE extends ITableOrView<any>, USING ext
 }
 
 type FromFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | MariaDB | MySql) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | MariaDB | MySql)
     ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2) => UpdateFromExpression<TABLE, USING | TABLE_OR_VIEW2>
     : never
 
 type OnExpressionFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | MariaDB | MySql) 
+    TABLE[typeof database] extends (NoopDB | MariaDB | MySql)
     ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2) => OnExpression<TABLE, USING | TABLE_OR_VIEW2>
     : never
 
 type OuterJoinOnExpressionFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | MariaDB | MySql) 
+    TABLE[typeof database] extends (NoopDB | MariaDB | MySql)
     ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>) => OnExpression<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
     : never
 
@@ -221,17 +221,17 @@ export interface UpdateFromExpressionAllowingNoWhere<TABLE extends ITableOrView<
 }
 
 type FromFnTypeAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | MariaDB | MySql) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | MariaDB | MySql)
     ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2) => UpdateFromExpressionAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
     : never
 
 type OnExpressionFnTypeAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | MariaDB | MySql) 
+    TABLE[typeof database] extends (NoopDB | MariaDB | MySql)
     ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>>(table: TABLE_OR_VIEW2) => OnExpressionAllowingNoWhere<TABLE, USING | TABLE_OR_VIEW2>
     : never
 
 type OuterJoinOnExpressionFnTypeAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | MariaDB | MySql) 
+    TABLE[typeof database] extends (NoopDB | MariaDB | MySql)
     ? <TABLE_OR_VIEW2 extends ITableOrViewOf<TABLE[typeof database], any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>) => OnExpressionAllowingNoWhere<TABLE, USING | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>>
     : never
 
@@ -274,7 +274,7 @@ export interface ComposableExecutableUpdate<TABLE extends ITableOrView<any>, COL
     splitRequired<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableUpdate<TABLE, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }}>
     splitOptional<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableUpdate<TABLE, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }}>
     split<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableUpdate<TABLE, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & ( {} extends FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }> ? { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }} : { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }})>
-  
+
     guidedSplitRequired<RESULT_PROP extends string, MAPPED_PROPS extends keyof GuidedObj<RESULT> & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableUpdate<TABLE, COLUMNS, Omit<RESULT, GuidedPropName<ValueOf<MAPPING>>> & { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>[Q] }}>
     guidedSplitOptional<RESULT_PROP extends string, MAPPED_PROPS extends keyof GuidedObj<RESULT> & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ComposableExecutableUpdate<TABLE, COLUMNS, Omit<RESULT, GuidedPropName<ValueOf<MAPPING>>> & { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>[Q] }}>
 }
@@ -305,16 +305,16 @@ export interface ComposableCustomizableExecutableUpdate<TABLE extends ITableOrVi
 }
 
 type ReturningFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Oracle) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Oracle)
     ? <COLUMNS extends UpdateColumns<TABLE, USING>>(columns: COLUMNS) => ComposableCustomizableExecutableUpdate<TABLE, COLUMNS, ResultObjectValues<COLUMNS>>
-    : (TABLE[typeof database] extends Sqlite 
+    : (TABLE[typeof database] extends Sqlite
     ? <COLUMNS extends UpdateColumns<TABLE, TABLE>>(columns: COLUMNS) => ComposableCustomizableExecutableUpdate<TABLE, COLUMNS, ResultObjectValues<COLUMNS>>
     : never)
 
 type ReturningOneColumnFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Oracle) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Oracle)
     ? <COLUMN extends ValueSourceOf<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | OLD<TABLE[typeof tableOrViewRef]>>>(column: COLUMN) => ComposableCustomizableExecutableUpdate<TABLE, COLUMN, ValueSourceValueTypeForResult<COLUMN>>
-    : (TABLE[typeof database] extends Sqlite 
+    : (TABLE[typeof database] extends Sqlite
     ? <COLUMN extends ValueSourceOf<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]> | OLD<TABLE[typeof tableOrViewRef]>>>(column: COLUMN) => ComposableCustomizableExecutableUpdate<TABLE, COLUMN, ValueSourceValueTypeForResult<COLUMN>>
     : never)
 

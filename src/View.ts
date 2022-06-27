@@ -11,10 +11,10 @@ import { RawFragment } from "./utils/RawFragment"
 import type { VIEW } from "./typeMarks/VIEW"
 
 class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
-    [database]: REF[typeof database]
-    [type]: 'view'
-    [viewName]: REF[typeof viewName]
-    [tableOrViewRef]: REF
+    [database]!: REF[typeof database]
+    [type]!: 'view'
+    [viewName]!: REF[typeof viewName]
+    [tableOrViewRef]!: REF
     /* implements __ITableOrViewPrivate as private members*/
     // @ts-ignore
     private __name: string

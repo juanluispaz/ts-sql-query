@@ -11,10 +11,10 @@ import { RawFragment } from "./utils/RawFragment"
 import type { TABLE } from "./typeMarks/TABLE"
 
 class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
-    [database]: REF[typeof database]
-    [type]: 'table'
-    [viewName]: REF[typeof tableName]
-    [tableOrViewRef]: REF
+    [database]!: REF[typeof database]
+    [type]!: 'table'
+    [viewName]!: REF[typeof tableName]
+    [tableOrViewRef]!: REF
     /* implements __ITableOrViewPrivate as private members*/
     // @ts-ignore
     private __name: string

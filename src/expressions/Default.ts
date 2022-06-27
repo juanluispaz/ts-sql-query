@@ -6,7 +6,7 @@ export interface Default {
 }
 
 export class DefaultImpl implements Default, ToSql {
-    [type]: 'default'
+    [type]!: 'default'
     __toSql(SqlBuilder: SqlBuilder, params: any[]): string {
         return SqlBuilder._default(params)
     }

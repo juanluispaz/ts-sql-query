@@ -6,9 +6,9 @@ import { RawFragment } from "../utils/RawFragment"
 import { database, rawFragment } from "../utils/symbols"
 
 export class RawFragmentImpl implements RawFragment<any>, HasAddWiths, ToSql {
-    [rawFragment]: "rawFragment"
+    [rawFragment]!: "rawFragment"
     [database]: any
-    
+
     __template: TemplateStringsArray
     __params: Array<AnyValueSource | IExecutableSelectQuery<any, any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>
 

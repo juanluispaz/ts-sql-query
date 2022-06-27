@@ -580,3 +580,46 @@ const searchedCustomers: Promise<{
     birthday?: Date;
 }[]>
 ```
+
+## Utility types
+
+### Column keys
+
+This type return the key name (properties in the object) of the columns contained a an object like a table or view definition.
+
+```ts
+import { ColumnKeys } from 'ts-sql-query/extras/types';
+
+// Alias to type tComapyColumns = "id" | "name" | "parentId"
+type tComapyColumns = ColumnKeys<typeof tCompany>;
+```
+
+### Insertable row
+
+This type returns the same type expected by the set clause in an insert.
+
+```ts
+import { InsertableRow } from 'ts-sql-query/extras/types';
+
+type tCompanyInsertSetType = InsertableRow<typeof tCompany>;
+```
+
+### Updatable row
+
+This type returns the same type expected by the set clause in an update.
+
+```ts
+import { UpdatableRow } from 'ts-sql-query/extras/types';
+
+type tCompanyUpdateSetType = UpdatableRow<typeof tCompany>;
+```
+
+### Selected row
+
+This type returns the result type of a select on a table or view where all its columns are included.
+
+```ts
+import { SelectedRow } from 'ts-sql-query/extras/types';
+
+type tCompanySelectRow = SelectedRow<typeof tCompany>;
+```

@@ -211,6 +211,11 @@ You can read the latest version of the documentation at: https://ts-sql-query.re
   - [Prefixing](advanced-usage.md#prefixing)
   - [Prefix map for guided split](advanced-usage.md#prefix-map-for-guided-split)
   - [Merge types](advanced-usage.md#merge-types)
+  - [Utility types](advanced-usage.md#utility-types)
+    - [Column keys](advanced-usage.md#column-keys)
+    - [Insertable row](advanced-usage.md#insertable-row)
+    - [Updatable row](advanced-usage.md#updatable-row)
+    - [Selected row](advanced-usage.md#selected-row)
 - [Change Log](CHANGELOG.md#change-log)
 
 <!-- 
@@ -438,6 +443,11 @@ Generated table of content of the file created using npm run create-single-doc-f
   - [Prefixing](#prefixing)
   - [Prefix map for guided split](#prefix-map-for-guided-split)
   - [Merge types](#merge-types)
+  - [Utility types](#utility-types)
+    - [Column keys](#column-keys)
+    - [Insertable row](#insertable-row)
+    - [Updatable row](#updatable-row)
+    - [Selected row](#selected-row)
 - [CHANGELOG.md](#changelogmd)
 - [Change Log](#change-log)
 

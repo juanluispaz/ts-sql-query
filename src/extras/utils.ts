@@ -1,7 +1,8 @@
 import type { ITableOrView } from "../utils/ITableOrView"
 import { IfValueSource, BooleanValueSource, IAnyBooleanValueSource, IStringIntValueSource, StringIntValueSource, IStringNumberValueSource, StringNumberValueSource, IIntValueSource, IntValueSource, INumberValueSource, NumberValueSource, ITypeSafeBigintValueSource, TypeSafeBigintValueSource, IBigintValueSource, BigintValueSource, IStringDoubleValueSource, StringDoubleValueSource, IDoubleValueSource, DoubleValueSource, ITypeSafeStringValueSource, TypeSafeStringValueSource, IStringValueSource, StringValueSource, ILocalDateValueSource, LocalDateValueSource, IDateValueSource, DateValueSource, ILocalTimeValueSource, LocalTimeValueSource, ITimeValueSource, TimeValueSource, ILocalDateTimeValueSource, LocalDateTimeValueSource, IDateTimeValueSource, DateTimeValueSource, IEqualableValueSource, EqualableValueSource, IComparableValueSource, ComparableValueSource, IValueSource, isValueSource, __getValueSourcePrivate, AnyValueSource, MergeOptionalUnion } from "../expressions/values"
 import type { ifValueSourceType, optionalType, tableOrView, valueType } from "../utils/symbols"
-import { Column, isColumn } from "../utils/Column"
+import { isColumn } from "../utils/Column"
+import type { ColumnKeys } from "./types"
 
 type OnlyStringKey<KEY> = KEY extends string ? KEY : never
 
@@ -126,8 +127,6 @@ export function prefixMapForGuidedSplitDotted<O extends object, R extends ITable
     }
     return result
 }
-
-export type ColumnKeys<O extends object> = { [K in keyof O]-?: O[K] extends Column ? K : never }[keyof O]
 
 export function extractColumnsFrom<O extends object>(obj: O): { [K in ColumnKeys<O>]: O[K] } {
     if (!obj) {

@@ -21,6 +21,7 @@ ts-sql-query supports MariaDB, MySql, Oracle, PostgreSql, Sqlite and SqlServer. 
   - [Other options](#other-options)
 - [Dynamic queries](#dynamic-queries)
 - [See more](#see-more)
+- [Related projects](#related-projects)
 - [License](#license)
 
 ## Install
@@ -180,6 +181,10 @@ const customerWithId: Promise<{
 ## See more
 
 See more information at: https://ts-sql-query.readthedocs.io/
+
+## Related projects
+
+- [ts-sql-codegen)(https://github.com/lorefnon/ts-sql-codegen): Utility that generates table mapper classes for ts-sql-query by inspecting a database through [tbls](https://github.com/k1LoW/tbls).
 
 ## License
 

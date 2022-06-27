@@ -75,6 +75,10 @@ npx ts-node ./src/examples/SqliteExample.ts
 
 **Be aware**: all examples excepting Sqlite requires a specific docker image with the database running; see [scripts/run-all-examples.sh](https://github.com/juanluispaz/ts-sql-query/blob/master/scripts/run-all-examples.sh) for more details.
 
+## Related projects
+
+- [ts-sql-codegen](https://github.com/lorefnon/ts-sql-codegen): Utility that generates table mapper classes for ts-sql-query by inspecting a database through [tbls](https://github.com/k1LoW/tbls).
+
 ## License
 
 MIT

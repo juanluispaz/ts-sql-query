@@ -1,5 +1,18 @@
 # Change Log
 
+## v1.29.0 (28 Jun 2022)
+
+**Changes**:
+
+- Export helper types in extras to retrieve row types when insert, update and select
+- Include timestamps in `LoggingQueryRunner` callbacks
+- Make the `ConsoleLogQueryRunner` more configurable so that it can output results, timestamps and durations as well
+
+**Bug fixes**:
+
+- Fix insert default values on TypeScript 3.5 or higher
+- Unable to compile ts-sql-query with TypeScript 4.7
+
 ## v1.28.0 (23 May 2022)
 
 **Changes**:

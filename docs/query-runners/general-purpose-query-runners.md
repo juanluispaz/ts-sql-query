@@ -34,6 +34,19 @@ async function main() {
 }
 ```
 
+The `` receives a secondary optional argument with the folloging definition: 
+
+```ts
+interface ConsoleLogQueryRunnerOpts {
+    timeGranularity?: 'ms' | 'us' | 'ns' // Granularity of time and duration logged, default 'ms'
+    logTimestamps?: boolean // Include the time value of process.hrtime.bigint() when the log happened, default false
+    logDurations?: boolean // Include the duration of the query execution, default false
+    logResults?: boolean // Include the result object in the log, default false
+    paramsAsObject?: boolean // Write in the log the query, params, result and error wrapped in an object, default false
+    includeLogPhase?: boolean // Write the phase name ('onQuery', 'onQueryResult', 'onQueryError') in the log, default false
+}
+```
+
 ## InterceptorQueryRunner
 
 A query runner that intercept all the queries and delegate the execution of the queries to the query runner received as second argument in the constructor.
@@ -108,13 +121,13 @@ import { LoggingQueryRunner } from "ts-sql-query/queryRunners/LoggingQueryRunner
 async function main() {
     const connection = new DBConection(new LoggingQueryRunner({
         onQuery(queryType, query, params) {
-            console.log('onQuery', queryType, query, params)
+            console.log('onQuery', queryType, query, params, { startedAt })
         },
         onQueryResult(queryType, query, params, result) {
-            console.log('onQueryResult', queryType, query, params, result)
+            console.log('onQueryResult', queryType, query, params, result, { startedAt, endedAt })
         },
         onQueryError(queryType, query, params, error) {
-            console.log('onQueryError', queryType, query, params, error)
+            console.log('onQueryError', queryType, query, params, error, { startedAt, endedAt })
         }
     }, otherQueryRunner));
     // Do your queries here
@@ -146,6 +159,8 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 - **`params: any[]`**: parameters received by the query.
 - **`result: any`**: (only in `onQueryResult`) result of the execution of the query.
 - **`error: any`**: (only in `onQueryError`) error that happens executiong the query.
+- **`startedAt`**: value of `process.hrtime.bigint()` before the query execution.
+- **`endedAt`**: (only in `onQueryResult` or  `onQueryError`) value of `process.hrtime.bigint()` after the query execution.
 
 **Note**: `onQuery`, `onQueryResult` and `onQueryError` are optionals; you can defined only the method that you needs.
 

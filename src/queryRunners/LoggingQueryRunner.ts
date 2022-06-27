@@ -602,7 +602,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         const logger = this.logger
-const startedAt = process.hrtime.bigint()
+        const startedAt = process.hrtime.bigint()
         if (logger.onQuery) {
             logger.onQuery('executeDatabaseSchemaModification', query, params, { startedAt })
         }

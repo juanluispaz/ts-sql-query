@@ -2,7 +2,7 @@
 
 In this folder, you will find all the documentation of ts-sql-query. 
 
-This documentation is built using [mkdocs](https://www.mkdocs.org) 1.1.2. To see a local version, you must have installed mkdocs and execute the command:
+This documentation is built using [mkdocs](https://www.mkdocs.org) 1.3.0. To see a local version, you must have installed mkdocs and execute the command:
 
 ```sh
 $ npm run docs

@@ -1,6 +1,6 @@
 import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData, QueryColumns } from "../sqlBuilders/SqlBuilder"
 import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderByExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereOffsetExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, ExecutableSelectWithWhere, ExecutableSelectWithoutWhere, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, SplitedComposedExecutableSelectWithoutWhere, SplitedComposedDynamicWhereExecutableSelectExpression, WhereableCompoundableExecutableSelectExpressionWithoutWhere } from "../expressions/select"
-import { HasAddWiths, ITableOrView, IWithView, OuterJoinSource, __getOldValues, __getValuesForInsert, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
+import { HasAddWiths, HasIsValue, ITableOrView, IWithView, OuterJoinSource, __getOldValues, __getValuesForInsert, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { WithView } from "../utils/tableOrViewUtils"
@@ -315,7 +315,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         this.__finishJoinHaving()
         this.__query = ''
         this.__limit = limit
-        __addWiths(limit, this.__withs)
+        __addWiths(limit, this.__sqlBuilder, this.__withs)
         return this
     }
     limitIfValue(limit: int | number | null | undefined): any {
@@ -331,7 +331,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         this.__finishJoinHaving()
         this.__query = ''
         this.__offset = offset
-        __addWiths(offset, this.__withs)
+        __addWiths(offset, this.__sqlBuilder, this.__withs)
         return this
     }
     offsetIfValue(offset: int | number | null | undefined): any {
@@ -402,25 +402,25 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         return select as any
     }
 
-    __addWiths(withs: Array<IWithView<any>>): void {
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__finishJoinHaving()
         const withViews = this.__withs
         for (let i = 0, length = withViews.length; i < length; i++) {
             const withView = withViews[i]!
-            __getTableOrViewPrivate(withView).__addWiths(withs)
+            __getTableOrViewPrivate(withView).__addWiths(sqlBuilder, withs)
         }
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
         const subSelectUsing = this.__subSelectUsing
         if (!subSelectUsing) {
             return
         }
         for (let i = 0, length = subSelectUsing.length; i < length; i++) {
             const tableOrView = subSelectUsing[i]!
-            __getTableOrViewPrivate(tableOrView).__registerTableOrView(requiredTablesOrViews)
+            __getTableOrViewPrivate(tableOrView).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
         }
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
         const subSelectUsing = this.__subSelectUsing
         if (!subSelectUsing) {
             return
@@ -437,43 +437,43 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         }
 
         this.__registerRequiredColumnOfColmns(this.__columns, requiredColumns, newOnly)
-        __registerRequiredColumn(this.__orderBy, requiredColumns, newOnly)
-        __registerRequiredColumn(this.__limit, requiredColumns, newOnly)
-        __registerRequiredColumn(this.__offset, requiredColumns, newOnly)
+        __registerRequiredColumn(this.__orderBy, sqlBuilder, requiredColumns, newOnly)
+        __registerRequiredColumn(this.__limit, sqlBuilder, requiredColumns, newOnly)
+        __registerRequiredColumn(this.__offset, sqlBuilder, requiredColumns, newOnly)
 
         const customization = this.__customization
         if (customization) {
-            __registerRequiredColumn(customization.afterSelectKeyword, requiredColumns, newOnly)
-            __registerRequiredColumn(customization.beforeColumns, requiredColumns, newOnly)
-            __registerRequiredColumn(customization.customWindow, requiredColumns, newOnly)
-            __registerRequiredColumn(customization.afterQuery, requiredColumns, newOnly)
+            __registerRequiredColumn(customization.afterSelectKeyword, sqlBuilder, requiredColumns, newOnly)
+            __registerRequiredColumn(customization.beforeColumns, sqlBuilder, requiredColumns, newOnly)
+            __registerRequiredColumn(customization.customWindow, sqlBuilder, requiredColumns, newOnly)
+            __registerRequiredColumn(customization.afterQuery, sqlBuilder, requiredColumns, newOnly)
         }
 
-        this.__registerRequiredColumnInSelect(requiredColumns, newOnly)
+        this.__registerRequiredColumnInSelect(sqlBuilder, requiredColumns, newOnly)
     }
-    abstract __registerRequiredColumnInSelect(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void
-    __getOldValues(): ITableOrView<any> | undefined {
+    abstract __registerRequiredColumnInSelect(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         const subSelectUsing = this.__subSelectUsing
         if (!subSelectUsing) {
             return undefined
         }
         for (let i = 0, length = subSelectUsing.length; i < length; i++) {
             const tableOrView = subSelectUsing[i]!
-            const result = __getTableOrViewPrivate(tableOrView).__getOldValues()
+            const result = __getTableOrViewPrivate(tableOrView).__getOldValues(sqlBuilder)
             if (result) {
                 return result
             }
         }
         return undefined
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         const subSelectUsing = this.__subSelectUsing
         if (!subSelectUsing) {
             return undefined
         }
         for (let i = 0, length = subSelectUsing.length; i < length; i++) {
             const tableOrView = subSelectUsing[i]!
-            const result = __getTableOrViewPrivate(tableOrView).__getValuesForInsert()
+            const result = __getTableOrViewPrivate(tableOrView).__getValuesForInsert(sqlBuilder)
             if (result) {
                 return result
             }
@@ -501,7 +501,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             this.__recursiveSelect = undefined
             return recursiveView as any
         }
-        return new WithViewImpl<any, any>(as, this.__asSelectData()) as any
+        return new WithViewImpl<any, any>(this.__sqlBuilder, as, this.__asSelectData()) as any
     }
 
     forUseAsInlineQueryValue(): any {
@@ -524,14 +524,14 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     __buildRecursive(fn: (view: any) => ICompoundableSelect<any, any, any, any>, unionAll: boolean): void {
         const sqlBuilder = this.__sqlBuilder
         const name = 'recursive_select_' + sqlBuilder._generateUnique()
-        const recursiveInternalView = new WithViewImpl<any, any>(name, this as any)
+        const recursiveInternalView = new WithViewImpl<any, any>(this.__sqlBuilder, name, this as any)
         let recursiveInternalSelect 
         if (unionAll) {
             recursiveInternalSelect = this.unionAll(fn(recursiveInternalView))
         } else {
             recursiveInternalSelect = this.union(fn(recursiveInternalView))
         }
-        const recursiveView = new WithViewImpl<any, any>(name, recursiveInternalSelect)
+        const recursiveView = new WithViewImpl<any, any>(this.__sqlBuilder, name, recursiveInternalSelect)
         recursiveView.__recursive = true
 
         const recursiveSelect = new SelectQueryBuilder(this.__sqlBuilder, [recursiveView], false)
@@ -577,10 +577,12 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
 
     customizeQuery(customization: SelectCustomization<any>): any {
         this.__customization = customization
-        __addWiths(customization.afterSelectKeyword, this.__withs)
-        __addWiths(customization.beforeColumns, this.__withs)
-        __addWiths(customization.customWindow, this.__withs)
-        __addWiths(customization.afterQuery, this.__withs)
+        __addWiths(customization.afterSelectKeyword, this.__sqlBuilder, this.__withs)
+        __addWiths(customization.beforeColumns, this.__sqlBuilder, this.__withs)
+        __addWiths(customization.customWindow, this.__sqlBuilder, this.__withs)
+        __addWiths(customization.beforeOrderByItems, this.__sqlBuilder, this.__withs)
+        __addWiths(customization.afterOrderByItems, this.__sqlBuilder, this.__withs)
+        __addWiths(customization.afterQuery, this.__sqlBuilder, this.__withs)
         return this
     }
 }
@@ -605,35 +607,35 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__distinct = distinct
         for (let i = 0, length = tables.length; i < length; i++) {
             const table = tables[i]!
-            __getTableOrViewPrivate(table).__addWiths(this.__withs)
+            __getTableOrViewPrivate(table).__addWiths(sqlBuilder, this.__withs)
         }
     }
 
-    __registerRequiredColumnInSelect(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerRequiredColumnInSelect(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
         const tablesOrViews = this.__tablesOrViews
         for (let i = 0, length = tablesOrViews.length; i < length; i++) {
-            __registerRequiredColumn(tablesOrViews[i], requiredColumns, onlyForTablesOrViews)
+            __registerRequiredColumn(tablesOrViews[i], sqlBuilder, requiredColumns, onlyForTablesOrViews)
         }
         const joins = this.__joins
         for (let i = 0, length = joins.length; i < length; i++) {
             const join = joins[i]!
-            __registerRequiredColumn(join.__tableOrView, requiredColumns, onlyForTablesOrViews)
-            __registerRequiredColumn(join.__on, requiredColumns, onlyForTablesOrViews)
+            __registerRequiredColumn(join.__tableOrView, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+            __registerRequiredColumn(join.__on, sqlBuilder, requiredColumns, onlyForTablesOrViews)
         }
-        __registerRequiredColumn(this.__where, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__having, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__where, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__having, sqlBuilder, requiredColumns, onlyForTablesOrViews)
         
         const groupBy = this.__groupBy
         for (let i = 0, length = groupBy.length; i < length; i++) {
-            __registerRequiredColumn(groupBy[i], requiredColumns, onlyForTablesOrViews)
+            __registerRequiredColumn(groupBy[i], sqlBuilder, requiredColumns, onlyForTablesOrViews)
         }
     }
 
     __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
         if (this.groupBy.length > 0) {
-            const withView = new WithViewImpl<any, any>('result_for_count', this)
+            const withView = new WithViewImpl<any, any>(this.__sqlBuilder, 'result_for_count', this)
             const withs: Array<IWithView<any>> = []
-            withView.__addWiths(withs)
+            withView.__addWiths(this.__sqlBuilder, withs)
             
             const selectCountData: PlainSelectData = {
                 [isSelectQueryObject]: true,
@@ -679,14 +681,14 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__query = ''
         this.__oneColumn = true
         this.__columns = { 'result': column }
-        __getValueSourcePrivate(column).__addWiths(this.__withs)
+        __getValueSourcePrivate(column).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     from(table: ITableOrView<any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         this.__tablesOrViews.push(table)
-        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     join(table: ITableOrView<any>): any {
@@ -699,7 +701,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __joinType: 'join',
             __tableOrView: table
         }
-        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     innerJoin(table: ITableOrView<any>): any {
@@ -712,7 +714,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __joinType: 'innerJoin',
             __tableOrView: table
         }
-        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     leftJoin(source: OuterJoinSource<any, any>): any {
@@ -725,7 +727,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __joinType: 'leftJoin',
             __tableOrView: source as any
         }
-        __getTableOrViewPrivate(source).__addWiths(this.__withs)
+        __getTableOrViewPrivate(source).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     leftOuterJoin(source: OuterJoinSource<any, any>): any {
@@ -738,7 +740,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __joinType: 'leftOuterJoin',
             __tableOrView: source as any
         }
-        __getTableOrViewPrivate(source).__addWiths(this.__withs)
+        __getTableOrViewPrivate(source).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     optionalJoin(table: ITableOrView<any>): any {
@@ -753,7 +755,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __optional: true
         }
         this.__hasOptionalJoin = true
-        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     optionalInnerJoin(table: ITableOrView<any>): any {
@@ -768,7 +770,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __optional: true
         }
         this.__hasOptionalJoin = true
-        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     optionalLeftJoin(source: OuterJoinSource<any, any>): any {
@@ -783,7 +785,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __optional: true
         }
         this.__hasOptionalJoin = true
-        __getTableOrViewPrivate(source).__addWiths(this.__withs)
+        __getTableOrViewPrivate(source).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     optionalLeftOuterJoin(source: OuterJoinSource<any, any>): any {
@@ -798,7 +800,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __optional: true
         }
         this.__hasOptionalJoin = true
-        __getTableOrViewPrivate(source).__addWiths(this.__withs)
+        __getTableOrViewPrivate(source).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     dynamicOn(): any {
@@ -813,7 +815,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__lastJoin.__on = asAlwaysIfValueSource(condition)
         this.__joins.push(this.__lastJoin)
         this.__lastJoin = undefined
-        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     __finishJoinHaving() {
@@ -835,12 +837,12 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             throw new Error('Illegal state')
         }
         this.__where = asAlwaysIfValueSource(condition)
-        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
         this.__query = ''
-        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.and(asAlwaysIfValueSource(condition))
@@ -866,7 +868,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
         this.__query = ''
-        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.or(asAlwaysIfValueSource(condition))
@@ -904,7 +906,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             throw new Error('Illegal state')
         }
         this.__having = asAlwaysIfValueSource(condition)
-        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     groupBy(...columns: Array<string| number | symbol | AnyValueSource>): any {
@@ -914,7 +916,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             const column = columns[i]!
             if (isValueSource(column)) {
                 this.__groupBy.push(column)
-                __addWiths(column, this.__withs)
+                __addWiths(column, this.__sqlBuilder, this.__withs)
             } else {
                 const valueSource = this.__getColumnFromColumnsObject(column)
                 if (!valueSource) {
@@ -941,16 +943,16 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__registerTableOrViewOfColumns(this.__columns, requiredTableOrView)
         const where = this.__where
         if (where) {
-            __getValueSourcePrivate(where).__registerTableOrView(requiredTableOrView)
+            __getValueSourcePrivate(where).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
         }
         const groupBy = this.__groupBy
         for (let i = 0, lenght = groupBy.length; i < lenght; i++) {
             const value = groupBy[i]!
-            __getValueSourcePrivate(value).__registerTableOrView(requiredTableOrView)
+            __getValueSourcePrivate(value).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
         }
         const having = this.__having
         if (having) {
-            __getValueSourcePrivate(having).__registerTableOrView(requiredTableOrView)
+            __getValueSourcePrivate(having).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
         }
 
         const joins = this.__joins
@@ -958,16 +960,18 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             const join = joins[i]!
             const on = join.__on
             if (!join.__optional && on) {
-                __getValueSourcePrivate(on).__registerTableOrView(requiredTableOrView)
+                __getValueSourcePrivate(on).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
             }
         }
 
         const customization = this.__customization
         if (customization) {
-            __registerTableOrView(customization.afterSelectKeyword, requiredTableOrView)
-            __registerTableOrView(customization.beforeColumns, requiredTableOrView)
-            __registerTableOrView(customization.customWindow, requiredTableOrView)
-            __registerTableOrView(customization.afterQuery, requiredTableOrView)
+            __registerTableOrView(customization.afterSelectKeyword, this.__sqlBuilder,requiredTableOrView)
+            __registerTableOrView(customization.beforeColumns, this.__sqlBuilder, requiredTableOrView)
+            __registerTableOrView(customization.customWindow, this.__sqlBuilder, requiredTableOrView)
+            __registerTableOrView(customization.beforeOrderByItems, this.__sqlBuilder, requiredTableOrView)
+            __registerTableOrView(customization.afterOrderByItems, this.__sqlBuilder, requiredTableOrView)
+            __registerTableOrView(customization.afterQuery, this.__sqlBuilder, requiredTableOrView)
         }
 
         const registeredCount = requiredTableOrView.size
@@ -977,7 +981,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
                 const join = joins[i]!
                 const on = join.__on
                 if (join.__optional && on && requiredTableOrView.has(join.__tableOrView)) {
-                    __getValueSourcePrivate(on).__registerTableOrView(requiredTableOrView)
+                    __getValueSourcePrivate(on).__registerTableOrView(this.__sqlBuilder, requiredTableOrView)
                 }
             }
             updatedCount = requiredTableOrView.size
@@ -985,30 +989,30 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
 
         return requiredTableOrView
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        let result = super.__getOldValues()
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        let result = super.__getOldValues(this.__sqlBuilder)
         if (result) {
             return result
         }
         const tablesOrViews = this.__tablesOrViews
         for (let i = 0, length = tablesOrViews.length; i < length; i++) {
             const tableOrView = tablesOrViews[i]!
-            result = __getTableOrViewPrivate(tableOrView).__getOldValues()
+            result = __getTableOrViewPrivate(tableOrView).__getOldValues(sqlBuilder)
             if (result) {
                 return result
             }
         }
         return undefined
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        let result = super.__getValuesForInsert()
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        let result = super.__getValuesForInsert(sqlBuilder)
         if (result) {
             return result
         }
         const tablesOrViews = this.__tablesOrViews
         for (let i = 0, length = tablesOrViews.length; i < length; i++) {
             const tableOrView = tablesOrViews[i]!
-            result = __getTableOrViewPrivate(tableOrView).__getValuesForInsert()
+            result = __getTableOrViewPrivate(tableOrView).__getValuesForInsert(sqlBuilder)
             if (result) {
                 return result
             }
@@ -1050,18 +1054,18 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
             }
         }
 
-        createColumnsFrom(firstQuery.__columns, this.__columns, new View(''))
+        createColumnsFrom(this.__sqlBuilder, firstQuery.__columns, this.__columns, new View(''))
     }
 
-    __registerRequiredColumnInSelect(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        __registerRequiredColumn(this.__firstQuery, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__secondQuery, requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumnInSelect(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerRequiredColumn(this.__firstQuery, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__secondQuery, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
 
     __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
-        const withView = new WithViewImpl<any, any>('result_for_count', this)
+        const withView = new WithViewImpl<any, any>(this.__sqlBuilder, 'result_for_count', this)
         const withs: Array<IWithView<any>> = []
-        withView.__addWiths(withs)
+        withView.__addWiths(this.__sqlBuilder, withs)
         
         const selectCountData: PlainSelectData = {
             [isSelectQueryObject]: true,
@@ -1088,10 +1092,10 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         }
         return this
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return super.__getOldValues() || __getOldValues(this.__firstQuery) || __getOldValues(this.__secondQuery)
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return super.__getOldValues(sqlBuilder) || __getOldValues(this.__firstQuery, sqlBuilder) || __getOldValues(this.__secondQuery, sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return super.__getValuesForInsert() || __getValuesForInsert(this.__firstQuery) || __getValuesForInsert(this.__secondQuery)
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return super.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__firstQuery, sqlBuilder) || __getValuesForInsert(this.__secondQuery, sqlBuilder)
     }
 }

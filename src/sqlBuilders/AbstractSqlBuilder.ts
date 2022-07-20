@@ -680,9 +680,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return selectQuery
         }
 
+        const requiredTablesOrViews = query.__requiredTablesOrViews
         const oldFakeNameOf = this._getFakeNamesOf(params)
         if (oldFakeNameOf) {
-            const requiredTablesOrViews = query.__requiredTablesOrViews
             if (requiredTablesOrViews) {
                 const newFakeNameOf = new Set<ITableOrView<any>>()
                 requiredTablesOrViews.forEach(v => {
@@ -703,9 +703,21 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const tables = query.__tablesOrViews
         const tablesLength = tables.length
         const joins = query.__joins
-        const joinsLength = joins.length
 
-        if (tablesLength === 1 && joinsLength <= 0) {
+        let hasJoins = false
+        for (let i = 0, length = joins.length; i < length; i++) {
+            const join = joins[i]!
+
+            if (join.__optional) {
+                if (!requiredTablesOrViews!.has(join.__tableOrView)) {
+                    continue
+                }
+            }
+            hasJoins = true
+            break
+        }
+
+        if (tablesLength === 1 && !hasJoins) {
             this._setSafeTableOrView(params, tables[0])
         } else {
             this._setSafeTableOrView(params, undefined)
@@ -1701,13 +1713,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const sets = query.__sets
         for (let property in sets) {
-            __registerTableOrView(sets[property], result)
+            __registerTableOrView(sets[property], this, result)
         }
 
         const columns = query.__columns
         if (columns) {
             for (let property in columns) {
-                __registerTableOrView(columns[property], result)
+                __registerTableOrView(columns[property], this, result)
             }
         }
 
@@ -1727,13 +1739,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const sets = query.__sets
         for (let property in sets) {
-            __registerRequiredColumn(sets[property], result, requiredTables)
+            __registerRequiredColumn(sets[property], this, result, requiredTables)
         }
 
         const columns = query.__columns
         if (columns) {
             for (let property in columns) {
-                __registerRequiredColumn(columns[property], result, requiredTables)
+                __registerRequiredColumn(columns[property], this, result, requiredTables)
             }
         }
 

@@ -24,57 +24,61 @@ interface Column {
     [type]: 'column'
 }
 
-export interface HasAddWiths {
-    __addWiths(withs: Array<IWithView<any>>): void
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void
-    __getOldValues(): ITableOrView<any> | undefined
-    __getValuesForInsert(): ITableOrView<any> | undefined
+export interface HasIsValue {
+    _isValue(value: any): boolean
 }
 
-export function __addWiths(value: any, withs: Array<IWithView<any>>): void {
+export interface HasAddWiths {
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined
+}
+
+export function __addWiths(value: any, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
     if (value === undefined || value === null) {
         return
     }
     if (typeof value === 'object' && typeof value.__addWiths === 'function') {
-        (value as HasAddWiths).__addWiths(withs)
+        (value as HasAddWiths).__addWiths(sqlBuilder, withs)
     }
 }
 
-export function __registerTableOrView(value: any, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+export function __registerTableOrView(value: any, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
     if (value === undefined || value === null) {
         return
     }
     if (typeof value === 'object' && typeof value.__registerTableOrView === 'function') {
-        (value as HasAddWiths).__registerTableOrView(requiredTablesOrViews)
+        (value as HasAddWiths).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
     }
 }
 
-export function __registerRequiredColumn(value: any, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+export function __registerRequiredColumn(value: any, sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
     if (value === undefined || value === null) {
         return
     }
     if (typeof value === 'object' && typeof value.__registerRequiredColumn === 'function') {
-        (value as HasAddWiths).__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+        (value as HasAddWiths).__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
 }
 
-export function __getOldValues(value: any): ITableOrView<any> | undefined {
+export function __getOldValues(value: any, sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
     if (value === undefined || value === null) {
         return undefined
     }
     if (typeof value === 'object' && typeof value.__getOldValues === 'function') {
-        return (value as HasAddWiths).__getOldValues()
+        return (value as HasAddWiths).__getOldValues(sqlBuilder)
     }
     return undefined
 }
 
-export function __getValuesForInsert(value: any): ITableOrView<any> | undefined {
+export function __getValuesForInsert(value: any, sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
     if (value === undefined || value === null) {
         return undefined
     }
     if (typeof value === 'object' && typeof value.__getValuesForInsert === 'function') {
-        return (value as HasAddWiths).__getValuesForInsert()
+        return (value as HasAddWiths).__getValuesForInsert(sqlBuilder)
     }
     return undefined
 }

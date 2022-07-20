@@ -1,5 +1,5 @@
 import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource, __getValueSourceOfObject, __getValueSourcePrivate, TypeSafeUuidValueSource, UuidValueSource } from "./expressions/values"
-import { IView, IWithView, TableOrViewOf, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
+import { HasIsValue, IView, IWithView, TableOrViewOf, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
 import type { TypeAdapter } from "./TypeAdapter"
 import type { AliasedTableOrView, OuterJoinSourceOf } from "./utils/tableOrViewUtils"
 import { Column, OptionalColumn } from "./utils/Column"
@@ -124,28 +124,28 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     }
 
     // @ts-ignore
-    private __addWiths(withs: Array<IWithView<any>>): void {
-        __addWiths(this.__template, withs)
+    private __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        __addWiths(this.__template, sqlBuilder, withs)
     }
 
     // @ts-ignore
-    private __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    private __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
         requiredTablesOrViews.add(this)
-        __registerTableOrView(this.__template, requiredTablesOrViews)
+        __registerTableOrView(this.__template, sqlBuilder, requiredTablesOrViews)
     }
 
     // @ts-ignore
-    private __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        __registerRequiredColumn(this.__template, requiredColumns, onlyForTablesOrViews)
+    private __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerRequiredColumn(this.__template, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
 
     // @ts-ignore
-    private __getOldValues(): ITableOrView<any> | undefined {
+    private __getOldValues(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return undefined
     }
 
     // @ts-ignore
-    private __getValuesForInsert(): ITableOrView<any> | undefined {
+    private __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return undefined
     }
 }

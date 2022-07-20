@@ -1,5 +1,5 @@
 import type { SqlBuilder, DeleteData, JoinData, QueryColumns, ToSql } from "../sqlBuilders/SqlBuilder"
-import { HasAddWiths, ITable, ITableOrView, IWithView, OuterJoinSource, __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
+import { HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, OuterJoinSource, __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import { IBooleanValueSource, IIfValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableExecutableDelete, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere } from "../expressions/delete"
 import type { int } from "ts-extended-types"
@@ -36,7 +36,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>, allowNoWhere: boolean) {
         super(sqlBuilder)
         this.__table = table
-        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         this.__allowNoWhere = allowNoWhere
     }
 
@@ -220,12 +220,12 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             throw new Error('Illegal state')
         }
         this.__where = asAlwaysIfValueSource(condition)
-        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__query = ''
-        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.and(asAlwaysIfValueSource(condition))
@@ -243,7 +243,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     }
     or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
         this.__query = ''
-        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
             if (this.__lastJoin.__on) {
                 this.__lastJoin.__on = this.__lastJoin.__on.and(asAlwaysIfValueSource(condition))
@@ -269,7 +269,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             this.__using = []
         }
         this.__using.push(table)
-        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     join(table: ITableOrView<any>): any {
@@ -282,7 +282,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             __joinType: 'join',
             __tableOrView: table
         }
-        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     innerJoin(table: ITableOrView<any>): any {
@@ -295,7 +295,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             __joinType: 'innerJoin',
             __tableOrView: table
         }
-        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     leftJoin(source: OuterJoinSource<any, any>): any {
@@ -308,7 +308,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             __joinType: 'leftJoin',
             __tableOrView: source as any
         }
-        __getTableOrViewPrivate(source).__addWiths(this.__withs)
+        __getTableOrViewPrivate(source).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     leftOuterJoin(source: OuterJoinSource<any, any>): any {
@@ -321,7 +321,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             __joinType: 'leftOuterJoin',
             __tableOrView: source as any
         }
-        __getTableOrViewPrivate(source).__addWiths(this.__withs)
+        __getTableOrViewPrivate(source).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     dynamicOn(): any {
@@ -339,7 +339,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
         this.__joins.push(this.__lastJoin)
         this.__lastJoin = undefined
-        __getValueSourcePrivate(condition).__addWiths(this.__withs)
+        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     __finishJoin() {
@@ -357,8 +357,8 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     customizeQuery(customization: DeleteCustomization<any>): this {
         this.__finishJoin()
         this.__customization = customization
-        __addWiths(customization.afterDeleteKeyword, this.__withs)
-        __addWiths(customization.afterQuery, this.__withs)
+        __addWiths(customization.afterDeleteKeyword, this.__sqlBuilder, this.__withs)
+        __addWiths(customization.afterQuery, this.__sqlBuilder, this.__withs)
         return this
     }
 
@@ -375,28 +375,28 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         this.__query = ''
         this.__oneColumn = true
         this.__columns = { 'result': column }
-        __getValueSourcePrivate(column).__addWiths(this.__withs)
+        __getValueSourcePrivate(column).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
 
-    __addWiths(withs: Array<IWithView<any>>): void {
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         const withViews = this.__withs
         for (let i = 0, length = withViews.length; i < length; i++) {
             const withView = withViews[i]!
-            __getTableOrViewPrivate(withView).__addWiths(withs)
+            __getTableOrViewPrivate(withView).__addWiths(sqlBuilder, withs)
         }
     }
-    __registerTableOrView(_requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<ITableOrView<any>>): void {
         // do nothing because it is not possible to add external dependency
     }
-    __registerRequiredColumn(_requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
         // do nothing because it is not possible to add external dependency
     }
-    __getOldValues(): ITableOrView<any> | undefined {
+    __getOldValues(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         // old values fake table is not possible to be used here
         return undefined
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
+    __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         // values for insert fake table is not possible to be used here
         return undefined
     }

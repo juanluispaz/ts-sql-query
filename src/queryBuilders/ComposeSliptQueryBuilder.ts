@@ -617,11 +617,11 @@ export class ComposeSplitQueryBuilder {
 
                 // For rule 2
                 if (alwaysSameRequiredTablesSize === undefined) {
-                    valueSourcePrivate.__registerTableOrView(firstRequiredTables)
+                    valueSourcePrivate.__registerTableOrView(this.__sqlBuilder, firstRequiredTables)
                     alwaysSameRequiredTablesSize = true
                 } else if (alwaysSameRequiredTablesSize) {
                     let valueSourceRequiredTables = new Set<ITableOrView<any>>()
-                    valueSourcePrivate.__registerTableOrView(valueSourceRequiredTables)
+                    valueSourcePrivate.__registerTableOrView(this.__sqlBuilder, valueSourceRequiredTables)
                     const initialSize = firstRequiredTables.size
                     if (initialSize !== valueSourceRequiredTables.size) {
                         alwaysSameRequiredTablesSize = false
@@ -677,7 +677,7 @@ export class ComposeSplitQueryBuilder {
         for (const property in columns) {
             const column = columns[property]!
             if (isValueSource(column)) {
-                const oldValues = __getValueSourcePrivate(column).__getOldValues()
+                const oldValues = __getValueSourcePrivate(column).__getOldValues(this.__sqlBuilder)
                 if (oldValues) {
                     return oldValues
                 }
@@ -695,7 +695,7 @@ export class ComposeSplitQueryBuilder {
         for (const property in columns) {
             const column = columns[property]!
             if (isValueSource(column)) {
-                const oldValues = __getValueSourcePrivate(column).__getValuesForInsert()
+                const oldValues = __getValueSourcePrivate(column).__getValuesForInsert(this.__sqlBuilder)
                 if (oldValues) {
                     return oldValues
                 }
@@ -708,7 +708,7 @@ export class ComposeSplitQueryBuilder {
         for (const property in columns) {
             const column = columns[property]!
             if (isValueSource(column)) {
-                __getValueSourcePrivate(column).__registerTableOrView(requiredTablesOrViews)
+                __getValueSourcePrivate(column).__registerTableOrView(this.__sqlBuilder, requiredTablesOrViews)
             } else {
                 this.__registerTableOrViewOfColumns(column, requiredTablesOrViews)
             }
@@ -719,7 +719,7 @@ export class ComposeSplitQueryBuilder {
         for (const property in columns) {
             const column = columns[property]!
             if (isValueSource(column)) {
-                __getValueSourcePrivate(column).__addWiths(withs)
+                __getValueSourcePrivate(column).__addWiths(this.__sqlBuilder, withs)
             } else {
                 this.__registerTableOrViewWithOfColumns(column, withs)
             }
@@ -730,7 +730,7 @@ export class ComposeSplitQueryBuilder {
         for (const property in columns) {
             const column = columns[property]!
             if (isValueSource(column)) {
-                __getValueSourcePrivate(column).__registerRequiredColumn(requiredColumns, newOnly)
+                __getValueSourcePrivate(column).__registerRequiredColumn(this.__sqlBuilder, requiredColumns, newOnly)
             } else {
                 this.__registerRequiredColumnOfColmns(column, requiredColumns, newOnly)
             }

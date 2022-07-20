@@ -1572,7 +1572,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select customer.id as id, customer.first_name as firstName, customer.last_name as lastName from customer where customer.id = ?`)
+    expectedQuery.push(`select id as id, first_name as firstName, last_name as lastName from customer where id = ?`)
     expectedParams.push(`[12]`)
     expectedType.push(`selectManyRows`)
     
@@ -1688,7 +1688,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select customer.id as id, customer.first_name as `name.firstName`, customer.last_name as `name.lastName` from customer where customer.id = ?")
+    expectedQuery.push("select id as id, first_name as `name.firstName`, last_name as `name.lastName` from customer where id = ?")
     expectedParams.push(`[12]`)
     expectedType.push(`selectManyRows`)
     
@@ -3479,6 +3479,44 @@ async function main() {
         })
         .executeInsert()
     assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select id as id, first_name as firstName, last_name as lastName, birthday as birthday, company_id as companyId from customer`)
+    expectedParams.push(`[]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    let companyName: string | undefined = undefined
+
+    let customers = await connection.selectFrom(tCustomer)
+        .optionalJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .where(tCompany.name.equalsIfValue(companyName))
+        .select(extractColumnsFrom(tCustomer))
+        .executeSelectMany()
+    assertEquals(customers, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, customer.company_id as companyId from customer join company on company.id = customer.company_id where company.name = ?`)
+    expectedParams.push(`["My company name"]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    companyName = 'My company name'
+
+    customers = await connection.selectFrom(tCustomer)
+        .optionalJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .where(tCompany.name.equalsIfValue(companyName))
+        .select(extractColumnsFrom(tCustomer))
+        .executeSelectMany()
+    assertEquals(customers, result)
 }
 
 main().then(() => {

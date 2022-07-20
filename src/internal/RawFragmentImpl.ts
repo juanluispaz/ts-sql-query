@@ -1,7 +1,7 @@
 import { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from "../expressions/values"
 import { SqlBuilder, ToSql } from "../sqlBuilders/SqlBuilder"
 import { Column } from "../utils/Column"
-import { HasAddWiths, ITableOrView, IWithView, __addWiths, __getOldValues, __getValuesForInsert, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
+import { HasAddWiths, HasIsValue, ITableOrView, IWithView, __addWiths, __getOldValues, __getValuesForInsert, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { RawFragment } from "../utils/RawFragment"
 import { database, rawFragment } from "../utils/symbols"
 
@@ -23,38 +23,38 @@ export class RawFragmentImpl implements RawFragment<any>, HasAddWiths, ToSql {
         return this.__toSql(sqlBuilder, params)
     }
 
-    __addWiths(withs: Array<IWithView<any>>): void {
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         const params = this.__params
         for (let i = 0, length = params.length; i < length; i++) {
-            __addWiths(params[i], withs)
+            __addWiths(params[i], sqlBuilder, withs)
         }
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
         const params = this.__params
         for (let i = 0, length = params.length; i < length; i++) {
-            __registerTableOrView(params[i], requiredTablesOrViews)
+            __registerTableOrView(params[i], sqlBuilder, requiredTablesOrViews)
         }
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
         const params = this.__params
         for (let i = 0, length = params.length; i < length; i++) {
-            __registerRequiredColumn(params[i], requiredColumns, onlyForTablesOrViews)
+            __registerRequiredColumn(params[i], sqlBuilder, requiredColumns, onlyForTablesOrViews)
         }
     }
-    __getOldValues(): ITableOrView<any> | undefined {
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         const params = this.__params
         for (let i = 0, length = params.length; i < length; i++) {
-            const result = __getOldValues(params[i])
+            const result = __getOldValues(params[i], sqlBuilder)
             if (result) {
                 return result
             }
         }
         return undefined
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         const params = this.__params
         for (let i = 0, length = params.length; i < length; i++) {
-            const result = __getValuesForInsert(params[i])
+            const result = __getValuesForInsert(params[i], sqlBuilder)
             if (result) {
                 return result
             }

@@ -1,5 +1,5 @@
 import type { SqlBuilder, InsertData, SelectData, QueryColumns, ToSql } from "../sqlBuilders/SqlBuilder"
-import{ HasAddWiths, ITable, ITableOrView, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
+import{ HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*, MissingKeysInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional } from "../expressions/insert"
 import type { Column } from "../utils/Column"
 import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
@@ -45,7 +45,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     constructor(sqlBuilder: SqlBuilder, table: ITable<any>) {
         super(sqlBuilder)
         this.__table = table
-        __getTableOrViewPrivate(table).__addWiths(this.__withs)
+        __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
     }
 
     executeInsert(min?: number, max?: number): Promise<any> {
@@ -644,14 +644,14 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     }
     from(select: IExecutableSelectQuery<any, any, any, any>): this {
         this.__from = select as any as SelectData
-        __addWiths(select, this.__withs)
+        __addWiths(select, this.__sqlBuilder, this.__withs)
         return this
     }
 
     customizeQuery(customization: InsertCustomization<any>): this {
         this.__customization = customization
-        __addWiths(customization.afterInsertKeyword, this.__withs)
-        __addWiths(customization.afterQuery, this.__withs)
+        __addWiths(customization.afterInsertKeyword, this.__sqlBuilder, this.__withs)
+        __addWiths(customization.afterQuery, this.__sqlBuilder, this.__withs)
         return this
     }
 
@@ -695,7 +695,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         this.__query = ''
         this.__oneColumn = true
         this.__columns = { 'result': column }
-        __getValueSourcePrivate(column).__addWiths(this.__withs)
+        __getValueSourcePrivate(column).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
 
@@ -764,7 +764,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
         this.__onConflictOnColumns = columns
         for (let i = 0, length = columns.length; i < length; i++) {
-            __getValueSourcePrivate(columns[i]!).__addWiths(this.__withs)
+            __getValueSourcePrivate(columns[i]!).__addWiths(this.__sqlBuilder, this.__withs)
         }
         return this
     }
@@ -774,7 +774,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             throw new Error('Illegal state')
         }
         this.__onConflictOnConstraint = constraint
-        __addWiths(constraint, this.__withs)
+        __addWiths(constraint, this.__sqlBuilder, this.__withs)
         return this
     }
 
@@ -851,14 +851,14 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             }
             this.__onConflictUpdateWhere = asAlwaysIfValueSource(condition)
             const conditionPrivate = __getValueSourcePrivate(condition)
-            conditionPrivate.__addWiths(this.__withs)
-            this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert()
+            conditionPrivate.__addWiths(this.__sqlBuilder, this.__withs)
+            this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert(this.__sqlBuilder)
         } else if (this.__onConflictOnColumns) {
             if (this.__onConflictOnColumnsWhere) {
                 throw new Error('Illegal state')
             }
             this.__onConflictOnColumnsWhere = asAlwaysIfValueSource(condition)
-            __getValueSourcePrivate(condition).__addWiths(this.__withs)
+            __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         } else {
             throw new Error('Illegal state')
         }
@@ -873,15 +873,15 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
                 this.__onConflictUpdateWhere = this.__onConflictUpdateWhere.and(asAlwaysIfValueSource(condition))
             }
             const conditionPrivate = __getValueSourcePrivate(condition)
-            conditionPrivate.__addWiths(this.__withs)
-            this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert()
+            conditionPrivate.__addWiths(this.__sqlBuilder, this.__withs)
+            this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert(this.__sqlBuilder)
         } else if (this.__onConflictOnColumns) {
             if (!this.__onConflictOnColumnsWhere) {
                 this.__onConflictOnColumnsWhere = asAlwaysIfValueSource(condition)
             } else {
                 this.__onConflictOnColumnsWhere = this.__onConflictOnColumnsWhere.and(asAlwaysIfValueSource(condition))
             }
-            __getValueSourcePrivate(condition).__addWiths(this.__withs)
+            __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         } else {
             throw new Error('Illegal state')
         }
@@ -896,39 +896,39 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
                 this.__onConflictUpdateWhere = this.__onConflictUpdateWhere.or(asAlwaysIfValueSource(condition))
             }
             const conditionPrivate = __getValueSourcePrivate(condition)
-            conditionPrivate.__addWiths(this.__withs)
-            this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert()
+            conditionPrivate.__addWiths(this.__sqlBuilder, this.__withs)
+            this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert(this.__sqlBuilder)
         } else if (this.__onConflictOnColumns) {
             if (!this.__onConflictOnColumnsWhere) {
                 this.__onConflictOnColumnsWhere = asAlwaysIfValueSource(condition)
             } else {
                 this.__onConflictOnColumnsWhere = this.__onConflictOnColumnsWhere.or(asAlwaysIfValueSource(condition))
             }
-            __getValueSourcePrivate(condition).__addWiths(this.__withs)
+            __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         } else {
             throw new Error('Illegal state')
         }
         return this
     }
 
-    __addWiths(withs: Array<IWithView<any>>): void {
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         const withViews = this.__withs
         for (let i = 0, length = withViews.length; i < length; i++) {
             const withView = withViews[i]!
-            __getTableOrViewPrivate(withView).__addWiths(withs)
+            __getTableOrViewPrivate(withView).__addWiths(sqlBuilder, withs)
         }
     }
-    __registerTableOrView(_requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<ITableOrView<any>>): void {
         // do nothing because it is not possible to add external dependency
     }
-    __registerRequiredColumn(_requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
         // do nothing because it is not possible to add external dependency
     }
-    __getOldValues(): ITableOrView<any> | undefined {
+    __getOldValues(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         // old values fake table is not possible to be used here
         return undefined
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
+    __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         // values for insert fake table is not possible to be used here
         return undefined
     }

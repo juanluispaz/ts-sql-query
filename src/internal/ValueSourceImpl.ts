@@ -1,7 +1,7 @@
 import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData } from "../sqlBuilders/SqlBuilder"
 import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, TypeSafeBigintValueSource, isValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode, UuidValueSource, TypeSafeUuidValueSource } from "../expressions/values"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { HasAddWiths, ITableOrView, IWithView, __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
+import { HasAddWiths, HasIsValue, ITableOrView, IWithView, __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { database, tableOrView, valueSourceType, valueType as valueType_, optionalType as optionalType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType, valueSourceTypeName, anyBooleanValueSourceType, optionalType, isValueSourceObject, aggregatedArrayValueSourceType, isSelectQueryObject, uuidValueSourceType, typeSafeUuidValueSourceType } from "../utils/symbols"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -67,19 +67,19 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
         return this.__toSql(sqlBuilder, params)
     }
-    __addWiths(_withs: Array<IWithView<any>>): void {
+    __addWiths(_sqlBuilder: HasIsValue, _withs: Array<IWithView<any>>): void {
         // Do nothing
     }
-    __registerTableOrView(_requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<ITableOrView<any>>): void {
         // Do nothing
     }
-    __registerRequiredColumn(_requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
         // Do nothing
     }
-    __getOldValues(): ITableOrView<any> | undefined {
+    __getOldValues(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return undefined
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
+    __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return undefined
     }
     isConstValue(): boolean {
@@ -799,20 +799,20 @@ export class BooleanValueWhenNoValueValueSource extends ValueSourceImpl implemen
             return sqlBuilder._falseForCondition(params)
         }
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getOldValues()
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getOldValues(sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getValuesForInsert()
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert(sqlBuilder)
     }
 }
 
@@ -828,20 +828,20 @@ export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements H
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__value, this.__valueType, this.__typeAdapter)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        __addWiths(this.__value, withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        __addWiths(this.__value, sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        __registerTableOrView(this.__value, requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return __getOldValues(this.__value)
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return __getOldValues(this.__value, sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return __getValuesForInsert(this.__value)
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return __getValuesForInsert(this.__value, sqlBuilder)
     }
 }
 
@@ -866,20 +866,20 @@ export class SqlOperationConstValueSource extends ValueSourceImpl implements Has
     getConstValue(): any {
         return this.__value
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        __addWiths(this.__value, withs)
+    __addWiths(sqlBuilder: HasIsValue,withs: Array<IWithView<any>>): void {
+        __addWiths(this.__value, sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        __registerTableOrView(this.__value, requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return __getOldValues(this.__value)
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return __getOldValues(this.__value, sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return __getValuesForInsert(this.__value)
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return __getValuesForInsert(this.__value, sqlBuilder)
     }
 }
 
@@ -895,20 +895,20 @@ export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOper
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__valueSource)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getOldValues()
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getOldValues(sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getValuesForInsert()
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert(sqlBuilder)
     }
 }
 
@@ -924,20 +924,20 @@ export class SqlOperationIsNullValueSource extends ValueSourceImpl implements Ha
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__valueSource)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getOldValues()
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getOldValues(sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getValuesForInsert()
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert(sqlBuilder)
     }
 }
 
@@ -955,23 +955,23 @@ export class SqlOperation1ValueSource extends ValueSourceImpl implements HasOper
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(withs)
-        __addWiths(this.__value, withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(this.__value, sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
-        __registerTableOrView(this.__value, requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value)
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
     }
 }
 
@@ -989,76 +989,76 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
         const values = this.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
-                __addWiths(values[i], withs)
+                __addWiths(values[i], sqlBuilder, withs)
             }
         } else {
             if (isSelectQuery(values)) {
-                __addInlineQueryWiths(withs, values)
+                __addInlineQueryWiths(sqlBuilder, withs, values)
             } else {
-                __addWiths(values, withs)
+                __addWiths(values, sqlBuilder, withs)
             }
         }
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
         const values = this.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
-                __registerTableOrView(values[i], requiredTablesOrViews)
+                __registerTableOrView(values[i], sqlBuilder, requiredTablesOrViews)
             }
         } else {
-            __registerTableOrView(values, requiredTablesOrViews)
+            __registerTableOrView(values, sqlBuilder, requiredTablesOrViews)
         }
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
         const values = this.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
-                __registerRequiredColumn(values[i], requiredColumns, onlyForTablesOrViews)
+                __registerRequiredColumn(values[i], sqlBuilder, requiredColumns, onlyForTablesOrViews)
             }
         } else {
-            __registerRequiredColumn(values, requiredColumns, onlyForTablesOrViews)
+            __registerRequiredColumn(values, sqlBuilder, requiredColumns, onlyForTablesOrViews)
         }
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        let result = this.__valueSource.__getOldValues()
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        let result = this.__valueSource.__getOldValues(sqlBuilder)
         if (result) {
             return result
         }
         const values = this.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
-                result = __getOldValues(values[i])
+                result = __getOldValues(values[i], sqlBuilder)
                 if (result) {
                     return result
                 }
             }
         } else {
-            return __getOldValues(values)
+            return __getOldValues(values, sqlBuilder)
         }
         return undefined
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        let result = this.__valueSource.__getValuesForInsert()
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        let result = this.__valueSource.__getValuesForInsert(sqlBuilder)
         if (result) {
             return result
         }
         const values = this.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
-                result = __getValuesForInsert(values[i])
+                result = __getValuesForInsert(values[i], sqlBuilder)
                 if (result) {
                     return result
                 }
             }
         } else {
-            return __getValuesForInsert(values)
+            return __getValuesForInsert(values, sqlBuilder)
         }
         return undefined
     }
@@ -1078,23 +1078,23 @@ export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implem
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(withs)
-        __addWiths(this.__value, withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(this.__value, sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
-        __registerTableOrView(this.__value, requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value)
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
     }
 }
 
@@ -1112,23 +1112,23 @@ export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl impleme
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(withs)
-        __addWiths(this.__value, withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(this.__value, sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
-        __registerTableOrView(this.__value, requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value)
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
     }
 }
 
@@ -1149,23 +1149,38 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
         }
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(withs)
-        __addWiths(this.__value, withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return
+        }
+        this.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(this.__value, sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
-        __registerTableOrView(this.__value, requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return
+        }
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return
+        }
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return undefined
+        }
+        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value)
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return undefined
+        }
+        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
     }
 }
 
@@ -1186,72 +1201,72 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         }
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
         const values = this.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
-                __addWiths(values[i], withs)
+                __addWiths(values[i], sqlBuilder, withs)
             }
         } else {
-            __addWiths(values, withs)
+            __addWiths(values, sqlBuilder, withs)
         }
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
         const values = this.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
-                __registerTableOrView(values[i], requiredTablesOrViews)
+                __registerTableOrView(values[i], sqlBuilder, requiredTablesOrViews)
             }
         } else {
-            __registerTableOrView(values, requiredTablesOrViews)
+            __registerTableOrView(values, sqlBuilder, requiredTablesOrViews)
         }
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
         const values = this.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
-                __registerRequiredColumn(values[i], requiredColumns, onlyForTablesOrViews)
+                __registerRequiredColumn(values[i], sqlBuilder, requiredColumns, onlyForTablesOrViews)
             }
         } else {
-            __registerRequiredColumn(values, requiredColumns, onlyForTablesOrViews)
+            __registerRequiredColumn(values, sqlBuilder, requiredColumns, onlyForTablesOrViews)
         }
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        let result = this.__valueSource.__getOldValues()
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        let result = this.__valueSource.__getOldValues(sqlBuilder)
         if (result) {
             return result
         }
         const values = this.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
-                result = __getOldValues(values[i])
+                result = __getOldValues(values[i], sqlBuilder)
                 if (result) {
                     return result
                 }
             }
         } else {
-            return __getOldValues(values)
+            return __getOldValues(values, sqlBuilder)
         }
         return undefined
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        let result = this.__valueSource.__getValuesForInsert()
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        let result = this.__valueSource.__getValuesForInsert(sqlBuilder)
         if (result) {
             return result
         }
         const values = this.__value
         if (Array.isArray(values)) {
             for (let i = 0, length = values.length; i < length; i++) {
-                result = __getValuesForInsert(values[i])
+                result = __getValuesForInsert(values[i], sqlBuilder)
                 if (result) {
                     return result
                 }
             }
         } else {
-            return __getValuesForInsert(values)
+            return __getValuesForInsert(values, sqlBuilder)
         }
         return undefined
     }
@@ -1285,23 +1300,23 @@ export class SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         }
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(withs)
-        __addWiths(this.__value, withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(this.__value, sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
-        __registerTableOrView(this.__value, requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getOldValues() || __getOldValues(this.__value)
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value)
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
     }
 }
 
@@ -1321,26 +1336,26 @@ export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOper
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(withs)
-        __addWiths(this.__value, withs)
-        __addWiths(this.__value2, withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(this.__value, sqlBuilder, withs)
+        __addWiths(this.__value2, sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
-        __registerTableOrView(this.__value, requiredTablesOrViews)
-        __registerTableOrView(this.__value2, requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(this.__value2, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value2, requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value2, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getOldValues() || __getOldValues(this.__value) || __getOldValues(this.__value2)
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder) || __getOldValues(this.__value2, sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value) || __getValuesForInsert(this.__value2)
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder) || __getValuesForInsert(this.__value2, sqlBuilder)
     }
 }
 
@@ -1366,26 +1381,26 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         }
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(withs)
-        __addWiths(this.__value, withs)
-        __addWiths(this.__value2, withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
+        __addWiths(this.__value, sqlBuilder, withs)
+        __addWiths(this.__value2, sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
-        __registerTableOrView(this.__value, requiredTablesOrViews)
-        __registerTableOrView(this.__value2, requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
+        __registerTableOrView(this.__value2, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
-        __registerRequiredColumn(this.__value2, requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        __registerRequiredColumn(this.__value2, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getOldValues() || __getOldValues(this.__value) || __getOldValues(this.__value2)
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getOldValues(sqlBuilder) || __getOldValues(this.__value, sqlBuilder) || __getOldValues(this.__value2, sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getValuesForInsert() || __getValuesForInsert(this.__value) || __getValuesForInsert(this.__value2)
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder) || __getValuesForInsert(this.__value2, sqlBuilder)
     }
 }
 
@@ -1398,20 +1413,20 @@ export class NoopValueSource extends ValueSourceImpl {
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return this.__valueSource.__toSql(sqlBuilder, params)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        this.__valueSource.__addWiths(withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerTableOrView(requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__valueSource.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getOldValues()
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getOldValues(sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return this.__valueSource.__getValuesForInsert()
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert(sqlBuilder)
     }
 }
 
@@ -1444,43 +1459,43 @@ export class FragmentValueSource extends ValueSourceImpl {
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder._fragment(params, this.__sql, this.__sqlParams)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         const sqlParams = this.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             const value = __getValueSourcePrivate(sqlParams[i]!)
-            value.__addWiths(withs)
+            value.__addWiths(sqlBuilder, withs)
         }
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
         const sqlParams = this.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             const value = __getValueSourcePrivate(sqlParams[i]!)
-            value.__registerTableOrView(requiredTablesOrViews)
+            value.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
         }
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
         const sqlParams = this.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             const value = __getValueSourcePrivate(sqlParams[i]!)
-            value.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+            value.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
         }
     }
-    __getOldValues(): ITableOrView<any> | undefined {
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         const sqlParams = this.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             const value = __getValueSourcePrivate(sqlParams[i]!)
-            const result = value.__getOldValues()
+            const result = value.__getOldValues(sqlBuilder)
             if (result) {
                 return result
             }
         }
         return undefined
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         const sqlParams = this.__sqlParams
         for (let i = 0, length = sqlParams.length; i < length; i++) {
             const value = __getValueSourcePrivate(sqlParams[i]!)
-            const result = value.__getValuesForInsert()
+            const result = value.__getValuesForInsert(sqlBuilder)
             if (result) {
                 return result
             }
@@ -1513,20 +1528,20 @@ export class AggregateFunctions1ValueSource extends ValueSourceImpl implements H
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__value)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        __addWiths(this.__value, withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        __addWiths(this.__value, sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        __registerTableOrView(this.__value, requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return __getOldValues(this.__value)
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return __getOldValues(this.__value, sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return __getValuesForInsert(this.__value)
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return __getValuesForInsert(this.__value, sqlBuilder)
     }
 }
 
@@ -1544,20 +1559,20 @@ export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implement
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__separator, this.__value)
     }
-    __addWiths(withs: Array<IWithView<any>>): void {
-        __addWiths(this.__value, withs)
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        __addWiths(this.__value, sqlBuilder, withs)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        __registerTableOrView(this.__value, requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerTableOrView(this.__value, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        __registerRequiredColumn(this.__value, requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        __registerRequiredColumn(this.__value, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return __getOldValues(this.__value)
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return __getOldValues(this.__value, sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return __getValuesForInsert(this.__value)
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return __getValuesForInsert(this.__value, sqlBuilder)
     }
 }
 
@@ -1702,19 +1717,19 @@ export class TableOrViewRawFragmentValueSource implements ValueSource<any, any, 
         throw new Error('You are trying to access to the const value when the expression is not const')
     }
     __isBooleanForCondition?: boolean | undefined
-    __addWiths(_withs: IWithView<any>[]): void {
+    __addWiths(_sqlBuilder: HasIsValue, _withs: IWithView<any>[]): void {
         // Do nothing
     }
-    __registerTableOrView(_requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<ITableOrView<any>>): void {
         // Do nothing
     }
-    __registerRequiredColumn(_requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
         // Do nothing
     }
-    __getOldValues(): ITableOrView<any> | undefined {
+    __getOldValues(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return undefined
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
+    __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return undefined
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
@@ -1741,27 +1756,27 @@ export class InlineSelectValueSource extends ValueSourceImpl implements HasOpera
     __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder._inlineSelectAsValueForCondition(this.__selectData, params)
     }
-    __addWiths(withs: IWithView<any>[]): void {
-        __addInlineQueryWiths(withs, this.__selectData)
+    __addWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[]): void {
+        __addInlineQueryWiths(sqlBuilder, withs, this.__selectData)
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__selectData.__registerTableOrView(requiredTablesOrViews)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__selectData.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__selectData.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__selectData.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return this.__selectData.__getOldValues()
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__selectData.__getOldValues(sqlBuilder)
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return this.__selectData.__getValuesForInsert()
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__selectData.__getValuesForInsert(sqlBuilder)
     }
 }
 
-function __addInlineQueryWiths(withs: IWithView<any>[], selectData: InlineSelectData): void {
+function __addInlineQueryWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[], selectData: InlineSelectData): void {
     const withViews: IWithView<any>[] = []
     const subSelectUsing = selectData.__subSelectUsing || []
-    selectData.__addWiths(withViews)
+    selectData.__addWiths(sqlBuilder, withViews)
     for (let i = 0, length = withViews.length; i < length; i++) {
         const withView = withViews[i]!
         if (subSelectUsing.includes(withView)) {
@@ -1774,7 +1789,7 @@ function __addInlineQueryWiths(withs: IWithView<any>[], selectData: InlineSelect
         if (withViewPrivate.__hasExternalDependencies) {
             continue
         }
-        withViewPrivate.__addWiths(withs)
+        withViewPrivate.__addWiths(sqlBuilder, withs)
     }
 }
 
@@ -1839,63 +1854,63 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
         throw new Error('You are trying to access to the const value when the expression is not const')
     }
     __isBooleanForCondition?: boolean | undefined
-    __addWiths(withs: IWithView<any>[]): void {
-        this.__addWithsOf(withs, this.__aggregatedArrayColumns)
+    __addWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[]): void {
+        this.__addWithsOf(sqlBuilder, withs, this.__aggregatedArrayColumns)
     }
-    __addWithsOf(withs: IWithView<any>[], aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
+    __addWithsOf(sqlBuilder: HasIsValue, withs: IWithView<any>[], aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
         if (!aggregatedArrayColumns) {
             return
         } else if (isValueSource(aggregatedArrayColumns)) {
             const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
-            valueSourcePrivate.__addWiths(withs)
+            valueSourcePrivate.__addWiths(sqlBuilder, withs)
         } else {
             for (let prop in aggregatedArrayColumns) {
-                this.__addWithsOf(withs, aggregatedArrayColumns[prop])
+                this.__addWithsOf(sqlBuilder, withs, aggregatedArrayColumns[prop])
             }
         }
     }
-    __registerTableOrView(requiredTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__registerTableOrViewOf(requiredTablesOrViews, this.__aggregatedArrayColumns)
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__registerTableOrViewOf(sqlBuilder, requiredTablesOrViews, this.__aggregatedArrayColumns)
     }
-    __registerTableOrViewOf(requiredTablesOrViews: Set<ITableOrView<any>>, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
+    __registerTableOrViewOf(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
         if (!aggregatedArrayColumns) {
             return
         } else if (isValueSource(aggregatedArrayColumns)) {
             const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
-            valueSourcePrivate.__registerTableOrView(requiredTablesOrViews)
+            valueSourcePrivate.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
         } else {
             for (let prop in aggregatedArrayColumns) {
-                this.__registerTableOrViewOf(requiredTablesOrViews, aggregatedArrayColumns[prop])
+                this.__registerTableOrViewOf(sqlBuilder, requiredTablesOrViews, aggregatedArrayColumns[prop])
             }
         }
     }
-    __registerRequiredColumn(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
-        this.__registerRequiredColumnOf(requiredColumns, onlyForTablesOrViews, this.__aggregatedArrayColumns)
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__registerRequiredColumnOf(sqlBuilder, requiredColumns, onlyForTablesOrViews, this.__aggregatedArrayColumns)
     }
-    __registerRequiredColumnOf(requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
+    __registerRequiredColumnOf(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): void {
         if (!aggregatedArrayColumns) {
             return
         } else if (isValueSource(aggregatedArrayColumns)) {
             const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
-            valueSourcePrivate.__registerRequiredColumn(requiredColumns, onlyForTablesOrViews)
+            valueSourcePrivate.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
         } else {
             for (let prop in aggregatedArrayColumns) {
-                this.__registerRequiredColumnOf(requiredColumns, onlyForTablesOrViews, aggregatedArrayColumns[prop])
+                this.__registerRequiredColumnOf(sqlBuilder, requiredColumns, onlyForTablesOrViews, aggregatedArrayColumns[prop])
             }
         }
     }
-    __getOldValues(): ITableOrView<any> | undefined {
-        return this.__getOldValuesOf(this.__aggregatedArrayColumns)
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__getOldValuesOf(sqlBuilder, this.__aggregatedArrayColumns)
     }
-    __getOldValuesOf(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): ITableOrView<any> | undefined {
+    __getOldValuesOf(sqlBuilder: HasIsValue, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): ITableOrView<any> | undefined {
         if (!aggregatedArrayColumns) {
             return undefined
         } else if (isValueSource(aggregatedArrayColumns)) {
             const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
-            return valueSourcePrivate.__getOldValues()
+            return valueSourcePrivate.__getOldValues(sqlBuilder)
         } else {
             for (let prop in aggregatedArrayColumns) {
-                const result = this.__getOldValuesOf(aggregatedArrayColumns[prop])
+                const result = this.__getOldValuesOf(sqlBuilder, aggregatedArrayColumns[prop])
                 if (result) {
                     return result
                 }
@@ -1903,18 +1918,18 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
             return undefined
         }
     }
-    __getValuesForInsert(): ITableOrView<any> | undefined {
-        return this.__getValuesForInsertOf(this.__aggregatedArrayColumns)
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__getValuesForInsertOf(sqlBuilder, this.__aggregatedArrayColumns)
     }
-    __getValuesForInsertOf(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): ITableOrView<any> | undefined {
+    __getValuesForInsertOf(sqlBuilder: HasIsValue, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): ITableOrView<any> | undefined {
         if (!aggregatedArrayColumns) {
             return undefined
         } else if (isValueSource(aggregatedArrayColumns)) {
             const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
-            return valueSourcePrivate.__getValuesForInsert()
+            return valueSourcePrivate.__getValuesForInsert(sqlBuilder)
         } else {
             for (let prop in aggregatedArrayColumns) {
-                const result = this.__getValuesForInsertOf(aggregatedArrayColumns[prop])
+                const result = this.__getValuesForInsertOf(sqlBuilder, aggregatedArrayColumns[prop])
                 if (result) {
                     return result
                 }

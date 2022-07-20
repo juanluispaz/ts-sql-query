@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.30.0 (21 Jul 2022)
+
+**Bug fixes**:
+
+- Fix optional join not omitted when an `IfValue` is used and there is no value
+
 ## v1.29.0 (28 Jun 2022)
 
 **Changes**:

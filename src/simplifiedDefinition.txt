@@ -73,6 +73,10 @@ interface BooleanValueSource extends EqualableValueSource {
     negate(): boolean
     and(value: boolean): boolean
     or(value: boolean): boolean
+    /** This function returns a boolean expression that only applies if the argument is true */
+    onlyWhen(condition: boolean): boolean
+    /** This function returns a boolean expression that only applies if the argument is false, it is ignored when true */
+    ignoreWhen(condition: boolean): boolean
     /** This function allows to return a true value when null or undefined were provided to the *IfValue function */
     trueWhenNoValue(): boolean
     /** This function allows to return a false value when null or undefined were provided to the *IfValue function */

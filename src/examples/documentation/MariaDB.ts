@@ -3517,6 +3517,51 @@ async function main() {
         .select(extractColumnsFrom(tCustomer))
         .executeSelectMany()
     assertEquals(customers, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select first_name as firstName, last_name as lastName, birthday as birthday from customer where company_id = ?`)
+    expectedParams.push(`[16]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const userCompanyId = 16
+    let onlyCustomersOfUserCompany = true
+
+    let customers2 = await connection.selectFrom(tCustomer)
+        .where(tCustomer.companyId.equals(userCompanyId).onlyWhen(onlyCustomersOfUserCompany))
+        .select({
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        })
+        .executeSelectMany()
+    assertEquals(customers2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select first_name as firstName, last_name as lastName, birthday as birthday from customer`)
+    expectedParams.push(`[]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    onlyCustomersOfUserCompany = false
+
+    customers2 = await connection.selectFrom(tCustomer)
+        .where(tCustomer.companyId.equals(userCompanyId).onlyWhen(onlyCustomersOfUserCompany))
+        .select({
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        })
+        .executeSelectMany()
+    assertEquals(customers2, result)
 }
 
 main().then(() => {

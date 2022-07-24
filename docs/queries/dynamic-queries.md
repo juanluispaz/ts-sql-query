@@ -20,6 +20,7 @@ When you realize a select, you can:
 
 Additionally, you can:
 
+- create a boolean expression that only applies if a certain condition is met, calling the `onlyWhen` method in the boolean expression. The `ignoreWhen` method do the opposite.
 - create a dynamic boolean expression that you can use in a where (by example), calling the `dynamicBooleanExpresionUsing` method in the connection object.
 - create a custom boolean condition from criteria object that you can use in a where (by example), calling the `dynamicConditionFor` method in the connection object. This functionality is useful when creating a complex search & filtering functionality in the user interface, where the user can apply a different combination of constraints.
 - create a query where it is possible to pick the columns to be returned by the query.
@@ -69,6 +70,55 @@ const customerWithId: Promise<{
     birthday?: Date;
 }[]>
 ```
+
+## Ignorable boolean expression
+
+You can create a boolean expression that only applies if a certain condition is met, calling the `onlyWhen` method at the end of the boolean expression; in case the condition is false it returns a special neutral boolean that is ignored when it is used in `and`s, `or`s, `on`s or `where`s. You an use also the `ignoreWhen` method at the end of the boolean expression to do the opposite; in case the condition is true it returns a special neutral boolean that is ignored. The `onlyWhen` and `ignoreWhen` methods can be useful to apply restictions in the query, by example, when the user have some roles.
+
+```ts
+const userCompanyId = 16
+const onlyCustomersOfUserCompany = true
+
+const customers = await connection.selectFrom(tCustomer)
+    .where(tCustomer.companyId.equals(userCompanyId).onlyWhen(onlyCustomersOfUserCompany))
+    .select({
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    })
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select first_name as firstName, last_name as lastName, birthday as birthday 
+from customer 
+where company_id = $1
+```
+
+The parameters are: `[ 16 ]`
+
+The result type is:
+```tsx
+const customers: Promise<{
+    firstName: string;
+    lastName: string;
+    birthday?: Date;
+}[]>
+```
+
+But in the case of `onlyCustomersOfUserCompany` is false, the condition in the where is omitted:
+```ts
+const onlyCustomersOfUserCompany = true
+```
+
+The executed query is:
+```sql
+select first_name as firstName, last_name as lastName, birthday as birthday 
+from customer
+```
+
+The parameters are: `[ ]`
 
 ## Complex dynamic boolean expressions
 

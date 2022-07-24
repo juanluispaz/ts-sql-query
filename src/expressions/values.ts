@@ -291,6 +291,8 @@ export interface BooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>,
     or(value: boolean| OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     or<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     or<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    onlyWhen(condition: boolean): IIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    ignoreWhen(condition: boolean): IIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // Redefined methods
     valueWhenNull(value: boolean): BooleanValueSource<TABLE_OR_VIEW, 'required'>
     valueWhenNull<VALUE extends IValueSource<TableOrViewRef<this[typeof database]>, boolean, this[typeof valueSourceTypeName], any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], VALUE[typeof optionalType]>
@@ -319,6 +321,8 @@ export interface IfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTI
     or(value: boolean| OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     or<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     or<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    onlyWhen(condition: boolean): IIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    ignoreWhen(condition: boolean): IIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     trueWhenNoValue(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     falseWhenNoValue(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
 }
@@ -343,6 +347,8 @@ export interface AlwaysIfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
     or(value: boolean| OptionalValueType<OPTIONAL_TYPE>): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     or<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     or<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    onlyWhen(condition: boolean): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    ignoreWhen(condition: boolean): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     trueWhenNoValue(): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     falseWhenNoValue(): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
 }

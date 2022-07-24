@@ -360,6 +360,20 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     negate(): any {
         return condition(new SqlOperation0ValueSource('_negate', this, 'boolean', this.__optionalType, this.__typeAdapter))
     }
+    onlyWhen(condition: boolean): any {
+        if (condition) {
+            return this
+        } else {
+            return new SqlOperationValueSourceIfValueAlwaysNoop()
+        }
+    }
+    ignoreWhen(condition: boolean): any {
+        if (condition) {
+            return new SqlOperationValueSourceIfValueAlwaysNoop()
+        } else {
+            return this
+        }
+    }
     trueWhenNoValue(): any {
         const result = new BooleanValueWhenNoValueValueSource('_true', this, 'boolean', this.__optionalType, this.__typeAdapter)
         result.__isBooleanForCondition = this.__isBooleanForCondition

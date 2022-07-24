@@ -260,6 +260,55 @@ To indicate the join can be optionally included in the query, you must create th
 - `optionalLeftOuterJoin`
 
 ```ts
+const companyName = 'My company name'
+
+const customers = connection.selectFrom(tCustomer)
+    .optionalJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+    .where(tCompany.name.equalsIfValue(companyName))
+    .select({
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    })
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday 
+from customer join company on company.id = customer.company_id 
+where company.name = $1
+```
+
+The parameters are: `[ "My company name" ]`
+
+The result type is:
+```tsx
+const customers: Promise<{
+    firstName: string;
+    lastName: string;
+    birthday?: Date;
+}[]>
+```
+
+But in the case of `companyName` is null or undefined, the condition in the where is omitted; in consequence, the company table is not used; thus the join is omitted:
+```ts
+const companyName = null
+```
+
+The executed query is:
+```sql
+select id as id, first_name as firstName, last_name as lastName, birthday as birthday
+from customer
+```
+
+The parameters are: `[ ]`
+
+**Warning**: an omitted join can change the number of returned rows depending on your data structure. This behaviour doesn't happen when all rows of the initial table have one row in the joined table (or none if you use a left join), but not many rows.
+
+**You can also use optional joins when you dynamically pick columns**
+
+```ts
 import { dynamicPick } from "ts-sql-query/dynamicCondition"
 
 const availableFields = {
@@ -307,7 +356,7 @@ const customerWithOptionalCompany: Promise<{
 }[]>
 ```
 
-But in case of a column provided by the join is required, like when `fieldsToPick` is:
+But in the case of a column provided by the join is required, like when `fieldsToPick` is:
 ```ts
 const fieldsToPick = {
     firstName: true,

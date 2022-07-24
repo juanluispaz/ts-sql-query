@@ -109,7 +109,7 @@ const customers: Promise<{
 
 But in the case of `onlyCustomersOfUserCompany` is false, the condition in the where is omitted:
 ```ts
-const onlyCustomersOfUserCompany = true
+const onlyCustomersOfUserCompany = false
 ```
 
 The executed query is:

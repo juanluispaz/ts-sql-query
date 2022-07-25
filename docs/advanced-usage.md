@@ -369,7 +369,42 @@ const selectAll = connection.selectFrom(tCustomer)
 
 The executed query is:
 ```sql
-select id as id, first_name as "firstName", last_name as "lastName", birthday as birthday, company_id as "companyId" 
+select id as id, first_name as firstName, last_name as lastName, birthday as birthday, company_id as companyId, first_name || $1 || last_name as name, calculateAge(birthday) as age 
+from customer 
+where id = $2
+```
+
+The parameters are: `[ " ", 9 ]`
+
+The result type is:
+```tsx
+const selectAll: Promise<{
+    companyId: number;
+    id: number;
+    name: string;
+    firstName: string;
+    lastName: string;
+    birthday?: Date;
+    age?: number;
+}
+```
+
+## Extract writable columns
+
+Sometimes could be useful to extract all columns available in an object, like a table or view, excluding the one that cannot be use in an insert or update. This function is analogous to `extractColumnsFrom` but ignoring computed ad virtual columns. For this purpose you can find the function `extractWritableColumnsFrom` in the file `ts-sql-query/extras/utils`.
+
+```ts
+import { extractWritableColumnsFrom } from "ts-sql-query/extras/utils";
+
+const selectAll = connection.selectFrom(tCustomer)
+    .select(extractWritableColumnsFrom(tCustomer))
+    .where(tCustomer.id.equals(9))
+    .executeSelectOne();
+```
+
+The executed query is:
+```sql
+select id as id, first_name as firstName, last_name as lastName, birthday as birthday, company_id as companyId 
 from customer 
 where id = $1
 ```
@@ -590,8 +625,19 @@ This type return the key name (properties in the object) of the columns containe
 ```ts
 import { ColumnKeys } from 'ts-sql-query/extras/types';
 
-// Alias to type tComapyColumns = "id" | "name" | "parentId"
-type tComapyColumns = ColumnKeys<typeof tCompany>;
+// Alias to type tComapyColumns = "id" | "firstName" | "lastName" | "companyId" | "birthday" | "name" | "age"
+type tCustomerColumns = ColumnKeys<typeof tCustomer>;
+```
+
+### Writable column keys
+
+This type return the key name (properties in the object) of the columns contained a an object like a table or view definition that can be use in an insert or update. This type is analogous to `ColumnKeys` but ignoring computed ad virtual columns.
+
+```ts
+import { WritableColumnKeys } from 'ts-sql-query/extras/types';
+
+// Alias to type tComapyColumns = "id" | "firstName" | "lastName" | "companyId" | "birthday"
+type tCustomerColumns = WritableColumnKeys<typeof tCustomer>;
 ```
 
 ### Insertable row

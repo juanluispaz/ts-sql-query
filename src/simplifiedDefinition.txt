@@ -816,6 +816,38 @@ interface Table {
     optionalComputedColumn<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     optionalComputedColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     optionalComputedColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+
+    // Protected methods that allows to create a sql fragment in the table
+    virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
+    virtualColumnFromFragment(type: 'stringInt', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
+    virtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
+    virtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
+    virtualColumnFromFragment(type: 'stringDouble', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
+    virtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
+    virtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
+    virtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
+    virtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => DateValueSource, adapter?: TypeAdapter): DateValueSource
+    virtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => TimeValueSource, adapter?: TypeAdapter): TimeValueSource
+    virtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => DateTimeValueSource, adapter?: TypeAdapter): DateTimeValueSource
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource, adapter?: TypeAdapter): ComparableValueSource
+
+    // Protected methods that allows to create an optional sql fragment in the table
+    optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
+    optionalVirtualColumnFromFragment(type: 'stringInt', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
+    optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
+    optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
+    optionalVirtualColumnFromFragment(type: 'stringDouble', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
+    optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
+    optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
+    optionalVirtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
+    optionalVirtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => DateValueSource, adapter?: TypeAdapter): DateValueSource
+    optionalVirtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => TimeValueSource, adapter?: TypeAdapter): TimeValueSource
+    optionalVirtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => DateTimeValueSource, adapter?: TypeAdapter): DateTimeValueSource
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource, adapter?: TypeAdapter): ComparableValueSource
 }
 
 
@@ -861,6 +893,38 @@ interface View {
     optionalColumn<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     optionalColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
     optionalColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+
+    // Protected methods that allows to create a sql fragment in the view
+    virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
+    virtualColumnFromFragment(type: 'stringInt', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
+    virtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
+    virtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
+    virtualColumnFromFragment(type: 'stringDouble', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
+    virtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
+    virtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
+    virtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
+    virtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => DateValueSource, adapter?: TypeAdapter): DateValueSource
+    virtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => TimeValueSource, adapter?: TypeAdapter): TimeValueSource
+    virtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => DateTimeValueSource, adapter?: TypeAdapter): DateTimeValueSource
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource, adapter?: TypeAdapter): ComparableValueSource
+
+    // Protected methods that allows to create an optional sql fragment in the view
+    optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
+    optionalVirtualColumnFromFragment(type: 'stringInt', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
+    optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
+    optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
+    optionalVirtualColumnFromFragment(type: 'stringDouble', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
+    optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
+    optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
+    optionalVirtualColumnFromFragment(type: 'uuid', fn: (fragment: FragmentExpression) => UuidValueSource, adapter?: TypeAdapter): UuidValueSource
+    optionalVirtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => DateValueSource, adapter?: TypeAdapter): DateValueSource
+    optionalVirtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => TimeValueSource, adapter?: TypeAdapter): TimeValueSource
+    optionalVirtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => DateTimeValueSource, adapter?: TypeAdapter): DateTimeValueSource
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource, adapter?: TypeAdapter): ComparableValueSource
 }
 
 

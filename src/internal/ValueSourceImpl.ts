@@ -1,4 +1,4 @@
-import type { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData } from "../sqlBuilders/SqlBuilder"
+import { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData, hasToSql } from "../sqlBuilders/SqlBuilder"
 import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, TypeSafeBigintValueSource, isValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode, UuidValueSource, TypeSafeUuidValueSource } from "../expressions/values"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { HasAddWiths, HasIsValue, ITableOrView, IWithView, __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
@@ -7,6 +7,7 @@ import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { ProxyTypeAdapter } from "./ProxyTypeAdapter"
 import { Column } from "../utils/Column"
+import type { FragmentQueryBuilder } from "../queryBuilders/FragmentQueryBuilder"
 
 export abstract class ValueSourceImpl implements IValueSource<any, any, any, any>, NullableValueSource<any, any, any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, BigintValueSource<any, any>, TypeSafeBigintValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, AlwaysIfValueSource<any, any>, IAnyBooleanValueSource<any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, UuidValueSource<any, any>, TypeSafeUuidValueSource<any, any>, ToSql, __ValueSourcePrivate {
     [valueSourceType]!: 'ValueSource'
@@ -1515,6 +1516,52 @@ export class FragmentValueSource extends ValueSourceImpl {
             }
         }
         return undefined
+    }
+}
+
+export class ValueSourceFromBuilder extends ValueSourceImpl {
+    __builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource
+    __fragmentBuilder: FragmentQueryBuilder
+    __builderOutput?: AnyValueSource 
+
+    constructor(builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource, fragmentBuilder: FragmentQueryBuilder, valueType: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, optionalType, typeAdapter)
+        this.__builder = builder
+        this.__fragmentBuilder = fragmentBuilder
+        if (valueType === 'boolean') {
+            this.__isBooleanForCondition = true
+        }
+    }
+    __getBuilderOutput(): AnyValueSource {
+        if (!this.__builderOutput) {
+            this.__builderOutput = this.__builder(this.__fragmentBuilder)
+        }
+        return this.__builderOutput
+    }
+    __getBuilderOutputPrivate(): __ValueSourcePrivate {
+        return __getValueSourcePrivate(this.__getBuilderOutput())
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        const builderOutput = this.__getBuilderOutput()
+        if (!hasToSql(builderOutput)) {
+            throw new Error('The result of value from fragment functions is no a valid sql element')
+        }
+        return builderOutput.__toSql(sqlBuilder, params)
+    }
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__getBuilderOutputPrivate().__addWiths(sqlBuilder, withs)
+    }
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__getBuilderOutputPrivate().__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    }
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__getBuilderOutputPrivate().__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    }
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__getBuilderOutputPrivate().__getOldValues(sqlBuilder)
+    }
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__getBuilderOutputPrivate().__getValuesForInsert(sqlBuilder)
     }
 }
 

@@ -1,8 +1,8 @@
 import type { ITableOrView } from "../utils/ITableOrView"
 import { IfValueSource, BooleanValueSource, IAnyBooleanValueSource, IStringIntValueSource, StringIntValueSource, IStringNumberValueSource, StringNumberValueSource, IIntValueSource, IntValueSource, INumberValueSource, NumberValueSource, ITypeSafeBigintValueSource, TypeSafeBigintValueSource, IBigintValueSource, BigintValueSource, IStringDoubleValueSource, StringDoubleValueSource, IDoubleValueSource, DoubleValueSource, ITypeSafeStringValueSource, TypeSafeStringValueSource, IStringValueSource, StringValueSource, ILocalDateValueSource, LocalDateValueSource, IDateValueSource, DateValueSource, ILocalTimeValueSource, LocalTimeValueSource, ITimeValueSource, TimeValueSource, ILocalDateTimeValueSource, LocalDateTimeValueSource, IDateTimeValueSource, DateTimeValueSource, IEqualableValueSource, EqualableValueSource, IComparableValueSource, ComparableValueSource, IValueSource, isValueSource, __getValueSourcePrivate, AnyValueSource, MergeOptionalUnion } from "../expressions/values"
 import type { ifValueSourceType, optionalType, tableOrView, valueType } from "../utils/symbols"
-import { isColumn } from "../utils/Column"
-import type { ColumnKeys } from "./types"
+import { isColumn, __getColumnPrivate } from "../utils/Column"
+import type { ColumnKeys, WritableColumnKeys } from "./types"
 
 type OnlyStringKey<KEY> = KEY extends string ? KEY : never
 
@@ -135,8 +135,24 @@ export function extractColumnsFrom<O extends object>(obj: O): { [K in ColumnKeys
     const result: any = {}
     for (let key in obj) {
         const value = obj[key]
-        if (isColumn(value)) {
+        if (isValueSource(value)) {
             result[key] = value
+        }
+    }
+    return result
+}
+
+export function extractWritableColumnsFrom<O extends object>(obj: O): { [K in WritableColumnKeys<O>]: O[K] } {
+    if (!obj) {
+        return obj
+    }
+    const result: any = {}
+    for (let key in obj) {
+        const value = obj[key]
+        if (isColumn(value)) {
+            if (!__getColumnPrivate(value).__isComputed) {
+                result[key] = value
+            }
         }
     }
     return result

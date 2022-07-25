@@ -1,6 +1,6 @@
 import { MySqlConnection } from "../../connections/MySqlConnection"
 import { DynamicCondition, dynamicPick } from "../../dynamicCondition"
-import { extractColumnsFrom, mapForGuidedSplit, mergeType, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "../../extras/utils"
+import { extractColumnsFrom, extractWritableColumnsFrom, mapForGuidedSplit, mergeType, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "../../extras/utils"
 import { ConsoleLogQueryRunner } from "../../queryRunners/ConsoleLogQueryRunner"
 import { MockQueryRunner } from "../../queryRunners/MockQueryRunner"
 import { Table } from "../../Table"
@@ -54,6 +54,10 @@ const tCustomer = new class TCustomer extends Table<DBConection, 'TCustomer'> {
     lastName = this.column('last_name', 'string')
     birthday = this.optionalColumn('birthday', 'localDate')
     companyId = this.column('company_id', 'int')
+    name = this.firstName.concat(' ').concat(this.lastName)
+    age = this.optionalVirtualColumnFromFragment('int', (fragment) => {
+        return fragment.sql`calculateAge(${this.birthday})`
+    })
     constructor() {
         super('customer'); // table name in the database
     }
@@ -2120,11 +2124,34 @@ async function main() {
     /* *** Example ****************************************************************/
 
     const selectAll = await connection.selectFrom(tCustomer)
-        .select(extractColumnsFrom(tCustomer))
+        .select(extractWritableColumnsFrom(tCustomer))
         .where(tCustomer.id.equals(9))
         .executeSelectOne()
     
     assertEquals(selectAll, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 9,
+        firstName: 'First Name',
+        lastName: 'Last Name',
+        name: 'First Name Last Name',
+        companyId: 7
+    }
+    expectedResult.push(result)
+    expectedQuery.push("select id as id, first_name as firstName, last_name as lastName, birthday as birthday, company_id as companyId, concat(first_name, ?, last_name) as `name`, calculateAge(birthday) as age from customer where id = ?")
+    expectedParams.push(`[" ",9]`)
+    expectedType.push(`selectOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    const selectAll2 = await connection.selectFrom(tCustomer)
+        .select(extractColumnsFrom(tCustomer))
+        .where(tCustomer.id.equals(9))
+        .executeSelectOne()
+    
+    assertEquals(selectAll2, result)
     
     /* *** Preparation ************************************************************/
 
@@ -3483,7 +3510,7 @@ async function main() {
     let customers = await connection.selectFrom(tCustomer)
         .optionalJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
         .where(tCompany.name.equalsIfValue(companyName))
-        .select(extractColumnsFrom(tCustomer))
+        .select(extractWritableColumnsFrom(tCustomer))
         .executeSelectMany()
     assertEquals(customers, result)
 
@@ -3502,7 +3529,7 @@ async function main() {
     customers = await connection.selectFrom(tCustomer)
         .optionalJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
         .where(tCompany.name.equalsIfValue(companyName))
-        .select(extractColumnsFrom(tCustomer))
+        .select(extractWritableColumnsFrom(tCustomer))
         .executeSelectMany()
     assertEquals(customers, result)
 
@@ -3550,6 +3577,25 @@ async function main() {
         })
         .executeSelectMany()
     assertEquals(customers2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push("select id as id, concat(first_name, ?, last_name) as `name`, calculateAge(birthday) as age from customer")
+    expectedParams.push(`[" "]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const customersWithAge = await connection.selectFrom(tCustomer)
+        .select({
+            id: tCustomer.id,
+            name: tCustomer.name,
+            age: tCustomer.age,
+        })
+        .executeSelectMany()
+    assertEquals(customersWithAge, result)
 }
 
 main().then(() => {

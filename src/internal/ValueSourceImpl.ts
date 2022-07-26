@@ -1777,7 +1777,6 @@ export class TableOrViewRawFragmentValueSource implements ValueSource<any, any, 
     getConstValue(): any {
         throw new Error('You are trying to access to the const value when the expression is not const')
     }
-    __isBooleanForCondition?: boolean | undefined
     __addWiths(_sqlBuilder: HasIsValue, _withs: IWithView<any>[]): void {
         // Do nothing
     }
@@ -1834,6 +1833,71 @@ export class InlineSelectValueSource extends ValueSourceImpl implements HasOpera
     }
 }
 
+export class AggregateSelectValueSource implements ValueSource<any, any, any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, __ValueSourcePrivate, ToSql {
+    [tableOrView]: any
+    [valueType_]: any
+    [optionalType_]: any
+    [optionalType]: any
+    [valueSourceType]!: "ValueSource"
+    [database]: any
+    [valueSourceTypeName]: any
+    [aggregatedArrayValueSourceType]!: 'AggregatedArrayValueSource'
+
+    [isValueSourceObject]: true = true
+    __valueType: string = 'aggregatedArray'
+    __optionalType: OptionalType
+    __operation = '_inlineSelectAsValue' as const
+    __selectData: InlineSelectData
+    __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
+    __aggregatedArrayMode: __AggregatedArrayMode
+
+    constructor(selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType) {
+        this.__selectData = selectData
+        this.__aggregatedArrayColumns = aggregatedArrayColumns
+        this.__aggregatedArrayMode = aggregatedArrayMode
+        this.__optionalType = _optionalType
+    }
+
+    isConstValue(): boolean {
+        return false
+    }
+    getConstValue(): any {
+        throw new Error('You are trying to access to the const value when the expression is not const')
+    }
+
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        return sqlBuilder._inlineSelectAsValue(this.__selectData, params)
+    }
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+        return sqlBuilder._inlineSelectAsValueForCondition(this.__selectData, params)
+    }
+    __addWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[]): void {
+        __addInlineQueryWiths(sqlBuilder, withs, this.__selectData)
+    }
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__selectData.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    }
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__selectData.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    }
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__selectData.__getOldValues(sqlBuilder)
+    }
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__selectData.__getValuesForInsert(sqlBuilder)
+    }
+
+    useEmptyArrayForNoValue(): any {
+        return new AggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'required')
+    }
+    asOptionalNonEmptyArray(): any {
+        return new AggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'optional')
+    }
+    asRequiredInOptionalObject(): any {
+        return new AggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'requiredInOptionalObject')
+    }
+}
+
 function __addInlineQueryWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[], selectData: InlineSelectData): void {
     const withViews: IWithView<any>[] = []
     const subSelectUsing = selectData.__subSelectUsing || []
@@ -1866,8 +1930,7 @@ function isSelectQuery(value: any): value is InlineSelectData {
 
 function valueSourceInitializationForInlineSelect(selectData: SelectData) {
     if (selectData.__asInlineAggregatedArrayValue) {
-        // Note: Aggregared array infor will be set later
-        return ['aggregatedArray', 'required', undefined, undefined, undefined, undefined] as const
+        throw new Error('Ilegal state: unexpected inline aggregated array vaule')
     } else if (selectData.__oneColumn) {
         const result = selectData.__columns['result']
         if (!isValueSource(result)) {
@@ -1914,7 +1977,6 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
     getConstValue(): any {
         throw new Error('You are trying to access to the const value when the expression is not const')
     }
-    __isBooleanForCondition?: boolean | undefined
     __addWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[]): void {
         this.__addWithsOf(sqlBuilder, withs, this.__aggregatedArrayColumns)
     }

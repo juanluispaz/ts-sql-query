@@ -7,7 +7,7 @@ import type { WithView } from "../utils/tableOrViewUtils"
 import { __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import ChainedError from "chained-error"
-import { AggregateFunctions0ValueSource, InlineSelectValueSource } from "../internal/ValueSourceImpl"
+import { AggregateFunctions0ValueSource, AggregateSelectValueSource, InlineSelectValueSource } from "../internal/ValueSourceImpl"
 import { attachSource } from "../utils/attachSource"
 import { columnsType, database, requiredTableOrView, resultType, type, compoundableColumns, isSelectQueryObject } from "../utils/symbols"
 import { asAlwaysIfValueSource } from "../expressions/values"
@@ -511,14 +511,13 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     forUseAsInlineAggregatedArrayValue(): any {
         const selectData = this.__asSelectData()
         selectData.__asInlineAggregatedArrayValue = true
-        const result = new InlineSelectValueSource(selectData as any)
+        let aggregatedArrayColumns
         if (this.__oneColumn) {
-            result.__aggregatedArrayColumns = this.__columns['result']!
+            aggregatedArrayColumns = this.__columns['result']!
         } else {
-            result.__aggregatedArrayColumns = this.__columns
+            aggregatedArrayColumns = this.__columns
         }
-        result.__aggregatedArrayMode = 'ResultObject'
-        return result
+        return new AggregateSelectValueSource(selectData as any, aggregatedArrayColumns, 'ResultObject', 'required')
     }
 
     __buildRecursive(fn: (view: any) => ICompoundableSelect<any, any, any, any>, unionAll: boolean): void {

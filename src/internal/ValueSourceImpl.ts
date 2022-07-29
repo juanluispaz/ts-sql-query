@@ -89,6 +89,30 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     getConstValue(): any {
         throw new Error('You are trying to access to the const value when the expression is not const')
     }
+    allowWhen(when: boolean, error: string | Error): any {
+        let result
+        if (typeof error === 'string') {
+            result = new AllowWhenValueSource(when, new Error(error), this)
+        } else {
+            result = new AllowWhenValueSource(when, error, this)
+        }
+        if (this.__uuidString) {
+            result.__uuidString = this.__uuidString
+        }
+        return result
+    }
+    disallowWhen(when: boolean, error: string | Error): any {
+        let result
+        if (typeof error === 'string') {
+            result = new AllowWhenValueSource(!when, new Error(error), this)
+        } else {
+            result = new AllowWhenValueSource(!when, error, this)
+        }
+        if (this.__uuidString) {
+            result.__uuidString = this.__uuidString
+        }
+        return result
+    }
     asOptional(): any {
         const result = new NoopValueSource(this, this.__valueType, 'optional', this.__typeAdapter)
         if (this.__uuidString) {
@@ -1565,6 +1589,39 @@ export class ValueSourceFromBuilder extends ValueSourceImpl {
     }
 }
 
+export class AllowWhenValueSource extends ValueSourceImpl {
+    __valueSource: ValueSourceImpl
+    __allowed: boolean
+    __error: Error
+    constructor(allowed: boolean, error: Error, valueSource: ValueSourceImpl) {
+        super(valueSource.__valueType, valueSource.__optionalType, valueSource.__typeAdapter)
+        this.__valueSource = valueSource
+        this.__error = error
+        this.__allowed = allowed
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        if (!this.__allowed) {
+            throw this.__error
+        }
+        return this.__valueSource.__toSql(sqlBuilder, params)
+    }
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
+    }
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    }
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    }
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getOldValues(sqlBuilder)
+    }
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert(sqlBuilder)
+    }
+}
+
 export class AggregateFunctions0ValueSource extends ValueSourceImpl implements HasOperation {
     __operation: keyof AggregateFunctions0
 
@@ -1777,6 +1834,20 @@ export class TableOrViewRawFragmentValueSource implements ValueSource<any, any, 
     getConstValue(): any {
         throw new Error('You are trying to access to the const value when the expression is not const')
     }
+    allowWhen(when: boolean, error: string | Error): any {
+        if (typeof error === 'string') {
+            return new AllowWhenTableOrViewRawFragmentValueSource(when, new Error(error), this.__tableOrView, this.__operation)
+        } else {
+            return new AllowWhenTableOrViewRawFragmentValueSource(when, error, this.__tableOrView, this.__operation)
+        }
+    }
+    disallowWhen(when: boolean, error: string | Error): any {
+        if (typeof error === 'string') {
+            return new AllowWhenTableOrViewRawFragmentValueSource(!when, new Error(error), this.__tableOrView, this.__operation)
+        } else {
+            return new AllowWhenTableOrViewRawFragmentValueSource(!when, error, this.__tableOrView, this.__operation)
+        }
+    }
     __addWiths(_sqlBuilder: HasIsValue, _withs: IWithView<any>[]): void {
         // Do nothing
     }
@@ -1797,6 +1868,22 @@ export class TableOrViewRawFragmentValueSource implements ValueSource<any, any, 
     }
     __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
         return this.__toSql(sqlBuilder, params)
+    }
+}
+
+export class AllowWhenTableOrViewRawFragmentValueSource extends TableOrViewRawFragmentValueSource {
+    __allowed: boolean
+    __error: Error
+    constructor(allowed: boolean, error: Error, _tableOrView: ITableOrView<any>, operation: '_rawFragmentTableName' | '_rawFragmentTableAlias') {
+        super(_tableOrView, operation)
+        this.__error = error
+        this.__allowed = allowed
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        if (!this.__allowed) {
+            throw this.__error
+        }
+        return super.__toSql(sqlBuilder, params)
     }
 }
 
@@ -1864,6 +1951,20 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
     getConstValue(): any {
         throw new Error('You are trying to access to the const value when the expression is not const')
     }
+    allowWhen(when: boolean, error: string | Error): any {
+        if (typeof error === 'string') {
+            return new AllowWhenAggregateSelectValueSource(when, new Error(error), this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+        } else {
+            return new AllowWhenAggregateSelectValueSource(when, error, this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+        }
+    }
+    disallowWhen(when: boolean, error: string | Error): any {
+        if (typeof error === 'string') {
+            return new AllowWhenAggregateSelectValueSource(!when, new Error(error), this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+        } else {
+            return new AllowWhenAggregateSelectValueSource(!when, error, this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+        }
+    }
 
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder._inlineSelectAsValue(this.__selectData, params)
@@ -1895,6 +1996,22 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
     }
     asRequiredInOptionalObject(): any {
         return new AggregateSelectValueSource(this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'requiredInOptionalObject')
+    }
+}
+
+export class AllowWhenAggregateSelectValueSource extends AggregateSelectValueSource {
+    __allowed: boolean
+    __error: Error
+    constructor(allowed: boolean, error: Error, selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType) {
+        super(selectData, aggregatedArrayColumns, aggregatedArrayMode, _optionalType)
+        this.__error = error
+        this.__allowed = allowed
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        if (!this.__allowed) {
+            throw this.__error
+        }
+        return super.__toSql(sqlBuilder, params)
     }
 }
 
@@ -1976,6 +2093,20 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
     }
     getConstValue(): any {
         throw new Error('You are trying to access to the const value when the expression is not const')
+    }
+    allowWhen(when: boolean, error: string | Error): any {
+        if (typeof error === 'string') {
+            return new AllowWhenAggregateValueAsArrayValueSource(when, new Error(error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+        } else {
+            return new AllowWhenAggregateValueAsArrayValueSource(when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+        }
+    }
+    disallowWhen(when: boolean, error: string | Error): any {
+        if (typeof error === 'string') {
+            return new AllowWhenAggregateValueAsArrayValueSource(!when, new Error(error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+        } else {
+            return new AllowWhenAggregateValueAsArrayValueSource(!when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+        }
     }
     __addWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[]): void {
         this.__addWithsOf(sqlBuilder, withs, this.__aggregatedArrayColumns)
@@ -2075,5 +2206,21 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
     }
     asRequiredInOptionalObject(): any {
         return new AggregateValueAsArrayValueSource(this.__aggregatedArrayColumns, this.__aggregatedArrayMode, 'requiredInOptionalObject')
+    }
+}
+
+export class AllowWhenAggregateValueAsArrayValueSource extends AggregateValueAsArrayValueSource {
+    __allowed: boolean
+    __error: Error
+    constructor(allowed: boolean, error: Error, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType) {
+        super(aggregatedArrayColumns, aggregatedArrayMode, _optionalType)
+        this.__error = error
+        this.__allowed = allowed
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        if (!this.__allowed) {
+            throw this.__error
+        }
+        return super.__toSql(sqlBuilder, params)
     }
 }

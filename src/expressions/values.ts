@@ -62,6 +62,10 @@ export interface IValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE,
 export interface ValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends IValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     isConstValue(): boolean
     getConstValue(): TYPE
+    allowWhen(when: boolean, errorMessage: string): this
+    allowWhen(when: boolean, error: Error): this
+    disallowWhen(when: boolean, errorMessage: string): this
+    disallowWhen(when: boolean, error: Error): this
 }
 
 export interface __ValueSourcePrivate extends HasAddWiths {

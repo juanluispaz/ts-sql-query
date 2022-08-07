@@ -11,6 +11,10 @@ import { assertEquals } from "../assertEquals"
 class DBConection extends SqliteConnection<'DBConnection'> { 
     // insesitiveCollation = 'acs'
 
+    protected getDateTimeFormat() {
+        return 'UTC as text using T separator and Z timezone' as const
+    }
+
     bitwiseShiftLeft = this.buildFragmentWithArgs(
         this.arg('int', 'required'),
         this.arg('int', 'required')
@@ -1777,7 +1781,7 @@ async function main() {
     result = []
     expectedResult.push(result)
     expectedQuery.push(`select id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer for system_time between ? and ?  where id = ?`)
-    expectedParams.push(`["2019-00-01 01:00:00","2020-00-01 01:00:00",10]`)
+    expectedParams.push(`["2019-00-01T00:00:00Z","2020-00-01T00:00:00Z",10]`)
     expectedType.push(`selectManyRows`)
     
     /* *** Example ****************************************************************/

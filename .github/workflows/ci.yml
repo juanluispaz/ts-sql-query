@@ -29,3 +29,7 @@ jobs:
         run: npm run generate-prisma
       - name: Build
         run: npm run build
+
+      # Light tests (docker tests not supported yet)
+      - name: Light tests
+        run: npm run no-docker-examples

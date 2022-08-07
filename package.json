@@ -65,6 +65,7 @@
         "@types/tedious": "^4.0.0",
         "@types/tedious-connection-pool": "^1.0.2",
         "@types/uuid": "^8.3.4",
+        "any-db": "^2.1.0",
         "any-db-mssql": "^0.1.0",
         "any-db-mysql": "^2.3.0",
         "any-db-postgres": "^2.3.0",

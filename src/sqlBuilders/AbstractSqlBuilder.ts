@@ -615,7 +615,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     fromJoins += ' left join '
                     break
                 case 'leftOuterJoin':
-                    fromJoins += ' letf outer join '
+                    fromJoins += ' left outer join '
                     break
                 default:
                     throw new Error('Invalid join type: ' + join.__joinType)

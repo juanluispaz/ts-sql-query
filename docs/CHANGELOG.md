@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.31.0 (8 Aug 2022)
+
+**Bug fixes**:
+
+- Fix misspelling in `left outer join`
+
 ## v1.30.0 (21 Jul 2022)
 
 **Bug fixes**:

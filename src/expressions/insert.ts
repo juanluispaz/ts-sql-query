@@ -533,6 +533,12 @@ export type MandatoryInsertSets<TABLE extends ITableOrView<any>> = {
     [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumn<TABLE, P>
 }
 
+export type MandatoryInsertValues<TABLE extends ITableOrView<any>> = {
+    [P in RequiredColumnsForSetOf<TABLE>]: ValueSourceValueType<TABLE[P]>
+} & {
+    [P in OptionalColumnsForSetOf<TABLE>]?: ValueSourceValueType<TABLE[P]>
+}
+
 type MandatoryOptionalInsertSets<TABLE extends ITableOrView<any>> = {
     [P in RequiredColumnsForSetOf<TABLE>]: InputTypeOfColumn<TABLE, P>
 } & {

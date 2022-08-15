@@ -1,5 +1,13 @@
 # Change Log
 
+## v1.32.0 (15 Aug 2022)
+
+**Changes**:
+
+- Implement `onlyWhen` and `ignoreWhen` function that allows ignoring a boolean expression under a condition
+- Add support to virtual columns on tables and views
+- Implement the types `InsertableValues`, `UpdatableValues` and `SelectedValues` that allows to get the types for an insert, update and select with the proper types defined in the table without the other sql objects
+
 ## v1.31.0 (8 Aug 2022)
 
 **Bug fixes**:

@@ -132,6 +132,7 @@ When you realize a select, you can:
 
 Additionally, you can:
 
+- create a boolean expression that only applies if a certain condition is met, calling the `onlyWhen` method in the boolean expression. The `ignoreWhen` method do the opposite.
 - create a dynamic boolean expression that you can use in a where (by example), calling the `dynamicBooleanExpresionUsing` method in the connection object.
 - create a custom boolean condition from criteria object that you can use in a where (by example), calling the `dynamicConditionFor` method in the connection object. This functionality is useful when creating a complex search & filtering functionality in the user interface, where the user can apply a different combination of constraints.
 - create a query where it is possible to pick the columns to be returned by the query.

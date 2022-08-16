@@ -824,9 +824,12 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                     return value
                 }
                 if (typeof value === 'string') {
-                    const result = +value
-                    if (isNaN(result)) {
+                    if (!/^(-?\d+)$/g.test(value)) {
                         throw new Error('Invalid int value received from the db: ' + value)
+                    }
+                    const result = +value
+                    if (!Number.isSafeInteger(result)) {
+                        throw new Error('Unnoticed precition lost transforming a string to int number. Value: ' + value)
                     }
                     return result
                 }
@@ -882,10 +885,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                     return value
                 }
                 if (typeof value === 'string') {
-                    const result = +value
-                    if (result + '' !== value) { // Here the comparation is not isNaN(result) because NaN is a valid value as well Infinity and -Infinity
+                    if (!/^(-?\d+(\.\d+)?|NaN|-?Infinity)$/g.test(value)) {
                         throw new Error('Invalid double value received from the db: ' + value)
                     }
+                    const result = +value
                     return result
                 }
                 if (typeof value === 'bigint') {

@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.33.0 (16 Aug 2022)
+
+**Bug fixes**:
+
+- Fix "Invalid double value received from the db" when the database send a number as string with trailing 0
+
 ## v1.32.0 (15 Aug 2022)
 
 **Changes**:

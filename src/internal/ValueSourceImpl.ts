@@ -385,6 +385,18 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         result.__isBooleanForCondition = this.__isBooleanForCondition
         return result
     }
+    valueWhenNoValue(value: any): any {
+        if (value === true) {
+            return this.trueWhenNoValue()
+        }
+        if (value === false) {
+            return this.falseWhenNoValue()
+        }
+        
+        const result = new ValueWhenNoValueValueSource(value, this, 'boolean', this.__optionalType, this.__typeAdapter)
+        result.__isBooleanForCondition = this.__isBooleanForCondition
+        return result
+    }
     // String
     toLowerCase(): any {
         return new SqlOperation0ValueSource('_toLowerCase', this, this.__valueType, this.__optionalType, this.__typeAdapter)
@@ -828,6 +840,53 @@ export class BooleanValueWhenNoValueValueSource extends ValueSourceImpl implemen
     }
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__valueSource.__getValuesForInsert(sqlBuilder)
+    }
+}
+
+export class ValueWhenNoValueValueSource extends ValueSourceImpl {
+    __valueSource: ValueSourceImpl
+    __valueWhenNoValue: __ValueSourcePrivate & ToSql
+
+    constructor(valueWhenNoValue: __ValueSourcePrivate & ToSql, valueSource: ValueSourceImpl, valueType: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
+        super(valueType, optionalType, typeAdapter)
+        this.__valueSource = valueSource
+        this.__valueWhenNoValue = valueWhenNoValue
+    }
+    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+        const sql = this.__valueSource.__toSql(sqlBuilder, params)
+        if (sql) {
+            return sql
+        }
+
+        // No value
+        return this.__valueWhenNoValue.__toSql(sqlBuilder, params)
+    }
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+        const sql = this.__valueSource.__toSql(sqlBuilder, params)
+        if (sql) {
+            return sql
+        }
+
+        // No value
+        return this.__valueWhenNoValue.__toSqlForCondition(sqlBuilder, params)
+    }
+    __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        this.__valueSource.__addWiths(sqlBuilder, withs)
+        this.__valueWhenNoValue.__addWiths(sqlBuilder, withs)
+    }
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+        this.__valueWhenNoValue.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
+    }
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+        this.__valueWhenNoValue.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
+    }
+    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getOldValues(sqlBuilder) || this.__valueWhenNoValue.__getOldValues(sqlBuilder)
+    }
+    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        return this.__valueSource.__getValuesForInsert(sqlBuilder) || this.__valueWhenNoValue.__getValuesForInsert(sqlBuilder)
     }
 }
 

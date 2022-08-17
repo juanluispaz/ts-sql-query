@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.34.0 (17 Aug 2022)
+
+**Changes**:
+
+- Add `valueWhenNoValue` function that allows to return a value when null or undefined were provided to the *IfValue function
+
 ## v1.33.0 (16 Aug 2022)
 
 **Bug fixes**:

@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.35.0 (29 Aug 2022)
+
+**Bug fixes**:
+
+- Fix wrong return type of `min` and `max` functions in the connection
+
 ## v1.34.0 (17 Aug 2022)
 
 **Changes**:

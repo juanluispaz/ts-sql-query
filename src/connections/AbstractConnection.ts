@@ -710,11 +710,11 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     countDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<NoTableOrViewRequired<DB>> {
         return new AggregateFunctions1ValueSource('_countDistinct', value, 'int', 'required', undefined)
     }
-    max<TABLE_OR_VIEW extends TableOrViewRef<DB>, TYPE extends IComparableValueSource<TABLE_OR_VIEW, any, any, any>>(value: TYPE): RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW, TYPE, 'optional'> {
+    max<TYPE extends IComparableValueSource<TableOrViewRef<DB>, any, any, any>>(value: TYPE): RemapValueSourceTypeWithOptionalType<TYPE[typeof tableOrView], TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource('_max', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)) as any
     }
-    min<TABLE_OR_VIEW extends TableOrViewRef<DB>, TYPE extends IComparableValueSource<TABLE_OR_VIEW, any, any, any>>(value: TYPE): RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW, TYPE, 'optional'> {
+    min<TYPE extends IComparableValueSource<TableOrViewRef<DB>, any, any, any>>(value: TYPE): RemapValueSourceTypeWithOptionalType<TYPE[typeof tableOrView], TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource('_min', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)) as any
     }

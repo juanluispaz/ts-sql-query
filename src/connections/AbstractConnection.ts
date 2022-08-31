@@ -533,10 +533,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected arg(this: IConnection<TypeUnsafeDB>, type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', 'combined', number>
     protected arg(type: 'string', required: 'required', adapter?: TypeAdapter): Argument<'string', 'required', 'combined', string>
     protected arg(type: 'string', required: 'optional', adapter?: TypeAdapter): Argument<'string', 'optional', 'combined', string>
-    protected arg(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'combined', string>
-    protected arg(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'combined', string>
-    protected arg(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'combined', uuid>
-    protected arg(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'combined', uuid>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'combined', uuid>
+    protected arg(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'combined', uuid>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'combined', string>
+    protected arg(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'combined', string>
     protected arg(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', 'combined', LocalDate>
     protected arg(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', 'combined', LocalDate>
     protected arg(this: IConnection<TypeUnsafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', 'combined', Date>
@@ -591,10 +591,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', 'value', number>
     protected valueArg(type: 'string', required: 'required', adapter?: TypeAdapter): Argument<'string', 'required', 'value', string>
     protected valueArg(type: 'string', required: 'optional', adapter?: TypeAdapter): Argument<'string', 'optional', 'value', string>
-    protected valueArg(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'value', string>
-    protected valueArg(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'value', string>
-    protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'value', uuid>
-    protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'value', uuid>
+    protected valueArg(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'value', uuid>
+    protected valueArg(this: IConnection<TypeSafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'value', uuid>
+    protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'required', adapter?: TypeAdapter): Argument<'uuid', 'required', 'value', string>
+    protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'uuid', required: 'optional', adapter?: TypeAdapter): Argument<'uuid', 'optional', 'value', string>
     protected valueArg(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', 'value', LocalDate>
     protected valueArg(this: IConnection<TypeSafeDB>, type: 'localDate', required: 'optional', adapter?: TypeAdapter): Argument<'localDate', 'optional', 'value', LocalDate>
     protected valueArg(this: IConnection<TypeUnsafeDB>, type: 'localDate', required: 'required', adapter?: TypeAdapter): Argument<'localDate', 'required', 'value', Date>

@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.36.0 (31 Aug 2022)
+
+**Bug fixes**:
+
+- Fix invalid uuid type in a reusable fragment
+
 ## v1.35.0 (29 Aug 2022)
 
 **Bug fixes**:

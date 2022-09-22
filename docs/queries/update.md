@@ -63,9 +63,9 @@ const updatedSmithFirstName: Promise<string>
 
 You can execute the query using:
 
-- `executeDeleteNoneOrOne(): Promise<RESULT | null>`: Execute the update query that returns one or no result from the database. In case of more than one result found, it throws and error with message 'Too many rows, expected only zero or one row'.
-- `executeDeleteOne(): Promise<RESULT>`: Execute the update query that returns one result from the database. If no result is returned by the database an exception will be thrown.
-- `executeDeleteMany(min?: number, max?: number): Promise<RESULT[]>`: Execute the update query that returns zero or many results from the database.
+- `executeUpdateNoneOrOne(): Promise<RESULT | null>`: Execute the update query that returns one or no result from the database. In case of more than one result found, it throws and error with message 'Too many rows, expected only zero or one row'.
+- `executeUpdateOne(): Promise<RESULT>`: Execute the update query that returns one result from the database. If no result is returned by the database an exception will be thrown.
+- `executeUpdateMany(min?: number, max?: number): Promise<RESULT[]>`: Execute the update query that returns zero or many results from the database.
 
 Aditionally, if you want to return the value of a single column, you can use `returningOneColumn(column)` instead of `returning({...})`.
 

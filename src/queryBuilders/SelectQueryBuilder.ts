@@ -1,6 +1,6 @@
-import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData, QueryColumns } from "../sqlBuilders/SqlBuilder"
+import { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData, QueryColumns, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
 import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderByExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereOffsetExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, ExecutableSelectWithWhere, ExecutableSelectWithoutWhere, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, SplitedComposedExecutableSelectWithoutWhere, SplitedComposedDynamicWhereExecutableSelectExpression, WhereableCompoundableExecutableSelectExpressionWithoutWhere } from "../expressions/select"
-import { HasAddWiths, HasIsValue, ITableOrView, IWithView, OuterJoinSource, __getOldValues, __getValuesForInsert, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
+import { HasAddWiths, HasIsValue, ITableOrView, IWithView, OuterJoinSource, __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { WithView } from "../utils/tableOrViewUtils"
@@ -480,6 +480,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         }
         return undefined
     }
+    abstract __isAllowed(sqlBuilder: HasIsValue): boolean
 
     abstract __asSelectData(): SelectData
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
@@ -1018,6 +1019,106 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return undefined
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        let result: boolean
+        const subSelectUsing = this.__subSelectUsing
+        if (subSelectUsing) {
+            for (let i = 0, length = subSelectUsing.length; i < length; i++) {
+                result = __getTableOrViewPrivate(subSelectUsing[i]!).__isAllowed(sqlBuilder)
+                if (!result) {
+                    return false
+                }
+            }
+        }
+        const tablesOrViews = this.__tablesOrViews
+        if (tablesOrViews) {
+            for (let i = 0, length = tablesOrViews.length; i < length; i++) {
+                result = __getTableOrViewPrivate(tablesOrViews[i]!).__isAllowed(sqlBuilder)
+                if (!result) {
+                    return false
+                }
+            }
+        }
+        const joins = this.__joins
+        if (joins) {
+            for (let i = 0, length = joins.length; i < length; i++) {
+                const join = joins[i]!
+                result = __getTableOrViewPrivate(join.__tableOrView).__isAllowed(sqlBuilder)
+                if (!result) {
+                    return false
+                }
+                if (join.__on) {
+                    result = __getValueSourcePrivate(join.__on).__isAllowed(sqlBuilder)
+                    if (!result) {
+                        return false
+                    }
+                }
+            }
+        }
+        if (this.__where) {
+            result = __getValueSourcePrivate(this.__where).__isAllowed(sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+        if (this.__having) {
+            result = __getValueSourcePrivate(this.__having).__isAllowed(sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+        const groupBy = this.__groupBy
+        if (groupBy) {
+            for (let i = 0, length = groupBy.length; i < length; i++) {
+                result = __getValueSourcePrivate(groupBy[i]!).__isAllowed(sqlBuilder)
+                if (!result) {
+                    return false
+                }
+            }
+        }
+        if (this.__columns) {
+            result = isAllowedQueryColumns(this.__columns, sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+        result = __isAllowed(this.__limit, sqlBuilder)
+        if (!result) {
+            return false
+        }
+        result = __isAllowed(this.__offset, sqlBuilder)
+        if (!result) {
+            return false
+        }
+        if (this.__customization) {
+            result = __isAllowed(this.__customization.afterSelectKeyword, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.beforeColumns, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.customWindow, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.beforeOrderByItems, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.afterOrderByItems, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.afterQuery, sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+
+        return true
+    }
 }
 
 export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql, CompoundSelectData {
@@ -1096,5 +1197,61 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
     }
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return super.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__firstQuery, sqlBuilder) || __getValuesForInsert(this.__secondQuery, sqlBuilder)
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        let result: boolean
+        const subSelectUsing = this.__subSelectUsing
+        if (subSelectUsing) {
+            for (let i = 0, length = subSelectUsing.length; i < length; i++) {
+                result = __getTableOrViewPrivate(subSelectUsing[i]!).__isAllowed(sqlBuilder)
+                if (!result) {
+                    return false
+                }
+            }
+        }
+        result = __isAllowed(this.__firstQuery, sqlBuilder)
+        if (!result) {
+            return false
+        }
+        result = __isAllowed(this.__secondQuery, sqlBuilder)
+        if (!result) {
+            return false
+        }
+        result = __isAllowed(this.__limit, sqlBuilder)
+        if (!result) {
+            return false
+        }
+        result = __isAllowed(this.__offset, sqlBuilder)
+        if (!result) {
+            return false
+        }
+        if (this.__customization) {
+            result = __isAllowed(this.__customization.afterSelectKeyword, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.beforeColumns, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.customWindow, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.beforeOrderByItems, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.afterOrderByItems, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.afterQuery, sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+
+        return true
     }
 }

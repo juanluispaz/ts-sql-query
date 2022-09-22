@@ -1,5 +1,5 @@
-import type { SqlBuilder, InsertData, SelectData, QueryColumns, ToSql } from "../sqlBuilders/SqlBuilder"
-import{ HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, __getTableOrViewPrivate } from "../utils/ITableOrView"
+import { SqlBuilder, InsertData, SelectData, QueryColumns, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
+import{ HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*, MissingKeysInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional } from "../expressions/insert"
 import type { Column } from "../utils/Column"
 import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
@@ -931,6 +931,79 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         // values for insert fake table is not possible to be used here
         return undefined
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        let result = __getTableOrViewPrivate(this.__table).__isAllowed(sqlBuilder)
+        if (!result) {
+            return false
+        }
+        result = __isAllowed(this.__from, sqlBuilder)
+        if (!result) {
+            return false
+        }
+        const sets = this.__sets
+        for (let prop in sets) {
+            const set = sets[prop]!
+            const result = __isAllowed(set, sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+        const multiple = this.__multiple
+        if (multiple) {
+            for (let i = 0, length = multiple.length; i < length; i++) {
+                const sets = multiple[i]!
+                for (let prop in sets) {
+                    const set = sets[prop]!
+                    const result = __isAllowed(set, sqlBuilder)
+                    if (!result) {
+                        return false
+                    }
+                }
+            }
+        }
+        if (this.__columns) {
+            result = isAllowedQueryColumns(this.__columns, sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+        result = __isAllowed(this.__onConflictOnConstraint, sqlBuilder)
+        if (!result) {
+            return false
+        }
+        result = __isAllowed(this.__onConflictOnColumns, sqlBuilder)
+        if (!result) {
+            return false
+        }
+        result = __isAllowed(this.__onConflictOnColumnsWhere, sqlBuilder)
+        if (!result) {
+            return false
+        }
+        const updateSets = this.__sets
+        for (let prop in updateSets) {
+            const set = updateSets[prop]!
+            const result = __isAllowed(set, sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+        result = __isAllowed(this.__onConflictUpdateWhere, sqlBuilder)
+        if (!result) {
+            return false
+        }
+        if (this.__customization) {
+            result = __isAllowed(this.__customization.afterInsertKeyword, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.afterQuery, sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+
+        return true
     }
 }
 

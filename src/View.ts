@@ -223,6 +223,11 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     private __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return undefined
     }
+
+    // @ts-ignore
+    private __isAllowed(_sqlBuilder: HasIsValue): boolean {
+        return true
+    }
 }
 
 export class View<Connection extends IConnection<any>, NAME extends string> extends ViewOf<VIEW<Connection[typeof database], NAME>> {

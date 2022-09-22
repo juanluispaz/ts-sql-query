@@ -1,5 +1,5 @@
-import type { ITableOrView, ITable, IWithView } from "../utils/ITableOrView"
-import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IIntValueSource, isValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, IStringValueSource, ITypeSafeStringValueSource } from "../expressions/values"
+import type { ITableOrView, ITable, IWithView, HasIsValue } from "../utils/ITableOrView"
+import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IIntValueSource, isValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, IStringValueSource, ITypeSafeStringValueSource, __getValueSourcePrivate } from "../expressions/values"
 import type { int } from "ts-extended-types"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode, SelectCustomization } from "../expressions/select"
@@ -55,6 +55,24 @@ export function flattenQueryColumns(columns: QueryColumns, target: FlatQueryColu
             flattenQueryColumns(column, target, prefix + prop + '.')
         }
     }
+}
+
+export function isAllowedQueryColumns(columns: QueryColumns, sqlBuilder: HasIsValue) {
+    for (let prop in columns) {
+        const column = columns[prop]!
+        if (isValueSource(column)) {
+            const result = __getValueSourcePrivate(column).__isAllowed(sqlBuilder)
+            if (!result) {
+                return false
+            }
+        } else {
+            const result = isAllowedQueryColumns(column, sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+    }
+    return true
 }
 
 export interface WithData {

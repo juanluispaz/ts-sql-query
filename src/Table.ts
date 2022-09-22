@@ -496,6 +496,11 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
         }
         return undefined
     }
+
+    // @ts-ignore
+    private __isAllowed(_sqlBuilder: HasIsValue): boolean {
+        return true
+    }
 }
 
 export class Table<Connection extends IConnection<any>, NAME extends string> extends TableOf<TABLE<Connection[typeof database], NAME>> {

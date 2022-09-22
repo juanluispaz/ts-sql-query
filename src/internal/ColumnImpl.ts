@@ -100,6 +100,9 @@ export class ColumnImpl extends ValueSourceImpl implements Column, __ColumnPriva
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return __getTableOrViewPrivate(this.__tableOrView).__getValuesForInsert(sqlBuilder)
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return __getTableOrViewPrivate(this.__tableOrView).__isAllowed(sqlBuilder)
+    }
 }
 
 export function createColumnsFrom(sqlBuilder: HasIsValue, columns: QueryColumns, target: QueryColumns, table: ITableOrView<any>) {

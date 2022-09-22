@@ -34,6 +34,7 @@ export interface HasAddWiths {
     __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void
     __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined
+    __isAllowed(sqlBuilder: HasIsValue): boolean
 }
 
 export function __addWiths(value: any, sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
@@ -81,6 +82,16 @@ export function __getValuesForInsert(value: any, sqlBuilder: HasIsValue): ITable
         return (value as HasAddWiths).__getValuesForInsert(sqlBuilder)
     }
     return undefined
+}
+
+export function __isAllowed(value: any, sqlBuilder: HasIsValue): boolean {
+    if (value === undefined || value === null) {
+        return true
+    }
+    if (typeof value === 'object' && typeof value.__getValuesForInsert === 'function') {
+        return (value as HasAddWiths).__isAllowed(sqlBuilder)
+    }
+    return true
 }
 
 export interface __ITableOrViewPrivate extends HasAddWiths {

@@ -1,7 +1,7 @@
 import { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from "../expressions/values"
 import { SqlBuilder, ToSql } from "../sqlBuilders/SqlBuilder"
 import { Column } from "../utils/Column"
-import { HasAddWiths, HasIsValue, ITableOrView, IWithView, __addWiths, __getOldValues, __getValuesForInsert, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
+import { HasAddWiths, HasIsValue, ITableOrView, IWithView, __addWiths, __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { RawFragment } from "../utils/RawFragment"
 import { database, rawFragment } from "../utils/symbols"
 
@@ -60,5 +60,15 @@ export class RawFragmentImpl implements RawFragment<any>, HasAddWiths, ToSql {
             }
         }
         return undefined
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        const params = this.__params
+        for (let i = 0, length = params.length; i < length; i++) {
+            const result = __isAllowed(params[i], sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+        return true
     }
 }

@@ -101,4 +101,7 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
     __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return undefined
     }
+    __isAllowed(_sqlBuilder: HasIsValue): boolean {
+        return true
+    }
 }

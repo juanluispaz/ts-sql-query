@@ -1,7 +1,7 @@
 import { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData, hasToSql } from "../sqlBuilders/SqlBuilder"
 import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, TypeSafeBigintValueSource, isValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode, UuidValueSource, TypeSafeUuidValueSource } from "../expressions/values"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { HasAddWiths, HasIsValue, ITableOrView, IWithView, __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
+import { HasAddWiths, HasIsValue, ITableOrView, IWithView, __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { database, tableOrView, valueSourceType, valueType as valueType_, optionalType as optionalType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType, valueSourceTypeName, anyBooleanValueSourceType, optionalType, isValueSourceObject, aggregatedArrayValueSourceType, isSelectQueryObject, uuidValueSourceType, typeSafeUuidValueSourceType } from "../utils/symbols"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -82,6 +82,9 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     }
     __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return undefined
+    }
+    __isAllowed(_sqlBuilder: HasIsValue): boolean {
+        return true
     }
     isConstValue(): boolean {
         return false
@@ -871,6 +874,9 @@ export class BooleanValueWhenNoValueValueSource extends ValueSourceImpl implemen
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__valueSource.__getValuesForInsert(sqlBuilder)
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__isAllowed(sqlBuilder)
+    }
 }
 
 export class ValueWhenNoValueValueSource extends ValueSourceImpl {
@@ -918,6 +924,9 @@ export class ValueWhenNoValueValueSource extends ValueSourceImpl {
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__valueSource.__getValuesForInsert(sqlBuilder) || this.__valueWhenNoValue.__getValuesForInsert(sqlBuilder)
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__isAllowed(sqlBuilder) && this.__valueWhenNoValue.__isAllowed(sqlBuilder)
+    }
 }
 
 export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements HasOperation {
@@ -946,6 +955,9 @@ export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements H
     }
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return __getValuesForInsert(this.__value, sqlBuilder)
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return __isAllowed(this.__value, sqlBuilder)
     }
 }
 
@@ -985,6 +997,9 @@ export class SqlOperationConstValueSource extends ValueSourceImpl implements Has
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return __getValuesForInsert(this.__value, sqlBuilder)
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return __isAllowed(this.__value, sqlBuilder)
+    }
 }
 
 export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOperation {
@@ -1014,6 +1029,9 @@ export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOper
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__valueSource.__getValuesForInsert(sqlBuilder)
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__isAllowed(sqlBuilder)
+    }
 }
 
 export class SqlOperationIsNullValueSource extends ValueSourceImpl implements HasOperation {
@@ -1042,6 +1060,9 @@ export class SqlOperationIsNullValueSource extends ValueSourceImpl implements Ha
     }
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__valueSource.__getValuesForInsert(sqlBuilder)
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__isAllowed(sqlBuilder)
     }
 }
 
@@ -1076,6 +1097,9 @@ export class SqlOperation1ValueSource extends ValueSourceImpl implements HasOper
     }
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
     }
 }
 
@@ -1166,6 +1190,24 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
         }
         return undefined
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        let result = this.__valueSource.__isAllowed(sqlBuilder)
+        if (!result) {
+            return false
+        }
+        const values = this.__value
+        if (Array.isArray(values)) {
+            for (let i = 0, length = values.length; i < length; i++) {
+                result = __isAllowed(values[i], sqlBuilder)
+                if (!result) {
+                    return false
+                }
+            }
+        } else {
+            return __isAllowed(values, sqlBuilder)
+        }
+        return true
+    }
 }
 
 export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implements HasOperation {
@@ -1200,6 +1242,9 @@ export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implem
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
+    }
 }
 
 export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl implements HasOperation {
@@ -1233,6 +1278,9 @@ export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl impleme
     }
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
     }
 }
 
@@ -1285,6 +1333,12 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
             return undefined
         }
         return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return true
+        }
+        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
     }
 }
 
@@ -1374,6 +1428,24 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         }
         return undefined
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        let result = this.__valueSource.__isAllowed(sqlBuilder)
+        if (!result) {
+            return false
+        }
+        const values = this.__value
+        if (Array.isArray(values)) {
+            for (let i = 0, length = values.length; i < length; i++) {
+                result = __isAllowed(values[i], sqlBuilder)
+                if (!result) {
+                    return false
+                }
+            }
+        } else {
+            return __isAllowed(values, sqlBuilder)
+        }
+        return true
+    }
 }
 
 export class SqlOperationValueSourceIfValueAlwaysNoop extends ValueSourceImpl {
@@ -1422,6 +1494,9 @@ export class SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder)
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder)
+    }
 }
 
 export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOperation {
@@ -1460,6 +1535,9 @@ export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOper
     }
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder) || __getValuesForInsert(this.__value2, sqlBuilder)
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder) && __isAllowed(this.__value2, sqlBuilder)
     }
 }
 
@@ -1506,6 +1584,9 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__valueSource.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__value, sqlBuilder) || __getValuesForInsert(this.__value2, sqlBuilder)
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__isAllowed(sqlBuilder) && __isAllowed(this.__value, sqlBuilder) && __isAllowed(this.__value2, sqlBuilder)
+    }
 }
 
 export class NoopValueSource extends ValueSourceImpl {
@@ -1531,6 +1612,9 @@ export class NoopValueSource extends ValueSourceImpl {
     }
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__valueSource.__getValuesForInsert(sqlBuilder)
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__isAllowed(sqlBuilder)
     }
 }
 
@@ -1606,6 +1690,17 @@ export class FragmentValueSource extends ValueSourceImpl {
         }
         return undefined
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        const sqlParams = this.__sqlParams
+        for (let i = 0, length = sqlParams.length; i < length; i++) {
+            const value = __getValueSourcePrivate(sqlParams[i]!)
+            const result = value.__getValuesForInsert(sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+        return true
+    }
 }
 
 export class ValueSourceFromBuilder extends ValueSourceImpl {
@@ -1652,6 +1747,9 @@ export class ValueSourceFromBuilder extends ValueSourceImpl {
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__getBuilderOutputPrivate().__getValuesForInsert(sqlBuilder)
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__getBuilderOutputPrivate().__isAllowed(sqlBuilder)
+    }
 }
 
 export class AllowWhenValueSource extends ValueSourceImpl {
@@ -1684,6 +1782,9 @@ export class AllowWhenValueSource extends ValueSourceImpl {
     }
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__valueSource.__getValuesForInsert(sqlBuilder)
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__valueSource.__isAllowed(sqlBuilder)
     }
 }
 
@@ -1726,6 +1827,9 @@ export class AggregateFunctions1ValueSource extends ValueSourceImpl implements H
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return __getValuesForInsert(this.__value, sqlBuilder)
     }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return __isAllowed(this.__value, sqlBuilder)
+    }
 }
 
 export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implements HasOperation {
@@ -1756,6 +1860,9 @@ export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implement
     }
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return __getValuesForInsert(this.__value, sqlBuilder)
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return __isAllowed(this.__value, sqlBuilder)
     }
 }
 
@@ -1928,6 +2035,9 @@ export class TableOrViewRawFragmentValueSource implements ValueSource<any, any, 
     __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return undefined
     }
+    __isAllowed(_sqlBuilder: HasIsValue): boolean {
+        return true
+    }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         return sqlBuilder[this.__operation](params, this.__tableOrView)
     }
@@ -1982,6 +2092,9 @@ export class InlineSelectValueSource extends ValueSourceImpl implements HasOpera
     }
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__selectData.__getValuesForInsert(sqlBuilder)
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__selectData.__isAllowed(sqlBuilder)
     }
 }
 
@@ -2051,6 +2164,9 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
     }
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         return this.__selectData.__getValuesForInsert(sqlBuilder)
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__selectData.__isAllowed(sqlBuilder)
     }
 
     useEmptyArrayForNoValue(): any {
@@ -2254,6 +2370,25 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
                 }
             }
             return undefined
+        }
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        return this.__isAllowedOf(sqlBuilder, this.__aggregatedArrayColumns)
+    }
+    __isAllowedOf(sqlBuilder: HasIsValue, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource | null | undefined): boolean {
+        if (!aggregatedArrayColumns) {
+            return true
+        } else if (isValueSource(aggregatedArrayColumns)) {
+            const valueSourcePrivate = __getValueSourcePrivate(aggregatedArrayColumns)
+            return valueSourcePrivate.__isAllowed(sqlBuilder)
+        } else {
+            for (let prop in aggregatedArrayColumns) {
+                const result = this.__isAllowedOf(sqlBuilder, aggregatedArrayColumns[prop])
+                if (!result) {
+                    return false
+                }
+            }
+            return true
         }
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {

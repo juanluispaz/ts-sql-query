@@ -1,5 +1,5 @@
-import type { SqlBuilder, DeleteData, JoinData, QueryColumns, ToSql } from "../sqlBuilders/SqlBuilder"
-import { HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, OuterJoinSource, __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
+import { SqlBuilder, DeleteData, JoinData, QueryColumns, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
+import { HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, OuterJoinSource, __addWiths, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import { IBooleanValueSource, IIfValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableExecutableDelete, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere } from "../expressions/delete"
 import type { int } from "ts-extended-types"
@@ -399,5 +399,60 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
         // values for insert fake table is not possible to be used here
         return undefined
+    }
+    __isAllowed(sqlBuilder: HasIsValue): boolean {
+        let result = __getTableOrViewPrivate(this.__table).__isAllowed(sqlBuilder)
+        if (!result) {
+            return false
+        }
+        const using = this.__using
+        if (using) {
+            for (let i = 0, length = using.length; i < length; i++) {
+                result = __getTableOrViewPrivate(using[i]!).__isAllowed(sqlBuilder)
+                if (!result) {
+                    return false
+                }
+            }
+        }
+        const joins = this.__joins
+        if (joins) {
+            for (let i = 0, length = joins.length; i < length; i++) {
+                const join = joins[i]!
+                result = __getTableOrViewPrivate(join.__tableOrView).__isAllowed(sqlBuilder)
+                if (!result) {
+                    return false
+                }
+                if (join.__on) {
+                    result = __getValueSourcePrivate(join.__on).__isAllowed(sqlBuilder)
+                    if (!result) {
+                        return false
+                    }
+                }
+            }
+        }
+        if (this.__where) {
+            result = __getValueSourcePrivate(this.__where).__isAllowed(sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+        if (this.__columns) {
+            result = isAllowedQueryColumns(this.__columns, sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+        if (this.__customization) {
+            result = __isAllowed(this.__customization.afterDeleteKeyword, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.afterQuery, sqlBuilder)
+            if (!result) {
+                return false
+            }
+        }
+
+        return true
     }
 }

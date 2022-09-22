@@ -1,4 +1,4 @@
-import { HasIsValue, ITableOrView, IWithView, __addWiths, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
+import { HasIsValue, ITableOrView, IWithView, __addWiths, __getTableOrViewPrivate, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import type { AliasedTableOrView, OuterJoinSourceOf, WITH_VIEW } from "../utils/tableOrViewUtils"
 import type { AnyDB } from "../databases"
 import type { SelectData, SqlBuilder, WithData } from "../sqlBuilders/SqlBuilder"
@@ -79,6 +79,11 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
         if (this.__originalWith) {
             this.__originalWith.__addWiths(sqlBuilder, withs)
         } else if (!withs.includes(this as any)) {
+            const withViews = this.__selectData.__withs
+            for (let i = 0, length = withViews.length; i < length; i++) {
+                const withView = withViews[i]!
+                __getTableOrViewPrivate(withView).__addWiths(sqlBuilder, withs)
+            }
             withs.push(this as any)
         }
         __addWiths(this.__template, sqlBuilder, withs)

@@ -5,6 +5,16 @@ interface ValueSource {
      * If the value source is not a const value it throws an error
      */
     getConstValue(): any
+    /**
+     * Throw an error if the value source is used in the generated sql query when the boolean value provided as argument is false
+     */
+    allowWhen(when: boolean, errorMessage: string): this
+    allowWhen(when: boolean, error: Error): this
+    /**
+     * Throw an error if the value source is used in the generated sql query when the boolean value provided as argument is true
+     */
+    disallowWhen(when: boolean, errorMessage: string): this
+    disallowWhen(when: boolean, error: Error): this
 }
 
 interface NullableValueSource extends ValueSource {

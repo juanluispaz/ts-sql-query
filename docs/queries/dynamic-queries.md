@@ -425,3 +425,63 @@ where customer.id = $1
 The parameters are: `[ 12 ]`
 
 **Warning**: an omitted join can change the number of returned rows depending on your data structure. This behaviour doesn't happen when all rows of the initial table have one row in the joined table (or none if you use a left join), but not many rows.
+
+## Restrict access to values
+
+Sometimes you want to allow access to a value only under some circumstances, like when you want a column in a select picking column to be available only if the user has permissions. For this, you can call the function `allowWhen`, indicating as the first argument if it is allowed to use this value, and as the second argument, an error or text's error that will be thrown if the value is used in the generated query. Additionally, there is the `disallowWhen` that is analogous to `allowWhen`, but the boolean received as an argument indicates when the value is disallowed.
+
+```ts
+import { dynamicPick } from "ts-sql-query/dynamicCondition"
+
+const birthdayVisible = false
+
+const availableFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday.allowWhen(birthdayVisible, "You don't have permission to see the birthday"),
+}
+
+const fieldsToPick = {
+    firstName: true,
+    lastName: true
+}
+
+// include allways id field as required
+const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id'])
+
+const customerWithOptionalCompany = connection.selectFrom(tCustomer)
+    .select(pickedFields)
+    .where(tCustomer.id.equals(12))
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select customer.id as id, customer.first_name as firstName, customer.last_name as lastName
+from customer
+where customer.id = $1
+```
+
+The parameters are: `[ 12 ]`
+
+The result type is:
+```tsx
+const customerWithOptionalCompany: Promise<{
+    id: number;
+    birthday?: Date;
+    firstName?: string;
+    lastName?: string;
+}[]>
+```
+
+But in the case of the `birthday` column is requested, when `fieldsToPick` is:
+```ts
+const fieldsToPick = {
+    firstName: true,
+    lastName: true,
+    companyName: true
+}
+```
+
+An error will be thrown with the message "_You don't have permission to see the birthday_" because `birthdayVisible` is `false`

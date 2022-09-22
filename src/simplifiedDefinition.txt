@@ -112,7 +112,13 @@ interface NumberValueSource extends ComparableValueSource {
     power(value: number): number
     logn(value: number): number
     roundn(value: number): number
+    /**
+     * This function establish a minimum value for the current value, that means the biggest value must be returned
+     */
     minValue(value: number): number
+    /**
+     * This function establish a maximun value for the current value, that means the smallest value must be returned
+     */
     maxValue(value: number): number
     add(value: number): number
     substract(value: number): number
@@ -151,7 +157,13 @@ interface StringNumberValueSource extends ComparableValueSource {
     power(value: number|string): number|string
     logn(value: number|string): number|string
     roundn(value: number|string): number|string
+    /**
+     * This function establish a minimum value for the current value, that means the biggest value must be returned
+     */
     minValue(value: number|string): number|string
+    /**
+     * This function establish a maximun value for the current value, that means the smallest value must be returned
+     */
     maxValue(value: number|string): number|string
     add(value: number|string): number|string
     substract(value: number|string): number|string
@@ -173,7 +185,13 @@ interface BigintValueSource extends ComparableValueSource {
     floor(): bigint
     round(): bigint
     sign(): number
+    /**
+     * This function establish a minimum value for the current value, that means the biggest value must be returned
+     */
     minValue(value: bigint): bigint
+    /**
+     * This function establish a maximun value for the current value, that means the smallest value must be returned
+     */
     maxValue(value: bigint): bigint
     add(value: bigint): bigint
     substract(value: bigint): bigint

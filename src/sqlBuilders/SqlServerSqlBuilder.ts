@@ -664,7 +664,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _atan2(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'atn2(' + valueSource.__toSql(this, params) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, value), typeAdapter) + ')'
     }
-    _minValue(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _minimumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         const argumentType = this._getMathArgumentType(columnType, value)
         return 'iif(' + this._appendSql(valueSource, params) + ' < ' + this._appendValue(value, params, argumentType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, argumentType, typeAdapter) + ')'
         // Alternative implementation that avoid evaluate multiple times the arguments
@@ -676,7 +676,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         // }
         // return '(select min(__minValue__) from (values (' + this._appendSql(valueSource, params) + '), (' + this._appendSql(valueSource, params) + ')) as __minValueTable__(__minValue__))'
     }
-    _maxValue(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _maximumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         const argumentType = this._getMathArgumentType(columnType, value)
         return 'iif(' + this._appendSql(valueSource, params) + ' > ' + this._appendValue(value, params, argumentType, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, argumentType, typeAdapter) + ')'
         // Alternative implementation that avoid evaluate multiple times the arguments

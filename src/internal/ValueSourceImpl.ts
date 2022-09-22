@@ -721,11 +721,17 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation1ValueSource('_roundn', this, value, 'double', getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
     }
+    /**
+     * This function establish a minimum value for the current value, that means the biggest value must be returned
+     */
     minValue(value: any): any {
-        return createSqlOperation1ofOverloadedNumber(this, value, '_minValue')
+        return createSqlOperation1ofOverloadedNumber(this, value, '_maximumBetweenTwoValues')
     }
+    /**
+     * This function establish a maximun value for the current value, that means the smallest value must be returned
+     */
     maxValue(value: any): any {
-        return createSqlOperation1ofOverloadedNumber(this, value, '_maxValue')
+        return createSqlOperation1ofOverloadedNumber(this, value, '_minimumBetweenTwoValues')
     }
     // Number operators
     add(value: any): any {

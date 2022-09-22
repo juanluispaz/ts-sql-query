@@ -480,7 +480,7 @@ But in the case of the `birthday` column is requested, when `fieldsToPick` is:
 const fieldsToPick = {
     firstName: true,
     lastName: true,
-    companyName: true
+    birthday: true
 }
 ```
 

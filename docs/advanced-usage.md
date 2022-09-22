@@ -640,32 +640,68 @@ import { WritableColumnKeys } from 'ts-sql-query/extras/types';
 type tCustomerColumns = WritableColumnKeys<typeof tCustomer>;
 ```
 
+### Insertable values
+
+This type returns the object type with the values that can be used in an insert for the provided table.
+
+```ts
+import { InsertableValues } from 'ts-sql-query/extras/types';
+
+type InsertableCompany = InsertableValues<typeof tCompany>;
+```
+
 ### Insertable row
 
 This type returns the same type expected by the set clause in an insert.
 
+**Note**: The difference with `InsertableValues` is this type admits valid SQL objects that you can use in the insert sentence, where `InsertableValues` do not.
+
 ```ts
 import { InsertableRow } from 'ts-sql-query/extras/types';
 
-type tCompanyInsertSetType = InsertableRow<typeof tCompany>;
+type InserableCompanyRow = InsertableRow<typeof tCompany>;
+```
+
+### Updatable values
+
+This type returns the object type with the values that can be used in an update for the provided table.
+
+```ts
+import { UpdatableValues } from 'ts-sql-query/extras/types';
+
+type UpdatableCompany = UpdatableValues<typeof tCompany>;
 ```
 
 ### Updatable row
 
 This type returns the same type expected by the set clause in an update.
 
+**Note**: The difference with `UpdatableValues` is this type admits valid SQL objects that you can use in the update sentence, where `UpdatableValues` do not.
+
 ```ts
 import { UpdatableRow } from 'ts-sql-query/extras/types';
 
-type tCompanyUpdateSetType = UpdatableRow<typeof tCompany>;
+type UpdatableCompanyRow = UpdatableRow<typeof tCompany>;
+```
+
+### Selected values
+
+This type returns the result type of a select on a table or view where all its columns are included.
+
+```ts
+import { SelectedValues } from 'ts-sql-query/extras/types';
+
+type Company = SelectedValues<typeof tCompany>;
 ```
 
 ### Selected row
 
 This type returns the result type of a select on a table or view where all its columns are included.
 
+**Note**: This is just an alias to `SelectedValues` for coherence and compatibility reasons.
+
 ```ts
 import { SelectedRow } from 'ts-sql-query/extras/types';
 
-type tCompanySelectRow = SelectedRow<typeof tCompany>;
+type CompanyRow = SelectedRow<typeof tCompany>;
 ```

@@ -118,6 +118,12 @@ export type UpdateSets<TABLE extends ITableOrView<any>, USING extends ITableOrVi
     [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumnAllowing<TABLE, P, USING>
 }
 
+export type UpdateValues<TABLE extends ITableOrView<any>> = {
+    [P in RequiredColumnsForSetOf<TABLE>]?: ValueSourceValueType<TABLE[P]>
+} & {
+    [P in OptionalColumnsForSetOf<TABLE>]?: ValueSourceValueType<TABLE[P]>
+}
+
 export type OptionalUpdateSets<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
     [P in RequiredColumnsForSetOf<TABLE>]?: InputTypeOfColumnAllowing<TABLE, P, USING> | null | undefined
 } & {

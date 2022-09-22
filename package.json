@@ -1,6 +1,6 @@
 {
     "name": "ts-sql-query",
-    "version": "1.30.0",
+    "version": "1.36.0",
     "description": "Type-safe SQL query builder like QueryDSL or JOOQ in Java or Linq in .Net for TypeScript with MariaDB, MySql, Oracle, PostgreSql, Sqlite and SqlServer support.",
     "license": "MIT",
     "author": "juanluispaz",
@@ -35,6 +35,7 @@
         "copy-prisma": "cp -R ./src/examples/prisma ./dist/examples/prisma",
         "example": "ts-node src/exampleTests.ts",
         "all-examples": "sh ./scripts/run-all-examples.sh",
+        "no-docker-examples": "sh ./scripts/run-no-docker-examples.sh",
         "coverage": "nyc sh ./scripts/run-all-examples.sh",
         "build": "rm -rf dist/*; tsc && npm run copy-prisma",
         "dist": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm exampleTests* && rm -Rf examples && npm publish",
@@ -51,7 +52,7 @@
     },
     "homepage": "https://ts-sql-query.readthedocs.io/",
     "devDependencies": {
-        "@prisma/client": "^3.4.1",
+        "@prisma/client": "3.4.1",
         "@types/any-db": "^2.1.30",
         "@types/any-db-transaction": "^2.2.30",
         "@types/better-sqlite3": "^5.4.0",
@@ -64,6 +65,7 @@
         "@types/tedious": "^4.0.0",
         "@types/tedious-connection-pool": "^1.0.2",
         "@types/uuid": "^8.3.4",
+        "any-db": "^2.1.0",
         "any-db-mssql": "^0.1.0",
         "any-db-mysql": "^2.3.0",
         "any-db-postgres": "^2.3.0",

@@ -329,6 +329,9 @@ export interface IfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTI
     ignoreWhen(condition: boolean): IIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     trueWhenNoValue(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     falseWhenNoValue(): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    valueWhenNoValue(value: boolean): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    valueWhenNoValue<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    valueWhenNoValue<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
 }
 
 export interface IAnyBooleanValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> {
@@ -355,6 +358,9 @@ export interface AlwaysIfValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>
     ignoreWhen(condition: boolean): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     trueWhenNoValue(): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     falseWhenNoValue(): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    valueWhenNoValue(value: boolean): AlwaysIfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    valueWhenNoValue<VALUE extends IIfValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    valueWhenNoValue<VALUE extends IBooleanValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): AlwaysIfValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
 }
 
 export interface INumberValueSource<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, number, 'NumberValueSource', OPTIONAL_TYPE> {

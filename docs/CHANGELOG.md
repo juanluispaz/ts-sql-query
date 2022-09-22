@@ -1,5 +1,43 @@
 # Change Log
 
+## v1.36.0 (31 Aug 2022)
+
+**Bug fixes**:
+
+- Fix invalid uuid type in a reusable fragment
+
+## v1.35.0 (29 Aug 2022)
+
+**Bug fixes**:
+
+- Fix wrong return type of `min` and `max` functions in the connection
+
+## v1.34.0 (17 Aug 2022)
+
+**Changes**:
+
+- Add `valueWhenNoValue` function that allows to return a value when null or undefined were provided to the *IfValue function
+
+## v1.33.0 (16 Aug 2022)
+
+**Bug fixes**:
+
+- Fix "Invalid double value received from the db" when the database send a number as string with trailing 0
+
+## v1.32.0 (15 Aug 2022)
+
+**Changes**:
+
+- Implement `onlyWhen` and `ignoreWhen` function that allows ignoring a boolean expression under a condition
+- Add support to virtual columns on tables and views
+- Implement the types `InsertableValues`, `UpdatableValues` and `SelectedValues` that allows to get the types for an insert, update and select with the proper types defined in the table without the other sql objects
+
+## v1.31.0 (8 Aug 2022)
+
+**Bug fixes**:
+
+- Fix misspelling in `left outer join`
+
 ## v1.30.0 (21 Jul 2022)
 
 **Bug fixes**:

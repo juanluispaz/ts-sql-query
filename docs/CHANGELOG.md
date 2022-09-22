@@ -1,5 +1,20 @@
 # Change Log
 
+## v1.37.0 (23 Sep 2022)
+
+**Changes**:
+
+- Implement `allowWhen` and `disallowWhen` that throws an error if the expression is used in the final query
+
+**Documentation changes**:
+
+- Fix copy&paste on update documentation refering delete
+
+**Bug fixes**:
+
+- Fix `minValue` and `maxValue` returning wrong value
+- Fix missing `with` query when a query in a `with` clause depends on another `with` query
+
 ## v1.36.0 (31 Aug 2022)
 
 **Bug fixes**:

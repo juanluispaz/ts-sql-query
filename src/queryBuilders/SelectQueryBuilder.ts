@@ -632,7 +632,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
 
     __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
-        if (this.groupBy.length > 0) {
+        if (this.__groupBy.length > 0) {
             const withView = new WithViewImpl<any, any>(this.__sqlBuilder, 'result_for_count', this)
             const withs: Array<IWithView<any>> = []
             withView.__addWiths(this.__sqlBuilder, withs)

@@ -1,10 +1,10 @@
+# Change Log
+
 ## v1.38.0 (29 Sep 2022)
 
 **Bug fixes**:
 
 - Fix select page count when a group by is used
-
-# Change Log
 
 ## v1.37.0 (23 Sep 2022)
 

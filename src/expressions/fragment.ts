@@ -260,51 +260,51 @@ export interface FragmentBuilder0<DB extends AnyDB> {
 }
 
 export interface FragmentBuilder1TypeSafe<DB extends AnyDB, A1> {
-    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A1>) => RESULT): FargmentFunction1TypeSafe<DB, A1, RESULT>
+    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A1>) => RESULT): FragmentFunction1TypeSafe<DB, A1, RESULT>
 }
 
 export interface FragmentBuilder2TypeSafe<DB extends AnyDB, A1, A2> {
-    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A2>) => RESULT): FargmentFunction2TypeSafe<DB, A1, A2, RESULT>
+    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A2>) => RESULT): FragmentFunction2TypeSafe<DB, A1, A2, RESULT>
 }
 
 export interface FragmentBuilder3TypeSafe<DB extends AnyDB, A1, A2, A3> {
-    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A2>, a3: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A3>) => RESULT): FargmentFunction3TypeSafe<DB, A1, A2, A3, RESULT>
+    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A2>, a3: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A3>) => RESULT): FragmentFunction3TypeSafe<DB, A1, A2, A3, RESULT>
 }
 
 export interface FragmentBuilder4TypeSafe<DB extends AnyDB, A1, A2, A3, A4> {
-    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A2>, a3: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A3>, a4: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A4>) => RESULT): FargmentFunction4TypeSafe<DB, A1, A2, A3, A4, RESULT>
+    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A2>, a3: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A3>, a4: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A4>) => RESULT): FragmentFunction4TypeSafe<DB, A1, A2, A3, A4, RESULT>
 }
 
 export interface FragmentBuilder5TypeSafe<DB extends AnyDB, A1, A2, A3, A4, A5> {
-    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A2>, a3: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A3>, a4: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A4>, a5: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A5>) => RESULT): FargmentFunction5TypeSafe<DB, A1, A2, A3, A4, A5, RESULT>
+    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A2>, a3: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A3>, a4: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A4>, a5: MapArgumentToTypeSafe<NoTableOrViewRequired<DB>, A5>) => RESULT): FragmentFunction5TypeSafe<DB, A1, A2, A3, A4, A5, RESULT>
 }
 
 export interface FragmentBuilder1TypeUnsafe<DB extends AnyDB, A1> {
-    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A1>) => RESULT): FargmentFunction1TypeUnsafe<DB, A1, RESULT>
+    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A1>) => RESULT): FragmentFunction1TypeUnsafe<DB, A1, RESULT>
 }
 
 export interface FragmentBuilder2TypeUnsafe<DB extends AnyDB, A1, A2> {
-    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A2>) => RESULT): FargmentFunction2TypeUnsafe<DB, A1, A2, RESULT>
+    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A2>) => RESULT): FragmentFunction2TypeUnsafe<DB, A1, A2, RESULT>
 }
 
 export interface FragmentBuilder3TypeUnsafe<DB extends AnyDB, A1, A2, A3> {
-    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A2>, a3: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A3>) => RESULT): FargmentFunction3TypeUnsafe<DB, A1, A2, A3, RESULT>
+    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A2>, a3: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A3>) => RESULT): FragmentFunction3TypeUnsafe<DB, A1, A2, A3, RESULT>
 }
 
 export interface FragmentBuilder4TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4> {
-    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A2>, a3: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A3>, a4: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A4>) => RESULT): FargmentFunction4TypeUnsafe<DB, A1, A2, A3, A4, RESULT>
+    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A2>, a3: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A3>, a4: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A4>) => RESULT): FragmentFunction4TypeUnsafe<DB, A1, A2, A3, A4, RESULT>
 }
 
 export interface FragmentBuilder5TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, A5> {
-    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A2>, a3: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A3>, a4: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A4>, a5: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A5>) => RESULT): FargmentFunction5TypeUnsafe<DB, A1, A2, A3, A4, A5, RESULT>
+    as<RESULT extends ValueSourceOf<NoTableOrViewRequired<DB>>>(impl: (a1: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A1>, a2: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A2>, a3: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A3>, a4: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A4>, a5: MapArgumentToTypeUnsafe<NoTableOrViewRequired<DB>, A5>) => RESULT): FragmentFunction5TypeUnsafe<DB, A1, A2, A3, A4, A5, RESULT>
 }
 
-export interface FargmentFunction1TypeSafe<DB extends AnyDB, A1, RESULT> {
+export interface FragmentFunction1TypeSafe<DB extends AnyDB, A1, RESULT> {
     (a1: TypeOfArgument<A1>): RemapValueSourceType<NoTableOrViewRequired<DB>, RESULT>
     <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>): RemapValueSourceType<T1, RESULT>
 }
 
-export interface FargmentFunction2TypeSafe<DB extends AnyDB, A1, A2, RESULT> {
+export interface FragmentFunction2TypeSafe<DB extends AnyDB, A1, A2, RESULT> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>): RemapValueSourceType<NoTableOrViewRequired<DB>, RESULT>
     <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>): RemapValueSourceType<T1, RESULT>
 
@@ -312,7 +312,7 @@ export interface FargmentFunction2TypeSafe<DB extends AnyDB, A1, A2, RESULT> {
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>): RemapValueSourceType<T1 | T2, RESULT>
 }
 
-export interface FargmentFunction3TypeSafe<DB extends AnyDB, A1, A2, A3, RESULT> {
+export interface FragmentFunction3TypeSafe<DB extends AnyDB, A1, A2, A3, RESULT> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<NoTableOrViewRequired<DB>, RESULT>
     <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<T1, RESULT>
     <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<T2, RESULT>
@@ -324,7 +324,7 @@ export interface FargmentFunction3TypeSafe<DB extends AnyDB, A1, A2, A3, RESULT>
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>): RemapValueSourceType<T1 | T2 | T3, RESULT>
 }
 
-export interface FargmentFunction4TypeSafe<DB extends AnyDB, A1, A2, A3, A4, RESULT> {
+export interface FragmentFunction4TypeSafe<DB extends AnyDB, A1, A2, A3, A4, RESULT> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<NoTableOrViewRequired<DB>, RESULT>
     <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<T1, RESULT>
     <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<T2, RESULT>
@@ -344,7 +344,7 @@ export interface FargmentFunction4TypeSafe<DB extends AnyDB, A1, A2, A3, A4, RES
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>): RemapValueSourceType<T1 | T2 | T3 | T4, RESULT>
 }
 
-export interface FargmentFunction5TypeSafe<DB extends AnyDB, A1, A2, A3, A4, A5, RESULT> {
+export interface FragmentFunction5TypeSafe<DB extends AnyDB, A1, A2, A3, A4, A5, RESULT> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<NoTableOrViewRequired<DB>, RESULT>
     <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<T1, RESULT>
     <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<T2, RESULT>
@@ -380,12 +380,12 @@ export interface FargmentFunction5TypeSafe<DB extends AnyDB, A1, A2, A3, A4, A5,
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>, a5: SafeArgForFn<T5, A5>): RemapValueSourceType<T1 | T2 | T3 | T4 | T5, RESULT>
 }
 
-export interface FargmentFunction1TypeUnsafe<DB extends AnyDB, A1, RESULT> {
+export interface FragmentFunction1TypeUnsafe<DB extends AnyDB, A1, RESULT> {
     (a1: TypeOfArgument<A1>): RemapValueSourceType<NoTableOrViewRequired<DB>, RESULT>
     <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>): RemapValueSourceType<T1, RESULT>
 }
 
-export interface FargmentFunction2TypeUnsafe<DB extends AnyDB, A1, A2, RESULT> {
+export interface FragmentFunction2TypeUnsafe<DB extends AnyDB, A1, A2, RESULT> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>): RemapValueSourceType<NoTableOrViewRequired<DB>, RESULT>
     <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>): RemapValueSourceType<T1, RESULT>
 
@@ -393,7 +393,7 @@ export interface FargmentFunction2TypeUnsafe<DB extends AnyDB, A1, A2, RESULT> {
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>): RemapValueSourceType<T1 | T2, RESULT>
 }
 
-export interface FargmentFunction3TypeUnsafe<DB extends AnyDB, A1, A2, A3, RESULT> {
+export interface FragmentFunction3TypeUnsafe<DB extends AnyDB, A1, A2, A3, RESULT> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<NoTableOrViewRequired<DB>, RESULT>
     <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<T1, RESULT>
     <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>): RemapValueSourceType<T2, RESULT>
@@ -405,7 +405,7 @@ export interface FargmentFunction3TypeUnsafe<DB extends AnyDB, A1, A2, A3, RESUL
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>): RemapValueSourceType<T1 | T2 | T3, RESULT>
 }
 
-export interface FargmentFunction4TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, RESULT> {
+export interface FragmentFunction4TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, RESULT> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<NoTableOrViewRequired<DB>, RESULT>
     <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<T1, RESULT>
     <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): RemapValueSourceType<T2, RESULT>
@@ -425,7 +425,7 @@ export interface FargmentFunction4TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, R
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>): RemapValueSourceType<T1 | T2 | T3 | T4, RESULT>
 }
 
-export interface FargmentFunction5TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, A5, RESULT> {
+export interface FragmentFunction5TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, A5, RESULT> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<NoTableOrViewRequired<DB>, RESULT>
     <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<T1, RESULT>
     <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): RemapValueSourceType<T2, RESULT>
@@ -466,51 +466,51 @@ export interface FragmentBuilder0IfValue<DB extends AnyDB> {
 }
 
 export interface FragmentBuilder1IfValueTypeSafe<DB extends AnyDB, A1> {
-    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>) => RESULT): FargmentFunctionIfValue1TypeSafe<DB, A1, RESULT[typeof optionalType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>) => RESULT): FragmentFunctionIfValue1TypeSafe<DB, A1, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder2IfValueTypeSafe<DB extends AnyDB, A1, A2> {
-    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>) => RESULT): FargmentFunctionIfValue2TypeSafe<DB, A1, A2, RESULT[typeof optionalType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>) => RESULT): FragmentFunctionIfValue2TypeSafe<DB, A1, A2, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder3IfValueTypeSafe<DB extends AnyDB, A1, A2, A3> {
-    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>) => RESULT): FargmentFunctionIfValue3TypeSafe<DB, A1, A2, A3, RESULT[typeof optionalType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>) => RESULT): FragmentFunctionIfValue3TypeSafe<DB, A1, A2, A3, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder4IfValueTypeSafe<DB extends AnyDB, A1, A2, A3, A4> {
-    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>) => RESULT): FargmentFunctionIfValue4TypeSafe<DB, A1, A2, A3, A4, RESULT[typeof optionalType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>) => RESULT): FragmentFunctionIfValue4TypeSafe<DB, A1, A2, A3, A4, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder5IfValueTypeSafe<DB extends AnyDB, A1, A2, A3, A4, A5> {
-    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>, a5: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A5>) => RESULT): FargmentFunctionIfValue5TypeSafe<DB, A1, A2, A3, A4, A5, RESULT[typeof optionalType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>, a5: SafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A5>) => RESULT): FragmentFunctionIfValue5TypeSafe<DB, A1, A2, A3, A4, A5, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder1IfValueTypeUnsafe<DB extends AnyDB, A1> {
-    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>) => RESULT): FargmentFunctionIfValue1TypeUnsafe<DB, A1, RESULT[typeof optionalType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>) => RESULT): FragmentFunctionIfValue1TypeUnsafe<DB, A1, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder2IfValueTypeUnsafe<DB extends AnyDB, A1, A2> {
-    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>) => RESULT): FargmentFunctionIfValue2TypeUnsafe<DB, A1, A2, RESULT[typeof optionalType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>) => RESULT): FragmentFunctionIfValue2TypeUnsafe<DB, A1, A2, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder3IfValueTypeUnsafe<DB extends AnyDB, A1, A2, A3> {
-    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>) => RESULT): FargmentFunctionIfValue3TypeUnsafe<DB, A1, A2, A3, RESULT[typeof optionalType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>) => RESULT): FragmentFunctionIfValue3TypeUnsafe<DB, A1, A2, A3, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder4IfValueTypeUnsafe<DB extends AnyDB, A1, A2, A3, A4> {
-    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>) => RESULT): FargmentFunctionIfValue4TypeUnsafe<DB, A1, A2, A3, A4, RESULT[typeof optionalType]>
+    as<RESULT extends IBooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>) => RESULT): FragmentFunctionIfValue4TypeUnsafe<DB, A1, A2, A3, A4, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder5IfValueTypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, A5> {
-    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>, a5: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A5>) => RESULT): FargmentFunctionIfValue5TypeUnsafe<DB, A1, A2, A3, A4, A5, RESULT[typeof optionalType]>
+    as<RESULT extends BooleanValueSource<NoTableOrViewRequired<DB>, any> | IIfValueSource<NoTableOrViewRequired<DB>, any>>(impl: (a1: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A1>, a2: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A2>, a3: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A3>, a4: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A4>, a5: UnsafeArgForBuilderIfValue<NoTableOrViewRequired<DB>, A5>) => RESULT): FragmentFunctionIfValue5TypeUnsafe<DB, A1, A2, A3, A4, A5, RESULT[typeof optionalType]>
 }
 
-export interface FargmentFunctionIfValue1TypeSafe<DB extends AnyDB, A1, OPTIONAL_TYPE extends OptionalType> {
+export interface FragmentFunctionIfValue1TypeSafe<DB extends AnyDB, A1, OPTIONAL_TYPE extends OptionalType> {
     (a1: TypeOfArgument<A1>): IfValueSource<NoTableOrViewRequired<DB>, OPTIONAL_TYPE>
     <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>): IfValueSource<T1, OPTIONAL_TYPE>
 }
 
-export interface FargmentFunctionIfValue2TypeSafe<DB extends AnyDB, A1, A2, OPTIONAL_TYPE extends OptionalType> {
+export interface FragmentFunctionIfValue2TypeSafe<DB extends AnyDB, A1, A2, OPTIONAL_TYPE extends OptionalType> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>): IfValueSource<NoTableOrViewRequired<DB>, OPTIONAL_TYPE>
     <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>): IfValueSource<T1, OPTIONAL_TYPE>
 
@@ -518,7 +518,7 @@ export interface FargmentFunctionIfValue2TypeSafe<DB extends AnyDB, A1, A2, OPTI
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>): IfValueSource<T1 | T2, OPTIONAL_TYPE>
 }
 
-export interface FargmentFunctionIfValue3TypeSafe<DB extends AnyDB, A1, A2, A3, OPTIONAL_TYPE extends OptionalType> {
+export interface FragmentFunctionIfValue3TypeSafe<DB extends AnyDB, A1, A2, A3, OPTIONAL_TYPE extends OptionalType> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): IfValueSource<NoTableOrViewRequired<DB>, OPTIONAL_TYPE>
     <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): IfValueSource<T1, OPTIONAL_TYPE>
     <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>): IfValueSource<T2, OPTIONAL_TYPE>
@@ -530,7 +530,7 @@ export interface FargmentFunctionIfValue3TypeSafe<DB extends AnyDB, A1, A2, A3, 
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>): IfValueSource<T1 | T2 | T3, OPTIONAL_TYPE>
 }
 
-export interface FargmentFunctionIfValue4TypeSafe<DB extends AnyDB, A1, A2, A3, A4, OPTIONAL_TYPE extends OptionalType> {
+export interface FragmentFunctionIfValue4TypeSafe<DB extends AnyDB, A1, A2, A3, A4, OPTIONAL_TYPE extends OptionalType> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<NoTableOrViewRequired<DB>, OPTIONAL_TYPE>
     <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<T1, OPTIONAL_TYPE>
     <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<T2, OPTIONAL_TYPE>
@@ -550,7 +550,7 @@ export interface FargmentFunctionIfValue4TypeSafe<DB extends AnyDB, A1, A2, A3, 
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>): IfValueSource<T1 | T2 | T3 | T4, OPTIONAL_TYPE>
 }
 
-export interface FargmentFunctionIfValue5TypeSafe<DB extends AnyDB, A1, A2, A3, A4, A5, OPTIONAL_TYPE extends OptionalType> {
+export interface FragmentFunctionIfValue5TypeSafe<DB extends AnyDB, A1, A2, A3, A4, A5, OPTIONAL_TYPE extends OptionalType> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<NoTableOrViewRequired<DB>, OPTIONAL_TYPE>
     <T1 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T1, OPTIONAL_TYPE>
     <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: SafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T2, OPTIONAL_TYPE>
@@ -586,12 +586,12 @@ export interface FargmentFunctionIfValue5TypeSafe<DB extends AnyDB, A1, A2, A3, 
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>, T5 extends TableOrViewRef<DB>>(a1: SafeArgForFn<T1, A1>, a2: SafeArgForFn<T2, A2>, a3: SafeArgForFn<T3, A3>, a4: SafeArgForFn<T4, A4>, a5: SafeArgForFn<T5, A5>): IfValueSource<T1 | T2 | T3 | T4 | T5, OPTIONAL_TYPE>
 }
 
-export interface FargmentFunctionIfValue1TypeUnsafe<DB extends AnyDB, A1, OPTIONAL_TYPE extends OptionalType> {
+export interface FragmentFunctionIfValue1TypeUnsafe<DB extends AnyDB, A1, OPTIONAL_TYPE extends OptionalType> {
     (a1: TypeOfArgument<A1>): IfValueSource<NoTableOrViewRequired<DB>, OPTIONAL_TYPE>
     <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>): IfValueSource<T1, OPTIONAL_TYPE>
 }
 
-export interface FargmentFunctionIfValue2TypeUnsafe<DB extends AnyDB, A1, A2, OPTIONAL_TYPE extends OptionalType> {
+export interface FragmentFunctionIfValue2TypeUnsafe<DB extends AnyDB, A1, A2, OPTIONAL_TYPE extends OptionalType> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>): IfValueSource<NoTableOrViewRequired<DB>, OPTIONAL_TYPE>
     <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>): IfValueSource<T1, OPTIONAL_TYPE>
 
@@ -599,7 +599,7 @@ export interface FargmentFunctionIfValue2TypeUnsafe<DB extends AnyDB, A1, A2, OP
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>): IfValueSource<T1 | T2, OPTIONAL_TYPE>
 }
 
-export interface FargmentFunctionIfValue3TypeUnsafe<DB extends AnyDB, A1, A2, A3, OPTIONAL_TYPE extends OptionalType> {
+export interface FragmentFunctionIfValue3TypeUnsafe<DB extends AnyDB, A1, A2, A3, OPTIONAL_TYPE extends OptionalType> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): IfValueSource<NoTableOrViewRequired<DB>, OPTIONAL_TYPE>
     <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>): IfValueSource<T1, OPTIONAL_TYPE>
     <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>): IfValueSource<T2, OPTIONAL_TYPE>
@@ -611,7 +611,7 @@ export interface FargmentFunctionIfValue3TypeUnsafe<DB extends AnyDB, A1, A2, A3
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>): IfValueSource<T1 | T2 | T3, OPTIONAL_TYPE>
 }
 
-export interface FargmentFunctionIfValue4TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, OPTIONAL_TYPE extends OptionalType> {
+export interface FragmentFunctionIfValue4TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, OPTIONAL_TYPE extends OptionalType> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<NoTableOrViewRequired<DB>, OPTIONAL_TYPE>
     <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<T1, OPTIONAL_TYPE>
     <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>): IfValueSource<T2, OPTIONAL_TYPE>
@@ -631,7 +631,7 @@ export interface FargmentFunctionIfValue4TypeUnsafe<DB extends AnyDB, A1, A2, A3
     <T1 extends TableOrViewRef<DB>, T2 extends TableOrViewRef<DB>, T3 extends TableOrViewRef<DB>, T4 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: UnsafeArgForFn<T2, A2>, a3: UnsafeArgForFn<T3, A3>, a4: UnsafeArgForFn<T4, A4>): IfValueSource<T1 | T2 | T3 | T4, OPTIONAL_TYPE>
 }
 
-export interface FargmentFunctionIfValue5TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, A5, OPTIONAL_TYPE extends OptionalType> {
+export interface FragmentFunctionIfValue5TypeUnsafe<DB extends AnyDB, A1, A2, A3, A4, A5, OPTIONAL_TYPE extends OptionalType> {
     (a1: TypeOfArgument<A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<NoTableOrViewRequired<DB>, OPTIONAL_TYPE>
     <T1 extends TableOrViewRef<DB>>(a1: UnsafeArgForFn<T1, A1>, a2: TypeOfArgument<A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T1, OPTIONAL_TYPE>
     <T2 extends TableOrViewRef<DB>>(a1: TypeOfArgument<A1>, a2: UnsafeArgForFn<T2, A2>, a3: TypeOfArgument<A3>, a4: TypeOfArgument<A4>, a5: TypeOfArgument<A5>): IfValueSource<T2, OPTIONAL_TYPE>

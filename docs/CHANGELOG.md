@@ -1,5 +1,12 @@
 # Change Log
 
+## v1.39.0 (21 Oct 2022)
+
+**Changes**:
+
+- Add support to the `returning` clause in MariaDB in `insert` and `delete` (`update` not supported yet by MariaDB)
+- Add support to Prisma 4
+
 ## v1.38.0 (29 Sep 2022)
 
 **Bug fixes**:

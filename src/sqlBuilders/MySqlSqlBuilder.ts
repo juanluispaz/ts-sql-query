@@ -1,7 +1,7 @@
 import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __getValueSourcePrivate } from "../expressions/values"
 import { ITableOrView } from "../utils/ITableOrView"
 import { AbstractMySqlMariaDBSqlBuilder } from "./AbstractMySqlMariaBDSqlBuilder"
-import { FlatQueryColumns, flattenQueryColumns, hasWithData, SelectData, ToSql, WithQueryData } from "./SqlBuilder"
+import { FlatQueryColumns, flattenQueryColumns, hasWithData, InsertData, SelectData, ToSql, WithQueryData } from "./SqlBuilder"
 
 export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mySql: true = true
@@ -10,6 +10,10 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     }
     _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
+    }
+    _buildInsertReturning(_query: InsertData, params: any[]): string {
+        this._setContainsInsertReturningClause(params, false)
+        return ''
     }
     _appendParam(value: any, params: any[], columnType: string): string {
         if (columnType === 'uuid' && this._getUuidStrategy() === 'binary') {

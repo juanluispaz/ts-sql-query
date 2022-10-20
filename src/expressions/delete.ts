@@ -230,12 +230,12 @@ export interface ComposableCustomizableExecutableDelete<TABLE extends ITableOrVi
 }
 
 type ReturningFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | MariaDB | Oracle) 
     ? <COLUMNS extends DeleteColumns<TABLE, USING>>(columns: COLUMNS) => ComposableCustomizableExecutableDelete<TABLE, COLUMNS, ResultObjectValues<COLUMNS>>
     : never
 
 type ReturningOneColumnFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
-    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | Oracle) 
+    TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | MariaDB | Oracle) 
     ? <COLUMN extends ValueSourceOf<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>>>(column: COLUMN) => ComposableCustomizableExecutableDelete<TABLE, COLUMN, ValueSourceValueTypeForResult<COLUMN>>
     : never
 

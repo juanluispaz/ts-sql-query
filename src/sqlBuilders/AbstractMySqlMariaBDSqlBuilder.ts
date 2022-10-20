@@ -276,10 +276,6 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''
     }
-    _buildInsertReturning(_query: InsertData, params: any[]): string {
-        this._setContainsInsertReturningClause(params, false)
-        return ''
-    }
     _buildInsertOnConflictBeforeInto(query: InsertData, _params: any[]): string {
         if (query.__onConflictDoNothing) {
             return 'ignore '

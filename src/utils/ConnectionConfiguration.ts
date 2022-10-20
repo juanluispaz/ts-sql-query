@@ -5,4 +5,5 @@ export interface ConnectionConfiguration {
     getDateTimeFormat?(type: string): string
     compatibilityMode?: boolean
     uuidStrategy?: string
+    alwaysUseReturningClauseWhenInsert?: boolean
 }

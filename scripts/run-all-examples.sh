@@ -18,6 +18,7 @@ ts-node ./src/examples/documentation/PostgreSql.ts || exit 1
 ts-node ./src/examples/documentation/MySql.ts || exit 1
 ts-node ./src/examples/documentation/MySql-compatibility.ts || exit 1
 ts-node ./src/examples/documentation/MariaDB.ts || exit 1
+ts-node ./src/examples/documentation/MariaDB-modern.ts || exit 1
 ts-node ./src/examples/documentation/SqlServer.ts || exit 1
 ts-node ./src/examples/documentation/Oracle.ts || exit 1
 
@@ -58,6 +59,7 @@ docker rm ts-sql-query-mysql
 docker run --name ts-sql-query-mariadb -p 3306:3306 -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mariadb:10.7.1
 sleep 30
 ts-node ./src/examples/MariaDBExample.ts || { docker stop ts-sql-query-mariadb; docker rm ts-sql-query-mariadb; exit 1; }
+ts-node ./src/examples/MariaDBExample-modern.ts || { docker stop ts-sql-query-mariadb; docker rm ts-sql-query-mariadb; exit 1; }
 ts-node ./src/examples/PrismaMariaDBExample.ts || { docker stop ts-sql-query-mariadb; docker rm ts-sql-query-mariadb; exit 1; }
 docker stop ts-sql-query-mariadb
 docker rm ts-sql-query-mariadb

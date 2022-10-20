@@ -1,6 +1,6 @@
 import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractMySqlMariaDBSqlBuilder } from "./AbstractMySqlMariaBDSqlBuilder"
-import { CompoundOperator, FlatQueryColumns, flattenQueryColumns, SelectData } from "./SqlBuilder"
+import { CompoundOperator, FlatQueryColumns, flattenQueryColumns, InsertData, SelectData } from "./SqlBuilder"
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mariaDB: true = true
@@ -31,6 +31,13 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     }
     _supportOrderByWhenAggregateArray = true
     _supportLimitWhenAggregateArray = true
+    _buildInsertReturning(query: InsertData, params: any[]): string {
+        if (this._connectionConfiguration.alwaysUseReturningClauseWhenInsert || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
+            return super._buildInsertReturning(query, params)
+        }
+        this._setContainsInsertReturningClause(params, false)
+        return ''
+    }
     _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], query: SelectData | undefined): string {
         let result = ''
         if (isValueSource(aggregatedArrayColumns)) {

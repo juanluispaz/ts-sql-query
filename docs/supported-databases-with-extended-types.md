@@ -10,6 +10,18 @@ import { TypeSafeMariaDBConnection } from "ts-sql-query/connections/TypeSafeMari
 class DBConection extends TypeSafeMariaDBConnection<'DBConnection'> { }
 ```
 
+### Last inserted id strategies in MariaDB
+
+MariaBD 10.5 added support to the returning clause when insert or delete. If you set this flag to true, the insert returning last inserted id will generate the returning clause instead of use the last inserted id provided by the connector after the execution of the query.
+
+```ts
+import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
+
+class DBConection extends MariaDBConnection<'DBConnection'> { 
+    protected alwaysUseReturningClauseWhenInsert = true
+}
+```
+
 ### UUID strategies in MariaDB
 
 ts-sql-query offers you different strategies to handle UUIDs in MariaDB:

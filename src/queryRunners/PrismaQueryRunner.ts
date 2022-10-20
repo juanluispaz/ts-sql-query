@@ -22,7 +22,7 @@ function isPrisma3(connection: any): connection is RawPrismaClient3 {
 
 export interface PrismaConfig {
     interactiveTransactions: boolean,
-    interactiveTransactionsOptions?: { maxWait?: number, timeout?: number },
+    interactiveTransactionsOptions?: { maxWait?: number, timeout?: number, isolationLevel?: string },
     forUseInTransaction?: boolean
 }
 
@@ -294,6 +294,7 @@ class PrismaPromise {
     }
 
     then(onfulfilled?: any, onrejected?: any, transactionId?: any): PrismaPromise {
+        // Note: Prisma 4 doesn't require transactionId, it can be removed
         if (transactionId !== undefined) {
             if (this.onfinally) {
                 return this.next.then((r: any) => {
@@ -323,17 +324,27 @@ class PrismaPromise {
         this.onfinally = onfinally
         return new PrismaPromise(this)
     }
-    requestTransaction(transactionId: any): PrismaPromise {
-        return this.next.requestTransaction(transactionId).then((fn: () => PrismaPromise) => {
-            return () => {
+    requestTransaction(transactionId: any, lock: any): PrismaPromise {
+        return this.next.requestTransaction(transactionId, lock).then((result: any) => {
+            if (typeof result === 'function') {
+                return () => {
+                    if (this.onfinally) {
+                        return result().finally(this.onfinally)
+                    } else {
+                        return result().then(this.onfulfilled, this.onrejected)
+                    }
+                }
+            } else {
+                // Prisma 4
                 if (this.onfinally) {
-                    return fn().finally(this.onfinally)
+                    return Promise.resolve(result).finally(this.onfinally)
                 } else {
-                    return fn().then(this.onfulfilled, this.onrejected)
+                    return Promise.resolve(result).then(this.onfulfilled, this.onrejected)
                 }
             }
         })
     }
+    [Symbol.toStringTag] = "PrismaPromise"
 }
 
 class ResolvedPrismaPromise {
@@ -347,6 +358,7 @@ class ResolvedPrismaPromise {
     }
 
     then(onfulfilled?: any, onrejected?: any, transactionId?: any): PrismaPromise {
+        // Note: Prisma 4 doesn't require transactionId, it can be removed
         if (transactionId !== undefined) {
             if (this.onfinally) {
                 return Promise.resolve(this.value).finally(this.onfinally).then(onfulfilled, onrejected) as any
@@ -366,7 +378,7 @@ class ResolvedPrismaPromise {
         this.onfinally = onfinally
         return new PrismaPromise(this as any)
     }
-    requestTransaction(_transactionId: any): PrismaPromise {
+    requestTransaction(_transactionId: any, _lock: any): PrismaPromise {
         return Promise.resolve(() => {
             if (this.onfinally) {
                 return Promise.resolve(this.value).finally(this.onfinally)
@@ -375,6 +387,7 @@ class ResolvedPrismaPromise {
             }
         }) as any
     }
+    [Symbol.toStringTag] = "PrismaPromise"
 }
 
 class CombinedPrismaPromise {
@@ -390,6 +403,7 @@ class CombinedPrismaPromise {
     }
 
     then(onfulfilled?: any, onrejected?: any, transactionId?: any): PrismaPromise {
+        // Note: Prisma 4 doesn't require transactionId, it can be removed
         if (transactionId !== undefined) {
             if (this.onfinally) {
                 return Promise.all([
@@ -431,27 +445,43 @@ class CombinedPrismaPromise {
         this.onfinally = onfinally
         return new PrismaPromise(this as any)
     }
-    requestTransaction(transactionId: any): PrismaPromise {
-        const rt1 = this.next1.requestTransaction(transactionId)
-        const rt2 = this.next2.requestTransaction(transactionId)
+    requestTransaction(transactionId: any, lock: any): PrismaPromise {
+        const rt1 = this.next1.requestTransaction(transactionId, lock)
+        const rt2 = this.next2.requestTransaction(transactionId, lock)
         
         return Promise.all([rt1, rt2]).then(([pfn1, pfn2]) => {
-            const fn1 = pfn1 as any as () => PrismaPromise
-            const fn2 = pfn2 as any as () => PrismaPromise
+            if (typeof pfn1 === 'function') {
+                const fn1 = pfn1 as any as () => PrismaPromise
+                const fn2 = pfn2 as any as () => PrismaPromise
 
-            return () => {
+                return (() => {
+                    if (this.onfinally) {
+                        return Promise.all([
+                            fn1(),
+                            fn2()
+                        ]).finally(this.onfinally)
+                    } else {
+                        return Promise.all([
+                            fn1(),
+                            fn2()
+                        ]).then(this.onfulfilled, this.onrejected)
+                    }
+                }) as any
+            } else {
+                // Prisma 4
                 if (this.onfinally) {
                     return Promise.all([
-                        fn1(),
-                        fn2()
+                        pfn1,
+                        pfn2
                     ]).finally(this.onfinally)
                 } else {
                     return Promise.all([
-                        fn1(),
-                        fn2()
+                        pfn1,
+                        pfn2
                     ]).then(this.onfulfilled, this.onrejected)
                 }
             }
         }) as any
     }
+    [Symbol.toStringTag] = "PrismaPromise"
 }

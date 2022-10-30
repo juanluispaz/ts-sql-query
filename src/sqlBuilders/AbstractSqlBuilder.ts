@@ -2472,7 +2472,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return this._appendSqlParenthesisExcluding(valueSource, params, '_add') + ' + ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, value), typeAdapter, '_add')
     }
     _substract(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesisExcluding(valueSource, params, '_substract') + ' - ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, value), typeAdapter, '_substract')
+        return this._appendSqlParenthesisExcluding(valueSource, params, '_substract') + ' - ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, value), typeAdapter)
     }
     _multiply(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesisExcluding(valueSource, params, '_multiply') + ' * ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, value), typeAdapter, '_multiply')

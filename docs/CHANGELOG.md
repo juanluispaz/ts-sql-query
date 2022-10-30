@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.40.0 (30 Oct 2022)
+
+**Bug fixes**:
+
+- Fix missing parenthesis in a subtraction of a subtraction
+
 ## v1.39.0 (21 Oct 2022)
 
 **Changes**:

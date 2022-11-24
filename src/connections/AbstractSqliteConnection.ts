@@ -290,7 +290,7 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                         case 'UTC as text using T separator':
                         case 'UTC as text using Z timezone':
                         case 'UTC as text using T separator and Z timezone':
-                            return value.getFullYear() + '-' + doubleDigit(value.getMonth()) + '-' + doubleDigit(value.getDate())
+                            return value.getFullYear() + '-' + doubleDigit(value.getMonth() + 1) + '-' + doubleDigit(value.getDate())
                         case 'Julian day as real number':
                             return millisecondsToJulian(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()))
                         case 'Unix time seconds as integer':
@@ -331,22 +331,22 @@ export abstract class AbstractSqliteConnection<DB extends Sqlite & (TypeUnsafeDB
                     const dateTimeFormat = this.getDateTimeFormat('dateTime')
                     switch (dateTimeFormat) {
                         case 'localdate as text':
-                            return value.getFullYear() + '-' + doubleDigit(value.getMonth()) + '-' + doubleDigit(value.getDate())
+                            return value.getFullYear() + '-' + doubleDigit(value.getMonth() + 1) + '-' + doubleDigit(value.getDate())
                                 + ' ' + doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds()) + tripleDigitFraction(value.getMilliseconds())
                         case 'localdate as text using T separator':
-                            return value.getFullYear() + '-' + doubleDigit(value.getMonth()) + '-' + doubleDigit(value.getDate())
+                            return value.getFullYear() + '-' + doubleDigit(value.getMonth() + 1) + '-' + doubleDigit(value.getDate())
                                 + 'T' + doubleDigit(value.getHours()) + ':' + doubleDigit(value.getMinutes()) + ':' + doubleDigit(value.getSeconds()) + tripleDigitFraction(value.getMilliseconds())
                         case 'UTC as text':
-                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth()) + '-' + doubleDigit(value.getUTCDate())
+                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
                                 + ' ' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + tripleDigitFraction(value.getUTCMilliseconds())
                         case 'UTC as text using T separator':
-                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth()) + '-' + doubleDigit(value.getUTCDate())
+                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
                                 + 'T' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + tripleDigitFraction(value.getUTCMilliseconds())
                         case 'UTC as text using Z timezone':
-                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth()) + '-' + doubleDigit(value.getUTCDate())
+                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
                                 + ' ' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + tripleDigitFraction(value.getUTCMilliseconds()) + 'Z'
                         case 'UTC as text using T separator and Z timezone':
-                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth()) + '-' + doubleDigit(value.getUTCDate())
+                            return value.getUTCFullYear() + '-' + doubleDigit(value.getUTCMonth() + 1) + '-' + doubleDigit(value.getUTCDate())
                                 + 'T' + doubleDigit(value.getUTCHours()) + ':' + doubleDigit(value.getUTCMinutes()) + ':' + doubleDigit(value.getUTCSeconds()) + tripleDigitFraction(value.getUTCMilliseconds()) + 'Z'
                         case 'Julian day as real number':
                             return millisecondsToJulian(value.getTime())

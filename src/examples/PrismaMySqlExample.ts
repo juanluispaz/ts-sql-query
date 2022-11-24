@@ -750,6 +750,39 @@ async function main() {
             .executeSelectOne()
         assertEquals(record, { id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' })
 
+        // Due some reason prisma returns strings instead numbers for the date parts
+
+        // const date = new Date('2022-11-21T19:33:56.123Z')
+        // const dateValue = connection.const(date, 'localDateTime')
+        // // Note: due we are using the value directly it contains the timezone, then MySql returns the local values
+        // const dateValidation = await connection
+        //     .selectFromNoTable()
+        //     .select({
+        //         fullYear: dateValue.getFullYear(),
+        //         month: dateValue.getMonth(),
+        //         date: dateValue.getDate(),
+        //         day: dateValue.getDay(),
+        //         hours: dateValue.getHours(),
+        //         minutes: dateValue.getMinutes(),
+        //         second: dateValue.getSeconds(),
+        //         milliseconds: dateValue.getMilliseconds(),
+        //         // time: dateValue.getTime(),
+        //         dateValue: dateValue,
+        //     })
+        //     .executeSelectOne()
+        // assertEquals(dateValidation, {
+        //     fullYear: date.getFullYear(),
+        //     month: date.getMonth(),
+        //     date: date.getDate(),
+        //     day: date.getDay(),
+        //     hours: date.getHours(),
+        //     minutes: date.getMinutes(),
+        //     second: date.getSeconds(),
+        //     milliseconds: date.getMilliseconds(),
+        //     // time: date.getTime(),
+        //     dateValue: date,
+        // })
+
         // await connection.commit()
     } catch(e) {
         // Prisma doesn't support low level transaction management

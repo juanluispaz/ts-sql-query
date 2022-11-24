@@ -930,6 +930,38 @@ async function main() {
             .executeSelectOne()
         assertEquals(record, { id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' })
 
+        const date = new Date('2022-11-21T19:33:56.123Z')
+        const dateValue = connection.const(date, 'localDateTime')
+        // PostgreSql fail to call date part function with a constant date is provided
+        const dateValueCasted = connection.fragmentWithType('localDateTime', 'required').sql`TIMESTAMP '2022-11-21 19:33:56.123'`
+        const dateValidation = await connection
+            .selectFromNoTable()
+            .select({
+                fullYear: dateValueCasted.getFullYear(),
+                month: dateValueCasted.getMonth(),
+                date: dateValueCasted.getDate(),
+                day: dateValueCasted.getDay(),
+                hours: dateValueCasted.getHours(),
+                minutes: dateValueCasted.getMinutes(),
+                second: dateValueCasted.getSeconds(),
+                milliseconds: dateValueCasted.getMilliseconds(),
+                time: dateValueCasted.getTime(),
+                dateValue: dateValue,
+            })
+            .executeSelectOne()
+        assertEquals(dateValidation, {
+            fullYear: date.getUTCFullYear(),
+            month: date.getUTCMonth(),
+            date: date.getUTCDate(),
+            day: date.getUTCDay(),
+            hours: date.getUTCHours(),
+            minutes: date.getUTCMinutes(),
+            second: date.getUTCSeconds(),
+            milliseconds: date.getUTCMilliseconds(),
+            time: date.getTime(),
+            dateValue: date,
+        })
+
         await connection.commit()
     } catch(e) {
         await connection.rollback()

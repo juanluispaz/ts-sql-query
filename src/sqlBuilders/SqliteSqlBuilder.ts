@@ -9,6 +9,11 @@ import { ITableOrView } from "../utils/ITableOrView"
 
 export class SqliteSqlBuilder extends AbstractSqlBuilder {
     sqlite: true = true
+    constructor() {
+        super()
+        this._operationsThatNeedParenthesis._getMonth = true
+        this._operationsThatNeedParenthesis._getMilliseconds = true
+    }
     _getDateTimeFormat(type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return this._connectionConfiguration.getDateTimeFormat!(type) as any
     }
@@ -314,11 +319,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     _getMonth(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
-            return "cast(strftime('%m', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer)"
+            return "cast(strftime('%m', " + this._appendSql(valueSource, params) + ", 'unixepoch') as integer) - 1"
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return "cast(strftime('%m', " + this._appendSqlParenthesis(valueSource, params) + " / 1000, 'unixepoch') as integer)"
+            return "cast(strftime('%m', " + this._appendSqlParenthesis(valueSource, params) + " / 1000, 'unixepoch') as integer) - 1"
         }
-        return "cast(strftime('%m', " + this._appendSql(valueSource, params) + ") as integer)"
+        return "cast(strftime('%m', " + this._appendSql(valueSource, params) + ") as integer) - 1"
     }
     _getDay(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
@@ -356,9 +361,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {
             return '0'
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
-            return '(' + this._appendSqlParenthesis(valueSource, params) + ' % 1000)'
+            return this._appendSqlParenthesis(valueSource, params) + ' % 1000'
         }
-        return "(strftime('%f', " + this._appendSql(valueSource, params) + ") * 1000 % 1000)"
+        return "strftime('%f', " + this._appendSql(valueSource, params) + ") * 1000 % 1000"
     }
     _like(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + ' like ' + this._appendValue(value, params, columnType, typeAdapter) + " escape '\\'"

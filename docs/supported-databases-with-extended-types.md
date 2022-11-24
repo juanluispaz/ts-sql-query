@@ -208,12 +208,14 @@ class DBConection extends TypeSafeMySqlConnection<'DBConnection'> {
     - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`
     - **Time format**: *HH:MM:SS.SSS*. Example: `18:00:00`. In JavaScript always use *1970-01-01* as the date for the provided time.
     - **Date time format**: *YYYY-MM-DD HH:MM:SS.SSS*. Example: `2021-09-25 18:00:00`
+    - **Limitation**: If you get the unix time in the database you will get the wrong value; the returned value will be like that date is in UTC timezone.
 - `localdate as text using T separator`
     - Dates and time are interpreted to be in the same timezone of the running application.
     - **Column type in sqlite**: *TEXT*
     - **Date format**: *YYYY-MM-DD*. Example: `2021-09-25`
     - **Time format**: *HH:MM:SS.SSS*. Example: `18:00:00`. In JavaScript always use *1970-01-01* as the date for the provided time.
     - **Date time format**: *YYYY-MM-DD***T***HH:MM:SS.SSS*. Example: `2021-09-25T18:00:00`
+    - **Limitation**: If you get the unix time in the database you will get the wrong value; the returned value will be like that date is in UTC timezone.
 - `UTC as text`
     - Dates and time are interpreted to be in the UTC timezone.
     - **Column type in sqlite**: *TEXT*

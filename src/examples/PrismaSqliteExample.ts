@@ -4,10 +4,15 @@ import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
 import { SqliteConnection } from "../connections/SqliteConnection";
 import { PrismaClient } from './prisma/generated/sqlite'
 import { PrismaQueryRunner } from "../queryRunners/PrismaQueryRunner"
+import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration";
 
 class DBConection extends SqliteConnection<'DBConnection'> {
     protected uuidStrategy = 'string' as const
     protected compatibilityMode = false
+
+    protected getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
+        return 'Unix time seconds as integer'
+    }
 
     increment(i: number) {
         // Fake implentation for testing purposes
@@ -792,6 +797,36 @@ async function main() {
             .where(tRecord.id.asString().contains('7002'))
             .executeSelectOne()
         assertEquals(record, { id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' })
+
+        const date = new Date('2022-11-21T19:33:56.000Z') // Due the date strategy implementation lost milliseconds they are set to 0 for testing purpose 
+        const dateValue = connection.const(date, 'localDateTime')
+        const dateValidation = await connection
+            .selectFromNoTable()
+            .select({
+                fullYear: dateValue.getFullYear(),
+                month: dateValue.getMonth(),
+                date: dateValue.getDate(),
+                day: dateValue.getDay(),
+                hours: dateValue.getHours(),
+                minutes: dateValue.getMinutes(),
+                second: dateValue.getSeconds(),
+                milliseconds: dateValue.getMilliseconds(),
+                time: dateValue.getTime(),
+                dateValue: dateValue,
+            })
+            .executeSelectOne()
+        assertEquals(dateValidation, {
+            fullYear: date.getUTCFullYear(),
+            month: date.getUTCMonth(),
+            date: date.getUTCDate(),
+            day: date.getUTCDay(),
+            hours: date.getUTCHours(),
+            minutes: date.getUTCMinutes(),
+            second: date.getUTCSeconds(),
+            milliseconds: date.getUTCMilliseconds(),
+            time: date.getTime(),
+            dateValue: date,
+        })
 
         // await connection.commit()
     } catch(e) {

@@ -13,9 +13,15 @@ import * as betterSqlite3 from 'better-sqlite3'
 import { SynchronousPromise } from "synchronous-promise";
 import { fromBinaryUUID, toBinaryUUID } from "binary-uuid";
 import { v1 as uuidv1 } from "uuid";
+import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration";
 
 class DBConection extends SqliteConnection<'DBConnection'> {
     protected compatibilityMode = false
+
+    protected getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
+        return 'Unix time milliseconds as integer'
+    }
+
     increment(i: number) {
         // Fake implentation for testing purposes
         return this.selectFromNoTable().selectOneColumn(this.const(i, 'int').add(1)).executeSelectOne()
@@ -796,6 +802,36 @@ function main() {
             .where(tRecord.id.asString().contains('7002'))
             .executeSelectOne())
         assertEquals(record, { id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' })
+
+        const date = new Date('2022-11-21T19:33:56.123Z')
+        const dateValue = connection.const(date, 'localDateTime')
+        const dateValidation = sync(connection
+            .selectFromNoTable()
+            .select({
+                fullYear: dateValue.getFullYear(),
+                month: dateValue.getMonth(),
+                date: dateValue.getDate(),
+                day: dateValue.getDay(),
+                hours: dateValue.getHours(),
+                minutes: dateValue.getMinutes(),
+                second: dateValue.getSeconds(),
+                milliseconds: dateValue.getMilliseconds(),
+                time: dateValue.getTime(),
+                dateValue: dateValue,
+            })
+            .executeSelectOne())
+        assertEquals(dateValidation, {
+            fullYear: date.getUTCFullYear(),
+            month: date.getUTCMonth(),
+            date: date.getUTCDate(),
+            day: date.getUTCDay(),
+            hours: date.getUTCHours(),
+            minutes: date.getUTCMinutes(),
+            second: date.getUTCSeconds(),
+            milliseconds: date.getUTCMilliseconds(),
+            time: date.getTime(),
+            dateValue: date,
+        })
 
         sync(connection.commit())
     } catch(e) {

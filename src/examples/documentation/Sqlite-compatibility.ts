@@ -523,7 +523,7 @@ async function main() {
     result = 1
     expectedResult.push(result)
     expectedQuery.push(`insert into customer (first_name, last_name, company_id, birthday) values (?, ?, ?, ?)`)
-    expectedParams.push(`["John","Smith",1,"2000-02-01"]`)
+    expectedParams.push(`["John","Smith",1,"2000-03-01"]`)
     expectedType.push(`insertReturningLastInsertedId`)
     
     /* *** Example ****************************************************************/
@@ -1781,7 +1781,7 @@ async function main() {
     result = []
     expectedResult.push(result)
     expectedQuery.push(`select id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer for system_time between ? and ?  where id = ?`)
-    expectedParams.push(`["2019-00-01T00:00:00Z","2020-00-01T00:00:00Z",10]`)
+    expectedParams.push(`["2019-01-01T00:00:00Z","2020-01-01T00:00:00Z",10]`)
     expectedType.push(`selectManyRows`)
     
     /* *** Example ****************************************************************/

@@ -176,4 +176,3 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
         return TYPES.VarBinary
     }
 }
-

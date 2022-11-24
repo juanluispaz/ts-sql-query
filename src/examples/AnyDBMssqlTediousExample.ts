@@ -833,6 +833,37 @@ async function main() {
             .executeSelectOne()
         assertEquals(record, { id: '89BF68FC-7002-11EC-90D6-0242AC120003', title: 'My voice memo' })
 
+        const date = new Date('2022-11-21T19:33:56.123Z')
+        const dateValue = connection.const(date, 'localDateTime')
+        // Note: due we are using the value directly it contains the timezone, then Mssql returns the local values because it is sent by AnyDB
+        const dateValidation = await connection
+            .selectFromNoTable()
+            .select({
+                fullYear: dateValue.getFullYear(),
+                month: dateValue.getMonth(),
+                date: dateValue.getDate(),
+                day: dateValue.getDay(),
+                hours: dateValue.getHours(),
+                minutes: dateValue.getMinutes(),
+                second: dateValue.getSeconds(),
+                milliseconds: dateValue.getMilliseconds(),
+                time: dateValue.getTime(),
+                dateValue: dateValue,
+            })
+            .executeSelectOne()
+        assertEquals(dateValidation, {
+            fullYear: date.getFullYear(),
+            month: date.getMonth(),
+            date: date.getDate(),
+            day: date.getDay(),
+            hours: date.getHours(),
+            minutes: date.getMinutes(),
+            second: date.getSeconds(),
+            milliseconds: date.getMilliseconds(),
+            time: date.getTime(),
+            dateValue: date,
+        })
+
         //await connection.commit()
     } catch(e) {
         //await connection.rollback()

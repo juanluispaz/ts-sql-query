@@ -14,7 +14,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._is = true
         this._operationsThatNeedParenthesis._asDouble = true
         this._operationsThatNeedParenthesis._getDate = true
-        this._operationsThatNeedParenthesis._getMilliseconds = false
+        this._operationsThatNeedParenthesis._getMonth = true
     }
     _insertSupportWith = false
     _forceAsIdentifier(identifier: string): string {
@@ -512,7 +512,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return 'year(' + this._appendSql(valueSource, params) + ')'
     }
     _getMonth(params: any[], valueSource: ToSql): string {
-        return 'month(' + this._appendSql(valueSource, params) + ')'
+        return 'month(' + this._appendSql(valueSource, params) + ') - 1'
     }
     _getDay(params: any[], valueSource: ToSql): string {
         return 'dayofweek(' + this._appendSql(valueSource, params) + ') - 1'

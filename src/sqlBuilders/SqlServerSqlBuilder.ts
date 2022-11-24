@@ -10,8 +10,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
     constructor() {
         super()
-        this._operationsThatNeedParenthesis._getDate = true
-        this._operationsThatNeedParenthesis._getMilliseconds = false
+        this._operationsThatNeedParenthesis._getMonth = true
+        this._operationsThatNeedParenthesis._getDay = true
     }
     _appendRawColumnName(column: Column, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
@@ -698,7 +698,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 'datepart(year, ' + this._appendSql(valueSource, params) + ')'
     }
     _getMonth(params: any[], valueSource: ToSql): string {
-        return 'datepart(month, ' + this._appendSql(valueSource, params) + ')'
+        return 'datepart(month, ' + this._appendSql(valueSource, params) + ') - 1'
     }
     _getDay(params: any[], valueSource: ToSql): string {
         return 'datepart(weekday, ' + this._appendSql(valueSource, params) + ') - 1'

@@ -9,8 +9,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     oracle: true = true
     constructor() {
         super()
-        this._operationsThatNeedParenthesis._getDate = true
-        this._operationsThatNeedParenthesis._getMilliseconds = false
+        this._operationsThatNeedParenthesis._getTime = true
+        this._operationsThatNeedParenthesis._getMonth = true
+        this._operationsThatNeedParenthesis._getDay = true
     }
 
     _insertSupportWith = false
@@ -622,16 +623,17 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'extract(day from ' + this._appendSql(valueSource, params) + ')'
     }
     _getTime(params: any[], valueSource: ToSql): string {
-        return "round((" + this._appendSql(valueSource, params) + " - to_date('01-01-1970','DD-MM-YYYY')) * 86400000)"
+        return "extract(day from(sys_extract_utc(" + this._appendSql(valueSource, params) + ") - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(" + this._appendSql(valueSource, params) + "), 'SSSSSFF3'))"
     }
     _getFullYear(params: any[], valueSource: ToSql): string {
         return 'extract(year from ' + this._appendSql(valueSource, params) + ')'
     }
     _getMonth(params: any[], valueSource: ToSql): string {
-        return 'extract(month from ' + this._appendSql(valueSource, params) + ')'
+        return 'extract(month from ' + this._appendSql(valueSource, params) + ') - 1'
     }
     _getDay(params: any[], valueSource: ToSql): string {
-        return 'extract(day_of_week from ' + this._appendSql(valueSource, params) + ') - 1'
+        // https://riptutorial.com/oracle/example/31649/getting-the-day-of-the-week
+        return "mod(trunc(" + this._appendSql(valueSource, params) + ") - trunc(" + this._appendSql(valueSource, params) + ", 'IW') + 1, 7)"
     }
     _getHours(params: any[], valueSource: ToSql): string {
         return 'extract(hour from ' + this._appendSql(valueSource, params) + ')'
@@ -640,10 +642,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'extract(minute from ' + this._appendSql(valueSource, params) + ')'
     }
     _getSeconds(params: any[], valueSource: ToSql): string {
-        return 'extract(second from ' + this._appendSql(valueSource, params) + ')'
+        return 'trunc(extract(second from ' + this._appendSql(valueSource, params) + '))'
     }
     _getMilliseconds(params: any[], valueSource: ToSql): string {
-        return 'extract(millisecond from ' + this._appendSql(valueSource, params) + ')'
+        return "to_number(to_char(" + this._appendSql(valueSource, params) + ", 'FF3'))"
     }
     _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string {
         let result = 'begin ' + this._escape(procedureName, false) + '('

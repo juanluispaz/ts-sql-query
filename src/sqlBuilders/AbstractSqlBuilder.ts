@@ -42,7 +42,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
             _multiply: true,
             _divide: true,
             _modulo: true,
-            _getMilliseconds: true,
             _fragment: true
         }
     }
@@ -2315,7 +2314,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'extract(day from ' + this._appendSql(valueSource, params) + ')'
     }
     _getTime(params: any[], valueSource: ToSql): string {
-        return 'round(extract(epoch from ' + this._appendSql(valueSource, params) + ') * 1000)'
+        return 'extract(epoch from ' + this._appendSql(valueSource, params) + ')'
     }
     _getFullYear(params: any[], valueSource: ToSql): string {
         return 'extract(year from ' + this._appendSql(valueSource, params) + ')'
@@ -2336,7 +2335,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'extract(second from ' + this._appendSql(valueSource, params) + ')'
     }
     _getMilliseconds(params: any[], valueSource: ToSql): string {
-        return 'extract(millisecond from ' + this._appendSql(valueSource, params) + ') % 1000'
+        return 'extract(millisecond from ' + this._appendSql(valueSource, params) + ')'
     }
     _asString(params: any[], valueSource: ToSql): string {
         // Transform an uuid to string

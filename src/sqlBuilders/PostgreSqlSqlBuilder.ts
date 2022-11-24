@@ -4,6 +4,11 @@ import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
+    constructor() {
+        super()
+        this._operationsThatNeedParenthesis._getMonth = true
+        this._operationsThatNeedParenthesis._getMilliseconds = true
+    }
     _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
@@ -159,6 +164,18 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         } else {
             return 'string_agg(distinct ' + this._appendSql(value, params) + ', ' + this._appendValue(separator, params, 'string', undefined) + ')'
         }
+    }
+    _getTime(params: any[], valueSource: ToSql): string {
+        return 'round(extract(epoch from ' + this._appendSql(valueSource, params) + ') * 1000)'
+    }
+    _getSeconds(params: any[], valueSource: ToSql): string {
+        return 'extract(second from ' + this._appendSql(valueSource, params) + ')::integer'
+    }
+    _getMonth(params: any[], valueSource: ToSql): string {
+        return 'extract(month from ' + this._appendSql(valueSource, params) + ') - 1'
+    }
+    _getMilliseconds(params: any[], valueSource: ToSql): string {
+        return 'extract(millisecond from ' + this._appendSql(valueSource, params) + ')::integer % 1000'
     }
 }
 

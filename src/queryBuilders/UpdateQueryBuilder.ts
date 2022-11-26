@@ -605,8 +605,6 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         if (!this.__joins) {
             this.__joins = []
         }
-        this.__joins.push(this.__lastJoin)
-        this.__lastJoin = undefined
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }

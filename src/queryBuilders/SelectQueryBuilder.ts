@@ -562,7 +562,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             result.__withs = current.__withs.concat()
             result.__joins = current.__joins.concat()
             result.__subSelectUsing = this.__subSelectUsing
-            result.join(view).on(fn(view))
+            result.join(view).on(fn(view)).__finishJoinHaving()
             return result as any
         }
     }
@@ -820,8 +820,6 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             throw new Error('Illegal state')
         }
         this.__lastJoin.__on = asAlwaysIfValueSource(condition)
-        this.__joins.push(this.__lastJoin)
-        this.__lastJoin = undefined
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }

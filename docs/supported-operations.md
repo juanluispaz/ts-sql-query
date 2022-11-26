@@ -40,6 +40,7 @@ interface NullableValueSource extends ValueSource {
     isNull(): boolean
     isNotNull(): boolean
     valueWhenNull(value: this): this
+    nullIfValue(value: this): this | null | undefined
     asOptional(): this | null | undefined
     asRequiredInOptionalObject(): this
 }

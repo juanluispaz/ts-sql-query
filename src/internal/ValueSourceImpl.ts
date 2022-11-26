@@ -679,6 +679,9 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     valueWhenNull(value: any): any {
         return new SqlOperationValueWhenNullValueSource(this, value, this.__valueType, getOptionalType2(this, value), getTypeAdapter2(this, value))
     }
+    nullIfValue(value: any): any {
+        return new SqlOperation1ValueSource('_nullIfValue', this, value, this.__valueType, 'optional', getTypeAdapter2(this, value))
+    }
     and(value: any): any {
         return condition(new SqlOperation1ValueSource('_and', this, value, 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }

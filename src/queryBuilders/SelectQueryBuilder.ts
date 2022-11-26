@@ -43,7 +43,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
 
     __recursiveInternalView?: WithViewImpl<any, any>
     __recursiveView?: WithViewImpl<any, any>
-    __recursiveSelect?: SelectData
+    __recursiveSelect?: SelectData & AbstractSelect
 
     __subSelectUsing?: ITableOrView<any>[]
 
@@ -399,7 +399,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     };
 
     __compoundableAsSelectData(select: ICompoundableSelect<any, any, any, any>): SelectData {
-        return select as any
+        return (select as any as AbstractSelect).__asSelectData()
     }
 
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
@@ -482,7 +482,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     }
     abstract __isAllowed(sqlBuilder: HasIsValue): boolean
 
-    abstract __asSelectData(): SelectData
+    abstract __asSelectData(): SelectData & AbstractSelect
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         this.__finishJoinHaving()
         return sqlBuilder._buildInlineSelect(this.__asSelectData(), params)
@@ -632,6 +632,11 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
 
     __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
+        const recursiveSelect = this.__recursiveSelect
+        if (recursiveSelect) {
+            return recursiveSelect.__buildSelectCount(countAll, params)
+        }
+        this.__asSelectData() // Ensure any missing initialization
         if (this.__groupBy.length > 0) {
             const withView = new WithViewImpl<any, any>(this.__sqlBuilder, 'result_for_count', this)
             const withs: Array<IWithView<any>> = []
@@ -648,7 +653,8 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
                 __where: undefined,
                 __groupBy: [],
                 __withs: withs,
-                __subSelectUsing: this.__subSelectUsing
+                __subSelectUsing: this.__subSelectUsing,
+                __requiredTablesOrViews: this.__requiredTablesOrViews
             }
             return this.__sqlBuilder._buildSelect(selectCountData, params)
         }
@@ -664,7 +670,8 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __where: this.__where,
             __groupBy: [],
             __withs: this.__withs,
-            __subSelectUsing: this.__subSelectUsing
+            __subSelectUsing: this.__subSelectUsing,
+            __requiredTablesOrViews: this.__requiredTablesOrViews
         }
         return this.__sqlBuilder._buildSelect(selectCountData, params)
     }
@@ -927,7 +934,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return this
     }
-    __asSelectData(): SelectData {
+    __asSelectData(): SelectData & AbstractSelect {
         const recursiveSelect = this.__recursiveSelect
         if (recursiveSelect) {
             return recursiveSelect
@@ -1185,7 +1192,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
     __finishJoinHaving(): void {
         // noop: do nothing here
     }
-    __asSelectData(): SelectData {
+    __asSelectData(): SelectData & AbstractSelect {
         const recursiveSelect = this.__recursiveSelect
         if (recursiveSelect) {
             return recursiveSelect

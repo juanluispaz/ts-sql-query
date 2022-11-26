@@ -29,7 +29,7 @@ const pool = createPool('postgres://user:pass@localhost/dbname', {
 });
 
 async function main() {
-    const connection = new DBConection(new AnyDBPoolQueryRunner(pool));
+    const connection = new DBConnection(new AnyDBPoolQueryRunner(pool));
     // Do your queries here
 }
 ```
@@ -64,7 +64,7 @@ function main() {
             throw error;
         }
         try {
-            const connection = new DBConection(new AnyDBQueryRunner(anyDBConnection));
+            const connection = new DBConnection(new AnyDBQueryRunner(anyDBConnection));
             doYourLogic(connection).finally(() => {
                 pool.release(anyDBConnection);
             });
@@ -75,7 +75,7 @@ function main() {
     });
 }
 
-async function doYourLogic(connection: DBConection) {
+async function doYourLogic(connection: DBConnection) {
      // Do your queries here
 }
 ```
@@ -119,7 +119,7 @@ const db = new juggler.DataSource({
 });
 
 async function main() {
-    const connection = new DBConection(createLoopBackQueryRunner(db));
+    const connection = new DBConnection(createLoopBackQueryRunner(db));
     // Do your queries here
 }
 ```
@@ -146,7 +146,7 @@ function main() {
             throw error;
         }
         try {
-            const connection = new DBConection(new MsNodeSqlV8QueryRunner(sqlServerConnection));
+            const connection = new DBConnection(new MsNodeSqlV8QueryRunner(sqlServerConnection));
             yourLogic(connection).finally(() => {
                 sqlServerConnection.close((closeError) => {
                     throw closeError;
@@ -161,7 +161,7 @@ function main() {
     });
 }
 
-async function doYourLogic(connection: DBConection) {
+async function doYourLogic(connection: DBConnection) {
      // Do your queries here
 }
 ```
@@ -187,7 +187,7 @@ const pool  = createPool({
 });
 
 async function main() {
-    const connection = new DBConection(new MySqlPoolQueryRunner(pool));
+    const connection = new DBConnection(new MySqlPoolQueryRunner(pool));
     // Do your queries here
 }
 ```
@@ -216,7 +216,7 @@ function main() {
             throw error;
         }
         try {
-            const connection = new DBConection(new MySqlQueryRunner(mysqlConnection));
+            const connection = new DBConnection(new MySqlQueryRunner(mysqlConnection));
             doYourLogic(connection).finnaly(() => {
                 mysqlConnection.release();
             });
@@ -227,7 +227,7 @@ function main() {
     });
 }
 
-async function doYourLogic(connection: DBConection) {
+async function doYourLogic(connection: DBConnection) {
     // Do your queries here
 }
 ```
@@ -245,7 +245,7 @@ import { PrismaQueryRunner } from "ts-sql-query/queryRunners/PrismaQueryRunner";
 const prisma = new PrismaClient()
 
 async function main() {
-    const connection = new DBConection(new PrismaQueryRunner(prisma));
+    const connection = new DBConnection(new PrismaQueryRunner(prisma));
     // Do your queries here
 }
 ```
@@ -291,7 +291,7 @@ const [prismaCompany, otherCompanyID] = await connection.transaction(() => [
 If you want to use `prismaClient.$transaction` directly, you must create the `PrismaQueryRunner` indicating as the second argument, in the config object, the property `forUseInTransaction`as `true`.
 
 ```ts
-const connection = new DBConection(new PrismaQueryRunner(prisma, {forUseInTransaction: true}));
+const connection = new DBConnection(new PrismaQueryRunner(prisma, {forUseInTransaction: true}));
 
 const [prismaCompany, otherCompanyID] = await prisma.$transaction([
     prisma.company.create({
@@ -324,7 +324,7 @@ To use the interactive transactions, you must enable it in your Prisma Schema (s
   - `isolationLevel` (Prisma.TransactionIsolationLevel, optional): Sets the [transaction isolation level](https://www.prisma.io/docs/concepts/components/prisma-client/transactions#transaction-isolation-level). By default this is set to the value currently configured in your database.
 
 ```ts
-const connection = new DBConection(new PrismaQueryRunner(prisma, {interactiveTransactions: true}));
+const connection = new DBConnection(new PrismaQueryRunner(prisma, {interactiveTransactions: true}));
 
 const transactionResult = connection.transaction(async () => {
     const companyId = await connection.insertInto ...
@@ -338,7 +338,7 @@ If you want to use `prismaClient.$transaction` directly, you must create the `Pr
 
 ```ts
 const transactionResult = prisma.$transaction(async (prismaTransaction) => {
-    const connection = new DBConection(new PrismaQueryRunner(prismaTransaction));
+    const connection = new DBConnection(new PrismaQueryRunner(prismaTransaction));
 
     const companyId = await connection.insertInto ...
     const customerId = await connection.insertInto ... // using the companyId
@@ -352,7 +352,7 @@ const transactionResult = prisma.$transaction(async (prismaTransaction) => {
 If you want to access the underlying Prisma Cient from your connection object you can define an accesor method in your connection class like:
 
 ```ts
-class DBConection extends PostgreSqlConnection<'DBConnection'> {
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     getPrismaClient(): PrismaClient {
         const prisma = this.queryRunner.getCurrentNativeTransaction() || this.queryRunner.getNativeRunner()
         if (prisma instanceof PrismaClient) {
@@ -382,7 +382,7 @@ const dbPromise = open({
 
 async function main() {
     const db = await dbPromise;
-    const connection = new DBConection(new SqliteQueryRunner(db));
+    const connection = new DBConnection(new SqliteQueryRunner(db));
     // Do your queries here
 }
 ```
@@ -416,7 +416,7 @@ var connectionConfig = {
 var pool = new ConnectionPool(poolConfig, connectionConfig);
 
 async function main() {
-    const connection = new DBConection(new TediousPoolQueryRunner(pool));
+    const connection = new DBConnection(new TediousPoolQueryRunner(pool));
     // Do your queries here
 }
 ```
@@ -451,7 +451,7 @@ function main() {
             throw error;
         }
         try {
-            const connection = new DBConection(new TediousQueryRunner(sqlServerConnection));
+            const connection = new DBConnection(new TediousQueryRunner(sqlServerConnection));
             doYourLogic(connection).finnaly(() => {
                 sqlServerConnection.release();
             });
@@ -462,7 +462,7 @@ function main() {
     });
 }
 
-async doYourLogic(connection: DBConection) {
+async doYourLogic(connection: DBConnection) {
     // Do your queries here
 }
 ```

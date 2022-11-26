@@ -15,7 +15,7 @@ import * as betterSqlite3 from "better-sqlite3";
 const db = betterSqlite3('foobar.db', options);
 
 async function main() {
-    const connection = new DBConection(new BetterSqlite3QueryRunner(db));
+    const connection = new DBConnection(new BetterSqlite3QueryRunner(db));
     // Do your queries here
 }
 ```
@@ -65,7 +65,7 @@ const pool = createPool({
 });
 
 async function main() {
-    const connection = new DBConection(new MariaDBPoolQueryRunner(pool));
+    const connection = new DBConnection(new MariaDBPoolQueryRunner(pool));
     // Do your queries here
 }
 ```
@@ -91,7 +91,7 @@ const pool = createPool({
 async function main() {
     const mariaDBConnection = await pool.getConnection();
     try {
-        const connection = new DBConection(new MariaDBQueryRunner(mariaDBConnection));
+        const connection = new DBConnection(new MariaDBQueryRunner(mariaDBConnection));
         // Do your queries here
     } finally {
         mariaDBConnection.release();
@@ -126,7 +126,7 @@ const poolPromise = new ConnectionPool({
 }).connect();
 
 async function main() {
-    const connection = new DBConection(new MssqlPoolPromiseQueryRunner(poolPromise));
+    const connection = new DBConnection(new MssqlPoolPromiseQueryRunner(poolPromise));
     // Do your queries here
 }
 ```
@@ -157,7 +157,7 @@ const poolPromise = new ConnectionPool({
 
 async function main() {
     const mssqlPool = await poolPromise;
-    const connection = new DBConection(new MssqlPoolQueryRunner(mssqlPool));
+    const connection = new DBConnection(new MssqlPoolQueryRunner(mssqlPool));
     // Do your queries here
 }
 ```
@@ -185,7 +185,7 @@ const pool = createPool({
 });
 
 async function main() {
-    const connection = new DBConection(new MySql2PoolQueryRunner(pool));
+    const connection = new DBConnection(new MySql2PoolQueryRunner(pool));
     // Do your queries here
 }
 ```
@@ -216,7 +216,7 @@ function main() {
             throw error;
         }
         try {
-            const connection = new DBConection(new MySql2QueryRunner(mysql2Connection));
+            const connection = new DBConnection(new MySql2QueryRunner(mysql2Connection));
             doYourLogic(connection).finnaly(() => {
                 mysql2Connection.release();
             });
@@ -227,7 +227,7 @@ function main() {
     });
 }
 
-async doYourLogic(connection: DBConection) {
+async doYourLogic(connection: DBConnection) {
     // Do your queries here
 }
 ```
@@ -266,7 +266,7 @@ process
   .once('beforeExit',  closePoolAndExit);
 
 async function main() {
-    const connection = new DBConection(new OracleDBPoolPromiseQueryRunner(poolPromise));
+    const connection = new DBConnection(new OracleDBPoolPromiseQueryRunner(poolPromise));
     // Do your queries here
 }
 ```
@@ -304,7 +304,7 @@ process
 
 async function main() {
     const pool = await poolPromise;
-    const connection = new DBConection(new OracleDBPoolQueryRunner(pool));
+    const connection = new DBConnection(new OracleDBPoolQueryRunner(pool));
     // Do your queries here
 }
 ```
@@ -351,7 +351,7 @@ init();
 async function main() {
     const oracleConnection = await oracledb.getConnection();
     try {
-        const connection = new DBConection(new OracleDBQueryRunner(oracleConnection));
+        const connection = new DBConnection(new OracleDBQueryRunner(oracleConnection));
         // Do your queries here
     } finally {
         await oracleConnection.close();
@@ -380,7 +380,7 @@ const pool = new Pool({
 });
 
 async function main() {
-    const connection = new DBConection(new PgPoolQueryRunner(pool));
+    const connection = new DBConnection(new PgPoolQueryRunner(pool));
     // Do your queries here
 }
 ```
@@ -406,7 +406,7 @@ const pool = new Pool({
 async function main() {
     const pgConnection = await pool.connect();
     try {
-        const connection = new DBConection(new PgQueryRunner(pgConnection));
+        const connection = new DBConnection(new PgQueryRunner(pgConnection));
         // Do your queries here
     } finally {
         pgConnection.release();
@@ -427,7 +427,7 @@ import { Sqlite3QueryRunner } from "ts-sql-query/queryRunners/Sqlite3QueryRunner
 const db = new Database('./database.sqlite');
 
 async function main() {
-    const connection = new DBConection(new Sqlite3QueryRunner(db));
+    const connection = new DBConnection(new Sqlite3QueryRunner(db));
     // Do your queries here
 }
 ```

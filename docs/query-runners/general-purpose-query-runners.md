@@ -12,7 +12,7 @@ A fake connections that write all the queries to the standard output using `cons
 import { ConsoleLogNoopQueryRunner } from "ts-sql-query/queryRunners/ConsoleLogNoopQueryRunner";
 
 async function main() {
-    const connection = new DBConection(new ConsoleLogNoopQueryRunner());
+    const connection = new DBConnection(new ConsoleLogNoopQueryRunner());
     // Do your queries here
 }
 ```
@@ -29,7 +29,7 @@ A query runner that write all the queries to the standard output using `console.
 import { ConsoleLogQueryRunner } from "ts-sql-query/queryRunners/ConsoleLogQueryRunner";
 
 async function main() {
-    const connection = new DBConection(new ConsoleLogQueryRunner(otherQueryRunner));
+    const connection = new DBConnection(new ConsoleLogQueryRunner(otherQueryRunner));
     // Do your queries here
 }
 ```
@@ -75,7 +75,7 @@ class DurationLogginQueryRunner extends InterceptorQueryRunner<DurationPlayload>
 }
 
 async function main() {
-    const connection = new DBConection(new DurationLogginQueryRunner(otherQueryRunner));
+    const connection = new DBConnection(new DurationLogginQueryRunner(otherQueryRunner));
     // Do your queries here
 }
 ```
@@ -119,7 +119,7 @@ A query runner that intercept all the queries allowing you to log it and delegat
 import { LoggingQueryRunner } from "ts-sql-query/queryRunners/LoggingQueryRunner";
 
 async function main() {
-    const connection = new DBConection(new LoggingQueryRunner({
+    const connection = new DBConnection(new LoggingQueryRunner({
         onQuery(queryType, query, params) {
             console.log('onQuery', queryType, query, params, { startedAt })
         },
@@ -174,7 +174,7 @@ Mock connection that allows you inspect the queries and return the desired value
 import { MockQueryRunner } from "ts-sql-query/queryRunners/MockQueryRunner";
 
 async function main() {
-    const connection = new DBConection(new MockQueryRunner(
+    const connection = new DBConnection(new MockQueryRunner(
         (type, query, params, index) => {
             // verify your queries here
         }
@@ -209,7 +209,7 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 
 ```ts
 test('my test', async () => {
-    const connection = new DBConection(new MockQueryRunner((type, query, params, index) => {
+    const connection = new DBConnection(new MockQueryRunner((type, query, params, index) => {
         switch (index) {
         case 0:
             expect(type).toEqual('insertReturningLastInsertedId');
@@ -260,7 +260,7 @@ A fake connections that returns an empty result.
 import { NoopQueryRunner } from "ts-sql-query/queryRunners/NoopQueryRunner";
 
 async function main() {
-    const connection = new DBConection(new NoopQueryRunner());
+    const connection = new DBConnection(new NoopQueryRunner());
     // Do your queries here
 }
 ```

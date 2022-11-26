@@ -7,7 +7,7 @@ The way to define what database to use is when you define the connection and ext
 ```ts
 import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
 
-class DBConection extends MariaDBConnection<'DBConnection'> { }
+class DBConnection extends MariaDBConnection<'DBConnection'> { }
 ```
 
 ### Last inserted id strategies in MariaDB
@@ -17,7 +17,7 @@ MariaBD 10.5 added support to the returning clause when insert or delete. If you
 ```ts
 import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
 
-class DBConection extends MariaDBConnection<'DBConnection'> { 
+class DBConnection extends MariaDBConnection<'DBConnection'> { 
     protected alwaysUseReturningClauseWhenInsert = true
 }
 ```
@@ -34,7 +34,7 @@ To change the UUID strategy, you must set the `uuidStrategy` field in the connec
 ```ts
 import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
 
-class DBConection extends MariaDBConnection<'DBConnection'> {
+class DBConnection extends MariaDBConnection<'DBConnection'> {
     protected uuidStrategy = 'string' as const
 }
 ```
@@ -44,7 +44,7 @@ class DBConection extends MariaDBConnection<'DBConnection'> {
 ```ts
 import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
 
-class DBConection extends MySqlConnection<'DBConnection'> { }
+class DBConnection extends MySqlConnection<'DBConnection'> { }
 ```
 
 ### UUID strategies in MySql
@@ -59,7 +59,7 @@ To change the UUID strategy, you must set the `uuidStrategy` field in the connec
 ```ts
 import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
 
-class DBConection extends MySqlConnection<'DBConnection'> {
+class DBConnection extends MySqlConnection<'DBConnection'> {
     protected uuidStrategy = 'string' as const
 }
 ```
@@ -73,7 +73,7 @@ By default the compatibility mode is disabled. To enable the compatibility mode 
 ```ts
 import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
 
-class DBConection extends MySqlConnection<'DBConnection'> {
+class DBConnection extends MySqlConnection<'DBConnection'> {
     protected compatibilityMode = true
 }
 ```
@@ -85,7 +85,7 @@ class DBConection extends MySqlConnection<'DBConnection'> {
 ```ts
 import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
 
-class DBConection extends OracleConnection<'DBConnection'> { }
+class DBConnection extends OracleConnection<'DBConnection'> { }
 ```
 
 **Note**: Oracle doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a number where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](advanced-usage.md#custom-booleans-values) for more information.
@@ -102,7 +102,7 @@ To change the UUID strategy, you must set the `uuidStrategy` field in the connec
 ```ts
 import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
 
-class DBConection extends OracleConnection<'DBConnection'> {
+class DBConnection extends OracleConnection<'DBConnection'> {
     protected uuidStrategy = 'string' as const
 }
 ```
@@ -163,7 +163,7 @@ END raw_to_uuid;
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
-class DBConection extends PostgreSqlConnection<'DBConnection'> { }
+class DBConnection extends PostgreSqlConnection<'DBConnection'> { }
 ```
 
 ## Sqlite
@@ -171,7 +171,7 @@ class DBConection extends PostgreSqlConnection<'DBConnection'> { }
 ```ts
 import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
 
-class DBConection extends SqliteConnection<'DBConnection'> { }
+class DBConnection extends SqliteConnection<'DBConnection'> { }
 ```
 
 **Note**: If you use [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) to connect to the database you can run your queries synchronously. See [BetterSqlite3QueryRunner](query-runners/recommended-query-runners.md#better-sqlite3) and [Synchronous query runners](advanced-usage.md#synchronous-query-runners) for more information.
@@ -288,7 +288,7 @@ To change the UUID strategy, you must set the `uuidStrategy` field in the connec
 ```ts
 import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
 
-class DBConection extends SqliteConnection<'DBConnection'> {
+class DBConnection extends SqliteConnection<'DBConnection'> {
     protected uuidStrategy = 'string' as const
 }
 ```
@@ -307,7 +307,7 @@ By default the compatibility mode is enabled. To disable the compatibility mode 
 ```ts
 import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
 
-class DBConection extends SqliteConnection<'DBConnection'> {
+class DBConnection extends SqliteConnection<'DBConnection'> {
     protected compatibilityMode = false
 }
 ```
@@ -317,7 +317,7 @@ class DBConection extends SqliteConnection<'DBConnection'> {
 ```ts
 import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
 
-class DBConection extends SqlServerConnection<'DBConnection'> { }
+class DBConnection extends SqlServerConnection<'DBConnection'> { }
 ```
 
 **Note**: An empty string will be treated as a null value; if you need to allow empty string set the `allowEmptyString` property to true in the connection object.
@@ -331,7 +331,7 @@ Is SqlServer UUID are stored in a column of type `uniqueidentifier` that keeps t
 ```ts
 import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
 
-class DBConection extends SqlServerConnection<'DBConnection'> { 
+class DBConnection extends SqlServerConnection<'DBConnection'> { 
     protected transformValueFromDB(value: unknown, type: string): unknown {
         const result = super.transformValueFromDB(value, type);
         if (result && type === 'uuid') {

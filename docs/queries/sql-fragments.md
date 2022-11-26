@@ -42,7 +42,7 @@ If you define your connection like:
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
-class DBConection extends PostgreSqlConnection<'DBConnection'> { 
+class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
         this.arg('int', 'required'),
@@ -102,7 +102,7 @@ If you define your connection like:
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
-class DBConection extends PostgreSqlConnection<'DBConnection'> { 
+class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
 
     valuePlusOneEqualsIfValue = this.buildFragmentWithArgsIfValue(
         this.arg('int', 'required'),
@@ -168,7 +168,7 @@ ts-sql-query allows you to customize the SQL required to use the table, allowing
 
 You must define the connection with the customization function as:
 ```ts
-class DBConection extends SqlServerConnection<'DBConnection'> { 
+class DBConnection extends SqlServerConnection<'DBConnection'> { 
 
     forSystemTimeBetween = this.createTableOrViewCustomization<Date, Date>((table, alias, fromDate, toDate) => {
         const from = this.const(fromDate, 'localDateTime')

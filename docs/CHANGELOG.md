@@ -597,13 +597,13 @@ See [1.0.0-beta.1 release notes](#v1.0.0-beta.1)
 - Rename `QueryRunner.getNativeConnection` as `getNativeRunner` to avoid confusion because this method doesn't return the connection in all the implementation (could be the pool)
 - Big refactor to reduce the pressure on TypeScript type validations. **Breaking changes**:
     - Connections classes now only receive one generic argument with a unique name.
-        - **Before**: `DBConection extends PostgreSqlConnection<DBConection, 'DBConnection'> { }`
-        - **After**: `DBConection extends PostgreSqlConnection<'DBConnection'> { }`
+        - **Before**: `DBConnection extends PostgreSqlConnection<DBConnection, 'DBConnection'> { }`
+        - **After**: `DBConnection extends PostgreSqlConnection<'DBConnection'> { }`
     - Tables and views now receive a second generic argument with a unique name.
-        - **Before**: `class TCompany extends Table<DBConection> { ... }`
-        - **After**: `class TCompany extends Table<DBConection, 'TCompany'> { ... }`
-        - **Before**: `class VCustomerAndCompany extends View<DBConection> { ... }`
-        - **After**: `class VCustomerAndCompany extends View<DBConection, 'VCustomerAndCompany'> { ... }`
+        - **Before**: `class TCompany extends Table<DBConnection> { ... }`
+        - **After**: `class TCompany extends Table<DBConnection, 'TCompany'> { ... }`
+        - **Before**: `class VCustomerAndCompany extends View<DBConnection> { ... }`
+        - **After**: `class VCustomerAndCompany extends View<DBConnection, 'VCustomerAndCompany'> { ... }`
 - The value argument and the return type in the type adapters (including the default implementation in the connection) have now type `unknown`
 - Trak if a value source is optional and validates if the result of executing a query return a value when it is expected. **Braking changes**:
     - A const with an optional value must be created using the new `optionalConst` function in the connection, previously was used the `const` function in the connection

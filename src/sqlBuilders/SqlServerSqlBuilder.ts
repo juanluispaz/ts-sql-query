@@ -132,7 +132,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             const value = values[i]!
             let valueSql = ''
             for (var columnName in withValues) {
-                const column = __getColumnOfObject(withValues, columnName)
+                const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)
                 if (!column) {
                     continue
                 }
@@ -149,7 +149,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         let columns = ''
         for (var columnName in withValues) {
-            const column = __getColumnOfObject(withValues, columnName)
+            const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)
             if (!column) {
                 continue
             }

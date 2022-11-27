@@ -1,5 +1,5 @@
 import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource, __getValueSourceOfObject, __getValueSourcePrivate, TypeSafeUuidValueSource, UuidValueSource, IBooleanValueSource, IStringIntValueSource, IStringNumberValueSource, IIntValueSource, INumberValueSource, ITypeSafeBigintValueSource, IBigintValueSource, IStringDoubleValueSource, IDoubleValueSource, ITypeSafeStringValueSource, IStringValueSource, ITypeSafeUuidValueSource, IUuidValueSource, ILocalDateValueSource, IDateValueSource, ILocalTimeValueSource, ITimeValueSource, ILocalDateTimeValueSource, IDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource } from "./expressions/values"
-import { HasIsValue, IValues, IWithView, TableOrViewOf, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
+import { HasIsValue, ITableOrView, IValues, IWithView, TableOrViewOf, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
 import type { TypeAdapter } from "./TypeAdapter"
 import type { AliasedTableOrView, OuterJoinSourceOf } from "./utils/tableOrViewUtils"
 import { Column, OptionalColumn, __getColumnOfObject, __getColumnPrivate } from "./utils/Column"
@@ -253,6 +253,11 @@ class ValuesOf<REF extends VIEW<AnyDB, any>> implements IValues<REF> {
             const columnPrivate = __getColumnPrivate(column)
             columnPrivate.__name = columnName
         }
+    }
+
+    // @ts-ignore
+    private __getTableOrView(): ITableOrView<any> {
+        return this
     }
 }
 

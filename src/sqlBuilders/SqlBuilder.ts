@@ -83,11 +83,12 @@ export interface WithSelectData {
     __recursive?: boolean
 }
 
-export interface WithValuesData extends ITableOrView<any> {
+export interface WithValuesData {
     __type: 'values'
     __name: string
     __as?: string
     __values: any[]
+    __getTableOrView(): ITableOrView<any>
 }
 
 export type WithData = WithSelectData | WithValuesData

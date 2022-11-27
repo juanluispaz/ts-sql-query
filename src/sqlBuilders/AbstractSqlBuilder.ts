@@ -527,7 +527,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let result = withValues.__name
         let columns = ''
         for (var columnName in withValues) {
-            const column = __getColumnOfObject(withValues, columnName)
+            const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)
             if (!column) {
                 continue
             }
@@ -549,7 +549,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             const value = values[i]!
             let valueSql = ''
             for (var columnName in withValues) {
-                const column = __getColumnOfObject(withValues, columnName)
+                const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)
                 if (!column) {
                     continue
                 }

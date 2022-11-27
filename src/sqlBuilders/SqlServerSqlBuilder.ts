@@ -160,7 +160,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             columns += this._appendColumnAlias(columnPrivate.__name, params)
         }
         result += '(' + columns + ')'
-        result += '))'
+        result += ')'
 
         return result
     }

@@ -10,6 +10,7 @@ import { Table } from "../Table";
 import { assertEquals } from "./assertEquals";
 import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
 import { IDEncrypter } from '../extras/IDEncrypter';
+import { Values } from '../Values';
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     increment(i: number) {
@@ -961,6 +962,43 @@ async function main() {
             time: date.getTime(),
             dateValue: date,
         })
+
+        class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
+            id = this.column<string>('customComparable', 'encryptedID');
+            firstName = this.column('string')
+            lastName = this.column('string')
+        }
+        const customerForUpdate = Values.create(VCustomerForUpdate, 'customerForUpdate', [{
+            id: 'uftSdCUhUTBQ0111',
+            firstName: 'First Name',
+            lastName: 'Last Name'
+        }])
+        
+        n = await connection.update(tCustomer)
+            .from(customerForUpdate)
+            .set({
+                firstName: customerForUpdate.firstName,
+                lastName: customerForUpdate.lastName
+            })
+            .where(tCustomer.id.equals(customerForUpdate.id))
+            .executeUpdate()
+        assertEquals(n, 0)
+    
+        class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {
+            firstName = this.column('string')
+            lastName = this.column('string')
+        }
+        const customerForDelete = Values.create(VCustomerForDelete, 'customerForDelete', [{
+            firstName: 'First Name',
+            lastName: 'Last Name'
+        }])
+        
+        n = await connection.deleteFrom(tCustomer)
+            .using(customerForDelete)
+            .where(tCustomer.firstName.equals(customerForDelete.firstName))
+            .and(tCustomer.lastName.equals(customerForDelete.lastName))
+            .executeDelete()
+        assertEquals(n, 0)
 
         await connection.commit()
     } catch(e) {

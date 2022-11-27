@@ -9,6 +9,7 @@ import { Database } from 'sqlite3';
 import { Sqlite3QueryRunner } from "../queryRunners/Sqlite3QueryRunner";
 import { SqliteConnection } from "../connections/SqliteConnection";
 import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration";
+import { Values } from "../Values";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected uuidStrategy = 'string' as const
@@ -813,6 +814,43 @@ async function main() {
             time: date.getTime(),
             dateValue: date,
         })
+
+        class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
+            id = this.column('int')
+            firstName = this.column('string')
+            lastName = this.column('string')
+        }
+        const customerForUpdate = Values.create(VCustomerForUpdate, 'customerForUpdate', [{
+            id: 100,
+            firstName: 'First Name',
+            lastName: 'Last Name'
+        }])
+        
+        i = await connection.update(tCustomer)
+            .from(customerForUpdate)
+            .set({
+                firstName: customerForUpdate.firstName,
+                lastName: customerForUpdate.lastName
+            })
+            .where(tCustomer.id.equals(customerForUpdate.id))
+            .executeUpdate()
+        assertEquals(i, 0)
+    
+        // class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {
+        //     firstName = this.column('string')
+        //     lastName = this.column('string')
+        // }
+        // const customerForDelete = Values.create(VCustomerForDelete, 'customerForDelete', [{
+        //     firstName: 'First Name',
+        //     lastName: 'Last Name'
+        // }])
+        
+        // i = await connection.deleteFrom(tCustomer)
+        //     .using(customerForDelete)
+        //     .where(tCustomer.firstName.equals(customerForDelete.firstName))
+        //     .and(tCustomer.lastName.equals(customerForDelete.lastName))
+        //     .executeDelete()
+        // assertEquals(i, 0)
 
         await connection.commit()
     } catch(e) {

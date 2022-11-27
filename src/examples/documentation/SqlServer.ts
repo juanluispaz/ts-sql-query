@@ -3825,7 +3825,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`with customerForUpdate as (select * from (values (@0, @1, @2)) as customerForUpdate(id, firstName, lastName))) update customer set first_name = customerForUpdate.firstName, last_name = customerForUpdate.lastName from customerForUpdate where customer.id = customerForUpdate.id`)
+    expectedQuery.push(`with customerForUpdate as (select * from (values (@0, @1, @2)) as customerForUpdate(id, firstName, lastName)) update customer set first_name = customerForUpdate.firstName, last_name = customerForUpdate.lastName from customerForUpdate where customer.id = customerForUpdate.id`)
     expectedParams.push(`[1,"First Name","Last Name"]`)
     expectedType.push(`update`)
 
@@ -3857,7 +3857,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`with customerForDelete as (select * from (values (@0, @1)) as customerForDelete(firstName, lastName))) delete from customer from customerForDelete where customer.first_name = customerForDelete.firstName and customer.last_name = customerForDelete.lastName`)
+    expectedQuery.push(`with customerForDelete as (select * from (values (@0, @1)) as customerForDelete(firstName, lastName)) delete from customer from customerForDelete where customer.first_name = customerForDelete.firstName and customer.last_name = customerForDelete.lastName`)
     expectedParams.push(`["First Name","Last Name"]`)
     expectedType.push(`delete`)
 

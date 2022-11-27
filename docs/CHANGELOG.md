@@ -1,5 +1,26 @@
 # Change Log
 
+## v1.41.0 (27 Nov 2022)
+
+**Changes**:
+
+- Implement `nullIfValue` function that returns null when the provided value is the same otherwise return the initial value
+- Add support to values construction that allows to create a "view" for use in the query with a list of constant provided values
+- Add support to param placeholder customisation, allowing to include type cast in the generated sql query for the param
+
+**Documentation changes**:
+
+- Fix DBConnection typo in examples and documentation
+
+**Bug fixes**:
+
+- Fix internal error when optional joins are used in a select page query
+- Fix internal error when `join(...).on(...).and/or` pattern is used
+- Fix wrong month number sent to the database when a text representation of the date is used in Sqlite
+- Fix `getMonth` method returning wrong value (The returning value must follow JS's Date definition) in PostgreSQL, Sqlite, MariaDB, MySQL, Oracle and SqlServer
+- Fix `getSeconds`, `getMilliseconds` over a date/time in Oracle
+- Fix `getDay`, `getSeconds`, `getMilliseconds` and `getTime` over a date/time in Oracle
+
 ## v1.40.0 (30 Oct 2022)
 
 **Bug fixes**:

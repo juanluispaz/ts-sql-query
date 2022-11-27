@@ -1,4 +1,4 @@
-import { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, flattenQueryColumns, WithData } from "./SqlBuilder"
+import { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, flattenQueryColumns, WithSelectData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
@@ -87,7 +87,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const result = '((' + this._buildInlineSelect(query, params) + ') = 1)'
         return result
     }
-    _appendWithColumns(withData: WithData, params: any[]): string {
+    _appendWithColumns(withData: WithSelectData, params: any[]): string {
         if (withData.__selectData.__type === 'plain') {
             return ''
         }

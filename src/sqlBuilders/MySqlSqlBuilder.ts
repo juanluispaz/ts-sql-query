@@ -103,6 +103,9 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         if (this._connectionConfiguration.compatibilityMode) {
             // The with clause must be expanded inline when it is required
             if (hasWithData(table)) {
+                if (table.__type === 'values') {
+                    throw new Error('Values are not supported in MySql compatibility mode')
+                }
                 if (table.__recursive) {
                     throw new Error('Recursive queries are not supported in MySql compatibility mode')
                 }

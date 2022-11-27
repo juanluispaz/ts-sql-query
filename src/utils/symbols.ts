@@ -88,3 +88,6 @@ export const localDateValueSourceType: unique symbol = Symbol('localDateValueSou
 export const localTimeValueSourceType: unique symbol = Symbol('localTimeValueSourceType')
 export const localDateTimeValueSourceType: unique symbol = Symbol('localDateTimeValueSourceType')
 export const aggregatedArrayValueSourceType: unique symbol = Symbol('aggregatedArrayValueSourceType')
+
+// Opaque types
+export const dontCallConstructor: unique symbol = Symbol('dontCallConstructor')

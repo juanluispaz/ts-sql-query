@@ -1,4 +1,4 @@
-import type { CUSTOMIZED_TABLE_OR_VIEW, ITable, ITableOrView, IView, IWithView, OuterJoinSource, TableOrViewAlias, TABLE_OR_VIEW_ALIAS, TableOrViewRef, OLD, OldTableOrView, OUTER_JOIN_SOURCE, TableOrViewOuterJoin, VALUES_FOR_INSERT, ValuesForInsertTableOrView } from "./ITableOrView"
+import type { CUSTOMIZED_TABLE_OR_VIEW, ITable, ITableOrView, IView, IWithView, OuterJoinSource, TableOrViewAlias, TABLE_OR_VIEW_ALIAS, TableOrViewRef, OLD, OldTableOrView, OUTER_JOIN_SOURCE, TableOrViewOuterJoin, VALUES_FOR_INSERT, ValuesForInsertTableOrView, IValues } from "./ITableOrView"
 import type { AnyValueSource, IValueSource, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType } from "../expressions/values"
 import type { tableOrViewRef, type, viewName } from "./symbols"
 import type { AnyDB } from "../databases"
@@ -52,11 +52,13 @@ type CustomizedTableOrViewType<TABLE_OR_VIEW extends ITableOrView<any>, REF exte
         T extends ITable<any> ? TableOrViewAlias<ITable<REF>, ALIAS>
         : T extends IView<any> ? TableOrViewAlias<IView<REF>, ALIAS>
         : T extends IWithView<any> ? TableOrViewAlias<IWithView<REF>, ALIAS>
+        : T extends IValues<any> ? TableOrViewAlias<IValues<REF>, ALIAS>
         : never
     )
     : TABLE_OR_VIEW extends ITable<any> ? ITable<REF>
     : TABLE_OR_VIEW extends IView<any> ? IView<REF>
     : TABLE_OR_VIEW extends IWithView<any> ? IWithView<REF>
+    : TABLE_OR_VIEW extends IValues<any> ? IValues<REF>
     : never
 
 type CustomizedTableOrViewRefFor<TABLE_OR_VIEW extends ITableOrView<any>, NAME> =

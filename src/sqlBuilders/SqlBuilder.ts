@@ -75,15 +75,25 @@ export function isAllowedQueryColumns(columns: QueryColumns, sqlBuilder: HasIsVa
     return true
 }
 
-export interface WithData {
+export interface WithSelectData {
+    __type: 'with'
     __name: string
     __as?: string
     __selectData: SelectData
     __recursive?: boolean
 }
 
+export interface WithValuesData extends ITableOrView<any> {
+    __type: 'values'
+    __name: string
+    __as?: string
+    __values: any[]
+}
+
+export type WithData = WithSelectData | WithValuesData
+
 export function hasWithData(value: any): value is WithData {
-    if (value && value.__name && value.__selectData) {
+    if (value && value.__name && (value.__selectData || value.__values)) {
         return true
     } else {
         return false

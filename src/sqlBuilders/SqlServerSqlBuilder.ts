@@ -1,8 +1,8 @@
-import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData, flattenQueryColumns, FlatQueryColumns, getQueryColumn, QueryColumns } from "./SqlBuilder"
+import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData, flattenQueryColumns, FlatQueryColumns, getQueryColumn, QueryColumns, WithValuesData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AnyValueSource, IExecutableSelectQuery, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { Column, isColumn, __getColumnPrivate } from "../utils/Column"
+import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { ITable, __getTableOrViewPrivate } from "../utils/ITableOrView"
 
@@ -118,6 +118,51 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _appendWithKeyword(_recursive: boolean): string {
         // Sql Server doesn't uses the recursive keyword
         return 'with'
+    }
+    _buildWithValues(withValues: WithValuesData, params: any[]) {
+        let result = withValues.__name
+        result += ' as (select * from (values '
+
+        const values = withValues.__values
+        let valuesSql = ''
+        for (let i = 0, length = values.length; i < length; i++) {
+            if (valuesSql) {
+                valuesSql += ', '
+            }
+            const value = values[i]!
+            let valueSql = ''
+            for (var columnName in withValues) {
+                const column = __getColumnOfObject(withValues, columnName)
+                if (!column) {
+                    continue
+                }
+                if (valueSql) {
+                    valueSql += ', '
+                }
+                valueSql += this._appendValueForColumn(column, value[columnName], params)
+            }
+            valuesSql += '(' + valueSql + ')'
+        }
+        result += valuesSql
+        result += ') as '
+        result += withValues.__name
+
+        let columns = ''
+        for (var columnName in withValues) {
+            const column = __getColumnOfObject(withValues, columnName)
+            if (!column) {
+                continue
+            }
+            if (columns) {
+                columns += ', '
+            }
+            const columnPrivate = __getColumnPrivate(column)
+            columns += this._appendColumnAlias(columnPrivate.__name, params)
+        }
+        result += '(' + columns + ')'
+        result += '))'
+
+        return result
     }
     _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined, isOutermostQuery: boolean): string {
         if (columnForInsert) {

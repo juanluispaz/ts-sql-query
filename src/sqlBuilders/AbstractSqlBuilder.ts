@@ -1,4 +1,4 @@
-import { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, flattenQueryColumns, getQueryColumn, WithData } from "./SqlBuilder"
+import { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, flattenQueryColumns, getQueryColumn, WithSelectData, WithValuesData } from "./SqlBuilder"
 import { ITableOrView, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, isValueSource, __AggregatedArrayColumns, __getValueSourceOfObject, __ValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
@@ -499,10 +499,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
         let result = ''
         let recursive = false
         for (let i = 0, length = withs.length; i < length; i++) {
+            const withView = getWithData(withs[i]!)
+            if (withView.__type === 'values') {
+                const values = this._buildWithValues(withView, params)
+                if (values) {
+                    if (result) {
+                        result += ', '
+                    }
+                    result += values
+                }
+                continue
+            }
             if (result) {
                 result += ', '
             }
-            const withView = getWithData(withs[i]!)
             result += withView.__name
             result += this._appendWithColumns(withView, params)
             result += ' as ('
@@ -513,7 +523,48 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setWithGeneratedFinished(params, true)
         return this._appendWithKeyword(recursive) + ' ' + result + ' '
     }
-    _appendWithColumns(_withData: WithData, _params: any[]): string {
+    _buildWithValues(withValues: WithValuesData, params: any[]) {
+        let result = withValues.__name
+        let columns = ''
+        for (var columnName in withValues) {
+            const column = __getColumnOfObject(withValues, columnName)
+            if (!column) {
+                continue
+            }
+            if (columns) {
+                columns += ', '
+            }
+            const columnPrivate = __getColumnPrivate(column)
+            columns += this._appendColumnAlias(columnPrivate.__name, params)
+        }
+        result += '(' + columns + ')'
+        result += ' as (values '
+
+        const values = withValues.__values
+        let valuesSql = ''
+        for (let i = 0, length = values.length; i < length; i++) {
+            if (valuesSql) {
+                valuesSql += ', '
+            }
+            const value = values[i]!
+            let valueSql = ''
+            for (var columnName in withValues) {
+                const column = __getColumnOfObject(withValues, columnName)
+                if (!column) {
+                    continue
+                }
+                if (valueSql) {
+                    valueSql += ', '
+                }
+                valueSql += this._appendValueForColumn(column, value[columnName], params)
+            }
+            valuesSql += '(' + valueSql + ')'
+        }
+        result += valuesSql
+        result += ')'
+        return result
+    }
+    _appendWithColumns(_withData: WithSelectData, _params: any[]): string {
         return ''
     }
     _appendWithKeyword(recursive: boolean): string {

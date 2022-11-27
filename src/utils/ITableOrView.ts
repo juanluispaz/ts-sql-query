@@ -97,7 +97,7 @@ export function __isAllowed(value: any, sqlBuilder: HasIsValue): boolean {
 export interface __ITableOrViewPrivate extends HasAddWiths {
     __name: string
     __as?: string
-    __type: 'table' | 'view' | 'with'
+    __type: 'table' | 'view' | 'with' | 'values'
     __forUseInLeftJoin?: boolean
     __template?: RawFragment<any>
     __customizationName?: string
@@ -120,6 +120,10 @@ export interface ITableOf<DB extends AnyDB, REF extends TableOrViewRef<DB>> exte
 
 export interface IView<REF extends TableOrViewRef<AnyDB>> extends ITableOrView<REF>{
     [type]: 'view'
+}
+
+export interface IValues<REF extends TableOrViewRef<AnyDB>> extends ITableOrView<REF>{
+    [type]: 'values'
 }
 
 export interface IWithView<REF extends TableOrViewRef<AnyDB>> extends ITableOrView<REF>{

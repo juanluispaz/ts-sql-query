@@ -1,14 +1,14 @@
 import { HasIsValue, ITableOrView, IWithView, __addWiths, __getTableOrViewPrivate, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import type { AliasedTableOrView, OuterJoinSourceOf, WITH_VIEW } from "../utils/tableOrViewUtils"
 import type { AnyDB } from "../databases"
-import type { SelectData, SqlBuilder, WithData } from "../sqlBuilders/SqlBuilder"
+import type { SelectData, SqlBuilder, WithSelectData } from "../sqlBuilders/SqlBuilder"
 import { createColumnsFrom } from "../internal/ColumnImpl"
 import { database, tableOrViewRef, type } from "../utils/symbols"
 import { __getValueSourceOfObject, __getValueSourcePrivate } from "../expressions/values"
 import { RawFragment } from "../utils/RawFragment"
 import { Column } from "../utils/Column"
 
-export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME>> implements IWithView<REF>, WithData, __ITableOrViewPrivate {
+export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME>> implements IWithView<REF>, WithSelectData, __ITableOrViewPrivate {
     [database]!: REF[typeof database]
     [type]!: 'with'
     [tableOrViewRef]!: REF

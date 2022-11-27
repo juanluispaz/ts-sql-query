@@ -105,11 +105,12 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
             if (hasWithData(table)) {
                 if (table.__type === 'values') {
                     throw new Error('Values are not supported in MySql compatibility mode')
+                } else {
+                    if (table.__recursive) {
+                        throw new Error('Recursive queries are not supported in MySql compatibility mode')
+                    }
+                    return '(' + this._buildSelect(table.__selectData, params) + ')'
                 }
-                if (table.__recursive) {
-                    throw new Error('Recursive queries are not supported in MySql compatibility mode')
-                }
-                return '(' + this._buildSelect(table.__selectData, params) + ')'
             }
         }
         return super._appendTableOrViewNameForFrom(table, params)

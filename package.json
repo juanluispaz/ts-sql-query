@@ -37,7 +37,7 @@
         "all-examples": "sh ./scripts/run-all-examples.sh",
         "no-docker-examples": "sh ./scripts/run-no-docker-examples.sh",
         "coverage": "nyc sh ./scripts/run-all-examples.sh",
-        "build": "rm -rf dist/*; tsc && npm run copy-prisma",
+        "build": "rm -rf dist/*; tsc --version && tsc && npm run copy-prisma",
         "dist": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm exampleTests* && rm -Rf examples && npm publish",
         "dist-beta": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm exampleTests* && rm -Rf examples && npm publish --tag beta",
         "docs": "mkdocs serve",

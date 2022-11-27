@@ -95,7 +95,7 @@ const deleteACMECustomers: Promise<number>
 
 ## Bulk delete
 
-Sometimes you want to do serveral delete in a single query, where each one have their own data to use in the where; for this cases you can [map the constant values as view](connection-tables-views.md#mapping-constant-values-as-view) and perform the update. This is only supported by `PostgreSql` and `SqlServer`.
+Sometimes you want to do serveral delete in a single query, where each one have their own data to use in the where; for this cases you can [map the constant values as view](../connection-tables-views.md#mapping-constant-values-as-view) and perform the update. This is only supported by `PostgreSql` and `SqlServer`.
 
 ```ts
 class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {

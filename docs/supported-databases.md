@@ -178,7 +178,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-You can add your custom type cast or override the default one in the implementation of `transformPlaceholder` methode like the one described in [Globally type adapter](column-types/#globally-type-adapter); you can see the default type cast in the class [AbstractPostgreSqlConnection](https://github.com/juanluispaz/ts-sql-query/blob/master/src/connections/AbstractPostgreSqlConnection.ts).
+You can add your custom type cast or override the default one in the implementation of `transformPlaceholder` methode like the one described in [Globally type adapter](column-types.md#globally-type-adapter); you can see the default type cast in the class [AbstractPostgreSqlConnection](https://github.com/juanluispaz/ts-sql-query/blob/master/src/connections/AbstractPostgreSqlConnection.ts).
 
 
 ## Sqlite

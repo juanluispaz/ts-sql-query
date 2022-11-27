@@ -137,7 +137,52 @@ where customer.company_id = company.id
 
 The parameters are: `[ ' - ', 'ACME' ]`
 
-The result type is a promise with the information of the deleted rows:
+The result type is a promise with the information of the updated rows:
 ```tsx
 const addACMECompanyNameToLastName: Promise<number>
+```
+
+## Bulk update
+
+Sometimes you want to do serveral updates in a single query, where each one have their own data; for this cases you can [map the constant values as view](connection-tables-views.md#mapping-constant-values-as-view) and perform the update. This is only supported by `PostgreSql`, `SqlServer` and `Sqlite`.
+
+```ts
+class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
+    id = this.column('int')
+    firstName = this.column('string')
+    lastName = this.column('string')
+}
+const customerForUpdate = Values.create(VCustomerForUpdate, 'customerForUpdate', [{
+    id: 1,
+    firstName: 'First Name',
+    lastName: 'Last Name'
+}])
+
+const updateCustomer = connection.update(tCustomer)
+    .from(customerForUpdate)
+    .set({
+        firstName: customerForUpdate.firstName,
+        lastName: customerForUpdate.lastName
+    })
+    .where(tCustomer.id.equals(customerForUpdate.id))
+    .executeUpdate()
+```
+
+The executed query is:
+```sql
+with 
+    customerForUpdate(id, firstName, lastName) as (
+        values ($1::int4, $2, $3)
+    ) 
+update customer
+set first_name = customerForUpdate.firstName, last_name = customerForUpdate.lastName
+from customerForUpdate 
+where customer.id = customerForUpdate.id
+```
+
+The parameters are: `[ 1, 'First Name', 'Last Name' ]`
+
+The result type is a promise with the information of the updated rows:
+```tsx
+const updateCustomer: Promise<number>
 ```

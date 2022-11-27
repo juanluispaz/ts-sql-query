@@ -187,6 +187,39 @@ const vCustomerAndCompany = new class VCustomerAndCompany extends View<DBConnect
 
 **Important**: The constructor of a view must expect no arguments.
 
+## Mapping constant values as view
+
+You can use a set of data a a view made of constant values that will be executed in a query. To do it, you need to extend the Values class that receives two generic arguments, the first one is the connection class, and the second one is a unique name for the view in your query.
+
+```ts
+import { Values } from "ts-sql-query/View";
+
+async function yourBuissinessLogic() {
+    class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
+        id = this.column('int')
+        firstName = this.column('string')
+        lastName = this.column('string')
+    }
+    const customerForUpdate = Values.create(VCustomerForUpdate, 'customerForUpdate', [
+        // Include your constant data here, it can be several records but must contains a least one.
+        { 
+            id: 1,
+            firstName: 'First Name',
+            lastName: 'Last Name'
+        }
+    ])
+    // Use customerForUpdate as a view in your query
+}
+```
+
+**Important**:
+
+- Do not provide or implement a constructor
+- The Values class is simmilar to the View class, with the difference the fuctions that allows to create the columns doesn't receive the column name.
+- Always create it using `Values.create`
+- This is only supported by `PostgreSql`, `SqlServer` and `Sqlite`
+- In PostgreSql the values included in the query will be forced to generate the type cast; ensure your custom types have a valid type cast. See [Column types](column-types.md)
+
 ## Virtual columns
 
 You can create virtual columns in a table or view, where the column doesn't exist in the database, but it is expanded during the query construction. You can create a property in your table or view asigning any computation over an aleady existing column to create a direct virtual column; or, you can call the `optionalVirtualColumnFromFragment` method to create a column from a SQL fragment.

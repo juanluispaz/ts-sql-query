@@ -92,3 +92,43 @@ The result type is a promise with the information of the deleted rows:
 ```tsx
 const deleteACMECustomers: Promise<number>
 ```
+
+## Bulk delete
+
+Sometimes you want to do serveral delete in a single query, where each one have their own data to use in the where; for this cases you can [map the constant values as view](connection-tables-views.md#mapping-constant-values-as-view) and perform the update. This is only supported by `PostgreSql` and `SqlServer`.
+
+```ts
+class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {
+    firstName = this.column('string')
+    lastName = this.column('string')
+}
+const customerForDelete = Values.create(VCustomerForDelete, 'customerForDelete', [{
+    firstName: 'First Name',
+    lastName: 'Last Name'
+}])
+
+const deleteCustomer = connection.deleteFrom(tCustomer)
+    .using(customerForDelete)
+    .where(tCustomer.firstName.equals(customerForDelete.firstName))
+    .and(tCustomer.lastName.equals(customerForDelete.lastName))
+    .executeDelete()
+```
+
+The executed query is:
+```sql
+with 
+    customerForDelete(firstName, lastName) as (
+        values ($1, $2)
+    )
+delete from customer
+using customerForDelete
+where customer.first_name = customerForDelete.firstName 
+    and customer.last_name = customerForDelete.lastName
+```
+
+The parameters are: `[ 'First Name', 'Last Name' ]`
+
+The result type is a promise with the information of the deleted rows:
+```tsx
+const deleteCustomer: Promise<number>
+```

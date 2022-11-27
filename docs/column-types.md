@@ -61,7 +61,7 @@ function isRgbColor(value: any): value is RgbColor {
 }
 
 export class RgbColorTypeAdapter implements TypeAdapter {
-    public transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
+    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown {
         if (type === 'RgbColor' && value) {
             if (value instanceof Uint8Array && value.length == 3) {
                 return {r: value[0], g: value[1], b: value[2]};
@@ -71,7 +71,7 @@ export class RgbColorTypeAdapter implements TypeAdapter {
         return next.transformValueFromDB(value, type);
     }
 
-    public transformValueToDB(value: RgbColor, type: string, next: DefaultTypeAdapter): unknown {
+    transformValueToDB(value: RgbColor, type: string, next: DefaultTypeAdapter): unknown {
         if (type === 'RgbColor' && value) {
             if (isRgbColor(value)) {
                 return Uint8Array.of(value.r, value.g, value.b);
@@ -79,6 +79,16 @@ export class RgbColorTypeAdapter implements TypeAdapter {
             throw new Error(`Cannot encode value ${value} for database`);
         }
         return next.transformValueToDB(value, type)
+    }
+
+    // Optional
+    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
+        // You can force a type cast in the query if you want. With this code the parameter in the sql will looks like %1::bytea
+        // By thefault, in PostgreSql only, a type cast is generated when forceTypeCast is true
+        if (type === 'RgbColor') {
+            return placeholder + '::bytea'
+        }
+        return next.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB)
     }
 }
 ```
@@ -112,7 +122,7 @@ function isRgbColor(value: any): value is RgbColor {
 }
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    transformValueFromDB(value: unknown, type: string) {
+    protected transformValueFromDB(value: unknown, type: string) {
         if (type === 'RgbColor' && value) {
             if (value instanceof Uint8Array && value.length == 3) {
                 return { r: value[0], g: value[1], b: value[2] };
@@ -121,7 +131,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         }
         return super.transformValueFromDB(value, type);
     }
-    transformValueToDB(value: unknown, type: string) {
+    protected transformValueToDB(value: unknown, type: string) {
         if (type === 'RgbColor' && value) {
             if (isRgbColor(value)) {
                 return Uint8Array.of(value.r, value.g, value.b);
@@ -129,6 +139,14 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
             throw new Error(`Cannot encode value ${value} for database`);
         }
         return super.transformValueToDB(value, type);
+    }   
+    protected transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
+        // You can force a type cast in the query if you want. With this code the parameter in the sql will looks like %1::bytea
+        // By thefault, in PostgreSql only, a type cast is generated when forceTypeCast is true
+        if (type === 'RgbColor') {
+            return placeholder + '::bytea'
+        }
+        return super.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB)
     }
 }
 ```

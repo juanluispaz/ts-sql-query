@@ -487,11 +487,11 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             return 'group_concat(distinct ' + this._appendSql(value, params) + ', ' + this._appendValue(separator, params, 'string', undefined) + ')'
         }
     }
-    _appendParam(value: any, params: any[], columnType: string): string {
+    _appendParam(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (columnType === 'uuid' && this._getUuidStrategy() === 'uuid-extension') {
-            return 'uuid_blob(' + super._appendParam(value, params, columnType) + ')'
+            return 'uuid_blob(' + super._appendParam(value, params, columnType, typeAdapter, forceTypeCast) + ')'
         }
-        return super._appendParam(value, params, columnType)
+        return super._appendParam(value, params, columnType, typeAdapter, forceTypeCast)
     }
     _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._getUuidStrategy() === 'uuid-extension') {

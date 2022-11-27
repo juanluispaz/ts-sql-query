@@ -67,13 +67,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return this._appendSql(value, params)
         }
     }
-    _appendConditionParam(value: any, params: any[], columnType: string): string {
+    _appendConditionParam(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (columnType === 'boolean') {
-            return '(' + this._appendParam(value, params, columnType) + ' = 1)'
+            return '(' + this._appendParam(value, params, columnType, typeAdapter, forceTypeCast) + ' = 1)'
         }
-        return this._appendParam(value, params, columnType)
+        return this._appendParam(value, params, columnType, typeAdapter, forceTypeCast)
     }
-    _appendParam(value: any, params: any[], columnType: string): string {
+    _appendParam(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         // keep the data type to use in the query runner
         Object.defineProperty(params, '@' + params.length, {
             value: columnType,
@@ -81,7 +81,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             enumerable: false,
             configurable: true
         })
-        return this._queryRunner.addParam(params, value)
+        return super._appendParam(value, params, columnType, typeAdapter, forceTypeCast)
     }
     _appendColumnName(column: Column, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)

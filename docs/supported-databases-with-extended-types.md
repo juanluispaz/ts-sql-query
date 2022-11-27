@@ -166,6 +166,21 @@ import { TypeSafePostgreSqlConnection } from "ts-sql-query/connections/TypeSafeP
 class DBConnection extends TypeSafePostgreSqlConnection<'DBConnection'> { }
 ```
 
+**Note**: Sometimes you can find yourself in situation where PostgreSql is not able to infer the type of the parameter in the query, for this you will need to tell the system to include a type cast in the generated query using the class `ForceTypeCast` provided in  `ts-sql-query/TypeAdapter` as type adapter. You can force to always include the type cast in the generated query implementing the method `transformPlaceholder`:
+
+```ts
+import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
+    protected transformPlaceholder(placeholder: string, type: string, _forceTypeCast: boolean, valueSentToDB: unknown): string {
+        return super.transformPlaceholder(placeholder, type, true, valueSentToDB)
+    }
+}
+```
+
+You can add your custom type cast or override the default one in the implementation of `transformPlaceholder` methode like the one described in [Globally type adapter](column-types/#globally-type-adapter); you can see the default type cast in the class [AbstractPostgreSqlConnection](https://github.com/juanluispaz/ts-sql-query/blob/master/src/connections/AbstractPostgreSqlConnection.ts).
+
+
 ## Sqlite
 
 ```ts

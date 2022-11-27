@@ -1100,6 +1100,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         }
     }
 
+    protected transformPlaceholder(placeholder: string, _type: string, _forceTypeCast: boolean, _valueSentToDB: unknown): string {
+        return placeholder
+    }
+
     protected isReservedKeyword(word: string): boolean {
         return this.__sqlBuilder._isReservedKeyword(word)
 

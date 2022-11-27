@@ -4194,7 +4194,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`with customerForUpdate(id, firstName, lastName) as (values ($1, $2, $3)) update customer set first_name = customerForUpdate.firstName, last_name = customerForUpdate.lastName from customerForUpdate where customer.id = customerForUpdate.id`)
+    expectedQuery.push(`with customerForUpdate(id, firstName, lastName) as (values ($1::int4, $2, $3)) update customer set first_name = customerForUpdate.firstName, last_name = customerForUpdate.lastName from customerForUpdate where customer.id = customerForUpdate.id`)
     expectedParams.push(`[1,"First Name","Last Name"]`)
     expectedType.push(`update`)
 

@@ -49,11 +49,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return super._appendSql(value, params)
     }
-    _appendConditionParam(value: any, params: any[], columnType: string): string {
+    _appendConditionParam(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (columnType === 'boolean') {
-            return '(' + this._appendParam(value, params, columnType) + ' = 1)'
+            return '(' + this._appendParam(value, params, columnType, typeAdapter, forceTypeCast) + ' = 1)'
         }
-        return this._appendParam(value, params, columnType)
+        return this._appendParam(value, params, columnType, typeAdapter, forceTypeCast)
     }
     _appendColumnName(column: Column, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
@@ -140,11 +140,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // Avoid automatically uppercase identifiers by oracle
         return this._forceAsIdentifier(name)
     }
-    _appendParam(value: any, params: any[], columnType: string): string {
+    _appendParam(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (columnType === 'uuid' && this._getUuidStrategy() === 'custom-functions') {
-            return 'uuid_to_raw(' + super._appendParam(value, params, columnType) + ')'
+            return 'uuid_to_raw(' + super._appendParam(value, params, columnType, typeAdapter, forceTypeCast) + ')'
         }
-        return super._appendParam(value, params, columnType)
+        return super._appendParam(value, params, columnType, typeAdapter, forceTypeCast)
     }
     _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._getUuidStrategy() === 'custom-functions') {

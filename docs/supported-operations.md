@@ -633,6 +633,8 @@ interface Connection {
     transformValueFromDB(value: unknown, type: string): unknown
     /** Protected method that allows to transform the values that will be send to the database */
     transformValueToDB(value: unknown, type: string): unknown
+    /** Protected method that allows to customize the value placeholder in the query */
+    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string
 
     /** Protected method that returns true if the provided string is a reserved keyword, otherwise return false */
     isReservedWord(word: string): boolean
@@ -1711,11 +1713,13 @@ Type adapter definitions are in the file `ts-sql-query/TypeAdapter`.
 interface TypeAdapter {
     transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
     transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    transformPlaceholder?(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
 }
 
 interface DefaultTypeAdapter {
     transformValueFromDB(value: unknown, type: string): unknown
     transformValueToDB(value: unknown, type: string): unknown
+    transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string
 }
 
 class CustomBooleanTypeAdapter implements TypeAdapter {
@@ -1727,6 +1731,12 @@ class CustomBooleanTypeAdapter implements TypeAdapter {
 
     transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
     transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+}
+
+declare class ForceTypeCast implements TypeAdapter {
+    transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
+    transformPlaceholder(placeholder: string, type: string, _forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string
 }
 ```
 

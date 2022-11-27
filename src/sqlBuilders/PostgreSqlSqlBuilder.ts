@@ -1,6 +1,7 @@
-import type { ToSql, SelectData } from "./SqlBuilder"
+import type { ToSql, SelectData, WithValuesData } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
+import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
@@ -26,6 +27,47 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             return this._forceAsIdentifier(name)
         }
         return this._escape(name, true)
+    }
+    _buildWithValues(withValues: WithValuesData, params: any[]) {
+        let result = withValues.__name
+        let columns = ''
+        for (var columnName in withValues) {
+            const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)
+            if (!column) {
+                continue
+            }
+            if (columns) {
+                columns += ', '
+            }
+            const columnPrivate = __getColumnPrivate(column)
+            columns += this._appendColumnAlias(columnPrivate.__name, params)
+        }
+        result += '(' + columns + ')'
+        result += ' as (values '
+
+        const values = withValues.__values
+        let valuesSql = ''
+        for (let i = 0, length = values.length; i < length; i++) {
+            if (valuesSql) {
+                valuesSql += ', '
+            }
+            const value = values[i]!
+            let valueSql = ''
+            for (var columnName in withValues) {
+                const column = __getColumnOfObject(withValues.__getTableOrView(), columnName)
+                if (!column) {
+                    continue
+                }
+                if (valueSql) {
+                    valueSql += ', '
+                }
+                valueSql += this._appendValueForColumn(column, value[columnName], params, true)
+            }
+            valuesSql += '(' + valueSql + ')'
+        }
+        result += valuesSql
+        result += ')'
+        return result
     }
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = ''

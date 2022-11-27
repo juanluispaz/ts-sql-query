@@ -395,39 +395,39 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendSql(value, params)
     }
-    _appendSpreadValue(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _appendSpreadValue(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean = false): string {
         if (hasToSql(value)) {
             return '(' + this._appendSql(value, params) + ')'
         }
         if (Array.isArray(value) && value.length > 0) {
-            let arrayResult = '(' + this._appendValue(value[0], params, columnType, typeAdapter)
+            let arrayResult = '(' + this._appendValue(value[0], params, columnType, typeAdapter, forceTypeCast)
 
             for (let i = 1, length = value.length; i < length; i++) {
-                arrayResult += ', ' + this._appendValue(value[i], params, columnType, typeAdapter)
+                arrayResult += ', ' + this._appendValue(value[i], params, columnType, typeAdapter, forceTypeCast)
             }
             return arrayResult + ')'
         }
         const adaptedValue = this._transformParamToDB(value, columnType, typeAdapter)
-        return '(' + this._appendParam(adaptedValue, params, columnType) + ')'
+        return '(' + this._appendParam(adaptedValue, params, columnType, typeAdapter, forceTypeCast) + ')'
     }
-    _appendValue(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _appendValue(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean = false): string {
         if (hasToSql(value)) {
             return this._appendSql(value, params)
         }
         const adaptedValue = this._transformParamToDB(value, columnType, typeAdapter)
-        return this._appendParam(adaptedValue, params, columnType)
+        return this._appendParam(adaptedValue, params, columnType, typeAdapter, forceTypeCast)
     }
-    _appendValueParenthesis(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _appendValueParenthesis(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean = false): string {
         if (this._needParenthesis(value)) {
-            return '(' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+            return '(' + this._appendValue(value, params, columnType, typeAdapter, forceTypeCast) + ')'
         }
-        return this._appendValue(value, params, columnType, typeAdapter)
+        return this._appendValue(value, params, columnType, typeAdapter, forceTypeCast)
     }
-    _appendValueParenthesisExcluding(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, excluding: keyof SqlOperation): string {
+    _appendValueParenthesisExcluding(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, excluding: keyof SqlOperation, forceTypeCast: boolean = false): string {
         if (this._needParenthesisExcluding(value, excluding)) {
-            return '(' + this._appendValue(value, params, columnType, typeAdapter) + ')'
+            return '(' + this._appendValue(value, params, columnType, typeAdapter, forceTypeCast) + ')'
         }
-        return this._appendValue(value, params, columnType, typeAdapter)
+        return this._appendValue(value, params, columnType, typeAdapter, forceTypeCast)
     }
     _appendConditionSql(value: ToSql | AnyValueSource, params: any[]): string {
         return (value as ToSql).__toSqlForCondition(this, params) // All ValueSource or Column have a hidden implemetation of ToSql
@@ -438,24 +438,24 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendConditionSql(value, params)
     }
-    _appendConditionValue(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _appendConditionValue(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean = false): string {
         if (hasToSql(value)) {
             return this._appendConditionSql(value, params)
         }
         const adaptedValue = this._transformParamToDB(value, columnType, typeAdapter)
-        return this._appendConditionParam(adaptedValue, params, columnType)
+        return this._appendConditionParam(adaptedValue, params, columnType, typeAdapter, forceTypeCast)
     }
-    _appendConditionValueParenthesis(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
+    _appendConditionValueParenthesis(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean = false): string {
         if (this._needParenthesis(value)) {
-            return '(' + this._appendConditionValue(value, params, columnType, typeAdapter) + ')'
+            return '(' + this._appendConditionValue(value, params, columnType, typeAdapter, forceTypeCast) + ')'
         }
-        return this._appendConditionValue(value, params, columnType, typeAdapter)
+        return this._appendConditionValue(value, params, columnType, typeAdapter, forceTypeCast)
     }
-    _appendConditionValueParenthesisExcluding(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, excluding: keyof SqlOperation): string {
+    _appendConditionValueParenthesisExcluding(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, excluding: keyof SqlOperation, forceTypeCast: boolean = false): string {
         if (this._needParenthesisExcluding(value, excluding)) {
-            return '(' + this._appendConditionValue(value, params, columnType, typeAdapter) + ')'
+            return '(' + this._appendConditionValue(value, params, columnType, typeAdapter, forceTypeCast) + ')'
         }
-        return this._appendConditionValue(value, params, columnType, typeAdapter)
+        return this._appendConditionValue(value, params, columnType, typeAdapter, forceTypeCast)
     }
     _transformParamToDB(value: any, columnType: string, typeAdapter: TypeAdapter | undefined): any {
         if (typeAdapter) {
@@ -464,11 +464,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return this._defaultTypeAdapter.transformValueToDB(value, columnType)
         }
     }
-    _appendParam(value: any, params: any[], _columnType: string): string {
-        return this._queryRunner.addParam(params, value)
+    _appendParam(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        const placeholder = this._queryRunner.addParam(params, value)
+        if (typeAdapter && typeAdapter.transformPlaceholder) {
+            return typeAdapter.transformPlaceholder(placeholder, columnType, forceTypeCast, value, this._defaultTypeAdapter)
+        } else {
+            return this._defaultTypeAdapter.transformPlaceholder(placeholder, columnType, forceTypeCast, value)
+        }
     }
-    _appendConditionParam(value: any, params: any[], columnType: string): string {
-        return this._appendParam(value, params, columnType)
+    _appendConditionParam(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        return this._appendParam(value, params, columnType, typeAdapter, forceTypeCast)
     }
     _appendColumnAlias(name: string, _params: any[]): string {
         return this._escape(name, true)
@@ -1182,13 +1187,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // if not it is same boolean, nothing to transform here
         return null
     }
-    _appendValueForColumn(column: Column, value: any, params: any[]): string {
+    _appendValueForColumn(column: Column, value: any, params: any[], forceTypeCast: boolean = false): string {
         const sql = this._appendCustomBooleanRemapForColumnIfRequired(column, value, params)
         if (sql) {
             return sql
         }
         const columnPrivate = __getColumnPrivate(column)
-        return this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__typeAdapter)
+        return this._appendValue(value, params, columnPrivate.__valueType, columnPrivate.__typeAdapter, forceTypeCast)
     }
     _buildInsertDefaultValues(query: InsertData, params: any[]): string {
         this._ensureRootQuery(query, params)

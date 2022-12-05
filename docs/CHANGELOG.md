@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.42.0 (5 Dec 2022)
+
+**Changes**:
+
+- Relax utility types to allow use in partial objects. This allows using `Omit` or `Pick` in combination with the utility types. Example: `type PickValues<COLUMNS, KEYS extends keyof COLUMNS> = SelectedValues<Pick<COLUMNS, KEYS>>;`
+
 ## v1.41.0 (27 Nov 2022)
 
 **Changes**:

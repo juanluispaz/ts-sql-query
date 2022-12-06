@@ -414,6 +414,34 @@ async function main() {
 }
 ```
 
+## postgres
+
+It allows to execute the queries using a [postgres](https://github.com/porsager/postgres) (aka Postgres.js) connection.
+
+**Supported databases**: postgreSql
+
+```ts
+import * as postgres from 'postgres';
+import { PostgresQueryRunner } from '../queryRunners/PostgresQueryRunner';
+
+const sql = postgres({
+    user: 'dbuser',
+    host: 'database.server.com',
+    database: 'mydb',
+    password: 'secretpassword',
+    port: 3211,
+});
+
+async function main() {
+    const connection = new DBConnection(new PostgresQueryRunner(sql));
+    // Do your queries here
+}
+```
+
+**Limitation**: Low-level transaction management functions (`connection.beginTransaction`, `connection.commit`, `connection.rollback`) are not supported; you must use `connection.transaction` instead.
+
+**Note**: Be aware postgres.js is pooled automatically; you don't need additional steps to use a connection pool.
+
 ## sqlite3
 
 It allows to execute the queries using an [sqlite3](https://www.npmjs.com/package/sqlite3) connection.

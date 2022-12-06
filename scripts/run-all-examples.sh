@@ -37,6 +37,7 @@ ts-node ./src/examples/EncriptedIDPgExample.ts || { docker stop ts-sql-query-pos
 ts-node ./src/examples/AnyDBPostgresExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 ts-node ./src/examples/LoopBackPostgresqlExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 ts-node ./src/examples/PrismaPostgresExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
+ts-node ./src/examples/PostgresExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 docker stop ts-sql-query-postgres
 docker rm ts-sql-query-postgres
 

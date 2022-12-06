@@ -188,4 +188,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     isMocked(): boolean {
         return false
     }
+    lowLevelTransactionManagementSupported(): boolean {
+        return true
+    }
 }

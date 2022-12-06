@@ -1,5 +1,6 @@
 import type { QueryRunner } from "./QueryRunner"
 import { ChainedQueryRunner } from "./ChainedQueryRunner"
+import type { UnwrapPromiseTuple } from "../utils/PromiseProvider";
 
 export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' |
     'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' |
@@ -527,6 +528,58 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
             })
         }
         return result
+    }
+    executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
+    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
+    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any> {
+        if (!this.queryRunner.lowLevelTransactionManagementSupported()) {
+            // Emulate beginTransaction, commit and rollback to see in logs
+            return this.queryRunner.executeInTransaction(() => {
+                const query: string = ''
+                const params: any[] = []
+                const logger = this.logger
+                if (logger.onQuery) {
+                    logger.onQuery('beginTransaction', query, params, { startedAt: 0n })
+                }
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('beginTransaction', query, params, undefined, { startedAt: 0n, endedAt: 0n })
+                }
+                return fn()
+            }, outermostQueryRunner).then((r) => {
+                try {
+                    const query: string = ''
+                    const params: any[] = []
+                    const logger = this.logger
+                    if (logger.onQuery) {
+                        logger.onQuery('commit', query, params, { startedAt: 0n })
+                    }
+                    if (logger.onQueryResult) {
+                        logger.onQueryResult('commit', query, params, undefined, { startedAt: 0n, endedAt: 0n })
+                    }
+                } catch {
+                    // Keep same behaviour of the transaction
+                }
+                return r
+            }, (e) => {
+                try {
+                    const query: string = ''
+                    const params: any[] = []
+                    const logger = this.logger
+                    const startedAt = process.hrtime.bigint()
+                    if (logger.onQuery) {
+                        logger.onQuery('rollback', query, params, { startedAt })
+                    }
+                    if (logger.onQueryResult) {
+                        logger.onQueryResult('rollback', query, params, undefined, { startedAt, endedAt: process.hrtime.bigint() })
+                    }
+                } catch {
+                    // Throw the innermost error
+                }
+                throw e
+            })
+        }
+        return this.queryRunner.executeInTransaction(fn, outermostQueryRunner)
     }
     executeBeginTransaction(): Promise<void> {
         const query: string = ''

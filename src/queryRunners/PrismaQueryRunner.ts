@@ -268,6 +268,9 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
 
         return new CombinedPrismaPromise(fn1() as any, fn2() as any) as any
     }
+    lowLevelTransactionManagementSupported(): boolean {
+        return false
+    }
     protected wrapPrismaPromise(promise: Promise<any>): Promise<any> {
         if (this.transaction) {
             // Use a real Promise instead of Prisma proxy to avoid issues due then with one param is not properly managed

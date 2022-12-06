@@ -42,6 +42,7 @@ export interface QueryRunner {
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
     executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
     isMocked(): boolean
+    lowLevelTransactionManagementSupported(): boolean
 }
 
 export type DatabaseType = 'mariaDB' | 'mySql' | 'noopDB' | 'oracle' | 'postgreSql' | 'sqlite' | 'sqlServer'

@@ -132,4 +132,7 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     isMocked(): boolean {
         return this.queryRunner.isMocked()
     }
+    lowLevelTransactionManagementSupported(): boolean {
+        return this.queryRunner.isMocked()
+    }
 }

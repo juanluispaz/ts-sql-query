@@ -76,4 +76,7 @@ export class PostgresQueryRunner extends PromiseBasedAbstractQueryRunner {
             })
         })
     }
+    lowLevelTransactionManagementSupported(): boolean {
+        return false
+    }
 }

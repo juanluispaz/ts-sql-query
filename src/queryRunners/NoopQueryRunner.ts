@@ -198,4 +198,7 @@ export class NoopQueryRunner implements QueryRunner {
     isMocked(): boolean {
         return false
     }
+    lowLevelTransactionManagementSupported(): boolean {
+        return true
+    }
 }

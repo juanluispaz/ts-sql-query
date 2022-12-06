@@ -498,6 +498,9 @@ export class MockQueryRunner implements QueryRunner {
     isMocked(): boolean {
         return true
     }
+    lowLevelTransactionManagementSupported(): boolean {
+        return true
+    }
 }
 
 function isPlainObject(value: any): boolean {

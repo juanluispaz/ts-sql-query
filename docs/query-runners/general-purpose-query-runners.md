@@ -47,6 +47,8 @@ interface ConsoleLogQueryRunnerOpts {
 }
 ```
 
+**Note**: In case the provided query runner doesn't support low-level transaction management, fake `beginTransaction`, `commit`, and `rollback` will be emitted to allow you to see them in the log.
+
 ## InterceptorQueryRunner
 
 A query runner that intercept all the queries and delegate the execution of the queries to the query runner received as second argument in the constructor.
@@ -109,6 +111,8 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 - **`error: any`**: (only in `onQueryError`) error that happens executiong the query.
 - **`playload: PLAYLOAD_TYPE`**:  (only in `onQueryResult` or `onQueryError`) playload data created by the `onQuery` function.
 
+**Note**: In case the provided query runner doesn't support low-level transaction management, fake `beginTransaction`, `commit`, and `rollback` will be emitted to allow you to identify them.
+
 ## LoggingQueryRunner
 
 A query runner that intercept all the queries allowing you to log it and delegate the execution of the queries to the query runner received as second argument in the constructor.
@@ -162,7 +166,9 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 - **`startedAt`**: value of `process.hrtime.bigint()` before the query execution.
 - **`endedAt`**: (only in `onQueryResult` or  `onQueryError`) value of `process.hrtime.bigint()` after the query execution.
 
-**Note**: `onQuery`, `onQueryResult` and `onQueryError` are optionals; you can defined only the method that you needs.
+**Note**:
+- `onQuery`, `onQueryResult` and `onQueryError` are optionals; you can defined only the method that you needs.
+- In case the provided query runner doesn't support low-level transaction management, fake `beginTransaction`, `commit`, and `rollback` will be emitted to allow you to see them in the log.
 
 ## MockQueryRunner
 

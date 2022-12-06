@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.43.0 (6 Dec 2022)
+
+**Changes**:
+
+- Add support to [porsager/postgres](https://github.com/porsager/postgres) (aka postgres.js)
+
 ## v1.42.0 (5 Dec 2022)
 
 **Changes**:

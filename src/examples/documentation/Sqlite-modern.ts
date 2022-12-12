@@ -4058,6 +4058,34 @@ async function main() {
     //     .executeDelete()
     
     // assertEquals(deleteCustomer, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select id as id, name as name, ifnull((select count(*) as result from customer where company_id = company.id), ?) as numberOfCustomers from company`)
+    expectedParams.push(`[0]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const numberOfCustomers = connection
+        .subSelectUsing(tCompany)
+        .from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .selectOneColumn(connection.countAll())
+        .forUseAsInlineQueryValue()  // At this point is a value that you can use in other query
+        .valueWhenNull(0)
+
+    const companiesWithNumberOfCustomers = await connection.selectFrom(tCompany)
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            numberOfCustomers: numberOfCustomers
+        })
+        .executeSelectMany()
+
+    assertEquals(companiesWithNumberOfCustomers, result)
 }
 
 main().then(() => {

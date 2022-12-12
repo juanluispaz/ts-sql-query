@@ -45,5 +45,7 @@ echo '\n# query-runners/general-purpose-query-runners.md\n' >> dist/doc.md
 cat docs/query-runners/general-purpose-query-runners.md >> dist/doc.md
 echo '\n# advanced-usage.md\n' >> dist/doc.md
 cat docs/advanced-usage.md >> dist/doc.md
+echo '\n# faqs-limimitations.md\n' >> dist/doc.md
+cat docs/faqs-limimitations.md >> dist/doc.md
 echo '\n# CHANGELOG.md\n' >> dist/doc.md
 cat docs/CHANGELOG.md >> dist/doc.md

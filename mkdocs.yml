@@ -39,4 +39,5 @@ nav:
     - Additional query runners: query-runners/additional-query-runners.md
     - General purpose query runners: query-runners/general-purpose-query-runners.md
   - Advanced usage: advanced-usage.md
+  - FAQs & Limitations: faqs-limimitations.md
   - Change Log: CHANGELOG.md

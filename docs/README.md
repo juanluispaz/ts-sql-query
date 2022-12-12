@@ -39,6 +39,7 @@ You can read the latest version of the documentation at: https://ts-sql-query.re
   - [Select with a compound operator (union, intersect, except)](queries/select.md#select-with-a-compound-operator-union-intersect-except)
   - [Using a select as a view in another select query (SQL with clause)](queries/select.md#using-a-select-as-a-view-in-another-select-query-sql-with-clause)
   - [Inline select as value for another query](queries/select.md#inline-select-as-value-for-another-query)
+  - [Inline select as value for another query referencing the outer query](queries/select.md#inline-select-as-value-for-another-query-referencing-the-outer-query)
   - [Select clauses order](queries/select.md#select-clauses-order)
 - [Select page](queries/select-page.md#select-page)
 - [Recursive select](queries/recursive-select.md#recursive-select)
@@ -232,6 +233,9 @@ You can read the latest version of the documentation at: https://ts-sql-query.re
     - [Updatable row](advanced-usage.md#updatable-row)
     - [Selected values](advanced-usage.md#selected-values)
     - [Selected row](advanced-usage.md#selected-row)
+- [FAQs \& Limitations](faqs-limimitations.md#faqs--limitations)
+  - [FAQs](faqs-limimitations.md#faqs)
+  - [Limitations](faqs-limimitations.md#limitations)
 - [Change Log](CHANGELOG.md#change-log)
 
 <!-- 
@@ -268,6 +272,7 @@ Generated table of content of the file created using npm run create-single-doc-f
   - [Select with a compound operator (union, intersect, except)](#select-with-a-compound-operator-union-intersect-except)
   - [Using a select as a view in another select query (SQL with clause)](#using-a-select-as-a-view-in-another-select-query-sql-with-clause)
   - [Inline select as value for another query](#inline-select-as-value-for-another-query)
+  - [Inline select as value for another query referencing the outer query](#inline-select-as-value-for-another-query-referencing-the-outer-query)
   - [Select clauses order](#select-clauses-order)
 - [queries/select-page.md](#queriesselect-pagemd)
 - [Select page](#select-page)
@@ -480,6 +485,10 @@ Generated table of content of the file created using npm run create-single-doc-f
     - [Updatable row](#updatable-row)
     - [Selected values](#selected-values)
     - [Selected row](#selected-row)
+- [faqs-limimitations.md](#faqs-limimitationsmd)
+- [FAQs \& Limitations](#faqs--limitations)
+  - [FAQs](#faqs)
+  - [Limitations](#limitations)
 - [CHANGELOG.md](#changelogmd)
 - [Change Log](#change-log)
 

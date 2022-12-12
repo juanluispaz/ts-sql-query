@@ -314,6 +314,52 @@ const acmeCustomers: Promise<{
 }[]>
 ```
 
+## Inline select as value for another query referencing the outer query
+
+To use a select query that returns one column as an inline query value that references the outer query's tables, you must start the subquery calling `subSelectUsing` and providing by argument the external tables or views required to execute the subquery, and then get the value representation, in the end, by calling the method `forUseAsInlineQueryValue` and then use the value representation as with any other value in the outer query.
+
+```ts
+const numberOfCustomers = connection
+    .subSelectUsing(tCompany)
+    .from(tCustomer)
+    .where(tCustomer.companyId.equals(tCompany.id))
+    .selectOneColumn(connection.countAll())
+    .forUseAsInlineQueryValue()  // At this point is a value that you can use in other query
+    .valueWhenNull(0);
+
+const companiesWithNumberOfCustomers = await connection.selectFrom(tCompany)
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        numberOfCustomers: numberOfCustomers
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+```sql
+select 
+    id as id, 
+    name as name, 
+    coalesce((
+        select count(*) as result 
+        from customer 
+        where company_id = company.id
+    ), $1) as numberOfCustomers
+from company
+```
+
+The parameters are: `[ 0 ]`
+
+The result type is:
+```tsx
+const acmeCustomers: Promise<{
+    id: number;
+    name: string;
+    numberOfCustomers: number;
+}[]>
+```
+
 ## Select clauses order
 
 The select query clauses must follow one of the next orders:

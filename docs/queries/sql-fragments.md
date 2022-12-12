@@ -224,6 +224,8 @@ The supported extension point offered by `customizeQuery` are:
 - `beforeOrderByItems`: Place the fragment before the `order by` items produced by the query (the `order by` keyboard and the required commas will be added automatically).
 - `afterOrderByItems`: Place the fragment after the `order by` items produced by the query (the `order by` keyboard and the required commas will be added automatically).
 - `afterQuery`: Place the fragment at the end of the query.
+- `beforeWithQuery`: Place the fragment in the with clause (when the query is marked `forUseInQuery`) immediately after the `as` keyboard and before the open parenthesis that contains the query.
+- `afterWithQuery`: Place the fragment in the with clause (when the query is marked `forUseInQuery`) immediately after the close parenthesis that contains the query.
 
 ```ts
 const customizedSelect = connection.selectFrom(tCustomer)

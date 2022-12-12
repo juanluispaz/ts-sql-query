@@ -515,14 +515,22 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 }
                 continue
             }
+            const customization = withView.__selectData.__customization
             if (result) {
                 result += ', '
             }
             result += withView.__name
             result += this._appendWithColumns(withView, params)
-            result += ' as ('
+            result += ' as '
+            if (customization && customization.beforeWithQuery) {
+                result += this._appendRawFragment(customization.beforeWithQuery, params) + ' '
+            }
+            result += '('
             result += this._buildSelect(withView.__selectData, params)
             result += ')'
+            if (customization && customization.afterWithQuery) {
+                result += ' ' + this._appendRawFragment(customization.afterWithQuery, params)
+            }
             recursive = recursive || !!withView.__recursive
         }
         this._setWithGeneratedFinished(params, true)

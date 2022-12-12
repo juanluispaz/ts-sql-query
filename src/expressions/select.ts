@@ -18,6 +18,8 @@ export interface SelectCustomization<DB extends AnyDB> {
     beforeOrderByItems?: RawFragment<DB>
     afterOrderByItems?: RawFragment<DB>
     afterQuery?: RawFragment<DB>
+    beforeWithQuery?: RawFragment<DB>
+    afterWithQuery?: RawFragment<DB>
 }
 
 export interface SelectExpressionBase<DB extends AnyDB, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> {

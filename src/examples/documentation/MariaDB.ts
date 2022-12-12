@@ -3793,6 +3793,40 @@ async function main() {
         .executeSelectMany()
 
     assertEquals(companiesWithNumberOfCustomers, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`with customerCountPerCompany as BEFORE (select company.id as companyId, company.name as companyName, count(customer.id) as customerCount from company inner join customer on customer.company_id = company.id group by company.id, company.name) AFTER select companyId as acmeCompanyId, companyName as acmeCompanyName, customerCount as acmeCustomerCount from customerCountPerCompany where lower(companyName) like concat('%', lower(?), '%')`)
+    expectedParams.push(`["ACME"]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const customerCountPerCompanyWith2 = connection.selectFrom(tCompany)
+        .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+        .select({
+            companyId: tCompany.id,
+            companyName: tCompany.name,
+            customerCount: connection.count(tCustomer.id)
+        }).groupBy('companyId', 'companyName')
+        .customizeQuery({
+            beforeWithQuery: connection.rawFragment`BEFORE`,
+            afterWithQuery: connection.rawFragment`AFTER`
+        })
+        .forUseInQueryAs('customerCountPerCompany')
+    
+    const customerCountPerAcmeCompanies2 = await connection.selectFrom(customerCountPerCompanyWith2)
+        .where(customerCountPerCompanyWith2.companyName.containsInsensitive('ACME'))
+        .select({
+            acmeCompanyId: customerCountPerCompanyWith2.companyId,
+            acmeCompanyName: customerCountPerCompanyWith2.companyName,
+            acmeCustomerCount: customerCountPerCompanyWith2.customerCount
+        })
+        .executeSelectMany()
+    
+    assertEquals(customerCountPerAcmeCompanies2, result)
 }
 
 main().then(() => {

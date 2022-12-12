@@ -4,7 +4,7 @@
 
 - **How ts-sql-query modelate the queries?**
 
-ts-sql-query try to modelate SQL keeping the essence of SQL, modelated after SQLite and PostgreSQL but keeping in mind it needs to be understandable in a TypeScript/JavaScript context. So when TypeScript/JavaScript do things in a way, ts-sql-query tries to preserve it (it is a tricky balance). The consequence of this modelling philosophy is things in ts-sql-query are done in the same way that SQL, then you can always think how your query will be done in SQL, which will be close to the way to do it in ts-sql-query.
+ts-sql-query try to modelate the queries keeping the essence of SQL; the queries are designed after SQLite and PostgreSQL but keeping in mind it needs to be understandable in a TypeScript/JavaScript context. So when TypeScript/JavaScript do things in a way, ts-sql-query tries to preserve it (it is a tricky balance). The consequence of this modelling philosophy is things in ts-sql-query are done in the same way that SQL, then you can always think how your query will be done in SQL, which will be close to the way to do it in ts-sql-query.
 
 ts-sql-query executes the query in a single call to the database; no intermedial data is processed in your backend server; everything is done in a single SQL query in the same way you write it in ts-sql-query. The exception is the select page, where a first query will be executed, returning the data contained in the page, and a second query will be executed to get the count.
 
@@ -26,16 +26,16 @@ ts-sql-query offers many ways to deal with non-yet supported features using [SQL
 
 ```ts
 const customizedSelect = connection.selectFrom(tCustomer)
- .where(tCustomer.id.equals(10))
- .select({
- id: tCustomer.id,
- firstName: tCustomer.firstName,
- lastName: tCustomer.lastName,
- birthday: tCustomer.birthday
- }).customizeQuery({
- afterQuery: connection.rawFragment`for update`
- })
- .executeSelectOne()
+    .where(tCustomer.id.equals(10))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    }).customizeQuery({
+        afterQuery: connection.rawFragment`for update`
+    })
+    .executeSelectOne()
 ```
 
 - **Does ts-sql-query support common table expressions (CTE)?**
@@ -52,14 +52,14 @@ First, you must mark the query **for use in query** and then **for use in left j
 
 ```ts
 const customerCountPerCompanyWith = connection.selectFrom(tCompany)
- .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
- .select({
- companyId: tCompany.id,
- companyName: tCompany.name,
- customerCount: connection.count(tCustomer.id)
- }).groupBy('companyId', 'companyName')
- .forUseInQueryAs('customerCountPerCompany')
- .forUseInLeftJoin();
+    .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
+    .select({
+        companyId: tCompany.id,
+        companyName: tCompany.name,
+        customerCount: connection.count(tCustomer.id)
+    }).groupBy('companyId', 'companyName')
+    .forUseInQueryAs('customerCountPerCompany')
+    .forUseInLeftJoin();
 ```
 
 - **Where can I see all functions/methods provided by ts-sql-query?**
@@ -72,34 +72,34 @@ You can create functions that return the prebuilt query you want to reuse; the o
 
 ```ts
 function buildNumberOfCustomersSubquery(connection: DBConnection) {
- return connection
- .subSelectUsing(tCompany)
- .from(tCustomer)
- .where(tCustomer.companyId.equals(tCompany.id))
- .selectOneColumn(connection.countAll())
- .forUseAsInlineQueryValue()
- .valueWhenNull(0);
+    return connection
+        .subSelectUsing(tCompany)
+        .from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .selectOneColumn(connection.countAll())
+        .forUseAsInlineQueryValue()
+        .valueWhenNull(0);
 }
 
 function buildCompaniesWithNumberOfCustomersQuery(connection: DBConnection) {
- return connection.selectFrom(tCompany)
- .select({
- id: tCompany.id,
- name: tCompany.name,
- numberOfCustomers: buildNumberOfCustomersSubquery(connection)
- })
+    return connection.selectFrom(tCompany)
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            numberOfCustomers: buildNumberOfCustomersSubquery(connection)
+        })
 }
 
 interface CompanyInfoWithNumberOfCustomers {
- id: number;
- name: string;
- numberOfCustomers: number;
+    id: number;
+    name: string;
+    numberOfCustomers: number;
 }
 
 async function getCompanyInfoWithNumberOfCustomers(connection: DBConnection, id: number): CompanyInfoWithNumberOfCustomers {
- return await buildCompaniesWithNumberOfCustomersQuery(connection)
- .where(tCompany.id.equals(id))
- .executeSelectOne()
+    return await buildCompaniesWithNumberOfCustomersQuery(connection)
+        .where(tCompany.id.equals(id))
+        .executeSelectOne()
 }
 ```
 
@@ -117,16 +117,16 @@ Right now, the `orderBy` functions only support columns returned by the query, b
 
 ```ts
 const customizedSelect = connection.selectFrom(tCustomer)
- .where(tCustomer.id.equals(10))
- .select({
- id: tCustomer.id,
- firstName: tCustomer.firstName,
- lastName: tCustomer.lastName,
- birthday: tCustomer.birthday
- }).customizeQuery({
- beforeOrderByItems: connection.rawFragment`${tCustomer.birthday} desc`
- })
- .executeSelectOne()
+    .where(tCustomer.id.equals(10))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    }).customizeQuery({
+        beforeOrderByItems: connection.rawFragment`${tCustomer.birthday} desc`
+    })
+    .executeSelectOne()
 ```
 
 - **Does ts-sql-query support `window` constructions?**
@@ -140,13 +140,13 @@ SQL support three-valued logic that doesn't exists in the same way in TypeScript
 ```ts
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
 
- equalsFalsyOptionalString = this.buildFragmentWithArgs(
- this.arg('string', 'optional'),
- this.arg('string', 'optional')
- ).as((left, right) => {
- // The fragment here is: ${left} = ${right}
- return this.fragmentWithType('boolean', 'optional').sql`${left} = ${right}`
- })
+    equalsFalsyOptionalString = this.buildFragmentWithArgs(
+        this.arg('string', 'optional'),
+        this.arg('string', 'optional')
+    ).as((left, right) => {
+        // The fragment here is: ${left} = ${right}
+        return this.fragmentWithType('boolean', 'optional').sql`${left} = ${right}`
+    })
 }
 ```
 
@@ -156,12 +156,12 @@ When you use an inline query value, the value may return `null` due to rows matc
 
 ```ts
 const numberOfCustomers = connection
- .subSelectUsing(tCompany)
- .from(tCustomer)
- .where(tCustomer.companyId.equals(tCompany.id))
- .selectOneColumn(connection.countAll())
- .forUseAsInlineQueryValue() // At this point is a value that you can use in other query
- .valueWhenNull(0);
+    .subSelectUsing(tCompany)
+    .from(tCustomer)
+    .where(tCustomer.companyId.equals(tCompany.id))
+    .selectOneColumn(connection.countAll())
+    .forUseAsInlineQueryValue() // At this point is a value that you can use in other query
+    .valueWhenNull(0);
 ```
 
 - **Can I put an insert/update/delete in a with clause?**

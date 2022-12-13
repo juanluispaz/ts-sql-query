@@ -33,9 +33,9 @@ type MakeTypeVisible<T> = {
     [P in keyof T]: T[P]
 }
 
-export type ColumnKeys<O> = { [K in keyof O]-?: O[K] extends AnyValueSource ? K : never }[keyof O]
+export type ColumnKeys<O> = { [K in keyof O]-?: K extends string ? (O[K] extends AnyValueSource ? K : never) : never }[keyof O] // Discard non string keys, if not TS got wrong output when extractColumnsFrom is used with the result of fromRef 
 
-export type WritableColumnKeys<O> = { [K in keyof O]-?: O[K] extends Column ? (O[K] extends ComputedColumn ? never : K) : never }[keyof O]
+export type WritableColumnKeys<O> = { [K in keyof O]-?: K extends string ? (O[K] extends Column ? (O[K] extends ComputedColumn ? never : K) : never) : never }[keyof O] // Discard non string keys, if not TS got wrong output when extractColumnsFrom is used with the result of fromRef 
 
 export type TableOrViewOf<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS extends string = ''> = 
     ALIAS extends false /*ALIAS is any*/ 

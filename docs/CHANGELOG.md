@@ -1,5 +1,17 @@
 # Change Log
 
+## v1.44.0 (13 Dec 2022)
+
+**Changes**:
+
+- Add `beforeWithQuery` and `afterWithQuery` select query customizations
+- Add utility types to allow pass tables and views as parameter
+
+**Documentation changes**:
+
+- Add FAQs & limitations section to the documentation 
+- Document select queries that references outer tables
+
 ## v1.43.0 (6 Dec 2022)
 
 **Changes**:

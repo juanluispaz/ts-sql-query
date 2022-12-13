@@ -1,5 +1,22 @@
 # Change Log
 
+## v1.45.0 (14 Dec 2022)
+
+**Changes**:
+
+- Allow to use `dynamicPick` over tables and views past as parameter to a function
+- Improve `dynamicPick` to work with columns coming from other `dynamicPick` and to work with complex projections
+- Improve `extractColumnsFrom` and `extractWritableColumnsFrom` to receive a second optional argument with the properties to exclude
+- Add utilities functions `extractColumnNamesFrom` and `extractWritableColumnNamesFrom` that allows to get the column names from a table or view
+
+**Documentation changes**:
+
+- Add to the FAQs ts-sql-codegen that allows to generate the tables/views models from the database
+
+**Internal changes**:
+
+- Improve Github CI to remove some deprecated warning and include Node 18.x in the tests
+
 ## v1.44.0 (13 Dec 2022)
 
 **Changes**:

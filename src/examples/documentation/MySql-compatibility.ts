@@ -1735,7 +1735,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push("select customer.id as id, customer.first_name as `name.firstName`, customer.last_name as `name.lastName`, company.id as `company.id`, company.`name` as `company.name` from customer inner join company on company.id = customer.company_id where customer.id = ?")
+    expectedQuery.push("select customer.id as id, customer.first_name as `name.firstName`, customer.last_name as `name.lastName`, company.`name` as `company.name` from customer inner join company on company.id = customer.company_id where customer.id = ?")
     expectedParams.push(`[12]`)
     expectedType.push(`selectManyRows`)
     
@@ -3668,7 +3668,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as companyId, parent_id as companyParentId, id as companyName, parent_id as favouriteCustomerId from company where id = ?`)
+    expectedQuery.push(`select id as companyId, id as companyName, parent_id as companyParentId, parent_id as favouriteCustomerId from company where id = ?`)
     expectedParams.push(`[10]`)
     expectedType.push(`selectManyRows`)
 

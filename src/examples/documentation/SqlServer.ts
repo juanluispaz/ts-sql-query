@@ -1734,7 +1734,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select customer.id as id, customer.first_name as [name.firstName], customer.last_name as [name.lastName], company.id as [company.id], company.name as [company.name] from customer inner join company on company.id = customer.company_id where customer.id = @0`)
+    expectedQuery.push(`select customer.id as id, customer.first_name as [name.firstName], customer.last_name as [name.lastName], company.name as [company.name] from customer inner join company on company.id = customer.company_id where customer.id = @0`)
     expectedParams.push(`[12]`)
     expectedType.push(`selectManyRows`)
     
@@ -3755,12 +3755,12 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`with recursive_select_1 as (select id as companyId, parent_id as companyParentId, id as companyName, parent_id as favouriteCustomerId from company where id = @0 union all select company.id as companyId, company.parent_id as companyParentId, company.id as companyName, company.parent_id as favouriteCustomerId from company join recursive_select_1 on recursive_select_1.companyParentId = company.id) select companyId as companyId, companyParentId as companyParentId, companyName as companyName, favouriteCustomerId as favouriteCustomerId from recursive_select_1`)
+    expectedQuery.push(`with recursive_select_1 as (select id as companyId, id as companyName, parent_id as companyParentId, parent_id as favouriteCustomerId from company where id = @0 union all select company.id as companyId, company.id as companyName, company.parent_id as companyParentId, company.parent_id as favouriteCustomerId from company join recursive_select_1 on recursive_select_1.companyParentId = company.id) select companyId as companyId, companyName as companyName, companyParentId as companyParentId, favouriteCustomerId as favouriteCustomerId from recursive_select_1`)
     expectedParams.push(`[10]`)
     expectedType.push(`selectManyRows`)
 
     expectedResult.push(0)
-    expectedQuery.push(`with recursive_select_1 as (select id as companyId, parent_id as companyParentId, id as companyName, parent_id as favouriteCustomerId from company where id = @0 union all select company.id as companyId, company.parent_id as companyParentId, company.id as companyName, company.parent_id as favouriteCustomerId from company join recursive_select_1 on recursive_select_1.companyParentId = company.id) select count(*) from recursive_select_1`)
+    expectedQuery.push(`with recursive_select_1 as (select id as companyId, id as companyName, parent_id as companyParentId, parent_id as favouriteCustomerId from company where id = @0 union all select company.id as companyId, company.id as companyName, company.parent_id as companyParentId, company.parent_id as favouriteCustomerId from company join recursive_select_1 on recursive_select_1.companyParentId = company.id) select count(*) from recursive_select_1`)
     expectedParams.push(`[10]`)
     expectedType.push(`selectOneColumnOneRow`)
 
@@ -3793,7 +3793,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as companyId, parent_id as companyParentId, id as companyName, parent_id as favouriteCustomerId from company where id = @0`)
+    expectedQuery.push(`select id as companyId, id as companyName, parent_id as companyParentId, parent_id as favouriteCustomerId from company where id = @0`)
     expectedParams.push(`[10]`)
     expectedType.push(`selectManyRows`)
 

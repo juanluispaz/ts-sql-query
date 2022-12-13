@@ -389,6 +389,14 @@ const selectAll: Promise<{
 }
 ```
 
+Additionally, if you want to get an array with the column names, you can call the function `extractColumnNamesFrom` in the file `ts-sql-query/extras/utils`.
+
+```ts
+import { extractColumnNamesFrom } from "ts-sql-query/extras/utils";
+
+const tCustomerColumnNames = extractColumnNamesFrom(tCustomer);
+```
+
 ## Extract writable columns
 
 Sometimes could be useful to extract all columns available in an object, like a table or view, excluding the one that cannot be use in an insert or update. This function is analogous to `extractColumnsFrom` but ignoring computed ad virtual columns. For this purpose you can find the function `extractWritableColumnsFrom` in the file `ts-sql-query/extras/utils`.
@@ -420,6 +428,14 @@ const selectAll: Promise<{
     companyId: number;
     birthday?: Date;
 }>
+```
+
+Additionally, if you want to get an array with the writable column names, you can call the function `extractWritableColumnNamesFrom` in the file `ts-sql-query/extras/utils`.
+
+```ts
+import { extractWritableColumnNamesFrom } from "ts-sql-query/extras/utils";
+
+const tCustomerWritableColumnNames = extractWritableColumnNamesFrom(tCustomer);
 ```
 
 ## Prefixing

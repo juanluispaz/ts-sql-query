@@ -20,7 +20,8 @@
         "declaration": true,
         "isolatedModules": true,
         "outDir": "dist/",
-        "rootDir": "src/"
+        "rootDir": "src/",
+        "noErrorTruncation": true
     },
     "exclude": [
         "node_modules",

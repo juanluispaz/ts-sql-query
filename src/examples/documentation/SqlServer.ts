@@ -1,6 +1,6 @@
 import { SqlServerConnection } from "../../connections/SqlServerConnection"
 import { DynamicCondition, dynamicPick } from "../../dynamicCondition"
-import { extractColumnsFrom, extractWritableColumnsFrom, mapForGuidedSplit, mergeType, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "../../extras/utils"
+import { extractColumnNamesFrom, extractColumnsFrom, extractWritableColumnNamesFrom, extractWritableColumnsFrom, mapForGuidedSplit, mergeType, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "../../extras/utils"
 import { ConsoleLogQueryRunner } from "../../queryRunners/ConsoleLogQueryRunner"
 import { MockQueryRunner } from "../../queryRunners/MockQueryRunner"
 import { Table } from "../../Table"
@@ -3941,6 +3941,26 @@ async function main() {
         .executeSelectMany()
     
     assertEquals(customerCountPerAcmeCompanies2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = [ 'id', 'firstName', 'lastName', 'birthday', 'companyId', 'name', 'age' ]
+
+    /* *** Example ****************************************************************/
+
+    const tCustomerColumnNames = extractColumnNamesFrom(tCustomer)
+
+    assertEquals(tCustomerColumnNames, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = [ 'id', 'firstName', 'lastName', 'birthday', 'companyId' ]
+
+    /* *** Example ****************************************************************/
+
+    const tCustomerWritableColumnNames = extractWritableColumnNamesFrom(tCustomer)
+
+    assertEquals(tCustomerWritableColumnNames, result)
 }
 
 main().then(() => {

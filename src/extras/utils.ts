@@ -158,6 +158,36 @@ export function extractWritableColumnsFrom<O extends object>(obj: O): { [K in Wr
     return result
 }
 
+export function extractColumnNamesFrom<O extends object>(obj: O): ColumnKeys<O>[] {
+    if (!obj) {
+        return []
+    }
+    const result: any[] = []
+    for (let key in obj) {
+        const value = obj[key]
+        if (isValueSource(value)) {
+            result.push(key)
+        }
+    }
+    return result
+}
+
+export function extractWritableColumnNamesFrom<O extends object>(obj: O): WritableColumnKeys<O>[] {
+    if (!obj) {
+        return []
+    }
+    const result: any[] = []
+    for (let key in obj) {
+        const value = obj[key]
+        if (isColumn(value)) {
+            if (!__getColumnPrivate(value).__isComputed) {
+                result.push(key)
+            }
+        }
+    }
+    return result
+}
+
 type HasIfValueSource<VALUE> = VALUE extends {[ifValueSourceType]: 'IfValueSource'} ? true : never
 
 export function mergeType<VALUE extends IAnyBooleanValueSource<any, any>>(value: VALUE): true extends HasIfValueSource<VALUE>? IfValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>> : BooleanValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>

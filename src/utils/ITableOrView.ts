@@ -2,20 +2,20 @@ import type { AnyDB } from "../databases"
 import { RawFragment } from "./RawFragment"
 import type { database, noTableOrViewRequired, oldValues, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, tableOrView, tableOrViewAlias, tableOrViewCustomName, tableOrViewRef, tableOrViewRefType, type, valuesForInsert } from "./symbols"
 
-export interface TableOrViewRef<DB extends AnyDB> {
+export interface ITableOrViewRef<DB extends AnyDB> {
     [database]: DB
     [tableOrViewRefType]: 'tableOrViewRef'
 }
 
-export interface TableOrViewOf<DB extends AnyDB> {
+export interface OfDB<DB extends AnyDB> {
     [database]: DB
 }
 
-export interface ITableOrView<REF extends TableOrViewRef<AnyDB>> extends TableOrViewOf<REF[typeof database]> {
+export interface ITableOrView<REF extends ITableOrViewRef<AnyDB>> extends OfDB<REF[typeof database]> {
     [tableOrViewRef]: REF
 }
 
-export interface ITableOrViewOf<DB extends AnyDB, REF extends TableOrViewRef<DB>> extends ITableOrView<REF> {
+export interface ITableOrViewOf<DB extends AnyDB, REF extends ITableOrViewRef<DB>> extends ITableOrView<REF> {
     
 }
 
@@ -110,27 +110,27 @@ export function __getTableOrViewPrivate(table: ITableOrView<any> | OuterJoinSour
     return table as any
 }
 
-export interface ITable<REF extends TableOrViewRef<AnyDB>> extends ITableOrView<REF>{
+export interface ITable<REF extends ITableOrViewRef<AnyDB>> extends ITableOrView<REF>{
     [type]: 'table'
 }
 
-export interface ITableOf<DB extends AnyDB, REF extends TableOrViewRef<DB>> extends ITable<REF> {
+export interface ITableOf<DB extends AnyDB, REF extends ITableOrViewRef<DB>> extends ITable<REF> {
     
 }
 
-export interface IView<REF extends TableOrViewRef<AnyDB>> extends ITableOrView<REF>{
+export interface IView<REF extends ITableOrViewRef<AnyDB>> extends ITableOrView<REF>{
     [type]: 'view'
 }
 
-export interface IValues<REF extends TableOrViewRef<AnyDB>> extends ITableOrView<REF>{
+export interface IValues<REF extends ITableOrViewRef<AnyDB>> extends ITableOrView<REF>{
     [type]: 'values'
 }
 
-export interface IWithView<REF extends TableOrViewRef<AnyDB>> extends ITableOrView<REF>{
+export interface IWithView<REF extends ITableOrViewRef<AnyDB>> extends ITableOrView<REF>{
     [type]: 'with'
 }
 
-export interface NoTableOrViewRequired<DB extends AnyDB> extends TableOrViewRef<DB> {
+export interface NoTableOrViewRequired<DB extends AnyDB> extends ITableOrViewRef<DB> {
     [noTableOrViewRequired]: 'NoTableOrViewRequired'
 }
 
@@ -138,7 +138,7 @@ export interface NoTableOrViewRequiredView<DB extends AnyDB> extends IView<NoTab
     [noTableOrViewRequired]: 'NoTableOrViewRequiredView'
 }
 
-export interface OLD<REF extends TableOrViewRef<AnyDB>> extends TableOrViewRef<REF[typeof database]> {
+export interface OLD<REF extends ITableOrViewRef<AnyDB>> extends ITableOrViewRef<REF[typeof database]> {
     [tableOrViewRef]: REF
     [oldValues]: 'OldValues'
 }
@@ -148,7 +148,7 @@ export interface OldTableOrView<TABLE_OR_VIEW extends ITableOrView<any>> extends
     [oldValues]: 'OldValuesTableOrView'
 }
 
-export interface VALUES_FOR_INSERT<REF extends TableOrViewRef<AnyDB>> extends TableOrViewRef<REF[typeof database]> {
+export interface VALUES_FOR_INSERT<REF extends ITableOrViewRef<AnyDB>> extends ITableOrViewRef<REF[typeof database]> {
     [tableOrViewRef]: REF
     [valuesForInsert]: 'ValuesForInsert'
 }
@@ -158,12 +158,12 @@ export interface ValuesForInsertTableOrView<TABLE_OR_VIEW extends ITableOrView<a
     [valuesForInsert]: 'ValuesForInsertTableOrView'
 }
 
-export interface TABLE_OR_VIEW_ALIAS<REF extends TableOrViewRef<AnyDB>, ALIAS> extends TableOrViewRef<REF[typeof database]> {
+export interface TABLE_OR_VIEW_ALIAS<REF extends ITableOrViewRef<AnyDB>, ALIAS> extends ITableOrViewRef<REF[typeof database]> {
     [tableOrViewAlias]: ALIAS
     [tableOrViewRef]: REF
 }
 
-export interface CUSTOMIZED_TABLE_OR_VIEW<REF extends TableOrViewRef<AnyDB>, NAME> extends TableOrViewRef<REF[typeof database]> {
+export interface CUSTOMIZED_TABLE_OR_VIEW<REF extends ITableOrViewRef<AnyDB>, NAME> extends ITableOrViewRef<REF[typeof database]> {
     [tableOrViewCustomName]: NAME
     [tableOrViewRef]: REF
 }
@@ -179,13 +179,13 @@ export interface OuterJoinSource<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS>
     [outerJoinAlias]: ALIAS
 }
 
-export interface OUTER_JOIN_SOURCE<REF extends TableOrViewRef<AnyDB>, ALIAS> extends TableOrViewRef<REF[typeof database]> {
+export interface OUTER_JOIN_SOURCE<REF extends ITableOrViewRef<AnyDB>, ALIAS> extends ITableOrViewRef<REF[typeof database]> {
     [outerJoinDatabase]: REF[typeof database]
     [outerJoinTableOrView]: REF
     [outerJoinAlias]: ALIAS
 }
 
-export interface TableOrViewOuterJoin<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> extends ITableOrView<OUTER_JOIN_SOURCE<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>> {
+export interface ITableOrViewOuterJoin<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> extends ITableOrView<OUTER_JOIN_SOURCE<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>> {
     [tableOrView]: TABLE_OR_VIEW
     [tableOrViewAlias]: ALIAS
     [outerJoinAlias]: ALIAS

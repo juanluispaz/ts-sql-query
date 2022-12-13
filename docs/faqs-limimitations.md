@@ -103,6 +103,8 @@ async function getCompanyInfoWithNumberOfCustomers(connection: DBConnection, id:
 }
 ```
 
+**Note**: If you need to use table or view with alias you can pass it as parameter to the functions. See [Passing tables and views as parameter](advanced-usage.md#passing-tables-and-views-as-parameter) for more information.
+
 ### How can I use select * in my queries?
 
 `select *` is very useful, especially when creating manual queries to see at the moment, but it is very dangerous when building your backend. The issue is related to what happens during the time; when you build your backend, the backend and database are synced, but that will be true only sometimes. One example is when you are deploying a new version of your system that requires changes in the database. If you use `select *`, then the query will return a new column (not managed by the backend), or an expected column will disappear, and the backend will misbehave (instead of throwing an error). That kinds of errors are hard and very dangerous; it is better to have a clear error than a silent malfunctioning system.

@@ -4,7 +4,7 @@ import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expre
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
 import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, TypeSafeBigintValueSource, ITypeSafeBigintValueSource, AlwaysIfValueSource, ValueSourceOf, ValueSourceOfDB, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource, TypeSafeUuidValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery } from "../expressions/values"
 import type { Default } from "../expressions/Default"
-import { TableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf, ITableOrView, __getTableOrViewPrivate } from "../utils/ITableOrView"
+import { ITableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf, ITableOrView, __getTableOrViewPrivate, OuterJoinSource } from "../utils/ITableOrView"
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from "../expressions/select"
 import type { TypeAdapter, DefaultTypeAdapter } from "../TypeAdapter"
 import type { int, double, LocalDate, LocalTime, LocalDateTime, stringInt, stringDouble, uuid } from "ts-extended-types"
@@ -22,13 +22,13 @@ import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
 import ChainedError from "chained-error"
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue } from "../queryBuilders/FragmentQueryBuilder"
 import { attachSource, attachTransactionSource } from "../utils/attachSource"
-import { database, tableOrView, tableOrViewRef, type, valueType } from "../utils/symbols"
+import { database, outerJoinAlias, outerJoinTableOrView, tableOrView, tableOrViewRef, type, valueType } from "../utils/symbols"
 import { callDeferredFunctions, UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
 import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilder"
 import { RawFragment } from "../utils/RawFragment"
 import { RawFragmentImpl } from "../internal/RawFragmentImpl"
-import { CustomizedTableOrView } from "../utils/tableOrViewUtils"
+import { CustomizedTableOrView, OuterJoinTableOrView } from "../utils/tableOrViewUtils"
 import { InnerResultObjectValuesForAggregatedArray } from "../utils/resultUtils"
 
 export abstract class AbstractConnection<DB extends AnyDB> implements IConnection<DB> {
@@ -216,18 +216,18 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     selectFromNoTable(): SelectExpressionFromNoTable<DB, never> {
         return new SelectQueryBuilder(this.__sqlBuilder, [], false) as any // cast to any to improve typescript performace
     }
-    subSelectUsing<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW, never>
-    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2, never>
-    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, never>
-    subSelectUsing(...tables: ITableOrView<any>[]): SelectExpressionSubquery<DB, any, never> {
+    subSelectUsing<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW[typeof outerJoinTableOrView], TABLE_OR_VIEW[typeof outerJoinAlias]> : TABLE_OR_VIEW, never>
+    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, (TABLE_OR_VIEW1 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW1[typeof outerJoinTableOrView], TABLE_OR_VIEW1[typeof outerJoinAlias]> : TABLE_OR_VIEW1) | (TABLE_OR_VIEW2 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW2[typeof outerJoinTableOrView], TABLE_OR_VIEW2[typeof outerJoinAlias]> : TABLE_OR_VIEW2), never>
+    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, (TABLE_OR_VIEW1 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW1[typeof outerJoinTableOrView], TABLE_OR_VIEW1[typeof outerJoinAlias]> : TABLE_OR_VIEW1) | (TABLE_OR_VIEW2 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW2[typeof outerJoinTableOrView], TABLE_OR_VIEW2[typeof outerJoinAlias]> : TABLE_OR_VIEW2) | (TABLE_OR_VIEW3 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW3[typeof outerJoinTableOrView], TABLE_OR_VIEW3[typeof outerJoinAlias]> : TABLE_OR_VIEW3), never>
+    subSelectUsing(...tables: any[]): SelectExpressionSubquery<DB, any, never> {
         const result = new SelectQueryBuilder(this.__sqlBuilder, [], false)
         result.__subSelectUsing = tables
         return result as any // cast to any to improve typescript performace
     }
-    subSelectDistinctUsing<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW, 'distinct'>
-    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2, 'distinct'>
-    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, TABLE_OR_VIEW1 | TABLE_OR_VIEW2 | TABLE_OR_VIEW3, 'distinct'>
-    subSelectDistinctUsing(...tables: ITableOrView<any>[]): SelectExpressionSubquery<DB, any, 'distinct'> {
+    subSelectDistinctUsing<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW[typeof outerJoinTableOrView], TABLE_OR_VIEW[typeof outerJoinAlias]> : TABLE_OR_VIEW, 'distinct'>
+    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, (TABLE_OR_VIEW1 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW1[typeof outerJoinTableOrView], TABLE_OR_VIEW1[typeof outerJoinAlias]> : TABLE_OR_VIEW1) | (TABLE_OR_VIEW2 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW2[typeof outerJoinTableOrView], TABLE_OR_VIEW2[typeof outerJoinAlias]> : TABLE_OR_VIEW2), 'distinct'>
+    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, (TABLE_OR_VIEW1 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW1[typeof outerJoinTableOrView], TABLE_OR_VIEW1[typeof outerJoinAlias]> : TABLE_OR_VIEW1) | (TABLE_OR_VIEW2 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW2[typeof outerJoinTableOrView], TABLE_OR_VIEW2[typeof outerJoinAlias]> : TABLE_OR_VIEW2) | (TABLE_OR_VIEW3 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW3[typeof outerJoinTableOrView], TABLE_OR_VIEW3[typeof outerJoinAlias]> : TABLE_OR_VIEW3), 'distinct'>
+    subSelectDistinctUsing(...tables: any[]): SelectExpressionSubquery<DB, any, 'distinct'> {
         const result = new SelectQueryBuilder(this.__sqlBuilder, [], false)
         result.__subSelectUsing = tables
         return result as any // cast to any to improve typescript performace
@@ -685,11 +685,11 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new SqlOperationValueSourceIfValueAlwaysNoop()
     }
 
-    dynamicBooleanExpressionUsing<REF extends TableOrViewRef<DB>>(table: ITableOrView<REF>): AlwaysIfValueSource<REF | NoTableOrViewRequired<DB>, any>
-    dynamicBooleanExpressionUsing<REF1 extends TableOrViewRef<DB>, REF2 extends TableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>): AlwaysIfValueSource<REF1 | REF2 | NoTableOrViewRequired<DB>, any>
-    dynamicBooleanExpressionUsing<REF1 extends TableOrViewRef<DB>, REF2 extends TableOrViewRef<DB>, REF3 extends TableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>, table3: ITableOrView<REF3>): AlwaysIfValueSource<REF1 | REF2 | REF3 | NoTableOrViewRequired<DB>, any>
-    dynamicBooleanExpressionUsing<REF1 extends TableOrViewRef<DB>, REF2 extends TableOrViewRef<DB>, REF3 extends TableOrViewRef<DB>, REF4 extends TableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>, table3: ITableOrView<REF3>, table4: ITableOrView<REF4>): AlwaysIfValueSource<REF1 | REF2 | REF3 | REF4 | NoTableOrViewRequired<DB>, any>
-    dynamicBooleanExpressionUsing<REF1 extends TableOrViewRef<DB>, REF2 extends TableOrViewRef<DB>, REF3 extends TableOrViewRef<DB>, REF4 extends TableOrViewRef<DB>, REF5 extends TableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>, table3: ITableOrView<REF3>, table4: ITableOrView<REF4>, table5: ITableOrView<REF5>): AlwaysIfValueSource<REF1 | REF2 | REF3 | REF4 | REF5 | NoTableOrViewRequired<DB>, any>
+    dynamicBooleanExpressionUsing<REF extends ITableOrViewRef<DB>>(table: ITableOrView<REF>): AlwaysIfValueSource<REF | NoTableOrViewRequired<DB>, any>
+    dynamicBooleanExpressionUsing<REF1 extends ITableOrViewRef<DB>, REF2 extends ITableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>): AlwaysIfValueSource<REF1 | REF2 | NoTableOrViewRequired<DB>, any>
+    dynamicBooleanExpressionUsing<REF1 extends ITableOrViewRef<DB>, REF2 extends ITableOrViewRef<DB>, REF3 extends ITableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>, table3: ITableOrView<REF3>): AlwaysIfValueSource<REF1 | REF2 | REF3 | NoTableOrViewRequired<DB>, any>
+    dynamicBooleanExpressionUsing<REF1 extends ITableOrViewRef<DB>, REF2 extends ITableOrViewRef<DB>, REF3 extends ITableOrViewRef<DB>, REF4 extends ITableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>, table3: ITableOrView<REF3>, table4: ITableOrView<REF4>): AlwaysIfValueSource<REF1 | REF2 | REF3 | REF4 | NoTableOrViewRequired<DB>, any>
+    dynamicBooleanExpressionUsing<REF1 extends ITableOrViewRef<DB>, REF2 extends ITableOrViewRef<DB>, REF3 extends ITableOrViewRef<DB>, REF4 extends ITableOrViewRef<DB>, REF5 extends ITableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>, table3: ITableOrView<REF3>, table4: ITableOrView<REF4>, table5: ITableOrView<REF5>): AlwaysIfValueSource<REF1 | REF2 | REF3 | REF4 | REF5 | NoTableOrViewRequired<DB>, any>
     dynamicBooleanExpressionUsing(..._tables: any[]): AlwaysIfValueSource<any, any> {
         return new SqlOperationValueSourceIfValueAlwaysNoop()
     }
@@ -700,85 +700,85 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     countAll(): ValueSourceOf<NoTableOrViewRequired<DB>> {
         return new AggregateFunctions0ValueSource('_countAll', 'int', 'required', undefined)
     }
-    count<TABLE_OR_VIEW extends TableOrViewRef<DB>>(this: IConnection<TypeSafeDB>, value: ValueSourceOf<TABLE_OR_VIEW>): IntValueSource<TABLE_OR_VIEW, 'required'>
-    count<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): NumberValueSource<TABLE_OR_VIEW, 'required'>
-    count<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<NoTableOrViewRequired<DB>> {
+    count<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(this: IConnection<TypeSafeDB>, value: ValueSourceOf<TABLE_OR_VIEW>): IntValueSource<TABLE_OR_VIEW, 'required'>
+    count<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): NumberValueSource<TABLE_OR_VIEW, 'required'>
+    count<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<NoTableOrViewRequired<DB>> {
         return new AggregateFunctions1ValueSource('_count', value, 'int', 'required', undefined)
     }
-    countDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(this: IConnection<TypeSafeDB>, value: ValueSourceOf<TABLE_OR_VIEW>): IntValueSource<TABLE_OR_VIEW, 'required'>
-    countDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): NumberValueSource<TABLE_OR_VIEW, 'required'>
-    countDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<NoTableOrViewRequired<DB>> {
+    countDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(this: IConnection<TypeSafeDB>, value: ValueSourceOf<TABLE_OR_VIEW>): IntValueSource<TABLE_OR_VIEW, 'required'>
+    countDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): NumberValueSource<TABLE_OR_VIEW, 'required'>
+    countDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<NoTableOrViewRequired<DB>> {
         return new AggregateFunctions1ValueSource('_countDistinct', value, 'int', 'required', undefined)
     }
-    max<TYPE extends IComparableValueSource<TableOrViewRef<DB>, any, any, any>>(value: TYPE): RemapValueSourceTypeWithOptionalType<TYPE[typeof tableOrView], TYPE, 'optional'> {
+    max<TYPE extends IComparableValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): RemapValueSourceTypeWithOptionalType<TYPE[typeof tableOrView], TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource('_max', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)) as any
     }
-    min<TYPE extends IComparableValueSource<TableOrViewRef<DB>, any, any, any>>(value: TYPE): RemapValueSourceTypeWithOptionalType<TYPE[typeof tableOrView], TYPE, 'optional'> {
+    min<TYPE extends IComparableValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): RemapValueSourceTypeWithOptionalType<TYPE[typeof tableOrView], TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource('_min', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)) as any
     }
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, 'optional'>
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, any>): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringIntValueSource<TABLE_OR_VIEW, any>): StringIntValueSource<TABLE_OR_VIEW, 'optional'>
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, any>): StringDoubleValueSource<TABLE_OR_VIEW, 'optional'>
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, any>): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW, any>): TypeSafeBigintValueSource<TABLE_OR_VIEW, 'optional'>
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
-    sum<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
+    sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, 'optional'>
+    sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, any>): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
+    sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringIntValueSource<TABLE_OR_VIEW, any>): StringIntValueSource<TABLE_OR_VIEW, 'optional'>
+    sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, any>): StringDoubleValueSource<TABLE_OR_VIEW, 'optional'>
+    sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
+    sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, any>): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
+    sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW, any>): TypeSafeBigintValueSource<TABLE_OR_VIEW, 'optional'>
+    sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
+    sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_sum', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, 'optional'>
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, any>): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringIntValueSource<TABLE_OR_VIEW, any>): StringIntValueSource<TABLE_OR_VIEW, 'optional'>
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, any>): StringDoubleValueSource<TABLE_OR_VIEW, 'optional'>
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, any>): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW, any>): TypeSafeBigintValueSource<TABLE_OR_VIEW, 'optional'>
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
-    sumDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
+    sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, 'optional'>
+    sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, any>): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
+    sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringIntValueSource<TABLE_OR_VIEW, any>): StringIntValueSource<TABLE_OR_VIEW, 'optional'>
+    sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, any>): StringDoubleValueSource<TABLE_OR_VIEW, 'optional'>
+    sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
+    sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, any>): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
+    sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW, any>): TypeSafeBigintValueSource<TABLE_OR_VIEW, 'optional'>
+    sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
+    sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_sumDistinct', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, 'optional'>
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, any>): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringIntValueSource<TABLE_OR_VIEW, any>): StringIntValueSource<TABLE_OR_VIEW, 'optional'>
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, any>): StringDoubleValueSource<TABLE_OR_VIEW, 'optional'>
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, any>): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW, any>): TypeSafeBigintValueSource<TABLE_OR_VIEW, 'optional'>
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
-    average<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
+    average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, 'optional'>
+    average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, any>): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
+    average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringIntValueSource<TABLE_OR_VIEW, any>): StringIntValueSource<TABLE_OR_VIEW, 'optional'>
+    average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, any>): StringDoubleValueSource<TABLE_OR_VIEW, 'optional'>
+    average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
+    average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, any>): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
+    average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW, any>): TypeSafeBigintValueSource<TABLE_OR_VIEW, 'optional'>
+    average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
+    average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_average', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, 'optional'>
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, any>): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringIntValueSource<TABLE_OR_VIEW, any>): StringIntValueSource<TABLE_OR_VIEW, 'optional'>
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, any>): StringDoubleValueSource<TABLE_OR_VIEW, 'optional'>
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, any>): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW, any>): TypeSafeBigintValueSource<TABLE_OR_VIEW, 'optional'>
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
-    averageDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
+    averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, 'optional'>
+    averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, any>): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
+    averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringIntValueSource<TABLE_OR_VIEW, any>): StringIntValueSource<TABLE_OR_VIEW, 'optional'>
+    averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringDoubleValueSource<TABLE_OR_VIEW, any>): StringDoubleValueSource<TABLE_OR_VIEW, 'optional'>
+    averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
+    averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, any>): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
+    averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ITypeSafeBigintValueSource<TABLE_OR_VIEW, any>): TypeSafeBigintValueSource<TABLE_OR_VIEW, 'optional'>
+    averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
+    averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_averageDistinct', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
-    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, any>): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
-    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>): StringValueSource<TABLE_OR_VIEW, 'optional'>
-    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, any>, separator: string): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
-    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>, separator: string): StringValueSource<TABLE_OR_VIEW, 'optional'>
-    stringConcat<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>, separator?: string): ValueSourceOf<TABLE_OR_VIEW> {
+    stringConcat<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, any>): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
+    stringConcat<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>): StringValueSource<TABLE_OR_VIEW, 'optional'>
+    stringConcat<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, any>, separator: string): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
+    stringConcat<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>, separator: string): StringValueSource<TABLE_OR_VIEW, 'optional'>
+    stringConcat<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>, separator?: string): ValueSourceOf<TABLE_OR_VIEW> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcat', separator, value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
-    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, any>): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
-    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>): StringValueSource<TABLE_OR_VIEW, 'optional'>
-    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, any>, separator: string): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
-    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>, separator: string): StringValueSource<TABLE_OR_VIEW, 'optional'>
-    stringConcatDistinct<TABLE_OR_VIEW extends TableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>, separator?: string): ValueSourceOf<TABLE_OR_VIEW> {
+    stringConcatDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, any>): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
+    stringConcatDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>): StringValueSource<TABLE_OR_VIEW, 'optional'>
+    stringConcatDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, any>, separator: string): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
+    stringConcatDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>, separator: string): StringValueSource<TABLE_OR_VIEW, 'optional'>
+    stringConcatDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>, separator?: string): ValueSourceOf<TABLE_OR_VIEW> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
@@ -786,7 +786,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSource<TableOrViewOfAggregatedArray<COLUMNS>, Array<{ [P in keyof InnerResultObjectValuesForAggregatedArray<COLUMNS>]: InnerResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, 'required'> {
         return new AggregateValueAsArrayValueSource(columns, 'InnerResultObject', 'required')
     }
-    aggregateAsArrayOfOneColumn<VALUE extends IValueSource<TableOrViewRef<DB>, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof tableOrView], Array<VALUE[typeof valueType]>, 'required'> {
+    aggregateAsArrayOfOneColumn<VALUE extends IValueSource<ITableOrViewRef<DB>, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof tableOrView], Array<VALUE[typeof valueType]>, 'required'> {
         return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required')
     }
 

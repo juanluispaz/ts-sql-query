@@ -1,6 +1,6 @@
 import { AnyDB } from "../databases"
 import type { AnyValueSource, IValueSource, OptionalType, OptionalTypeRequiredOrAny, RemapIValueSourceTypeWithOptionalType, ValueSource, ValueSourceOf, ValueSourceValueTypeForRequiredInOptionalObject, ValueSourceValueTypeForObjectResult, ValueSourceValueTypeForOptionalObjectResultSameOuterJoin } from "../expressions/values"
-import { NoTableOrViewRequired, OUTER_JOIN_SOURCE, TableOrViewRef } from "./ITableOrView"
+import { NoTableOrViewRequired, OUTER_JOIN_SOURCE, ITableOrViewRef } from "./ITableOrView"
 import { database } from "./symbols"
 
 // Result
@@ -46,11 +46,11 @@ type OptionalPropertiesOf<TYPE> = ({ [K in keyof TYPE]-?: null | undefined exten
 
 // For compound
 
-export type ColumnsForCompound<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, COLUMNS> = COLUMNS extends AnyValueSource 
+export type ColumnsForCompound<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, COLUMNS> = COLUMNS extends AnyValueSource 
     ? RemapIValueSourceTypeWithOptionalType<TABLE_OR_VIEW, COLUMNS, CompoundColumnOptionalType<COLUMNS>> 
     : InnerColumnsForCompound<TABLE_OR_VIEW, COLUMNS>
 
-type InnerColumnsForCompound<TABLE_OR_VIEW extends TableOrViewRef<AnyDB>, COLUMNS> =
+type InnerColumnsForCompound<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, COLUMNS> =
     { [K in keyof COLUMNS]: 
         COLUMNS[K] extends AnyValueSource | undefined
         ? RemapIValueSourceTypeWithOptionalType<TABLE_OR_VIEW, COLUMNS[K], CompoundColumnOptionalType<COLUMNS[K]>> 

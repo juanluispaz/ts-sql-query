@@ -356,7 +356,7 @@ See [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/ex
 
 ## Extract columns
 
-Sometimes could be useful to extract all columns available in an object, like a table or view; this allows to use in a select, ensuring the select uses all columns defined in the provided object. For this purpose you can find the function `extractColumnsFrom` in the file `ts-sql-query/extras/utils`.
+Sometimes could be useful to extract all columns available in an object, like a table or view; this allows to use in a select, ensuring the select uses all columns defined in the provided object. For this purpose you can find the function `extractColumnsFrom` in the file `ts-sql-query/extras/utils`. This function receives the object that contains the columns as its first argument and optionally, as its second argument, an array with the name of the properties to exclude.
 
 ```ts
 import { extractColumnsFrom } from "ts-sql-query/extras/utils";
@@ -399,7 +399,7 @@ const tCustomerColumnNames = extractColumnNamesFrom(tCustomer);
 
 ## Extract writable columns
 
-Sometimes could be useful to extract all columns available in an object, like a table or view, excluding the one that cannot be use in an insert or update. This function is analogous to `extractColumnsFrom` but ignoring computed ad virtual columns. For this purpose you can find the function `extractWritableColumnsFrom` in the file `ts-sql-query/extras/utils`.
+Sometimes could be useful to extract all columns available in an object, like a table or view, excluding the one that cannot be use in an insert or update. This function is analogous to `extractColumnsFrom` but ignoring computed ad virtual columns. For this purpose you can find the function `extractWritableColumnsFrom` in the file `ts-sql-query/extras/utils`. This function receives the object that contains the columns as its first argument and optionally, as its second argument, an array with the name of the properties to exclude.
 
 ```ts
 import { extractWritableColumnsFrom } from "ts-sql-query/extras/utils";

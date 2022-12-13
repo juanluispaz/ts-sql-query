@@ -128,12 +128,22 @@ export function prefixMapForGuidedSplitDotted<O extends object, R extends ITable
     return result
 }
 
-export function extractColumnsFrom<O extends object>(obj: O): { [K in ColumnKeys<O>]: O[K] } {
+export function extractColumnsFrom<O extends object, EXCLUDE extends ColumnKeys<O> = never>(obj: O, exclude?: EXCLUDE[]): { [K in Exclude<ColumnKeys<O>, EXCLUDE>]: O[K] } {
     if (!obj) {
         return obj
     }
+    const ignore: any = {}
+    if (exclude) {
+        for (let i = 0, length = exclude.length; i < length; i++) {
+            ignore[exclude[i]] = true
+        }
+    }
+
     const result: any = {}
     for (let key in obj) {
+        if (key in ignore) {
+            continue
+        }
         const value = obj[key]
         if (isValueSource(value)) {
             result[key] = value
@@ -142,12 +152,22 @@ export function extractColumnsFrom<O extends object>(obj: O): { [K in ColumnKeys
     return result
 }
 
-export function extractWritableColumnsFrom<O extends object>(obj: O): { [K in WritableColumnKeys<O>]: O[K] } {
+export function extractWritableColumnsFrom<O extends object, EXCLUDE extends ColumnKeys<O> = never>(obj: O, exclude?: EXCLUDE[]): { [K in Exclude<WritableColumnKeys<O>, EXCLUDE>]: O[K] } {
     if (!obj) {
         return obj
     }
+    const ignore: any = {}
+    if (exclude) {
+        for (let i = 0, length = exclude.length; i < length; i++) {
+            ignore[exclude[i]] = true
+        }
+    }
+    
     const result: any = {}
     for (let key in obj) {
+        if (key in ignore) {
+            continue
+        }
         const value = obj[key]
         if (isColumn(value)) {
             if (!__getColumnPrivate(value).__isComputed) {
@@ -158,12 +178,22 @@ export function extractWritableColumnsFrom<O extends object>(obj: O): { [K in Wr
     return result
 }
 
-export function extractColumnNamesFrom<O extends object>(obj: O): ColumnKeys<O>[] {
+export function extractColumnNamesFrom<O extends object, EXCLUDE extends ColumnKeys<O> = never>(obj: O, exclude?: EXCLUDE[]): Exclude<ColumnKeys<O>, EXCLUDE>[] {
     if (!obj) {
         return []
     }
+    const ignore: any = {}
+    if (exclude) {
+        for (let i = 0, length = exclude.length; i < length; i++) {
+            ignore[exclude[i]] = true
+        }
+    }
+
     const result: any[] = []
     for (let key in obj) {
+        if (key in ignore) {
+            continue
+        }
         const value = obj[key]
         if (isValueSource(value)) {
             result.push(key)
@@ -172,12 +202,22 @@ export function extractColumnNamesFrom<O extends object>(obj: O): ColumnKeys<O>[
     return result
 }
 
-export function extractWritableColumnNamesFrom<O extends object>(obj: O): WritableColumnKeys<O>[] {
+export function extractWritableColumnNamesFrom<O extends object, EXCLUDE extends ColumnKeys<O> = never>(obj: O, exclude?: EXCLUDE[]): Exclude<WritableColumnKeys<O>, EXCLUDE>[] {
     if (!obj) {
         return []
     }
+    const ignore: any = {}
+    if (exclude) {
+        for (let i = 0, length = exclude.length; i < length; i++) {
+            ignore[exclude[i]] = true
+        }
+    }
+
     const result: any[] = []
     for (let key in obj) {
+        if (key in ignore) {
+            continue
+        }
         const value = obj[key]
         if (isColumn(value)) {
             if (!__getColumnPrivate(value).__isComputed) {

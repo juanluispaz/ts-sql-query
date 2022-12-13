@@ -491,6 +491,7 @@ Generated table of content of the file created using npm run create-single-doc-f
 - [FAQs \& Limitations](#faqs--limitations)
   - [FAQs](#faqs)
     - [How ts-sql-query modelate the queries?](#how-ts-sql-query-modelate-the-queries)
+    - [Can I generate the Tables/Views models from my database?](#can-i-generate-the-tablesviews-models-from-my-database)
     - [Does ts-sql-query support database-specific features?](#does-ts-sql-query-support-database-specific-features)
     - [Will ts-sql-query will constrain you when you need to use a not supported feature?](#will-ts-sql-query-will-constrain-you-when-you-need-to-use-a-not-supported-feature)
     - [How can I implement select for update?](#how-can-i-implement-select-for-update)

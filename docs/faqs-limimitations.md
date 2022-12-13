@@ -8,6 +8,10 @@ ts-sql-query try to modelate the queries keeping the essence of SQL; the queries
 
 ts-sql-query executes the query in a single call to the database; no intermedial data is processed in your backend server; everything is done in a single SQL query in the same way you write it in ts-sql-query. The exception is the select page, where a first query will be executed, returning the data contained in the page, and a second query will be executed to get the count.
 
+### Can I generate the Tables/Views models from my database?
+
+Yes, for this prupose you can use [ts-sql-codegen](https://github.com/lorefnon/ts-sql-codegen) that is a utility that generates table mapper classes for ts-sql-query by inspecting a database through [tbls](https://github.com/k1LoW/tbls).
+
 ### Does ts-sql-query support dynamic SQL?
 
 Yes, ts-sql-query offers a very rich set of functionality to manage dynamic SQL generation. But be aware ts-sql-query deals with it in a declarative way (keeping the spirit of SQL) instead of an imperative way like in most commons query builders. In consequence, if you see yourself writing `if` in your code, that is the wrong path in ts-sql-query. You can read more here: [Dynamic queries](queries/dynamic-queries.md#dynamic-queries).

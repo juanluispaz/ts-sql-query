@@ -1,8 +1,9 @@
 {
     "compilerOptions": {
         "target": "ES2020",
-        "module": "commonjs",
+        "module": "ESNext",
         "sourceMap": false,
+        "moduleResolution": "node",
         "newLine": "LF",
         "alwaysStrict": true,
         "noImplicitAny": true,
@@ -19,7 +20,7 @@
         "noUnusedParameters": true,
         "declaration": true,
         "isolatedModules": true,
-        "outDir": "dist/",
+        "outDir": "dist/esm/",
         "rootDir": "src/",
         "noErrorTruncation": true
     },
@@ -27,7 +28,15 @@
         "node_modules",
         "test",
         "dist",
+        "scripts",
         "build",
         "build-test"
-    ]
+    ],
+    "ts-node": {
+        "transpileOnly": true,
+        "compilerOptions": {
+            "module": "CommonJS"
+        }
+    }
 }
+

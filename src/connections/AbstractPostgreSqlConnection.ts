@@ -29,7 +29,7 @@ export abstract class AbstractPostgreSqlConnection<DB extends PostgreSql & (Type
             case 'stringDouble':
                 return placeholder + '::float8'
             case 'string':
-                return placeholder // No cast needed
+                return placeholder + '::text'
             case 'uuid':
                 return placeholder + '::uuid'
             case 'localDate':

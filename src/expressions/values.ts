@@ -131,6 +131,8 @@ export interface NullableValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, this[typeof valueSourceTypeName], any>>(value: VALUE): NullableValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, 'optional'>
     asOptional(): NullableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
     asRequiredInOptionalObject(): NullableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): NullableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    ignoreWhenAsNull(when: boolean): NullableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
 }
 
 export interface IExecutableSelectQuery<DB extends AnyDB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> {
@@ -204,6 +206,8 @@ export interface EqualableValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyD
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, this[typeof valueSourceTypeName], any>>(value: VALUE): EqualableValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, 'optional'>
     asOptional(): EqualableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
     asRequiredInOptionalObject(): EqualableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): EqualableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    ignoreWhenAsNull(when: boolean): EqualableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
 }
 
 export interface IComparableValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends IEqualableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
@@ -282,6 +286,8 @@ export interface ComparableValueSource<TABLE_OR_VIEW extends ITableOrViewRef<Any
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, this[typeof valueSourceTypeName], any>>(value: VALUE): ComparableValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, 'optional'>
     asOptional(): ComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
     asRequiredInOptionalObject(): ComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): ComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    ignoreWhenAsNull(when: boolean): ComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
 }
 
 export interface IBooleanValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IEqualableValueSource<TABLE_OR_VIEW, boolean, 'BooleanValueSource', OPTIONAL_TYPE> {
@@ -310,6 +316,8 @@ export interface BooleanValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, boolean, this[typeof valueSourceTypeName], any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): BooleanValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): BooleanValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): BooleanValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): BooleanValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface IIfValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> {
@@ -459,6 +467,8 @@ export interface NumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, number, this[typeof valueSourceTypeName], any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): NumberValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): NumberValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): NumberValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): NumberValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface IStringNumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, number | string, 'StringNumberValueSource', OPTIONAL_TYPE> {
@@ -550,6 +560,8 @@ export interface StringNumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<A
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, number | string, this[typeof valueSourceTypeName], any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): StringNumberValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface IIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, int, 'IntValueSource', OPTIONAL_TYPE> {
@@ -683,6 +695,8 @@ export interface IntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OP
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, int, this[typeof valueSourceTypeName], any>>(value: VALUE): IntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): IntValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): IntValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): IntValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): IntValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface IDoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, double, 'DoubleValueSource', OPTIONAL_TYPE> {
@@ -813,6 +827,8 @@ export interface DoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, double, this[typeof valueSourceTypeName], any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): DoubleValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface IBigintValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, bigint, 'BigintValueSource', OPTIONAL_TYPE> {
@@ -945,6 +961,8 @@ export interface BigintValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, bigint, this[typeof valueSourceTypeName], any>>(value: VALUE): BigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): BigintValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): BigintValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): BigintValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): BigintValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 
@@ -1078,6 +1096,8 @@ export interface TypeSafeBigintValueSource<TABLE_OR_VIEW extends ITableOrViewRef
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, bigint, this[typeof valueSourceTypeName], any>>(value: VALUE): TypeSafeBigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): TypeSafeBigintValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): TypeSafeBigintValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): TypeSafeBigintValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): TypeSafeBigintValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface IStringIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, stringInt, 'StringIntValueSource', OPTIONAL_TYPE> {
@@ -1209,6 +1229,8 @@ export interface StringIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyD
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, stringInt, this[typeof valueSourceTypeName], any>>(value: VALUE): StringIntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): StringIntValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): StringIntValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): StringIntValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): StringIntValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface IStringDoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, stringDouble, 'StringDoubleValueSource', OPTIONAL_TYPE> {
@@ -1338,6 +1360,8 @@ export interface StringDoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<A
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, stringDouble, this[typeof valueSourceTypeName], any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): StringDoubleValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): StringDoubleValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): StringDoubleValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): StringDoubleValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface IStringValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, string, 'StringValueSource', OPTIONAL_TYPE> {
@@ -1507,6 +1531,8 @@ export interface StringValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, string, this[typeof valueSourceTypeName], any>>(value: VALUE): StringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): StringValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): StringValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): StringValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): StringValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface ITypeSafeStringValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, string, 'TypeSafeStringValueSource', OPTIONAL_TYPE> {
@@ -1677,6 +1703,8 @@ export interface TypeSafeStringValueSource<TABLE_OR_VIEW extends ITableOrViewRef
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, string, this[typeof valueSourceTypeName], any>>(value: VALUE): TypeSafeStringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): TypeSafeStringValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface IUuidValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, string, 'UuidValueSource', OPTIONAL_TYPE> {
@@ -1692,6 +1720,8 @@ export interface UuidValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, O
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, string, this[typeof valueSourceTypeName], any>>(value: VALUE): UuidValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): UuidValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): UuidValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): UuidValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): UuidValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface ITypeSafeUuidValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, uuid, 'TypeSafeUuidValueSource', OPTIONAL_TYPE> {
@@ -1707,6 +1737,8 @@ export interface TypeSafeUuidValueSource<TABLE_OR_VIEW extends ITableOrViewRef<A
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, uuid, this[typeof valueSourceTypeName], any>>(value: VALUE): TypeSafeUuidValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): TypeSafeUuidValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): TypeSafeUuidValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): TypeSafeUuidValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): TypeSafeUuidValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface IDateValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, Date, 'DateValueSource', OPTIONAL_TYPE> {
@@ -1729,6 +1761,8 @@ export interface DateValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, O
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): DateValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): DateValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): DateValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): DateValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): DateValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface ITimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, Date, 'TimeValueSource', OPTIONAL_TYPE> {
@@ -1751,6 +1785,8 @@ export interface TimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, O
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): TimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): TimeValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): TimeValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): TimeValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): TimeValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface IDateTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, Date, 'DateTimeValueSource', OPTIONAL_TYPE> {
@@ -1783,6 +1819,8 @@ export interface DateTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): DateTimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): DateTimeValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): DateTimeValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): DateTimeValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): DateTimeValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface ILocalDateValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, LocalDate, 'LocalDateValueSource', OPTIONAL_TYPE> {
@@ -1805,6 +1843,8 @@ export interface LocalDateValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyD
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, LocalDate, this[typeof valueSourceTypeName], any>>(value: VALUE): LocalDateValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): LocalDateValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): LocalDateValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): LocalDateValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): LocalDateValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface ILocalTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, LocalTime, 'LocalTimeValueSource', OPTIONAL_TYPE> {
@@ -1827,6 +1867,8 @@ export interface LocalTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyD
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, LocalTime, this[typeof valueSourceTypeName], any>>(value: VALUE): LocalTimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): LocalTimeValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): LocalTimeValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): LocalTimeValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): LocalTimeValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface ILocalDateTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, LocalDateTime, 'LocalDateTimeValueSource', OPTIONAL_TYPE> {
@@ -1859,6 +1901,8 @@ export interface LocalDateTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<
     nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, LocalDateTime, this[typeof valueSourceTypeName], any>>(value: VALUE): LocalDateTimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
     asOptional(): LocalDateTimeValueSource<TABLE_OR_VIEW, 'optional'>
     asRequiredInOptionalObject(): LocalDateTimeValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): LocalDateTimeValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): LocalDateTimeValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface IAggregatedArrayValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, OPTIONAL_TYPE extends OptionalType> extends IValueSource<TABLE_OR_VIEW, TYPE, 'AggregatedArray', OPTIONAL_TYPE> {
@@ -1869,6 +1913,8 @@ export interface AggregatedArrayValueSource<TABLE_OR_VIEW extends ITableOrViewRe
     useEmptyArrayForNoValue(): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, 'required'>
     asOptionalNonEmptyArray(): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, 'optional'>
     asRequiredInOptionalObject(): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, 'optional'>
+    ignoreWhenAsNull(when: boolean): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, 'optional'>
 }
 
 export type RemapValueSourceType<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE> =

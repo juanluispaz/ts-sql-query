@@ -2405,6 +2405,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // Transform an uuid to string
         return this._appendSqlParenthesis(valueSource, params) 
     }
+    _asNullValue(_params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (typeAdapter && typeAdapter.transformPlaceholder) {
+            return typeAdapter.transformPlaceholder('null', columnType, false, null, this._defaultTypeAdapter)
+        } else {
+            return this._defaultTypeAdapter.transformPlaceholder('null', columnType, false, null)
+        }
+    }
     // SqlFunction1
     _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return 'coalesce(' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, columnType, typeAdapter) + ')'

@@ -3797,6 +3797,170 @@ async function main() {
     const tCustomerWritableColumnNames = extractWritableColumnNamesFrom(tCustomer)
 
     assertEquals(tCustomerWritableColumnNames, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'First Name',
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", first_name as "firstName", null as "lastName", birthday as "birthday" from customer where id = :0`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    // const customerId = 10
+    
+    const customerWithIdWithRules = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(customerId))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName.onlyWhenOrNull(true),
+            lastName: tCustomer.lastName.onlyWhenOrNull(false),
+            birthday: tCustomer.birthday
+        })
+        .executeSelectOne()
+    
+    assertEquals(customerWithIdWithRules, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'First Name',
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", first_name as "firstName", null as "lastName", birthday as "birthday" from customer where id = :0`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    // const customerId = 10
+    
+    const customerWithIdWithRules2 = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(customerId))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName.ignoreWhenAsNull(false),
+            lastName: tCustomer.lastName.ignoreWhenAsNull(true),
+            birthday: tCustomer.birthday
+        })
+        .executeSelectOne()
+    
+    assertEquals(customerWithIdWithRules2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'First Name',
+        lastName: 'Last Name'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", first_name as "firstName", last_name as "lastName", birthday as "birthday" from customer where id = :0`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    // const customerId = 10
+    let diaplayNames = true
+    
+    const customerWithIdWithRules3 = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(customerId))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName.onlyWhenOrNull(diaplayNames),
+            lastName: tCustomer.lastName.onlyWhenOrNull(diaplayNames),
+            birthday: tCustomer.birthday
+        })
+        .executeSelectOne()
+    
+    assertEquals(customerWithIdWithRules3, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", null as "firstName", null as "lastName", birthday as "birthday" from customer where id = :0`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    // const customerId = 10
+    diaplayNames = false
+    
+    const customerWithIdWithRules4 = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(customerId))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName.onlyWhenOrNull(diaplayNames),
+            lastName: tCustomer.lastName.onlyWhenOrNull(diaplayNames),
+            birthday: tCustomer.birthday
+        })
+        .executeSelectOne()
+    
+    assertEquals(customerWithIdWithRules4, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", first_name as "firstName", last_name as "lastName", birthday as "birthday", null as "companyId", null as "companyName" from customer where id = :0`)
+    expectedParams.push(`[12]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    let canSeeCompanyInfo = false
+
+    const customerWithOptionalCompany7 = await connection.selectFrom(tCustomer)
+        .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday,
+            companyId: tCompany.id.onlyWhenOrNull(canSeeCompanyInfo),
+            companyName: tCompany.name.onlyWhenOrNull(canSeeCompanyInfo)
+        })
+        .where(tCustomer.id.equals(12))
+        .executeSelectMany()
+    
+    assertEquals(customerWithOptionalCompany7, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select customer.id as "id", customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as "birthday", company.id as "companyId", company.name as "companyName" from customer inner join company on company.id = customer.company_id where customer.id = :0`)
+    expectedParams.push(`[12]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    canSeeCompanyInfo = true
+
+    const customerWithOptionalCompany8 = await connection.selectFrom(tCustomer)
+        .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday,
+            companyId: tCompany.id.onlyWhenOrNull(canSeeCompanyInfo),
+            companyName: tCompany.name.onlyWhenOrNull(canSeeCompanyInfo)
+        })
+        .where(tCustomer.id.equals(12))
+        .executeSelectMany()
+    
+    assertEquals(customerWithOptionalCompany8, result)
 }
 
 main().then(() => {

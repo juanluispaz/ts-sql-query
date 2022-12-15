@@ -90,6 +90,13 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         // Transform an uuid to string
         return this._appendSqlParenthesis(valueSource, params) + '::text'
     }
+    _asNullValue(_params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
+        if (typeAdapter && typeAdapter.transformPlaceholder) {
+            return typeAdapter.transformPlaceholder('null', columnType, true, null, this._defaultTypeAdapter)
+        } else {
+            return this._defaultTypeAdapter.transformPlaceholder('null', columnType, true, null)
+        }
+    }
     _divide(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + '::float / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, value), typeAdapter) + '::float'
     }

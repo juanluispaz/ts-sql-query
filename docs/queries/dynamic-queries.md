@@ -20,7 +20,8 @@ When you realize a select, you can:
 
 Additionally, you can:
 
-- create a boolean expression that only applies if a certain condition is met, calling the `onlyWhen` method in the boolean expression. The `ignoreWhen` method do the opposite.
+- create a boolean expression that only applies if a certain condition is met, calling the `onlyWhen` method in the boolean expression. The `ignoreWhen` method does the opposite.
+- create an expression that only applies if a certain condition is met; otherwise, the value will be null, calling the `onlyWhenOrNull` method in the expression. The `ignoreWhenAsNull` method does the opposite.
 - create a dynamic boolean expression that you can use in a where (by example), calling the `dynamicBooleanExpresionUsing` method in the connection object.
 - create a custom boolean condition from criteria object that you can use in a where (by example), calling the `dynamicConditionFor` method in the connection object. This functionality is useful when creating a complex search & filtering functionality in the user interface, where the user can apply a different combination of constraints.
 - create a query where it is possible to pick the columns to be returned by the query.
@@ -28,7 +29,7 @@ Additionally, you can:
 
 ## Easy dynamic queries
 
-The methods ended with `IfValue` allows you to create dynamic queries in the easyest way; these methods works in the way when the values specified by argument are `null` or `undefined` or an empty string (only when the `allowEmptyString` flag in the connection is not set to true, that is the default behaviour) return a special neutral boolean that is ignored when it is used in `and`s, `or`s, `on`s or `where`s.
+The methods ended with `IfValue` allows you to create dynamic queries in the easyest way; these methods works in the way when the values specified by argument are `null` or `undefined` or an empty string (only when the `allowEmptyString` flag in the connection is not set to true, that is the default behaviour) return a special neutral boolean (ignoring the expression) that is ignored when it is used in `and`s, `or`s, `on`s or `where`s.
 
 ```ts
 const firstNameContains = 'ohn';
@@ -73,7 +74,7 @@ const customerWithId: Promise<{
 
 ## Ignorable boolean expression
 
-You can create a boolean expression that only applies if a certain condition is met, calling the `onlyWhen` method at the end of the boolean expression; in case the condition is false it returns a special neutral boolean that is ignored when it is used in `and`s, `or`s, `on`s or `where`s. You an use also the `ignoreWhen` method at the end of the boolean expression to do the opposite; in case the condition is true it returns a special neutral boolean that is ignored. The `onlyWhen` and `ignoreWhen` methods can be useful to apply restictions in the query, by example, when the user have some roles.
+You can create a boolean expression that only applies if a certain condition is met, calling the `onlyWhen` method at the end of the boolean expression; in case the condition is false it returns a special neutral boolean (ignoring the expression) that is ignored when it is used in `and`s, `or`s, `on`s or `where`s. You an use also the `ignoreWhen` method at the end of the boolean expression to do the opposite; in case the condition is true it returns a special neutral boolean that is ignored. The `onlyWhen` and `ignoreWhen` methods can be useful to apply restictions in the query, by example, when the user have some roles.
 
 ```ts
 const userCompanyId = 16
@@ -119,6 +120,58 @@ from customer
 ```
 
 The parameters are: `[ ]`
+
+## Ignorable expression as null
+
+You can create an expression that only applies if a certain condition is met, calling the `onlyWhenOrNull` method at the end of the expression; in case the condition is false it returns a null constant (ignoring the expression). You an use also the `ignoreWhenAsNull` method at the end of the boolean expression to do the opposite; in case the condition is true it returns a null constant. The `onlyWhenOrNull` and `ignoreWhenAsNull` methods can be useful to apply restictions in the query, by example, when the user have some roles.
+
+```ts
+const customerId = 10
+const diaplayNames = true
+
+const customerWithIdWithRules = connection.selectFrom(tCustomer)
+    .where(tCustomer.id.equals(customerId))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName.onlyWhenOrNull(diaplayNames),
+        lastName: tCustomer.lastName.onlyWhenOrNull(diaplayNames),
+        birthday: tCustomer.birthday
+    })
+    .executeSelectOne()
+```
+
+The executed query is:
+```sql
+select id as id, first_name as "firstName", last_name as "lastName", birthday as birthday 
+from customer 
+where id = $1
+```
+
+The parameters are: `[ 10 ]`
+
+The result type is:
+```tsx
+const customerWithIdWithRules: Promise<{
+    id: number;
+    firstName?: string;
+    lastName?: string;
+    birthday?: Date;
+}>
+```
+
+But in the case of `diaplayNames` is false, the omitted expressions are replaced by null:
+```ts
+const diaplayNames = false
+```
+
+The executed query is:
+```sql
+select id as id, null::text as "firstName", null::text as "lastName", birthday as birthday 
+from customer 
+where id = $1
+```
+
+The parameters are: `[ 10 ]`
 
 ## Complex dynamic boolean expressions
 
@@ -249,13 +302,14 @@ See [Dynamic conditions](../supported-operations.md#dynamic-conditions) for more
 
 ## Select dynamically picking columns
 
+**Important**: This feature offers you the most extreme form of modification over the queries but the hardest one to figure out the consequences because the columns can disappear. Try to use first [Ignorable expression as null](#ignorable-expression-as-null) instead of this feature where the structure of the columns is kept as is, and you will be able to reason over your queries more easily.
+
 You can create a select where the caller can conditionally pick the columns that want to be returned (like in GraphQL)
 
 ```ts
 import { dynamicPick } from "ts-sql-query/dynamicCondition"
 
 const availableFields = {
-    id: tCustomer.id,
     firstName: tCustomer.firstName,
     lastName: tCustomer.lastName,
     birthday: tCustomer.birthday
@@ -266,11 +320,14 @@ const fieldsToPick = {
     lastName: true
 }
 
-// always include th id field in the result
-const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id'])
+// always include the id field in the result
+const pickedFields = dynamicPick(availableFields, fieldsToPick)
 
 const customerWithIdPeaking = connection.selectFrom(tCustomer)
-    .select(pickedFields)
+    .select({
+        ...pickedFields,
+        id: tCustomer.id // always include the id field in the result
+    })
     .executeSelectOne()
 ```
 
@@ -294,7 +351,7 @@ const customerWithIdPeaking: Promise<{
 
 The `fieldsToPick` object defines all the properties that will be included, and the value is a boolean that tells if that property must be included or not.
 
-The utility function `dynamicPick` from `ts-sql-query/dynamicCondition` allows to you pick the fields from an object. This function returns a copy of the object received as the first argument with the properties with the same name and value `true` in the object received as the second argument. Optionally, you can include a list of the properties that always will be included as the third argument.
+The utility function `dynamicPick` from `ts-sql-query/dynamicCondition` allows you to pick the fields from an object. This function returns a copy of the object received as the first argument with the properties with the same name and value `true` in the object received as the second argument. Optionally, you can include a list of the properties that will always be included as the third argument, but it is better if you include them directly in the select, as shown in the example.
 
 The type `DynamicPick<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define a type expected for the object `fieldsToPick` where the first generic argument is the type to transform. Optionally you can provide a second generic argument with the name of the mandatories properties joined with `|`. Example: `DynamicPick<MyType, 'prop1' | 'prop2'>`.
 
@@ -356,7 +413,65 @@ The parameters are: `[ ]`
 
 **Warning**: an omitted join can change the number of returned rows depending on your data structure. This behaviour doesn't happen when all rows of the initial table have one row in the joined table (or none if you use a left join), but not many rows.
 
+**You can also use optional joins with ignorable expression as null**
+
+```ts
+const canSeeCompanyInfo = false
+
+const customerWithOptionalCompany = connection.selectFrom(tCustomer)
+    .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday,
+        companyId: tCompany.id.onlyWhenOrNull(canSeeCompanyInfo),
+        companyName: tCompany.name.onlyWhenOrNull(canSeeCompanyInfo)
+    })
+    .where(tCustomer.id.equals(12))
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select id as id, first_name as firstName, last_name as lastName, birthday as birthday, null::int4 as companyId, null::text as companyName
+from customer 
+where id = $1
+```
+
+The parameters are: `[ 12 ]`
+
+The result type is:
+```tsx
+const customerWithOptionalCompany: Promise<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    birthday?: Date;
+    companyName?: string;
+    companyId?: number;
+}[]>
+```
+
+But in the case of a column provided by the join is required, like when `canSeeCompanyInfo` is:
+```ts
+const canSeeCompanyInfo = true
+```
+
+The executed query is:
+```sql
+select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, company.id as companyId, company.name as companyName 
+from customer inner join company on company.id = customer.company_id 
+where customer.id = $1
+```
+
+The parameters are: `[ 12 ]`
+
+**Warning**: an omitted join can change the number of returned rows depending on your data structure. This behaviour doesn't happen when all rows of the initial table have one row in the joined table (or none if you use a left join), but not many rows.
+
 **You can also use optional joins when you dynamically pick columns**
+
+**Important**: This feature offers you the most extreme form of modification over the queries but the hardest one to figure out the consequences because the columns can disappear. Try to use first [Ignorable expression as null](#ignorable-expression-as-null) instead of this feature where the structure of the columns is kept as is, and you will be able to reason over your queries more easily.
 
 ```ts
 import { dynamicPick } from "ts-sql-query/dynamicCondition"

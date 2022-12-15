@@ -441,4 +441,5 @@ export interface SqlOperation2 extends SqlComparator2, SqlFunction2 {
 
 export interface SqlOperation extends SqlOperationStatic0, SqlOperationStatic1, SqlOperation0, SqlOperation1, SqlOperation2, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2 {
     _inlineSelectAsValue(query: SelectData, params: any[]): string
+    _asNullValue(params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string
 }

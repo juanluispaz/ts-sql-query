@@ -43,6 +43,8 @@ interface NullableValueSource extends ValueSource {
     nullIfValue(value: this): this | null | undefined
     asOptional(): this | null | undefined
     asRequiredInOptionalObject(): this
+    onlyWhenOrNull(when: boolean): this
+    ignoreWhenAsNull(when: boolean): this
 }
 
 interface EqualableValueSource extends NullableValueSource {
@@ -368,6 +370,8 @@ interface AggregatedArrayValueSource extends ValueSource {
     useEmptyArrayForNoValue(): AggregatedArrayValueSource
     asOptionalNonEmptyArray(): AggregatedArrayValueSource
     asRequiredInOptionalObject(): AggregatedArrayValueSource
+    onlyWhenOrNull(when: boolean): AggregatedArrayValueSource
+    ignoreWhenAsNull(when: boolean): AggregatedArrayValueSource
 }
 ```
 
@@ -1758,6 +1762,8 @@ interface SelectExpression {
         beforeColumns?: RawFragment
         customWindow?: RawFragment
         afterQuery?: RawFragment
+        beforeWithQuery?: RawFragment
+        afterWithQuery?: RawFragment
     }): this
 }
 

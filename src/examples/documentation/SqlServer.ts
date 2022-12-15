@@ -153,7 +153,7 @@ async function main() {
 
     const customerId = 10
     
-    const customerWithId = await connection.selectFrom(tCustomer)
+    let customerWithId = await connection.selectFrom(tCustomer)
         .where(tCustomer.id.equals(customerId))
         .select({
             id: tCustomer.id,
@@ -164,6 +164,16 @@ async function main() {
         .executeSelectOne()
     
     assertEquals(customerWithId, result)
+
+    let typeValidation: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        birthday?: Date | undefined;
+    } = null as any
+
+    customerWithId = typeValidation
+    typeValidation = customerWithId
 
     /* *** Preparation ************************************************************/
 

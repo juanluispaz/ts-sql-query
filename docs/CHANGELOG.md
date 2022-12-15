@@ -1,5 +1,15 @@
 # Change Log
 
+## v1.46.0 (15 Dec 2022)
+
+**Changes**:
+
+- Add `onlyWhenOrNull` and `ignoreWhenAsNull` methods that allows to create an expression that only applies if a certain condition is met; otherwise, the value will be null
+
+**Bug fixes**:
+
+- Fix error in type definition introduced in ts-sql-query 1.42.0 that make optional properties appears as required in the query result due an over relaxed validation
+
 ## v1.45.0 (14 Dec 2022)
 
 **Changes**:

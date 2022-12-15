@@ -4504,6 +4504,43 @@ async function main() {
         .executeSelectMany()
     
     assertEquals(customerWithOptionalCompany8, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = {
+        data: [],
+        count: 0
+    }
+    expectedResult.push([])
+    expectedQuery.push(`select id as id, first_name as "firstName", last_name as "lastName" from customer where first_name ilike ($1 || '%') or last_name ilike ($2 || '%') group by id order by "firstName", "lastName" limit $3 offset $4`)
+    expectedParams.push(`["Smi","Smi",10,20]`)
+    expectedType.push(`selectManyRows`)
+    expectedResult.push(0)
+    expectedQuery.push(`with result_for_count as (select id as id, first_name as firstName, last_name as lastName from customer where first_name ilike ($1 || '%') or last_name ilike ($2 || '%') group by id order by firstName, lastName) select count(*) from result_for_count`)
+    expectedParams.push(`["Smi","Smi"]`)
+    expectedType.push(`selectOneColumnOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    const customerName2 = 'Smi'
+    const customerPageWithName2 = await connection.selectFrom(tCustomer)
+        .where(
+            tCustomer.firstName.startsWithInsensitive(customerName2)
+        ).or(
+            tCustomer.lastName.startsWithInsensitive(customerName2)
+        ).select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .groupBy(tCustomer.id)
+        .orderBy('firstName')
+        .orderBy('lastName')
+        .limit(10)
+        .offset(20)
+        .executeSelectPage()
+    
+    assertEquals(customerPageWithName2, result)
 }
 
 main().then(() => {

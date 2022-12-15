@@ -636,9 +636,13 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         if (recursiveSelect) {
             return recursiveSelect.__buildSelectCount(countAll, params)
         }
-        this.__asSelectData() // Ensure any missing initialization
+
         if (this.__groupBy.length > 0) {
-            const withView = new WithViewImpl<any, any>(this.__sqlBuilder, 'result_for_count', this)
+            const data = {...this.__asSelectData()} // Ensure any missing initialization and create a copy of the data
+            delete data.__limit
+            delete data.__offset
+
+            const withView = new WithViewImpl<any, any>(this.__sqlBuilder, 'result_for_count', data)
             const withs: Array<IWithView<any>> = []
             withView.__addWiths(this.__sqlBuilder, withs)
             
@@ -659,6 +663,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             return this.__sqlBuilder._buildSelect(selectCountData, params)
         }
 
+        this.__asSelectData() // Ensure any missing initialization
         const selectCountData: PlainSelectData = {
             [isSelectQueryObject]: true,
             __type: 'plain',
@@ -1168,7 +1173,11 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
     }
 
     __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string {
-        const withView = new WithViewImpl<any, any>(this.__sqlBuilder, 'result_for_count', this)
+        const data = {...this.__asSelectData()} // Ensure any missing initialization and create a copy of the data
+        delete data.__limit
+        delete data.__offset
+
+        const withView = new WithViewImpl<any, any>(this.__sqlBuilder, 'result_for_count', data)
         const withs: Array<IWithView<any>> = []
         withView.__addWiths(this.__sqlBuilder, withs)
         

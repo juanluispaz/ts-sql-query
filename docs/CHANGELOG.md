@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.47.0 (15 Dec 2022)
+
+**Bug fixes**:
+
+- Fix wrong count on `executeSelectPage` when a `groupBy` is used
+
 ## v1.46.0 (15 Dec 2022)
 
 **Changes**:

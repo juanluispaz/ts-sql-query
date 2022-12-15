@@ -37,7 +37,7 @@ export type ValueOf<T> = T[keyof T]
 
 export type FixOptionalProperties<RESULT> = 
     undefined extends string ? RESULT // tsc is working with strict mode disabled. There is no way to infer the optional properties. Keep as required is a better approximation.
-    : { [P in keyof RESULT]: true extends OptionalMap<RESULT> ? RESULT[P] : NonNullable<RESULT[P]>}
+    : { [P in keyof OptionalMap<RESULT>]: true extends OptionalMap<RESULT> ? RESULT[P] : NonNullable<RESULT[P]>}
 
 type OptionalMap<TYPE> = { [P in MandatoryPropertiesOf<TYPE>]-?: true } & { [P in OptionalPropertiesOf<TYPE>]?: false }
 

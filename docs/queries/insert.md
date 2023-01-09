@@ -189,9 +189,9 @@ const insertReturningCustomerData: Promise<{
 - On `PostgreSql` you can specify the constraint name that raise the conflict.
 - You can combine this with other insert's features, e.g. return some columns.
 
-## Insert on conflict do update
+## Insert on conflict do update ("upsert")
 
-If you are using `PostgreSql`, `Sqlite`, `MariaDB` or `MySql` you can specify the insert must do an update in case of conflict.
+If you are using `PostgreSql`, `Sqlite`, `MariaDB` or `MySql` you can specify the insert must do an update in case of conflict. (This is also known as an "upsert".)
 
 ```ts
 const insertReturningCustomerData = connection.insertInto(tCustomer).set({

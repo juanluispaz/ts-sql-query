@@ -2349,7 +2349,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'log(' + this._appendSql(valueSource, params) + ')'
     }
     _sqrt(params: any[], valueSource: ToSql): string {
-        return 'sqtr(' + this._appendSql(valueSource, params) + ')'
+        return 'sqrt(' + this._appendSql(valueSource, params) + ')'
     }
     _cbrt(params: any[], valueSource: ToSql): string {
         return 'cbrt(' + this._appendSql(valueSource, params) + ')'

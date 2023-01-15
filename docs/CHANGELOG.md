@@ -1,5 +1,17 @@
 # Change Log
 
+## v1.48.0 (16 Jan 2023)
+
+**Bug fixes**:
+
+- Fix typo in generated sql when the `sqrt` function is used
+- Fix internal error when an empty array is provided in a `in` or `notIn` methods in Sqlite, MariaDB and MySql
+
+**Documentation changes**:
+
+- Fix typo (confict → conflict)
+- Mention term "upsert" for easier discoverability
+
 ## v1.47.0 (15 Dec 2022)
 
 **Bug fixes**:

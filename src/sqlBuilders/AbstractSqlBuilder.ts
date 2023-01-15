@@ -399,7 +399,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (hasToSql(value)) {
             return '(' + this._appendSql(value, params) + ')'
         }
-        if (Array.isArray(value) && value.length > 0) {
+        if (Array.isArray(value)) {
+            if (value.length <= 0) {
+                return '()'
+            }
+            
             let arrayResult = '(' + this._appendValue(value[0], params, columnType, typeAdapter, forceTypeCast)
 
             for (let i = 1, length = value.length; i < length; i++) {

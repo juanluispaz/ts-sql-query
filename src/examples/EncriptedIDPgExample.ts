@@ -143,6 +143,12 @@ async function main() {
             .returningLastInsertedId()
             .executeInsert()
         assertEquals(i, 'uftSdCUhUTBQ0111')
+        
+        const companyIdOne = await connection.selectFrom(tCompany).where(tCompany.id.in(['uftSdCUhUTBQ0111'])).selectOneColumn(tCompany.id).executeSelectMany()
+        assertEquals(companyIdOne, ['uftSdCUhUTBQ0111'])
+
+        const companyIdEmpty = await connection.selectFrom(tCompany).where(tCompany.id.in([])).selectOneColumn(tCompany.id).executeSelectMany()
+        assertEquals(companyIdEmpty, [])
 
         let n = await connection
             .insertInto(tCompany)

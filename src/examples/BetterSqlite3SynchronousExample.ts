@@ -109,6 +109,12 @@ function main() {
             .returningLastInsertedId()
             .executeInsert())
         assertEquals(i, 1)
+        
+        const companyIdOne = sync(connection.selectFrom(tCompany).where(tCompany.id.in([1])).selectOneColumn(tCompany.id).executeSelectMany())
+        assertEquals(companyIdOne, [1])
+
+        const companyIdEmpty = sync(connection.selectFrom(tCompany).where(tCompany.id.in([])).selectOneColumn(tCompany.id).executeSelectMany())
+        assertEquals(companyIdEmpty, [])
 
         i = sync(connection
             .insertInto(tCompany)

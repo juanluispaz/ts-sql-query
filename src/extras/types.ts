@@ -1,4 +1,4 @@
-import type { MandatoryInsertSets, MandatoryInsertValues } from "../expressions/insert"
+import type { MandatoryInsertSets, MandatoryInsertValues, OnConflictUpdateSets, OnConflictUpdateValues } from "../expressions/insert"
 import type { UpdateSets, UpdateValues } from "../expressions/update"
 import type { ITable, ITableOrView, OuterJoinSource, TABLE_OR_VIEW_ALIAS } from "../utils/ITableOrView"
 import type { ResultObjectValues } from "../utils/resultUtils"
@@ -20,6 +20,13 @@ export type InsertableRow<TABLE> = TABLE extends ITable<any>
 export type InsertableValues<TABLE> = TABLE extends ITable<any>
     ? MakeTypeVisible<MandatoryInsertValues<TABLE>>
     : MakeTypeVisible<MandatoryInsertValues<TABLE & ITable<any>>>
+
+export type UpdatableOnInsertConflictRow<TABLE> = TABLE extends ITable<any>
+    ? MakeTypeVisible<OnConflictUpdateSets<TABLE>>
+    : MakeTypeVisible<OnConflictUpdateSets<TABLE & ITable<any>>>
+export type UpdatableOnInsertConflictValues<TABLE> = TABLE extends ITable<any>
+    ? MakeTypeVisible<OnConflictUpdateValues<TABLE>>
+    : MakeTypeVisible<OnConflictUpdateValues<TABLE & ITable<any>>>
 
 export type UpdatableRow<TABLE> = TABLE extends ITable<any>
     ? MakeTypeVisible<UpdateSets<TABLE, TABLE>>

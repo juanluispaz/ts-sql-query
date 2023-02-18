@@ -700,6 +700,28 @@ import { UpdatableRow } from 'ts-sql-query/extras/types';
 type UpdatableCompanyRow = UpdatableRow<typeof tCompany>;
 ```
 
+### Updatable values in case of conflict on insert
+
+This type returns the object type with the values that can be used in an insert's `onConflictDoUpdateSet` for the provided table.
+
+```ts
+import { UpdatableOnInsertConflictValues } from 'ts-sql-query/extras/types';
+
+type UpdatableCompanyOnInsertConflict = UpdatableOnInsertConflictValues<typeof tCompany>;
+```
+
+### Updatable row in case of conflict on insert
+
+This type returns the same type expected by the `onConflictDoUpdateSet` clause in an insert.
+
+**Note**: The difference with `UpdatableOnInsertConflictValues` is this type admits valid SQL objects that you can use in the `onConflictDoUpdateSet` sentence, where `UpdatableOnInsertConflictValues` do not.
+
+```ts
+import { UpdatableOnInsertConflictRow } from 'ts-sql-query/extras/types';
+
+type UpdatableCompanyOnInsertConflictRow = UpdatableOnInsertConflictRow<typeof tCompany>;
+```
+
 ### Selected values
 
 This type returns the result type of a select on a table or view where all its columns are included.

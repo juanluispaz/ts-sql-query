@@ -563,10 +563,16 @@ type InputTypeOfOptionalColumn<TABLE extends ITableOrView<any>, K extends Column
     ))
     : never
 
-type OnConflictUpdateSets<TABLE extends ITableOrView<any>> = {
+export type OnConflictUpdateSets<TABLE extends ITableOrView<any>> = {
     [P in RequiredColumnsForSetOf<TABLE>]?: OnConflictInputTypeOfColumn<TABLE, P>
 } & {
     [P in OptionalColumnsForSetOf<TABLE>]?: OnConflictInputTypeOfOptionalColumn<TABLE, P>
+}
+
+export type OnConflictUpdateValues<TABLE extends ITableOrView<any>> = {
+    [P in RequiredColumnsForSetOf<TABLE>]?: ValueSourceValueType<TABLE[P]>
+} & {
+    [P in OptionalColumnsForSetOf<TABLE>]?: ValueSourceValueType<TABLE[P]>
 }
 
 type OnConflictOptionalUpdateSets<TABLE extends ITableOrView<any>> = {

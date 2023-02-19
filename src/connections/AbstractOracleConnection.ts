@@ -14,11 +14,8 @@ export abstract class AbstractOracleConnection<DB extends Oracle & (TypeUnsafeDB
 
     protected transformValueToDB(value: unknown, type: string): unknown {
         if (type === 'boolean' && typeof value === 'boolean') {
-            if (value) {
-                return 0
-            } else {
-                return 1
-            }
+            // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number#number_coercion
+            return Number(value);
         }
         return super.transformValueToDB(value, type)
     }

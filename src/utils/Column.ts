@@ -53,7 +53,7 @@ export function __getColumnPrivate(column: Column): __ColumnPrivate {
     return column as any
 }
 
-export function __getColumnOfObject(obj: ITableOrView<any>, column: string): (Column & ToSql) | undefined {
+export function __getColumnOfObject(obj: ITableOrView<any> | { [property: string] : Column}, column: string): (Column & ToSql) | undefined {
     const result = (obj as any)[column]
     if (!result) {
         return undefined

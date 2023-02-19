@@ -29,11 +29,14 @@ export type UpdatableOnInsertConflictValues<TABLE> = TABLE extends ITable<any>
     : MakeTypeVisible<OnConflictUpdateValues<TABLE & ITable<any>>>
 
 export type UpdatableRow<TABLE> = TABLE extends ITable<any>
-    ? MakeTypeVisible<UpdateSets<TABLE, TABLE>>
-    : MakeTypeVisible<UpdateSets<TABLE & ITable<any>, TABLE & ITable<any>>>
+    ? MakeTypeVisible<UpdateSets<TABLE, TABLE, undefined>>
+    : MakeTypeVisible<UpdateSets<TABLE & ITable<any>, TABLE & ITable<any>, undefined>>
 export type UpdatableValues<TABLE> = TABLE extends ITable<any>
-    ? MakeTypeVisible<UpdateValues<TABLE>>
-    : MakeTypeVisible<UpdateValues<TABLE & ITable<any>>>
+    ? MakeTypeVisible<UpdateValues<TABLE, undefined>>
+    : MakeTypeVisible<UpdateValues<TABLE & ITable<any>, undefined>>
+
+export type UpdatableRowShapedAs<SHAPE> = MakeTypeVisible<UpdateSets<ITable<any>, ITable<any>, SHAPE>>
+export type UpdatableValuesShapedAs<SHAPE> = MakeTypeVisible<UpdateValues<ITable<any>, SHAPE>>
 
 type MakeTypeVisible<T> = {
     // This type forces TS to compute the T object as a single interface instead things like A & B

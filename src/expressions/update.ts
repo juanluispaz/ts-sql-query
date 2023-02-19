@@ -4,8 +4,8 @@ import type { AnyDB, MariaDB, MySql, NoopDB, Oracle, PostgreSql, Sqlite, SqlServ
 import type { int } from "ts-extended-types"
 import type { database, tableOrView, tableOrViewRef } from "../utils/symbols"
 import type { RawFragment } from "../utils/RawFragment"
-import type { ColumnsForSetOf, ColumnsOf, OptionalColumnsForSetOf, OuterJoinTableOrView, RequiredColumnsForSetOf } from "../utils/tableOrViewUtils"
-import type { ColumnWithDefaultValue } from "../utils/Column"
+import type { ColumnsForSetOfWithShape, ColumnsOf, ColumnsOfShape, OptionalColumnsForSetOf, OptionalColumnsForSetOfShape, OuterJoinTableOrView, RequiredColumnsForSetOf, RequiredColumnsForSetOfShape } from "../utils/tableOrViewUtils"
+import type { Column, ColumnWithDefaultValue } from "../utils/Column"
 import type { Default } from "./Default"
 import type { ColumnGuard, GuidedObj, GuidedPropName, RequiredKeysOfPickingColumns, ResultObjectValues, FixOptionalProperties, ValueOf } from "../utils/resultUtils"
 
@@ -33,44 +33,44 @@ export interface CustomizableExecutableUpdate<TABLE extends ITableOrView<any>> e
     customizeQuery(customization: UpdateCustomization<TABLE[typeof database]>): ExecutableUpdate<TABLE>
 }
 
-export interface ExecutableUpdateExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends ReturnableExecutableUpdate<TABLE, USING> {
-    set(columns: UpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
-    setIfValue(columns: OptionalUpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
-    setIfSet(columns: UpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
-    setIfSetIfValue(columns: OptionalUpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
-    setIfNotSet(columns: UpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
-    setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
-    ignoreIfSet(...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+export interface ExecutableUpdateExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>, SHAPE> extends ReturnableExecutableUpdate<TABLE, USING> {
+    set(columns: UpdateSets<TABLE, USING, SHAPE>): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfSet(columns: UpdateSets<TABLE, USING, SHAPE>): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfSetIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfNotSet(columns: UpdateSets<TABLE, USING, SHAPE>): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreIfSet(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ExecutableUpdateExpression<TABLE, USING, SHAPE>
 
-    setIfHasValue(columns: UpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
-    setIfHasValueIfValue(columns: OptionalUpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
-    setIfHasNoValue(columns: UpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
-    setIfHasNoValueIfValue(columns: OptionalUpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
-    ignoreIfHasValue(...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
-    ignoreIfHasNoValue(...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
-    ignoreAnySetWithNoValue(): ExecutableUpdateExpression<TABLE, USING>
+    setIfHasValue(columns: UpdateSets<TABLE, USING, SHAPE>): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfHasValueIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfHasNoValue(columns: UpdateSets<TABLE, USING, SHAPE>): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfHasNoValueIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreIfHasValue(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreIfHasNoValue(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreAnySetWithNoValue(): ExecutableUpdateExpression<TABLE, USING, SHAPE>
 
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE, USING>
     where(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, any>): DynamicExecutableUpdateExpression<TABLE, USING>
     where(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, any>): DynamicExecutableUpdateExpression<TABLE, USING>
 }
 
-export interface NotExecutableUpdateExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
-    set(columns: UpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
-    setIfValue(columns: OptionalUpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
-    setIfSet(columns: UpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
-    setIfSetIfValue(columns: OptionalUpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
-    setIfNotSet(columns: UpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
-    setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
-    ignoreIfSet(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+export interface NotExecutableUpdateExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>, SHAPE> extends UpdateExpressionBase<TABLE> {
+    set(columns: UpdateSets<TABLE, USING, SHAPE>): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfSet(columns: UpdateSets<TABLE, USING, SHAPE>): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfSetIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfNotSet(columns: UpdateSets<TABLE, USING, SHAPE>): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreIfSet(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
 
-    setIfHasValue(columns: UpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
-    setIfHasValueIfValue(columns: OptionalUpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
-    setIfHasNoValue(columns: UpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
-    setIfHasNoValueIfValue(columns: OptionalUpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
-    ignoreIfHasValue(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
-    ignoreIfHasNoValue(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
-    ignoreAnySetWithNoValue(): NotExecutableUpdateExpression<TABLE, USING>
+    setIfHasValue(columns: UpdateSets<TABLE, USING, SHAPE>): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfHasValueIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfHasNoValue(columns: UpdateSets<TABLE, USING, SHAPE>): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfHasNoValueIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreIfHasValue(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreIfHasNoValue(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreAnySetWithNoValue(): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
 
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE, USING>
     where(condition: IIfValueSource<USING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, any>): DynamicExecutableUpdateExpression<TABLE, USING>
@@ -85,9 +85,16 @@ export interface DynamicExecutableUpdateExpression<TABLE extends ITableOrView<an
 }
 
 export interface UpdateSetExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
-    dynamicSet(): NotExecutableUpdateExpression<TABLE, USING>
-    set(columns: UpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
-    setIfValue(columns: OptionalUpdateSets<TABLE, USING>): NotExecutableUpdateExpression<TABLE, USING>
+    shapedAs<SHAPE extends UpdateShape<TABLE>>(shape: SHAPE): ShapedUpdateSetExpression<TABLE, USING, SHAPE>
+    dynamicSet(): NotExecutableUpdateExpression<TABLE, USING, undefined>
+    set(columns: UpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING, undefined>
+    setIfValue(columns: OptionalUpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING, undefined>
+}
+
+export interface ShapedUpdateSetExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>, SHAPE> extends UpdateExpressionBase<TABLE> {
+    dynamicSet(): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    set(columns: UpdateSets<TABLE, USING, SHAPE>): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): NotExecutableUpdateExpression<TABLE, USING, SHAPE>
 }
 
 export interface UpdateExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetExpression<TABLE, USING> {
@@ -99,9 +106,16 @@ export interface UpdateExpression<TABLE extends ITableOrView<any>, USING extends
 }
 
 export interface UpdateSetExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
-    dynamicSet(): ExecutableUpdateExpression<TABLE, USING>
-    set(columns: UpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
-    setIfValue(columns: OptionalUpdateSets<TABLE, USING>): ExecutableUpdateExpression<TABLE, USING>
+    shapedAs<SHAPE extends UpdateShape<TABLE>>(shape: SHAPE): ShapedUpdateSetExpressionAllowingNoWhere<TABLE, USING, SHAPE>
+    dynamicSet(): ExecutableUpdateExpression<TABLE, USING, undefined>
+    set(columns: UpdateSets<TABLE, USING, undefined>): ExecutableUpdateExpression<TABLE, USING, undefined>
+    setIfValue(columns: OptionalUpdateSets<TABLE, USING, undefined>): ExecutableUpdateExpression<TABLE, USING, undefined>
+}
+
+export interface ShapedUpdateSetExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>, SHAPE> extends UpdateExpressionBase<TABLE> {
+    dynamicSet(): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    set(columns: UpdateSets<TABLE, USING, SHAPE>): ExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): ExecutableUpdateExpression<TABLE, USING, SHAPE>
 }
 
 export interface UpdateExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetExpressionAllowingNoWhere<TABLE, USING> {
@@ -112,23 +126,57 @@ export interface UpdateExpressionAllowingNoWhere<TABLE extends ITableOrView<any>
     leftOuterJoin: OuterJoinOnExpressionFnTypeAllowingNoWhere<TABLE, USING>
 }
 
-export type UpdateSets<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
-    [P in RequiredColumnsForSetOf<TABLE>]?: InputTypeOfColumnAllowing<TABLE, P, USING>
-} & {
-    [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumnAllowing<TABLE, P, USING>
+export type UpdateSets<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>, SHAPE> = 
+    SHAPE extends undefined 
+    ? (
+        {
+            [P in RequiredColumnsForSetOf<TABLE>]?: InputTypeOfColumnAllowing<TABLE, P, USING>
+        } & {
+            [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumnAllowing<TABLE, P, USING>
+        }
+    ) : (
+        {
+            [P in RequiredColumnsForSetOfShape<SHAPE>]: InputTypeOfColumnAllowingForShape<SHAPE, P, USING>
+        } & {
+            [P in OptionalColumnsForSetOfShape<SHAPE>]?: InputTypeOfOptionalColumnAllowingForShape<SHAPE, P, USING>
+        }
+    )
+
+export type UpdateValues<TABLE extends ITableOrView<any>, SHAPE> = 
+    SHAPE extends undefined 
+    ? (
+        {
+            [P in RequiredColumnsForSetOf<TABLE>]?: ValueSourceValueType<TABLE[P]>
+        } & {
+            [P in OptionalColumnsForSetOf<TABLE>]?: ValueSourceValueType<TABLE[P]>
+        }
+    ) : (
+        {
+            [P in RequiredColumnsForSetOfShape<SHAPE>]: ValueSourceValueType<SHAPE[P]>
+        } & {
+            [P in OptionalColumnsForSetOfShape<SHAPE>]?: ValueSourceValueType<SHAPE[P]>
+        }
+    )
+
+export type UpdateShape<TABLE extends ITableOrView<any>> = {
+    [key: string]: ValueSourceOf<TABLE[typeof tableOrViewRef]> & Column
 }
 
-export type UpdateValues<TABLE extends ITableOrView<any>> = {
-    [P in RequiredColumnsForSetOf<TABLE>]?: ValueSourceValueType<TABLE[P]>
-} & {
-    [P in OptionalColumnsForSetOf<TABLE>]?: ValueSourceValueType<TABLE[P]>
-}
-
-export type OptionalUpdateSets<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = {
-    [P in RequiredColumnsForSetOf<TABLE>]?: InputTypeOfColumnAllowing<TABLE, P, USING> | null | undefined
-} & {
-    [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumnAllowing<TABLE, P, USING> | null | undefined
-}
+export type OptionalUpdateSets<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>, SHAPE> = 
+    SHAPE extends undefined 
+    ? (
+        {
+            [P in RequiredColumnsForSetOf<TABLE>]?: InputTypeOfColumnAllowing<TABLE, P, USING> | null | undefined
+        } & {
+            [P in OptionalColumnsForSetOf<TABLE>]?: InputTypeOfOptionalColumnAllowing<TABLE, P, USING> | null | undefined
+        }
+    ) : (
+        {
+            [P in RequiredColumnsForSetOfShape<SHAPE>]?: InputTypeOfColumnAllowingForShape<SHAPE, P, USING> | null | undefined
+        } & {
+            [P in OptionalColumnsForSetOfShape<SHAPE>]?: InputTypeOfOptionalColumnAllowingForShape<SHAPE, P, USING> | null | undefined
+        }
+    )
 
 type InputTypeOfColumnAllowing<TABLE extends ITableOrView<any>, K extends ColumnsOf<TABLE>, ALLOWING extends ITableOrView<any>> =
     TABLE[K] extends ValueSourceOf<TABLE[typeof tableOrViewRef]> ?
@@ -145,6 +193,24 @@ type InputTypeOfOptionalColumnAllowing<TABLE extends ITableOrView<any>, K extend
         ValueSourceValueType<TABLE[K]> | RemapIValueSourceTypeWithOptionalType<ALLOWING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, TABLE[K], any> | Default
     ) : (
         ValueSourceValueType<TABLE[K]> | RemapIValueSourceTypeWithOptionalType<ALLOWING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, TABLE[K], any>
+    ))
+    : never
+
+type InputTypeOfColumnAllowingForShape<SHAPE, K extends ColumnsOfShape<SHAPE>, ALLOWING extends ITableOrView<any>> =
+    SHAPE[K] extends ValueSourceOf<any> ?
+    (SHAPE[K] extends ColumnWithDefaultValue ? (
+        ValueSourceValueType<SHAPE[K]> | RemapIValueSourceType<ALLOWING[typeof tableOrViewRef] | NoTableOrViewRequired<SHAPE[K][typeof database]>, SHAPE[K]> | Default
+    ) : (
+        ValueSourceValueType<SHAPE[K]> | RemapIValueSourceType<ALLOWING[typeof tableOrViewRef] | NoTableOrViewRequired<SHAPE[K][typeof database]>, SHAPE[K]>
+    ))
+    : never
+
+type InputTypeOfOptionalColumnAllowingForShape<SHAPE, K extends ColumnsOfShape<SHAPE>, ALLOWING extends ITableOrView<any>> =
+    SHAPE[K] extends ValueSourceOf<any> ?
+    (SHAPE[K] extends ColumnWithDefaultValue ? (
+        ValueSourceValueType<SHAPE[K]> | RemapIValueSourceTypeWithOptionalType<ALLOWING[typeof tableOrViewRef] | NoTableOrViewRequired<SHAPE[K][typeof database]>, SHAPE[K], any> | Default
+    ) : (
+        ValueSourceValueType<SHAPE[K]> | RemapIValueSourceTypeWithOptionalType<ALLOWING[typeof tableOrViewRef] | NoTableOrViewRequired<SHAPE[K][typeof database]>, SHAPE[K], any>
     ))
     : never
 

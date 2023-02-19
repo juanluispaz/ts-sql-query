@@ -4094,6 +4094,33 @@ async function main() {
         .executeSelectPage()
     
     assertEquals(customerPageWithName3, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`update customer set first_name = ?, last_name = ? where id = ?`)
+    expectedParams.push(`["John","Smith",12]`)
+    expectedType.push(`update`)
+
+    /* *** Example ****************************************************************/
+
+    const shapedUpdateCustomerName = {
+        id: 12,
+        customerFirstName: 'John',
+        customerLastName: 'Smith',
+    }
+    
+    const shapedUpdateCustomerNameResult = await connection.update(tCustomer)
+        .shapedAs({
+            customerFirstName: tCustomer.firstName,
+            customerLastName: tCustomer.lastName
+        })
+        .set(shapedUpdateCustomerName)
+        .where(tCustomer.id.equals(shapedUpdateCustomerName.id))
+        .executeUpdate()
+
+    assertEquals(shapedUpdateCustomerNameResult, result)
 }
 
 main().then(() => {

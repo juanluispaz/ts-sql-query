@@ -4046,6 +4046,42 @@ async function main() {
         .executeSelectPage()
     
     assertEquals(customerPageWithName2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        data: [],
+        count: 0
+    }
+    expectedResult.push([])
+    expectedQuery.push(`select distinct id as id, first_name as firstName, last_name as lastName from customer where lower(first_name) like concat(lower(?), '%') or lower(last_name) like concat(lower(?), '%') order by firstName, lastName limit ? offset ?`)
+    expectedParams.push(`["Smi","Smi",10,20]`)
+    expectedType.push(`selectManyRows`)
+    expectedResult.push(0)
+    expectedQuery.push(`with result_for_count as (select distinct id as id, first_name as firstName, last_name as lastName from customer where lower(first_name) like concat(lower(?), '%') or lower(last_name) like concat(lower(?), '%') order by firstName, lastName) select count(*) from result_for_count`)
+    expectedParams.push(`["Smi","Smi"]`)
+    expectedType.push(`selectOneColumnOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    const customerName3 = 'Smi'
+    const customerPageWithName3 = await connection.selectDistinctFrom(tCustomer)
+        .where(
+            tCustomer.firstName.startsWithInsensitive(customerName3)
+        ).or(
+            tCustomer.lastName.startsWithInsensitive(customerName3)
+        ).select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .orderBy('firstName')
+        .orderBy('lastName')
+        .limit(10)
+        .offset(20)
+        .executeSelectPage()
+    
+    assertEquals(customerPageWithName3, result)
 }
 
 main().then(() => {

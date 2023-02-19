@@ -637,7 +637,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             return recursiveSelect.__buildSelectCount(countAll, params)
         }
 
-        if (this.__groupBy.length > 0) {
+        if (this.__distinct || this.__groupBy.length > 0) {
             const data = {...this.__asSelectData()} // Ensure any missing initialization and create a copy of the data
             delete data.__limit
             delete data.__offset

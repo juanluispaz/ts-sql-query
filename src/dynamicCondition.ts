@@ -1,5 +1,6 @@
-import { AnyValueSource } from './expressions/values'
-import { MandatoryPropertiesOf } from './utils/resultUtils'
+import { AnyValueSource, isValueSource } from './expressions/values'
+import type { SelectedValues } from './extras/types'
+import type { MandatoryPropertiesOf } from './utils/resultUtils'
 
 export type { DynamicCondition, TypeSafeDynamicCondition } from './expressions/dynamicConditionUsingFilters'
 
@@ -98,4 +99,75 @@ function internalDynamicPick(o: any, p: any, required: any, prefix: string): any
         }
     }
     return result
+}
+
+export type DynamicPickPaths<TYPE extends Pickable, MANDATORY extends MandatoryPaths<TYPE, ''> = never> = Exclude<MandatoryPaths<TYPE, ''>, MANDATORY>
+
+export function dynamicPickPaths<TYPE extends Pickable, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: DynamicPickPaths<TYPE>[], mandatory?: MANDATORY[]): PickWithMandatories<TYPE, MANDATORY, ''> {
+    const result: any = {}
+    const required: any = {}
+
+    if (mandatory) {
+        for (let i = 0, length = mandatory.length; i < length; i++) {
+            required[mandatory[i]] = true
+        }
+    }
+
+    if (pick) {
+        for (let i = 0, length = pick.length; i < length; i++) {
+            required[pick[i]] = true
+        }
+    }
+
+    const o: any = obj
+
+    for (let prop in o) {
+        console.log('>', prop)
+        if (!o[prop]) {
+            // Do nothing
+        } else if (prop in required) {
+            result[prop] = o[prop]
+        } else if (isValueSource(o[prop])) {
+            const r = internalDynamicPickPaths(o[prop], required, prop)
+            if (r !== undefined)  {
+                result[prop] = r
+            }
+        }
+    }
+    return result
+}
+
+function internalDynamicPickPaths(o: any, required: any, prefix: string): any {
+    if (!o) {
+        return undefined
+    }
+    
+    const result: any = {}
+
+    for (let prop in o) {
+        console.log('>', prefix, prop)
+        if (!o[prop]) {
+            // Do nothing
+        } else if ((prefix + '.' + prop) in required) {
+            result[prop] = o[prop]
+        } else if (isValueSource(o[prop])) {
+            const r = internalDynamicPickPaths(o[prop], required, prefix + '.' + prop)
+            if (r !== undefined)  {
+                result[prop] = r
+            }
+        }
+    }
+    return result
+}
+
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}>(obj: TYPE, pick: PICK[], result: RESULT): RESULT & PickPaths<SelectedValues<TYPE>, PICK, ''> {
+    obj
+    pick
+    return result as any
+}
+
+type PickPaths<TYPE, MANDATORY extends string, PREFIX extends string> = { 
+    [Q in MANDATORY & keyof TYPE]: TYPE[Q] 
+} & { 
+    [P in Exclude<keyof TYPE & string, MANDATORY>]: PickPaths<TYPE[P], MANDATORY, `${PREFIX}.${P}`>
 }

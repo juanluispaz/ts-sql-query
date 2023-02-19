@@ -1,5 +1,22 @@
 # Change Log
 
+## v1.49.0 (19 Feb 2023)
+
+**Changes**:
+
+- Add utility types `UpdatableOnInsertConflictRow` and `UpdatableOnInsertConflictValues` to represent updatable values in case of conflict on insert
+
+**Experimental changes**:
+
+- Implement `dynamicPickPaths` to work with a list of fields to pick, and implement `expandTypeFromDynamicPickPaths` utility function to rectify the query output when the list of fields to pick is a generic type
+- Implement update's `shapeAs` that allow controlling the structure of the object to use to set the value
+- Implement update multiple tables in a single update in MariaDB and MySql
+
+**Bug fixes**:
+
+- Fix boolean value binding for Oracle
+- Fix worng count in a select page query when the distinct modifier is used
+
 ## v1.48.0 (16 Jan 2023)
 
 **Bug fixes**:

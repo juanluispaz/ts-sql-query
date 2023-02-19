@@ -4061,6 +4061,36 @@ async function main() {
         .executeUpdate()
 
     assertEquals(shapedUpdateCustomerNameResult, result)
+
+    // /* *** Preparation ************************************************************/
+
+    // result = 1
+    // expectedResult.push(result)
+    // expectedQuery.push(`update customer inner join company on customer.company_id = company.id set customer.first_name = ?, customer.last_name = ?, company.name = ? where customer.id = ?`)
+    // expectedParams.push(`["John","Smith","ACME Inc.",12]`)
+    // expectedType.push(`update`)
+
+    // /* *** Example ****************************************************************/
+
+    // const shapedUpdateCustomerNameAndCompanyName = {
+    //     id: 12,
+    //     customerFirstName: 'John',
+    //     customerLastName: 'Smith',
+    //     companyName: 'ACME Inc.'
+    // }
+    
+    // const shapedUpdateCustomerNameAndCompanyNameResult = await connection.update(tCustomer)
+    //     .innerJoin(tCompany).on(tCustomer.companyId.equals(tCompany.id))
+    //     .shapedAs({
+    //         customerFirstName: tCustomer.firstName,
+    //         customerLastName: tCustomer.lastName,
+    //         companyName: tCompany.name
+    //     })
+    //     .set(shapedUpdateCustomerNameAndCompanyName)
+    //     .where(tCustomer.id.equals(shapedUpdateCustomerName.id))
+    //     .executeUpdate()
+
+    // assertEquals(shapedUpdateCustomerNameAndCompanyNameResult, result)
 }
 
 main().then(() => {

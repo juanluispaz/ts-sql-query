@@ -323,10 +323,13 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     }
     _buildAfterUpdateTable(query: UpdateData, params: any[]): string {
         const result = this._buildFromJoins(query.__froms, query.__joins, undefined, params)
-        if (result) {
+        if (!result) {
+            return ''
+        }
+        if (query.__froms && query.__froms.length > 0) {
             return ', ' + result
         }
-        return ''
+        return result
     }
     _buildUpdateFrom(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: Set<ITableOrView<any>> | undefined, _requiredColumns: Set<Column> | undefined, _params: any[]): string {
         return ''

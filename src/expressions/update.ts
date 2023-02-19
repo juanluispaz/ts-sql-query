@@ -1,5 +1,5 @@
 import type { AnyValueSource, IBooleanValueSource, IExecutableUpdateQuery, IIfValueSource, RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from "./values"
-import type { ITableOrView, ITableOrViewOf, NoTableOrViewRequired, OLD, OuterJoinSource } from "../utils/ITableOrView"
+import type { ITable, ITableOrView, ITableOrViewOf, NoTableOrViewRequired, OLD, OuterJoinSource } from "../utils/ITableOrView"
 import type { AnyDB, MariaDB, MySql, NoopDB, Oracle, PostgreSql, Sqlite, SqlServer, TypeSafeDB } from "../databases"
 import type { int } from "ts-extended-types"
 import type { database, tableOrView, tableOrViewRef } from "../utils/symbols"
@@ -85,7 +85,7 @@ export interface DynamicExecutableUpdateExpression<TABLE extends ITableOrView<an
 }
 
 export interface UpdateSetExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
-    shapedAs<SHAPE extends UpdateShape<TABLE>>(shape: SHAPE): ShapedUpdateSetExpression<TABLE, USING, SHAPE>
+    shapedAs<SHAPE extends UpdateShape<TABLE, USING>>(shape: SHAPE): ShapedUpdateSetExpression<TABLE, USING, SHAPE>
     dynamicSet(): NotExecutableUpdateExpression<TABLE, USING, undefined>
     set(columns: UpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING, undefined>
     setIfValue(columns: OptionalUpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING, undefined>
@@ -106,7 +106,7 @@ export interface UpdateExpression<TABLE extends ITableOrView<any>, USING extends
 }
 
 export interface UpdateSetExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
-    shapedAs<SHAPE extends UpdateShape<TABLE>>(shape: SHAPE): ShapedUpdateSetExpressionAllowingNoWhere<TABLE, USING, SHAPE>
+    shapedAs<SHAPE extends UpdateShape<TABLE, USING>>(shape: SHAPE): ShapedUpdateSetExpressionAllowingNoWhere<TABLE, USING, SHAPE>
     dynamicSet(): ExecutableUpdateExpression<TABLE, USING, undefined>
     set(columns: UpdateSets<TABLE, USING, undefined>): ExecutableUpdateExpression<TABLE, USING, undefined>
     setIfValue(columns: OptionalUpdateSets<TABLE, USING, undefined>): ExecutableUpdateExpression<TABLE, USING, undefined>
@@ -158,9 +158,15 @@ export type UpdateValues<TABLE extends ITableOrView<any>, SHAPE> =
         }
     )
 
-export type UpdateShape<TABLE extends ITableOrView<any>> = {
-    [key: string]: ValueSourceOf<TABLE[typeof tableOrViewRef]> & Column
-}
+export type UpdateShape<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> = 
+    TABLE[typeof database] extends (NoopDB | MariaDB | MySql)
+    ? {
+        [key: string]: ValueSourceOf<FilterTables<USING>[typeof tableOrViewRef]> & Column
+    } : {
+        [key: string]: ValueSourceOf<TABLE[typeof tableOrViewRef]> & Column
+    }
+
+type FilterTables<USING extends ITableOrView<any>> = USING extends ITable<any> ? USING : never
 
 export type OptionalUpdateSets<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>, SHAPE> = 
     SHAPE extends undefined 

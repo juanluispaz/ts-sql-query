@@ -1191,7 +1191,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
             } else {
                 // remapped
-                return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when not ' + this._appendValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when not ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
             }
         }
 

@@ -39,7 +39,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _falseValueForCondition = '(0=1)'
     _nullValueForCondition = '(0=null)'
     _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any, any>, params: any[]): string {
-        if (isValueSource(value)) {
+        if (isValueSource(value) && !isColumn(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (valueSourcePrivate.__isBooleanForCondition) {
                 if (valueSourcePrivate.__optionalType === 'required') {
@@ -69,6 +69,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     _appendConditionParam(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (columnType === 'boolean') {
+            if (isColumn(value)) {
+                const columnPrivate = __getColumnPrivate(value)
+                const typeAdapter = columnPrivate.__typeAdapter
+                if (typeAdapter instanceof CustomBooleanTypeAdapter) {
+                    return '(' + this._appendRawColumnName(value, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ')'
+                }
+            }
             return '(' + this._appendParam(value, params, columnType, typeAdapter, forceTypeCast) + ' = 1)'
         }
         return this._appendParam(value, params, columnType, typeAdapter, forceTypeCast)
@@ -89,9 +96,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         if (columnPrivate.__valueType === 'boolean') {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
                 if (columnPrivate.__optionalType === 'required') {
-                    return 'case when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ' then 1 else 0 end'
+                    return 'cast(case when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ' then 1 else 0 end as bit)'
                 } else {
-                    return 'case when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) +  ' then 1 when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.falseValue, params) + ' then 0 else null end'
+                    return 'cast(case ' + this._appendRawColumnName(column, params) + ' when ' + this._appendLiteralValue(typeAdapter.trueValue, params) +  ' then 1 when ' + this._appendLiteralValue(typeAdapter.falseValue, params) + ' then 0 else null end as bit)'
                 }
             }
         }
@@ -163,25 +170,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         result += ')'
 
         return result
-    }
-    _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined, isOutermostQuery: boolean): string {
-        if (columnForInsert) {
-            const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)
-            if (sql) {
-                return sql
-            }
-        }
-
-        const valueSourcePrivate = __getValueSourcePrivate(value)
-        if (valueSourcePrivate.__isBooleanForCondition) {
-            if (valueSourcePrivate.__optionalType === 'required') {
-                return 'cast(case when ' + this._appendConditionSql(value, params) + ' then 1 else 0 end as bit)'
-            } else {
-                return 'cast(case when ' + this._appendConditionSql(value, params) + ' then 1 when not ' + this._appendConditionSql(value, params) + ' then 0 else null end as bit)'
-            }
-        }
-
-        return this._appendColumnValue(value, params, isOutermostQuery)
     }
     _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)

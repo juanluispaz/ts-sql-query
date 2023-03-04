@@ -691,7 +691,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, case when is_big = 'Y' then 1 else 0 end as isBig from custom_company where (is_big = 'Y')`)
+    expectedQuery.push(`select id as id, name as name, cast(case when is_big = 'Y' then 1 else 0 end as bit) as isBig from custom_company where (is_big = 'Y')`)
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
 

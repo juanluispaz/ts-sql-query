@@ -320,7 +320,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (t.__template) {
             return this._appendRawFragment(t.__template, params)
         }
-        
+
         const forceAliasFor = this._getForceAliasFor(params)
         const forceAliasAs = this._getForceAliasAs(params)
 
@@ -403,7 +403,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (value.length <= 0) {
                 return '()'
             }
-            
+
             let arrayResult = '(' + this._appendValue(value[0], params, columnType, typeAdapter, forceTypeCast)
 
             for (let i = 1, length = value.length; i < length; i++) {
@@ -635,7 +635,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 return ' except all '
             default:
                 throw new Error('Invalid compound operator: ' + compoundOperator)
-        }   
+        }
     }
     _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
@@ -712,12 +712,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
             this._setSafeTableOrView(params, undefined)
 
             let selectQuery = ''
-            
+
             if (needAgggregateArrayWrapper) {
                 selectQuery += this._appendAggragateArrayWrapperBegin(query, params, aggregateId)
                 this._setAggregateArrayWrapped(params, true)
             }
-            
+
             selectQuery += this._buildWith(query, params)
             selectQuery += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert, isOutermostQuery)
             selectQuery += this._appendCompoundOperator(query.__compoundOperator, params)
@@ -761,7 +761,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     this._setFakeNamesOf(params, newFakeNameOf)
                 } else {
                     this._setFakeNamesOf(params, undefined)
-                } 
+                }
             } else {
                 this._setFakeNamesOf(params, undefined)
             }
@@ -791,7 +791,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         let selectQuery = ''
-            
+
         if (needAgggregateArrayWrapper) {
             selectQuery += this._appendAggragateArrayWrapperBegin(query, params, aggregateId)
             this._setAggregateArrayWrapped(params, true)
@@ -962,7 +962,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 orderByColumns += columnAlias
             } else switch (order) {
                 case 'asc':
-                case 'desc': 
+                case 'desc':
                 case 'asc nulls first':
                 case 'asc nulls last':
                 case 'desc nulls first':
@@ -1165,7 +1165,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (columnType !== 'boolean') {
             return null // non-boolean
         }
-        
+
         if (columnTypeAdapter instanceof CustomBooleanTypeAdapter) {
             if (isColumn(value)) {
                 const valuePrivate = __getColumnPrivate(value)
@@ -1191,7 +1191,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
             } else {
                 // remapped
-                return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when not ' + this._appendValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                return `case ${this._appendValue(value, params, columnType, columnTypeAdapter)} when 1 then ${this._appendLiteralValue(columnTypeAdapter.trueValue, params)} when 0 then ${this._appendLiteralValue(columnTypeAdapter.falseValue, params)} else null end`
             }
         }
 
@@ -1564,7 +1564,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     // This allows to have more complex objects used in the query
                     continue
                 }
-    
+
                 if (columns) {
                     columns += ', '
                 }
@@ -1620,7 +1620,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (!columns) {
                 throw new Error('Unable to build a on conflict do update set clause for an insert, no fields in the set found')
             }
-            
+
             result += ' do update set ' + columns
             const where = query.__onConflictUpdateWhere
             if (where) {
@@ -1934,7 +1934,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 const column = additionalColumns[i]!
                 from += ', '
                 from += this._appendSql(column, params)
-                from += ' as ' 
+                from += ' as '
 
                 const columnPrivate = __getColumnPrivate(column)
                 const tablePrivate = __getTableOrViewPrivate(columnPrivate.__tableOrView)
@@ -1966,14 +1966,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         from += this._appendUpdateOldValueForUpdate(query, updatePrimaryKey, requiredTables, params)
-        from += ')' 
-        
+        from += ')'
+
         if (this._supportTableAliasWithAs) {
             from += ' as '
         } else {
             from += ' '
         }
-        
+
         from += this._escape(oldValuesPrivate.__as, true)
 
         this._setForceAliasFor(params, oldForceAliasFor)
@@ -2320,7 +2320,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else if (sql === this._falseValueForCondition) {
             return this._trueValueForCondition
         }
-        
+
         if (this._needParenthesis(valueSource)) {
             return 'not (' + sql + ')'
         }
@@ -2430,7 +2430,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _asString(params: any[], valueSource: ToSql): string {
         // Transform an uuid to string
-        return this._appendSqlParenthesis(valueSource, params) 
+        return this._appendSqlParenthesis(valueSource, params)
     }
     _asNullValue(_params: any[], columnType: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeAdapter && typeAdapter.transformPlaceholder) {
@@ -2773,7 +2773,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'select ' +  this._appendAggragateArrayWrappedColumns(aggregatedArrayColumns, params, aggregateId) + ' from ('
     }
     _appendAggragateArrayWrapperEnd(_query: SelectData, _params: any[], aggregateId: number): string {
-        let result =  ')' 
+        let result =  ')'
         if (this._supportTableAliasWithAs) {
             result += ' as '
         } else {

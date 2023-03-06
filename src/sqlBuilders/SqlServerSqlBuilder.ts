@@ -59,7 +59,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 if (!sql || sql === this._trueValueForCondition || sql === this._falseValueForCondition) {
                     return sql
                 } else {
-                    return '(' + value.__toSqlForCondition(this, params) + ' = 1)'
+                    return '(' + sql + ' = 1)'
                 }
             }
         }

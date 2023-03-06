@@ -529,6 +529,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         } else {
             result += this._appendSql(valueSource, params)
         }
+        result += ', '
         if (isValueSource(value) && __getValueSourcePrivate(value).__uuidString) {
             result += 'convert(nvarchar, ' + this._appendValue(value, params, columnType, typeAdapter) + ')'
         } else {

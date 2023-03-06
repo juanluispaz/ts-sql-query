@@ -12,6 +12,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._getTime = true
         this._operationsThatNeedParenthesis._getMonth = true
         this._operationsThatNeedParenthesis._getDay = true
+        this._operationsThatNeedParenthesis._negate = true
     }
 
     _insertSupportWith = false
@@ -107,6 +108,69 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string {
         const result = '((' + this._buildInlineSelect(query, params) + ') = 1)'
         return result
+    }
+    _appendCustomBooleanRemapForColumnIfRequired(column: Column, value: any, params: any[]): string | null {
+        const columnPrivate = __getColumnPrivate(column)
+        const columnTypeAdapter = columnPrivate.__typeAdapter
+        const columnType = columnPrivate.__valueType
+
+        if (columnType !== 'boolean') {
+            return null // non-boolean
+        }
+
+        if (columnTypeAdapter instanceof CustomBooleanTypeAdapter) {
+            if (isColumn(value)) {
+                const valuePrivate = __getColumnPrivate(value)
+                const valueTypeAdapter = valuePrivate.__typeAdapter
+
+                if (valueTypeAdapter instanceof CustomBooleanTypeAdapter) {
+                    if (columnTypeAdapter.trueValue === valueTypeAdapter.trueValue && columnTypeAdapter.falseValue === valueTypeAdapter.falseValue) {
+                        return this._appendRawColumnName(value, params) // same boolean as column
+                    }
+
+                    if (columnPrivate.__optionalType === 'required') {
+                        // remapped
+                        return 'case when ' + this._appendRawColumnName(value, params) + ' = ' + this._appendLiteralValue(valueTypeAdapter.trueValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                    } else {
+                        // remapped
+                        return 'case ' + this._appendRawColumnName(value, params) + ' when ' + this._appendLiteralValue(valueTypeAdapter.trueValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._appendLiteralValue(valueTypeAdapter.falseValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                    }
+                } else {
+                    if (columnPrivate.__optionalType === 'required') {
+                        // remapped
+                        return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                    } else {
+                        // remapped
+                        return 'case ' + this._appendValue(value, params, columnType, columnTypeAdapter) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                    }
+                }
+            } else if (isValueSource(value)) {
+                // There are some boolean expressions involved
+                if (columnPrivate.__optionalType === 'required') {
+                    // remapped
+                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                } else {
+                    // remapped
+                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when not ' + this._appendConditionValueParenthesis(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                }
+            } else {
+                if (columnPrivate.__optionalType === 'required') {
+                    // remapped
+                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                } else if (value === true || value === false) {
+                    // remapped
+                    return 'case ' + this._appendValue(value, params, columnType, columnTypeAdapter) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                } else {
+                    // remapped
+                    // Oracle detects wrongly the value type in this case (when value is null), for this reason a cast in injected
+                    return 'case cast(' + this._appendValue(value, params, columnType, columnTypeAdapter) + ' as number) when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                }
+            }
+        }
+
+        // if value is column and its type adapter is CustomBooleanTypeAdapter append value will be required to normalize value
+        // if not it is same boolean, nothing to transform here
+        return null
     }
     _appendWithColumns(withData: WithSelectData, params: any[]): string {
         if (withData.__selectData.__type === 'plain') {

@@ -442,6 +442,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendConditionSql(value, params)
     }
+    _appendConditionSqlParenthesis(value: ToSql | AnyValueSource, params: any[]): string {
+        if (this._needParenthesis(value)) {
+            return '(' + this._appendConditionSql(value, params) + ')'
+        }
+        return this._appendConditionSql(value, params)
+    }
     _appendConditionValue(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean = false): string {
         if (hasToSql(value)) {
             return this._appendConditionSql(value, params)
@@ -1183,6 +1189,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
                         // remapped
                         return 'case ' + this._appendRawColumnName(value, params) + ' when ' + this._appendLiteralValue(valueTypeAdapter.trueValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._appendLiteralValue(valueTypeAdapter.falseValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
                     }
+                } else {
+                    if (columnPrivate.__optionalType === 'required') {
+                        // remapped
+                        return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                    } else {
+                        // remapped
+                        return 'case ' + this._appendValue(value, params, columnType, columnTypeAdapter) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                    }
                 }
             } else if (isValueSource(value)) {
                 // There are some boolean expressions involved
@@ -1191,7 +1205,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
                 } else {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when not ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when not ' + this._appendConditionValueParenthesis(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
                 }
             } else {
                 if (columnPrivate.__optionalType === 'required') {
@@ -2457,7 +2471,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _and(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         this._setResultingOperation(params, undefined)
-        const sql = valueSource.__toSqlForCondition(this, params)
+        const sql = this._appendConditionSql(valueSource, params)
         const op = this._getResultingOperation(params)
         this._setResultingOperation(params, undefined)
         const sql2 = this._appendConditionValue(value, params, columnType, typeAdapter)
@@ -2490,7 +2504,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _or(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {
         this._setResultingOperation(params, undefined)
-        const sql = valueSource.__toSqlForCondition(this, params)
+        const sql = this._appendConditionSql(valueSource, params)
         const op = this._getResultingOperation(params)
         this._setResultingOperation(params, undefined)
         const sql2 = this._appendConditionValue(value, params, columnType, typeAdapter)

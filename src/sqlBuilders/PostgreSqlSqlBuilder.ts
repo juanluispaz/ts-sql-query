@@ -1,7 +1,8 @@
 import type { ToSql, SelectData, WithValuesData } from "./SqlBuilder"
-import type { TypeAdapter } from "../TypeAdapter"
+import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
+import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
+import { isValueSource } from "../expressions/values"
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
@@ -82,6 +83,65 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             result += ' offset ' + this._appendValue(offset, params, 'int', undefined)
         }
         return result
+    }
+    _appendCustomBooleanRemapForColumnIfRequired(column: Column, value: any, params: any[]): string | null {
+        const columnPrivate = __getColumnPrivate(column)
+        const columnTypeAdapter = columnPrivate.__typeAdapter
+        const columnType = columnPrivate.__valueType
+
+        if (columnType !== 'boolean') {
+            return null // non-boolean
+        }
+
+        if (columnTypeAdapter instanceof CustomBooleanTypeAdapter) {
+            if (isColumn(value)) {
+                const valuePrivate = __getColumnPrivate(value)
+                const valueTypeAdapter = valuePrivate.__typeAdapter
+
+                if (valueTypeAdapter instanceof CustomBooleanTypeAdapter) {
+                    if (columnTypeAdapter.trueValue === valueTypeAdapter.trueValue && columnTypeAdapter.falseValue === valueTypeAdapter.falseValue) {
+                        return this._appendRawColumnName(value, params) // same boolean as column
+                    }
+
+                    if (columnPrivate.__optionalType === 'required') {
+                        // remapped
+                        return 'case when ' + this._appendRawColumnName(value, params) + ' = ' + this._appendLiteralValue(valueTypeAdapter.trueValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                    } else {
+                        // remapped
+                        return 'case ' + this._appendRawColumnName(value, params) + ' when ' + this._appendLiteralValue(valueTypeAdapter.trueValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._appendLiteralValue(valueTypeAdapter.falseValue, params) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                    }
+                } else {
+                    if (columnPrivate.__optionalType === 'required') {
+                        // remapped
+                        return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                    } else {
+                        // remapped
+                        return 'case ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                    }
+                }
+            } else if (isValueSource(value)) {
+                // There are some boolean expressions involved
+                if (columnPrivate.__optionalType === 'required') {
+                    // remapped
+                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                } else {
+                    // remapped
+                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when not ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                }
+            } else {
+                if (columnPrivate.__optionalType === 'required') {
+                    // remapped
+                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter, true) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                } else {
+                    // remapped
+                    return 'case ' + this._appendConditionValue(value, params, columnType, columnTypeAdapter, true) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                }
+            }
+        }
+
+        // if value is column and its type adapter is CustomBooleanTypeAdapter append value will be required to normalize value
+        // if not it is same boolean, nothing to transform here
+        return null
     }
     _asDouble(params: any[], valueSource: ToSql): string {
         return this._appendSqlParenthesis(valueSource, params) + '::float'

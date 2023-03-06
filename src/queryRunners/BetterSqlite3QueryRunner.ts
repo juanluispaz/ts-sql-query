@@ -64,7 +64,11 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
         }
     }
     addParam(params: any[], value: any): string {
-        params.push(value)
+        if (typeof value === 'boolean') {
+            params.push(Number(value))
+        } else {
+            params.push(value)
+        }
         return '?'
     }    
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {

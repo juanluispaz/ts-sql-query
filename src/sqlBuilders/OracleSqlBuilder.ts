@@ -1,4 +1,4 @@
-import { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, flattenQueryColumns, WithSelectData } from "./SqlBuilder"
+import { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, flattenQueryColumns, WithSelectData, hasToSql } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
@@ -43,11 +43,20 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 if (valueSourcePrivate.__optionalType === 'required') {
                     return 'case when ' + super._appendConditionSql(value, params) + ' then 1 else 0 end'
                 } else {
-                    return 'case when ' + super._appendConditionSql(value, params) + ' then 1 when not ' + super._appendConditionSql(value, params) + ' then 0 else null end'
+                    return 'case when ' + super._appendConditionSql(value, params) + ' then 1 when not ' + super._appendConditionSqlParenthesis(value, params) + ' then 0 else null end'
                 }
             }
         }
         return super._appendSql(value, params)
+    }
+    _appendConditionSql(value: ToSql | AnyValueSource, params: any[]): string {
+        if (isValueSource(value) && !isColumn(value) && hasToSql(value)) {
+            const valueSourcePrivate = __getValueSourcePrivate(value)
+            if (!valueSourcePrivate.__isBooleanForCondition) {
+                return '(' + value.__toSqlForCondition(this, params) + ' = 1)'
+            }
+        }
+        return super._appendConditionSql(value, params)
     }
     _appendConditionParam(value: any, params: any[], columnType: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (columnType === 'boolean') {
@@ -551,7 +560,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     return this._falseValueForCondition
                 } else {
                     // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
-                    return '(case when ' + this._appendSqlParenthesis(valueSource, params) + ' then 0 when not ' + this._appendSqlParenthesis(valueSource, params) + ' then 0 else 1 end = 1)'
+                    return '(case when ' + this._appendConditionSql(valueSource, params) + ' then 0 when not ' + this._appendConditionSqlParenthesis(valueSource, params) + ' then 0 else 1 end = 1)'
                 }
             }
         }
@@ -568,7 +577,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     return this._trueValueForCondition
                 } else {
                     // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
-                    return '(case when ' + this._appendSqlParenthesis(valueSource, params) + ' then 1 when not ' + this._appendSqlParenthesis(valueSource, params) + ' then 1 else 0 end = 1)'
+                    return '(case when ' + this._appendConditionSql(valueSource, params) + ' then 1 when not ' + this._appendConditionSqlParenthesis(valueSource, params) + ' then 1 else 0 end = 1)'
                 }
             }
         }

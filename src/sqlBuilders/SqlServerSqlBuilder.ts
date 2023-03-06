@@ -43,13 +43,22 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (valueSourcePrivate.__isBooleanForCondition) {
                 if (valueSourcePrivate.__optionalType === 'required') {
-                    return 'cast(case when ' + super._appendConditionSql(value, params) + ' then 1 else 0 end as bit)'
+                    return 'cast(case when ' + this._appendConditionSql(value, params) + ' then 1 else 0 end as bit)'
                 } else {
-                    return 'cast(case when ' + super._appendConditionSql(value, params) + ' then 1 when not ' + super._appendConditionSql(value, params) + ' then 0 else null end as bit)'
+                    return 'cast(case when ' + this._appendConditionSql(value, params) + ' then 1 when not ' + this._appendConditionSqlParenthesis(value, params) + ' then 0 else null end as bit)'
                 }
             }
         }
         return super._appendSql(value, params)
+    }
+    _appendConditionSql(value: ToSql | AnyValueSource, params: any[]): string {
+        if (isValueSource(value) && !isColumn(value) && hasToSql(value)) {
+            const valueSourcePrivate = __getValueSourcePrivate(value)
+            if (!valueSourcePrivate.__isBooleanForCondition) {
+                return '(' + value.__toSqlForCondition(this, params) + ' = 1)'
+            }
+        }
+        return super._appendConditionSql(value, params)
     }
     _isUuid(value: any): boolean {
         if (isValueSource(value)) {
@@ -428,16 +437,15 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     _isNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {
-            this._appendRawColumnName(valueSource, params) + ' is null'
-        }
-        if (isValueSource(valueSource)) {
+            return this._appendRawColumnName(valueSource, params) + ' is null'
+        } else if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
             if (valueSourcePrivate.__isBooleanForCondition) {
                 if (valueSourcePrivate.__optionalType === 'required') {
                     return this._falseValueForCondition
                 } else {
                     // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
-                    return '(case when ' + this._appendSqlParenthesis(valueSource, params) + ' then 0 when not ' + this._appendSqlParenthesis(valueSource, params) + ' then 0 else 1 end = 1)'
+                    return '(case when ' + this._appendConditionSql(valueSource, params) + ' then 0 when not ' + this._appendConditionSqlParenthesis(valueSource, params) + ' then 0 else 1 end = 1)'
                 }
             }
         }
@@ -460,7 +468,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                     return this._trueValueForCondition
                 } else {
                     // This is a boolean value (0 or 1 from a column) that need to be use in a boolean expression
-                    return '(case when ' + this._appendSqlParenthesis(valueSource, params) + ' then 1 when not ' + this._appendSqlParenthesis(valueSource, params) + ' then 1 else 0 end = 1)'
+                    return '(case when ' + this._appendConditionSql(valueSource, params) + ' then 1 when not ' + this._appendConditionSqlParenthesis(valueSource, params) + ' then 1 else 0 end = 1)'
                 }
             }
         }
@@ -903,11 +911,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         switch(type) {
         case 'boolean':
-            if (valueSourcePrivate.__optionalType === 'required') {
-                return 'case when ' + super._appendConditionSql(valueSource, params) + " then 'true' else 'false' end"
-            } else {
-                return 'case when ' + super._appendConditionSql(valueSource, params) + " then 'true' when not " + super._appendConditionSql(valueSource, params) + " then 'false' else 'null' end"
-            }
         case 'int':
         case 'double':
             result = 'convert(nvarchar, ' + this._appendSql(valueSource, params) + ')'
@@ -969,11 +972,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         switch(type) {
         case 'boolean':
-            if (valueSourcePrivate.__optionalType === 'required') {
-                return 'case when a_' + aggregateId + '_.' + this._escape(prop, true) + " = 1 then 'true' else 'false' end"
-            } else {
-                return 'case when a_' + aggregateId + '_.' + this._escape(prop, true) + " = 1 then 'true' when a_." + this._escape(prop, true) + " = 0 then 'false' else 'null' end"
-            }
         case 'int':
         case 'double':
             result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ')'

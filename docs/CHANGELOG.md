@@ -1,5 +1,12 @@
 # Change Log
 
+## v1.50.0 (6 Mar 2023)
+
+**Bug fixes**:
+
+- Fix `valueWhenNull` in SqlServer
+- Major rework on custom booleans to fix several bugs
+
 ## v1.49.0 (19 Feb 2023)
 
 **Changes**:

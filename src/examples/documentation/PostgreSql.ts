@@ -673,7 +673,7 @@ async function main() {
     
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`insert into custom_company (name, is_big) values ($1, case when $2 then 'Y' else 'N' end) returning id`)
+    expectedQuery.push(`insert into custom_company (name, is_big) values ($1, case when $2::bool then 'Y' else 'N' end) returning id`)
     expectedParams.push(`["My Big Company",true]`)
     expectedType.push(`insertReturningLastInsertedId`)
     

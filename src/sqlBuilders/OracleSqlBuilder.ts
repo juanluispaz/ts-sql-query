@@ -52,8 +52,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _appendConditionSql(value: ToSql | AnyValueSource, params: any[]): string {
         if (isValueSource(value) && !isColumn(value) && hasToSql(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
-            if (!valueSourcePrivate.__isBooleanForCondition) {
-                return '(' + value.__toSqlForCondition(this, params) + ' = 1)'
+            if (valueSourcePrivate.__valueType === 'boolean' && !valueSourcePrivate.__isBooleanForCondition) {
+                const sql = value.__toSqlForCondition(this, params)
+                if (!sql || sql === this._trueValueForCondition || sql === this._falseValueForCondition) {
+                    return sql
+                } else {
+                    return '(' + value.__toSqlForCondition(this, params) + ' = 1)'
+                }
             }
         }
         return super._appendConditionSql(value, params)

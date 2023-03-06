@@ -3894,7 +3894,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name, isnull((select count(*) as [result] from customer where company_id = company.id)@0) as numberOfCustomers from company`)
+    expectedQuery.push(`select id as id, name as name, isnull((select count(*) as [result] from customer where company_id = company.id), @0) as numberOfCustomers from company`)
     expectedParams.push(`[0]`)
     expectedType.push(`selectManyRows`)
 

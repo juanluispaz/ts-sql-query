@@ -24,7 +24,7 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     }
 
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
-        return this.execute(fn)
+        return this.queryRunner.execute(fn)
     }
 
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
@@ -124,7 +124,7 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
         return this.queryRunner.addOutParam(params, name)
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
-        return this.queryRunner.createResolvedPromise(result) 
+        return this.queryRunner.createResolvedPromise(result)
     }
     executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
         return this.queryRunner.executeCombined(fn1, fn2)

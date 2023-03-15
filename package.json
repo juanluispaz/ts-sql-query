@@ -35,6 +35,7 @@
         "copy-prisma": "cp -R ./src/examples/prisma ./dist/examples/prisma",
         "example": "ts-node src/exampleTests.ts",
         "all-examples": "sh ./scripts/run-all-examples.sh",
+        "all-examples-arm": "sh ./scripts/run-all-examples-arm.sh",
         "no-docker-examples": "sh ./scripts/run-no-docker-examples.sh",
         "coverage": "nyc sh ./scripts/run-all-examples.sh",
         "build": "rm -rf dist/*; tsc --version && tsc && npm run copy-prisma",
@@ -95,6 +96,12 @@
         "ts-node": "^10.2.1",
         "typescript": "^4.1.3",
         "uuid": "^7.0.3"
+    },
+    "devDependenciesToDisableOnArm": {
+        "loopback-connector-mysql": "^6.0.0",
+        "loopback-connector-oracle": "^4.5.2",
+        "loopback-connector-sqlite3": "^3.0.0",
+        "oracledb": "^5.1.0"
     },
     "dependencies": {
         "chained-error": "^1.0.0",

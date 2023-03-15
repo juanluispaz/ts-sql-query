@@ -27,6 +27,12 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
             throw new Error('Unable to find the Prisma Client')
         }
     }
+    protected transformValueFromDB(value: unknown, type: string): unknown {
+        if (value !== null && value !== undefined && value.constructor.name === 'Decimal') {
+            return super.transformValueFromDB(value.toString(), type)
+        }
+        return super.transformValueFromDB(value, type)
+    }
 }
 
 const tCompany = new class TCompany extends Table<DBConnection, 'TCompany'> {

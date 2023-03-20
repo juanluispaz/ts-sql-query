@@ -13,24 +13,24 @@
 
 set -x #echo on
 
-# ts-node ./src/examples/documentation/Sqlite-compatibility.ts || exit 1
-# ts-node ./src/examples/documentation/Sqlite-modern.ts || exit 1
-# ts-node ./src/examples/documentation/PostgreSql.ts || exit 1
-# ts-node ./src/examples/documentation/MySql.ts || exit 1
-# ts-node ./src/examples/documentation/MySql-compatibility.ts || exit 1
-# ts-node ./src/examples/documentation/MariaDB.ts || exit 1
-# ts-node ./src/examples/documentation/MariaDB-modern.ts || exit 1
-# ts-node ./src/examples/documentation/SqlServer.ts || exit 1
-# ts-node ./src/examples/documentation/Oracle.ts || exit 1
+ts-node ./src/examples/documentation/Sqlite-compatibility.ts || exit 1
+ts-node ./src/examples/documentation/Sqlite-modern.ts || exit 1
+ts-node ./src/examples/documentation/PostgreSql.ts || exit 1
+ts-node ./src/examples/documentation/MySql.ts || exit 1
+ts-node ./src/examples/documentation/MySql-compatibility.ts || exit 1
+ts-node ./src/examples/documentation/MariaDB.ts || exit 1
+ts-node ./src/examples/documentation/MariaDB-modern.ts || exit 1
+ts-node ./src/examples/documentation/SqlServer.ts || exit 1
+ts-node ./src/examples/documentation/Oracle.ts || exit 1
 
-# ts-node ./src/examples/SqliteExample.ts || exit 1
-# ts-node ./src/examples/Sqlite3Example.ts || exit 1
-# ts-node ./src/examples/BetterSqlite3Example.ts || exit 1
-# ts-node ./src/examples/BetterSqlite3SynchronousExample.ts || exit 1
-# ts-node ./src/examples/AnyDBSqlite3Example.ts || exit 1
-# # Disabled on ARM
-# #    # ts-node ./src/examples/LoopBackSqlite3Example.ts || exit 1
-# ts-node ./src/examples/PrismaSqliteExample.ts || exit 1
+ts-node ./src/examples/SqliteExample.ts || exit 1
+ts-node ./src/examples/Sqlite3Example.ts || exit 1
+ts-node ./src/examples/BetterSqlite3Example.ts || exit 1
+ts-node ./src/examples/BetterSqlite3SynchronousExample.ts || exit 1
+ts-node ./src/examples/AnyDBSqlite3Example.ts || exit 1
+# Disabled on ARM
+#    # ts-node ./src/examples/LoopBackSqlite3Example.ts || exit 1
+ts-node ./src/examples/PrismaSqliteExample.ts || exit 1
 
 docker run --name ts-sql-query-postgres -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
 sleep 20
@@ -86,4 +86,4 @@ docker rm ts-sql-query-sqlserver
 #    # docker stop ts-sql-query-oracle
 #    # docker rm ts-sql-query-oracle
 
-echo 'All examples ok'
+echo 'All examples ok (arm)'

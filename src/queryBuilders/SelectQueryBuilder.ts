@@ -984,9 +984,15 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             __registerTableOrView(customization.afterQuery, this.__sqlBuilder, requiredTableOrView)
         }
 
-        const registeredCount = requiredTableOrView.size
+        let registeredCount = requiredTableOrView.size
         let updatedCount = requiredTableOrView.size
+
+        let whileItearionCount = 0
         do {
+            if (whileItearionCount > 1000) {
+                throw new Error('Unable to discover all optional joins')
+            }
+            registeredCount = updatedCount
             for (let i = 0, lenght = joins.length; i < lenght; i++) {
                 const join = joins[i]!
                 const on = join.__on
@@ -995,6 +1001,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
                 }
             }
             updatedCount = requiredTableOrView.size
+            whileItearionCount++
         } while (registeredCount !== updatedCount)
 
         return requiredTableOrView

@@ -3527,6 +3527,22 @@ async function main() {
 
     result = []
     expectedResult.push(result)
+    expectedQuery.push(`select company.name as "result" from customer join company on company.id = customer.company_id`)
+    expectedParams.push(`[]`)
+    expectedType.push(`selectOneColumnManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const companiesName = await connection.selectFrom(tCustomer)
+        .optionalJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .selectOneColumn(tCompany.name)
+        .executeSelectMany()
+    assertEquals(companiesName, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
     expectedQuery.push(`select first_name as "firstName", last_name as "lastName", birthday as "birthday" from customer where company_id = :0`)
     expectedParams.push(`[16]`)
     expectedType.push(`selectManyRows`)

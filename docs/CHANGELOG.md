@@ -1,5 +1,17 @@
 # Change Log
 
+## v1.51.0 (23 Mar 2023)
+
+**Bug fixes**:
+
+- Fix infinite loop by discovering the optional joins used in the query
+- Fix infinite recursive function call in `ChainedQueryRunner` for the `execute` method
+
+**Internal changes**:
+
+- Add support to run all the tests natively in Apple M1 except for loopback and oracle
+- Add support to run oracle tests in an x86 emulated docker and using node running under rosetta
+
 ## v1.50.0 (6 Mar 2023)
 
 **Bug fixes**:

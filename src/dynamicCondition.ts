@@ -160,10 +160,23 @@ function internalDynamicPickPaths(o: any, required: any, prefix: string): any {
     return result
 }
 
-export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}>(obj: TYPE, pick: PICK[], result: RESULT): RESULT & PickPaths<SelectedValues<TYPE>, PICK, ''> {
+
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends { data?: any, count?: number }>(obj: TYPE, pick: PICK[], result: RESULT): RESULT & { data: RESULT['data'] & PickPaths<SelectedValues<TYPE>, PICK, ''> }
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends { data?: any, count?: number }>(obj: TYPE, pick: PICK[], result: RESULT | null): RESULT & { data: RESULT['data'] & PickPaths<SelectedValues<TYPE>, PICK, ''> } | null
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends { data?: any, count?: number }>(obj: TYPE, pick: PICK[], result: RESULT | undefined): RESULT & { data: RESULT['data'] & PickPaths<SelectedValues<TYPE>, PICK, ''> } | undefined
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends { data?: any, count?: number }>(obj: TYPE, pick: PICK[], result: RESULT | null | undefined): RESULT & { data: RESULT['data'] & PickPaths<SelectedValues<TYPE>, PICK, ''> } | null | undefined
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}>(obj: TYPE, pick: PICK[], result: RESULT[]): (RESULT & PickPaths<SelectedValues<TYPE>, PICK, ''>)[]
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}>(obj: TYPE, pick: PICK[], result: RESULT[] | null): (RESULT & PickPaths<SelectedValues<TYPE>, PICK, ''>)[] | null
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}>(obj: TYPE, pick: PICK[], result: RESULT[] | undefined): (RESULT & PickPaths<SelectedValues<TYPE>, PICK, ''>)[] | undefined
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {} | null | undefined>(obj: TYPE, pick: PICK[], result: RESULT[] | null | undefined): (RESULT & PickPaths<SelectedValues<TYPE>, PICK, ''>)[] | null | undefined
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}>(obj: TYPE, pick: PICK[], result: RESULT): RESULT & PickPaths<SelectedValues<TYPE>, PICK, ''>
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}>(obj: TYPE, pick: PICK[], result: RESULT | null): RESULT & PickPaths<SelectedValues<TYPE>, PICK, ''> | null
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}>(obj: TYPE, pick: PICK[], result: RESULT | undefined): RESULT & PickPaths<SelectedValues<TYPE>, PICK, ''> | undefined
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {} | null | undefined>(obj: TYPE, pick: PICK[], result: RESULT | null | undefined): RESULT & PickPaths<SelectedValues<TYPE>, PICK, ''> | null | undefined
+export function expandTypeFromDynamicPickPaths(obj: any, pick: any, result: any): any {
     obj
     pick
-    return result as any
+    return result
 }
 
 type PickPaths<TYPE, MANDATORY extends string, PREFIX extends string> = { 

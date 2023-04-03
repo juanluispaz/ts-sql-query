@@ -281,7 +281,12 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             if (!orderByColumns) {
                 return ''
             }
-            return ' order by ' + orderByColumns
+            if (query.__orderingSiblingsOnly) {
+                // Oracle recursive
+                return ' order siblings by ' + orderByColumns
+            } else {
+                return ' order by ' + orderByColumns
+            }
         }
 
         const columns: FlatQueryColumns = {}
@@ -355,7 +360,12 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (!orderByColumns) {
             return ''
         }
-        return ' order by ' + orderByColumns
+        if (query.__orderingSiblingsOnly) {
+            // Oracle recursive
+            return ' order siblings by ' + orderByColumns
+        } else {
+            return ' order by ' + orderByColumns
+        }
     }
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = super._buildSelectLimitOffset(query, params)

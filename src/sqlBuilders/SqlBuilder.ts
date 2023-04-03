@@ -129,9 +129,13 @@ export interface PlainSelectData extends WithQueryData {
     __tablesOrViews: Array<ITableOrView<any>>
     __joins: Array<JoinData>
     __where?: AlwaysIfValueSource<any, any>
+    __startWith?: AlwaysIfValueSource<any, any> // Oracle
+    __connectBy?: AlwaysIfValueSource<any, any> // Oracle
+    __connectByNoCycle?: boolean // Oracle
     __having?: AlwaysIfValueSource<any, any>
     __groupBy:  Array<AnyValueSource>
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
+    __orderingSiblingsOnly?: boolean // Oracle
     __limit?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __offset?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __requiredTablesOrViews?: Set<ITableOrView<any>>
@@ -149,6 +153,7 @@ export interface CompoundSelectData extends WithQueryData {
     __columns: QueryColumns
     __oneColumn: boolean
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
+    __orderingSiblingsOnly?: boolean // Oracle
     __limit?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __offset?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __asInlineAggregatedArrayValue?: boolean
@@ -359,6 +364,8 @@ export interface SqlFunction0 {
     _getMilliseconds(params: any[], valueSource: ToSql): string
     // Uuid
     _asString(params: any[], valueSource: ToSql): string
+    // Oracle recursive
+    _prior(params: any[], valueSource: ToSql): string
 }
 
 export interface SqlFunction1 {

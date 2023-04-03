@@ -862,6 +862,28 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
+        // Oracle recursive
+        const startWith = query.__startWith
+        if (startWith) {
+            const startWithCondition = this._appendCondition(startWith, params)
+            if (startWithCondition) {
+                selectQuery += ' start with ' + startWithCondition
+            }
+        }
+
+        // Oracle recursive
+        const connectdBy = query.__connectBy
+        if (connectdBy) {
+            const connectByCondition = this._appendCondition(connectdBy, params)
+            if (connectByCondition) {
+                if (query.__connectByNoCycle) {
+                    selectQuery += ' connect by nocycle ' + connectByCondition
+                } else {
+                    selectQuery += ' connect by ' + connectByCondition
+                }
+            }
+        }
+
         let requireComma = false
         const groupBy = query.__groupBy
         for (let i = 0, length = groupBy.length; i < length; i++) {
@@ -943,7 +965,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (!orderByColumns) {
                 return ''
             }
-            return ' order by ' + orderByColumns
+            if (query.__orderingSiblingsOnly) {
+                // Oracle recursive
+                return ' order siblings by ' + orderByColumns
+            } else {
+                return ' order by ' + orderByColumns
+            }
         }
 
         const columns = query.__columns
@@ -1015,7 +1042,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (!orderByColumns) {
             return ''
         }
-        return ' order by ' + orderByColumns
+        if (query.__orderingSiblingsOnly) {
+            // Oracle recursive
+            return ' order siblings by ' + orderByColumns
+        } else {
+            return ' order by ' + orderByColumns
+        }
     }
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = ''
@@ -2332,7 +2364,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return "replace(replace(replace(" + this._appendValue(value, params, columnType, typeAdapter) + ", '\\', '\\\\'), '%', '\\%'), '_', '\\_')"
         }
     }
-    // SqlFunctions0
+    // SqlFunction0
     _negate(params: any[], valueSource: ToSql): string {
         const sql = this._appendConditionSql(valueSource, params)
         if (!sql) {
@@ -2461,6 +2493,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         } else {
             return this._defaultTypeAdapter.transformPlaceholder('null', columnType, false, null)
         }
+    }
+    // Oracle recursive
+    _prior(params: any[], valueSource: ToSql): string {
+        return 'prior ' + this._appendSql(valueSource, params)
     }
     // SqlFunction1
     _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: string, typeAdapter: TypeAdapter | undefined): string {

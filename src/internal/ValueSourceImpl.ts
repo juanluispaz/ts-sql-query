@@ -812,6 +812,10 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     replaceAll(findString: any, replaceWith: any): any {
         return new SqlOperation2ValueSource('_replaceAll', this, findString, replaceWith, this.__valueType, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
     }
+    // Oracle recursive
+    __prior(): any {
+        return new SqlOperation0ValueSource('_prior', this, this.__valueType, this.__optionalType, this.__typeAdapter)
+    }
 }
 
 export class SqlOperationStatic0ValueSource extends ValueSourceImpl implements HasOperation {

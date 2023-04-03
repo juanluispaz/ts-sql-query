@@ -1,5 +1,5 @@
 import { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData, QueryColumns, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
-import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, SelectExpressionFromNoTable, SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderByExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereOffsetExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, ExecutableSelectWithWhere, ExecutableSelectWithoutWhere, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, SplitedComposedExecutableSelectWithoutWhere, SplitedComposedDynamicWhereExecutableSelectExpression, WhereableCompoundableExecutableSelectExpressionWithoutWhere } from "../expressions/select"
+import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, /*SelectExpressionFromNoTable,*/ SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderableExecutableSelectExpressionWithoutWhere, OrderByExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereLimitExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, ExecutableSelectWithWhere, ExecutableSelectWithoutWhere, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, SplitedComposedExecutableSelectWithoutWhere, SplitedComposedDynamicWhereExecutableSelectExpression, WhereableCompoundableExecutableSelectExpressionWithoutWhere, RecursivelyConnectedExecutableSelectExpression, RecursivelyConnectedExpressionWithoutSelect, RecursivelyConnectedExecutableSelectExpressionWithoutWhere, CompoundedLimitExecutableSelectExpression, CompoundedOrderedExecutableSelectExpression, LimitExecutableSelectExpression, OrderedExecutableSelectExpression, LimitExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, RecursivelyConnectedSelectWhereExpression, ConnectByExpression } from "../expressions/select"
 import { HasAddWiths, HasIsValue, ITableOrView, IWithView, OuterJoinSource, __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { int } from "ts-extended-types"
@@ -7,7 +7,7 @@ import type { WithView } from "../utils/tableOrViewUtils"
 import { __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import ChainedError from "chained-error"
-import { AggregateFunctions0ValueSource, AggregateSelectValueSource, InlineSelectValueSource } from "../internal/ValueSourceImpl"
+import { AggregateFunctions0ValueSource, AggregateSelectValueSource, InlineSelectValueSource, ValueSourceImpl } from "../internal/ValueSourceImpl"
 import { attachSource } from "../utils/attachSource"
 import { columnsType, database, requiredTableOrView, resultType, type, compoundableColumns, isSelectQueryObject } from "../utils/symbols"
 import { asAlwaysIfValueSource } from "../expressions/values"
@@ -17,7 +17,7 @@ import { View } from "../View"
 import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
 import { Column } from "../utils/Column"
 
-abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql, HasAddWiths, IExecutableSelectQuery<any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any, any>, WithableExecutableSelect<any, any, any, any, any>, ExecutableSelect<any, any, any, any>, ComposeExpression<any, any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any, any>,  ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any, any>, OffsetExecutableSelectExpression<any, any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedOrderByExecutableSelectExpression<any, any, any, any, any, any>, CompoundedOffsetExecutableSelectExpression<any, any, any, any, any>, CompoundedCustomizableExecutableSelect<any, any, any, any, any>, OrderByExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, ExecutableSelectWithWhere<any, any, any, any>, ExecutableSelectWithoutWhere<any, any, any, any, any>, WithableExecutableSelectWithoutWhere<any, any, any, any, any, any>, CompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpressionWitoutWhere<any, any, any, any, any, any> {
+abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql, HasAddWiths, IExecutableSelectQuery<any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any, any>, WithableExecutableSelect<any, any, any, any, any>, ExecutableSelect<any, any, any, any>, ComposeExpression<any, any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any, any>,  ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any, any>, LimitExecutableSelectExpression<any,any,any,any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any, any>, OrderedExecutableSelectExpression<any,any,any,any, any, any>, OffsetExecutableSelectExpression<any, any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedLimitExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderByExecutableSelectExpression<any, any, any, any, any, any>, CompoundedOrderedExecutableSelectExpression<any, any, any, any, any, any>, CompoundedOffsetExecutableSelectExpression<any, any, any, any, any>, CompoundedCustomizableExecutableSelect<any, any, any, any, any>, OrderableExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, ExecutableSelectWithWhere<any, any, any, any>, ExecutableSelectWithoutWhere<any, any, any, any, any>, WithableExecutableSelectWithoutWhere<any, any, any, any, any, any>, CompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpressionWitoutWhere<any, any, any, any, any, any> {
     [database]: any
     [requiredTableOrView]: any
     [type]: any
@@ -30,6 +30,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
 
     __columns: QueryColumns = {}
     __orderBy?: { [property: string]: OrderByMode | null | undefined }
+    __orderingSiblingsOnly?: boolean // Oracle
     __limit?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __offset?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __withs: Array<IWithView<any>> = []
@@ -311,6 +312,12 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             return this
         }
     }
+    orderingSiblingsOnly(): any {
+        this.__finishJoinHaving()
+        this.__query = ''
+        this.__orderingSiblingsOnly = true
+        return this
+    }
     limit(limit: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
@@ -587,12 +594,15 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     }
 }
 
-export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSelectData, SelectExpression<any, any, any, any>, SelectExpressionFromNoTable<any, any>, ExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereExecutableSelectExpression<any, any, any, any, any, any>, DynamicWhereExpressionWithoutSelect<any, any, any, any>, GroupByOrderByExecutableSelectExpression<any, any, any, any, any, any>, SelectWhereJoinExpression<any, any, any, any>, DynamicOnExpression<any, any, any, any>, OnExpression<any, any, any, any>, SelectExpressionWithoutJoin<any, any, any, any>, SelectExpressionSubquery<any, any, any>, SelectWhereExpression<any, any, any, any>, GroupByOrderByHavingExecutableSelectExpression<any, any, any, any, any, any>, DynamicHavingExecutableSelectExpression<any, any, any, any, any, any>, GroupByOrderHavingByExpressionWithoutSelect<any, any, any, any>, DynamicHavingExpressionWithoutSelect<any, any, any, any>, WhereableExecutableSelectExpressionWithGroupBy<any, any, any, any, any, any>, DynamicWhereExecutableSelectExpressionWithGroupBy<any, any, any, any, any, any>, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicHavingExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereSelectExpressionWithoutSelect<any, any, any, any>, OrderedExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, OffsetExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, CompoundableCustomizableExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereOffsetExecutableSelectExpression<any, any, any, any, any, any>, DynamicWhereCompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, SplitedComposedExecutableSelectWithoutWhere<any, any, any, any, any>, SplitedComposedDynamicWhereExecutableSelectExpression<any, any, any, any, any>, WhereableCompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereCompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any> {
+export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSelectData, SelectExpression<any, any, any, any>, /*SelectExpressionFromNoTable<any, any>,*/ ExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, RecursivelyConnectedExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereExecutableSelectExpression<any, any, any, any, any, any>, DynamicWhereExpressionWithoutSelect<any, any, any, any>, RecursivelyConnectedExpressionWithoutSelect<any, any, any, any>, GroupByOrderByExecutableSelectExpression<any, any, any, any, any, any>, RecursivelyConnectedExecutableSelectExpression<any, any, any, any, any, any>, SelectWhereJoinExpression<any, any, any, any>, DynamicOnExpression<any, any, any, any>, OnExpression<any, any, any, any>, SelectExpressionWithoutJoin<any, any, any, any>, SelectExpressionSubquery<any, any, any>, SelectWhereExpression<any, any, any, any>, RecursivelyConnectedSelectWhereExpression<any, any, any, any>, GroupByOrderByHavingExecutableSelectExpression<any, any, any, any, any, any>, DynamicHavingExecutableSelectExpression<any, any, any, any, any, any>, GroupByOrderHavingByExpressionWithoutSelect<any, any, any, any>, DynamicHavingExpressionWithoutSelect<any, any, any, any>, WhereableExecutableSelectExpressionWithGroupBy<any, any, any, any, any, any>, DynamicWhereExecutableSelectExpressionWithGroupBy<any, any, any, any, any, any>, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicHavingExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereSelectExpressionWithoutSelect<any, any, any, any>, LimitExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, OrderByExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, OrderedExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, OffsetExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, CompoundableCustomizableExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereLimitExecutableSelectExpression<any, any, any, any, any, any>, DynamicWhereCompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, SplitedComposedExecutableSelectWithoutWhere<any, any, any, any, any>, SplitedComposedDynamicWhereExecutableSelectExpression<any, any, any, any, any>, WhereableCompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, DynamicWhereCompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, ConnectByExpression<any, any, any> {
     __type: 'plain' = 'plain'
     __distinct: boolean
     __tablesOrViews: Array<ITableOrView<any>>
     __joins: Array<JoinData> = []
     __where?: AlwaysIfValueSource<any, any>
+    __startWith?: AlwaysIfValueSource<any, any> // Oracle
+    __connectBy?: AlwaysIfValueSource<any, any> // Oracle
+    __connectByNoCycle?: boolean // Oracle
     __having?: AlwaysIfValueSource<any, any>
     __groupBy:  Array<AnyValueSource> = []
     __requiredTablesOrViews?: Set<ITableOrView<any>>
@@ -935,6 +945,45 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
                 this.__groupBy.push(valueSource)
             }
         }
+        return this
+    }
+    startWith(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
+        this.__finishJoinHaving()
+        this.__query = ''
+        if (this.__startWith) {
+            throw new Error('Illegal state')
+        }
+        this.__startWith = asAlwaysIfValueSource(condition)
+        __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
+        return this
+    }
+    connectBy(condition: (prior: (column: AnyValueSource) => any) => IBooleanValueSource<any, any>): any {
+        this.__finishJoinHaving()
+        this.__query = ''
+        if (this.__connectBy) {
+            throw new Error('Illegal state')
+        }
+        function prior(column: AnyValueSource): AnyValueSource {
+            return (column as ValueSourceImpl).__prior()
+        }
+        const connectBy = asAlwaysIfValueSource(condition(prior))
+        this.__connectBy = connectBy
+        __getValueSourcePrivate(connectBy).__addWiths(this.__sqlBuilder, this.__withs)
+        return this
+    }
+    connectByNoCycle(condition: (prior: (column: AnyValueSource) => any) => IBooleanValueSource<any, any>): any {
+        this.__finishJoinHaving()
+        this.__query = ''
+        if (this.__connectBy) {
+            throw new Error('Illegal state')
+        }
+        function prior(column: AnyValueSource): AnyValueSource {
+            return (column as ValueSourceImpl).__prior()
+        }
+        const connectBy = asAlwaysIfValueSource(condition(prior))
+        this.__connectBy = connectBy
+        this.__connectByNoCycle = true
+        __getValueSourcePrivate(connectBy).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
     __asSelectData(): SelectData & AbstractSelect {

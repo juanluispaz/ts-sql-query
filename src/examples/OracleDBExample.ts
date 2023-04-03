@@ -844,6 +844,68 @@ async function main() {
             .executeSelectOne()
         assertEquals(lowCompany3, { id: 10, name: 'Low Company', parentId: 9, parents: [{ id: 9, name: 'Mic Company', parentId: 8 }, { id: 8, name: 'Top Company' }] })
 
+        const lowCompany4 = await connection.selectFrom(tCompany)
+            .select({
+                id: tCompany.id,
+                name: tCompany.name,
+                parentId: tCompany.parentId
+            })
+            .startWith(tCompany.id.equals(10))
+            .connectBy((prior) => {
+                return prior(tCompany.parentId).equals(tCompany.id)
+            })
+            .orderBy('name')
+            .orderingSiblingsOnly()
+            .executeSelectMany()
+        assertEquals(lowCompany4, [{ id: 10, name: 'Low Company', parentId: 9}, { id: 9, name: 'Mic Company', parentId: 8 }, { id: 8, name: 'Top Company' }])
+
+        const parentCompanies5 = connection.subSelectUsing(tCompany)
+            .from(parentCompany)
+            .select({
+                id: parentCompany.id,
+                name: parentCompany.name,
+                parentId: parentCompany.parentId
+            })
+            .startWith(parentCompany.id.equals(tCompany.parentId))
+            .connectBy((prior) => {
+                return prior(parentCompany.parentId).equals(parentCompany.id)
+            })
+            .forUseAsInlineAggregatedArrayValue()
+
+        const lowCompany5 = await connection.selectFrom(tCompany)
+            .select({
+                id: tCompany.id,
+                name: tCompany.name,
+                parentId: tCompany.parentId,
+                parents: parentCompanies5
+            })
+            .where(tCompany.id.equals(10))
+            .executeSelectOne()
+        assertEquals(lowCompany5, { id: 10, name: 'Low Company', parentId: 9, parents: [{ id: 9, name: 'Mic Company', parentId: 8 }, { id: 8, name: 'Top Company' }] })
+
+        const parentCompanies6 = connection.selectFrom(parentCompany)
+            .select({
+                id: parentCompany.id,
+                name: parentCompany.name,
+                parentId: parentCompany.parentId
+            })
+            .startWith(parentCompany.id.equals(9))
+            .connectBy((prior) => {
+                return prior(parentCompany.parentId).equals(parentCompany.id)
+            })
+            .forUseAsInlineAggregatedArrayValue()
+
+        const lowCompany6 = await connection.selectFrom(tCompany)
+            .select({
+                id: tCompany.id,
+                name: tCompany.name,
+                parentId: tCompany.parentId,
+                parents: parentCompanies6
+            })
+            .where(tCompany.id.equals(10))
+            .executeSelectOne()
+        assertEquals(lowCompany6, { id: 10, name: 'Low Company', parentId: 9, parents: [{ id: 9, name: 'Mic Company', parentId: 8 }, { id: 8, name: 'Top Company' }] })
+
         i = await connection.insertInto(tRecord).values({
                 id: '89bf68fc-7002-11ec-90d6-0242ac120003',
                 title: 'My voice memo'

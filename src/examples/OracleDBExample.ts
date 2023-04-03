@@ -79,6 +79,8 @@ const connectionPromise = oracledb.getConnection({
 async function main() {
     const conn = await connectionPromise
     const connection = new DBConnection(new ConsoleLogQueryRunner(new OracleDBQueryRunner(conn)))
+    // Ignore the local timezone to set database and node both in UTC
+    await connection.queryRunner.executeDatabaseSchemaModification(`ALTER SESSION SET TIME_ZONE='UTC'`)
     await connection.beginTransaction()
 
     try {
@@ -876,14 +878,14 @@ async function main() {
             })
             .executeSelectOne()
         assertEquals(dateValidation, {
-            fullYear: date.getFullYear(),
-            month: date.getMonth(),
-            date: date.getDate(),
-            day: date.getDay(),
-            hours: date.getHours(),
-            minutes: date.getMinutes(),
-            second: date.getSeconds(),
-            milliseconds: date.getMilliseconds(),
+            fullYear: date.getUTCFullYear(),
+            month: date.getUTCMonth(),
+            date: date.getUTCDate(),
+            day: date.getUTCDay(),
+            hours: date.getUTCHours(),
+            minutes: date.getUTCMinutes(),
+            second: date.getUTCSeconds(),
+            milliseconds: date.getUTCMilliseconds(),
             time: date.getTime(),
             dateValue: date,
         })

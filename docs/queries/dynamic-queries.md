@@ -365,6 +365,13 @@ When you are dynamically picking columns, you will probably want to create a fun
 ```ts
 import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query/dynamicCondition"
 
+interface CustomerInformation {
+    id: number;
+    firstName: string;
+    lastName: string;
+    birthday?: Date;
+}
+
 async function getCustomersInformation<FIELDS extends keyof CustomerInformation>(connection: DBConnection, fields: FIELDS[]): Promise<Pick<CustomerInformation, FIELDS>[]> {
     const availableFields = {
         id: tCustomer.id,

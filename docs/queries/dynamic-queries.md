@@ -307,7 +307,7 @@ See [Dynamic conditions](../supported-operations.md#dynamic-conditions) for more
 You can create a select where the caller can conditionally pick the columns that want to be returned (like in GraphQL)
 
 ```ts
-import { dynamicPick } from "ts-sql-query/dynamicCondition"
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query/dynamicCondition"
 
 const availableFields = {
     firstName: tCustomer.firstName,
@@ -315,20 +315,21 @@ const availableFields = {
     birthday: tCustomer.birthday
 }
 
+// Alternative: const fieldsToPickList = ['firstName' as const, 'lastName' as const]
 const fieldsToPick = {
     firstName: true,
     lastName: true
 }
 
-// always include the id field in the result
+// Alternative: const pickedFields = dynamicPickPaths(availableFields, fieldsToPickList)
 const pickedFields = dynamicPick(availableFields, fieldsToPick)
 
-const customerWithIdPeaking = connection.selectFrom(tCustomer)
+const customersWithIdPeaking = connection.selectFrom(tCustomer)
     .select({
         ...pickedFields,
         id: tCustomer.id // always include the id field in the result
     })
-    .executeSelectOne()
+    .executeSelectMany()
 ```
 
 The executed query is:
@@ -341,19 +342,47 @@ The parameters are: `[]`
 
 The result type is:
 ```tsx
-const customerWithIdPeaking: Promise<{
+const customersWithIdPeaking: Promise<{
     id: number;
     birthday?: Date;
     firstName?: string;
     lastName?: string;
-}>
+}[]>
 ```
 
-The `fieldsToPick` object defines all the properties that will be included, and the value is a boolean that tells if that property must be included or not.
+The `fieldsToPick` object defines all the properties that will be included, and the value is a boolean that tells if that property must be included or not. As an alternative, you can define `fieldsToPickList` array with the list of property names that will be included.
 
-The utility function `dynamicPick` from `ts-sql-query/dynamicCondition` allows you to pick the fields from an object. This function returns a copy of the object received as the first argument with the properties with the same name and value `true` in the object received as the second argument. Optionally, you can include a list of the properties that will always be included as the third argument, but it is better if you include them directly in the select, as shown in the example.
+The utility function `dynamicPick` from `ts-sql-query/dynamicCondition` allows you to pick the fields from an object. This function returns a copy of the object received as the first argument with the properties with the same name and value `true` in the object received as the second argument; if the property is an object constructed in a complex projection, the value can be an object representing the inner properties. Optionally, you can include a list of the properties path (or name) that will always be included as the third argument, but it is better if you include them directly in the select, as shown in the example.
 
-The type `DynamicPick<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define a type expected for the object `fieldsToPick` where the first generic argument is the type to transform. Optionally you can provide a second generic argument with the name of the mandatories properties joined with `|`. Example: `DynamicPick<MyType, 'prop1' | 'prop2'>`.
+The type `DynamicPick<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define a type expected for the object `fieldsToPick` where the first generic argument is the type to transform. Optionally you can provide a second generic argument with the path (or name) of the mandatories properties joined with `|`. Example: `DynamicPick<MyType, 'prop1' | 'prop2'>`.
+
+The utility function `dynamicPickPaths` from `ts-sql-query/dynamicCondition` allows you to pick the fields from an object or inner object in complex projections. This function returns a copy of the object received as the first argument with the properties path in the array received as the second argument. Optionally, you can include a list of the properties path (or name) that will always be included as the third argument, but it is better if you include them directly in the select, as shown in the example.
+
+The type `DynamicPickPaths<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define a type expected for the object `fieldsToPickList` where the first generic argument is the type to transform. Optionally you can provide a second generic argument with the path (or name) of the mandatories properties joined with `|`. Example: `DynamicPickPaths<MyType, 'prop1' | 'prop2'>`.
+
+When you are dynamically picking columns, you will probably want to create a function that receives the list of columns in a generic way, allowing the output to be properly typed with the requested columns. To do this, you must rectify the query result type by calling the function `expandTypeFromDynamicPickPaths` from `ts-sql-query/dynamicCondition` to include the generic rules again in the projected output. The first argument corresponds to the available fields to pick, the second corresponds to the picked fields, and the third corresponds to the query execution result. Example:
+
+```ts
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query/dynamicCondition"
+
+async function getCustomersInformation<FIELDS extends keyof CustomerInformation>(connection: DBConnection, fields: FIELDS[]): Promise<Pick<CustomerInformation, FIELDS>[]> {
+    const availableFields = {
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    }
+    
+    // always include id field as required
+    const pickedFields = dynamicPickPaths(availableFields, fields, ['id'])
+    
+    const customers = await connection.selectFrom(tCustomer)
+        .select(pickedFields)
+        .executeSelectMany()
+
+    return expandTypeFromDynamicPickPaths(availableFields, fields, customers);
+}
+```
 
 ## Optional joins
 
@@ -474,7 +503,7 @@ The parameters are: `[ 12 ]`
 **Important**: This feature offers you the most extreme form of modification over the queries but the hardest one to figure out the consequences because the columns can disappear. Try to use first [Ignorable expression as null](#ignorable-expression-as-null) instead of this feature where the structure of the columns is kept as is, and you will be able to reason over your queries more easily.
 
 ```ts
-import { dynamicPick } from "ts-sql-query/dynamicCondition"
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query/dynamicCondition"
 
 const availableFields = {
     id: tCustomer.id,
@@ -485,12 +514,14 @@ const availableFields = {
     companyName: tCompany.name
 }
 
+// Alternative: const fieldsToPickList = ['firstName' as const, 'lastName' as const]
 const fieldsToPick = {
     firstName: true,
     lastName: true
 }
 
-// include allways id field as required
+// always include id field as required
+// Alternative: const pickedFields = dynamicPickPaths(availableFields, fieldsToPickList, ['id'])
 const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id'])
 
 const customerWithOptionalCompany = connection.selectFrom(tCustomer)
@@ -546,7 +577,7 @@ The parameters are: `[ 12 ]`
 Sometimes you want to allow access to a value only under some circumstances, like when you want a column in a select picking column to be available only if the user has permissions. For this, you can call the function `allowWhen`, indicating as the first argument if it is allowed to use this value, and as the second argument, an error or text's error that will be thrown if the value is used in the generated query. Additionally, there is the `disallowWhen` that is analogous to `allowWhen`, but the boolean received as an argument indicates when the value is disallowed.
 
 ```ts
-import { dynamicPick } from "ts-sql-query/dynamicCondition"
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query/dynamicCondition"
 
 const birthdayVisible = false
 
@@ -557,12 +588,14 @@ const availableFields = {
     birthday: tCustomer.birthday.allowWhen(birthdayVisible, "You don't have permission to see the birthday"),
 }
 
+// Alternative: const fieldsToPickList = ['firstName' as const, 'lastName' as const]
 const fieldsToPick = {
     firstName: true,
     lastName: true
 }
 
-// include allways id field as required
+// always include id field as required
+// Alternative: const pickedFields = dynamicPickPaths(availableFields, fieldsToPickList, ['id'])
 const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id'])
 
 const customerWithOptionalCompany = connection.selectFrom(tCustomer)

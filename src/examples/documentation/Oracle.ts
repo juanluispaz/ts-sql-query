@@ -1,5 +1,5 @@
 import { OracleConnection } from "../../connections/OracleConnection"
-import { DynamicCondition, dynamicPick } from "../../dynamicCondition"
+import { DynamicCondition, dynamicPick, dynamicPickPaths } from "../../dynamicCondition"
 import { extractColumnNamesFrom, extractColumnsFrom, extractWritableColumnNamesFrom, extractWritableColumnsFrom, mapForGuidedSplit, mergeType, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "../../extras/utils"
 import { ConsoleLogQueryRunner } from "../../queryRunners/ConsoleLogQueryRunner"
 import { MockQueryRunner } from "../../queryRunners/MockQueryRunner"
@@ -3651,8 +3651,8 @@ async function main() {
         favouriteCustomerId: tCompany.favouriteCustomerId,
         favouriteCustomerName: tCustomerLeftJoin.name
     };
-    const fieldsToPick7 = {companyName: true, favouriteCustomerId: true};
-    const pickedFields7 = dynamicPick(availableFields7, fieldsToPick7, ['companyId', 'companyParentId']);
+    const fieldsToPick7 = [ 'companyName' as const, 'favouriteCustomerId' as const];
+    const pickedFields7 = dynamicPickPaths(availableFields7, fieldsToPick7, ['companyId', 'companyParentId']);
     
     const companyTreeWithFavouriteCustomer = await connection.selectFrom(tCompany)
         .optionalLeftJoin(tCustomerLeftJoin).on(tCompany.favouriteCustomerId.equals(tCustomerLeftJoin.id))
@@ -3689,8 +3689,8 @@ async function main() {
         favouriteCustomerId: tCompany.favouriteCustomerId,
         favouriteCustomerName: tCustomerLeftJoin.name
     };
-    const fieldsToPick8 = {companyName: true, favouriteCustomerId: true};
-    const pickedFields8 = dynamicPick(availableFields8, fieldsToPick8, ['companyId', 'companyParentId']);
+    const fieldsToPick8 = [ 'companyName' as const, 'favouriteCustomerId' as const];
+    const pickedFields8 = dynamicPickPaths(availableFields8, fieldsToPick8, ['companyId', 'companyParentId']);
     
     const companyWithFavouriteCustomer = await connection.selectFrom(tCompany)
         .optionalLeftJoin(tCustomerLeftJoin).on(tCompany.favouriteCustomerId.equals(tCustomerLeftJoin.id))

@@ -122,3 +122,43 @@ const recursiveChildrenCompany: Promise<{
     parentId?: number;
 }[]>
 ```
+
+## Recursive connect by
+
+`Oracle` database supports an alternative syntax (additional to the previously mentioned) that can be more performant in some situations using the `start with` and `connect by` (or `connect by nocycle`) clauses.
+
+```ts
+const recursiveChildrenCompany = await connection.selectFrom(tCompany)
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        parentId: tCompany.parentId
+    })
+    .startWith(tCompany.id.equals(10)) // Optional
+    .connectBy((prior) => { // You can use connectByNoCycle instead
+        return prior(tCompany.id).equals(tCompany.parentId)
+    })
+    .orderBy('name')
+    .orderingSiblingsOnly() // Optional
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select id as "id", name as "name", parent_id as "parentId" 
+from company 
+start with id = :0 
+connect by prior id = parent_id 
+order siblings by "name"
+```
+
+The parameters are: `[ 10 ]`
+
+The result type is:
+```tsx
+const recursiveParentCompany: Promise<{
+    id: number;
+    name: string;
+    parentId?: number;
+}[]>
+```

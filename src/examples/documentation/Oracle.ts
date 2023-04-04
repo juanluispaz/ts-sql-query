@@ -1462,6 +1462,32 @@ async function main() {
     
     /* *** Preparation ************************************************************/
 
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", name as "name", parent_id as "parentId" from company start with id = :0 connect by prior id = parent_id order siblings by "name"`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const recursiveChildrenCompany2 = await connection.selectFrom(tCompany)
+        .startWith(tCompany.id.equals(10)) // Optional
+        .connectBy((prior) => { // You can use connectByNoCycle instead
+            return prior(tCompany.id).equals(tCompany.parentId)
+        })
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            parentId: tCompany.parentId
+        })
+        .orderBy('name')
+        .orderingSiblingsOnly() // Optional
+        .executeSelectMany()
+    
+    assertEquals(recursiveChildrenCompany2, result)
+    
+    /* *** Preparation ************************************************************/
+
     result = [{
         id: 18,
         name: 'name'

@@ -8,7 +8,7 @@ import type { OuterJoinSourceOf, TableOrViewWithRef } from "../utils/tableOrView
 import type { outerJoinAlias, tableOrViewRef } from "../utils/symbols"
 
 export type SelectedRow<TABLE> = ResultObjectValues<{
-    [K in ColumnKeys<TABLE> & keyof TABLE]: TABLE[K];
+    [K in ColumnKeys<TABLE>]: TABLE[K];
 }>
 export type SelectedValues<TABLE> = ResultObjectValues<{
     [K in ColumnKeys<TABLE>]: TABLE[K];

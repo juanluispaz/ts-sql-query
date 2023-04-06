@@ -91,3 +91,4 @@ export const aggregatedArrayValueSourceType: unique symbol = Symbol('aggregatedA
 
 // Opaque types
 export const dontCallConstructor: unique symbol = Symbol('dontCallConstructor')
+export const neverUsedSymbol: unique symbol = Symbol('neverUsedSymbol')

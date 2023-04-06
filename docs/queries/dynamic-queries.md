@@ -350,17 +350,21 @@ const customersWithIdPeaking: Promise<{
 }[]>
 ```
 
-The `fieldsToPick` object defines all the properties that will be included, and the value is a boolean that tells if that property must be included or not. As an alternative, you can define `fieldsToPickList` array with the list of property names that will be included.
+The `fieldsToPick` object defines all the properties that will be included, and the value is a boolean that tells if that property must be included or not. Alternatively, you can define `fieldsToPickList` array with the list of property names that will be included.
 
-The utility function `dynamicPick` from `ts-sql-query/dynamicCondition` allows you to pick the fields from an object. This function returns a copy of the object received as the first argument with the properties with the same name and value `true` in the object received as the second argument; if the property is an object constructed in a complex projection, the value can be an object representing the inner properties. Optionally, you can include a list of the properties path (or name) that will always be included as the third argument, but it is better if you include them directly in the select, as shown in the example.
+The utility function `dynamicPick` from `ts-sql-query/dynamicCondition` lets you pick the fields from an object. This function returns a copy of the object received as the first argument with the properties with the same name and value `true` in the object received as the second argument; if the property is an object constructed in a complex projection, the value can be an object representing the inner properties. Optionally, you can include a list of the properties path (or name) that will always be included as the third argument, but it is better if you include them directly in the select, as shown in the example.
 
-The type `DynamicPick<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define a type expected for the object `fieldsToPick` where the first generic argument is the type to transform. Optionally you can provide a second generic argument with the path (or name) of the mandatories properties joined with `|`. Example: `DynamicPick<MyType, 'prop1' | 'prop2'>`.
+The type `DynamicPick<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define the type expected by the `dynamicPick` function (in the example, the variable `fieldsToPick`) where the first generic argument is the type to transform. Optionally you can provide a second generic argument with the path (or name) of the mandatories properties joined with `|`. Example: `DynamicPick<MyType, 'prop1' | 'prop2'>`.
 
 The utility function `dynamicPickPaths` from `ts-sql-query/dynamicCondition` allows you to pick the fields from an object or inner object in complex projections. This function returns a copy of the object received as the first argument with the properties path in the array received as the second argument. Optionally, you can include a list of the properties path (or name) that will always be included as the third argument, but it is better if you include them directly in the select, as shown in the example.
 
-The type `DynamicPickPaths<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define a type expected for the object `fieldsToPickList` where the first generic argument is the type to transform. Optionally you can provide a second generic argument with the path (or name) of the mandatories properties joined with `|`. Example: `DynamicPickPaths<MyType, 'prop1' | 'prop2'>`.
+The type `DynamicPickPaths<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define the type expected by the `dynamicPickPaths` function (in the example, the variable `fieldsToPickList`) where the first generic argument is the type to transform. Optionally you can provide a second generic argument with the path (or name) of the mandatories properties joined with `|`. Example: `DynamicPickPaths<MyType, 'prop1' | 'prop2'>`.
+
+The type `PickValuesPath<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define a type of each element in the result when the query is executed picking fields, where the first generic argument is the type to transform. Additionally, you must provide a second generic argument with the path (or name) of the picked properties joined with `|`. Example: `DynamicPickPaths<MyType, 'prop1' | 'prop2'>`.
 
 When you are dynamically picking columns, you will probably want to create a function that receives the list of columns in a generic way, allowing the output to be properly typed with the requested columns. To do this, you must rectify the query result type by calling the function `expandTypeFromDynamicPickPaths` from `ts-sql-query/dynamicCondition` to include the generic rules again in the projected output. The first argument corresponds to the available fields to pick, the second corresponds to the picked fields, and the third corresponds to the query execution result. Example:
+
+**Creating definition based in your business types**:
 
 ```ts
 import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query/dynamicCondition"
@@ -372,7 +376,7 @@ interface CustomerInformation {
     birthday?: Date;
 }
 
-async function getCustomersInformation<FIELDS extends keyof CustomerInformation>(connection: DBConnection, fields: FIELDS[]): Promise<Pick<CustomerInformation, FIELDS>[]> {
+async function getCustomersInformation<FIELDS extends keyof CustomerInformation>(connection: DBConnection, fields: FIELDS[]): Promise<Pick<CustomerInformation, FIELDS | 'id'>[]> {
     const availableFields = {
         id: tCustomer.id,
         firstName: tCustomer.firstName,
@@ -388,6 +392,34 @@ async function getCustomersInformation<FIELDS extends keyof CustomerInformation>
         .executeSelectMany()
 
     return expandTypeFromDynamicPickPaths(availableFields, fields, customers);
+}
+```
+
+**Creating definition based in your database types**:
+
+```ts
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query/dynamicCondition"
+
+const customerInformationFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday,
+}
+
+type CustomerInformationFields = DynamicPickPaths<typeof customerInformationFields>
+type CustomerInformation<FIELDS extends CustomerInformationFields> = PickValuesPath<typeof customerInformationFields, FIELDS | 'id'>
+
+async function getCustomersInformation<FIELDS extends CustomerInformationFields>(connection: DBConnection, fields: FIELDS[]): Promise<CustomerInformation<FIELDS>[]> {
+    
+    // always include id field as required
+    const pickedFields = dynamicPickPaths(customerInformationFields, fields, ['id'])
+    
+    const customers = await connection.selectFrom(tCustomer)
+        .select(pickedFields)
+        .executeSelectMany()
+
+    return expandTypeFromDynamicPickPaths(customerInformationFields, fields, customers, ['id'])
 }
 ```
 

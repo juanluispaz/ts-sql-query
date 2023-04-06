@@ -142,7 +142,8 @@ export interface UuidFilter extends ComparableFilter<uuid> {
     notContainsInsensitive?: string
 }
 
-export type FilterTypeOf<TYPE> = TYPE extends 'boolean' ? BooleanFilter :
+export type FilterTypeOf<TYPE> = 
+    TYPE extends 'boolean' ? BooleanFilter :
     TYPE extends 'stringInt' ? StringNumberFilter :
     TYPE extends 'int' ? NumberFilter :
     TYPE extends 'bigint' ? BigintFilter :
@@ -156,9 +157,10 @@ export type FilterTypeOf<TYPE> = TYPE extends 'boolean' ? BooleanFilter :
     TYPE extends ['enum', infer T] ? EqualableFilter<T> :
     TYPE extends ['custom', infer T] ? EqualableFilter<T> :
     TYPE extends ['customComparable', infer T] ? ComparableFilter<T> :
-    never
+    MapValueSourceToFilter<TYPE>
 
-export type TypeSafeFilterTypeOf<TYPE> = TYPE extends 'boolean' ? BooleanFilter :
+export type TypeSafeFilterTypeOf<TYPE> = 
+    TYPE extends 'boolean' ? BooleanFilter :
     TYPE extends 'stringInt' ? StringIntFilter :
     TYPE extends 'int' ? IntFilter :
     TYPE extends 'bigint' ? BigintFilter :
@@ -172,13 +174,13 @@ export type TypeSafeFilterTypeOf<TYPE> = TYPE extends 'boolean' ? BooleanFilter 
     TYPE extends ['enum', infer T] ? EqualableFilter<T> :
     TYPE extends ['custom', infer T] ? EqualableFilter<T> :
     TYPE extends ['customComparable', infer T] ? ComparableFilter<T> :
-    never
+    MapValueSourceToFilter<TYPE>
 
 export type DynamicColumnType<T> = 'boolean' | 'stringInt' | 'int' | 'bigint' | 'stringDouble' | 'double' |
     'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | ['enum', T] | ['custom', T] | ['customComparable', T]
 
 export type DynamicDefinition = {
-    [key: string]: DynamicColumnType<any> | DynamicDefinition
+    [key: string]: AnyValueSource | DynamicColumnType<any> | DynamicDefinition
 }
 
 export type DynamicCondition<DEFINITION extends DynamicDefinition> = {

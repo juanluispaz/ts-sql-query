@@ -233,6 +233,18 @@ You can create a dynamic condition for use in a where (for example). In these dy
 ```ts
 import { DynamicCondition } from "ts-sql-query/dynamicCondition"
 
+const selectFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday,
+    companyName: tCompany.name
+}
+
+/*
+ * You can define as well using the fields object
+ * type FilterType = DynamicCondition<typeof selectFields>
+ */
 type FilterType = DynamicCondition<{
     id: 'int',
     firstName: 'string',
@@ -247,14 +259,6 @@ const filter: FilterType = {
         { lastName: { startsWithInsensitiveIfValue: 'Smi', endsWith: 'th' } }
     ],
     companyName: {equals: 'ACME'}
-}
-
-const selectFields = {
-    id: tCustomer.id,
-    firstName: tCustomer.firstName,
-    lastName: tCustomer.lastName,
-    birthday: tCustomer.birthday,
-    companyName: tCompany.name
 }
 
 const dynamicWhere = connection.dynamicConditionFor(selectFields).withValues(filter)
@@ -296,7 +300,7 @@ const customersWithCompanyName: Promise<{
 }[]>
 ```
 
-The utility type `DynamicCondition` and `TypeSafeDynamicCondition` (when the extended types are used with type-safe connections) from `ts-sql-query/dynamicCondition` allows you to create a type definition for the dynamic criteria.
+The utility type `DynamicCondition` and `TypeSafeDynamicCondition` (when the extended types are used with type-safe connections) from `ts-sql-query/dynamicCondition` allows you to create a type definition for the dynamic criteria using type description or the object with the available fields.
 
 See [Dynamic conditions](../supported-operations.md#dynamic-conditions) for more information.
 

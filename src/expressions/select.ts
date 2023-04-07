@@ -1,7 +1,7 @@
-import type { IBooleanValueSource, INumberValueSource, IIntValueSource, IIfValueSource, IExecutableSelectQuery, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource } from "./values"
+import type { IBooleanValueSource, INumberValueSource, IIntValueSource, IIfValueSource, IExecutableSelectQuery, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource } from "./values"
 import type { ITableOrViewOf, NoTableOrViewRequired, NoTableOrViewRequiredView, OuterJoinSource } from "../utils/ITableOrView"
 import type { OuterJoinTableOrView, WithView, WITH_VIEW } from "../utils/tableOrViewUtils"
-import type { AnyDB, TypeWhenSafeDB, TypeSafeDB, NoopDB, MariaDB, PostgreSql, Sqlite, Oracle, SqlServer } from "../databases"
+import type { AnyDB, TypeWhenSafeDB, TypeSafeDB, TypeUnsafeDB, NoopDB, MariaDB, PostgreSql, Sqlite, Oracle, SqlServer } from "../databases"
 import type { int } from "ts-extended-types"
 import type { columnsType, database, requiredTableOrView, tableOrViewRef, resultType, compoundableColumns, valueType } from "../utils/symbols"
 import type { RawFragment } from "../utils/RawFragment"
@@ -161,13 +161,13 @@ export interface ComposeExpressionDeletingExternalPropertyWithoutWhere<EXTERNAL_
 
 export interface WithableExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends ExecutableSelectWithWhere<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>, IExecutableSelectQuery<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW>, ICompoundableSelect<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW> {
     forUseInQueryAs: ForUseInQueryAs<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW>
-    forUseAsInlineQueryValue: ForUseAsInlineQueryValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW>
+    forUseAsInlineQueryValue: ForUseAsInlineQueryValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
     forUseAsInlineAggregatedArrayValue: ForUseAsInlineAggregatedArrayValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
 }
 
 export interface WithableExecutableSelectWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends ExecutableSelectWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>, IExecutableSelectQuery<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW>, ICompoundableSelect<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW> {
     forUseInQueryAs: ForUseInQueryAs<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW>
-    forUseAsInlineQueryValue: ForUseAsInlineQueryValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW>
+    forUseAsInlineQueryValue: ForUseAsInlineQueryValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
     forUseAsInlineAggregatedArrayValue: ForUseAsInlineAggregatedArrayValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
 }
 
@@ -402,6 +402,8 @@ export interface GroupByOrderHavingByExpressionWithoutSelect<DB extends AnyDB, T
 
     select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
     selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    selectCountAll(this: SelectExpressionBase<TypeSafeDB, any>): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, int, REQUIRED_TABLE_OR_VIEW, FEATURES | 'requiredResult'>
+    selectCountAll(this: SelectExpressionBase<TypeUnsafeDB, any>): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
 }
 
 export interface DynamicHavingExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
@@ -416,6 +418,8 @@ export interface DynamicHavingExpressionWithoutSelect<DB extends AnyDB, TABLE_OR
 
     select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
     selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    selectCountAll(this: SelectExpressionBase<TypeSafeDB, any>): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, int, REQUIRED_TABLE_OR_VIEW, FEATURES | 'requiredResult'>
+    selectCountAll(this: SelectExpressionBase<TypeUnsafeDB, any>): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
 }
 
 export interface DynamicWhereSelectExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
@@ -426,6 +430,8 @@ export interface DynamicWhereSelectExpressionWithoutSelect<DB extends AnyDB, TAB
 
     select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
     selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    selectCountAll(this: SelectExpressionBase<TypeSafeDB, any>): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, int, REQUIRED_TABLE_OR_VIEW, FEATURES | 'requiredResult'>
+    selectCountAll(this: SelectExpressionBase<TypeUnsafeDB, any>): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
 }
 
 export interface RecursivelyConnectedExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
@@ -433,6 +439,8 @@ export interface RecursivelyConnectedExpressionWithoutSelect<DB extends AnyDB, T
 
     select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
     selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    selectCountAll(this: SelectExpressionBase<TypeSafeDB, any>): GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, int, REQUIRED_TABLE_OR_VIEW, FEATURES | 'requiredResult'>
+    selectCountAll(this: SelectExpressionBase<TypeUnsafeDB, any>): GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
 }
 
 export interface DynamicWhereExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends RecursivelyConnectedExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES> {
@@ -500,6 +508,8 @@ export interface ExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_
 export interface RecursivelyConnectedSelectWhereExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
     select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
     selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    selectCountAll(this: SelectExpressionBase<TypeSafeDB, any>): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, int, REQUIRED_TABLE_OR_VIEW, FEATURES | 'requiredResult'>
+    selectCountAll(this: SelectExpressionBase<TypeUnsafeDB, any>): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
     dynamicWhere(): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
     where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
     where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
@@ -570,10 +580,13 @@ type ForUseInQueryAs<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends I
         : never // Not supported by SqlServer (No inner with), Oracle (No outer references in inner with) and MariaDB (No outer references in inner with)
     ) : <ALIAS extends string>(as: ALIAS) => WithView<WITH_VIEW<DB, ALIAS>, COLUMNS>
 
-type ForUseAsInlineQueryValue<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> =
+type ForUseAsInlineQueryValue<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> =
     COLUMNS extends AnyValueSource
-    ? () => RemapValueSourceTypeWithOptionalType<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS, 'optional'>
-    : never
+    ? (
+        'requiredResult' extends FEATURES
+        ? () => RemapValueSourceType<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS>
+        : () => RemapValueSourceTypeWithOptionalType<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS, 'optional'> 
+    ) : never
 
 type ForUseAsInlineAggregatedArrayValue<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> =
     DB extends SqlServer | Oracle | MariaDB 

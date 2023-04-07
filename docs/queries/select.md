@@ -278,6 +278,31 @@ const customerCountPerAcmeCompanies: Promise<{
 }[]>
 ```
 
+## Select count all
+
+```ts
+const companyId = 10;
+
+const numberOfCustomers = connection.selectFrom(tCustomer)
+    .where(tCustomer.companyId.equals(companyId))
+    .selectCountAll() // Shortcut to .selectOneColumn(connection.countAll())
+    .executeSelectOne();
+```
+
+The executed query is:
+```sql
+select count(*) as result 
+from customer 
+where company_id = $1
+```
+
+The parameters are: `[ 10 ]`
+
+The result type is:
+```tsx
+const numberOfCustomers: Promise<number>
+```
+
 ## Inline select as value for another query
 
 To use a select query that returns one column as an inline query value, you must get the value representation by calling the method `forUseAsInlineQueryValue` and then use the value representation as with any other value in a secondary query.
@@ -353,7 +378,50 @@ The parameters are: `[ 0 ]`
 
 The result type is:
 ```tsx
-const acmeCustomers: Promise<{
+const companiesWithNumberOfCustomers: Promise<{
+    id: number;
+    name: string;
+    numberOfCustomers: number;
+}[]>
+```
+
+In the previous example, it will be more convenient to use `.selectCountAll()` instead `.selectOneColumn(connection.countAll())` because the returned value will not be optional; then, you will not need to use `.valueWhenNull(0)`.
+
+```ts
+const numberOfCustomers = connection
+    .subSelectUsing(tCompany)
+    .from(tCustomer)
+    .where(tCustomer.companyId.equals(tCompany.id))
+    .selectCountAll()
+    .forUseAsInlineQueryValue();  // At this point is a value that you can use in other query
+
+const companiesWithNumberOfCustomers = connection.selectFrom(tCompany)
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        numberOfCustomers: numberOfCustomers
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+```sql
+select 
+    id as id, 
+    name as name, 
+    (
+        select count(*) as result 
+        from customer 
+        where company_id = company.id
+    ) as numberOfCustomers
+from company
+```
+
+The parameters are: `[ ]`
+
+The result type is:
+```tsx
+const companiesWithNumberOfCustomers: Promise<{
     id: number;
     name: string;
     numberOfCustomers: number;

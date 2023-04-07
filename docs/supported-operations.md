@@ -1656,6 +1656,10 @@ interface SelectExpression {
      * It receives as argument the ValueSource where the value will be obtained.
      */
     selectOneColumn(column: ValueSource): this
+    /** 
+     * Allows to specify the select clause of a query that returns only one column with count(*).
+     */
+    selectCountAll(): this
 
     /** 
      * Allows to specify an order by used by the query, you must indicate the name of the column

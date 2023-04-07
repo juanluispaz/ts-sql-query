@@ -37,6 +37,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     __customization?: SelectCustomization<any>
 
     __oneColumn = false
+    __requiredResult?: boolean
 
     // cache
     __query = ''
@@ -513,7 +514,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     }
 
     forUseAsInlineQueryValue(): any {
-        return new InlineSelectValueSource(this.__asSelectData() as any)
+        return new InlineSelectValueSource(this.__asSelectData() as any, !!this.__requiredResult)
     }
 
     forUseAsInlineAggregatedArrayValue(): any {
@@ -699,6 +700,16 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         return this
     }
     selectOneColumn(column: AnyValueSource): any {
+        this.__finishJoinHaving()
+        this.__query = ''
+        this.__oneColumn = true
+        this.__columns = { 'result': column }
+        __getValueSourcePrivate(column).__addWiths(this.__sqlBuilder, this.__withs)
+        return this
+    }
+    selectCountAll(): any {
+        this.__requiredResult = true
+        const column = new AggregateFunctions0ValueSource('_countAll', 'int', 'required', undefined)
         this.__finishJoinHaving()
         this.__query = ''
         this.__oneColumn = true

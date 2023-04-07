@@ -158,6 +158,19 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 ### Select count(*) inline subquery value returns an optional value
 
+In ts-sql-query it used to be a limitation, but starting with ts-sql-query 1.52.0 you can do the following:
+
+```ts
+const numberOfCustomers = connection
+    .subSelectUsing(tCompany)
+    .from(tCustomer)
+    .where(tCustomer.companyId.equals(tCompany.id))
+    .selectCountAll()
+    .forUseAsInlineQueryValue();  // At this point is a value that you can use in other query
+```
+
+**Workaround not required any more**:
+
 When you use an inline query value, the value may return `null` due to rows matching the conditions of the table being empty, but select count(*) is the exception, and ts-sql-query is unable to detect it. To deal with this limitation, you can set the value o zero when null. Example:
 
 ```ts

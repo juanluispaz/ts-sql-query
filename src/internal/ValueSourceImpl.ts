@@ -2112,8 +2112,8 @@ export class InlineSelectValueSource extends ValueSourceImpl implements HasOpera
     __operation = '_inlineSelectAsValue' as const
     __selectData: InlineSelectData
 
-    constructor(selectData: InlineSelectData) {
-        super(...valueSourceInitializationForInlineSelect(selectData))
+    constructor(selectData: InlineSelectData, required: boolean) {
+        super(...valueSourceInitializationForInlineSelect(selectData, required))
         this.__selectData = selectData
     }
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
@@ -2405,7 +2405,7 @@ function isSelectQuery(value: any): value is InlineSelectData {
     return false
 }
 
-function valueSourceInitializationForInlineSelect(selectData: SelectData) {
+function valueSourceInitializationForInlineSelect(selectData: SelectData, required: boolean) {
     if (selectData.__asInlineAggregatedArrayValue) {
         throw new Error('Ilegal state: unexpected inline aggregated array vaule')
     } else if (selectData.__oneColumn) {
@@ -2419,7 +2419,7 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData) {
             // Avoid treat the column as a custom boolean
             typeAdapter = new ProxyTypeAdapter(typeAdapter)
         }
-        return [valueSourcePrivate.__valueType, valueSourcePrivate.__optionalType, typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__uuidString] as const
+        return [valueSourcePrivate.__valueType, required ? 'required' : 'optional', typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__uuidString] as const
     } else {
         throw new Error('Illega state: unexpected inline select')
     }

@@ -195,7 +195,7 @@ async function main() {
 
     /* *** Example ****************************************************************/
     
-    const companyId = 24
+    let companyId = 24
 
     const customersOfCompany = await connection.selectFrom(tCustomer)
         .where(tCustomer.companyId.equals(companyId))
@@ -3808,6 +3808,52 @@ async function main() {
         .executeSelectMany()
 
     assertEquals(companiesWithNumberOfCustomers, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 0
+    expectedResult.push(result)
+    expectedQuery.push(`select count(*) as result from customer where company_id = ?`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneColumnOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    companyId = 10
+
+    const numberOfCustomers1 = await connection.selectFrom(tCustomer)
+        .where(tCustomer.companyId.equals(companyId))
+        .selectCountAll()
+        .executeSelectOne()
+
+    assertEquals(numberOfCustomers1, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push("select id as id, `name` as `name`, (select count(*) as result from customer where company_id = company.id) as numberOfCustomers from company")
+    expectedParams.push(`[]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const numberOfCustomers2 = connection
+        .subSelectUsing(tCompany)
+        .from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .selectCountAll()
+        .forUseAsInlineQueryValue()  // At this point is a value that you can use in other query
+
+    const companiesWithNumberOfCustomers2 = await connection.selectFrom(tCompany)
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            numberOfCustomers: numberOfCustomers2
+        })
+        .executeSelectMany()
+
+    assertEquals(companiesWithNumberOfCustomers2, result)
 
     // /* *** Preparation ************************************************************/
 

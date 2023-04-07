@@ -1654,6 +1654,10 @@ interface SelectExpression {
      * It receives as argument the ValueSource where the value will be obtained.
      */
     selectOneColumn(column: ValueSource): this
+    /** 
+     * Allows to specify the select clause of a query that returns only one column with count(*).
+     */
+    selectCountAll(): this
 
     /** 
      * Allows to specify an order by used by the query, you must indicate the name of the column
@@ -1672,6 +1676,11 @@ interface SelectExpression {
     offset(offset: number): this
     offsetIfValue(offset: number | null | undefined): this
 
+    // Oracle's connect by syntax
+    startWith(condition: BooleanValueSource): this
+    connectBy(condition: (prior: (column: ValueSource) => ValueSource) => BooleanValueSource): this
+    connectByNoCycle(condition: (prior: (column: ValueSource) => ValueSource) => BooleanValueSource): this
+    orderingSiblingsOnly(): this
 
     /** Allows to extends the where, or the on clause of a join, or the having clause using an and */
     and(condition: BooleanValueSource): this

@@ -1678,6 +1678,11 @@ interface SelectExpression {
     offset(offset: number): this
     offsetIfValue(offset: number | null | undefined): this
 
+    // Oracle's connect by syntax
+    startWith(condition: BooleanValueSource): this
+    connectBy(condition: (prior: (column: ValueSource) => ValueSource) => BooleanValueSource): this
+    connectByNoCycle(condition: (prior: (column: ValueSource) => ValueSource) => BooleanValueSource): this
+    orderingSiblingsOnly(): this
 
     /** Allows to extends the where, or the on clause of a join, or the having clause using an and */
     and(condition: BooleanValueSource): this

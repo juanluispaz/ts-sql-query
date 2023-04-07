@@ -15,7 +15,7 @@ type InternalDynamicPick<TYPE, MANDATORY extends string, PREFIX extends string> 
         : InternalDynamicPick<TYPE[P], MANDATORY, `${PREFIX}.${P}`> | boolean
 }, MadatoriesInType<TYPE, MANDATORY, PREFIX>>
 
-type PickWithMandatories<TYPE, MANDATORY extends string, PREFIX extends string> = Expand<{
+type PickWithMandatories<TYPE, MANDATORY extends string, PREFIX extends string> = Expand<RemovePropertiesWithoutContent<{
     [P in OptionalValueSourcesInType<TYPE, MANDATORY, PREFIX>]?: TYPE[P]
 } & {
     [P in NonValueSourcesInType<TYPE, MANDATORY, PREFIX>]: 
@@ -24,16 +24,16 @@ type PickWithMandatories<TYPE, MANDATORY extends string, PREFIX extends string> 
         : PickWithMandatories<TYPE[P], MANDATORY, `${PREFIX}.${P}.`>
 } & { 
     [Q in MadatoriesInType<TYPE, MANDATORY, PREFIX>]: TYPE[Q] 
-}>
+}>>
 
-type PickMandatories<TYPE, MANDATORY extends string, PREFIX extends string> = Expand<{
+type PickMandatories<TYPE, MANDATORY extends string, PREFIX extends string> = Expand<RemovePropertiesWithoutContent<{
     [P in NonValueSourcesInType<TYPE, MANDATORY, PREFIX>]: 
         PREFIX extends '' 
         ? PickMandatories<TYPE[P], MANDATORY, `${P}.`>
         : PickMandatories<TYPE[P], MANDATORY, `${PREFIX}.${P}.`>
 } & { 
     [Q in MadatoriesInType<TYPE, MANDATORY, PREFIX>]: TYPE[Q] 
-}>
+}>>
 
 type MadatoriesInType<TYPE, MANDATORY extends string, PREFIX extends string> =
     { [P in (keyof TYPE) & string]-?: `${PREFIX}${P}` extends MANDATORY ? P : never } [(keyof TYPE) & string]
@@ -81,7 +81,10 @@ export function dynamicPick<TYPE extends Pickable, MANDATORY extends MandatoryPa
             } else if (!isRequired) {
                 // Do nothing
             } else if (typeof isRequired === 'object') {
-                result[prop] = internalDynamicPick(o[prop], isRequired, required, prop)
+                const content = internalDynamicPick(o[prop], isRequired, required, prop)
+                if (content !== undefined) {
+                    result[prop] = internalDynamicPick(o[prop], isRequired, required, prop)
+                }
             }
         }
     }
@@ -90,22 +93,33 @@ export function dynamicPick<TYPE extends Pickable, MANDATORY extends MandatoryPa
 
 function internalDynamicPick(o: any, p: any, required: any, prefix: string): any {
     const result: any = {}
+    let hasContent = false
 
     for (let prop in o) {
         if (!o[prop]) {
             // Do nothing
         } else if ((prefix + '.' + prop) in required) {
+            hasContent = true
             result[prop] = o[prop]
         } else {
             const isRequired = p[prop]
             if (isRequired === true) {
+                hasContent = true
                 result[prop] = o[prop]
             } else if (!isRequired) {
                 // Do nothing
             } else if (typeof isRequired === 'object') {
-                result[prop] = internalDynamicPick(o[prop], isRequired, required, prefix + '.' + prop)
+                const content = internalDynamicPick(o[prop], isRequired, required, prefix + '.' + prop)
+                if (content !== undefined) {
+                    hasContent = true
+                    result[prop] = content
+                }
             }
         }
+    }
+
+    if (!hasContent) {
+        return undefined
     }
     return result
 }
@@ -131,15 +145,14 @@ export function dynamicPickPaths<TYPE extends Pickable, MANDATORY extends Mandat
     const o: any = obj
 
     for (let prop in o) {
-        console.log('>', prop)
         if (!o[prop]) {
             // Do nothing
         } else if (prop in required) {
             result[prop] = o[prop]
         } else if (isValueSource(o[prop])) {
-            const r = internalDynamicPickPaths(o[prop], required, prop)
-            if (r !== undefined)  {
-                result[prop] = r
+            const content = internalDynamicPickPaths(o[prop], required, prop)
+            if (content !== undefined)  {
+                result[prop] = content
             }
         }
     }
@@ -147,24 +160,26 @@ export function dynamicPickPaths<TYPE extends Pickable, MANDATORY extends Mandat
 }
 
 function internalDynamicPickPaths(o: any, required: any, prefix: string): any {
-    if (!o) {
-        return undefined
-    }
-    
     const result: any = {}
+    let hasContent = false
 
     for (let prop in o) {
-        console.log('>', prefix, prop)
         if (!o[prop]) {
             // Do nothing
         } else if ((prefix + '.' + prop) in required) {
+            hasContent = true
             result[prop] = o[prop]
         } else if (isValueSource(o[prop])) {
-            const r = internalDynamicPickPaths(o[prop], required, prefix + '.' + prop)
-            if (r !== undefined)  {
-                result[prop] = r
+            const content = internalDynamicPickPaths(o[prop], required, prefix + '.' + prop)
+            if (content !== undefined)  {
+                hasContent
+                result[prop] = content
             }
         }
+    }
+
+    if (!hasContent) {
+        return undefined
     }
     return result
 }
@@ -186,7 +201,7 @@ export function expandTypeFromDynamicPickPaths(_obj: any, _pick: any, result: an
 }
 
 // If you need use this type in your project, use PickValuesPath instead
-type PickPath<COLUMNS, MANDATORY extends string> = RemovePropertiesWithoutContent<ResultObjectValues<PickMandatories<COLUMNS, MANDATORY, ''>>>
+type PickPath<COLUMNS, MANDATORY extends string> = ResultObjectValues<PickMandatories<COLUMNS, MANDATORY, ''>>
     // This second line is added to allow TS be compatible with Pick usage as the result of the function
     & Pick<ResultObjectValues<COLUMNS>, MANDATORY & keyof ResultObjectValues<COLUMNS>>
 
@@ -194,15 +209,21 @@ export type PickValuesPath<COLUMNS extends Pickable, PICKED extends DynamicPickP
 
 // Support till 9 clean up levels (recursive definition not working in [P in keyof T])
 type RemovePropertiesWithoutContent<T> = T extends object ? {
-    [P in PropertiesWithContent<T>]: RemovePropertiesWithoutContent2<T[P]>;
+    [P in PropertiesWithContent<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent2<T[P]>;
+} & {
+    [P in PropertiesWithContent<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent2<T[P]>;
 } : T
+
+declare const aa: RemovePropertiesWithoutContent<{a: number, b?: string}>
 
 type PropertiesWithContent<T> = {
     [P in keyof T] : { [neverUsedSymbol]: typeof neverUsedSymbol } extends RemovePropertiesWithoutContent2<T[P]> ? never : P
 }[keyof T]
 
 type RemovePropertiesWithoutContent2<T> = T extends object ? {
-    [P in PropertiesWithContent2<T>]: RemovePropertiesWithoutContent3<T[P]>;
+    [P in PropertiesWithContent2<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent3<T[P]>;
+} & {
+    [P in PropertiesWithContent2<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent3<T[P]>;
 } : T
 
 type PropertiesWithContent2<T> = {
@@ -210,7 +231,9 @@ type PropertiesWithContent2<T> = {
 }[keyof T]
 
 type RemovePropertiesWithoutContent3<T> = T extends object ? {
-    [P in PropertiesWithContent3<T>]: RemovePropertiesWithoutContent4<T[P]>;
+    [P in PropertiesWithContent3<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent4<T[P]>;
+} & {
+    [P in PropertiesWithContent3<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent4<T[P]>;
 } : T
 
 type PropertiesWithContent3<T> = {
@@ -218,7 +241,9 @@ type PropertiesWithContent3<T> = {
 }[keyof T]
 
 type RemovePropertiesWithoutContent4<T> = T extends object ? {
-    [P in PropertiesWithContent4<T>]: RemovePropertiesWithoutContent5<T[P]>;
+    [P in PropertiesWithContent4<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent5<T[P]>;
+} & {
+    [P in PropertiesWithContent4<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent5<T[P]>;
 } : T
 
 type PropertiesWithContent4<T> = {
@@ -226,7 +251,9 @@ type PropertiesWithContent4<T> = {
 }[keyof T]
 
 type RemovePropertiesWithoutContent5<T> = T extends object ? {
-    [P in PropertiesWithContent5<T>]: RemovePropertiesWithoutContent6<T[P]>;
+    [P in PropertiesWithContent5<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent6<T[P]>;
+} & {
+    [P in PropertiesWithContent5<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent6<T[P]>;
 } : T
 
 type PropertiesWithContent5<T> = {
@@ -234,7 +261,9 @@ type PropertiesWithContent5<T> = {
 }[keyof T]
 
 type RemovePropertiesWithoutContent6<T> = T extends object ? {
-    [P in PropertiesWithContent6<T>]: RemovePropertiesWithoutContent7<T[P]>;
+    [P in PropertiesWithContent6<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent7<T[P]>;
+} & {
+    [P in PropertiesWithContent6<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent6<T[P]>;
 } : T
 
 type PropertiesWithContent6<T> = {
@@ -242,7 +271,9 @@ type PropertiesWithContent6<T> = {
 }[keyof T]
 
 type RemovePropertiesWithoutContent7<T> = T extends object ? {
-    [P in PropertiesWithContent7<T>]: RemovePropertiesWithoutContent8<T[P]>;
+    [P in PropertiesWithContent7<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent8<T[P]>;
+} & {
+    [P in PropertiesWithContent7<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent8<T[P]>;
 } : T
 
 type PropertiesWithContent7<T> = {
@@ -250,7 +281,9 @@ type PropertiesWithContent7<T> = {
 }[keyof T]
 
 type RemovePropertiesWithoutContent8<T> = T extends object ? {
-    [P in PropertiesWithContent8<T>]: RemovePropertiesWithoutContent9<T[P]>;
+    [P in PropertiesWithContent8<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent9<T[P]>;
+} & {
+    [P in PropertiesWithContent8<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent9<T[P]>;
 } : T
 
 type PropertiesWithContent8<T> = {
@@ -264,3 +297,6 @@ type RemovePropertiesWithoutContent9<T> = T extends object ? {
 type PropertiesWithContent9<T> = {
     [P in keyof T] : { [neverUsedSymbol]: typeof neverUsedSymbol } extends T[P] ? never : P
 }[keyof T]
+
+type MandatoryKeys<T extends object> = { [P in keyof T]: {} extends Pick<T, P> ? never : P }[keyof T] & keyof T
+type OptionalKeys<T extends object> = { [P in keyof T]: {} extends Pick<T, P> ? P : never }[keyof T] & keyof T

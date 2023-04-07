@@ -1665,6 +1665,8 @@ interface SelectExpression {
      * If you select one column the name of the column is 'result'.
      */
     orderBy(column: string, mode?: OrderByMode): this
+    orderBy(column: ValueSource, mode?: OrderByMode): this
+    orderBy(column: RawFragment, mode?: OrderByMode): this
     /** Allows to specify an order by dynamically, it is parsed from the provided string */
     orderByFromString(orderBy: string): this
     orderByFromStringIfValue(orderBy: string | null | undefined): this

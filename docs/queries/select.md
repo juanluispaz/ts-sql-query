@@ -55,7 +55,7 @@ type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc
 For the databases that don't support `null first` or `null last`, a proper order by that emulates that behaviour is generated. The `insensitive` modifier makes the ordering key-insensitive according to the [insensitive strategy](../connection-tables-views.md#insensitive-strategies) defined in your connection. In case the `insensitive` modifier is used in a not string column, the modifier will be just ignored.
 
 
-## Select ordering bu a not returned column
+## Select ordering by a not returned column
 
 ```ts
 const customerId = 10;

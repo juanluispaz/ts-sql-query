@@ -207,6 +207,11 @@ type PickPath<COLUMNS, MANDATORY extends string> = ResultObjectValues<PickMandat
 
 export type PickValuesPath<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = PickPath<COLUMNS, PICKED>
 
+export type PickValuesPathWitAllProperties<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = 
+    ResultObjectValues<PickWithMandatories<COLUMNS, PICKED, ''>>
+    // This second line is added to allow TS be compatible with Pick usage as the result of the function
+    & Pick<ResultObjectValues<COLUMNS>, PICKED & keyof ResultObjectValues<COLUMNS>>
+
 // Support till 9 clean up levels (recursive definition not working in [P in keyof T])
 type RemovePropertiesWithoutContent<T> = T extends object ? {
     [P in PropertiesWithContent<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent2<T[P]>;

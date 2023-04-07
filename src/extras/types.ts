@@ -7,12 +7,22 @@ import type { AnyValueSource } from "../expressions/values"
 import type { OuterJoinSourceOf, TableOrViewWithRef } from "../utils/tableOrViewUtils"
 import type { outerJoinAlias, tableOrViewRef } from "../utils/symbols"
 
-export type SelectedRow<TABLE> = ResultObjectValues<{
-    [K in ColumnKeys<TABLE>]: TABLE[K];
-}>
-export type SelectedValues<TABLE> = ResultObjectValues<{
-    [K in ColumnKeys<TABLE>]: TABLE[K];
-}>
+type Selectable = {
+    [key in string]?: AnyValueSource | Selectable
+}
+
+export type SelectedRow<TABLE> = 
+    TABLE extends Selectable 
+    ? ResultObjectValues<TABLE> 
+    : ResultObjectValues<{
+        [K in ColumnKeys<TABLE>]: TABLE[K];
+    }>
+export type SelectedValues<TABLE> = 
+    TABLE extends Selectable 
+    ? ResultObjectValues<TABLE> 
+    : ResultObjectValues<{
+        [K in ColumnKeys<TABLE>]: TABLE[K];
+    }>
 
 export type InsertableRow<TABLE> = TABLE extends ITable<any>
     ? MakeTypeVisible<MandatoryInsertSets<TABLE>>

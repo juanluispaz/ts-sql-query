@@ -1,4 +1,4 @@
-import { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, flattenQueryColumns, WithSelectData, hasToSql } from "./SqlBuilder"
+import { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, flattenQueryColumns, WithSelectData, hasToSql, OrderByEntry, getQueryColumn } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
@@ -299,18 +299,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
         }
 
-        for (const property in orderBy) {
+        for (const entry of orderBy) {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            const column = columns[property]
-            if (!column) {
-                throw new Error('Column ' + property + ' included in the order by not found in the select clause')
-            }
-            const columnAlias = columnNames.indexOf(property) + 1
-            const order = orderBy[property]
+            const order = entry.order
             if (!order) {
-                orderByColumns += columnAlias
+                orderByColumns += this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params)
             } else switch (order) {
                 case 'asc':
                 case 'desc': 
@@ -318,7 +313,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 case 'asc nulls last':
                 case 'desc nulls first':
                 case 'desc nulls last' :
-                    orderByColumns += columnAlias + ' ' + order
+                    orderByColumns += this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params) + ' ' + order
                     break
                 case 'insensitive':
                 case 'asc insensitive':
@@ -331,22 +326,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     if (sqlOrder) {
                         sqlOrder = ' ' + sqlOrder
                     }
-                    const collation = this._connectionConfiguration.insesitiveCollation
-                    const columnType = __getValueSourcePrivate(column).__valueType
-                    if (columnType != 'string') {
-                        // Ignore the insensitive term, it do nothing
-                        orderByColumns += columnAlias + ' ' + sqlOrder
-                    } else if (collation) {
-                        orderByColumns += columnAlias + ' collate ' + collation + sqlOrder
-                    } else if (collation === '') {
-                        orderByColumns += columnAlias + sqlOrder
-                    } else {
-                        orderByColumns += 'lower(' + columnAlias + ')' + sqlOrder
-                    }
+                    orderByColumns += this._appendCompoundOrderByColumnAliasInsensitive(entry, columnNames, query, params) + sqlOrder
                     break
                 }
                 default:
-                    throw new Error('Invalid order by: ' + property + ' ' + order)
+                    throw new Error('Invalid order by: ' + order)
             }
         }
 
@@ -367,6 +351,43 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return ' order by ' + orderByColumns
         }
     }
+    _appendCompoundOrderByColumnAlias(entry: OrderByEntry, columnNames: string[], query: SelectData, params: any[]): string {
+        const expression = entry.expression
+        const columns = query.__columns
+        if (typeof expression === 'string') {
+            const column = getQueryColumn(columns, expression)
+            if (!column) {
+                throw new Error('Column ' + expression + ' included in the order by not found in the select clause')
+            }
+            return (columnNames.indexOf(expression) + 1) + ''
+        } else if (isValueSource(expression)) {
+            const oldSafeTableOrView = this._getSafeTableOrView(params)
+            this._setSafeTableOrView(params, undefined)
+            const result = this._appendSql(expression, params)
+            this._setSafeTableOrView(params, oldSafeTableOrView)
+            return result
+        } else {
+            const oldSafeTableOrView = this._getSafeTableOrView(params)
+            this._setSafeTableOrView(params, undefined)
+            const result = this._appendRawFragment(expression, params)
+            this._setSafeTableOrView(params, oldSafeTableOrView)
+            return result
+        }
+    }
+    _appendCompoundOrderByColumnAliasInsensitive(entry: OrderByEntry, columnNames: string[], query: SelectData, params: any[]): string {
+        const collation = this._connectionConfiguration.insesitiveCollation
+        const columnType = this._getOrderByColumnType(entry, query)
+        if (columnType != 'string') {
+            // Ignore the insensitive term, it do nothing
+            return this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params)
+        } else if (collation) {
+            return this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params) + ' collate ' + collation
+        } else if (collation === '') {
+            return this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params)
+        } else {
+            return 'lower(' + this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params) + ')'
+        }
+    } 
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = super._buildSelectLimitOffset(query, params)
 

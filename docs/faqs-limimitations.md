@@ -119,7 +119,25 @@ You should avoid using `select *` in your backend queries; instead, you should e
 
 ### How to order a query by a column not returned by the select?
 
-Right now, the `orderBy` functions only support columns returned by the query, but you can [customize the select](queries/sql-fragments.md#customizing-a-select) to provide a custom `order by` to your query. Example:
+In ts-sql-query it used to be a limitation, but starting with ts-sql-query 1.52.0 you can do the following:
+
+```ts
+const customerId = 10;
+
+const customerWithId = connection.selectFrom(tCustomer)
+    .where(tCustomer.id.equals(10))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName
+    })
+    .orderBy(tCustomer.birthday, 'desc nulls last')
+    .executeSelectOne();
+```
+
+**Workaround not required any more**:
+
+The `orderBy` functions only supported columns returned by the query, but you can [customize the select](queries/sql-fragments.md#customizing-a-select) to provide a custom `order by` to your query. Example:
 
 ```ts
 const customizedSelect = connection.selectFrom(tCustomer)
@@ -127,8 +145,7 @@ const customizedSelect = connection.selectFrom(tCustomer)
     .select({
         id: tCustomer.id,
         firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName,
-        birthday: tCustomer.birthday
+        lastName: tCustomer.lastName
     }).customizeQuery({
         beforeOrderByItems: connection.rawFragment`${tCustomer.birthday} desc`
     })
@@ -171,7 +188,7 @@ const numberOfCustomers = connection
 
 **Workaround not required any more**:
 
-When you use an inline query value, the value may return `null` due to rows matching the conditions of the table being empty, but select count(*) is the exception, and ts-sql-query is unable to detect it. To deal with this limitation, you can set the value o zero when null. Example:
+When you use an inline query value, the value may return `null` due to rows matching the conditions of the table being empty, but select count(*) is the exception, and ts-sql-query is unable to detect it. To deal with this limitation, you can set the value to zero when null. Example:
 
 ```ts
 const numberOfCustomers = connection

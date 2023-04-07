@@ -44,6 +44,52 @@ const customersWithCompanyName: Promise<{
 }[]>
 ```
 
+The name of the columns to order corresponds to the name/path in the query's result. The supported order by modes are:
+
+```ts
+type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last' | 'insensitive' |
+ 'asc insensitive' | 'desc insensitive' | 'asc nulls first insensitive' | 'asc nulls last insensitive' | 
+ 'desc nulls first insensitive' | 'desc nulls last insensitive'
+```
+
+For the databases that don't support `null first` or `null last`, a proper order by that emulates that behaviour is generated. The `insensitive` modifier makes the ordering key-insensitive according to the [insensitive strategy](../connection-tables-views.md#insensitive-strategies) defined in your connection. In case the `insensitive` modifier is used in a not string column, the modifier will be just ignored.
+
+
+## Select ordering bu a not returned column
+
+```ts
+const customerId = 10;
+
+const customerWithId = connection.selectFrom(tCustomer)
+    .where(tCustomer.id.equals(customerId))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName
+    })
+    .orderBy(tCustomer.birthday, 'desc nulls last')
+    .executeSelectOne();
+```
+
+The executed query is:
+```sql
+select id as id, first_name as firstName, last_name as lastName
+from customer
+where id = $1
+order by customer.birthday desc nulls last
+```
+
+The parameters are: `[ 10 ]`
+
+The result type is:
+```tsx
+const customerWithId: Promise<{
+    id: number;
+    firstName: string;
+    lastName: string;
+}>
+```
+
 ## Select with subquery and dynamic order by
 
 ```ts

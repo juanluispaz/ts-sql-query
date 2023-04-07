@@ -118,6 +118,11 @@ export interface WithQueryData {
     __subSelectUsing?: Array<ITableOrView<any>>
 }
 
+export type OrderByEntry = {
+    expression: string | AnyValueSource | RawFragment<any>
+    order: OrderByMode | null | undefined
+}
+
 export type SelectData = PlainSelectData | CompoundSelectData
 
 export interface PlainSelectData extends WithQueryData {
@@ -134,7 +139,7 @@ export interface PlainSelectData extends WithQueryData {
     __connectByNoCycle?: boolean // Oracle
     __having?: AlwaysIfValueSource<any, any>
     __groupBy:  Array<AnyValueSource>
-    __orderBy?: { [property: string]: OrderByMode | null | undefined }
+    __orderBy?: OrderByEntry[]
     __orderingSiblingsOnly?: boolean // Oracle
     __limit?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __offset?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
@@ -152,7 +157,7 @@ export interface CompoundSelectData extends WithQueryData {
     __secondQuery: SelectData
     __columns: QueryColumns
     __oneColumn: boolean
-    __orderBy?: { [property: string]: OrderByMode | null | undefined }
+    __orderBy?: OrderByEntry[]
     __orderingSiblingsOnly?: boolean // Oracle
     __limit?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __offset?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>

@@ -1,4 +1,4 @@
-import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData, flattenQueryColumns, FlatQueryColumns, getQueryColumn, QueryColumns, WithValuesData } from "./SqlBuilder"
+import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData, flattenQueryColumns, FlatQueryColumns, QueryColumns, WithValuesData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AnyValueSource, IExecutableSelectQuery, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
@@ -237,7 +237,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             }
         }
 
-        const columns = query.__columns
         let orderByColumns = ''
 
         const customization = query.__customization
@@ -245,51 +244,47 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
         }
 
-        for (const property in orderBy) {
+        for (const entry of orderBy) {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            const column = getQueryColumn(columns, property)
-            if (!column) {
-                throw new Error('Column ' + property + ' included in the order by not found in the select clause')
-            }
-            const order = orderBy[property]
+            const order = entry.order
             if (!order) {
-                orderByColumns += this._appendColumnAlias(property, params)
+                orderByColumns += this._appendOrderByColumnAlias(entry, query, params)
             } else switch (order) {
                 case 'asc':
                 case 'asc nulls first':
-                    orderByColumns += this._appendColumnAlias(property, params) + ' asc'
+                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' asc'
                     break
                 case 'desc':
                 case 'desc nulls last':
-                    orderByColumns += this._appendColumnAlias(property, params) + ' desc'
+                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' desc'
                     break
                 case 'asc nulls last':
-                    orderByColumns += 'iif(' + this._appendColumnAlias(property, params) + ' is null, 1, 0), ' + this._appendColumnAlias(property, params) + ' asc'
+                    orderByColumns += 'iif(' + this._appendOrderByColumnAlias(entry, query, params) + ' is null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, params) + ' asc'
                     break
                 case 'desc nulls first':
-                    orderByColumns += 'iif(' + this._appendColumnAlias(property, params) + ' is not null, 1, 0), ' + this._appendColumnAlias(property, params) + ' desc'
+                    orderByColumns += 'iif(' + this._appendOrderByColumnAlias(entry, query, params) + ' is not null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, params) + ' desc'
                     break
                 case 'insensitive':
-                    orderByColumns += this.__appendColumnAliasInsensitive(property, column, params)
+                    orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params)
                     break
                 case 'asc insensitive':
                 case 'asc nulls first insensitive':
-                    orderByColumns += this.__appendColumnAliasInsensitive(property, column, params) + ' asc'
+                    orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' asc'
                     break
                 case 'desc insensitive':
                 case 'desc nulls last insensitive':
-                    orderByColumns += this.__appendColumnAliasInsensitive(property, column, params) + ' desc'
+                    orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
                     break
                 case 'asc nulls last insensitive':
-                    orderByColumns += 'iif(' + this._appendColumnAlias(property, params) + ' is null, 1, 0), ' + this.__appendColumnAliasInsensitive(property, column, params) + ' asc'
+                    orderByColumns += 'iif(' + this._appendOrderByColumnAlias(entry, query, params) + ' is null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' asc'
                     break
                 case 'desc nulls first insensitive':
-                    orderByColumns += 'iif(' + this._appendColumnAlias(property, params) + ' is not null, 1, 0), ' + this.__appendColumnAliasInsensitive(property, column, params) + ' desc'
+                    orderByColumns += 'iif(' + this._appendOrderByColumnAlias(entry, query, params) + ' is not null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
                     break
                 default:
-                    throw new Error('Invalid order by: ' + property + ' ' + order)
+                    throw new Error('Invalid order by: ' + order)
             }
         }
 
@@ -304,20 +299,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             return ''
         }
         return ' order by ' + orderByColumns
-    }
-    __appendColumnAliasInsensitive(identifier: string, column: AnyValueSource, params: any[]) {
-        const collation = this._connectionConfiguration.insesitiveCollation
-        const columnType = __getValueSourcePrivate(column).__valueType
-        if (columnType != 'string') {
-            // Ignore the insensitive term, it do nothing
-            return this._appendColumnAlias(identifier, params)
-        } else if (collation) {
-            return this._appendColumnAlias(identifier, params) + ' collate ' + collation
-        } else if (collation === '') {
-            return this._appendColumnAlias(identifier, params)
-        } else {
-            return 'lower(' + this._appendColumnAlias(identifier, params) + ')'
-        }
     }
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = ''

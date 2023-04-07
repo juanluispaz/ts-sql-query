@@ -1,4 +1,4 @@
-import { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData, QueryColumns, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
+import { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData, QueryColumns, isAllowedQueryColumns, OrderByEntry } from "../sqlBuilders/SqlBuilder"
 import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, /*SelectExpressionFromNoTable,*/ SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderableExecutableSelectExpressionWithoutWhere, OrderByExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereLimitExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, ExecutableSelectWithWhere, ExecutableSelectWithoutWhere, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, SplitedComposedExecutableSelectWithoutWhere, SplitedComposedDynamicWhereExecutableSelectExpression, WhereableCompoundableExecutableSelectExpressionWithoutWhere, RecursivelyConnectedExecutableSelectExpression, RecursivelyConnectedExpressionWithoutSelect, RecursivelyConnectedExecutableSelectExpressionWithoutWhere, CompoundedLimitExecutableSelectExpression, CompoundedOrderedExecutableSelectExpression, LimitExecutableSelectExpression, OrderedExecutableSelectExpression, LimitExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, RecursivelyConnectedSelectWhereExpression, ConnectByExpression } from "../expressions/select"
 import { HasAddWiths, HasIsValue, ITableOrView, IWithView, OuterJoinSource, __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { IIfValueSource, IBooleanValueSource, INumberValueSource, IIntValueSource, IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
@@ -29,7 +29,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     [isSelectQueryObject]: true = true
 
     __columns: QueryColumns = {}
-    __orderBy?: { [property: string]: OrderByMode | null | undefined }
+    __orderBy?: OrderByEntry[]
     __orderingSiblingsOnly?: boolean // Oracle
     __limit?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
     __offset?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
@@ -234,20 +234,17 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     orderBy(column: any, mode?: OrderByMode): any {
         this.__finishJoinHaving()
         this.__query = ''
-        if (!this.__getColumnFromColumnsObject(column)) {
+        if (typeof column === 'string' && !this.__getColumnFromColumnsObject(column)) {
             throw new Error('The column "' + column + '" is not part of the select clause')
         }
         this.__addOrderBy(column, mode)
         return this
     }
-    __addOrderBy(column: string, mode?: OrderByMode) {
+    __addOrderBy(column: any, mode?: OrderByMode) {
         if (!this.__orderBy) {
-            this.__orderBy = {}
+            this.__orderBy = []
         }
-        if (column in this.__orderBy) {
-            throw new Error('Column ' + column + ' already used in the order by clause')
-        }
-        this.__orderBy[column] = mode || null
+        this.__orderBy.push({expression: column, order: mode || null})
     }
     orderByFromString(orderBy: string): any {
         this.__finishJoinHaving()

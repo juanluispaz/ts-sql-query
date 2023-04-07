@@ -1,4 +1,4 @@
-import { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, flattenQueryColumns, getQueryColumn, WithSelectData, WithValuesData } from "./SqlBuilder"
+import { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, flattenQueryColumns, getQueryColumn, WithSelectData, WithValuesData, OrderByEntry } from "./SqlBuilder"
 import { ITableOrView, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, isValueSource, __AggregatedArrayColumns, __getValueSourceOfObject, __ValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
@@ -973,7 +973,6 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        const columns = query.__columns
         let orderByColumns = ''
 
         const customization = query.__customization
@@ -981,18 +980,13 @@ export class AbstractSqlBuilder implements SqlBuilder {
             orderByColumns += this._appendRawFragment(customization.beforeOrderByItems, params)
         }
 
-        for (const property in orderBy) {
+        for (const entry of orderBy) {
             if (orderByColumns) {
                 orderByColumns += ', '
             }
-            const column = getQueryColumn(columns, property)
-            if (!column) {
-                throw new Error('Column ' + property + ' included in the order by not found in the select clause')
-            }
-            const columnAlias = this._appendColumnAlias(property, params)
-            const order = orderBy[property]
+            const order = entry.order
             if (!order) {
-                orderByColumns += columnAlias
+                orderByColumns += this._appendOrderByColumnAlias(entry, query, params)
             } else switch (order) {
                 case 'asc':
                 case 'desc':
@@ -1000,7 +994,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 case 'asc nulls last':
                 case 'desc nulls first':
                 case 'desc nulls last' :
-                    orderByColumns += columnAlias + ' ' + order
+                    orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' ' + order
                     break
                 case 'insensitive':
                 case 'asc insensitive':
@@ -1009,26 +1003,15 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 case 'asc nulls last insensitive':
                 case 'desc nulls first insensitive':
                 case 'desc nulls last insensitive': {
-                    let sqlOrder = order.substring(0, order.length - 12)
+                    let sqlOrder =order.substring(0, order.length - 12)
                     if (sqlOrder) {
                         sqlOrder = ' ' + sqlOrder
                     }
-                    const collation = this._connectionConfiguration.insesitiveCollation
-                    const columnType = __getValueSourcePrivate(column).__valueType
-                    if (columnType != 'string') {
-                        // Ignore the insensitive term, it do nothing
-                        orderByColumns += columnAlias + ' ' + sqlOrder
-                    } else if (collation) {
-                        orderByColumns += columnAlias + ' collate ' + collation + sqlOrder
-                    } else if (collation === '') {
-                        orderByColumns += columnAlias + sqlOrder
-                    } else {
-                        orderByColumns += 'lower(' + columnAlias + ')' + sqlOrder
-                    }
+                    orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params) + sqlOrder
                     break
                 }
                 default:
-                    throw new Error('Invalid order by: ' + property + ' ' + order)
+                    throw new Error('Invalid order by: ' + order)
             }
         }
 
@@ -1047,6 +1030,58 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return ' order siblings by ' + orderByColumns
         } else {
             return ' order by ' + orderByColumns
+        }
+    }
+    _appendOrderByColumnAlias(entry: OrderByEntry, query: SelectData, params: any[]): string {
+        const expression = entry.expression
+        const columns = query.__columns
+        if (typeof expression === 'string') {
+            const column = getQueryColumn(columns, expression)
+            if (!column) {
+                throw new Error('Column ' + expression + ' included in the order by not found in the select clause')
+            }
+            return this._appendColumnAlias(expression, params)
+        } else if (isValueSource(expression)) {
+            const oldSafeTableOrView = this._getSafeTableOrView(params)
+            this._setSafeTableOrView(params, undefined)
+            const result = this._appendSql(expression, params)
+            this._setSafeTableOrView(params, oldSafeTableOrView)
+            return result
+        } else {
+            const oldSafeTableOrView = this._getSafeTableOrView(params)
+            this._setSafeTableOrView(params, undefined)
+            const result = this._appendRawFragment(expression, params)
+            this._setSafeTableOrView(params, oldSafeTableOrView)
+            return result
+        }
+    }
+    _appendOrderByColumnAliasInsensitive(entry: OrderByEntry, query: SelectData, params: any[]): string {
+        const collation = this._connectionConfiguration.insesitiveCollation
+        const columnType = this._getOrderByColumnType(entry, query)
+        if (columnType != 'string') {
+            // Ignore the insensitive term, it do nothing
+            return this._appendOrderByColumnAlias(entry, query, params)
+        } else if (collation) {
+            return this._appendOrderByColumnAlias(entry, query, params) + ' collate ' + collation
+        } else if (collation === '') {
+            return this._appendOrderByColumnAlias(entry, query, params)
+        } else {
+            return 'lower(' + this._appendOrderByColumnAlias(entry, query, params) + ')'
+        }
+    } 
+    _getOrderByColumnType(entry: OrderByEntry, query: SelectData): string | undefined {
+        const expression = entry.expression
+        const columns = query.__columns
+        if (typeof expression === 'string') {
+            const column = getQueryColumn(columns, expression)
+            if (!column) {
+                throw new Error('Column ' + expression + ' included in the order by not found in the select clause')
+            }
+            return __getValueSourcePrivate(column).__valueType
+        } else if (isValueSource(expression)) {
+            return __getValueSourcePrivate(expression).__valueType
+        } else {
+            return undefined
         }
     }
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {

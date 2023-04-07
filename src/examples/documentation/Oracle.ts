@@ -176,6 +176,34 @@ async function main() {
 
     /* *** Preparation ************************************************************/
 
+    result = {
+        id: 1,
+        firstName: 'First Name',
+        lastName: 'Last Name'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", first_name as "firstName", last_name as "lastName" from customer where id = :0 order by customer.birthday desc nulls last`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    // const customerId = 10
+    
+    const customerWithId2 = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(customerId))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .orderBy(tCustomer.birthday, 'desc nulls last')
+        .executeSelectOne()
+    
+    assertEquals(customerWithId2, result)
+
+    /* *** Preparation ************************************************************/
+
     result = [{
         id: 1,
         name: {

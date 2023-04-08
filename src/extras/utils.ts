@@ -390,6 +390,32 @@ export function extractProvidedIdColumnNamesFrom<O extends object, EXCLUDE exten
     return result
 }
 
+export function extractUpdateShapeFrom<O extends object, EXCLUDE extends ColumnKeys<O> = never>(obj: O, exclude?: EXCLUDE[]): { [K in Exclude<WritableColumnKeys<O>, EXCLUDE>]: K } {
+    if (!obj) {
+        return obj
+    }
+    const ignore: any = {}
+    if (exclude) {
+        for (let i = 0, length = exclude.length; i < length; i++) {
+            ignore[exclude[i]] = true
+        }
+    }
+    
+    const result: any = {}
+    for (let key in obj) {
+        if (key in ignore) {
+            continue
+        }
+        const value = obj[key]
+        if (isColumn(value)) {
+            if (!__getColumnPrivate(value).__isComputed) {
+                result[key] = key
+            }
+        }
+    }
+    return result
+}
+
 type HasIfValueSource<VALUE> = VALUE extends {[ifValueSourceType]: 'IfValueSource'} ? true : never
 
 export function mergeType<VALUE extends IAnyBooleanValueSource<any, any>>(value: VALUE): true extends HasIfValueSource<VALUE>? IfValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>> : BooleanValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>

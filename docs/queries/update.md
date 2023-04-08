@@ -186,3 +186,45 @@ The result type is a promise with the information of the updated rows:
 ```tsx
 const updateCustomer: Promise<number>
 ```
+
+## Update with value's shape
+
+You can specify the object's shape that contains the values to update. This shape allows you to map each property in the values to update with the columns in the table; in that way, the property in the value doesn't need to have the same name. The only values to be updated are the ones included in the shape. Additionally, you can extend the shape later to allow set additional properties in future set over this query.
+
+```ts
+const customerId = 10
+const customerData = {
+    newFirstName: 'John',
+    newLastName: 'Smith',
+}
+const currentCompanyId = 23
+
+const updateCustomer = connection.update(tCustomer)
+    .shapedAs({
+        newFirstName: 'firstName',
+        newLastName: 'lastName'
+    }) // Only these properties are allowed
+    .set(customerData)
+    .extendShape({
+        newCompanyId: 'companyId'
+    }) // Exend the shape to allow use in next sets 
+    .set({
+        newCompanyId: currentCompanyId
+    })
+    .where(tCustomer.id.equals(customerId))
+    .executeUpdate()
+```
+
+The executed query is:
+```sql
+update customer 
+set first_name = $1, last_name = $2, company_id = $3 
+where id = $4
+```
+
+The parameters are: `[ "John", "Smith", 23, 10 ]`
+
+The result type is a promise with the information of the updated rows:
+```tsx
+const updateCustomer: Promise<number>
+```

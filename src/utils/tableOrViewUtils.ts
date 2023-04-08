@@ -1,4 +1,4 @@
-import type { CUSTOMIZED_TABLE_OR_VIEW, ITable, ITableOrView, IView, IWithView, OuterJoinSource, TableOrViewAlias, TABLE_OR_VIEW_ALIAS, ITableOrViewRef, OLD, OldTableOrView, OUTER_JOIN_SOURCE, ITableOrViewOuterJoin, VALUES_FOR_INSERT, ValuesForInsertTableOrView, IValues } from "./ITableOrView"
+import type { CUSTOMIZED_TABLE_OR_VIEW, ITable, ITableOrView, IView, IWithView, OuterJoinSource, TableOrViewAlias, TABLE_OR_VIEW_ALIAS, ITableOrViewRef, OLD, OldTableOrView, OUTER_JOIN_SOURCE, ITableOrViewOuterJoin, VALUES_FOR_INSERT, ValuesForInsertTableOrView, IValues, ResolvedShape } from "./ITableOrView"
 import type { AnyValueSource, IValueSource, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType } from "../expressions/values"
 import type { tableOrViewRef, type, viewName } from "./symbols"
 import type { AnyDB } from "../databases"
@@ -120,3 +120,7 @@ export type OptionalColumnsForSetOf<T extends ITableOrView<any>> = ({ [K in keyo
         )
     ) : never 
 })[keyof T]
+
+export type ResolveShape<T extends ITableOrView<any>, SHAPE extends {}> = {
+    [P in keyof SHAPE]: SHAPE[P] extends keyof T ? T[SHAPE[P]] : SHAPE[P]
+} &  ResolvedShape<T>

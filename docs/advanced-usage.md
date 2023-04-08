@@ -494,6 +494,17 @@ import { extractProvidedIdColumnNamesFrom } from "ts-sql-query/extras/utils";
 const tCustomerProvidedIdColumnNames = extractProvidedIdColumnNamesFrom(tCustomer);
 ```
 
+### Extract update shape
+
+This function returns the update shape where the property name in the value object and the remaped property are the same, like `{property: 'property'}`. This function receives the object that contains the columns as its first argument and optionally, as its second argument, an array with the name of the properties to exclude.
+
+
+```ts
+import { extractUpdateShapeFrom } from "ts-sql-query/extras/utils";
+
+const tCustomerUpdateShape = extractUpdateShapeFrom(tCustomer);
+```
+
 ## Prefixing
 
 **Note**: Before use splitting evaluate if you can use [complex projections](queries/complex-projections.md) instead.
@@ -767,6 +778,16 @@ import { InsertableRow } from 'ts-sql-query/extras/types';
 type InserableCompanyRow = InsertableRow<typeof tCompany>;
 ```
 
+### Update shape
+
+This type returns the update shape where the property name in the value object and the remaped property are the same, like `{property: 'property'}`.
+
+```ts
+import { UpdateShapeFor } from 'ts-sql-query/extras/types';
+
+type UpdatableCompanyShape = UpdateShapeFor<typeof tCompany>;
+```
+
 ### Updatable values
 
 This type returns the object type with the values that can be used in an update for the provided table.
@@ -775,6 +796,19 @@ This type returns the object type with the values that can be used in an update 
 import { UpdatableValues } from 'ts-sql-query/extras/types';
 
 type UpdatableCompany = UpdatableValues<typeof tCompany>;
+```
+
+If you use a shape in your query you must use:
+
+```ts
+import { UpdatableValuesShapedAs } from 'ts-sql-query/extras/types';
+
+const myCustomerShape = {
+    newFirstName: 'firstName',
+    newLastName: 'lastName'
+}
+
+type UpdatableShapedCustomer = UpdatableValuesShapedAs<typeof tCustomer, typeof myCustomerShape>;
 ```
 
 ### Updatable row
@@ -787,6 +821,19 @@ This type returns the same type expected by the set clause in an update.
 import { UpdatableRow } from 'ts-sql-query/extras/types';
 
 type UpdatableCompanyRow = UpdatableRow<typeof tCompany>;
+```
+
+If you use a shape in your query you must use:
+
+```ts
+import { UpdatableRowShapedAs } from 'ts-sql-query/extras/types';
+
+const myCustomerShape = {
+    newFirstName: 'firstName',
+    newLastName: 'lastName'
+}
+
+type UpdatableShapedCustomerRow = UpdatableRowShapedAs<typeof tCustomer, typeof myCustomerShape>;
 ```
 
 ### Updatable values in case of conflict on insert

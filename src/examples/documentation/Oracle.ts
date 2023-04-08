@@ -150,7 +150,7 @@ async function main() {
 
     /* *** Example ****************************************************************/
 
-    const customerId = 10
+    let customerId = 10
     
     let customerWithId = await connection.selectFrom(tCustomer)
         .where(tCustomer.id.equals(customerId))
@@ -640,12 +640,46 @@ async function main() {
     
     /* *** Example ****************************************************************/
 
-    const updateCustomer = await connection.update(tCustomer).set({
+    let updateCustomer = await connection.update(tCustomer).set({
             firstName: 'John',
             lastName: 'Smith',
             birthday: new Date('2000-03-01')
         }).ignoreIfSet('birthday')
         .where(tCustomer.id.equals(10))
+        .executeUpdate()
+    
+    assertEquals(updateCustomer, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`update customer set first_name = :0, last_name = :1, company_id = :2 where id = :3`)
+    expectedParams.push(`["John","Smith",23,10]`)
+    expectedType.push(`update`)
+    
+    /* *** Example ****************************************************************/
+
+    customerId = 10
+    const customerData = {
+        newFirstName: 'John',
+        newLastName: 'Smith',
+    }
+    const currentCompanyId = 23
+
+    updateCustomer = await connection.update(tCustomer)
+        .shapedAs({
+            newFirstName: 'firstName',
+            newLastName: 'lastName'
+        }) // Only these properties are allowed
+        .set(customerData)
+        .extendShape({
+            newCompanyId: 'companyId'
+        }) // Exend the shape to allow use in next sets 
+        .set({
+            newCompanyId: currentCompanyId
+        })
+        .where(tCustomer.id.equals(customerId))
         .executeUpdate()
     
     assertEquals(updateCustomer, result)

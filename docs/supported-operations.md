@@ -1384,6 +1384,19 @@ type OptionalInsertSets = { [columnName: string]: any }
 
 ```ts
 interface UpdateExpression {
+    /**
+     * Allow setting the shape of the values to update. This shape allows you to map
+     * each property in the values to update with the columns in the table, in that
+     * way, the property in the value doesn't need to have the same name.
+     * The only values to be updated are the ones included in the shape.
+     */
+    shapedAs(shape: UpdateShape): this
+    /** 
+     * Allow you to extend the previous set shape.
+     * The values set after extending the shape will allow you to include the new properties in the extended shape.
+     */
+    extendShape(shape: UpdateShape): this
+
     /** Set the values for insert */
     set(columns: UpdateSets): this
     /** Set a value only if the provided value is not null, undefined, empty string 
@@ -1577,7 +1590,9 @@ type OptionalUpdateSets = { [columnName: string]: any }
  * It must be an object where the name of the property is the name of the resulting property
  * and the value is the ValueSource where the value will be obtained.
  */
- type UpdateReturningValues = { [columnName: string]: ValueSource }
+type UpdateReturningValues = { [columnName: string]: ValueSource }
+/** Shape of the values to set */
+type UpdateShape = { [propertyNameInValues: string]: string /* column name in the update table */ | ValueSource }
 ```
 
 ## Delete definition

@@ -1,6 +1,6 @@
 import type { AnyDB } from "../databases"
 import { RawFragment } from "./RawFragment"
-import type { database, noTableOrViewRequired, oldValues, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, tableOrView, tableOrViewAlias, tableOrViewCustomName, tableOrViewRef, tableOrViewRefType, type, valuesForInsert } from "./symbols"
+import type { database, noTableOrViewRequired, oldValues, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, resolvedShape, tableOrView, tableOrViewAlias, tableOrViewCustomName, tableOrViewRef, tableOrViewRefType, type, valuesForInsert } from "./symbols"
 
 export interface ITableOrViewRef<DB extends AnyDB> {
     [database]: DB
@@ -193,4 +193,8 @@ export interface ITableOrViewOuterJoin<TABLE_OR_VIEW extends ITableOrView<any>, 
     [tableOrView]: TABLE_OR_VIEW
     [tableOrViewAlias]: ALIAS
     [outerJoinAlias]: ALIAS
+}
+
+export interface ResolvedShape<TABLE extends ITableOrView<any>> extends ITableOfDB<TABLE[typeof database]> {
+    [resolvedShape]: 'resolvedShape'
 }

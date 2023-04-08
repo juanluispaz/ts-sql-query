@@ -18,6 +18,7 @@ export const resultType: unique symbol = Symbol('resultType')
 export const columnsType: unique symbol = Symbol('columnsType')
 export const compoundableColumns: unique symbol = Symbol('compoundableColumns')
 export const rawFragment: unique symbol = Symbol('rawFragment')
+export const resolvedShape: unique symbol = Symbol('resolvedShape')
 
 // Expressions
 export const requiredTableOrView: unique symbol = Symbol('requiredTableOrView')

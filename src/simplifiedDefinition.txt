@@ -1060,41 +1060,60 @@ interface InsertExpression {
     values(columns: InsertSets): this
     /** Allow to insert multiple registers in the database */
     values(columns: InsertSets[]): this
-    /** Set the values for insert */
+    /** 
+     * Set the values for insert.
+     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     */
     set(columns: InsertSets): this
     /** 
      * Set a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
-     * that is the default behaviour) or an empty array 
+     * that is the default behaviour) or an empty array.
+     * This doen't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfValue(columns: OptionalInsertSets): this
-    /** Set a previous set value only */
+    /** 
+     * Set a previous set value only.
+     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     */
     setIfSet(columns: InsertSets): this
     /** 
      * Set a previous set value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
-     * that is the default behaviour) or an empty array 
+     * that is the default behaviour) or an empty array.
+     * This doen't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfSetIfValue(columns: OptionalInsertSets): this
-    /** Set a unset value (only if the value was not previously set) */
+    /** 
+     * Set a unset value (only if the value was not previously set).
+     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     */
     setIfNotSet(columns: InsertSets): this
     /** 
      * Set a unset value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array
-     * (only if the value was not previously set) 
+     * (only if the value was not previously set).
+     * This doen't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfNotSetIfValue(columns: OptionalInsertSets): this
-    /** Unset the listed columns previous set */
+    /** 
+     * Unset the listed columns previous set.
+     * It can be use in an insert of multiple values.
+     * */
     ignoreIfSet(...columns: string[]): this
-    /** Keep only the listed columns previous set */
+    /** 
+     * Keep only the listed columns previous set.
+     * It can be use in an insert of multiple values.
+     */
     keepOnly(...columns: string[]): this
 
     /** 
      * Set a value for the specified columns that was previously indicated a value for set.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
-     * set to true, that is the default behaviour) or an empty array 
+     * set to true, that is the default behaviour) or an empty array.
+     * This doen't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfHasValue(columns: InsertSets): this
     /** 
@@ -1104,14 +1123,16 @@ interface InsertExpression {
      * that is the default behaviour) or an empty array.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
-     * set to true, that is the default behaviour) or an empty array 
+     * set to true, that is the default behaviour) or an empty array.
+     * This doen't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfHasValueIfValue(columns: OptionalInsertSets): this
     /** 
      * Set a value for the specified columns that has not value to set.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
-     * set to true, that is the default behaviour) or an empty array 
+     * set to true, that is the default behaviour) or an empty array.
+     * This doen't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfHasNoValue(columns: InsertSets): this
     /** 
@@ -1121,34 +1142,120 @@ interface InsertExpression {
      * that is the default behaviour) or an empty array.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
-     * set to true, that is the default behaviour) or an empty array 
+     * set to true, that is the default behaviour) or an empty array.
+     * This doen't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfHasNoValueIfValue(columns: OptionalInsertSets): this
     /** 
      * Unset the listed columns if them has value to set.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
-     * set to true, that is the default behaviour) or an empty array 
+     * set to true, that is the default behaviour) or an empty array.
+     * It can be use in an insert of multiple values.
      */
     ignoreIfHasValue(...columns: string[]): this
     /** 
      * Unset the listed columns if them has no value to set.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
-     * set to true, that is the default behaviour) or an empty array 
+     * set to true, that is the default behaviour) or an empty array.
+     * It can be use in an insert of multiple values.
      */
     ignoreIfHasNoValue(...columns: string[]): this
     /** 
      * Unset all columns that was set with no value.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
-     * set to true, that is the default behaviour) or an empty array 
+     * set to true, that is the default behaviour) or an empty array.
+     * It can be use in an insert of multiple values.
      */
     ignoreAnySetWithNoValue(): this
+
+    /** 
+     * This only apply in an insert of multiple values.
+     * Set the values for insert 
+     */
+    setForAll(columns: InsertSets): this
+    /** 
+     * This only apply in an insert of multiple values.
+     * Set a value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array 
+     */
+    setForAllIfValue(columns: OptionalInsertSets): this
+    /** 
+     * This only apply in an insert of multiple values.
+     * Set a previous set value only 
+     */
+    setForAllIfSet(columns: InsertSets): this
+    /** 
+     * This only apply in an insert of multiple values.
+     * Set a previous set value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array 
+     */
+    setForAllIfSetIfValue(columns: OptionalInsertSets): this
+    /** 
+     * This only apply in an insert of multiple values.
+     * Set a unset value (only if the value was not previously set) 
+     */
+    setForAllIfNotSet(columns: InsertSets): this
+    /** 
+     * This only apply in an insert of multiple values.
+     * Set a unset value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array
+     * (only if the value was not previously set) 
+     */
+    setForAllIfNotSetIfValue(columns: OptionalInsertSets): this
+
+    /** 
+     * This only apply in an insert of multiple values.
+     * Set a value for the specified columns that was previously indicated a value for set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setForAllIfHasValue(columns: InsertSets): this
+    /** 
+     * This only apply in an insert of multiple values.
+     * Set a value for the specified columns that was previously indicated a value for 
+     * set only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setForAllIfHasValueIfValue(columns: OptionalInsertSets): this
+    /** 
+     * This only apply in an insert of multiple values.
+     * Set a value for the specified columns that has not value to set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setForAllIfHasNoValue(columns: InsertSets): this
+    /** 
+     * This only apply in an insert of multiple values.
+     * Set a value for the specified columns that has no value to set 
+     * only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setForAllIfHasNoValueIfValue(columns: OptionalInsertSets): this
 
     /** Allows to set the values dynamically */
     dynamicSet(): this
     dynamicSet(columns: InsertSets): this
+
+    /** Alias to dynamicSet method: Allows to set the values dynamically */
+    dynamicValues(columns: InsertSets): this
+    /** Allow to insert multiple registers in the database dynamically */
+    dynamicValues(columns: InsertSets[]): this
 
     /** Insert the default values in the table */
     defaultValues(): this

@@ -1,6 +1,6 @@
 import { SqlBuilder, InsertData, SelectData, QueryColumns, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
 import{ HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
-import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*, MissingKeysInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional } from "../expressions/insert"
+import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression<any, any>, MissingKeysMultipleInsertExpression<any, any>*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional, ExecutableMultipleInsertExpression } from "../expressions/insert"
 import type { Column } from "../utils/Column"
 import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
@@ -13,7 +13,7 @@ import { RawFragment } from "../utils/RawFragment"
 
 // one implement ommited intentionally to don't confuse TypeScript
 
-export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasAddWiths, ToSql, InsertExpression<any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, CustomizableExecutableMultipleInsert<any>, CustomizableExecutableInsertFromSelect<any>, CustomizableExecutableInsertReturningLastInsertedId<any, any>, CustomizableExecutableSimpleInsert<any>, /*MissingKeysInsertExpression<any, any>,*/ InsertData, ComposableExecutableInsert<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any>, ExecutableInsert<any>, CustomizableExecutableInsert<any>, OnConflictDoMultipleInsert<any>, InsertOnConflictSetsExpression<any, any, any>, DynamicOnConflictWhereExpression<any, any>, OnConflictOnColumnWhere<any, any>, CustomizableExecutableInsertFromSelectOnConflict<any>, CustomizableExecutableSimpleInsertOnConflict<any>, OnConflictDoSimpleInsert<any>, CustomizableExecutableMultipleInsertOnConfict<any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any>, CustomizableExecutableSimpleInsertOnConflictOptional<any>, CustomizableExecutableMultipleInsertOnConfictOptional<any> {
+export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasAddWiths, ToSql, InsertExpression<any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, ExecutableMultipleInsertExpression<any>, CustomizableExecutableMultipleInsert<any>, CustomizableExecutableInsertFromSelect<any>, CustomizableExecutableInsertReturningLastInsertedId<any, any>, CustomizableExecutableSimpleInsert<any>, /*MissingKeysInsertExpression<any, any>, MissingKeysMultipleInsertExpression<any, any>,*/ InsertData, ComposableExecutableInsert<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any>, ExecutableInsert<any>, CustomizableExecutableInsert<any>, OnConflictDoMultipleInsert<any>, InsertOnConflictSetsExpression<any, any, any>, DynamicOnConflictWhereExpression<any, any>, OnConflictOnColumnWhere<any, any>, CustomizableExecutableInsertFromSelectOnConflict<any>, CustomizableExecutableSimpleInsertOnConflict<any>, OnConflictDoSimpleInsert<any>, CustomizableExecutableMultipleInsertOnConfict<any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any>, CustomizableExecutableSimpleInsertOnConflictOptional<any>, CustomizableExecutableMultipleInsertOnConfictOptional<any> {
     [type]: any
     [database]: any
     [tableOrView]: any
@@ -22,6 +22,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     __table: ITable<any>
     __sets: { [property: string]: any } = {}
     __multiple?: { [property: string]: any }[]
+    __multipleAlreadyCopied?: boolean
     __isMultiple: boolean = false
     __idColumn?: Column
     __from?: SelectData
@@ -312,6 +313,26 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         this.__query = ''
         return this
     }
+    __getSetsForMultipleInsert(): { [property: string]: any }[] {
+        const multiple = this.__multiple
+        if (!multiple) {
+            const result : { [property: string]: any }[] = []
+            this.__multiple = result
+            this.__multipleAlreadyCopied = true
+            return result
+        }
+        if (this.__multipleAlreadyCopied) {
+            return multiple
+        }
+
+        const result : { [property: string]: any }[] = []
+        for (let i = 0, length = result.length; i < length; i++) {
+            result.push({...multiple[i]})
+        }
+        this.__multiple = result
+        this.__multipleAlreadyCopied = true
+        return result
+    }
     set(columns: any): this {
         this.__query = ''
         if (!columns) {
@@ -465,6 +486,16 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+        } else if (this.__multiple) {
+            const multiple = this.__getSetsForMultipleInsert()
+            for (let j = 0, length = multiple.length; j < length; j++) {
+                const item = multiple[j]!
+                for (let i = 0, length = columns.length; i < length; i++) {
+                    let column = columns[i]
+                    delete item[column]
+                }
+            }
+            return this
         } else {
             sets = this.__sets
         }
@@ -479,6 +510,24 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+        } else if (this.__multiple) {
+            const multiple = this.__getSetsForMultipleInsert()
+            const allow: any = {}
+            for (let i = 0, length = columns.length; i < length; i++) {
+                let column = columns[i]
+                allow[column] = true
+            }
+            for (let j = 0, length = multiple.length; j < length; j++) {
+                const item = multiple[j]!
+                const properties = Object.getOwnPropertyNames(item)
+                for (let i = 0, length = properties.length; i < length; i++) {
+                    const property = properties[i]!
+                    if (!allow[property]) {
+                        delete item[property]
+                    }
+                }
+            }
+            return this
         } else {
             sets = this.__sets
         }
@@ -605,6 +654,19 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+        } else if (this.__multiple) {
+            const multiple = this.__getSetsForMultipleInsert()
+            for (let j = 0, length = multiple.length; j < length; j++) {
+                const item = multiple[j]!
+                for (let i = 0, length = columns.length; i < length; i++) {
+                    let column = columns[i]
+                    if (!this.__sqlBuilder._isValue(item[column])) {
+                        continue
+                    }
+                    delete item[column]
+                }
+            }
+            return this
         } else {
             sets = this.__sets
         }
@@ -623,6 +685,19 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+        } else if (this.__multiple) {
+            const multiple = this.__getSetsForMultipleInsert()
+            for (let j = 0, length = multiple.length; j < length; j++) {
+                const item = multiple[j]!
+                for (let i = 0, length = columns.length; i < length; i++) {
+                    let column = columns[i]
+                    if (this.__sqlBuilder._isValue(item[column])) {
+                        continue
+                    }
+                    delete item[column]
+                }
+            }
+            return this
         } else {
             sets = this.__sets
         }
@@ -641,6 +716,20 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         let sets
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+        } else if (this.__multiple) {
+            const multiple = this.__getSetsForMultipleInsert()
+            for (let j = 0, length = multiple.length; j < length; j++) {
+                const item = multiple[j]!
+                const properties = Object.getOwnPropertyNames(item)
+                for (let i = 0, length = properties.length; i < length; i++) {
+                    const property = properties[i]!
+                    if (this.__sqlBuilder._isValue(item[property])) {
+                        continue
+                    }
+                    delete item[property]
+                }
+            }
+            return this
         } else {
             sets = this.__sets
         }
@@ -651,6 +740,227 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
                 continue
             }
             delete sets[property]
+        }
+        return this
+    }
+
+
+    setForAll(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        const sets = this.__getSetsForMultipleInsert()
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            for (let j = 0, length = sets.length; i < length; i++) {
+                sets[j]![property] = value
+            }
+        }
+        return this
+    }
+    setForAllIfValue(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        const sets = this.__getSetsForMultipleInsert()
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            if (!this.__sqlBuilder._isValue(value)) {
+                continue
+            }
+            for (let j = 0, length = sets.length; i < length; i++) {
+                const item = sets[j]!
+                item[property] = value
+            }
+        }
+        return this
+    }
+    setForAllIfSet(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        const sets = this.__getSetsForMultipleInsert()
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            for (let j = 0, length = sets.length; i < length; i++) {
+                const item = sets[j]!
+                if (!(property in item)) {
+                    continue
+                }
+                item[property] = value
+            }
+        }
+        return this
+    }
+    setForAllIfSetIfValue(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        const sets = this.__getSetsForMultipleInsert()
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            if (!this.__sqlBuilder._isValue(value)) {
+                continue
+            }
+            for (let j = 0, length = sets.length; i < length; i++) {
+                const item = sets[j]!
+                if (!(property in item)) {
+                    continue
+                }
+                item[property] = value
+            }
+        }
+        return this
+    }
+    setForAllIfNotSet(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        const sets = this.__getSetsForMultipleInsert()
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            for (let j = 0, length = sets.length; i < length; i++) {
+                const item = sets[j]!
+                if (property in item) {
+                    continue
+                }
+                item[property] = value
+            }
+        }
+        return this
+    }
+    setForAllIfNotSetIfValue(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        const sets = this.__getSetsForMultipleInsert()
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            if (!this.__sqlBuilder._isValue(value)) {
+                continue
+            }
+            for (let j = 0, length = sets.length; i < length; i++) {
+                const item = sets[j]!
+                if (property in item) {
+                    continue
+                }
+                item[property] = value
+            }
+        }
+        return this
+    }
+
+    setForAllIfHasValue(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        const sets = this.__getSetsForMultipleInsert()
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            for (let j = 0, length = sets.length; i < length; i++) {
+                const item = sets[j]!
+                if (!this.__sqlBuilder._isValue(item[property])) {
+                    continue
+                }
+                item[property] = value
+            }
+        }
+        return this
+    }
+    setForAllIfHasValueIfValue(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        const sets = this.__getSetsForMultipleInsert()
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            if (!this.__sqlBuilder._isValue(value)) {
+                continue
+            }
+            for (let j = 0, length = sets.length; i < length; i++) {
+                const item = sets[j]!
+                if (!this.__sqlBuilder._isValue(item[property])) {
+                    continue
+                }
+                item[property] = value
+            }
+        }
+        return this
+    }
+    setForAllIfHasNoValue(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        const sets = this.__getSetsForMultipleInsert()
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            for (let j = 0, length = sets.length; i < length; i++) {
+                const item = sets[j]!
+                if (this.__sqlBuilder._isValue(item[property])) {
+                    continue
+                }
+                item[property] = value
+            }
+        }
+        return this
+    }
+    setForAllIfHasNoValueIfValue(columns: any): this {
+        this.__query = ''
+        if (!columns) {
+            return this
+        }
+
+        const sets = this.__getSetsForMultipleInsert()
+        const properties = Object.getOwnPropertyNames(columns)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = columns[property]
+            if (!this.__sqlBuilder._isValue(value)) {
+                continue
+            }
+            for (let j = 0, length = sets.length; i < length; i++) {
+                const item = sets[j]!
+                if (this.__sqlBuilder._isValue(item[property])) {
+                    continue
+                }
+                item[property] = value
+            }
         }
         return this
     }
@@ -666,6 +976,9 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         } else {
             return this.set(columns)
         }
+    }
+    dynamicValues(columns: any): this {
+        return this.values(columns)
     }
     from(select: IExecutableSelectQuery<any, any, any, any>): this {
         this.__from = select as any as SelectData

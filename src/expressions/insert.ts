@@ -143,13 +143,13 @@ export interface ExecutableInsertExpression<TABLE extends ITableOrView<any>> ext
     setIfSetIfValue(columns: OptionalInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     setIfNotSet(columns: InsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     setIfNotSetIfValue(columns: OptionalInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
-    ignoreIfSet<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): RequiredColumnsForSetOf<TABLE> extends COLUMNS & RequiredColumnsForSetOf<TABLE> ? MissingKeysInsertExpression<TABLE, COLUMNS & RequiredColumnsForSetOf<TABLE>> : ExecutableInsertExpression<TABLE>
-    keepOnly<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS> extends RequiredColumnsForSetOf<TABLE> ? MissingKeysInsertExpression<TABLE, Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS>> : ExecutableInsertExpression<TABLE>
+    ignoreIfSet<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): MaybeExecutableInsertExpression<TABLE, COLUMNS & RequiredColumnsForSetOf<TABLE>>
+    keepOnly<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): MaybeExecutableInsertExpression<TABLE, Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS>>
 
     setIfHasValue(columns: InsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     setIfHasValueIfValue(columns: OptionalInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     setIfHasNoValue(columns: InsertSets<TABLE>): ExecutableInsertExpression<TABLE>
-    setIfHasNoValueIfValue(columns: OptionalInsertSets<TABLE>): this
+    setIfHasNoValueIfValue(columns: OptionalInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     ignoreIfHasValue(...columns: OptionalColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
     ignoreIfHasNoValue(...columns: OptionalColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
     ignoreAnySetWithNoValue(): ExecutableInsertExpression<TABLE>
@@ -174,6 +174,44 @@ export interface MissingKeysInsertExpression<TABLE extends ITableOrView<any>, MI
     ignoreAnySetWithNoValue(): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
 }
 
+export interface ExecutableMultipleInsertExpression<TABLE extends ITableOrView<any>> extends CustomizableExecutableMultipleInsert<TABLE> {
+    setForAll(columns: InsertSets<TABLE>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfValue(columns: OptionalInsertSets<TABLE>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfSet(columns: InsertSets<TABLE>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfSetIfValue(columns: OptionalInsertSets<TABLE>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfNotSet(columns: InsertSets<TABLE>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfNotSetIfValue(columns: OptionalInsertSets<TABLE>): ExecutableMultipleInsertExpression<TABLE>
+    ignoreIfSet<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): MaybeExecutableMultipleInsertExpression<TABLE, COLUMNS & RequiredColumnsForSetOf<TABLE>>
+    keepOnly<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): MaybeExecutableMultipleInsertExpression<TABLE, Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS>>
+
+    setForAllIfHasValue(columns: InsertSets<TABLE>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfHasValueIfValue(columns: OptionalInsertSets<TABLE>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfHasNoValue(columns: InsertSets<TABLE>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfHasNoValueIfValue(columns: OptionalInsertSets<TABLE>): ExecutableMultipleInsertExpression<TABLE>
+    ignoreIfHasValue(...columns: OptionalColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+    ignoreIfHasNoValue(...columns: OptionalColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+    ignoreAnySetWithNoValue(): ExecutableMultipleInsertExpression<TABLE>
+}
+
+export interface MissingKeysMultipleInsertExpression<TABLE extends ITableOrView<any>, MISSING_KEYS> extends InsertExpressionBase<TABLE> {
+    setForAll<COLUMNS extends InsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableMultipleInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
+    setForAllIfValue<COLUMNS extends OptionalInsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableMultipleInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
+    setForAllIfSet<COLUMNS extends InsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableMultipleInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
+    setForAllIfSetIfValue<COLUMNS extends OptionalInsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableMultipleInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
+    setForAllIfNotSet<COLUMNS extends InsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableMultipleInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
+    setForAllIfNotSetIfValue<COLUMNS extends OptionalInsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableMultipleInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
+    ignoreIfSet<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): MissingKeysMultipleInsertExpression<TABLE, (COLUMNS & RequiredColumnsForSetOf<TABLE>) | MISSING_KEYS>
+    keepOnly<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): MissingKeysMultipleInsertExpression<TABLE, Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS> | MISSING_KEYS>
+    
+    setForAllIfHasValue<COLUMNS extends InsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableMultipleInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
+    setForAllIfHasValueIfValue<COLUMNS extends OptionalInsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableMultipleInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
+    setForAllIfHasNoValue<COLUMNS extends InsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableMultipleInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
+    setForAllIfHasNoValueIfValue<COLUMNS extends OptionalInsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableMultipleInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
+    ignoreIfHasValue(...columns: OptionalColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    ignoreIfHasNoValue(...columns: OptionalColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    ignoreAnySetWithNoValue(): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+}
+
 export interface InsertExpression<TABLE extends ITableOrView<any>> extends InsertExpressionBase<TABLE> {
     dynamicSet(): MissingKeysInsertExpression<TABLE, keyof RequiredColumnsForSetOf<TABLE>>
     dynamicSet<COLUMNS extends InsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, Exclude<keyof RequiredColumnsForSetOf<TABLE>, keyof COLUMNS>>
@@ -181,6 +219,8 @@ export interface InsertExpression<TABLE extends ITableOrView<any>> extends Inser
     setIfValue(columns: MandatoryOptionalInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     values(columns: MandatoryInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     values(columns: Array<MandatoryInsertSets<TABLE>>): CustomizableExecutableMultipleInsert<TABLE>
+    dynamicValues<COLUMNS extends InsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, Exclude<keyof RequiredColumnsForSetOf<TABLE>, keyof COLUMNS>>
+    dynamicValues<COLUMNS extends InsertSets<TABLE>>(columns: Array<COLUMNS>): MaybeExecutableMultipleInsertExpression<TABLE, Exclude<keyof RequiredColumnsForSetOf<TABLE>, keyof COLUMNS>>
     defaultValues: DefaultValueType<TABLE>
     from(select: IExecutableSelectQuery<TABLE[typeof database], SelectForInsertResultType<TABLE>, SelectForInsertColumns<TABLE>, NoTableOrViewRequiredView<TABLE[typeof database]>>): CustomizableExecutableInsertFromSelect<TABLE>
 }
@@ -511,6 +551,9 @@ type DefaultValueType<TABLE extends ITableOrView<any>> =
 
 type MaybeExecutableInsertExpression<TABLE extends ITableOrView<any>, MISSING_KEYS> =
     [MISSING_KEYS] extends [never] ? ExecutableInsertExpression<TABLE> :  MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+
+type MaybeExecutableMultipleInsertExpression<TABLE extends ITableOrView<any>, MISSING_KEYS> =
+    [MISSING_KEYS] extends [never] ? ExecutableMultipleInsertExpression<TABLE> :  MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
 
 type SelectForInsertResultType<TABLE extends ITableOrView<any>> = {
     [P in RequiredColumnsForSetOf<TABLE>]: ValueSourceValueType<TABLE[P]>

@@ -30,7 +30,7 @@ export type RequiredKeysOfPickingColumns<T> = T extends AnyValueSource ? never :
 
 // For compose and split
 
-export type ColumnGuard<T> = T extends null | undefined ? never : T extends never ? never : T extends AnyValueSource ? never : unknown
+export type ColumnGuard<T> = T extends null | undefined ? never : [T] extends [never] ? never : T extends AnyValueSource ? never : unknown
 export type GuidedObj<T> = T & { [K in keyof T as K extends string | number ? `${K}!` : never]-?: NonNullable<T[K]>} & { [K in keyof T as K extends string | number ? `${K}?` : never]?: T[K]}
 export type GuidedPropName<T> = T extends `${infer Q}!` ? Q : T extends `${infer Q}?` ? Q : T
 export type ValueOf<T> = T[keyof T]

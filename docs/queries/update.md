@@ -228,3 +228,42 @@ The result type is a promise with the information of the updated rows:
 ```tsx
 const updateCustomer: Promise<number>
 ```
+
+## Update multiple tables in a single query
+
+If you are using `MariaDB`or `MySql` you can update multiples tables in a single query. To do this you will need to join the tables to update, and then specify the value's shape.
+
+```ts
+const shapedUpdateCustomerNameAndCompanyName = {
+    id: 12,
+    customerFirstName: 'John',
+    customerLastName: 'Smith',
+    companyName: 'ACME Inc.'
+}
+
+const shapedUpdateCustomerNameAndCompanyNameResult = await connection.update(tCustomer)
+    .innerJoin(tCompany).on(tCustomer.companyId.equals(tCompany.id))
+    .shapedAs({
+        customerFirstName: tCustomer.firstName,
+        customerLastName: tCustomer.lastName,
+        companyName: tCompany.name
+    })
+    .set(shapedUpdateCustomerNameAndCompanyName)
+    .where(tCustomer.id.equals(shapedUpdateCustomerName.id))
+    .executeUpdate()
+```
+
+The executed query is:
+```sql
+update customer 
+inner join company on customer.company_id = company.id 
+set customer.first_name = ?, customer.last_name = ?, company.name = ? 
+where customer.id = ?
+```
+
+The parameters are: `[ "John", "Smith", "ACME Inc.", 12 ]`
+
+The result type is a promise with the information of the updated rows:
+```tsx
+const shapedUpdateCustomerNameAndCompanyNameResult: Promise<number>
+```

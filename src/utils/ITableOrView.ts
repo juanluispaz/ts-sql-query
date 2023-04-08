@@ -118,6 +118,10 @@ export interface ITableOf<DB extends AnyDB, REF extends ITableOrViewRef<DB>> ext
     
 }
 
+export interface ITableOfDB<DB extends AnyDB> extends ITable<ITableOrViewRef<DB>> {
+
+}
+
 export interface IView<REF extends ITableOrViewRef<AnyDB>> extends ITableOrView<REF>{
     [type]: 'view'
 }

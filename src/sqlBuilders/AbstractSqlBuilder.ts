@@ -1765,51 +1765,69 @@ export class AbstractSqlBuilder implements SqlBuilder {
         updateQuery += this._buildAfterUpdateTable(query, params)
 
         const shape = query.__shape
-        if (shape) {
-            const shapeProperties = Object.getOwnPropertyNames(sets)
-            for (let i = 0, length = shapeProperties.length; i < length; i++) {
-                const property = shapeProperties[i]!
-                const column = __getColumnOfObject(shape, property)
-                if (!column) {
+        let columns = ''
+        let updatePrimaryKey = false
+        if (shape) { // Follow shape order
+            const properties = Object.getOwnPropertyNames(shape)
+            for (let i = 0, length = properties.length; i < length; i++) {
+                const property = properties[i]!
+                const shapePropertyValue = shape[property]!
+                let column
+                if (typeof shapePropertyValue === 'string') {
+                    column = __getColumnOfObject(table, shapePropertyValue)
+                    if (!column) {
+                        throw new Error('Unable to find the column "' + shapePropertyValue + '" in the table indicated in the provided shape property "' + shapePropertyValue + '"')
+                    }
+                } else {
+                    column = shapePropertyValue
+                }
+                if (!isColumn(column)) {
                     // Additional property provided in the value object
-                    // Skipped because it is not part of the shape
+                    // Skipped because it is not part of the table
                     // This allows to have more complex objects used in the query
+                    continue
+                }
+                if (!(property in sets)) {
+                    // No value set for that property in the shape
                     continue
                 }
 
                 const columnPrivate = __getColumnPrivate(column)
+                updatePrimaryKey = updatePrimaryKey || columnPrivate.__isPrimaryKey
+
+                if (columns) {
+                    columns += ', '
+                }
                 const value = sets[property]
 
-                if (columnPrivate.__optionalType === 'required' && !this._isValue(value)) {
-                    throw new Error('No value found for the required property ' + property + ' in the update shape')
+                columns += this._appendColumnNameForUpdate(column, params)
+                columns += ' = '
+                columns += this._appendValueForColumn(column, value, params)
+            }
+        } else { // No shape, follow set order
+            const properties = Object.getOwnPropertyNames(sets)
+            for (let i = 0, length = properties.length; i < length; i++) {
+                const property = properties[i]!
+                const column =  __getColumnOfObject(table, property)
+                if (!column) {
+                    // Additional property provided in the value object
+                    // Skipped because it is not part of the table
+                    // This allows to have more complex objects used in the query
+                    continue
                 }
+    
+                const columnPrivate = __getColumnPrivate(column)
+                updatePrimaryKey = updatePrimaryKey || columnPrivate.__isPrimaryKey
+    
+                if (columns) {
+                    columns += ', '
+                }
+                const value = sets[property]
+    
+                columns += this._appendColumnNameForUpdate(column, params)
+                columns += ' = '
+                columns += this._appendValueForColumn(column, value, params)
             }
-        }
-
-        let columns = ''
-        let updatePrimaryKey = false
-        const properties = Object.getOwnPropertyNames(sets)
-        for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]!
-            const column = shape ? __getColumnOfObject(shape, property) : __getColumnOfObject(table, property)
-            if (!column) {
-                // Additional property provided in the value object
-                // Skipped because it is not part of the table
-                // This allows to have more complex objects used in the query
-                continue
-            }
-
-            const columnPrivate = __getColumnPrivate(column)
-            updatePrimaryKey = updatePrimaryKey || columnPrivate.__isPrimaryKey
-
-            if (columns) {
-                columns += ', '
-            }
-            const value = sets[property]
-
-            columns += this._appendColumnNameForUpdate(column, params)
-            columns += ' = '
-            columns += this._appendValueForColumn(column, value, params)
         }
         updateQuery += ' set ' + columns
 

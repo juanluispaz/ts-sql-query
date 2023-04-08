@@ -183,7 +183,7 @@ export interface InsertData extends WithQueryData {
 
 export interface UpdateData extends WithQueryData {
     __table: ITable<any>
-    __shape?: { [property: string] : Column}
+    __shape?: { [property: string] : Column | string }
     __sets: { [property: string] : any}
     __where?: AlwaysIfValueSource<any, any>
     __allowNoWhere: boolean

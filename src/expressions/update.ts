@@ -41,6 +41,7 @@ export interface ExecutableUpdateExpression<TABLE extends ITableOrView<any>, USI
     setIfNotSet(columns: UpdateSets<TABLE, USING, undefined>): ExecutableUpdateExpression<TABLE, USING>
     setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE, USING, undefined>): ExecutableUpdateExpression<TABLE, USING>
     ignoreIfSet(...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    keepOnly(...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
 
     setIfHasValue(columns: UpdateSets<TABLE, USING, undefined>): ExecutableUpdateExpression<TABLE, USING>
     setIfHasValueIfValue(columns: OptionalUpdateSets<TABLE, USING, undefined>): ExecutableUpdateExpression<TABLE, USING>
@@ -64,6 +65,7 @@ export interface ShapedExecutableUpdateExpression<TABLE extends ITableOrView<any
     setIfNotSet(columns: UpdateSets<TABLE, USING, SHAPE>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
     setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
     ignoreIfSet(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    keepOnly(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
 
     setIfHasValue(columns: UpdateSets<TABLE, USING, SHAPE>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
     setIfHasValueIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
@@ -86,6 +88,7 @@ export interface NotExecutableUpdateExpression<TABLE extends ITableOrView<any>, 
     setIfNotSet(columns: UpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
     setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
     ignoreIfSet(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    keepOnly(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
 
     setIfHasValue(columns: UpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
     setIfHasValueIfValue(columns: OptionalUpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
@@ -109,6 +112,7 @@ export interface ShapedNotExecutableUpdateExpression<TABLE extends ITableOrView<
     setIfNotSet(columns: UpdateSets<TABLE, USING, SHAPE>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
     setIfNotSetIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
     ignoreIfSet(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    keepOnly(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
 
     setIfHasValue(columns: UpdateSets<TABLE, USING, SHAPE>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
     setIfHasValueIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>

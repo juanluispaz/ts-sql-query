@@ -144,6 +144,7 @@ export interface ExecutableInsertExpression<TABLE extends ITableOrView<any>> ext
     setIfNotSet(columns: InsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     setIfNotSetIfValue(columns: OptionalInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     ignoreIfSet<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): RequiredColumnsForSetOf<TABLE> extends COLUMNS & RequiredColumnsForSetOf<TABLE> ? MissingKeysInsertExpression<TABLE, COLUMNS & RequiredColumnsForSetOf<TABLE>> : ExecutableInsertExpression<TABLE>
+    keepOnly<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS> extends RequiredColumnsForSetOf<TABLE> ? MissingKeysInsertExpression<TABLE, Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS>> : ExecutableInsertExpression<TABLE>
 
     setIfHasValue(columns: InsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     setIfHasValueIfValue(columns: OptionalInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
@@ -162,7 +163,8 @@ export interface MissingKeysInsertExpression<TABLE extends ITableOrView<any>, MI
     setIfNotSet<COLUMNS extends InsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
     setIfNotSetIfValue<COLUMNS extends OptionalInsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
     ignoreIfSet<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): MissingKeysInsertExpression<TABLE, (COLUMNS & RequiredColumnsForSetOf<TABLE>) | MISSING_KEYS>
-
+    keepOnly<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): MissingKeysInsertExpression<TABLE, Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS> | MISSING_KEYS>
+    
     setIfHasValue<COLUMNS extends InsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
     setIfHasValueIfValue<COLUMNS extends OptionalInsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
     setIfHasNoValue<COLUMNS extends InsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
@@ -407,6 +409,7 @@ export interface InsertOnConflictSetsExpression<TABLE extends ITableOrView<any>,
     setIfNotSet(columns: OnConflictUpdateSets<TABLE>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
     setIfNotSetIfValue(columns: OnConflictOptionalUpdateSets<TABLE>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
     ignoreIfSet(...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    keepOnly(...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
 
     setIfHasValue(columns: OnConflictUpdateSets<TABLE>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
     setIfHasValueIfValue(columns: OnConflictOptionalUpdateSets<TABLE>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT

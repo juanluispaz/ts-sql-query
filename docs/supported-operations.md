@@ -1072,6 +1072,8 @@ interface InsertExpression {
     setIfNotSetIfValue(columns: OptionalInsertSets): this
     /** Unset the listed columns previous set */
     ignoreIfSet(...columns: string[]): this
+    /** Keep only the listed columns previous set */
+    keepOnly(...columns: string[]): this
 
     /** 
      * Set a value for the specified columns that was previously indicated a value for set.
@@ -1297,6 +1299,8 @@ interface UpdateExpression {
     setIfNotSetIfValue(columns: OptionalUpdateSets): this
     /** Unset the listed columns previous set */
     ignoreIfSet(...columns: string[]): this
+    /** Keep only the listed columns previous set */
+    keepOnly(...columns: string[]): this
 
     /** 
      * Set a value for the specified columns that was previously indicated a value for set.

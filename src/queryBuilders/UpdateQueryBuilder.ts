@@ -390,6 +390,23 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
         return this
     }
+    keepOnly(...columns: any[]): this {
+        this.__query = ''
+        let sets = this.__sets
+        const allow: any = {}
+        for (let i = 0, length = columns.length; i < length; i++) {
+            let column = columns[i]
+            allow[column] = true
+        }
+        const properties = Object.getOwnPropertyNames(sets)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            if (!allow[property]) {
+                delete sets[property]
+            }
+        }
+        return this
+    }
 
     setIfHasValue(columns: any): this {
         this.__query = ''

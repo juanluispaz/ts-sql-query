@@ -276,10 +276,15 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             return this
         }
 
+        const shape = this.__shape
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
             sets[property] = value
             __addWiths(this.__sqlBuilder, value, this.__withs)
@@ -292,10 +297,15 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             return this
         }
 
+        const shape = this.__shape
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
             if (!this.__sqlBuilder._isValue(value)) {
                 continue
@@ -310,10 +320,15 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             return this
         }
 
+        const shape = this.__shape
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (!(property in sets)) {
                 continue
             }
@@ -329,10 +344,15 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             return this
         }
 
+        const shape = this.__shape
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (!(property in sets)) {
                 continue
             }
@@ -350,10 +370,15 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             return this
         }
 
+        const shape = this.__shape
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (property in sets) {
                 continue
             }
@@ -369,10 +394,15 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             return this
         }
 
+        const shape = this.__shape
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (property in sets) {
                 continue
             }
@@ -417,10 +447,15 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             return this
         }
 
+        const shape = this.__shape
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (!this.__sqlBuilder._isValue(sets[property])) {
                 continue
             }
@@ -435,10 +470,15 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             return this
         }
 
+        const shape = this.__shape
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (!this.__sqlBuilder._isValue(sets[property])) {
                 continue
             }
@@ -456,10 +496,15 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             return this
         }
 
+        const shape = this.__shape
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (this.__sqlBuilder._isValue(sets[property])) {
                 continue
             }
@@ -474,10 +519,15 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             return this
         }
 
+        const shape = this.__shape
         let sets = this.__sets
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (this.__sqlBuilder._isValue(sets[property])) {
                 continue
             }

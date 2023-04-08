@@ -456,7 +456,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
         return this
     }
-    ignoreIfSet(...columns: any[]): this {
+    ignoreIfSet(...columns: any[]): any {
         this.__query = ''
 
         let sets

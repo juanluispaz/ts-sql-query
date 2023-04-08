@@ -143,7 +143,7 @@ export interface ExecutableInsertExpression<TABLE extends ITableOrView<any>> ext
     setIfSetIfValue(columns: OptionalInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     setIfNotSet(columns: InsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     setIfNotSetIfValue(columns: OptionalInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
-    ignoreIfSet(...columns: OptionalColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
+    ignoreIfSet<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): RequiredColumnsForSetOf<TABLE> extends COLUMNS & RequiredColumnsForSetOf<TABLE> ? MissingKeysInsertExpression<TABLE, COLUMNS & RequiredColumnsForSetOf<TABLE>> : ExecutableInsertExpression<TABLE>
 
     setIfHasValue(columns: InsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     setIfHasValueIfValue(columns: OptionalInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
@@ -161,7 +161,7 @@ export interface MissingKeysInsertExpression<TABLE extends ITableOrView<any>, MI
     setIfSetIfValue<COLUMNS extends OptionalInsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
     setIfNotSet<COLUMNS extends InsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
     setIfNotSetIfValue<COLUMNS extends OptionalInsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
-    ignoreIfSet(...columns: OptionalColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    ignoreIfSet<COLUMNS extends ColumnsForSetOf<TABLE>>(...columns: COLUMNS[]): MissingKeysInsertExpression<TABLE, (COLUMNS & RequiredColumnsForSetOf<TABLE>) | MISSING_KEYS>
 
     setIfHasValue<COLUMNS extends InsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>
     setIfHasValueIfValue<COLUMNS extends OptionalInsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, Exclude<MISSING_KEYS, keyof COLUMNS>>

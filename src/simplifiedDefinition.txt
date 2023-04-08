@@ -1148,6 +1148,7 @@ interface InsertExpression {
 
     /** Allows to set the values dynamically */
     dynamicSet(): this
+    dynamicSet(columns: InsertSets): this
 
     /** Insert the default values in the table */
     defaultValues(): this
@@ -1166,6 +1167,7 @@ interface InsertExpression {
     onConflictDoNothing(): this
     /** Allows to specify the "on conflict do update" clause and next specify the sets */
     onConflictDoUpdateDynamicSet(): this
+    onConflictDoUpdateDynamicSet(columns: UpdateSets): this
     /** Allows to specify the "on conflict do update set" clause, setting the columns provided as argument */
     onConflictDoUpdateSet(columns: UpdateSets): this
     /** 
@@ -1189,6 +1191,7 @@ interface InsertExpression {
     doNothing(): this
     /** Allows to specify the "do update" clause and next specify the sets */
     doUpdateDynamicSet(): this
+    doUpdateDynamicSet(columns: UpdateSets): this
     /** Allows to specify the do update set" clause, setting the columns provided as argument */
     doUpdateSet(columns: UpdateSets): this
     /** 
@@ -1373,6 +1376,7 @@ interface UpdateExpression {
     ignoreAnySetWithNoValue(): this
     /** Allows to set the values dynamically */
     dynamicSet(): this
+    dynamicSet(columns: UpdateSets): this
 
     /** Allows to create the where dynamically */
     dynamicWhere(): this

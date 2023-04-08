@@ -137,6 +137,7 @@ export interface DynamicExecutableUpdateExpression<TABLE extends ITableOrView<an
 export interface UpdateSetExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
     shapedAs<SHAPE extends UpdateShape<TABLE, USING>>(shape: SHAPE): ShapedUpdateSetExpression<TABLE, USING, ShapeFor<TABLE, SHAPE>>
     dynamicSet(): NotExecutableUpdateExpression<TABLE, USING>
+    dynamicSet(columns: UpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
     set(columns: UpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
     setIfValue(columns: OptionalUpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
 }
@@ -144,6 +145,7 @@ export interface UpdateSetExpression<TABLE extends ITableOrView<any>, USING exte
 export interface ShapedUpdateSetExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>, SHAPE> extends UpdateExpressionBase<TABLE> {
     extendShape<EXTEND_SHAPE extends UpdateShape<TABLE, USING>>(shape: SHAPE): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE & EXTEND_SHAPE>
     dynamicSet(): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    dynamicSet(columns: UpdateSets<TABLE, USING, SHAPE>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
     set(columns: UpdateSets<TABLE, USING, SHAPE>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
     setIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
 }
@@ -159,6 +161,7 @@ export interface UpdateExpression<TABLE extends ITableOrView<any>, USING extends
 export interface UpdateSetExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateExpressionBase<TABLE> {
     shapedAs<SHAPE extends UpdateShape<TABLE, USING>>(shape: SHAPE): ShapedUpdateSetExpressionAllowingNoWhere<TABLE, USING, ShapeFor<TABLE, SHAPE>>
     dynamicSet(): ExecutableUpdateExpression<TABLE, USING>
+    dynamicSet(columns: UpdateSets<TABLE, USING, undefined>): ExecutableUpdateExpression<TABLE, USING>
     set(columns: UpdateSets<TABLE, USING, undefined>): ExecutableUpdateExpression<TABLE, USING>
     setIfValue(columns: OptionalUpdateSets<TABLE, USING, undefined>): ExecutableUpdateExpression<TABLE, USING>
 }
@@ -166,6 +169,7 @@ export interface UpdateSetExpressionAllowingNoWhere<TABLE extends ITableOrView<a
 export interface ShapedUpdateSetExpressionAllowingNoWhere<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>, SHAPE> extends UpdateExpressionBase<TABLE> {
     extendShape<EXTEND_SHAPE extends UpdateShape<TABLE, USING>>(shape: SHAPE): ShapedUpdateSetExpressionAllowingNoWhere<TABLE, USING, SHAPE & EXTEND_SHAPE>
     dynamicSet(): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    dynamicSet(columns: UpdateSets<TABLE, USING, SHAPE>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
     set(columns: UpdateSets<TABLE, USING, SHAPE>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
     setIfValue(columns: OptionalUpdateSets<TABLE, USING, SHAPE>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
 }

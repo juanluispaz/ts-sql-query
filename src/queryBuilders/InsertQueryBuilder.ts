@@ -305,7 +305,10 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         return this.__toSql(sqlBuilder, params)
     }
 
-    dynamicSet(): any {
+    dynamicSet(columns?: any): any {
+        if (columns) {
+            return this.set(columns)
+        }
         this.__query = ''
         return this
     }
@@ -726,12 +729,15 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         this.__onConflictDoNothing = true
         return this
     }
-    onConflictDoUpdateDynamicSet(): any {
+    onConflictDoUpdateDynamicSet(columns?: any): any {
         this.__query = ''
         if (this.__onConflictUpdateSets) {
             throw new Error('Illegal state')
         }
         this.__onConflictUpdateSets = {}
+        if (columns) {
+            return this.set(columns)
+        }
         return this
     }
     onConflictDoUpdateSet(columns: any): any {
@@ -805,12 +811,15 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         this.__onConflictDoNothing = true
         return this
     }
-    doUpdateDynamicSet(): any {
+    doUpdateDynamicSet(columns?: any): any {
         this.__query = ''
         if (this.__onConflictUpdateSets) {
             throw new Error('Illegal state')
         }
         this.__onConflictUpdateSets = {}
+        if (columns) {
+            return this.set(columns)
+        }
         return this
     }
     doUpdateSet(columns: any): any {

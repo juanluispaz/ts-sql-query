@@ -261,7 +261,10 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         this.__shape = { ...this.__shape, ...shape }
         return this
     }
-    dynamicSet(): this {
+    dynamicSet(columns?: any): this {
+        if (columns) {
+            return this.set(columns)
+        }
         this.__finishJoin()
         this.__query = ''
         return this

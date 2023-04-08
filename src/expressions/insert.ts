@@ -176,6 +176,7 @@ export interface MissingKeysInsertExpression<TABLE extends ITableOrView<any>, MI
 
 export interface InsertExpression<TABLE extends ITableOrView<any>> extends InsertExpressionBase<TABLE> {
     dynamicSet(): MissingKeysInsertExpression<TABLE, keyof RequiredColumnsForSetOf<TABLE>>
+    dynamicSet<COLUMNS extends InsertSets<TABLE>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, Exclude<keyof RequiredColumnsForSetOf<TABLE>, keyof COLUMNS>>
     set(columns: MandatoryInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     setIfValue(columns: MandatoryOptionalInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
     values(columns: MandatoryInsertSets<TABLE>): ExecutableInsertExpression<TABLE>
@@ -441,9 +442,14 @@ type OnConflictDoNothingFnType<TABLE extends ITableOrView<any>, NEXT> =
     ? () => NEXT
     : never
 
+type OnConflictDoUpdateDynamicSetFn<TABLE extends ITableOrView<any>, NEXT, NEXT_WHERE> = {
+    (): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    (columns: OnConflictUpdateSets<TABLE>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+}
+
 type OnConflictDoUpdateDynamicSetFnType<TABLE extends ITableOrView<any>, NEXT, NEXT_WHERE> =
         TABLE[typeof database] extends (NoopDB | PostgreSql | Sqlite | MariaDB | MySql)
-        ? () => InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+        ? OnConflictDoUpdateDynamicSetFn<TABLE, NEXT, NEXT_WHERE>
         : never
 
 type OnConflictDoUpdateSetFnType<TABLE extends ITableOrView<any>, NEXT, NEXT_WHERE> =

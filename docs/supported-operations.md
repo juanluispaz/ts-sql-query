@@ -1320,12 +1320,12 @@ interface InsertExpression {
 
     /** Allows to set the values dynamically */
     dynamicSet(): this
-    dynamicSet(columns: InsertSets): this
+    dynamicSet(columns: OptionalInsertSets): this
 
     /** Alias to dynamicSet method: Allows to set the values dynamically */
-    dynamicValues(columns: InsertSets): this
+    dynamicValues(columns: OptionalInsertSets): this
     /** Allow to insert multiple registers in the database dynamically */
-    dynamicValues(columns: InsertSets[]): this
+    dynamicValues(columns: OptionalInsertSets[]): this
 
     /** Insert the default values in the table */
     defaultValues(): this

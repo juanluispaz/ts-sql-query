@@ -271,3 +271,143 @@ The result type is a promise with the information of the updated rows:
 ```tsx
 const shapedUpdateCustomerNameAndCompanyNameResult: Promise<number>
 ```
+
+## Manipulating values to update
+
+ts-sql-qeury offers many commodity methods to manipulate the data to update, allowing adding missing values, deleting undesired values, or throwing an error if a value is present.
+
+When you write your update query, you set the initial value calling:
+
+```ts
+interface UpdateExpression {
+    set(columns: UpdateSets): this
+    dynamicSet(): this
+    dynamicSet(columns: UpdateSets): this
+}
+```
+
+The `set` and method will require you to provide the values to update. The `dynamicSet` will allow you start with no values at all.
+
+When you set the initial value, you can start manipulating them using the following methods:
+
+```ts
+interface UpdateExpression {
+    /** Set the values for update */
+    set(columns: UpdateSets): this
+    /** Set a value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array 
+     */
+    setIfValue(columns: OptionalUpdateSets): this
+    /** Set a previous set value only */
+    setIfSet(columns: UpdateSets): this
+    /** Set a previous set value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array
+     */
+    setIfSetIfValue(columns: OptionalUpdateSets): this
+    /** Set a unset value (only if the value was not previously set) */
+    setIfNotSet(columns: UpdateSets): this
+    /** 
+     * Set a unset value only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array
+     * (only if the value was not previously set) 
+     */
+    setIfNotSetIfValue(columns: OptionalUpdateSets): this
+
+    /** 
+     * Set a value for the specified columns that was previously indicated a value for set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setIfHasValue(columns: UpdateSets): this
+    /** 
+     * Set a value for the specified columns that was previously indicated a value for 
+     * set only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setIfHasValueIfValue(columns: OptionalUpdateSets): this
+    /** 
+     * Set a value for the specified columns that has not value to set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setIfHasNoValue(columns: UpdateSets): this
+    /** 
+     * Set a value for the specified columns that has no value to set 
+     * only if the provided value is not null, undefined, empty string 
+     * (only when the allowEmptyString flag in the connection is not set to true, 
+     * that is the default behaviour) or an empty array.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    setIfHasNoValueIfValue(columns: OptionalUpdateSets): this
+
+    /** Unset the listed columns previous set */
+    ignoreIfSet(...columns: string[]): this
+    /** Keep only the listed columns previous set */
+    keepOnly(...columns: string[]): this
+    /** 
+     * Unset the listed columns if them has value to set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    ignoreIfHasValue(...columns: string[]): this
+    /** 
+     * Unset the listed columns if them has no value to set.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    ignoreIfHasNoValue(...columns: string[]): this
+    /** 
+     * Unset all columns that was set with no value.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    ignoreAnySetWithNoValue(): this
+
+    /**
+     * Throw an error if the indicated properties are set
+     */
+    disallowIfSet(errorMessage: string, ...columns: string[]): this
+    disallowIfSet(error: Error, ...columns: string[]): this
+    /**
+     * Throw an error if the indicated properties are not set
+     */
+    disallowIfNotSet(errorMessage: string, ...columns: string[]): this
+    disallowIfNotSet(error: Error, ...columns: string[]): this
+    /**
+     * Throw an error if the indicated properties was set with a value.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    disallowIfValue(errorMessage: string, ...columns: string[]): this
+    disallowIfValue(error: Error, ...columns: string[]): this
+    /**
+     * Throw an error if the indicated properties was set not set or has no value.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    disallowIfNoValue(errorMessage: string, ...columns: string[]): this
+    disallowIfNoValue(error: Error, ...columns: string[]): this
+    /**
+     * Throw an error if the any other set except the provided column list
+     */
+    disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
+    disallowAnyOtherSet(error: Error, ...columns: string[]): this
+```
+
+All these methods have a `When` variant that allows you to specify as the first argument a boolean that, when it is true, the action will be executed. Like: `setWhen(when: boolean, columns: UpdateSets): this`

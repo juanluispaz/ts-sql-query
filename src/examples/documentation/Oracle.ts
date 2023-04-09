@@ -640,7 +640,7 @@ async function main() {
     result = [2, 3]
     expectedResult.push(result)
     expectedQuery.push(`begin insert into customer (first_name, last_name, company_id) values (:0, :1, :2) returning id into :3; insert into customer (first_name, last_name, company_id) values (:4, :5, :6) returning id into :7; end;`)
-    expectedParams.push(`["John","Smith",23,"Other","Person",23]`)
+    expectedParams.push(`["John","Smith",23,{"dir":3003},"Other","Person",23,{"dir":3003}]`)
     expectedType.push(`insertReturningMultipleLastInsertedId`)
     
     /* *** Example ****************************************************************/

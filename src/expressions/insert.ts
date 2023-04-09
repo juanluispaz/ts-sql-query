@@ -277,8 +277,8 @@ export interface MissingKeysInsertExpression<TABLE extends ITableOrView<any>, MI
     disallowIfNotSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
     disallowIfValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
     disallowIfValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
-    disallowIfNotValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
-    disallowIfNotValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfNotValue<COLUMNS extends ColumnsForSetOf<TABLE>>(errorMessage: string, ...columns: COLUMNS[]): MissingKeysInsertExpression<TABLE, Exclude<MISSING_KEYS, COLUMNS>>
+    disallowIfNotValue<COLUMNS extends ColumnsForSetOf<TABLE>>(error: Error, ...columns:COLUMNS[]): MissingKeysInsertExpression<TABLE, Exclude<MISSING_KEYS, COLUMNS>>
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
 
@@ -336,8 +336,8 @@ export interface ShapedMissingKeysInsertExpression<TABLE extends ITableOrView<an
     disallowIfNotSet(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     disallowIfValue(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     disallowIfValue(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
-    disallowIfNotValue(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
-    disallowIfNotValue(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfNotValue<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(errorMessage: string, ...columns: COLUMNS[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, Exclude<MISSING_KEYS, COLUMNS>, MISSING_KEYS_IN_SHAPE>
+    disallowIfNotValue<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(error: Error, ...columns: COLUMNS[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, Exclude<MISSING_KEYS, COLUMNS>, MISSING_KEYS_IN_SHAPE>
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
 
@@ -511,8 +511,8 @@ export interface MissingKeysMultipleInsertExpression<TABLE extends ITableOrView<
     disallowIfNotSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
     disallowIfValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
     disallowIfValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
-    disallowIfNotValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
-    disallowIfNotValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfNotValue<COLUMNS extends ColumnsForSetOf<TABLE>>(errorMessage: string, ...columns: COLUMNS[]): MissingKeysMultipleInsertExpression<TABLE, Exclude<MISSING_KEYS, COLUMNS>>
+    disallowIfNotValue<COLUMNS extends ColumnsForSetOf<TABLE>>(error: Error, ...columns: COLUMNS[]): MissingKeysMultipleInsertExpression<TABLE, Exclude<MISSING_KEYS, COLUMNS>>
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
 
@@ -570,8 +570,8 @@ export interface ShapedMissingKeysMultipleInsertExpression<TABLE extends ITableO
     disallowIfNotSet(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     disallowIfValue(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     disallowIfValue(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
-    disallowIfNotValue(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
-    disallowIfNotValue(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfNotValue<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(errorMessage: string, ...columns: COLUMNS[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, Exclude<MISSING_KEYS, COLUMNS>, MISSING_KEYS_IN_SHAPE>
+    disallowIfNotValue<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(error: Error, ...columns: COLUMNS[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, Exclude<MISSING_KEYS, COLUMNS>, MISSING_KEYS_IN_SHAPE>
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
 

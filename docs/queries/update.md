@@ -196,6 +196,7 @@ const customerId = 10
 const customerData = {
     newFirstName: 'John',
     newLastName: 'Smith',
+    // You can include customerId here if you want, because it is not part of the shape it will be ignored
 }
 const currentCompanyId = 23
 
@@ -203,6 +204,7 @@ const updateCustomer = connection.update(tCustomer)
     .shapedAs({
         newFirstName: 'firstName',
         newLastName: 'lastName'
+        // Any property in the values not included here will be ignored
     }) // Only these properties are allowed
     .set(customerData)
     .extendShape({
@@ -211,6 +213,8 @@ const updateCustomer = connection.update(tCustomer)
     .set({
         newCompanyId: currentCompanyId
     })
+    // If you included the customerId in the data, the you should be able to do:
+    // .where(tCustomer.id.equals(customerData.customerId))
     .where(tCustomer.id.equals(customerId))
     .executeUpdate()
 ```

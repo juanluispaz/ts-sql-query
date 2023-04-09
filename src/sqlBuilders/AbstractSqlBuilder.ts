@@ -1663,52 +1663,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 columns += ' = '
                 columns += this._appendValueForColumn(column, value, params)
             }
+            
             if (!columns) {
-                // Let create a fake update on conflict with a non primary key field
-                const insertProperties = Object.getOwnPropertyNames(query.__multiple?.[0] || query.__from?.__columns || query.__sets)
-                for (let i = 0, length = insertProperties.length; i < length; i++) {
-                    const property = insertProperties[i]!
-                    const column = __getColumnOfObject(table, property)
-                    if (!column) {
-                        // Additional property provided in the value object
-                        // Skipped because it is not part of the table
-                        // This allows to have more complex objects used in the query
-                        continue
-                    }
-                    if (__getColumnPrivate(column).__isPrimaryKey) {
-                        continue
-                    }
-
-                    columns += this._appendColumnNameForUpdate(column, params)
-                    columns += ' = '
-                    columns += this._appendColumnNameForUpdate(column, params)
-                    break
-                }
-            }
-            if (!columns) {
-                // Let create a fake update on conflict with a primary key field
-                const insertProperties = Object.getOwnPropertyNames(query.__multiple?.[0] || query.__from?.__columns || query.__sets)
-                for (let i = 0, length = insertProperties.length; i < length; i++) {
-                    const property = insertProperties[i]!
-                    const column = __getColumnOfObject(table, property)
-                    if (!column) {
-                        // Additional property provided in the value object
-                        // Skipped because it is not part of the table
-                        // This allows to have more complex objects used in the query
-                        continue
-                    }
-                    if (!__getColumnPrivate(column).__isPrimaryKey) {
-                        continue
-                    }
-
-                    columns += this._appendColumnNameForUpdate(column, params)
-                    columns += ' = '
-                    columns += this._appendColumnNameForUpdate(column, params)
-                    break
-                }
-            }
-            if (!columns) {
-                throw new Error('Unable to build a on conflict do update set clause for an insert, no fields in the set found')
+                return ''
             }
 
             result += ' do update set ' + columns

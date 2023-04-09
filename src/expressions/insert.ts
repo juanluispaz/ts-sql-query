@@ -164,6 +164,34 @@ export interface ExecutableInsertExpression<TABLE extends ITableOrView<any>> ext
     disallowIfNotValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
+    
+    setWhen(when: boolean, columns: InsertSets<TABLE, undefined>): ExecutableInsertExpression<TABLE>
+    setIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): ExecutableInsertExpression<TABLE>
+    setIfSetWhen(when: boolean, columns: InsertSets<TABLE, undefined>): ExecutableInsertExpression<TABLE>
+    setIfSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): ExecutableInsertExpression<TABLE>
+    setIfNotSetWhen(when: boolean, columns: InsertSets<TABLE, undefined>): ExecutableInsertExpression<TABLE>
+    setIfNotSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): ExecutableInsertExpression<TABLE>
+    ignoreIfSetWhen<COLUMNS extends ColumnsForSetOf<TABLE>>(when: boolean, ...columns: COLUMNS[]): MaybeExecutableInsertExpression<TABLE, COLUMNS & RequiredColumnsForSetOf<TABLE>>
+    keepOnlyWhen<COLUMNS extends ColumnsForSetOf<TABLE>>(when: boolean, ...columns: COLUMNS[]): MaybeExecutableInsertExpression<TABLE, Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS>>
+
+    setIfHasValueWhen(when: boolean, columns: InsertSets<TABLE, undefined>): ExecutableInsertExpression<TABLE>
+    setIfHasValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): ExecutableInsertExpression<TABLE>
+    setIfHasNoValueWhen(when: boolean, columns: InsertSets<TABLE, undefined>): ExecutableInsertExpression<TABLE>
+    setIfHasNoValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): ExecutableInsertExpression<TABLE>
+    ignoreIfHasValueWhen(when: boolean, ...columns: OptionalColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: OptionalColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
+    ignoreAnySetWithNoValueWhen(when: boolean): ExecutableInsertExpression<TABLE>
+
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
+    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
+    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableInsertExpression<TABLE>
 }
 
 export interface ShapedExecutableInsertExpression<TABLE extends ITableOrView<any>, SHAPE> extends CustomizableExecutableSimpleInsert<TABLE, SHAPE> {
@@ -195,6 +223,34 @@ export interface ShapedExecutableInsertExpression<TABLE extends ITableOrView<any
     disallowIfNotValue(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
+
+    setWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    setIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    setIfSetWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    setIfSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    setIfNotSetWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    setIfNotSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    ignoreIfSetWhen<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(when: boolean, ...columns: COLUMNS[]): MaybeShapedExecutableInsertExpression<TABLE, SHAPE, COLUMNS & RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, never>
+    keepOnlyWhen<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(when: boolean, ...columns: COLUMNS[]): MaybeShapedExecutableInsertExpression<TABLE, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, COLUMNS>, never>
+
+    setIfHasValueWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    setIfHasValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    setIfHasNoValueWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    setIfHasNoValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    ignoreIfHasValueWhen(when: boolean, ...columns: OptionalColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: OptionalColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    ignoreAnySetWithNoValueWhen(when: boolean): ShapedExecutableInsertExpression<TABLE, SHAPE>
+
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableInsertExpression<TABLE, SHAPE>
 }
 
 export interface MissingKeysInsertExpression<TABLE extends ITableOrView<any>, MISSING_KEYS> extends InsertExpressionBase<TABLE> {
@@ -225,6 +281,34 @@ export interface MissingKeysInsertExpression<TABLE extends ITableOrView<any>, MI
     disallowIfNotValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+
+    setWhen(when: boolean, columns: InsertSets<TABLE, undefined>): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    setIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    setIfSetWhen(when: boolean, columns: InsertSets<TABLE, undefined>): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    setIfSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    setIfNotSetWhen(when: boolean, columns: InsertSets<TABLE, undefined>): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    setIfNotSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    ignoreIfSetWhen<COLUMNS extends ColumnsForSetOf<TABLE>>(when: boolean, ...columns: COLUMNS[]): MissingKeysInsertExpression<TABLE, (COLUMNS & RequiredColumnsForSetOf<TABLE>) | MISSING_KEYS>
+    keepOnlyWhen<COLUMNS extends ColumnsForSetOf<TABLE>>(when: boolean, ...columns: COLUMNS[]): MissingKeysInsertExpression<TABLE, Exclude<RequiredColumnsForSetOf<TABLE> | MISSING_KEYS, COLUMNS>>
+
+    setIfHasValueWhen(when: boolean, columns: InsertSets<TABLE, undefined>): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    setIfHasValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    setIfHasNoValueWhen(when: boolean, columns: InsertSets<TABLE, undefined>): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    setIfHasNoValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    ignoreIfHasValueWhen(when: boolean, ...columns: OptionalColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: OptionalColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    ignoreAnySetWithNoValueWhen(when: boolean): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysInsertExpression<TABLE, MISSING_KEYS>
 }
 
 export interface ShapedMissingKeysInsertExpression<TABLE extends ITableOrView<any>, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE> extends InsertExpressionBase<TABLE> {
@@ -256,6 +340,34 @@ export interface ShapedMissingKeysInsertExpression<TABLE extends ITableOrView<an
     disallowIfNotValue(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+
+    setWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setIfSetWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setIfSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setIfNotSetWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setIfNotSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    ignoreIfSetWhen<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(when: boolean, ...columns: COLUMNS[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, (COLUMNS & RequiredColumnsForSetOfWithShape<TABLE, SHAPE>) | MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    keepOnlyWhen<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(when: boolean, ...columns: COLUMNS[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE> | MISSING_KEYS, COLUMNS>, MISSING_KEYS_IN_SHAPE>
+
+    setIfHasValueWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setIfHasValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setIfHasNoValueWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setIfHasNoValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    ignoreIfHasValueWhen(when: boolean, ...columns: OptionalColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: OptionalColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    ignoreAnySetWithNoValueWhen(when: boolean): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
 }
 
 export interface ExecutableMultipleInsertExpression<TABLE extends ITableOrView<any>> extends CustomizableExecutableMultipleInsert<TABLE, undefined> {
@@ -286,6 +398,34 @@ export interface ExecutableMultipleInsertExpression<TABLE extends ITableOrView<a
     disallowIfNotValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+
+    setForAllWhen(when: boolean, columns: InsertSets<TABLE, undefined>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfSetWhen(when: boolean, columns: InsertSets<TABLE, undefined>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfNotSetWhen(when: boolean, columns: InsertSets<TABLE, undefined>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfNotSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): ExecutableMultipleInsertExpression<TABLE>
+    ignoreIfSetWhen<COLUMNS extends ColumnsForSetOf<TABLE>>(when: boolean, ...columns: COLUMNS[]): MaybeExecutableMultipleInsertExpression<TABLE, COLUMNS & RequiredColumnsForSetOf<TABLE>>
+    keepOnlyWhen<COLUMNS extends ColumnsForSetOf<TABLE>>(when: boolean, ...columns: COLUMNS[]): MaybeExecutableMultipleInsertExpression<TABLE, Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS>>
+
+    setForAllIfHasValueWhen(when: boolean, columns: InsertSets<TABLE, undefined>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfHasValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfHasNoValueWhen(when: boolean, columns: InsertSets<TABLE, undefined>): ExecutableMultipleInsertExpression<TABLE>
+    setForAllIfHasNoValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): ExecutableMultipleInsertExpression<TABLE>
+    ignoreIfHasValueWhen(when: boolean, ...columns: OptionalColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: OptionalColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+    ignoreAnySetWithNoValueWhen(when: boolean): ExecutableMultipleInsertExpression<TABLE>
+
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableMultipleInsertExpression<TABLE>
 }
 
 export interface ShapedExecutableMultipleInsertExpression<TABLE extends ITableOrView<any>, SHAPE> extends CustomizableExecutableMultipleInsert<TABLE, SHAPE> {
@@ -317,6 +457,34 @@ export interface ShapedExecutableMultipleInsertExpression<TABLE extends ITableOr
     disallowIfNotValue(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+
+    setForAllWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    setForAllIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    setForAllIfSetWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    setForAllIfSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    setForAllIfNotSetWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    setForAllIfNotSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    ignoreIfSetWhen<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(when: boolean, ...columns: COLUMNS[]): MaybeShapedExecutableMultipleInsertExpression<TABLE, SHAPE, COLUMNS & RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, never>
+    keepOnlyWhen<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(when: boolean, ...columns: COLUMNS[]): MaybeShapedExecutableMultipleInsertExpression<TABLE, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, COLUMNS>, never>
+
+    setForAllIfHasValueWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    setForAllIfHasValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    setForAllIfHasNoValueWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    setForAllIfHasNoValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    ignoreIfHasValueWhen(when: boolean, ...columns: OptionalColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: OptionalColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    ignoreAnySetWithNoValueWhen(when: boolean): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableMultipleInsertExpression<TABLE, SHAPE>
 }
 
 export interface MissingKeysMultipleInsertExpression<TABLE extends ITableOrView<any>, MISSING_KEYS> extends InsertExpressionBase<TABLE> {
@@ -347,6 +515,34 @@ export interface MissingKeysMultipleInsertExpression<TABLE extends ITableOrView<
     disallowIfNotValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+
+    setForAllWhen(when: boolean, columns: InsertSets<TABLE, undefined>): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    setForAllIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    setForAllIfSetWhen(when: boolean, columns: InsertSets<TABLE, undefined>): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    setForAllIfSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    setForAllIfNotSetWhen(when: boolean, columns: InsertSets<TABLE, undefined>): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    setForAllIfNotSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    ignoreIfSetWhen<COLUMNS extends ColumnsForSetOf<TABLE>>(when: boolean, ...columns: COLUMNS[]): MissingKeysMultipleInsertExpression<TABLE, (COLUMNS & RequiredColumnsForSetOf<TABLE>) | MISSING_KEYS>
+    keepOnlyWhen<COLUMNS extends ColumnsForSetOf<TABLE>>(when: boolean, ...columns: COLUMNS[]): MissingKeysMultipleInsertExpression<TABLE, Exclude<RequiredColumnsForSetOf<TABLE>, COLUMNS> | MISSING_KEYS>
+
+    setForAllIfHasValueWhen(when: boolean, columns: InsertSets<TABLE, undefined>): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    setForAllIfHasValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    setForAllIfHasNoValueWhen(when: boolean, columns: InsertSets<TABLE, undefined>): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    setForAllIfHasNoValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, undefined>): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    ignoreIfHasValueWhen(when: boolean, ...columns: OptionalColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: OptionalColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    ignoreAnySetWithNoValueWhen(when: boolean): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): MissingKeysMultipleInsertExpression<TABLE, MISSING_KEYS>
 }
 
 export interface ShapedMissingKeysMultipleInsertExpression<TABLE extends ITableOrView<any>, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE> extends InsertExpressionBase<TABLE> {
@@ -378,6 +574,34 @@ export interface ShapedMissingKeysMultipleInsertExpression<TABLE extends ITableO
     disallowIfNotValue(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+
+    setForAllWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setForAllIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setForAllIfSetWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setForAllIfSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setForAllIfNotSetWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setForAllIfNotSetIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    ignoreIfSetWhen<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(when: boolean, ...columns: COLUMNS[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, (COLUMNS & RequiredColumnsForSetOfWithShape<TABLE, SHAPE>) | MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    keepOnlyWhen<COLUMNS extends ColumnsForSetOfWithShape<TABLE, SHAPE>>(when: boolean, ...columns: COLUMNS[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, Exclude<RequiredColumnsForSetOfWithShape<TABLE, SHAPE>, COLUMNS> | MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+
+    setForAllIfHasValueWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setForAllIfHasValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setForAllIfHasNoValueWhen(when: boolean, columns: InsertSets<TABLE, SHAPE>): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    setForAllIfHasNoValueIfValueWhen(when: boolean, columns: OptionalInsertSets<TABLE, SHAPE>): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    ignoreIfHasValueWhen(when: boolean, ...columns: OptionalColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: OptionalColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    ignoreAnySetWithNoValueWhen(when: boolean): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedMissingKeysMultipleInsertExpression<TABLE, SHAPE, MISSING_KEYS, MISSING_KEYS_IN_SHAPE>
 }
 
 export interface InsertExpression<TABLE extends ITableOrView<any>> extends InsertExpressionBase<TABLE> {
@@ -651,12 +875,68 @@ export interface InsertOnConflictSetsExpression<TABLE extends ITableOrView<any>,
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
 
+    setWhen(when: boolean, columns: OnConflictUpdateSets<TABLE, undefined>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    setIfValueWhen(when: boolean, olumns: OnConflictOptionalUpdateSets<TABLE, undefined>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    setIfSetWhen(when: boolean, columns: OnConflictUpdateSets<TABLE, undefined>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    setIfSetIfValueWhen(when: boolean, columns: OnConflictOptionalUpdateSets<TABLE, undefined>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    setIfNotSetWhen(when: boolean, columns: OnConflictUpdateSets<TABLE, undefined>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    setIfNotSetIfValueWhen(when: boolean, columns: OnConflictOptionalUpdateSets<TABLE, undefined>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    ignoreIfSetWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    keepOnlyWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+
+    setIfHasValueWhen(when: boolean, columns: OnConflictUpdateSets<TABLE, undefined>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    setIfHasValueIfValueWhen(when: boolean, columns: OnConflictOptionalUpdateSets<TABLE, undefined>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    setIfHasNoValueWhen(when: boolean, columns: OnConflictUpdateSets<TABLE, undefined>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    setIfHasNoValueIfValueWhen(when: boolean, columns: OnConflictOptionalUpdateSets<TABLE, undefined>): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    ignoreIfHasValueWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    ignoreAnySetWithNoValueWhen(when: boolean): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): InsertOnConflictSetsExpression<TABLE, NEXT, NEXT_WHERE> & NEXT
+
     dynamicWhere: OnConflictDoUpdateDynamicWhereFnType<TABLE, NEXT_WHERE>
     where: OnConflictDoUpdateWhereFnType<TABLE, NEXT_WHERE>
 }
 
 export interface ShapedInsertOnConflictSetsExpression<TABLE extends ITableOrView<any>, SHAPE, NEXT, NEXT_WHERE> {
     extendShape<EXTEND_SHAPE extends InsertShape<TABLE>>(shape: EXTEND_SHAPE): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE & ResolveShape<TABLE, EXTEND_SHAPE>, NEXT, NEXT_WHERE>
+    set(columns: OnConflictUpdateSets<TABLE, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    setIfValue(columns: OnConflictOptionalUpdateSets<TABLE, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    setIfSet(columns: OnConflictUpdateSets<TABLE, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    setIfSetIfValue(columns: OnConflictOptionalUpdateSets<TABLE, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    setIfNotSet(columns: OnConflictUpdateSets<TABLE, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    setIfNotSetIfValue(columns: OnConflictOptionalUpdateSets<TABLE, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    ignoreIfSet(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    keepOnly(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+
+    setIfHasValue(columns: OnConflictUpdateSets<TABLE, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    setIfHasValueIfValue(columns: OnConflictOptionalUpdateSets<TABLE, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    setIfHasNoValue(columns: OnConflictUpdateSets<TABLE, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    setIfHasNoValueIfValue(columns: OnConflictOptionalUpdateSets<TABLE, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    ignoreIfHasValue(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    ignoreIfHasNoValue(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    ignoreAnySetWithNoValue(): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+
+    disallowIfSet(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfSet(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfNotSet(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfNotSet(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfValue(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfValue(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfNotValue(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    disallowIfNotValue(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+    disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
+
     set(columns: OnConflictUpdateSets<TABLE, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
     setIfValue(columns: OnConflictOptionalUpdateSets<TABLE, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT
     setIfSet(columns: OnConflictUpdateSets<TABLE, SHAPE>): ShapedInsertOnConflictSetsExpression<TABLE, SHAPE, NEXT, NEXT_WHERE> & NEXT

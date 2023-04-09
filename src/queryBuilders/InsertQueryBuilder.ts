@@ -1348,6 +1348,193 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         return this
     }
 
+
+
+    setWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.set(columns)
+        }
+        return this
+    }
+    setIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfValue(columns)
+        }
+        return this
+    }
+    setIfSetWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfSet(columns)
+        }
+        return this
+    }
+    setIfSetIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfSetIfValue(columns)
+        }
+        return this
+    }
+    setIfNotSetWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfNotSet(columns)
+        }
+        return this
+    }
+    setIfNotSetIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfNotSetIfValue(columns)
+        }
+        return this
+    }
+    ignoreIfSetWhen(when: boolean, ...columns: any[]): this {
+        if (when) {
+            return this.ignoreIfSet(...columns)
+        }
+        return this
+    }
+    keepOnlyWhen(when: boolean, ...columns: any[]): this {
+        if (when) {
+            return this.keepOnly(...columns)
+        }
+        return this
+    }
+
+    setIfHasValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfHasValue(columns)
+        }
+        return this
+    }
+    setIfHasValueIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfHasValueIfValue(columns)
+        }
+        return this
+    }
+    setIfHasNoValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfHasNoValue(columns)
+        }
+        return this
+    }
+    setIfHasNoValueIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfHasNoValueIfValue(columns)
+        }
+        return this
+    }
+    ignoreIfHasValueWhen(when: boolean, ...columns: any[]): this {
+        if (when) {
+            return this.ignoreIfHasValue(...columns)
+        }
+        return this
+    }
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: any[]): this {
+        if (when) {
+            return this.ignoreIfHasValue(...columns)
+        }
+        return this
+    }
+    ignoreAnySetWithNoValueWhen(when: boolean): this {
+        if (when) {
+            return this.ignoreAnySetWithNoValue()
+        }
+        return this
+    }
+
+    setForAllWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setForAll(columns)
+        }
+        return this
+    }
+    setForAllIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setForAllIfValue(columns)
+        }
+        return this
+    }
+    setForAllIfSetWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setForAllIfSet(columns)
+        }
+        return this
+    }
+    setForAllIfSetIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setForAllIfSetIfValue(columns)
+        }
+        return this
+    }
+    setForAllIfNotSetWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setForAllIfNotSet(columns)
+        }
+        return this
+    }
+    setForAllIfNotSetIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setForAllIfNotSetIfValue(columns)
+        }
+        return this
+    }
+
+    setForAllIfHasValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setForAllIfHasValue(columns)
+        }
+        return this
+    }
+    setForAllIfHasValueIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setForAllIfHasValueIfValue(columns)
+        }
+        return this
+    }
+    setForAllIfHasNoValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setForAllIfHasNoValue(columns)
+        }
+        return this
+    }
+    setForAllIfHasNoValueIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setForAllIfHasNoValueIfValue(columns)
+        }
+        return this
+    }
+
+    disallowIfSetWhen(when: boolean, error: string | Error, ...columns: any[]): this {
+        if (when) {
+            return this.disallowIfSet(error, ...columns)
+        }
+        return this
+    }
+    disallowIfNotSetWhen(when: boolean, error: string | Error, ...columns: any[]): this {
+        if (when) {
+            return this.disallowIfNotSet(error, ...columns)
+        }
+        return this
+    }
+    disallowIfValueWhen(when: boolean, error: string | Error, ...columns: any[]): this {
+        if (when) {
+            return this.disallowIfValue(error, ...columns)
+        }
+        return this
+    }
+    disallowIfNotValueWhen(when: boolean, error: string | Error, ...columns: any[]): this {
+        if (when) {
+            return this.disallowIfNotValue(error, ...columns)
+        }
+        return this
+    }
+    disallowAnyOtherSetWhen(when: boolean, error: string | Error, ...columns: any[]): this {
+        if (when) {
+            return this.disallowAnyOtherSet(error, ...columns)
+        }
+        return this
+    }
+
     values(columns: any): this {
         if (Array.isArray(columns)) {
             this.__isMultiple = true

@@ -1278,6 +1278,46 @@ interface InsertExpression {
     disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSet(error: Error, ...columns: string[]): this
 
+    //
+    // When variants, that are only executed if the first param is true
+    //
+
+    setWhen(when: boolean, columns: InsertSets): this
+    setIfValueWhen(when: boolean, columns: OptionalInsertSets): this
+    setIfSetWhen(when: boolean, columns: InsertSets): this
+    setIfSetIfValueWhen(when: boolean, columns: OptionalInsertSets): this
+    setIfNotSetWhen(when: boolean, columns: InsertSets): this
+    setIfNotSetIfValueWhen(when: boolean, columns: OptionalInsertSets): this
+    ignoreIfSetWhen(when: boolean, ...columns: string[]): this
+    keepOnlyWhen(when: boolean, ...columns: string[]): this
+    setIfHasValueWhen(when: boolean, columns: InsertSets): this
+    setIfHasValueIfValueWhen(when: boolean, columns: OptionalInsertSets): this
+    setIfHasNoValueWhen(when: boolean, columns: InsertSets): this
+    setIfHasNoValueIfValueWhen(when: boolean, columns: OptionalInsertSets): this
+    ignoreIfHasValueWhen(when: boolean, ...columns: string[]): this
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: string[]): this
+    ignoreAnySetWithNoValueWhen(when: boolean): this
+    setForAllWhen(when: boolean, columns: InsertSets): this
+    setForAllIfValueWhen(when: boolean, columns: OptionalInsertSets): this
+    setForAllIfSetWhen(when: boolean, columns: InsertSets): this
+    setForAllIfSetIfValueWhen(when: boolean, columns: OptionalInsertSets): this
+    setForAllIfNotSetWhen(when: boolean, columns: InsertSets): this
+    setForAllIfNotSetIfValueWhen(when: boolean, columns: OptionalInsertSets): this
+    setForAllIfHasValueWhen(when: boolean, columns: InsertSets): this
+    setForAllIfHasValueIfValueWhen(when: boolean, columns: OptionalInsertSets): this
+    setForAllIfHasNoValueWhen(when: boolean, columns: InsertSets): this
+    setForAllIfHasNoValueIfValueWhen(when: boolean, columns: OptionalInsertSets): this
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: string[]): this
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: string[]): this
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: string[]): this
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: string[]): this
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: string[]): this
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: string[]): this
+    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: string[]): this
+    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: string[]): this
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: string[]): this
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: string[]): this
+
     /** Allows to set the values dynamically */
     dynamicSet(): this
     dynamicSet(columns: InsertSets): this
@@ -1444,7 +1484,7 @@ interface UpdateExpression {
      */
     extendShape(shape: UpdateShape): this
 
-    /** Set the values for insert */
+    /** Set the values for update */
     set(columns: UpdateSets): this
     /** Set a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
@@ -1559,7 +1599,37 @@ interface UpdateExpression {
      */
     disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSet(error: Error, ...columns: string[]): this
-    
+
+    //
+    // When variants, that are only executed if the first param is true
+    //
+
+    setWhen(when: boolean, columns: UpdateSets): this
+    setIfValueWhen(when: boolean, columns: OptionalUpdateSets): this
+    setIfSetWhen(when: boolean, columns: UpdateSets): this
+    setIfSetIfValueWhen(when: boolean, columns: OptionalUpdateSets): this
+    setIfNotSetWhen(when: boolean, columns: UpdateSets): this
+    setIfNotSetIfValueWhen(when: boolean, columns: OptionalUpdateSets): this
+    ignoreIfSetWhen(when: boolean, ...columns: string[]): this
+    keepOnlyWhen(when: boolean, ...columns: string[]): this
+    setIfHasValueWhen(when: boolean, columns: UpdateSets): this
+    setIfHasValueIfValueWhen(when: boolean, columns: OptionalUpdateSets): this
+    setIfHasNoValueWhen(when: boolean, columns: UpdateSets): this
+    setIfHasNoValueIfValueWhen(when: boolean, columns: OptionalUpdateSets): this
+    ignoreIfHasValueWhen(when: boolean, ...columns: string[]): this
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: string[]): this
+    ignoreAnySetWithNoValueWhen(when: boolean): this
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: string[]): this
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: string[]): this
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: string[]): this
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: string[]): this
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: string[]): this
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: string[]): this
+    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: string[]): this
+    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: string[]): this
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: string[]): this
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: string[]): this
+
     /** Allows to set the values dynamically */
     dynamicSet(): this
     dynamicSet(columns: UpdateSets): this

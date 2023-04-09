@@ -666,6 +666,130 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         return this
     }
 
+
+    setWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.set(columns)
+        }
+        return this
+    }
+    setIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfValue(columns)
+        }
+        return this
+    }
+    setIfSetWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfSet(columns)
+        }
+        return this
+    }
+    setIfSetIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfSetIfValue(columns)
+        }
+        return this
+    }
+    setIfNotSetWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfNotSet(columns)
+        }
+        return this
+    }
+    setIfNotSetIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfNotSetIfValue(columns)
+        }
+        return this
+    }
+    ignoreIfSetWhen(when: boolean, ...columns: any[]): this {
+        if (when) {
+            return this.ignoreIfSet(...columns)
+        }
+        return this
+    }
+    keepOnlyWhen(when: boolean, ...columns: any[]): this {
+        if (when) {
+            return this.keepOnly(...columns)
+        }
+        return this
+    }
+
+    setIfHasValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfHasValue(columns)
+        }
+        return this
+    }
+    setIfHasValueIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfHasValueIfValue(columns)
+        }
+        return this
+    }
+    setIfHasNoValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfHasNoValue(columns)
+        }
+        return this
+    }
+    setIfHasNoValueIfValueWhen(when: boolean, columns: any): this {
+        if (when) {
+            return this.setIfHasNoValueIfValue(columns)
+        }
+        return this
+    }
+    ignoreIfHasValueWhen(when: boolean, ...columns: any[]): this {
+        if (when) {
+            return this.ignoreIfHasValue(...columns)
+        }
+        return this
+    }
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: any[]): this {
+        if (when) {
+            return this.ignoreIfHasValue(...columns)
+        }
+        return this
+    }
+    ignoreAnySetWithNoValueWhen(when: boolean): this {
+        if (when) {
+            return this.ignoreAnySetWithNoValue()
+        }
+        return this
+    }
+
+    disallowIfSetWhen(when: boolean, error: string | Error, ...columns: any[]): this {
+        if (when) {
+            return this.disallowIfSet(error, ...columns)
+        }
+        return this
+    }
+    disallowIfNotSetWhen(when: boolean, error: string | Error, ...columns: any[]): this {
+        if (when) {
+            return this.disallowIfNotSet(error, ...columns)
+        }
+        return this
+    }
+    disallowIfValueWhen(when: boolean, error: string | Error, ...columns: any[]): this {
+        if (when) {
+            return this.disallowIfValue(error, ...columns)
+        }
+        return this
+    }
+    disallowIfNotValueWhen(when: boolean, error: string | Error, ...columns: any[]): this {
+        if (when) {
+            return this.disallowIfNotValue(error, ...columns)
+        }
+        return this
+    }
+    disallowAnyOtherSetWhen(when: boolean, error: string | Error, ...columns: any[]): this {
+        if (when) {
+            return this.disallowAnyOtherSet(error, ...columns)
+        }
+        return this
+    }
+
     dynamicWhere(): this {
         this.__query = ''
         return this

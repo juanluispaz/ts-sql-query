@@ -1,7 +1,7 @@
 import { SqlBuilder, InsertData, SelectData, QueryColumns, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
 import{ HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
-import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression<any, any>, MissingKeysMultipleInsertExpression<any, any>*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional, ExecutableMultipleInsertExpression } from "../expressions/insert"
-import type { Column } from "../utils/Column"
+import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression, ShapedMissingKeysInsertExpression, MissingKeysMultipleInsertExpression, ShapedMissingKeysMultipleInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional, ExecutableMultipleInsertExpression, ShapedExecutableInsertExpression, ShapedExecutableMultipleInsertExpression, ShapedInsertExpression, ShapedInsertOnConflictSetsExpression } from "../expressions/insert"
+import { Column, isColumn } from "../utils/Column"
 import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
@@ -13,13 +13,14 @@ import { RawFragment } from "../utils/RawFragment"
 
 // one implement ommited intentionally to don't confuse TypeScript
 
-export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasAddWiths, ToSql, InsertExpression<any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, ExecutableMultipleInsertExpression<any>, CustomizableExecutableMultipleInsert<any>, CustomizableExecutableInsertFromSelect<any>, CustomizableExecutableInsertReturningLastInsertedId<any, any>, CustomizableExecutableSimpleInsert<any>, /*MissingKeysInsertExpression<any, any>, MissingKeysMultipleInsertExpression<any, any>,*/ InsertData, ComposableExecutableInsert<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any>, ExecutableInsert<any>, CustomizableExecutableInsert<any>, OnConflictDoMultipleInsert<any>, InsertOnConflictSetsExpression<any, any, any>, DynamicOnConflictWhereExpression<any, any>, OnConflictOnColumnWhere<any, any>, CustomizableExecutableInsertFromSelectOnConflict<any>, CustomizableExecutableSimpleInsertOnConflict<any>, OnConflictDoSimpleInsert<any>, CustomizableExecutableMultipleInsertOnConfict<any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any>, CustomizableExecutableSimpleInsertOnConflictOptional<any>, CustomizableExecutableMultipleInsertOnConfictOptional<any> {
+export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasAddWiths, ToSql, InsertExpression<any>, ShapedInsertExpression<any, any, any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, ShapedExecutableInsertExpression<any, any>, ExecutableMultipleInsertExpression<any>, ShapedExecutableMultipleInsertExpression<any, any>, CustomizableExecutableMultipleInsert<any, any>, CustomizableExecutableInsertFromSelect<any, any>, CustomizableExecutableInsertReturningLastInsertedId<any, any>, CustomizableExecutableSimpleInsert<any, any>, /*MissingKeysInsertExpression<any, any>, ShapedMissingKeysInsertExpression<any, any, any>, MissingKeysMultipleInsertExpression<any, any>, ShapedMissingKeysMultipleInsertExpression<any, any, any>,*/ InsertData, ComposableExecutableInsert<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any>, ExecutableInsert<any>, CustomizableExecutableInsert<any>, OnConflictDoMultipleInsert<any, any>, InsertOnConflictSetsExpression<any, any, any>, ShapedInsertOnConflictSetsExpression<any, any, any, any>, DynamicOnConflictWhereExpression<any, any>, OnConflictOnColumnWhere<any, any>, CustomizableExecutableInsertFromSelectOnConflict<any>, CustomizableExecutableSimpleInsertOnConflict<any>, OnConflictDoSimpleInsert<any, any>, CustomizableExecutableMultipleInsertOnConfict<any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any>, CustomizableExecutableSimpleInsertOnConflictOptional<any>, CustomizableExecutableMultipleInsertOnConfictOptional<any> {
     [type]: any
     [database]: any
     [tableOrView]: any
     [resultType]: any
 
     __table: ITable<any>
+    __shape?: { [property: string] : string }
     __sets: { [property: string]: any } = {}
     __multiple?: { [property: string]: any }[]
     __multipleAlreadyCopied?: boolean
@@ -33,6 +34,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     __onConflictOnColumns?: AnyValueSource[]
     __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any>
     __onConflictDoNothing?: boolean
+    __onConflictUpdateShape?: { [property: string] : string }
     __onConflictUpdateSets?: { [property: string]: any }
     __onConflictUpdateWhere?: AlwaysIfValueSource<any, any>
     __valuesForInsert?: ITableOrView<any>
@@ -305,7 +307,47 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
         return this.__toSql(sqlBuilder, params)
     }
-
+    shapedAs(shape: any): any {
+        this.__query = ''
+        this.__shape = shape
+        return this
+    }
+    extendShape(extendShape: any): this {
+        this.__query = ''
+        let shape
+        if (this.__onConflictUpdateSets) {
+            shape = this.__onConflictUpdateShape
+        } else {
+            shape = this.__shape
+        }
+        if (!shape) {
+            if (this.__onConflictUpdateSets) {
+                this.__onConflictUpdateShape = extendShape
+            } else {
+                this.__shape = extendShape
+            }
+            return this
+        }
+        const properties = Object.getOwnPropertyNames(extendShape)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            const value = extendShape[property]
+            // It will review only the properties that can be used as shape, skiiping the other one to allow more complex usages
+            if (typeof value === 'string' || isColumn(value)) {
+                const currentShapeValue = shape[property]
+                if (typeof currentShapeValue === 'string' || isColumn(value)) {
+                    throw new Error('You cannot override the previously defined shape property with name ' + property)
+                }
+            }
+        }
+        shape = { ...shape, ...extendShape }
+        if (this.__onConflictUpdateSets) {
+            this.__onConflictUpdateShape = shape
+        } else {
+            this.__shape = shape
+        }
+        return this
+    }
     dynamicSet(columns?: any): any {
         if (columns) {
             return this.set(columns)
@@ -326,7 +368,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         const result : { [property: string]: any }[] = []
-        for (let i = 0, length = result.length; i < length; i++) {
+        for (let i = 0, length = multiple.length; i < length; i++) {
             result.push({...multiple[i]})
         }
         this.__multiple = result
@@ -340,15 +382,22 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         let sets
+        let shape
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            shape = this.__onConflictUpdateShape
             this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
+            shape = this.__shape
         }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
             sets[property] = value
         }
@@ -361,15 +410,22 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         let sets
+        let shape
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            shape = this.__onConflictUpdateShape
             this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
+            shape = this.__shape
         }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
             if (!this.__sqlBuilder._isValue(value)) {
                 continue
@@ -385,15 +441,22 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         let sets
+        let shape
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            shape = this.__onConflictUpdateShape
             this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
+            shape = this.__shape
         }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (!(property in sets)) {
                 continue
             }
@@ -409,15 +472,22 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         let sets
+        let shape
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            shape = this.__onConflictUpdateShape
             this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
+            shape = this.__shape
         }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (!(property in sets)) {
                 continue
             }
@@ -436,15 +506,22 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         let sets
+        let shape
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            shape = this.__onConflictUpdateShape
             this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
+            shape = this.__shape
         }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (property in sets) {
                 continue
             }
@@ -460,15 +537,22 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         let sets
+        let shape
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            shape = this.__onConflictUpdateShape
             this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
+            shape = this.__shape
         }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (property in sets) {
                 continue
             }
@@ -553,15 +637,22 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         let sets
+        let shape
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            shape = this.__onConflictUpdateShape
             this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
+            shape = this.__shape
         }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (!this.__sqlBuilder._isValue(sets[property])) {
                 continue
             }
@@ -577,15 +668,22 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         let sets
+        let shape
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            shape = this.__onConflictUpdateShape
             this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
+            shape = this.__shape
         }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (!this.__sqlBuilder._isValue(sets[property])) {
                 continue
             }
@@ -604,15 +702,22 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         let sets
+        let shape
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            shape = this.__onConflictUpdateShape
             this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
+            shape = this.__shape
         }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (this.__sqlBuilder._isValue(sets[property])) {
                 continue
             }
@@ -628,15 +733,22 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         let sets
+        let shape
         if (this.__onConflictUpdateSets) {
             sets = this.__onConflictUpdateSets
+            shape = this.__onConflictUpdateShape
             this.__valuesForInsert = this.__valuesForInsert || this.__getValuesForInsertOfColumns(columns)
         } else {
             sets = this.__sets
+            shape = this.__shape
         }
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             if (this.__sqlBuilder._isValue(sets[property])) {
                 continue
             }
@@ -752,11 +864,16 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         const sets = this.__getSetsForMultipleInsert()
+        const shape = this.__shape
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
-            for (let j = 0, length = sets.length; i < length; i++) {
+            for (let j = 0, length = sets.length; j < length; j++) {
                 sets[j]![property] = value
             }
         }
@@ -769,14 +886,19 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         const sets = this.__getSetsForMultipleInsert()
+        const shape = this.__shape
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
             if (!this.__sqlBuilder._isValue(value)) {
                 continue
             }
-            for (let j = 0, length = sets.length; i < length; i++) {
+            for (let j = 0, length = sets.length; j < length; j++) {
                 const item = sets[j]!
                 item[property] = value
             }
@@ -790,11 +912,16 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         const sets = this.__getSetsForMultipleInsert()
+        const shape = this.__shape
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
-            for (let j = 0, length = sets.length; i < length; i++) {
+            for (let j = 0, length = sets.length; j < length; j++) {
                 const item = sets[j]!
                 if (!(property in item)) {
                     continue
@@ -811,14 +938,19 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         const sets = this.__getSetsForMultipleInsert()
+        const shape = this.__shape
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
             if (!this.__sqlBuilder._isValue(value)) {
                 continue
             }
-            for (let j = 0, length = sets.length; i < length; i++) {
+            for (let j = 0, length = sets.length; j < length; j++) {
                 const item = sets[j]!
                 if (!(property in item)) {
                     continue
@@ -835,11 +967,16 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         const sets = this.__getSetsForMultipleInsert()
+        const shape = this.__shape
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
-            for (let j = 0, length = sets.length; i < length; i++) {
+            for (let j = 0, length = sets.length; j < length; j++) {
                 const item = sets[j]!
                 if (property in item) {
                     continue
@@ -856,14 +993,19 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         const sets = this.__getSetsForMultipleInsert()
+        const shape = this.__shape
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
             if (!this.__sqlBuilder._isValue(value)) {
                 continue
             }
-            for (let j = 0, length = sets.length; i < length; i++) {
+            for (let j = 0, length = sets.length; j < length; j++) {
                 const item = sets[j]!
                 if (property in item) {
                     continue
@@ -881,11 +1023,16 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         const sets = this.__getSetsForMultipleInsert()
+        const shape = this.__shape
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
-            for (let j = 0, length = sets.length; i < length; i++) {
+            for (let j = 0, length = sets.length; j < length; j++) {
                 const item = sets[j]!
                 if (!this.__sqlBuilder._isValue(item[property])) {
                     continue
@@ -902,14 +1049,19 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         const sets = this.__getSetsForMultipleInsert()
+        const shape = this.__shape
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
             if (!this.__sqlBuilder._isValue(value)) {
                 continue
             }
-            for (let j = 0, length = sets.length; i < length; i++) {
+            for (let j = 0, length = sets.length; j < length; j++) {
                 const item = sets[j]!
                 if (!this.__sqlBuilder._isValue(item[property])) {
                     continue
@@ -926,11 +1078,16 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         const sets = this.__getSetsForMultipleInsert()
+        const shape = this.__shape
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
-            for (let j = 0, length = sets.length; i < length; i++) {
+            for (let j = 0, length = sets.length; j < length; j++) {
                 const item = sets[j]!
                 if (this.__sqlBuilder._isValue(item[property])) {
                     continue
@@ -947,14 +1104,19 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         const sets = this.__getSetsForMultipleInsert()
+        const shape = this.__shape
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
             if (!this.__sqlBuilder._isValue(value)) {
                 continue
             }
-            for (let j = 0, length = sets.length; i < length; i++) {
+            for (let j = 0, length = sets.length; j < length; j++) {
                 const item = sets[j]!
                 if (this.__sqlBuilder._isValue(item[property])) {
                     continue
@@ -1043,13 +1205,16 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         return this
     }
     onConflictDoUpdateDynamicSet(columns?: any): any {
+        if (columns) {
+            this.onConflictDoUpdateSet(columns)
+        }
         this.__query = ''
         if (this.__onConflictUpdateSets) {
             throw new Error('Illegal state')
         }
         this.__onConflictUpdateSets = {}
-        if (columns) {
-            return this.set(columns)
+        if (this.__shape) {
+            this.__onConflictUpdateShape = this.__shape
         }
         return this
     }
@@ -1064,10 +1229,18 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         this.__onConflictUpdateSets = {}
+        const shape = this.__shape
+        if (shape) {
+            this.__onConflictUpdateShape = shape
+        }
         let sets = this.__onConflictUpdateSets!
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
             sets[property] = value
         }
@@ -1085,10 +1258,18 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         this.__onConflictUpdateSets = {}
+        const shape = this.__shape
+        if (shape) {
+            this.__onConflictUpdateShape = shape
+        }
         let sets = this.__onConflictUpdateSets!
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
             if (!this.__sqlBuilder._isValue(value)) {
                 continue
@@ -1125,13 +1306,16 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         return this
     }
     doUpdateDynamicSet(columns?: any): any {
+        if (columns) {
+            this.doUpdateSet(columns)
+        }
         this.__query = ''
         if (this.__onConflictUpdateSets) {
             throw new Error('Illegal state')
         }
         this.__onConflictUpdateSets = {}
-        if (columns) {
-            return this.set(columns)
+        if (this.__shape) {
+            this.__onConflictUpdateShape = this.__shape
         }
         return this
     }
@@ -1146,10 +1330,18 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         this.__onConflictUpdateSets = {}
+        const shape = this.__shape
+        if (shape) {
+            this.__onConflictUpdateShape = shape
+        }
         let sets = this.__onConflictUpdateSets!
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
             sets[property] = value
         }
@@ -1167,10 +1359,18 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
 
         this.__onConflictUpdateSets = {}
+        const shape = this.__shape
+        if (shape) {
+            this.__onConflictUpdateShape = shape
+        }
         let sets = this.__onConflictUpdateSets!
         const properties = Object.getOwnPropertyNames(columns)
         for (let i = 0, length = properties.length; i < length; i++) {
             const property = properties[i]!
+            if (shape && !(property in shape)) {
+                // property not in the shape
+                continue
+            }
             const value = columns[property]
             if (!this.__sqlBuilder._isValue(value)) {
                 continue

@@ -390,7 +390,7 @@ export function extractProvidedIdColumnNamesFrom<O extends object, EXCLUDE exten
     return result
 }
 
-export function extractUpdateShapeFrom<O extends object, EXCLUDE extends ColumnKeys<O> = never>(obj: O, exclude?: EXCLUDE[]): { [K in Exclude<WritableColumnKeys<O>, EXCLUDE>]: K } {
+export function extractWritableShapeFrom<O extends object, EXCLUDE extends ColumnKeys<O> = never>(obj: O, exclude?: EXCLUDE[]): { [K in Exclude<WritableColumnKeys<O>, EXCLUDE>]: K } {
     if (!obj) {
         return obj
     }

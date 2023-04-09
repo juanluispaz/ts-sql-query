@@ -1041,6 +1041,19 @@ interface Values {
 
 ```ts
 interface InsertExpression {
+    /**
+     * Allow setting the shape of the values to insert. This shape allows you to map
+     * each property in the values to insert with the column's name in the table, in that
+     * way, the property in the value doesn't need to have the same name.
+     * The only values to be insert are the ones included in the shape.
+     */
+    shapedAs(shape: InsertShape): this
+    /** 
+     * Allow you to extend the previous set shape.
+     * The values set after extending the shape will allow you to include the new properties in the extended shape.
+     */
+    extendShape(shape: InsertShape): this
+
     /** Alias to set method: Set the values for insert */
     values(columns: InsertSets): this
     /** Allow to insert multiple registers in the database */
@@ -1377,7 +1390,9 @@ type OptionalInsertSets = { [columnName: string]: any }
  * It must be an object where the name of the property is the name of the resulting property
  * and the value is the ValueSource where the value will be obtained.
  */
- type InsertReturningValues = { [columnName: string]: ValueSource }
+type InsertReturningValues = { [columnName: string]: ValueSource }
+/** Shape of the values to set */
+type InsertShape = { [propertyNameInValues: string]: string /* column name in the insert table */ }
 ```
 
 ## Update definition

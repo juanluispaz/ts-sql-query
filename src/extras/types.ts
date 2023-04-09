@@ -1,4 +1,4 @@
-import type { MandatoryInsertSets, MandatoryInsertValues, OnConflictUpdateSets, OnConflictUpdateValues } from "../expressions/insert"
+import type { InsertShape, MandatoryInsertSets, MandatoryInsertValues, OnConflictUpdateSets, OnConflictUpdateValues } from "../expressions/insert"
 import type { UpdateSets, UpdateValues, UpdateShape } from "../expressions/update"
 import type { ITable, ITableOrView, OuterJoinSource, TABLE_OR_VIEW_ALIAS } from "../utils/ITableOrView"
 import type { ResultObjectValues } from "../utils/resultUtils"
@@ -25,18 +25,28 @@ export type SelectedValues<TABLE> =
     }>
 
 export type InsertableRow<TABLE> = TABLE extends ITable<any>
-    ? MakeTypeVisible<MandatoryInsertSets<TABLE>>
-    : MakeTypeVisible<MandatoryInsertSets<TABLE & ITable<any>>>
+    ? MakeTypeVisible<MandatoryInsertSets<TABLE, undefined>>
+    : MakeTypeVisible<MandatoryInsertSets<TABLE & ITable<any>, undefined>>
 export type InsertableValues<TABLE> = TABLE extends ITable<any>
-    ? MakeTypeVisible<MandatoryInsertValues<TABLE>>
-    : MakeTypeVisible<MandatoryInsertValues<TABLE & ITable<any>>>
+    ? MakeTypeVisible<MandatoryInsertValues<TABLE, undefined>>
+    : MakeTypeVisible<MandatoryInsertValues<TABLE & ITable<any>, undefined>>
 
 export type UpdatableOnInsertConflictRow<TABLE> = TABLE extends ITable<any>
-    ? MakeTypeVisible<OnConflictUpdateSets<TABLE>>
-    : MakeTypeVisible<OnConflictUpdateSets<TABLE & ITable<any>>>
+    ? MakeTypeVisible<OnConflictUpdateSets<TABLE, undefined>>
+    : MakeTypeVisible<OnConflictUpdateSets<TABLE & ITable<any>, undefined>>
 export type UpdatableOnInsertConflictValues<TABLE> = TABLE extends ITable<any>
-    ? MakeTypeVisible<OnConflictUpdateValues<TABLE>>
-    : MakeTypeVisible<OnConflictUpdateValues<TABLE & ITable<any>>>
+    ? MakeTypeVisible<OnConflictUpdateValues<TABLE, undefined>>
+    : MakeTypeVisible<OnConflictUpdateValues<TABLE & ITable<any>, undefined>>
+
+export type InsertableRowShapedAs<TABLE extends ITable<any>, SHAPE extends InsertShape<TABLE>> = 
+    MakeTypeVisible<MandatoryInsertSets<ITable<any>, ResolveShape<TABLE, SHAPE>>>
+export type InsertableValuesShapedAs<TABLE extends ITable<any>, SHAPE extends InsertShape<TABLE>> = 
+    MakeTypeVisible<MandatoryInsertSets<TABLE, ResolveShape<TABLE, SHAPE>>>
+
+export type UpdatableOnInsertConflictRowShapedAs<TABLE extends ITable<any>, SHAPE extends InsertShape<TABLE>> = 
+    MakeTypeVisible<OnConflictUpdateValues<ITable<any>, ResolveShape<TABLE, SHAPE>>>
+export type UpdatableOnInsertConflictValuesShapedAs<TABLE extends ITable<any>, SHAPE extends InsertShape<TABLE>> = 
+    MakeTypeVisible<OnConflictUpdateValues<TABLE, ResolveShape<TABLE, SHAPE>>>
 
 export type UpdatableRow<TABLE> = TABLE extends ITable<any>
     ? MakeTypeVisible<UpdateSets<TABLE, TABLE, undefined>>
@@ -45,12 +55,12 @@ export type UpdatableValues<TABLE> = TABLE extends ITable<any>
     ? MakeTypeVisible<UpdateValues<TABLE, undefined>>
     : MakeTypeVisible<UpdateValues<TABLE & ITable<any>, undefined>>
 
-export type UpdateShapeFor<TABLE> = { [P in WritableColumnKeys<TABLE>]: P }
-
 export type UpdatableRowShapedAs<TABLE extends ITable<any>, SHAPE extends UpdateShape<TABLE, any>> = 
-    MakeTypeVisible<UpdateSets<ITable<any>, ITable<any>,  ResolveShape<TABLE, SHAPE>>>
+    MakeTypeVisible<UpdateSets<ITable<any>, ITable<any>, ResolveShape<TABLE, SHAPE>>>
 export type UpdatableValuesShapedAs<TABLE extends ITable<any>, SHAPE extends UpdateShape<TABLE, any>> = 
-    MakeTypeVisible<UpdateValues<TABLE,  ResolveShape<TABLE, SHAPE>>>
+    MakeTypeVisible<UpdateValues<TABLE, ResolveShape<TABLE, SHAPE>>>
+
+export type WritableShapeFor<TABLE> = { [P in WritableColumnKeys<TABLE>]: P }
 
 type MakeTypeVisible<T> = {
     // This type forces TS to compute the T object as a single interface instead things like A & B

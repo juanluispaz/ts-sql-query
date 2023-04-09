@@ -60,7 +60,7 @@ returning id
 
 The parameters are: `[ 'John', 'Smith', 1, 'Other', 'Person', 1 ]`
 
-The result type is a promise with the id of the last inserted row:
+The result type is a promise with the id of the last inserted rows:
 ```tsx
 const insertMultipleCustomers: Promise<number[]>
 ```
@@ -144,6 +144,91 @@ You can execute the query using:
 - `executeInsertMany(min?: number, max?: number): Promise<RESULT[]>`: Execute the insert query that returns zero or many results from the database.
 
 Aditionally, if you want to return the value of a single column, you can use `returningOneColumn(column)` instead of `returning({...})`.
+
+## Insert with value's shape
+
+You can specify the object's shape that contains the values to insert. This shape allows you to map each property in the values to insert with the columns in the table; in that way, the property in the value doesn't need to have the same name. The only values to be inserted are the ones included in the shape. Additionally, you can extend the shape later to allow set additional properties in future set over this query. Be aware the shape can be a subset of the required columns; in that case, you will get a compilation error (you will not be able to call the execute methods) if you don't extend the shape by adding the missing keys and setting the proper values.
+
+```ts
+const customerToInsert = {
+    customerFirstName: 'John',
+    customerLastName: 'Smith'
+}
+const currentCompanyId = 23
+
+const insertCustomer = connection.insertInto(tCustomer)
+    .shapedAs({
+        customerFirstName: 'firstName',
+        customerLastName: 'lastName'
+    }).set(customerToInsert)
+    .extendShape({
+        customerCompanyId: 'companyId'
+    }).set({
+        customerCompanyId: currentCompanyId
+    }).returningLastInsertedId()
+    .executeInsert()
+```
+
+The executed query is:
+```sql
+insert into customer (first_name, last_name, company_id) 
+values ($1, $2, $3) 
+returning id
+```
+
+The parameters are: `[ "John", "Smith", 23 ]`
+
+The result type is a promise with the id of the last inserted row:
+```tsx
+const insertCustomer: Promise<number>
+```
+
+## Insert multiple with value' shape
+
+You can specify the object's shape that contains the values to insert. This shape allows you to map each property in the values to insert with the columns in the table; in that way, the property in the value doesn't need to have the same name. The only values to be inserted are the ones included in the shape. Additionally, you can extend the shape later to allow set additional properties in future set over this query. Be aware the shape can be a subset of the required columns; in that case, you will get a compilation error (you will not be able to call the execute methods) if you don't extend the shape by adding the missing keys and setting the proper values.
+
+```ts
+const customersToInsert = [
+    {
+        customerFirstName: 'John',
+        customerLastName: 'Smith'
+    },
+    {
+        customerFirstName: 'Other',
+        customerLastName: 'Person'
+    }
+]
+currentCompanyId = 23
+
+const insertMultipleCustomers = await connection.insertInto(tCustomer)
+    .shapedAs({
+        customerFirstName: 'firstName',
+        customerLastName: 'lastName'
+    })
+    .values(customersToInsert)
+    .extendShape({
+        customerCompanyId: 'companyId'
+    }).setForAll({
+        customerCompanyId: currentCompanyId
+    }).returningLastInsertedId()
+    .executeInsert()
+```
+
+The executed query is:
+```sql
+insert into customer (first_name, last_name, company_id) 
+values 
+    ($1, $2, $3), 
+    ($4, $5, $6) 
+returning id
+```
+
+The parameters are: `[ "John", "Smith", 23, "Other", "Person", 23 ]`
+
+The result type is a promise with the id of the last inserted rows:
+```tsx
+const insertMultipleCustomers: Promise<number[]>
+```
 
 ## Insert on conflict do nothing
 

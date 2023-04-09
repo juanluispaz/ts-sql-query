@@ -166,6 +166,7 @@ export interface CompoundSelectData extends WithQueryData {
 
 export interface InsertData extends WithQueryData {
     __table: ITable<any>
+    __shape?: { [property: string] : string }
     __sets: { [property: string]: any }
     __multiple?: { [property: string]: any }[]
     __idColumn?: Column
@@ -176,6 +177,7 @@ export interface InsertData extends WithQueryData {
     __onConflictOnColumns?: AnyValueSource[]
     __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any>
     __onConflictDoNothing?: boolean
+    __onConflictUpdateShape?: { [property: string] : string }
     __onConflictUpdateSets?: { [property: string]: any }
     __onConflictUpdateWhere?: AlwaysIfValueSource<any, any>
     __valuesForInsert?: ITableOrView<any>

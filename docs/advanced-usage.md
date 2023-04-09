@@ -440,6 +440,16 @@ import { extractWritableColumnNamesFrom } from "ts-sql-query/extras/utils";
 const tCustomerWritableColumnNames = extractWritableColumnNamesFrom(tCustomer);
 ```
 
+### Extract writable shape
+
+This function returns the insert or update shape where the property name in the value object and the remaped property are the same, like `{property: 'property'}`. This function receives the object that contains the columns as its first argument and optionally, as its second argument, an array with the name of the properties to exclude.
+
+```ts
+import { extractWritableShapeFrom } from "ts-sql-query/extras/utils";
+
+const tCustomerWritableShape = extractWritableShapeFrom(tCustomer);
+```
+
 ### Extract id columns
 
 Sometimes could be useful to extract all primary key columns available in an object, like a table or view. This function is analogous to `extractColumnsFrom` but only returning primary key columns. For this purpose you can find the function `extractIdColumnsFrom` in the file `ts-sql-query/extras/utils`. This function receives the object that contains the columns as its first argument and optionally, as its second argument, an array with the name of the properties to exclude.
@@ -492,17 +502,6 @@ Additionally, if you want to get an array with the writable column names, you ca
 import { extractProvidedIdColumnNamesFrom } from "ts-sql-query/extras/utils";
 
 const tCustomerProvidedIdColumnNames = extractProvidedIdColumnNamesFrom(tCustomer);
-```
-
-### Extract update shape
-
-This function returns the update shape where the property name in the value object and the remaped property are the same, like `{property: 'property'}`. This function receives the object that contains the columns as its first argument and optionally, as its second argument, an array with the name of the properties to exclude.
-
-
-```ts
-import { extractUpdateShapeFrom } from "ts-sql-query/extras/utils";
-
-const tCustomerUpdateShape = extractUpdateShapeFrom(tCustomer);
 ```
 
 ## Prefixing
@@ -723,6 +722,16 @@ import { WritableColumnKeys } from 'ts-sql-query/extras/types';
 type tCustomerWritableColumns = WritableColumnKeys<typeof tCustomer>;
 ```
 
+### Writable shape
+
+This type returns the insert or update shape where the property name in the value object and the remaped property are the same, like `{property: 'property'}`.
+
+```ts
+import { WritableShapeFor } from 'ts-sql-query/extras/types';
+
+type WritableCompanyShape = WritableShapeFor<typeof tCompany>;
+```
+
 ### Id column keys
 
 This type return the key name (properties in the object) of the id / primary keys columns contained a an object like a table or view definition. This type is analogous to `ColumnKeys` but returning primary key columns.
@@ -766,6 +775,19 @@ import { InsertableValues } from 'ts-sql-query/extras/types';
 type InsertableCompany = InsertableValues<typeof tCompany>;
 ```
 
+If you use a shape in your query you must use:
+
+```ts
+import { InsertableValuesShapedAs } from 'ts-sql-query/extras/types';
+
+const myCustomerShape = {
+    newFirstName: 'firstName',
+    newLastName: 'lastName'
+}
+
+type InsertableShapedCompany = InsertableValuesShapedAs<typeof tCustomer, typeof myCustomerShape>;
+```
+
 ### Insertable row
 
 This type returns the same type expected by the set clause in an insert.
@@ -778,14 +800,17 @@ import { InsertableRow } from 'ts-sql-query/extras/types';
 type InserableCompanyRow = InsertableRow<typeof tCompany>;
 ```
 
-### Update shape
-
-This type returns the update shape where the property name in the value object and the remaped property are the same, like `{property: 'property'}`.
+If you use a shape in your query you must use:
 
 ```ts
-import { UpdateShapeFor } from 'ts-sql-query/extras/types';
+import { InsertableRowShapedAs } from 'ts-sql-query/extras/types';
 
-type UpdatableCompanyShape = UpdateShapeFor<typeof tCompany>;
+const myCustomerShape = {
+    newFirstName: 'firstName',
+    newLastName: 'lastName'
+}
+
+type InserableShapedCompanyRow = InsertableRowShapedAs<typeof tCustomer, typeof myCustomerShape>;
 ```
 
 ### Updatable values
@@ -846,6 +871,19 @@ import { UpdatableOnInsertConflictValues } from 'ts-sql-query/extras/types';
 type UpdatableCompanyOnInsertConflict = UpdatableOnInsertConflictValues<typeof tCompany>;
 ```
 
+If you use a shape in your query you must use:
+
+```ts
+import { UpdatableOnInsertConflictValuesShapedAs } from 'ts-sql-query/extras/types';
+
+const myCustomerShape = {
+    newFirstName: 'firstName',
+    newLastName: 'lastName'
+}
+
+type UpdatableShapedCompanyOnInsertConflict = UpdatableOnInsertConflictValuesShapedAs<typeof tCustomer, typeof myCustomerShape>;
+```
+
 ### Updatable row in case of conflict on insert
 
 This type returns the same type expected by the `onConflictDoUpdateSet` clause in an insert.
@@ -856,6 +894,19 @@ This type returns the same type expected by the `onConflictDoUpdateSet` clause i
 import { UpdatableOnInsertConflictRow } from 'ts-sql-query/extras/types';
 
 type UpdatableCompanyOnInsertConflictRow = UpdatableOnInsertConflictRow<typeof tCompany>;
+```
+
+If you use a shape in your query you must use:
+
+```ts
+import { UpdatableOnInsertConflictRowShapedAs } from 'ts-sql-query/extras/types';
+
+const myCustomerShape = {
+    newFirstName: 'firstName',
+    newLastName: 'lastName'
+}
+
+type UpdatableShapedCompanyOnInsertConflictRow = UpdatableOnInsertConflictRowShapedAs<typeof tCustomer, typeof myCustomerShape>;
 ```
 
 ### Selected values

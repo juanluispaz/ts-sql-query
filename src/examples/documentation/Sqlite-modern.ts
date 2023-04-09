@@ -582,6 +582,37 @@ async function main() {
     
     /* *** Preparation ************************************************************/
 
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?) returning id`)
+    expectedParams.push(`["John","Smith",23]`)
+    expectedType.push(`insertReturningLastInsertedId`)
+    
+    /* *** Example ****************************************************************/
+
+    const customerToInsert = {
+        customerFirstName: 'John',
+        customerLastName: 'Smith'
+    }
+
+    let currentCompanyId = 23
+
+    const insertCustomer2 = await connection.insertInto(tCustomer)
+        .shapedAs({
+            customerFirstName: 'firstName',
+            customerLastName: 'lastName'
+        }).set(customerToInsert)
+        .extendShape({
+            customerCompanyId: 'companyId'
+        }).set({
+            customerCompanyId: currentCompanyId
+        }).returningLastInsertedId()
+        .executeInsert()
+    
+    assertEquals(insertCustomer2, result)
+    
+    /* *** Preparation ************************************************************/
+
     result = [2, 3]
     expectedResult.push(result)
     expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?), (?, ?, ?) returning id`)
@@ -609,6 +640,43 @@ async function main() {
         .executeInsert();
     
     assertEquals(insertMultipleCustomers, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = [2, 3]
+    expectedResult.push(result)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?), (?, ?, ?) returning id`)
+    expectedParams.push(`["John","Smith",23,"Other","Person",23]`)
+    expectedType.push(`insertReturningMultipleLastInsertedId`)
+    
+    /* *** Example ****************************************************************/
+
+    const customersToInsert = [
+        {
+            customerFirstName: 'John',
+            customerLastName: 'Smith'
+        },
+        {
+            customerFirstName: 'Other',
+            customerLastName: 'Person'
+        }
+    ]
+    currentCompanyId = 23
+    
+    const insertMultipleCustomers2 = await connection.insertInto(tCustomer)
+        .shapedAs({
+            customerFirstName: 'firstName',
+            customerLastName: 'lastName'
+        })
+        .values(customersToInsert)
+        .extendShape({
+            customerCompanyId: 'companyId'
+        }).setForAll({
+            customerCompanyId: currentCompanyId
+        }).returningLastInsertedId()
+        .executeInsert()
+    
+    assertEquals(insertMultipleCustomers2, result)
     
     /* *** Preparation ************************************************************/
 
@@ -671,7 +739,7 @@ async function main() {
         newFirstName: 'John',
         newLastName: 'Smith',
     }
-    const currentCompanyId = 23
+    currentCompanyId = 23
 
     updateCustomer = await connection.update(tCustomer)
         .shapedAs({

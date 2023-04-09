@@ -4,7 +4,7 @@ import type { AnyDB, MariaDB, MySql, NoopDB, Oracle, PostgreSql, Sqlite, SqlServ
 import type { int } from "ts-extended-types"
 import type { database, tableOrView, tableOrViewRef } from "../utils/symbols"
 import type { RawFragment } from "../utils/RawFragment"
-import type { ColumnsForSetOf, ColumnsOf, OptionalColumnsForSetOf, OuterJoinTableOrView, RequiredColumnsForSetOf, ResolveShape } from "../utils/tableOrViewUtils"
+import type { ColumnsForSetOf, ColumnsForSetOfWithShape, ColumnsOf, OptionalColumnsForSetOf, OuterJoinTableOrView, RequiredColumnsForSetOf, ResolveShape } from "../utils/tableOrViewUtils"
 import type { Column, ColumnWithDefaultValue } from "../utils/Column"
 import type { Default } from "./Default"
 import type { ColumnGuard, GuidedObj, GuidedPropName, RequiredKeysOfPickingColumns, ResultObjectValues, FixOptionalProperties, ValueOf } from "../utils/resultUtils"
@@ -257,11 +257,6 @@ type InputTypeOfOptionalColumnAllowing<TABLE extends ITableOrView<any>, K extend
         ValueSourceValueType<TABLE[K]> | RemapIValueSourceTypeWithOptionalType<ALLOWING[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, TABLE[K], any>
     ))
     : never
-
-type ColumnsForSetOfWithShape<TABLE extends ITableOrView<any>, SHAPE> = 
-    SHAPE extends ResolvedShape<TABLE>
-    ? ColumnsForSetOf<SHAPE>
-    : ColumnsForSetOf<TABLE>
 
 
 export interface UpdateSetJoinExpression<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> extends UpdateSetExpression<TABLE, USING> {

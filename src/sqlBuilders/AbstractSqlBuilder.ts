@@ -1128,13 +1128,53 @@ export class AbstractSqlBuilder implements SqlBuilder {
         insertQuery += 'into '
         insertQuery += this._appendTableOrViewName(table, params)
 
-        const usedColumns: { [name: string]: boolean | undefined } = {}
-        for (let i = 0, length = multiple.length; i < length; i++) {
-            const sets = multiple[i]
-            const properties = Object.getOwnPropertyNames(sets)
-            for (let j = 0, length = properties.length; j < length; j++) {
-                const columnName = properties[j]!
+        const shape = query.__shape
+        let usedColumns: { [name: string]: boolean | undefined } = {}
+        let translationToShape: { [columnName: string]: string /* name in shape */ } | undefined
+        if (shape) { // Follow shape order
+            for (let i = 0, length = multiple.length; i < length; i++) {
+                const sets = multiple[i]
+                const properties = Object.getOwnPropertyNames(sets)
+                for (let j = 0, length = properties.length; j < length; j++) {
+                    const property = properties[j]!
+                    const columnName = shape[property]
+                    if (typeof columnName !== 'string') {
+                        continue
+                    }
+                    usedColumns[columnName] = true
+                }
+            }
+
+            // Sort according the shape
+            const unorderedUsedColumn = usedColumns
+            usedColumns = {}
+            translationToShape = {}
+            const properties = Object.getOwnPropertyNames(shape)
+            for (let i = 0, length = properties.length; i < length; i++) {
+                const property = properties[i]!
+                const columnName: string = shape[property]!
+                const column = __getColumnOfObject(table, columnName)
+                if (!column) {
+                    // Additional property provided in the value object
+                    // Skipped because it is not part of the table
+                    // This allows to have more complex objects used in the query
+                    continue
+                }
+                if (!(columnName in unorderedUsedColumn)) {
+                    // No value set for that property in the shape
+                    continue
+                }
                 usedColumns[columnName] = true
+                translationToShape[columnName] = property
+            }
+        } else { // No shape, follow set order
+            for (let i = 0, length = multiple.length; i < length; i++) {
+                const sets = multiple[i]
+                const properties = Object.getOwnPropertyNames(sets)
+                for (let j = 0, length = properties.length; j < length; j++) {
+                    const columnName = properties[j]!
+                    usedColumns[columnName] = true
+                }
             }
         }
 
@@ -1201,10 +1241,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     values += ', '
                 }
 
-                const value = sets[columnName]
+                let setPropertyName
+                if (translationToShape) {
+                    setPropertyName = translationToShape[columnName]!
+                } else {
+                    setPropertyName = columnName
+                }
+                const value = sets[setPropertyName]
                 const columnPrivate = __getColumnPrivate(column)
                 const sequenceName = columnPrivate.__sequenceName
-                if (!(columnName in sets) && sequenceName) {
+                if (!(setPropertyName in sets) && sequenceName) {
                     values += this._nextSequenceValue(params, sequenceName)
                 } else {
                     values += this._appendValueForColumn(column, value, params)
@@ -1395,11 +1441,29 @@ export class AbstractSqlBuilder implements SqlBuilder {
         insertQuery += 'into '
         insertQuery += this._appendTableOrViewName(table, params)
 
+        const shape = query.__shape
+        let columnsInShape: { [columnName: string] : boolean} | undefined
+        if (shape) {
+            columnsInShape = {}
+            for (let property in shape) {
+                const colunName = shape[property]
+                if (typeof colunName === 'string') {
+                    columnsInShape[colunName] = true
+                }
+            }
+        }
+
         let columns = ''
         const sequences: string[] = []
         for (var columnName in table) {
-            if (columnName in sets) {
-                continue
+            if (columnsInShape) {
+                if (columnName in columnsInShape) {
+                    continue
+                }
+            } else {
+                if (columnName in sets) {
+                    continue
+                }
             }
             const column = __getColumnOfObject(table, columnName)
             if (!column) {
@@ -1417,21 +1481,45 @@ export class AbstractSqlBuilder implements SqlBuilder {
             columns += this._appendRawColumnName(column, params)
             sequences.push(columnPrivate.__sequenceName)
         }
-        const properties = Object.getOwnPropertyNames(sets)
-        for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]!
-            const column = __getColumnOfObject(table, property)
-            if (!column) {
-                // Additional property provided in the value object
-                // Skipped because it is not part of the table
-                // This allows to have more complex objects used in the query
-                continue
-            }
+        if (shape) { // Follow shape order
+            const properties = Object.getOwnPropertyNames(shape)
+            for (let i = 0, length = properties.length; i < length; i++) {
+                const property = properties[i]!
+                const columnName = shape[property]!
+                const column = __getColumnOfObject(table, columnName)
+                if (!column) {
+                    // Additional property provided in the value object
+                    // Skipped because it is not part of the table
+                    // This allows to have more complex objects used in the query
+                    continue
+                }
+                if (!(property in sets)) {
+                    // No value set for that property in the shape
+                    continue
+                }
 
-            if (columns) {
-                columns += ', '
+                if (columns) {
+                    columns += ', '
+                }
+                columns += this._appendRawColumnName(column, params)
             }
-            columns += this._appendRawColumnName(column, params)
+        } else { // No shape, follow set order
+            const properties = Object.getOwnPropertyNames(sets)
+            for (let i = 0, length = properties.length; i < length; i++) {
+                const property = properties[i]!
+                const column = __getColumnOfObject(table, property)
+                if (!column) {
+                    // Additional property provided in the value object
+                    // Skipped because it is not part of the table
+                    // This allows to have more complex objects used in the query
+                    continue
+                }
+
+                if (columns) {
+                    columns += ', '
+                }
+                columns += this._appendRawColumnName(column, params)
+            }
         }
 
         insertQuery += ' (' + columns + ')'
@@ -1446,21 +1534,48 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
             values += this._nextSequenceValue(params, sequenceName)
         }
-        for (let i = 0, length = properties.length; i < length; i++) {
-            const property = properties[i]!
-            const column = __getColumnOfObject(table, property)
-            if (!column) {
-                // Additional property provided in the value object
-                // Skipped because it is not part of the table
-                // This allows to have more complex objects used in the query
-                continue
-            }
 
-            if (values) {
-                values += ', '
+        if (shape) { // Follow shape order
+            const properties = Object.getOwnPropertyNames(shape)
+            for (let i = 0, length = properties.length; i < length; i++) {
+                const property = properties[i]!
+                const columnName = shape[property]!
+                const column = __getColumnOfObject(table, columnName)
+                if (!column) {
+                    // Additional property provided in the value object
+                    // Skipped because it is not part of the table
+                    // This allows to have more complex objects used in the query
+                    continue
+                }
+                if (!(property in sets)) {
+                    // No value set for that property in the shape
+                    continue
+                }
+
+                if (values) {
+                    values += ', '
+                }
+                const value = sets[property]
+                values += this._appendValueForColumn(column, value, params)
             }
-            const value = sets[property]
-            values += this._appendValueForColumn(column, value, params)
+        } else { // No shape, follow set order
+            const properties = Object.getOwnPropertyNames(sets)
+            for (let i = 0, length = properties.length; i < length; i++) {
+                const property = properties[i]!
+                const column = __getColumnOfObject(table, property)
+                if (!column) {
+                    // Additional property provided in the value object
+                    // Skipped because it is not part of the table
+                    // This allows to have more complex objects used in the query
+                    continue
+                }
+
+                if (values) {
+                    values += ', '
+                }
+                const value = sets[property]
+                values += this._appendValueForColumn(column, value, params)
+            }
         }
 
         insertQuery += ' values (' + values + ')'
@@ -1642,26 +1757,54 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(params, undefined)
         let columns = ''
         const table = query.__table
+        const shape = query.__onConflictUpdateShape
         const sets = query.__onConflictUpdateSets
         if (sets) {
-            const properties = Object.getOwnPropertyNames(sets)
-            for (let i = 0, length = properties.length; i < length; i++) {
-                const property = properties[i]!
-                const column = __getColumnOfObject(table, property)
-                if (!column) {
-                    // Additional property provided in the value object
-                    // Skipped because it is not part of the table
-                    // This allows to have more complex objects used in the query
-                    continue
-                }
+            if (shape) { // Follow shape order
+                const properties = Object.getOwnPropertyNames(shape)
+                for (let i = 0, length = properties.length; i < length; i++) {
+                    const property = properties[i]!
+                    const columnName = shape[property]!
+                    const column = __getColumnOfObject(table, columnName)
+                    if (!column) {
+                        // Additional property provided in the value object
+                        // Skipped because it is not part of the table
+                        // This allows to have more complex objects used in the query
+                        continue
+                    }
+                    if (!(property in sets)) {
+                        // No value set for that property in the shape
+                        continue
+                    }
 
-                if (columns) {
-                    columns += ', '
+                    if (columns) {
+                        columns += ', '
+                    }
+                    const value = sets[property]
+                    columns += this._appendColumnNameForUpdate(column, params)
+                    columns += ' = '
+                    columns += this._appendValueForColumn(column, value, params)
                 }
-                const value = sets[property]
-                columns += this._appendColumnNameForUpdate(column, params)
-                columns += ' = '
-                columns += this._appendValueForColumn(column, value, params)
+            } else { // No shape, follow set order
+                const properties = Object.getOwnPropertyNames(sets)
+                for (let i = 0, length = properties.length; i < length; i++) {
+                    const property = properties[i]!
+                    const column = __getColumnOfObject(table, property)
+                    if (!column) {
+                        // Additional property provided in the value object
+                        // Skipped because it is not part of the table
+                        // This allows to have more complex objects used in the query
+                        continue
+                    }
+
+                    if (columns) {
+                        columns += ', '
+                    }
+                    const value = sets[property]
+                    columns += this._appendColumnNameForUpdate(column, params)
+                    columns += ' = '
+                    columns += this._appendValueForColumn(column, value, params)
+                }
             }
             
             if (!columns) {

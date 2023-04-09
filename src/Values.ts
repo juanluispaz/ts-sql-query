@@ -266,7 +266,7 @@ export class Values<Connection extends IConnection<PostgreSql | Sqlite | SqlServ
         super(name, values as any)
     }
 
-    static create<T extends Values<any, any>>(type: new (name: T[typeof viewName], values: OpaqueValues) => T, name: T[typeof viewName], values: Array<MandatoryInsertSets<T>>): T {
+    static create<T extends Values<any, any>>(type: new (name: T[typeof viewName], values: OpaqueValues) => T, name: T[typeof viewName], values: Array<MandatoryInsertSets<T, undefined>>): T {
         if (values.length <= 0) {
             throw new Error('Values requires at least one element in the list')
         }

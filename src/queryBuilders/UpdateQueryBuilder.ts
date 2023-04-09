@@ -622,7 +622,7 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
         return this
     }
-    disallowIfNotValue(error: string | Error, ...columns: any[]): this {
+    disallowIfNoValue(error: string | Error, ...columns: any[]): this {
         this.__query = ''
         let sets = this.__sets
         for (let i = 0, length = columns.length; i < length; i++) {
@@ -665,7 +665,6 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
         return this
     }
-
 
     setWhen(when: boolean, columns: any): this {
         if (when) {
@@ -777,9 +776,9 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
         return this
     }
-    disallowIfNotValueWhen(when: boolean, error: string | Error, ...columns: any[]): this {
+    disallowIfNoValueWhen(when: boolean, error: string | Error, ...columns: any[]): this {
         if (when) {
-            return this.disallowIfNotValue(error, ...columns)
+            return this.disallowIfNoValue(error, ...columns)
         }
         return this
     }

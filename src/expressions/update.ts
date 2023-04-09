@@ -57,8 +57,8 @@ export interface ExecutableUpdateExpression<TABLE extends ITableOrView<any>, USI
     disallowIfNotSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
     disallowIfValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
     disallowIfValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
-    disallowIfNotValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
-    disallowIfNotValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    disallowIfNoValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    disallowIfNoValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
     disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
     disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
 
@@ -85,8 +85,8 @@ export interface ExecutableUpdateExpression<TABLE extends ITableOrView<any>, USI
     disallowIfNotSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
     disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
     disallowIfValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
-    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
-    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    disallowIfNoValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    disallowIfNoValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
     disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
     disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
 

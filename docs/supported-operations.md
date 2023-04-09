@@ -1270,8 +1270,8 @@ interface InsertExpression {
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
-    disallowIfNotValue(errorMessage: string, ...columns: string[]): this
-    disallowIfNotValue(error: Error, ...columns: string[]): this
+    disallowIfNoValue(errorMessage: string, ...columns: string[]): this
+    disallowIfNoValue(error: Error, ...columns: string[]): this
     /**
      * Throw an error if the any other set except the provided column list
      */
@@ -1313,8 +1313,8 @@ interface InsertExpression {
     disallowIfNotSetWhen(when: boolean, error: Error, ...columns: string[]): this
     disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: string[]): this
     disallowIfValueWhen(when: boolean, error: Error, ...columns: string[]): this
-    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: string[]): this
-    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: string[]): this
+    disallowIfNoValueWhen(when: boolean, errorMessage: string, ...columns: string[]): this
+    disallowIfNoValueWhen(when: boolean, error: Error, ...columns: string[]): this
     disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: string[]): this
 
@@ -1592,8 +1592,8 @@ interface UpdateExpression {
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
-    disallowIfNotValue(errorMessage: string, ...columns: string[]): this
-    disallowIfNotValue(error: Error, ...columns: string[]): this
+    disallowIfNoValue(errorMessage: string, ...columns: string[]): this
+    disallowIfNoValue(error: Error, ...columns: string[]): this
     /**
      * Throw an error if the any other set except the provided column list
      */
@@ -1625,8 +1625,8 @@ interface UpdateExpression {
     disallowIfNotSetWhen(when: boolean, error: Error, ...columns: string[]): this
     disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: string[]): this
     disallowIfValueWhen(when: boolean, error: Error, ...columns: string[]): this
-    disallowIfNotValueWhen(when: boolean, errorMessage: string, ...columns: string[]): this
-    disallowIfNotValueWhen(when: boolean, error: Error, ...columns: string[]): this
+    disallowIfNoValueWhen(when: boolean, errorMessage: string, ...columns: string[]): this
+    disallowIfNoValueWhen(when: boolean, error: Error, ...columns: string[]): this
     disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: string[]): this
 

@@ -577,6 +577,95 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         return this
     }
 
+    disallowIfSet(error: string | Error, ...columns: any[]): this {
+        this.__query = ''
+        let sets = this.__sets
+        for (let i = 0, length = columns.length; i < length; i++) {
+            let column = columns[i]
+            if (column in sets) {
+                if (typeof error === 'string') {
+                    error = new Error(error)
+                }
+                (error as any)['disallowedPropery'] = column
+                throw error
+            }
+        }
+        return this
+    }
+    disallowIfNotSet(error: string | Error, ...columns: any[]): this {
+        this.__query = ''
+        let sets = this.__sets
+        for (let i = 0, length = columns.length; i < length; i++) {
+            let column = columns[i]
+            if (!(column in sets)) {
+                if (typeof error === 'string') {
+                    error = new Error(error)
+                }
+                (error as any)['disallowedPropery'] = column
+                throw error
+            }
+        }
+        return this
+    }
+    disallowIfValue(error: string | Error, ...columns: any[]): this {
+        this.__query = ''
+        let sets = this.__sets
+        for (let i = 0, length = columns.length; i < length; i++) {
+            let column = columns[i]
+            if (this.__sqlBuilder._isValue(sets[column])) {
+                if (typeof error === 'string') {
+                    error = new Error(error)
+                }
+                (error as any)['disallowedPropery'] = column
+                throw error
+            }
+        }
+        return this
+    }
+    disallowIfNotValue(error: string | Error, ...columns: any[]): this {
+        this.__query = ''
+        let sets = this.__sets
+        for (let i = 0, length = columns.length; i < length; i++) {
+            let column = columns[i]
+            if (!this.__sqlBuilder._isValue(sets[column])) {
+                if (typeof error === 'string') {
+                    error = new Error(error)
+                }
+                (error as any)['disallowedPropery'] = column
+                throw error
+            }
+        }
+        return this
+    }
+    disallowAnyOtherSet(error: string | Error, ...columns: any[]): this {
+        this.__query = ''
+        let sets = this.__sets
+        const allowed: any = {}
+        for (let i = 0, length = columns.length; i < length; i++) {
+            let column = columns[i]
+            allowed[column] = true
+        }
+        const shape: any = this.__shape || this.__table
+        const properties = Object.getOwnPropertyNames(sets)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            if (!(property in shape)) {
+                // This is not a property that will be included in the update
+                // Ingoring it allow more complex operations
+                continue
+            }
+            
+            if (!allowed[property]) {
+                if (typeof error === 'string') {
+                    error = new Error(error)
+                }
+                (error as any)['disallowedPropery'] = property
+                throw error
+            }
+        }
+        return this
+    }
+
     dynamicWhere(): this {
         this.__query = ''
         return this

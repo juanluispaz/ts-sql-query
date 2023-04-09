@@ -1261,6 +1261,38 @@ interface InsertExpression {
      */
     setForAllIfHasNoValueIfValue(columns: OptionalInsertSets): this
 
+    /**
+     * Throw an error if the indicated properties are set
+     */
+    disallowIfSet(errorMessage: string, ...columns: string[]): this
+    disallowIfSet(error: Error, ...columns: string[]): this
+    /**
+     * Throw an error if the indicated properties are not set
+     */
+    disallowIfNotSet(errorMessage: string, ...columns: string[]): this
+    disallowIfNotSet(error: Error, ...columns: string[]): this
+    /**
+     * Throw an error if the indicated properties was set with a value.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    disallowIfValue(errorMessage: string, ...columns: string[]): this
+    disallowIfValue(error: Error, ...columns: string[]): this
+    /**
+     * Throw an error if the indicated properties was set not set or has no value.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    disallowIfNotValue(errorMessage: string, ...columns: string[]): this
+    disallowIfNotValue(error: Error, ...columns: string[]): this
+    /**
+     * Throw an error if the any other set except the provided column list
+     */
+    disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
+    disallowAnyOtherSet(error: Error, ...columns: string[]): this
+
     /** Allows to set the values dynamically */
     dynamicSet(): this
     dynamicSet(columns: InsertSets): this
@@ -1509,6 +1541,39 @@ interface UpdateExpression {
      * set to true, that is the default behaviour) or an empty array 
      */
     ignoreAnySetWithNoValue(): this
+
+    /**
+     * Throw an error if the indicated properties are set
+     */
+    disallowIfSet(errorMessage: string, ...columns: string[]): this
+    disallowIfSet(error: Error, ...columns: string[]): this
+    /**
+     * Throw an error if the indicated properties are not set
+     */
+    disallowIfNotSet(errorMessage: string, ...columns: string[]): this
+    disallowIfNotSet(error: Error, ...columns: string[]): this
+    /**
+     * Throw an error if the indicated properties was set with a value.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    disallowIfValue(errorMessage: string, ...columns: string[]): this
+    disallowIfValue(error: Error, ...columns: string[]): this
+    /**
+     * Throw an error if the indicated properties was set not set or has no value.
+     * It is considered the column has value if it was set with a value that is not null, 
+     * undefined, empty string (only when the allowEmptyString flag in the connection is not 
+     * set to true, that is the default behaviour) or an empty array 
+     */
+    disallowIfNotValue(errorMessage: string, ...columns: string[]): this
+    disallowIfNotValue(error: Error, ...columns: string[]): this
+    /**
+     * Throw an error if the any other set except the provided column list
+     */
+    disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
+    disallowAnyOtherSet(error: Error, ...columns: string[]): this
+
     /** Allows to set the values dynamically */
     dynamicSet(): this
     dynamicSet(columns: UpdateSets): this

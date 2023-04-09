@@ -51,6 +51,17 @@ export interface ExecutableUpdateExpression<TABLE extends ITableOrView<any>, USI
     ignoreIfHasNoValue(...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
     ignoreAnySetWithNoValue(): ExecutableUpdateExpression<TABLE, USING>
 
+    disallowIfSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    disallowIfSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    disallowIfNotSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    disallowIfNotSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    disallowIfValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    disallowIfValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    disallowIfNotValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    disallowIfNotValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+    disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
+
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE, USING>
     where(condition: IIfValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, any>): DynamicExecutableUpdateExpression<TABLE, USING>
     where(condition: IBooleanValueSource<TABLE[typeof tableOrViewRef] | NoTableOrViewRequired<TABLE[typeof database]>, any>): DynamicExecutableUpdateExpression<TABLE, USING>

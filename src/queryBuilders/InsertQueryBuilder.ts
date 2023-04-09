@@ -1127,6 +1127,227 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         return this
     }
 
+    disallowIfSet(error: string | Error, ...columns: any[]): this {
+        this.__query = ''
+
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else if (this.__multiple) {
+            const multiple = this.__getSetsForMultipleInsert()
+            for (let j = 0, length = multiple.length; j < length; j++) {
+                const item = multiple[j]!
+                for (let i = 0, length = columns.length; i < length; i++) {
+                    let column = columns[i]
+                    if (column in item) {
+                        if (typeof error === 'string') {
+                            error = new Error(error)
+                        }
+                        (error as any)['disallowedPropery'] = column;
+                        (error as any)['disallowedIndex'] = j
+                        throw error
+                    }
+                }
+            }
+            return this
+        } else {
+            sets = this.__sets
+        }
+
+        for (let i = 0, length = columns.length; i < length; i++) {
+            let column = columns[i]
+            if (column in sets) {
+                if (typeof error === 'string') {
+                    error = new Error(error)
+                }
+                (error as any)['disallowedPropery'] = column
+                throw error
+            }
+        }
+        return this
+    }
+    disallowIfNotSet(error: string | Error, ...columns: any[]): this {
+        this.__query = ''
+
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else if (this.__multiple) {
+            const multiple = this.__getSetsForMultipleInsert()
+            for (let j = 0, length = multiple.length; j < length; j++) {
+                const item = multiple[j]!
+                for (let i = 0, length = columns.length; i < length; i++) {
+                    let column = columns[i]
+                    if (!(column in item)) {
+                        if (typeof error === 'string') {
+                            error = new Error(error)
+                        }
+                        (error as any)['disallowedPropery'] = column;
+                        (error as any)['disallowedIndex'] = j
+                        throw error
+                    }
+                }
+            }
+            return this
+        } else {
+            sets = this.__sets
+        }
+
+        for (let i = 0, length = columns.length; i < length; i++) {
+            let column = columns[i]
+            if (!(column in sets)) {
+                if (typeof error === 'string') {
+                    error = new Error(error)
+                }
+                (error as any)['disallowedPropery'] = column
+                throw error
+            }
+        }
+        return this
+    }
+    disallowIfValue(error: string | Error, ...columns: any[]): this {
+        this.__query = ''
+
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else if (this.__multiple) {
+            const multiple = this.__getSetsForMultipleInsert()
+            for (let j = 0, length = multiple.length; j < length; j++) {
+                const item = multiple[j]!
+                for (let i = 0, length = columns.length; i < length; i++) {
+                    let column = columns[i]
+                    if (this.__sqlBuilder._isValue(item[column])) {
+                        if (typeof error === 'string') {
+                            error = new Error(error)
+                        }
+                        (error as any)['disallowedPropery'] = column;
+                        (error as any)['disallowedIndex'] = j
+                        throw error
+                    }
+                }
+            }
+            return this
+        } else {
+            sets = this.__sets
+        }
+
+        for (let i = 0, length = columns.length; i < length; i++) {
+            let column = columns[i]
+            if (this.__sqlBuilder._isValue(sets[column])) {
+                if (typeof error === 'string') {
+                    error = new Error(error)
+                }
+                (error as any)['disallowedPropery'] = column
+                throw error
+            }
+        }
+        return this
+    }
+    disallowIfNotValue(error: string | Error, ...columns: any[]): this {
+        this.__query = ''
+
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+        } else if (this.__multiple) {
+            const multiple = this.__getSetsForMultipleInsert()
+            for (let j = 0, length = multiple.length; j < length; j++) {
+                const item = multiple[j]!
+                for (let i = 0, length = columns.length; i < length; i++) {
+                    let column = columns[i]
+                    if (!this.__sqlBuilder._isValue(item[column])) {
+                        if (typeof error === 'string') {
+                            error = new Error(error)
+                        }
+                        (error as any)['disallowedPropery'] = column;
+                        (error as any)['disallowedIndex'] = j
+                        throw error
+                    }
+                }
+            }
+            return this
+        } else {
+            sets = this.__sets
+        }
+
+        for (let i = 0, length = columns.length; i < length; i++) {
+            let column = columns[i]
+            if (!this.__sqlBuilder._isValue(sets[column])) {
+                if (typeof error === 'string') {
+                    error = new Error(error)
+                }
+                (error as any)['disallowedPropery'] = column
+                throw error
+            }
+        }
+        return this
+    }
+    disallowAnyOtherSet(error: string | Error, ...columns: any[]): this {
+        this.__query = ''
+        const allowed: any = {}
+        for (let i = 0, length = columns.length; i < length; i++) {
+            let column = columns[i]
+            allowed[column] = true
+        }
+
+        let shape: any
+        let sets
+        if (this.__onConflictUpdateSets) {
+            sets = this.__onConflictUpdateSets
+            shape = this.__onConflictUpdateShape || this.__table
+        } else if (this.__multiple) {
+            shape = this.__shape || this.__table
+            const multiple = this.__getSetsForMultipleInsert()
+            for (let j = 0, length = multiple.length; j < length; j++) {
+                const item = multiple[j]!
+                const properties = Object.getOwnPropertyNames(item)
+                for (let i = 0, length = properties.length; i < length; i++) {
+                    const property = properties[i]!
+                    if (!(property in shape)) {
+                        // This is not a property that will be included in the update
+                        // Ingoring it allow more complex operations
+                        continue
+                    }
+                    
+                    if (!allowed[property]) {
+                        if (typeof error === 'string') {
+                            error = new Error(error)
+                        }
+                        (error as any)['disallowedPropery'] = property;
+                        (error as any)['disallowedIndex'] = j
+                        throw error
+                    } else {
+                        console.log('b')
+                    }
+                }
+            }
+            return this
+        } else {
+            shape = this.__shape || this.__table
+            sets = this.__sets
+        }
+
+        const properties = Object.getOwnPropertyNames(sets)
+        for (let i = 0, length = properties.length; i < length; i++) {
+            const property = properties[i]!
+            if (!(property in shape)) {
+                // This is not a property that will be included in the update
+                // Ingoring it allow more complex operations
+                continue
+            }
+
+            if (!allowed[property]) {
+                if (typeof error === 'string') {
+                    error = new Error(error)
+                }
+                (error as any)['disallowedPropery'] = property
+                throw error
+            }
+        }
+        return this
+    }
+
     values(columns: any): this {
         if (Array.isArray(columns)) {
             this.__isMultiple = true

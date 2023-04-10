@@ -1,5 +1,38 @@
 # Change Log
 
+## v1.52.0 (10 Apr 2023)
+
+**Changes**:
+
+- Add support `dynamicPickPaths` to work with a list of fields to pick, and implement `expandTypeFromDynamicPickPaths` utility function to rectify the query output when the list of fields to pick is a generic type (Previously experimental)
+- Implement insert/update shape that allows controlling the structure of the object to use to set the value (Previously experimental in update)
+- Add support to update multiple tables in a single update in MariaDB and MySql (Previously experimental)
+- Add support to Oracle recursive queries using `connect by` syntax
+- Extend utility types and functions to filter by the id columns
+- Add `PickValuesPath` utility function that allows getting the result of a select query given the fields to pick picked paths
+- Extend the `DynamicCondition`, allowing to use fields of the dynamic condition as an argument
+- Add `PickValuesPathWitAllProperties` utility type that allows getting the type of each element returned by a select picking columns
+- Extend `SelectedValues` and `SelectedRow`, allowing to use of complex projections
+- Implement `selectCountAll()` as a shortcut to `selectOneColumn(connection.countAll())` that doesn't return an optional value when the query is used as an inline value (removing in this way the current limitation)
+- Add support to order by a column not returned by the select (removing in this way the current limitation)
+- Allow `ignoreIfSet` over a required property in an insert
+- Add `keepOnly` method that allows filtering the columns to be set in an insert or update
+- Allow the dynamic set to receive as an argument the initial values to set
+- Add support to dynamic set on an insert with multiple rows (removing in this way the current limitation)
+- Add support to throw an error if some columns are set or have value in an insert or update. New methods in insert and update: `disallowIfSet`, `disallowIfNotSet`, `disallowIfValue`, `disallowIfNotValue`, `disallowAnyOtherSet`
+- Add support to manipulate the data to insert or update conditionally
+- Allow the insert do `dynamicSet` or `dynamicValues` using an object where a required property is optional
+
+**Documentation changes**:
+
+- Document how to define select picking functions in base on the business types or in base on the database types
+- Add documentation regarding data manipulation in insert/update. Before, it was not clear this functionality existed because it was only mentioned in the supported operations
+
+**Bug fixes**:
+
+- Fix `expandTypeFromDynamicPickPaths` (Previously experimental) to work with all kinds of output produced when a query is executed
+- Make dynamic pick columns work with complex projections in case a property with a group with several columns is not picked
+
 ## v1.51.0 (23 Mar 2023)
 
 **Bug fixes**:

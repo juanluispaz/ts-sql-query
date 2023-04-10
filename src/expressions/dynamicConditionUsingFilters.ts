@@ -188,7 +188,11 @@ export type DynamicCondition<DEFINITION extends DynamicDefinition> = {
     and?: Array<DynamicCondition<DEFINITION> | undefined>
     or?: Array<DynamicCondition<DEFINITION> | undefined>
 } & {
-    [KEY in keyof DEFINITION]?: DEFINITION[KEY] extends DynamicColumnType<any> ? FilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends DynamicDefinition ? DynamicCondition<DEFINITION[KEY]> : never
+    [KEY in keyof DEFINITION]?: 
+        DEFINITION[KEY] extends DynamicColumnType<any> 
+        ? FilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends AnyValueSource 
+        ? FilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends DynamicDefinition 
+        ? DynamicCondition<DEFINITION[KEY]> : never
 }
 
 export type TypeSafeDynamicCondition<DEFINITION extends DynamicDefinition> = {
@@ -196,7 +200,11 @@ export type TypeSafeDynamicCondition<DEFINITION extends DynamicDefinition> = {
     and?: Array<TypeSafeDynamicCondition<DEFINITION> | undefined>
     or?: Array<TypeSafeDynamicCondition<DEFINITION> | undefined>
 } & {
-    [KEY in keyof DEFINITION]?: DEFINITION[KEY] extends DynamicColumnType<any> ? TypeSafeFilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends DynamicDefinition ? DynamicCondition<DEFINITION[KEY]> : never
+    [KEY in keyof DEFINITION]?: 
+        DEFINITION[KEY] extends DynamicColumnType<any> 
+        ? TypeSafeFilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends AnyValueSource 
+        ? TypeSafeFilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends DynamicDefinition 
+        ? DynamicCondition<DEFINITION[KEY]> : never
 }
 
 export type MapValueSourceToFilter<TYPE> =

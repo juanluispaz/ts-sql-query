@@ -82,10 +82,10 @@ export type TableOrViewOf<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS extends
 
 export type TableOrViewLeftJoinOf<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS extends string = ''> = OuterJoinSource<TABLE_OR_VIEW, ALIAS>
 
-export function fromRef<TABLE_OR_VIEW extends ITableOrView<any>, REF extends TableOrViewOf<TABLE_OR_VIEW[typeof tableOrViewRef], any>>(tableOrView: TABLE_OR_VIEW, ref: REF): TableOrViewWithRef<TABLE_OR_VIEW, REF[typeof tableOrViewRef]>
-export function fromRef<TABLE_OR_VIEW extends ITableOrView<any>, REF extends TableOrViewLeftJoinOf<TABLE_OR_VIEW, any>>(tableOrView: TABLE_OR_VIEW, ref: REF): OuterJoinSourceOf<TABLE_OR_VIEW, REF[typeof outerJoinAlias]>
-export function fromRef<TABLE_OR_VIEW extends ITableOrView<any>, REF extends TableOrViewOf<TABLE_OR_VIEW[typeof tableOrViewRef], any>>(tableOrView: new (...params: any[]) => TABLE_OR_VIEW, ref: REF): TableOrViewWithRef<TABLE_OR_VIEW, REF[typeof tableOrViewRef]>
-export function fromRef<TABLE_OR_VIEW extends ITableOrView<any>, REF extends TableOrViewLeftJoinOf<TABLE_OR_VIEW, any>>(tableOrView: new (...params: any[]) => TABLE_OR_VIEW, ref: REF): OuterJoinSourceOf<TABLE_OR_VIEW, REF[typeof outerJoinAlias]>
+export function fromRef<TABLE_OR_VIEW extends ITableOrView<any>, REF extends ITableOrView<TABLE_OR_VIEW[typeof tableOrViewRef]>>(tableOrView: TABLE_OR_VIEW | (new (...params: any[]) => TABLE_OR_VIEW), ref: REF): TableOrViewWithRef<TABLE_OR_VIEW, REF[typeof tableOrViewRef]>
+export function fromRef<TABLE_OR_VIEW extends ITableOrView<any>, REF extends ITableOrView<TABLE_OR_VIEW_ALIAS<TABLE_OR_VIEW[typeof tableOrViewRef], any>>>(tableOrView: TABLE_OR_VIEW | (new (...params: any[]) => TABLE_OR_VIEW), ref: REF): TableOrViewWithRef<TABLE_OR_VIEW, REF[typeof tableOrViewRef]>
+export function fromRef<TABLE_OR_VIEW extends ITableOrView<any>, REF extends ITableOrView<TABLE_OR_VIEW[typeof tableOrViewRef] | TABLE_OR_VIEW_ALIAS<TABLE_OR_VIEW[typeof tableOrViewRef], any>>>(tableOrView: TABLE_OR_VIEW | (new (...params: any[]) => TABLE_OR_VIEW), ref: REF): TableOrViewWithRef<TABLE_OR_VIEW, REF[typeof tableOrViewRef]>
+export function fromRef<TABLE_OR_VIEW extends ITableOrView<any>, REF extends OuterJoinSource<TABLE_OR_VIEW, any>>(tableOrView: TABLE_OR_VIEW | (new (...params: any[]) => TABLE_OR_VIEW), ref: REF): OuterJoinSourceOf<TABLE_OR_VIEW, REF[typeof outerJoinAlias]>
 export function fromRef(_tableOrView: any, ref: any): any {
     return ref as any
 }

@@ -8,7 +8,7 @@ export type Pickable = {
     [key in string]?: AnyValueSource | Pickable
 }
 
-export type DynamicPick<TYPE extends Pickable, MANDATORY extends MandatoryPaths<TYPE, ''> = never> = InternalDynamicPick<TYPE, MANDATORY, ''>
+export type DynamicPick<TYPE extends Pickable, MANDATORY extends MandatoryPaths<TYPE, ''> = never> = Expand<InternalDynamicPick<TYPE, MANDATORY, ''>>
 type InternalDynamicPick<TYPE, MANDATORY extends string, PREFIX extends string> = Omit<{
     [P in (keyof TYPE) & string]?:
         TYPE[P] extends AnyValueSource | undefined ? boolean 
@@ -124,7 +124,7 @@ function internalDynamicPick(o: any, p: any, required: any, prefix: string): any
     return result
 }
 
-export type DynamicPickPaths<TYPE extends Pickable, MANDATORY extends MandatoryPaths<TYPE, ''> = never> = Exclude<MandatoryPaths<TYPE, ''>, MANDATORY>
+export type DynamicPickPaths<TYPE extends Pickable, MANDATORY extends MandatoryPaths<TYPE, ''> = never> = Expand<Exclude<MandatoryPaths<TYPE, ''>, MANDATORY>>
 
 export function dynamicPickPaths<TYPE extends Pickable, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: DynamicPickPaths<TYPE>[], mandatory?: MANDATORY[]): PickWithMandatories<TYPE, MANDATORY, ''> {
     const result: any = {}
@@ -184,18 +184,18 @@ function internalDynamicPickPaths(o: any, required: any, prefix: string): any {
     return result
 }
 
-export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends { data: any[], count: number }, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT, mandatory?: MANDATORY[]): Omit<RESULT, 'data'> & { data: (RESULT['data'][number] & PickPath<TYPE, PICK | MANDATORY>)[] }
-export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends { data: any[], count: number }, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT | null, mandatory?: MANDATORY[]): Omit<RESULT, 'data'> & { data: (RESULT['data'][number] & PickPath<TYPE, PICK | MANDATORY>)[] } | null
-export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends { data: any[], count: number }, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT | undefined, mandatory?: MANDATORY[]): Omit<RESULT, 'data'> & { data: (RESULT['data'][number] & PickPath<TYPE, PICK | MANDATORY>)[] } | undefined
-export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends { data: any[], count: number }, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT | null | undefined, mandatory?: MANDATORY[]): Omit<RESULT, 'data'> & { data: (RESULT['data'][number] & PickPath<TYPE, PICK | MANDATORY>)[] } | null | undefined
-export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT[], mandatory?: MANDATORY[]): (RESULT & PickPath<TYPE, PICK | MANDATORY>)[]
-export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT[] | null, mandatory?: MANDATORY[]): (RESULT & PickPath<TYPE, PICK | MANDATORY>)[] | null
-export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT[] | undefined, mandatory?: MANDATORY[]): (RESULT & PickPath<TYPE, PICK | MANDATORY>)[] | undefined
-export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT[] | null | undefined, mandatory?: MANDATORY[]): (RESULT & PickPath<TYPE, PICK | MANDATORY>)[] | null | undefined
-export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT, mandatory?: MANDATORY[]): RESULT & PickPath<TYPE, PICK | MANDATORY>
-export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT | null, mandatory?: MANDATORY[]): RESULT & PickPath<TYPE, PICK | MANDATORY> | null
-export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT | undefined, mandatory?: MANDATORY[]): RESULT & PickPath<TYPE, PICK | MANDATORY> | undefined
-export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT | null | undefined, mandatory?: MANDATORY[]): RESULT & PickPath<TYPE, PICK | MANDATORY> | null | undefined
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends { data: any[], count: number }, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT, mandatory?: MANDATORY[]): Omit<RESULT, 'data'> & { data: (Expand<RESULT['data'][number] & PickPath<TYPE, PICK | MANDATORY>>)[] }
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends { data: any[], count: number }, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT | null, mandatory?: MANDATORY[]): Omit<RESULT, 'data'> & { data: (Expand<RESULT['data'][number] & PickPath<TYPE, PICK | MANDATORY>>)[] } | null
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends { data: any[], count: number }, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT | undefined, mandatory?: MANDATORY[]): Omit<RESULT, 'data'> & { data: (Expand<RESULT['data'][number] & PickPath<TYPE, PICK | MANDATORY>>)[] } | undefined
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends { data: any[], count: number }, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT | null | undefined, mandatory?: MANDATORY[]): Omit<RESULT, 'data'> & { data: (Expand<RESULT['data'][number] & PickPath<TYPE, PICK | MANDATORY>>)[] } | null | undefined
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT[], mandatory?: MANDATORY[]): (Expand<RESULT & PickPath<TYPE, PICK | MANDATORY>>)[]
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT[] | null, mandatory?: MANDATORY[]): (Expand<RESULT & PickPath<TYPE, PICK | MANDATORY>>)[] | null
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT[] | undefined, mandatory?: MANDATORY[]): (Expand<RESULT & PickPath<TYPE, PICK | MANDATORY>>)[] | undefined
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT[] | null | undefined, mandatory?: MANDATORY[]): (Expand<RESULT & PickPath<TYPE, PICK | MANDATORY>>)[] | null | undefined
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT, mandatory?: MANDATORY[]): Expand<RESULT & PickPath<TYPE, PICK | MANDATORY>>
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT | null, mandatory?: MANDATORY[]): Expand<RESULT & PickPath<TYPE, PICK | MANDATORY>> | null
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT | undefined, mandatory?: MANDATORY[]): Expand<RESULT & PickPath<TYPE, PICK | MANDATORY>> | undefined
+export function expandTypeFromDynamicPickPaths<TYPE extends Pickable, PICK extends DynamicPickPaths<TYPE>, RESULT extends {}, MANDATORY extends MandatoryPaths<TYPE, ''> = never>(obj: TYPE, pick: PICK[], result: RESULT | null | undefined, mandatory?: MANDATORY[]): Expand<RESULT & PickPath<TYPE, PICK | MANDATORY>> | null | undefined
 export function expandTypeFromDynamicPickPaths(_obj: any, _pick: any, result: any, _mandatory?: any): any {
     return result
 }
@@ -205,12 +205,12 @@ type PickPath<COLUMNS, MANDATORY extends string> = ResultObjectValues<PickMandat
     // This second line is added to allow TS be compatible with Pick usage as the result of the function
     & Pick<ResultObjectValues<COLUMNS>, MANDATORY & keyof ResultObjectValues<COLUMNS>>
 
-export type PickValuesPath<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = PickPath<COLUMNS, PICKED>
+export type PickValuesPath<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<PickPath<COLUMNS, PICKED>>
 
-export type PickValuesPathWitAllProperties<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = 
+export type PickValuesPathWitAllProperties<COLUMNS extends Pickable, PICKED extends DynamicPickPaths<COLUMNS>> = Expand<
     ResultObjectValues<PickWithMandatories<COLUMNS, PICKED, ''>>
     // This second line is added to allow TS be compatible with Pick usage as the result of the function
-    & Pick<ResultObjectValues<COLUMNS>, PICKED & keyof ResultObjectValues<COLUMNS>>
+    & Pick<ResultObjectValues<COLUMNS>, PICKED & keyof ResultObjectValues<COLUMNS>>>
 
 // Support till 9 clean up levels (recursive definition not working in [P in keyof T])
 type RemovePropertiesWithoutContent<T> = T extends object ? {

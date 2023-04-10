@@ -149,7 +149,7 @@ export function dynamicPickPaths<TYPE extends Pickable, MANDATORY extends Mandat
             // Do nothing
         } else if (prop in required) {
             result[prop] = o[prop]
-        } else if (isValueSource(o[prop])) {
+        } else if (!isValueSource(o[prop])) {
             const content = internalDynamicPickPaths(o[prop], required, prop)
             if (content !== undefined)  {
                 result[prop] = content
@@ -169,7 +169,7 @@ function internalDynamicPickPaths(o: any, required: any, prefix: string): any {
         } else if ((prefix + '.' + prop) in required) {
             hasContent = true
             result[prop] = o[prop]
-        } else if (isValueSource(o[prop])) {
+        } else if (!isValueSource(o[prop])) {
             const content = internalDynamicPickPaths(o[prop], required, prefix + '.' + prop)
             if (content !== undefined)  {
                 hasContent

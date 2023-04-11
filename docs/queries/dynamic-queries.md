@@ -304,6 +304,8 @@ The utility type `DynamicCondition` and `TypeSafeDynamicCondition` (when the ext
 
 See [Dynamic conditions](../supported-operations.md#dynamic-conditions) for more information.
 
+Sometimes you need to extend the availables rules to use in dynamic conditions to provede more functionality to your dinamic conditions; to do this you will need to construct an object (it can contain inner objects), where the key is the name of the rule, and the value is a function that receives as an argument the configuration of the rule, and it must return a boolean value source. When you create the dynamic condition, you must provide the extension as the second argument. See [Full dynamic select](#full-dynamic-select) for a complete example.
+
 ## Select dynamically picking columns
 
 **Important**: This feature offers you the most extreme form of modification over the queries but the hardest one to figure out the consequences because the columns can disappear. Try to use first [Ignorable expression as null](#ignorable-expression-as-null) instead of this feature where the structure of the columns is kept as is, and you will be able to reason over your queries more easily.
@@ -678,3 +680,237 @@ const fieldsToPick = {
 ```
 
 An error will be thrown with the message "_You don't have permission to see the birthday_" because `birthdayVisible` is `false`
+
+## Full dynamic select
+
+In this example, several functionalities are used together using dynamic conditions, optional joins and select-picking columns.
+
+Having this code:
+
+```ts
+function buildComanyAvailableFields<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCoustomer'>>(_connection: DBConnection, favouriteCoustomerRef: CUSTOMER) {
+    const favouriteCoustomer = fromRef(tCustomer, favouriteCoustomerRef);
+
+    return {
+        id: tCompany.id,
+        name: tCompany.name,
+        favouriteCustomer: {
+            id: favouriteCoustomer.id,
+            name: favouriteCoustomer.firstName.concat(' ').concat(favouriteCoustomer.lastName)
+        }
+    }
+}
+
+interface CustomerRules {
+    anyCustomerNameContains?: string
+    anyCustomerWithBirthdayOn?: Date
+}
+
+function buildCompanyConditionExtention<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCoustomer'>>(connection: DBConnection, favouriteCoustomerRef: CUSTOMER) {
+    const favouriteCoustomer = fromRef(tCustomer, favouriteCoustomerRef);
+
+    return {
+        customers: (rules: CustomerRules) => {
+            let result = connection.dynamicBooleanExpressionUsing(tCompany)
+
+            if (rules.anyCustomerNameContains) {
+                const query = connection.subSelectUsing(tCompany)
+                    .from(tCustomer)
+                    .where(tCustomer.firstName.concat(' ').concat(tCustomer.lastName).containsInsensitive(rules.anyCustomerNameContains))
+                    .selectOneColumn(tCustomer.id)
+                
+                result = result.and(connection.exists(query))
+            }
+
+            if (rules.anyCustomerWithBirthdayOn) {
+                const query = connection.subSelectUsing(tCompany)
+                    .from(tCustomer)
+                    .where(tCustomer.birthday.equals(rules.anyCustomerWithBirthdayOn))
+                    .selectOneColumn(tCustomer.id)
+                
+                result = result.and(connection.exists(query))
+            }
+
+            return result
+        },
+        favouriteCustomer: {
+            isInAnotherCompanyWithName: (name: string) => {
+                const query = connection.selectFrom(tCompany)
+                    .where(tCompany.name.containsInsensitive(name))
+                    .selectOneColumn(tCompany.favouriteCustomerId)
+
+                return favouriteCoustomer.id.in(query)
+            }
+        }
+    }
+}
+
+type CompanyFields = DynamicPickPaths<ReturnType<typeof buildComanyAvailableFields>, 'id'>
+type CompanyDynamicCondition = DynamicCondition<ReturnType<typeof buildComanyAvailableFields>, ReturnType<typeof buildCompanyConditionExtention>>
+type CompanyInformation<FIELDS extends CompanyFields> = PickValuesPath<ReturnType<typeof buildComanyAvailableFields>, FIELDS | 'id'>
+
+async function getSubcompanies<FIELDS extends CompanyFields>(connection: DBConnection, parentCompanyId: number, fields: FIELDS[], condition: CompanyDynamicCondition): Promise<CompanyInformation<FIELDS>[]> {
+    const favouriteCoustomer = tCustomer.forUseInLeftJoinAs('favouriteCoustomer')
+
+    const avaliableFields = buildComanyAvailableFields(connection, favouriteCoustomer)
+    const conditionExtention = buildCompanyConditionExtention(connection, favouriteCoustomer)
+
+    const dynamicCondition = connection.dynamicConditionFor(avaliableFields, conditionExtention).withValues(condition)
+    const selectedFields = dynamicPickPaths(avaliableFields, fields, ['id'])
+    
+    const companies = await connection
+        .selectFrom(tCompany)
+        .optionalLeftOuterJoin(favouriteCoustomer).on(tCompany.favouriteCustomerId.equals(favouriteCoustomer.id))
+        .where(dynamicCondition)
+        .and(tCompany.parentId.equals(parentCompanyId))
+        .select(selectedFields)
+        .executeSelectMany()
+
+    return expandTypeFromDynamicPickPaths(avaliableFields, fields, companies, ['id'])
+}
+```
+
+**If you call `getSubcompanies` as:**
+```ts
+const companyId = 23
+const result = getSubcompanies(connection, companyId, ['name'], {
+    name: { containsInsensitive: 'ACME' }
+})
+```
+
+The executed query is:
+```sql
+select 
+    id as id, 
+    name as name 
+from company 
+where 
+    name ilike ('%' || $1 || '%') 
+    and parent_id = $2
+```
+
+The parameters are: `[ "ACME", 23 ]`
+
+The result type is:
+```tsx
+const result: Promise<{
+    id: number;
+    name: string;
+}[]>
+```
+
+**If you call `getSubcompanies` as:**
+```ts
+const companyId = 23
+const result = await getSubcompanies(connection, companyId, ['name', 'favouriteCustomer.name'], { 
+    customers: { anyCustomerNameContains: 'smith'} 
+})
+```
+
+The executed query is:
+```sql
+select 
+    company.id as id, 
+    company.name as name, 
+    favouriteCoustomer.first_name || $1 || favouriteCoustomer.last_name as "favouriteCustomer.name" 
+from company 
+left outer join customer as favouriteCoustomer on company.parent_id = favouriteCoustomer.id 
+where 
+    exists(
+        select id as result 
+        from customer 
+        where (first_name || $2 || last_name) ilike ('%' || $3 || '%')
+    ) 
+    and company.parent_id = $4
+```
+
+The parameters are: `[ " ", " ", "smith", 23 ]`
+
+The result type is:
+```tsx
+const result: Promise<{
+    id: number;
+    name: string;
+    favouriteCustomer?: {
+        name: string;
+    };
+}[]>
+```
+
+**If you call `getSubcompanies` as:**
+```ts
+const companyId = 23
+const result = getSubcompanies(connection, companyId, ['name'], { 
+    favouriteCustomer: { isInAnotherCompanyWithName: 'ACME Inc.' } 
+})
+```
+
+The executed query is:
+```sql
+select 
+    company.id as id, 
+    company.name as name 
+from company 
+left outer join customer as favouriteCoustomer on company.parent_id = favouriteCoustomer.id 
+where 
+    favouriteCoustomer.id in (
+        select parent_id as result 
+        from company 
+        where name ilike ('%' || $1 || '%')
+    ) 
+    and company.parent_id = $2
+```
+
+The parameters are: `[ "ACME Inc.", 23 ]`
+
+The result type is:
+```tsx
+const result: Promise<{
+    id: number;
+    name: string;
+}[]>
+```
+
+**If you call `getSubcompanies` as:**
+```ts
+const companyId = 23
+const result = getSubcompanies(connection, companyId, ['name'], { 
+        or: [ 
+            { customers: { anyCustomerNameContains: 'John' }}, 
+            { customers: { anyCustomerWithBirthdayOn: new Date('2000-03-01')} } 
+        ] 
+    })
+```
+
+The executed query is:
+```sql
+select 
+    id as id, 
+    name as name 
+from company 
+where 
+    (
+        exists(
+            select id as result 
+            from customer 
+            where 
+                (
+                    first_name || $1 || last_name) ilike ('%' || $2 || '%')
+                ) or exists(
+                    select id as result 
+                    from customer 
+                    where birthday = $3
+                )
+    ) 
+    and parent_id = $4
+```
+
+The parameters are: `[ " ", "John", 2000-03-01T00:00:00.000Z, 23 ]`
+
+The result type is:
+```tsx
+const result: Promise<{
+    id: number;
+    name: string;
+}[]>
+```

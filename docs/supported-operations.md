@@ -2263,3 +2263,15 @@ interface StringFilter extends ComparableFilter<string> {
     notContainsInsensitive?: string
 }
 ```
+
+You can extend the set of rules defining your own. For this, you will need to construct an object (it can contain inner objects), where the key is the name of the rule, and the value is a function that receives as an argument the configuration of the rule, and it must return a boolean value source. When you create the dynamic condition, you must provide the extension as the second argument; if you use the `DynamicCondition` utility type, you must provide the type of your extension object as a second argument.
+
+```ts
+const extension {
+    myCondition: (value: string /* it can be your own type*/) => { ... }
+    myGroup: {
+        myGroupCondition: (value: number /* it can be your own type*/) => { ... }
+    }
+}
+const dynamicCondition = connection.dynamicConditionFor(selectFields).withValues(filter, extentsion)
+```

@@ -1,5 +1,5 @@
 import { double, int, LocalDate, LocalDateTime, LocalTime, stringDouble, stringInt, uuid } from "ts-extended-types";
-import { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, IDateTimeValueSource, IDateValueSource, IDoubleValueSource, IEqualableValueSource, IIntValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, ILocalTimeValueSource, INullableValueSource, INumberValueSource, IStringDoubleValueSource, IStringIntValueSource, IStringNumberValueSource, IStringValueSource, ITimeValueSource, ITypeSafeBigintValueSource, ITypeSafeStringValueSource, ITypeSafeUuidValueSource, IUuidValueSource, IValueSource, MergeOptionalUnion, ValueSourceOf } from "./values";
+import { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, IDateTimeValueSource, IDateValueSource, IDoubleValueSource, IEqualableValueSource, IIntValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, ILocalTimeValueSource, INullableValueSource, INumberValueSource, IStringDoubleValueSource, IStringIntValueSource, IStringNumberValueSource, IStringValueSource, ITimeValueSource, ITypeSafeBigintValueSource, ITypeSafeStringValueSource, ITypeSafeUuidValueSource, IUuidValueSource, IValueSource, MergeOptionalUnion, ValueSourceOf } from "./values";
 
 export interface Filter {
 }
@@ -183,28 +183,58 @@ export type DynamicDefinition = {
     [key: string]: AnyValueSource | DynamicColumnType<any> | DynamicDefinition
 }
 
-export type DynamicCondition<DEFINITION extends DynamicDefinition> = {
-    not?: DynamicCondition<DEFINITION>
-    and?: Array<DynamicCondition<DEFINITION> | undefined>
-    or?: Array<DynamicCondition<DEFINITION> | undefined>
+export type DynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION extends DinamicConditionExtension = never> = {
+    not?: DynamicCondition<DEFINITION, EXTENSION>
+    and?: Array<DynamicCondition<DEFINITION, EXTENSION> | undefined>
+    or?: Array<DynamicCondition<DEFINITION, EXTENSION> | undefined>
 } & {
-    [KEY in keyof DEFINITION]?: 
-        DEFINITION[KEY] extends DynamicColumnType<any> 
-        ? FilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends AnyValueSource 
-        ? FilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends DynamicDefinition 
-        ? DynamicCondition<DEFINITION[KEY]> : never
+    [KEY in NonReplacedField<DEFINITION, EXTENSION>]?: 
+        KEY extends keyof EXTENSION 
+        ? (
+            DEFINITION[KEY] extends DynamicColumnType<any> 
+            ? ExtendDefinition<FilterTypeOf<DEFINITION[KEY]>, EXTENSION[KEY]> : DEFINITION[KEY] extends AnyValueSource 
+            ? ExtendDefinition<FilterTypeOf<DEFINITION[KEY]>, EXTENSION[KEY]> : DEFINITION[KEY] extends DynamicDefinition 
+            ? ( 
+                EXTENSION[KEY] extends DinamicConditionExtension
+                ? DynamicCondition<DEFINITION[KEY], EXTENSION[KEY]>
+                : DynamicCondition<DEFINITION[KEY], never>
+            ) : never
+        ) : (
+            DEFINITION[KEY] extends DynamicColumnType<any> 
+            ? FilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends AnyValueSource 
+            ? FilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends DynamicDefinition 
+            ? DynamicCondition<DEFINITION[KEY], never>
+            : never
+        )
+} & {
+    [KEY in DynamicConditionExtensionKeys<EXTENSION>]?: EXTENSION[KEY] extends DynamicConditionRule<infer TYPE> ? TYPE : never
 }
 
-export type TypeSafeDynamicCondition<DEFINITION extends DynamicDefinition> = {
-    not?: TypeSafeDynamicCondition<DEFINITION>
-    and?: Array<TypeSafeDynamicCondition<DEFINITION> | undefined>
-    or?: Array<TypeSafeDynamicCondition<DEFINITION> | undefined>
+export type TypeSafeDynamicCondition<DEFINITION extends DynamicDefinition, EXTENSION extends DinamicConditionExtension = never> = {
+    not?: TypeSafeDynamicCondition<DEFINITION, EXTENSION>
+    and?: Array<TypeSafeDynamicCondition<DEFINITION, EXTENSION> | undefined>
+    or?: Array<TypeSafeDynamicCondition<DEFINITION, EXTENSION> | undefined>
 } & {
-    [KEY in keyof DEFINITION]?: 
-        DEFINITION[KEY] extends DynamicColumnType<any> 
-        ? TypeSafeFilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends AnyValueSource 
-        ? TypeSafeFilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends DynamicDefinition 
-        ? DynamicCondition<DEFINITION[KEY]> : never
+    [KEY in NonReplacedField<DEFINITION, EXTENSION>]?: 
+        KEY extends keyof EXTENSION 
+        ? (
+            DEFINITION[KEY] extends DynamicColumnType<any> 
+            ? ExtendDefinition<TypeSafeFilterTypeOf<DEFINITION[KEY]>, EXTENSION[KEY]> : DEFINITION[KEY] extends AnyValueSource 
+            ? ExtendDefinition<TypeSafeFilterTypeOf<DEFINITION[KEY]>, EXTENSION[KEY]> : DEFINITION[KEY] extends DynamicDefinition 
+            ? ( 
+                EXTENSION[KEY] extends DinamicConditionExtension
+                ? TypeSafeDynamicCondition<DEFINITION[KEY], EXTENSION[KEY]>
+                : TypeSafeDynamicCondition<DEFINITION[KEY], never>
+            ) : never
+        ) : (
+            DEFINITION[KEY] extends DynamicColumnType<any> 
+            ? FilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends AnyValueSource 
+            ? FilterTypeOf<DEFINITION[KEY]> : DEFINITION[KEY] extends DynamicDefinition 
+            ? TypeSafeDynamicCondition<DEFINITION[KEY], never>
+            : never
+        )
+} & {
+    [KEY in DynamicConditionExtensionKeys<EXTENSION>]: EXTENSION[KEY] extends DynamicConditionRule<infer TYPE> ? TYPE : never
 }
 
 export type MapValueSourceToFilter<TYPE> =
@@ -239,6 +269,16 @@ export type Filterable = {
     [key: string]: AnyValueSource | Filterable
 }
 
+export type DinamicConditionExtension = { [key: string]: DynamicConditionRule<any> | DinamicConditionExtension } 
+export type DynamicConditionRule<T> = (rule: T) => IAnyBooleanValueSource<any, any>
+
+type NonReplacedField<DEFINITION, EXTENSION> = Exclude<keyof DEFINITION, DynamicConditionExtensionKeys<EXTENSION>> 
+type DynamicConditionExtensionKeys<EXTENSION> = {[K in keyof EXTENSION]: EXTENSION[K] extends DynamicConditionRule<any> ? K : never }[keyof EXTENSION]
+
+type ExtendDefinition<T, EXTENSION> = Omit<T, DynamicConditionExtensionKeys<EXTENSION>> & {
+    [KEY in DynamicConditionExtensionKeys<EXTENSION>]?: EXTENSION[KEY] extends DynamicConditionRule<infer TYPE> ? TYPE : never
+}
+
 export type DynamicFilter<DEFINITION extends Filterable> = {
     not?: DynamicFilter<DEFINITION>
     and?: Array<DynamicFilter<DEFINITION> | undefined>
@@ -247,8 +287,8 @@ export type DynamicFilter<DEFINITION extends Filterable> = {
     [KEY in keyof DEFINITION]?: DEFINITION[KEY] extends AnyValueSource ? MapValueSourceToFilter<DEFINITION[KEY]> : DEFINITION[KEY] extends Filterable ? DynamicFilter<DEFINITION[KEY]> : never
 }
 
-export interface DynamicConditionExpression<DEFINITION extends Filterable> {
-    withValues(filter: DynamicFilter<DEFINITION>): BooleanValueSource<TableOfCondition<DEFINITION>, BooleanOptionalTypeOfCondition<DEFINITION>>
+export interface DynamicConditionExpression<DEFINITION extends Filterable, EXTENSION extends DinamicConditionExtension> {
+    withValues(filter: DynamicFilter<DEFINITION>): BooleanValueSource<TableOfCondition<DEFINITION> | TableOfConditionExtention<EXTENSION>, BooleanOptionalTypeOfCondition<DEFINITION> | BooleanOptionalTypeOfConditionExtension<EXTENSION>>
 }
 
 export type TableOfValueSource<TYPE> = TYPE extends ValueSourceOf<infer T> ? T : never
@@ -256,10 +296,28 @@ export type TableOfValueSource<TYPE> = TYPE extends ValueSourceOf<infer T> ? T :
 export type OptionalTypeOfValueSource<TYPE> =
     TYPE extends IValueSource<any, any, any, infer T> ? T : never
 
-export type BooleanOptionalTypeOfCondition<DEFINITION extends Filterable> = MergeOptionalUnion<({
-    [KEY in keyof DEFINITION]: OptionalTypeOfValueSource<DEFINITION[KEY]>
+type BooleanOptionalTypeOfCondition<DEFINITION extends Filterable> = MergeOptionalUnion<({
+    [KEY in keyof DEFINITION]: 
+        DEFINITION[KEY] extends AnyValueSource 
+        ? OptionalTypeOfValueSource<DEFINITION[KEY]> : DEFINITION[KEY] extends Filterable
+        ? BooleanOptionalTypeOfCondition<DEFINITION[KEY]> : never
 })[keyof DEFINITION]>
 
-export type TableOfCondition<DEFINITION extends Filterable> = ({
-    [KEY in keyof DEFINITION]: TableOfValueSource<DEFINITION[KEY]>
+type TableOfCondition<DEFINITION extends Filterable> = ({
+    [KEY in keyof DEFINITION]: 
+        DEFINITION[KEY] extends AnyValueSource 
+        ? TableOfValueSource<DEFINITION[KEY]> : DEFINITION[KEY] extends Filterable
+        ? TableOfCondition<DEFINITION[KEY]> : never
 })[keyof DEFINITION]
+
+type BooleanOptionalTypeOfConditionExtension<EXTENSION extends DinamicConditionExtension> = MergeOptionalUnion<({
+    [KEY in keyof EXTENSION]: 
+        EXTENSION[KEY] extends DynamicConditionRule<infer RULE_RESULT>  
+        ? OptionalTypeOfValueSource<RULE_RESULT> : never
+})[keyof EXTENSION]>
+
+type TableOfConditionExtention<EXTENSION extends DinamicConditionExtension> = ({
+    [KEY in keyof EXTENSION]: 
+        EXTENSION[KEY] extends DynamicConditionRule<infer RULE_RESULT> 
+        ? TableOfValueSource<RULE_RESULT> : never
+})[keyof EXTENSION]

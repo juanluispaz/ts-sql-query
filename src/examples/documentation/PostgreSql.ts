@@ -1,5 +1,6 @@
 import { PostgreSqlConnection } from "../../connections/PostgreSqlConnection"
-import { DynamicCondition, dynamicPick, dynamicPickPaths } from "../../dynamicCondition"
+import { DynamicCondition, dynamicPick, DynamicPickPaths, dynamicPickPaths, expandTypeFromDynamicPickPaths, PickValuesPath } from "../../dynamicCondition"
+import { fromRef, TableOrViewLeftJoinOf } from "../../extras/types"
 import { extractColumnNamesFrom, extractColumnsFrom, extractWritableColumnNamesFrom, extractWritableColumnsFrom, mapForGuidedSplit, mergeType, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "../../extras/utils"
 import { ConsoleLogQueryRunner } from "../../queryRunners/ConsoleLogQueryRunner"
 import { MockQueryRunner } from "../../queryRunners/MockQueryRunner"
@@ -4826,6 +4827,155 @@ async function main() {
     //     .executeUpdate()
 
     // assertEquals(shapedUpdateCustomerNameAndCompanyNameResult, result)
+
+    /* *** Definition ****************************************************************/
+
+    function buildComanyAvailableFields<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCoustomer'>>(_connection: DBConnection, favouriteCoustomerRef: CUSTOMER) {
+        const favouriteCoustomer = fromRef(tCustomer, favouriteCoustomerRef);
+
+        return {
+            id: tCompany.id,
+            name: tCompany.name,
+            favouriteCustomer: {
+                id: favouriteCoustomer.id,
+                name: favouriteCoustomer.firstName.concat(' ').concat(favouriteCoustomer.lastName)
+            }
+        }
+    }
+
+    interface CustomerRules {
+        anyCustomerNameContains?: string
+        anyCustomerWithBirthdayOn?: Date
+    }
+
+    function buildCompanyConditionExtention<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCoustomer'>>(connection: DBConnection, favouriteCoustomerRef: CUSTOMER) {
+        const favouriteCoustomer = fromRef(tCustomer, favouriteCoustomerRef);
+
+        return {
+            customers: (rules: CustomerRules) => {
+                let result = connection.dynamicBooleanExpressionUsing(tCompany)
+    
+                if (rules.anyCustomerNameContains) {
+                    const query = connection.subSelectUsing(tCompany)
+                        .from(tCustomer)
+                        .where(tCustomer.firstName.concat(' ').concat(tCustomer.lastName).containsInsensitive(rules.anyCustomerNameContains))
+                        .selectOneColumn(tCustomer.id)
+                    
+                    result = result.and(connection.exists(query))
+                }
+    
+                if (rules.anyCustomerWithBirthdayOn) {
+                    const query = connection.subSelectUsing(tCompany)
+                        .from(tCustomer)
+                        .where(tCustomer.birthday.equals(rules.anyCustomerWithBirthdayOn))
+                        .selectOneColumn(tCustomer.id)
+                    
+                    result = result.and(connection.exists(query))
+                }
+    
+                return result
+            },
+            favouriteCustomer: {
+                isInAnotherCompanyWithName: (name: string) => {
+                    const query = connection.selectFrom(tCompany)
+                        .where(tCompany.name.containsInsensitive(name))
+                        .selectOneColumn(tCompany.favouriteCustomerId)
+    
+                    return favouriteCoustomer.id.in(query)
+                }
+            }
+        }
+    }
+
+    type CompanyFields = DynamicPickPaths<ReturnType<typeof buildComanyAvailableFields>, 'id'>
+    type CompanyDynamicCondition = DynamicCondition<ReturnType<typeof buildComanyAvailableFields>, ReturnType<typeof buildCompanyConditionExtention>>
+    type CompanyInformation<FIELDS extends CompanyFields> = PickValuesPath<ReturnType<typeof buildComanyAvailableFields>, FIELDS | 'id'>
+    
+    async function getSubcompanies<FIELDS extends CompanyFields>(connection: DBConnection, parentCompanyId: number, fields: FIELDS[], condition: CompanyDynamicCondition): Promise<CompanyInformation<FIELDS>[]> {
+        const favouriteCoustomer = tCustomer.forUseInLeftJoinAs('favouriteCoustomer')
+
+        const avaliableFields = buildComanyAvailableFields(connection, favouriteCoustomer)
+        const conditionExtention = buildCompanyConditionExtention(connection, favouriteCoustomer)
+    
+        const dynamicCondition = connection.dynamicConditionFor(avaliableFields, conditionExtention).withValues(condition)
+        const selectedFields = dynamicPickPaths(avaliableFields, fields, ['id'])
+        
+        const companies = await connection
+            .selectFrom(tCompany)
+            .optionalLeftOuterJoin(favouriteCoustomer).on(tCompany.favouriteCustomerId.equals(favouriteCoustomer.id))
+            .where(dynamicCondition)
+            .and(tCompany.parentId.equals(parentCompanyId))
+            .select(selectedFields)
+            .executeSelectMany()
+    
+        return expandTypeFromDynamicPickPaths(avaliableFields, fields, companies, ['id'])
+    }
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select id as id, name as name from company where name ilike ('%' || $1 || '%') and parent_id = $2`)
+    expectedParams.push(`["ACME",23]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    companyId = 23
+    const result1 = await getSubcompanies(connection, companyId, ['name'], {name: { containsInsensitive: 'ACME' }})
+
+    assertEquals(result1, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select company.id as id, company.name as name, favouriteCoustomer.first_name || $1 || favouriteCoustomer.last_name as "favouriteCustomer.name" from company left outer join customer as favouriteCoustomer on company.parent_id = favouriteCoustomer.id where exists(select id as result from customer where (first_name || $2 || last_name) ilike ('%' || $3 || '%')) and company.parent_id = $4`)
+    expectedParams.push(`[" "," ","smith",23]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    companyId = 23
+    const result2 = await getSubcompanies(connection, companyId, ['name', 'favouriteCustomer.name'], { customers: { anyCustomerNameContains: 'smith'} })
+
+    assertEquals(result2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select company.id as id, company.name as name from company left outer join customer as favouriteCoustomer on company.parent_id = favouriteCoustomer.id where favouriteCoustomer.id in (select parent_id as result from company where name ilike ('%' || $1 || '%')) and company.parent_id = $2`)
+    expectedParams.push(`["ACME Inc.",23]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    companyId = 23
+    const result3 = await getSubcompanies(connection, companyId, ['name'], { favouriteCustomer: { isInAnotherCompanyWithName: 'ACME Inc.' } })
+
+    assertEquals(result3, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select id as id, name as name from company where (exists(select id as result from customer where (first_name || $1 || last_name) ilike ('%' || $2 || '%')) or exists(select id as result from customer where birthday = $3)) and parent_id = $4`)
+    expectedParams.push(`[" ","John","2000-03-01T00:00:00.000Z",23]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    companyId = 23
+    const result4 = await getSubcompanies(connection, companyId, ['name'], { 
+        or: [ 
+            { customers: { anyCustomerNameContains: 'John' }}, 
+            { customers: { anyCustomerWithBirthdayOn: new Date('2000-03-01')} } 
+        ] 
+    })
+
+    assertEquals(result4, result)
+
 }
 
 main().then(() => {

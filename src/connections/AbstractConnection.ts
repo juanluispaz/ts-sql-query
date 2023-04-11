@@ -24,7 +24,7 @@ import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderI
 import { attachSource, attachTransactionSource } from "../utils/attachSource"
 import { database, outerJoinAlias, outerJoinTableOrView, tableOrView, tableOrViewRef, type, valueType } from "../utils/symbols"
 import { callDeferredFunctions, UnwrapPromiseTuple } from "../utils/PromiseProvider"
-import { DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
+import { DinamicConditionExtension, DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
 import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilder"
 import { RawFragment } from "../utils/RawFragment"
 import { RawFragmentImpl } from "../internal/RawFragmentImpl"
@@ -790,8 +790,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required')
     }
 
-    dynamicConditionFor<DEFINITION extends Filterable>(definition: DEFINITION): DynamicConditionExpression<DEFINITION> {
-        return new DynamicConditionBuilder(this.__sqlBuilder, definition)
+    dynamicConditionFor<DEFINITION extends Filterable>(definition: DEFINITION): DynamicConditionExpression<DEFINITION, never>
+    dynamicConditionFor<DEFINITION extends Filterable, EXTENSION extends DinamicConditionExtension>(definition: DEFINITION, extension: EXTENSION): DynamicConditionExpression<DEFINITION, EXTENSION>
+    dynamicConditionFor(definition: Filterable, extension?: any): DynamicConditionExpression<any, any> {
+        return new DynamicConditionBuilder(this.__sqlBuilder, definition, extension)
     }
 
     protected transformValueFromDB(value: unknown, type: string): unknown {

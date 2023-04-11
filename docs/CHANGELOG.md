@@ -5,12 +5,12 @@
 **Changes**:
 
 - Allow extend the rules in a dynamic condition to provide own rules not included by ts-sql-query
+- Ensure tall types returned by `dynamicCondition` are readable
 
 **Bug fixes**:
 
 - Fix missing rules for comparison in the type created using `DynamicCondition` when the database types are used
 - Fix invalid cast using `fromRef` not reported by the typescript (now you will get a compilation error)
-- Ensure tall types returned by `dynamicCondition` are readable
 - Fix `dynamicPickPaths` not picking the inner properties
 - Fix left join property marked as optional when it is used in a complex projection and with dynamic picking columns
 

@@ -1,5 +1,5 @@
 import { AnyDB } from "../databases"
-import type { AnyValueSource, IValueSource, OptionalType, OptionalTypeRequiredOrAny, RemapIValueSourceTypeWithOptionalType, ValueSource, ValueSourceOf, ValueSourceValueTypeForRequiredInOptionalObject, ValueSourceValueTypeForObjectResult, ValueSourceValueTypeForOptionalObjectResultSameOuterJoin } from "../expressions/values"
+import type { AnyValueSource, IValueSource, OptionalType, OptionalTypeRequiredOrAny, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueTypeForRequiredInOptionalObject, ValueSourceValueTypeForObjectResult, ValueSourceValueTypeForOptionalObjectResultSameOuterJoin } from "../expressions/values"
 import { NoTableOrViewRequired, OUTER_JOIN_SOURCE, ITableOrViewRef } from "./ITableOrView"
 import { database } from "./symbols"
 
@@ -153,7 +153,7 @@ type InnerObjectIsRequired<TYPE> =
     
 type AllFromSameLeftJoinWithOriginallyRequired<TYPE> = FalseWhenNever<(
     { [K in keyof TYPE]-?: 
-        TYPE[K] extends ValueSource<infer T, any, any, infer OPTIONAL_TYPE> | undefined // Undefined is to deal with picking columns
+        TYPE[K] extends IValueSource<infer T, any, any, infer OPTIONAL_TYPE> | undefined // Undefined is to deal with picking columns
         ? OUTER_JOIN_SOURCE<any, any> extends T
             ? (
                 InnerTables<TYPE> | NoTableOrViewRequired<T[typeof database]> extends T | NoTableOrViewRequired<T[typeof database]>

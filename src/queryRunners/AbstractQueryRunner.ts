@@ -210,6 +210,9 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.executeMutation(query, params).then(() => undefined)
     }
+    executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
+        return this.executeMutation(query, params).then(() => undefined)
+    }
 
     protected abstract executeQueryReturning(query: string, params: any[]): Promise<any[]>
     protected abstract executeMutation(query: string, params: any[]): Promise<number>

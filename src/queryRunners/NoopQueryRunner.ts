@@ -123,6 +123,9 @@ export class NoopQueryRunner implements QueryRunner {
     executeDatabaseSchemaModification(_query: string, _params: any[] = []): Promise<void> {
         return this.promise.resolve()
     }
+    executeConnectionConfiguration(_query: string, _params: any[] = []): Promise<void> {
+        return this.promise.resolve()
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         let result

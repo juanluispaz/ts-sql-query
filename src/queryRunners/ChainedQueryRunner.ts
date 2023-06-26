@@ -117,6 +117,9 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.queryRunner.executeDatabaseSchemaModification(query, params)
     }
+    executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
+        return this.queryRunner.executeConnectionConfiguration(query, params)
+    }
     addParam(params: any[], value: any): string {
         return this.queryRunner.addParam(params, value)
     }

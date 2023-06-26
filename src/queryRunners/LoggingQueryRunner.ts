@@ -7,7 +7,8 @@ export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneR
     'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
     'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' |
     'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
-    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
+    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification' |
+    'executeConnectionConfiguration'
 
 export interface QueryLogger {
     onQuery?: (queryType: QueryType, query: string, params: any[], timestamps: { startedAt: bigint }) => void;
@@ -669,6 +670,28 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
             }, e => {
                 if (logger.onQueryError) {
                     logger.onQueryError('executeDatabaseSchemaModification', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                }
+                throw e
+            })
+        }
+        return result
+    }
+    executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
+        const logger = this.logger
+        const startedAt = process.hrtime.bigint()
+        if (logger.onQuery) {
+            logger.onQuery('executeConnectionConfiguration', query, params, { startedAt })
+        }
+        let result = this.queryRunner.executeConnectionConfiguration(query, params)
+        if (logger.onQueryResult || logger.onQueryError) {
+            result = result.then(r => {
+                if (logger.onQueryResult) {
+                    logger.onQueryResult('executeConnectionConfiguration', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                }
+                return r
+            }, e => {
+                if (logger.onQueryError) {
+                    logger.onQueryError('executeConnectionConfiguration', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
                 }
                 throw e
             })

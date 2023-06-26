@@ -7,7 +7,8 @@ export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneR
     'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
     'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' |
     'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
-    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification'
+    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification' | 
+    'executeConnectionConfiguration'
 
 export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunner = QueryRunner> extends ChainedQueryRunner<T> {
     constructor(queryRunner: T) {
@@ -327,6 +328,16 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             return r
         }, e => {
             this.onQueryError('executeDatabaseSchemaModification', query, params, e, playload)
+            throw e
+        })
+    }
+    executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
+        const playload = this.onQuery('executeConnectionConfiguration', query, params)
+        return this.queryRunner.executeConnectionConfiguration(query, params).then(r => {
+            this.onQueryResult('executeConnectionConfiguration', query, params, r, playload)
+            return r
+        }, e => {
+            this.onQueryError('executeConnectionConfiguration', query, params, e, playload)
             throw e
         })
     }

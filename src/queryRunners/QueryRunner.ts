@@ -37,6 +37,7 @@ export interface QueryRunner {
     executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
     isTransactionActive(): boolean
     executeDatabaseSchemaModification(query: string, params?: any[]): Promise<void>
+    executeConnectionConfiguration(query: string, params?: any[]): Promise<void>
     addParam(params: any[], value: any): string
     addOutParam(params: any[], name: string): string
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>

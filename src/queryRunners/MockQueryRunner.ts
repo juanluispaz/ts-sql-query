@@ -6,7 +6,8 @@ export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneR
     'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
     'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' | 
     'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 
-    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification' | 'isTransactionActive'
+    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification' | 'isTransactionActive' |
+    'executeConnectionConfiguration'
 
 export type QueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
 
@@ -407,6 +408,18 @@ export class MockQueryRunner implements QueryRunner {
             const result = this.queryExecutor('executeDatabaseSchemaModification', query, params, index)
             if (result !== undefined && result !== null) {
                 throw new Error('Invalid test case result for a executeDatabaseSchemaModification with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
+            }
+            return this.promise.resolve(undefined)
+        } catch (e) {
+            return this.promise.reject(e)
+        }
+    }
+    executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
+        try {
+            const index = this.count++
+            const result = this.queryExecutor('executeConnectionConfiguration', query, params, index)
+            if (result !== undefined && result !== null) {
+                throw new Error('Invalid test case result for a executeConnectionConfiguration with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
             return this.promise.resolve(undefined)
         } catch (e) {

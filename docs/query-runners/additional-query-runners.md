@@ -2,9 +2,9 @@
 
 **Important**: A ts-sql-query connection object and the queries runners objects received as constructor's arguments represent a dedicated connection; consequently, don't share connections between requests when you are handling HTTP requests; create one connection object per request with its own query runners. Even when the ts-sql-query connection object uses a query runner that receives a connection pool, the ts-sql-query connection sill represents a dedicated connection to the database extracted automatically from the pool and must not be shared.
 
-## ~~any-db~~
+## any-db
 
-### ~~any-db (with connection pool)~~
+### any-db (with connection pool)
 
 **DEPRECATED**: [any-db](https://www.npmjs.com/package/any-db) is not maintained any more.
 
@@ -36,7 +36,7 @@ async function main() {
 }
 ```
 
-### ~~any-db (with connection)~~
+### any-db (with connection)
 
 **DEPRECATED**: [any-db](https://www.npmjs.com/package/any-db) is not maintained any more.
 
@@ -84,7 +84,7 @@ async function doYourLogic(connection: DBConnection) {
 }
 ```
 
-## ~~LoopBack DataSource~~
+## LoopBack DataSource
 
 **DEPRECATED**: [LoopBack](https://loopback.io/) looks mostly dead, and databases connectors are very out-of-date and they doesn't offer full support to the required functionality.
 
@@ -397,7 +397,7 @@ async function main() {
 
 ## tedious
 
-### ~~tedious (with a connection poll)~~
+### tedious (with a connection poll)
 
 **DEPRECATED**: [tedious-connection-pool](https://www.npmjs.com/package/tedious-connection-pool) is not maintained any more.
 

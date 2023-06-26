@@ -3,6 +3,9 @@ import type { Connection, ResultSet } from 'any-db'
 import * as begin  from 'any-db-transaction'
 import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 
+/**
+ * @deprecated
+ */
 export class AnyDBQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
 

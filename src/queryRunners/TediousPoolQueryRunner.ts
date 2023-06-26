@@ -3,6 +3,9 @@ import type * as ConnectionPool from 'tedious-connection-pool'
 import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { TediousQueryRunner } from "./TediousQueryRunner"
 
+/**
+ * @deprecated
+ */
 export class TediousPoolQueryRunner extends PromiseBasedPoolQueryRunner {
     readonly database: DatabaseType
     readonly pool: ConnectionPool

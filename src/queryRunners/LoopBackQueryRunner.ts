@@ -3,6 +3,9 @@ import type { DataSource, Transaction } from 'loopback-datasource-juggler'
 import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 import { processOutBinds } from "./OracleUtils"
 
+/**
+ * @deprecated
+ */
 export function createLoopBackQueryRunner(datasource: DataSource, transaction?: Transaction): LoopbackQueryRunner {
     const connector = datasource.connector
     if (!connector) {
@@ -24,6 +27,9 @@ export function createLoopBackQueryRunner(datasource: DataSource, transaction?: 
     }
 }
 
+/**
+ * @deprecated
+ */
 export interface LoopbackQueryRunner extends QueryRunner {
     readonly database: DatabaseType
     readonly datasource: DataSource
@@ -31,6 +37,9 @@ export interface LoopbackQueryRunner extends QueryRunner {
     transaction?: Transaction
 }
 
+/**
+ * @deprecated
+ */
 export abstract class LoopBackAbstractQueryRunner extends PromiseBasedQueryRunner implements LoopbackQueryRunner {
     // @ts-ignore
     readonly database: DatabaseType
@@ -98,6 +107,9 @@ export abstract class LoopBackAbstractQueryRunner extends PromiseBasedQueryRunne
     }
 }
 
+/**
+ * @deprecated
+ */
 export class LoopBackMySqlQueryRunner extends LoopBackAbstractQueryRunner {
 
     constructor(datasource: DataSource, transaction?: Transaction) {
@@ -135,6 +147,9 @@ export class LoopBackMySqlQueryRunner extends LoopBackAbstractQueryRunner {
     }
 }
 
+/**
+ * @deprecated
+ */
 export class LoopBackOracleQueryRunner extends LoopBackAbstractQueryRunner {
 
     constructor(datasource: DataSource, transaction?: Transaction) {
@@ -168,6 +183,9 @@ export class LoopBackOracleQueryRunner extends LoopBackAbstractQueryRunner {
     }
 }
 
+/**
+ * @deprecated
+ */
 export class LoopBackPostgreSqlQueryRunner extends LoopBackAbstractQueryRunner {
 
     constructor(datasource: DataSource, transaction?: Transaction) {
@@ -236,6 +254,9 @@ export class LoopBackPostgreSqlQueryRunner extends LoopBackAbstractQueryRunner {
     }
 }
 
+/**
+ * @deprecated
+ */
 export class LoopBackSqlServerQueryRunner extends LoopBackAbstractQueryRunner {
 
     constructor(datasource: DataSource, transaction?: Transaction) {
@@ -273,6 +294,9 @@ export class LoopBackSqlServerQueryRunner extends LoopBackAbstractQueryRunner {
     }
 }
 
+/**
+ * @deprecated
+ */
 class LoopBackSqliteQueryRunner extends LoopBackAbstractQueryRunner {
 
     constructor(datasource: DataSource, transaction?: Transaction) {

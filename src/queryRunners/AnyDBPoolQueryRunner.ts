@@ -4,6 +4,9 @@ import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { AnyDBQueryRunner } from "./AnyDBQueryRunner"
 import type * as begin  from 'any-db-transaction'
 
+/**
+ * @deprecated
+ */
 export class AnyDBPoolQueryRunner extends PromiseBasedPoolQueryRunner {
     readonly database: DatabaseType
     readonly pool: ConnectionPool

@@ -2,9 +2,11 @@
 
 **Important**: A ts-sql-query connection object and the queries runners objects received as constructor's arguments represent a dedicated connection; consequently, don't share connections between requests when you are handling HTTP requests; create one connection object per request with its own query runners. Even when the ts-sql-query connection object uses a query runner that receives a connection pool, the ts-sql-query connection sill represents a dedicated connection to the database extracted automatically from the pool and must not be shared.
 
-## any-db
+## ~~any-db~~
 
-### any-db (with connection pool)
+### ~~any-db (with connection pool)~~
+
+**DEPRECATED**: [any-db](https://www.npmjs.com/package/any-db) is not maintained any more.
 
 It allows to execute the queries using an [any-db](https://www.npmjs.com/package/any-db) connection pool. To use this query runner you need to install as well [any-db-transaction](https://www.npmjs.com/package/any-db-transaction).
 
@@ -34,7 +36,9 @@ async function main() {
 }
 ```
 
-### any-db (with connection)
+### ~~any-db (with connection)~~
+
+**DEPRECATED**: [any-db](https://www.npmjs.com/package/any-db) is not maintained any more.
 
 It allows to execute the queries using an [any-db](https://www.npmjs.com/package/any-db) connection. To use this query runner you need to install as well [any-db-transaction](https://www.npmjs.com/package/any-db-transaction).
 
@@ -80,7 +84,9 @@ async function doYourLogic(connection: DBConnection) {
 }
 ```
 
-## LoopBack DataSource
+## ~~LoopBack DataSource~~
+
+**DEPRECATED**: [LoopBack](https://loopback.io/) looks mostly dead, and databases connectors are very out-of-date and they doesn't offer full support to the required functionality.
 
 It allows to execute the queries using a [LoopBack](https://loopback.io/) data source.
 
@@ -126,11 +132,11 @@ async function main() {
 
 ## msnodesqlv8
 
+**EXPERIMENTAL**: If you are going to use [msnodesqlv8](https://www.npmjs.com/package/msnodesqlv8), please, let me know. There is no way to test it easily.
+
 It allows to execute the queries using an [msnodesqlv8](https://www.npmjs.com/package/msnodesqlv8) connection.
 
 **Supported databases**: sqlServer (only on Windows)
-
-**Note**: If you are going to use msnodesqlv8, please, let me know.
 
 ```ts
 const sql = require("msnodesqlv8");
@@ -233,6 +239,8 @@ async function doYourLogic(connection: DBConnection) {
 ```
 
 ## prisma
+
+**EXPERIMENTAL**: This implementation emulates the behaviour of the promise-not-so-like object returned by Prisma; but this can be challenging.
 
 It allows to execute the queries using a [Prisma](https://www.prisma.io) client. It supports Prisma 2, Prisma 3 and Prisma 4.
 
@@ -389,7 +397,9 @@ async function main() {
 
 ## tedious
 
-### tedious (with a connection poll)
+### ~~tedious (with a connection poll)~~
+
+**DEPRECATED**: [tedious-connection-pool](https://www.npmjs.com/package/tedious-connection-pool) is not maintained any more.
 
 It allows to execute the queries using a [tedious](https://www.npmjs.com/package/tedious) connection and a [tedious-connection-pool](https://www.npmjs.com/package/tedious-connection-pool) pool.
 
@@ -423,19 +433,15 @@ async function main() {
 
 ### tedious (with a connection)
 
-It allows to execute the queries using a [tedious](https://www.npmjs.com/package/tedious) connection and a [tedious-connection-pool](https://www.npmjs.com/package/tedious-connection-pool) pool.
+**NOTE**: If you are going to use this connector, let me know how to manage a proper connection pool.
+
+It allows to execute the queries using a [tedious](https://www.npmjs.com/package/tedious) connection.
 
 **Supported databases**: sqlServer
 
 ```ts
-const ConnectionPool = require('tedious-connection-pool');
+import { Connection } from 'tedious';
 import { TediousQueryRunner } from "ts-sql-query/queryRunners/TediousQueryRunner";
-
-var poolConfig = {
-    min: 2,
-    max: 4,
-    log: true
-};
 
 var connectionConfig = {
     userName: 'login',
@@ -443,26 +449,8 @@ var connectionConfig = {
     server: 'localhost'
 };
 
-var pool = new ConnectionPool(poolConfig, connectionConfig);
-
-function main() {
-    pool.acquire((error, sqlServerConnection) => {
-        if (error) {
-            throw error;
-        }
-        try {
-            const connection = new DBConnection(new TediousQueryRunner(sqlServerConnection));
-            doYourLogic(connection).finnaly(() => {
-                sqlServerConnection.release();
-            });
-        } catch(e) {
-            sqlServerConnection.release();
-            throw e;
-        }
-    });
-}
-
-async doYourLogic(connection: DBConnection) {
+async function main() {
+    const connection = new DBConnection(new TediousQueryRunner(new Connection(connectionConfig)));
     // Do your queries here
 }
 ```

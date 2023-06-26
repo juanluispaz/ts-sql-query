@@ -1,5 +1,19 @@
 # Change Log
 
+## v1.54.0 (27 Jun 2023)
+
+**Changes**:
+
+- Deprecate AnyDB, LoopBack and tedious-connection-pool query runners due their respective projects are dead.
+- Implement `executeConnectionConfiguration` in the query runner, allowing you to execute raw queries that modify the connection configuration.
+- MariaDB and MySql don't support nested transactions, but instead of throwing an error, it silently finishes the previous one; when this circumstance is detected, an error with be thrown to avoid dangerous situations.
+- Add support to `beforeQuery` custom SQL fragment when queries are customized.
+
+**Documentation changes**:
+
+- Update tedious query runner documentation to don't use tedious-connection-pool and add a note requesting information to the users to explain how to use it with a proper pool.
+- Mark compose and split functionality as legacy with the intention to be deprecated in the future. Documentation of this functionality moved to a single place.
+
 ## v1.53.0 (11 Apr 2023)
 
 **Changes**:

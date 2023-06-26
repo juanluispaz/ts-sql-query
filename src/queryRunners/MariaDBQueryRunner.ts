@@ -48,8 +48,14 @@ export class MariaDBQueryRunner extends PromiseBasedQueryRunner {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.insertId)
     }
     executeBeginTransaction(): Promise<void> {
+        if (this.transactionLevel >= 1) {
+            throw new Error("MariaDB doesn't support nested transactions. This error is thrown to avoid MariaDB silently finishing the previous transaction")
+        }
         return this.connection.beginTransaction().then(() => {
             this.transactionLevel++
+            if (this.transactionLevel >= 2) {
+                throw new Error("MariaDB doesn't support nested transactions. The previous transaction was silently finished")
+            }
             return undefined
         })
     }

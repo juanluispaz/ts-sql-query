@@ -72,13 +72,20 @@ export class MySql2QueryRunner extends PromiseBasedQueryRunner {
         })
     }
     executeBeginTransaction(): Promise<void> {
+        if (this.transactionLevel >= 1) {
+            throw new Error("MySql doesn't support nested transactions. This error is thrown to avoid MariaDB silently finishing the previous transaction")
+        }
         return new Promise((resolve, reject) => {
             this.connection.beginTransaction((error: QueryError | null) => {
                 if (error) {
                     reject(error)
                 } else {
                     this.transactionLevel++
-                    resolve()
+                    if (this.transactionLevel >= 2) {
+                        reject(new Error("MySql doesn't support nested transactions. The previous transaction was silently finished"))
+                    } else {
+                        resolve()
+                    }
                 }
             })
         })

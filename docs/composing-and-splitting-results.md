@@ -1,4 +1,6 @@
-# Composing and splitting results
+# Composing and splitting results (legacy)
+
+**LEGACY**: This feature will continue to be maintained, but its usage is not recommended, and its functionality will not be extended. This functionality is intended to be deprecated in the future when the current code using it is migrated away. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
 Sometime you whan to create a result where the content looks like:
 
@@ -8,12 +10,14 @@ Sometime you whan to create a result where the content looks like:
 
 To do this you have two strategies:
 
-- **Composing**: You can execute a second query that returns the additional data. Valid for the case 1, and also work for the case 2 or 3 but this is not the best approach.
+- **Composing**: You can execute a second query that returns the additional data. Valid for the case 1, and also work for the case 2 or 3 but this is not the best approach. Before use splitting evaluate if you can use [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 - **Splitting**: You can return all the data in the same query, and then move the additional data to the object in the internal property. Valid for the case 2 and 3 but it doesn't work for the case 1. Before use splitting evaluate if you can use [complex projections](queries/complex-projections.md) instead.
 
 **Note**: You can apply composing/spliting on select/insert/update/delete that returns objects.
 
 ## Composing results
+
+**Note**: Before use splitting evaluate if you can use [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
 **How it works**:
 
@@ -59,6 +63,8 @@ This method receives a function with argument an array with the ids and returns 
 
 ## Composing many items in the result
 
+**Note**: Before use splitting evaluate if you can use [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
+
 ```ts
 const companiesWithCustomers = connection.selectFrom(tCompany)
         .select({
@@ -99,6 +105,8 @@ const companiesWithCustomers: Promise<{
 ```
 
 ## Composing one item in the result
+
+**Note**: Before use splitting evaluate if you can use [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
 ```ts
 const customerWithCompany = connection.selectFrom(tCustomer)
@@ -342,6 +350,130 @@ const leftJoinCompany: Promise<{
     parent?: {
         id: number;
         name: string;
+    };
+}[]>
+```
+
+## Prefixing
+
+**Note**: Before use splitting evaluate if you can use [complex projections](queries/complex-projections.md) instead.
+
+To deal with complex queries, sometimes you need to combine data coming from different tables and then split the result into different objects; but, because the tables can have columns with the same name, you need to prefix it.
+
+The file `ts-sql-query/extras/utils` offers the following functions to deal with prefixing and splitting values:
+
+- `prefixDotted`: create a copy of the provided object using the provided prefix where every property's name has the pattern `prefix.name`.
+- `prefixMapForSplitDotted`: create a map object where the key is the generated property by the previous function, and the value is the property's original name. The result of this function is designed to use in the split function in the query.
+- `prefixCapitalized`: create a copy of the provided object using the provided prefix where every property's name has the pattern `prefixName`.
+- `prefixMapForSplitCapitalized`: create a map object where the key is the generated property by the previous function, and the value is the property's original name. The result of this function is designed to use in the split function in the query.
+
+```ts
+import { prefixDotted, prefixMapForSplitDotted } from "ts-sql-query/extras/utils";
+
+const customerColumns = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday
+};
+
+const companyColumns = {
+    id: tCompany.id,
+    name: tCompany.name
+};
+
+const customerWithCompanyPrefixed = connection.selectFrom(tCustomer)
+        .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select({
+            ...prefixDotted(customerColumns, 'customer'),
+            ...prefixDotted(companyColumns, 'company')
+        }).where(
+            tCustomer.id.equals(12)
+        )
+        .split('customer', prefixMapForSplitDotted(customerColumns, 'customer'))
+        .split('company', prefixMapForSplitDotted(companyColumns, 'company'))
+        .executeSelectOne();
+```
+
+The executed query is:
+```sql
+select customer.id as "customer.id", customer.first_name as "customer.firstName", customer.last_name as "customer.lastName", customer.birthday as "customer.birthday", company.id as "company.id", company.name as "company.name" 
+from customer inner join company on company.id = customer.company_id 
+where customer.id = $1
+```
+
+The parameters are: `[ 12 ]`
+
+The result type is:
+```tsx
+const customerWithCompanyPrefixed: Promise<{
+    customer: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        birthday?: Date;
+    };
+    company: {
+        id: number;
+        name: string;
+    };
+}>
+```
+
+## Prefix map for guided split
+
+**Note**: Before use splitting evaluate if you can use [complex projections](queries/complex-projections.md) instead.
+
+When you perform a left join, all the fields coming from the left join table are optional, but you can know when this join exists; some of these fields are not optional at the same time. You can use a guided split to create an inner object with the properties coming from the left join, but you will need to mark the fields that need to be transformed as non-optional in the new object.
+
+The file `ts-sql-query/extras/utils` offers the following functions to help you creating these mapping rules for a guided split:
+
+- `prefixMapForGuidedSplitDotted`: analogous function to `prefixMapForSplitDotted` that create a map object where the key is the generated property by the `prefixDotted` function, and the value is the property's original name. The original name will be followed with the required mark when the reference table gave as the second argument has a required column with the same original name. The result of this function is designed to use in the guided split function in the query.
+- `prefixMapForGuidedSplitCapitalized`: analogous function to `prefixMapForSplitCapitalized` that create a map object where the key is the generated property by the `prefixCapitalized` function, and the value is the property's original name. The original name will be followed with the required mark when the reference table gave as the second argument has a required column with the same original name. The result of this function is designed to use in the guided split function in the query.
+- `mapForGuidedSplit`: Create a map object where the key is the name of the key of the first object, and the value is the property's original name (the key). The original name will be followed with the required mark when the reference table gave as the second argument has a required column with the same original name. The result of this function is designed to use in the guided split function in the query. This function is analogous to the previous ones but without prefixing.
+
+```ts
+import { prefixDotted, prefixMapForGuidedSplitCapitalized } from "ts-sql-query/extras/utils";
+
+const parentCompany = tCompany.forUseInLeftJoinAs('parent')
+
+const companyFields = {
+    id: tCompany.id,
+    name: tCompany.name
+}
+
+const parentCompanyFields = {
+    id: parentCompany.id,
+    name: parentCompany.name,
+    parentId: parentCompany.parentId
+}
+
+const companyPrefixed = connection.selectFrom(tCompany)
+    .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+    .select({
+        ...companyFields,
+        ...prefixCapitalized(parentCompanyFields, 'parent')
+    }).guidedSplitOptional('parent', prefixMapForGuidedSplitCapitalized(parentCompanyFields, tCompany, 'parent'))
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select company.id as id, company.name as name, parent.id as "parentId", parent.name as "parentName", parent.parent_id as "parentParentId"
+from company left join company as parent on company.parent_id = parent.id
+```
+
+The parameters are: `[ ]`
+
+The result type is:
+```tsx
+const companyPrefixed: Promise<{
+    name: string;
+    id: number;
+    parent?: {
+        name: string;
+        id: number;
+        parentId?: number;
     };
 }[]>
 ```

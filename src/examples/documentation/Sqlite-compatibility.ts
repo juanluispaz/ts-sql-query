@@ -2167,7 +2167,7 @@ async function main() {
         lastName: 'Last Name'
     }
     expectedResult.push(result)
-    expectedQuery.push(`select /*+ some hints */ id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where id = ? order by id, my_id for update`)
+    expectedQuery.push(`BEFORE select /*+ some hints */ id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where id = ? order by id, my_id for update`)
     expectedParams.push(`[10]`)
     expectedType.push(`selectOneRow`)
     
@@ -2183,6 +2183,7 @@ async function main() {
         })
         .orderBy('id')
         .customizeQuery({
+            beforeQuery: connection.rawFragment`BEFORE`,
             afterSelectKeyword: connection.rawFragment`/*+ some hints */`,
             afterQuery: connection.rawFragment`for update`,
             afterOrderByItems: connection.rawFragment`my_id`
@@ -2195,7 +2196,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`update /*+ some hints */ customer set first_name = ?, last_name = ? where id = ? keep plan`)
+    expectedQuery.push(`BEFORE update /*+ some hints */ customer set first_name = ?, last_name = ? where id = ? keep plan`)
     expectedParams.push(`["John","Smith",10]`)
     expectedType.push(`update`)
     
@@ -2206,6 +2207,7 @@ async function main() {
             lastName: 'Smith'
         }).where(tCustomer.id.equals(10))
         .customizeQuery({
+            beforeQuery: connection.rawFragment`BEFORE`,
             afterUpdateKeyword: connection.rawFragment`/*+ some hints */`,
             afterQuery: connection.rawFragment`keep plan`,
         })
@@ -2217,7 +2219,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`delete /*+ some hints */ from customer where id = ? keep plan`)
+    expectedQuery.push(`BEFORE delete /*+ some hints */ from customer where id = ? keep plan`)
     expectedParams.push(`[10]`)
     expectedType.push(`delete`)
     
@@ -2226,6 +2228,7 @@ async function main() {
     const customizedDelete = await connection.deleteFrom(tCustomer)
         .where(tCustomer.id.equals(10))
         .customizeQuery({
+            beforeQuery: connection.rawFragment`BEFORE`,
             afterDeleteKeyword: connection.rawFragment`/*+ some hints */`,
             afterQuery: connection.rawFragment`keep plan`,
         })
@@ -2237,7 +2240,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`insert /*+ some hints */ into customer (first_name, last_name, company_id) values (?, ?, ?) log errors reject limit unlimited`)
+    expectedQuery.push(`BEFORE insert /*+ some hints */ into customer (first_name, last_name, company_id) values (?, ?, ?) log errors reject limit unlimited`)
     expectedParams.push(`["John","Smith",1]`)
     expectedType.push(`insert`)
     
@@ -2248,6 +2251,7 @@ async function main() {
             lastName: 'Smith',
             companyId: 1
         }).customizeQuery({
+            beforeQuery: connection.rawFragment`BEFORE`,
             afterInsertKeyword: connection.rawFragment`/*+ some hints */`,
             afterQuery: connection.rawFragment`log errors reject limit unlimited`
         }).executeInsert()

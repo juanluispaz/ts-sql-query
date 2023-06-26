@@ -18,6 +18,7 @@ export interface SelectCustomization<DB extends AnyDB> {
     customWindow?: RawFragment<DB>
     beforeOrderByItems?: RawFragment<DB>
     afterOrderByItems?: RawFragment<DB>
+    beforeQuery?: RawFragment<DB>
     afterQuery?: RawFragment<DB>
     beforeWithQuery?: RawFragment<DB>
     afterWithQuery?: RawFragment<DB>

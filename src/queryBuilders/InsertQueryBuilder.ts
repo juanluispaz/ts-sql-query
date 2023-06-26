@@ -1558,6 +1558,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
 
     customizeQuery(customization: InsertCustomization<any>): this {
         this.__customization = customization
+        __addWiths(customization.beforeQuery, this.__sqlBuilder, this.__withs)
         __addWiths(customization.afterInsertKeyword, this.__sqlBuilder, this.__withs)
         __addWiths(customization.afterQuery, this.__sqlBuilder, this.__withs)
         return this
@@ -1945,6 +1946,10 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             return false
         }
         if (this.__customization) {
+            result = __isAllowed(this.__customization.beforeQuery, sqlBuilder)
+            if (!result) {
+                return false
+            }
             result = __isAllowed(this.__customization.afterInsertKeyword, sqlBuilder)
             if (!result) {
                 return false

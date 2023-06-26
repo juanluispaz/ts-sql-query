@@ -252,7 +252,11 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     _buildInsertDefaultValues(query: InsertData, params: any[]): string {
         this._ensureRootQuery(query, params)
         const customization = query.__customization
-        let insertQuery = 'insert '
+        let insertQuery = ''
+        if (customization && customization.beforeQuery) {
+            insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+        }
+        insertQuery += 'insert '
         if (customization && customization.afterInsertKeyword) {
             insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
         }

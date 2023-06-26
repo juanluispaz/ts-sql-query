@@ -355,6 +355,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     customizeQuery(customization: DeleteCustomization<any>): this {
         this.__finishJoin()
         this.__customization = customization
+        __addWiths(customization.beforeQuery, this.__sqlBuilder, this.__withs)
         __addWiths(customization.afterDeleteKeyword, this.__sqlBuilder, this.__withs)
         __addWiths(customization.afterQuery, this.__sqlBuilder, this.__withs)
         return this
@@ -441,6 +442,10 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             }
         }
         if (this.__customization) {
+            result = __isAllowed(this.__customization.beforeQuery, sqlBuilder)
+            if (!result) {
+                return false
+            }
             result = __isAllowed(this.__customization.afterDeleteKeyword, sqlBuilder)
             if (!result) {
                 return false

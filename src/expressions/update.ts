@@ -11,6 +11,7 @@ import type { ColumnGuard, GuidedObj, GuidedPropName, RequiredKeysOfPickingColum
 
 export interface UpdateCustomization<DB extends AnyDB> {
     afterUpdateKeyword?: RawFragment<DB>
+    beforeQuery?: RawFragment<DB>
     afterQuery?: RawFragment<DB>
 }
 

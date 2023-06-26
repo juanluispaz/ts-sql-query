@@ -448,10 +448,15 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
 
         const customization = this.__customization
         if (customization) {
+            __registerRequiredColumn(customization.beforeWithQuery, sqlBuilder, requiredColumns, newOnly)
+            __registerRequiredColumn(customization.beforeQuery, sqlBuilder, requiredColumns, newOnly)
             __registerRequiredColumn(customization.afterSelectKeyword, sqlBuilder, requiredColumns, newOnly)
             __registerRequiredColumn(customization.beforeColumns, sqlBuilder, requiredColumns, newOnly)
             __registerRequiredColumn(customization.customWindow, sqlBuilder, requiredColumns, newOnly)
+            __registerRequiredColumn(customization.beforeOrderByItems, sqlBuilder, requiredColumns, newOnly)
+            __registerRequiredColumn(customization.afterOrderByItems, sqlBuilder, requiredColumns, newOnly)
             __registerRequiredColumn(customization.afterQuery, sqlBuilder, requiredColumns, newOnly)
+            __registerRequiredColumn(customization.afterWithQuery, sqlBuilder, requiredColumns, newOnly)
         }
 
         this.__registerRequiredColumnInSelect(sqlBuilder, requiredColumns, newOnly)
@@ -582,12 +587,15 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
 
     customizeQuery(customization: SelectCustomization<any>): any {
         this.__customization = customization
+        __addWiths(customization.beforeWithQuery, this.__sqlBuilder, this.__withs)
+        __addWiths(customization.beforeQuery, this.__sqlBuilder, this.__withs)
         __addWiths(customization.afterSelectKeyword, this.__sqlBuilder, this.__withs)
         __addWiths(customization.beforeColumns, this.__sqlBuilder, this.__withs)
         __addWiths(customization.customWindow, this.__sqlBuilder, this.__withs)
         __addWiths(customization.beforeOrderByItems, this.__sqlBuilder, this.__withs)
         __addWiths(customization.afterOrderByItems, this.__sqlBuilder, this.__withs)
         __addWiths(customization.afterQuery, this.__sqlBuilder, this.__withs)
+        __addWiths(customization.afterWithQuery, this.__sqlBuilder, this.__withs)
         return this
     }
 }
@@ -1033,12 +1041,15 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
 
         const customization = this.__customization
         if (customization) {
+            __registerTableOrView(customization.beforeWithQuery, this.__sqlBuilder, requiredTableOrView)
+            __registerTableOrView(customization.beforeQuery, this.__sqlBuilder, requiredTableOrView)
             __registerTableOrView(customization.afterSelectKeyword, this.__sqlBuilder,requiredTableOrView)
             __registerTableOrView(customization.beforeColumns, this.__sqlBuilder, requiredTableOrView)
             __registerTableOrView(customization.customWindow, this.__sqlBuilder, requiredTableOrView)
             __registerTableOrView(customization.beforeOrderByItems, this.__sqlBuilder, requiredTableOrView)
             __registerTableOrView(customization.afterOrderByItems, this.__sqlBuilder, requiredTableOrView)
             __registerTableOrView(customization.afterQuery, this.__sqlBuilder, requiredTableOrView)
+            __registerTableOrView(customization.afterWithQuery, this.__sqlBuilder, requiredTableOrView)
         }
 
         let registeredCount = requiredTableOrView.size
@@ -1165,6 +1176,14 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             return false
         }
         if (this.__customization) {
+            result = __isAllowed(this.__customization.beforeWithQuery, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.beforeQuery, sqlBuilder)
+            if (!result) {
+                return false
+            }
             result = __isAllowed(this.__customization.afterSelectKeyword, sqlBuilder)
             if (!result) {
                 return false
@@ -1186,6 +1205,10 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
                 return false
             }
             result = __isAllowed(this.__customization.afterQuery, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.afterWithQuery, sqlBuilder)
             if (!result) {
                 return false
             }
@@ -1304,6 +1327,14 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
             return false
         }
         if (this.__customization) {
+            result = __isAllowed(this.__customization.beforeWithQuery, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.beforeQuery, sqlBuilder)
+            if (!result) {
+                return false
+            }
             result = __isAllowed(this.__customization.afterSelectKeyword, sqlBuilder)
             if (!result) {
                 return false
@@ -1325,6 +1356,10 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
                 return false
             }
             result = __isAllowed(this.__customization.afterQuery, sqlBuilder)
+            if (!result) {
+                return false
+            }
+            result = __isAllowed(this.__customization.afterWithQuery, sqlBuilder)
             if (!result) {
                 return false
             }

@@ -442,6 +442,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
 
         for (let i = 0, length = multiple.length; i < length; i++) {
+            if (customization && customization.beforeQuery) {
+                insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+            }
             if (returning) {
                 insertQuery += 'insert '
                 if (customization && customization.afterInsertKeyword) {
@@ -612,6 +615,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         this._setSafeTableOrView(params, table)
 
         let insertQuery = ''
+
+        if (customization && customization.beforeQuery) {
+            insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+        }
         if (this._insertSupportWith) {
             insertQuery += this._buildWith(query, params)
         }

@@ -223,6 +223,7 @@ The supported extension point offered by `customizeQuery` are:
 - `customWindow`: Place the fragment as a `window` clause (the `window` keyboard will be added automatically).
 - `beforeOrderByItems`: Place the fragment before the `order by` items produced by the query (the `order by` keyboard and the required commas will be added automatically).
 - `afterOrderByItems`: Place the fragment after the `order by` items produced by the query (the `order by` keyboard and the required commas will be added automatically).
+- `beforeQuery`: Place the fragment at the beginning of the query.
 - `afterQuery`: Place the fragment at the end of the query.
 - `beforeWithQuery`: Place the fragment in the with clause (when the query is marked `forUseInQuery`) immediately after the `as` keyboard and before the open parenthesis that contains the query.
 - `afterWithQuery`: Place the fragment in the with clause (when the query is marked `forUseInQuery`) immediately after the close parenthesis that contains the query.
@@ -267,6 +268,7 @@ const customizedSelect: Promise<{
 The supported extension point offered by `customizeQuery` method for an insert are:
 
 - `afterInsertKeyword`: Place the fragment immediately after the `insert` keyword.
+- `beforeQuery`: Place the fragment at the beginning of the query.
 - `afterQuery`: Place the fragment at the end of the query.
 
 ```ts
@@ -299,6 +301,7 @@ const customizedInsert: Promise<number>
 The supported extension point offered by `customizeQuery` method for an update are:
 
 - `afterUpdateKeyword`: Place the fragment immediately after the `update` keyword.
+- `beforeQuery`: Place the fragment at the beginning of the query.
 - `afterQuery`: Place the fragment at the end of the query.
 
 ```ts
@@ -333,6 +336,7 @@ const customizedUpdate: Promise<number>
 The supported extension point offered by `customizeQuery` method for a delete are:
 
 - `afterDeleteKeyword`: Place the fragment immediately after the `delete` keyword.
+- `beforeQuery`: Place the fragment at the beginning of the query.
 - `afterQuery`: Place the fragment at the end of the query.
 
 ```ts

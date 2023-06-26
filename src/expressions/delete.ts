@@ -9,6 +9,7 @@ import type { ColumnGuard, GuidedObj, GuidedPropName, RequiredKeysOfPickingColum
 
 export interface DeleteCustomization<DB extends AnyDB> {
     afterDeleteKeyword?: RawFragment<DB>
+    beforeQuery?: RawFragment<DB>
     afterQuery?: RawFragment<DB>
 }
 

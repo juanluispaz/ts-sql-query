@@ -11,6 +11,7 @@ import type { ColumnGuard, GuidedObj, GuidedPropName, RequiredKeysOfPickingColum
 
 export interface InsertCustomization<DB extends AnyDB> {
     afterInsertKeyword?: RawFragment<DB>
+    beforeQuery?: RawFragment<DB>
     afterQuery?: RawFragment<DB>
 }
 

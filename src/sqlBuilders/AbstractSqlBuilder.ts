@@ -724,6 +724,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 this._setAggregateArrayWrapped(params, true)
             }
 
+            if (customization && customization.beforeQuery) {
+                selectQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+            }
+
             selectQuery += this._buildWith(query, params)
             selectQuery += this._buildSelectWithColumnsInfoForCompound(query.__firstQuery, params, columnsForInsert, isOutermostQuery)
             selectQuery += this._appendCompoundOperator(query.__compoundOperator, params)
@@ -801,6 +805,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (needAgggregateArrayWrapper) {
             selectQuery += this._appendAggragateArrayWrapperBegin(query, params, aggregateId)
             this._setAggregateArrayWrapped(params, true)
+        }
+
+        if (customization && customization.beforeQuery) {
+            selectQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
         }
 
         selectQuery += this._buildWith(query, params)
@@ -1117,6 +1125,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(params, table)
 
         let insertQuery = ''
+        if (customization && customization.beforeQuery) {
+            insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+        }
         if (this._insertSupportWith) {
             insertQuery += this._buildWith(query, params)
         }
@@ -1355,6 +1366,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(params, table)
 
         let insertQuery = ''
+        if (customization && customization.beforeQuery) {
+            insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+        }
         if (this._insertSupportWith) {
             insertQuery += this._buildWith(query, params)
         }
@@ -1430,6 +1444,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(params, table)
 
         let insertQuery = ''
+        if (customization && customization.beforeQuery) {
+            insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+        }
         if (this._insertSupportWith) {
             insertQuery += this._buildWith(query, params)
         }
@@ -1608,6 +1625,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setSafeTableOrView(params, table)
 
         let insertQuery = ''
+        if (customization && customization.beforeQuery) {
+            insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+        }
         if (this._insertSupportWith) {
             insertQuery += this._buildWith(query, params)
         }
@@ -1848,7 +1868,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const requiredColumns = this._extractAdditionalRequiredColumnsForUpdate(query, requiredTables, params)
         this._setFakeNamesOf(params, requiredTables)
 
-        let updateQuery = this._buildWith(query, params)
+        let updateQuery = ''
+
+        if (customization && customization.beforeQuery) {
+            updateQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+        }
+        updateQuery += this._buildWith(query, params)
         updateQuery += 'update '
 
         if (customization && customization.afterUpdateKeyword) {
@@ -2211,7 +2236,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
             this._setSafeTableOrView(params, table)
         }
 
-        let deleteQuery = this._buildWith(query, params)
+        let deleteQuery = ''
+        if (customization && customization.beforeQuery) {
+            deleteQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
+        }
+
+        deleteQuery += this._buildWith(query, params)
         deleteQuery += 'delete '
 
         if (customization && customization.afterDeleteKeyword) {

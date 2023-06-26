@@ -933,6 +933,7 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
 
     customizeQuery(customization: UpdateCustomization<any>): this {
         this.__customization = customization
+        __addWiths(customization.beforeQuery, this.__sqlBuilder, this.__withs)
         __addWiths(customization.afterUpdateKeyword, this.__sqlBuilder, this.__withs)
         __addWiths(customization.afterQuery, this.__sqlBuilder, this.__withs)
         return this
@@ -1028,6 +1029,10 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
             }
         }
         if (this.__customization) {
+            result = __isAllowed(this.__customization.beforeQuery, sqlBuilder)
+            if (!result) {
+                return false
+            }
             result = __isAllowed(this.__customization.afterUpdateKeyword, sqlBuilder)
             if (!result) {
                 return false

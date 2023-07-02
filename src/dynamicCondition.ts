@@ -213,7 +213,7 @@ export type PickValuesPathWitAllProperties<COLUMNS extends Pickable, PICKED exte
     & Pick<ResultObjectValues<COLUMNS>, PICKED & keyof ResultObjectValues<COLUMNS>>>
 
 // Support till 9 clean up levels (recursive definition not working in [P in keyof T])
-type RemovePropertiesWithoutContent<T> = T extends object ? {
+type RemovePropertiesWithoutContent<T> = T extends AnyValueSource | undefined ? T : T extends object ? {
     [P in PropertiesWithContent<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent2<T[P]>;
 } & {
     [P in PropertiesWithContent<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent2<T[P]>;
@@ -225,7 +225,7 @@ type PropertiesWithContent<T> = {
     [P in keyof T] : { [neverUsedSymbol]: typeof neverUsedSymbol } extends RemovePropertiesWithoutContent2<T[P]> ? never : P
 }[keyof T]
 
-type RemovePropertiesWithoutContent2<T> = T extends object ? {
+type RemovePropertiesWithoutContent2<T> = T extends AnyValueSource | undefined ? T : T extends object ? {
     [P in PropertiesWithContent2<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent3<T[P]>;
 } & {
     [P in PropertiesWithContent2<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent3<T[P]>;
@@ -235,7 +235,7 @@ type PropertiesWithContent2<T> = {
     [P in keyof T] : { [neverUsedSymbol]: typeof neverUsedSymbol } extends RemovePropertiesWithoutContent3<T[P]> ? never : P
 }[keyof T]
 
-type RemovePropertiesWithoutContent3<T> = T extends object ? {
+type RemovePropertiesWithoutContent3<T> = T extends AnyValueSource | undefined ? T : T extends object ? {
     [P in PropertiesWithContent3<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent4<T[P]>;
 } & {
     [P in PropertiesWithContent3<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent4<T[P]>;
@@ -245,7 +245,7 @@ type PropertiesWithContent3<T> = {
     [P in keyof T] : { [neverUsedSymbol]: typeof neverUsedSymbol } extends RemovePropertiesWithoutContent4<T[P]> ? never : P
 }[keyof T]
 
-type RemovePropertiesWithoutContent4<T> = T extends object ? {
+type RemovePropertiesWithoutContent4<T> = T extends AnyValueSource | undefined ? T : T extends object ? {
     [P in PropertiesWithContent4<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent5<T[P]>;
 } & {
     [P in PropertiesWithContent4<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent5<T[P]>;
@@ -255,7 +255,7 @@ type PropertiesWithContent4<T> = {
     [P in keyof T] : { [neverUsedSymbol]: typeof neverUsedSymbol } extends RemovePropertiesWithoutContent5<T[P]> ? never : P
 }[keyof T]
 
-type RemovePropertiesWithoutContent5<T> = T extends object ? {
+type RemovePropertiesWithoutContent5<T> = T extends AnyValueSource | undefined ? T : T extends object ? {
     [P in PropertiesWithContent5<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent6<T[P]>;
 } & {
     [P in PropertiesWithContent5<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent6<T[P]>;
@@ -265,7 +265,7 @@ type PropertiesWithContent5<T> = {
     [P in keyof T] : { [neverUsedSymbol]: typeof neverUsedSymbol } extends RemovePropertiesWithoutContent6<T[P]> ? never : P
 }[keyof T]
 
-type RemovePropertiesWithoutContent6<T> = T extends object ? {
+type RemovePropertiesWithoutContent6<T> = T extends AnyValueSource | undefined ? T : T extends object ? {
     [P in PropertiesWithContent6<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent7<T[P]>;
 } & {
     [P in PropertiesWithContent6<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent6<T[P]>;
@@ -275,7 +275,7 @@ type PropertiesWithContent6<T> = {
     [P in keyof T] : { [neverUsedSymbol]: typeof neverUsedSymbol } extends RemovePropertiesWithoutContent7<T[P]> ? never : P
 }[keyof T]
 
-type RemovePropertiesWithoutContent7<T> = T extends object ? {
+type RemovePropertiesWithoutContent7<T> = T extends AnyValueSource | undefined ? T : T extends object ? {
     [P in PropertiesWithContent7<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent8<T[P]>;
 } & {
     [P in PropertiesWithContent7<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent8<T[P]>;
@@ -285,7 +285,7 @@ type PropertiesWithContent7<T> = {
     [P in keyof T] : { [neverUsedSymbol]: typeof neverUsedSymbol } extends RemovePropertiesWithoutContent8<T[P]> ? never : P
 }[keyof T]
 
-type RemovePropertiesWithoutContent8<T> = T extends object ? {
+type RemovePropertiesWithoutContent8<T> = T extends AnyValueSource | undefined ? T : T extends object ? {
     [P in PropertiesWithContent8<T> & MandatoryKeys<T>]: RemovePropertiesWithoutContent9<T[P]>;
 } & {
     [P in PropertiesWithContent8<T> & OptionalKeys<T>]?: RemovePropertiesWithoutContent9<T[P]>;
@@ -295,7 +295,7 @@ type PropertiesWithContent8<T> = {
     [P in keyof T] : { [neverUsedSymbol]: typeof neverUsedSymbol } extends RemovePropertiesWithoutContent9<T[P]> ? never : P
 }[keyof T]
 
-type RemovePropertiesWithoutContent9<T> = T extends object ? {
+type RemovePropertiesWithoutContent9<T> = T extends AnyValueSource | undefined ? T : T extends object ? {
     [P in PropertiesWithContent9<T>]: T[P];
 } : T
 

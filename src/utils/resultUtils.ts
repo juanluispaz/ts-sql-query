@@ -35,6 +35,10 @@ export type GuidedObj<T> = T & { [K in keyof T as K extends string | number ? `$
 export type GuidedPropName<T> = T extends `${infer Q}!` ? Q : T extends `${infer Q}?` ? Q : T
 export type ValueOf<T> = T[keyof T]
 
+type FixPickableObjectWhereCouldBeNotPicked<RESULT> = // In case all properties in a complex projection can me ommited in a select picked, the object can be absent as well
+    undefined extends string ? RESULT // tsc is working with strict mode disabled. There is no way to infer the optional properties. Keep as required is a better approximation.
+    : { } extends RESULT ? RESULT | undefined : RESULT
+
 export type FixOptionalProperties<RESULT> = 
     undefined extends string ? RESULT // tsc is working with strict mode disabled. There is no way to infer the optional properties. Keep as required is a better approximation.
     : { [P in keyof OptionalMap<RESULT>]: true extends OptionalMap<RESULT> ? RESULT[P] : NonNullable<RESULT[P]>}
@@ -101,7 +105,7 @@ type CompoundColumnOptionalType<COLUMN> =
  *     - originallyRequired & optional are marked as optional
  *     - inner objects remain as in its definition
  */
-type InnerResultObjectValues<COLUMNS> = 
+type InnerResultObjectValues<COLUMNS> = FixPickableObjectWhereCouldBeNotPicked<
     ContainsRequiredInOptionalObject<COLUMNS> extends true ? 
         FixOptionalProperties<{
             [P in keyof COLUMNS]: 
@@ -129,6 +133,7 @@ type InnerResultObjectValues<COLUMNS> =
             ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>>
             : InnerResultObjectValues<NonNullable<COLUMNS[P]>>
     }> | undefined
+>
 
 export type InnerResultObjectValuesForAggregatedArray<COLUMNS> = NonNullable<InnerResultObjectValues<COLUMNS>>
 

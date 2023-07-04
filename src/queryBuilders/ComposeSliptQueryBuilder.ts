@@ -40,6 +40,8 @@ export class ComposeSplitQueryBuilder {
     __lastComposition?: Compose
     __columns?: QueryColumns
 
+    __projectOptionalValuesAsNullable?: boolean
+
     constructor(sqlBuilder: SqlBuilder) {
         this.__sqlBuilder = sqlBuilder
     }
@@ -469,6 +471,8 @@ export class ComposeSplitQueryBuilder {
             }
             if (transformed !== undefined && transformed !== null) {
                 result[prop] = transformed
+            } else if (this.__projectOptionalValuesAsNullable) {
+                result[prop] = null
             }
         }
         return result
@@ -640,6 +644,8 @@ export class ComposeSplitQueryBuilder {
             if (transformed !== undefined && transformed !== null) {
                 keepObject = true
                 result[prop] = transformed
+            } else if (this.__projectOptionalValuesAsNullable) {
+                result[prop] = null
             }
         }
 

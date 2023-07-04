@@ -1,5 +1,5 @@
 import { AnyDB } from "../databases"
-import type { AnyValueSource, IValueSource, OptionalType, OptionalTypeRequiredOrAny, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueTypeForRequiredInOptionalObject, ValueSourceValueTypeForObjectResult, ValueSourceValueTypeForOptionalObjectResultSameOuterJoin } from "../expressions/values"
+import type { AnyValueSource, IValueSource, OptionalType, OptionalTypeRequiredOrAny, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueTypeForRequiredInOptionalObject, ValueSourceValueTypeForObjectResult, ValueSourceValueTypeForOptionalObjectResultSameOuterJoin, ValueSourceValueTypeForNullableObjectResult, ValueSourceValueTypeForRequiredInNullableOptionalObject, ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin } from "../expressions/values"
 import { NoTableOrViewRequired, OUTER_JOIN_SOURCE, ITableOrViewRef } from "./ITableOrView"
 import { database } from "./symbols"
 
@@ -10,6 +10,13 @@ export type ResultObjectValues<COLUMNS> = FixOptionalProperties<{
         COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
         ? ValueSourceValueTypeForObjectResult<NonNullable<COLUMNS[P]>> 
         : InnerResultObjectValues<NonNullable<COLUMNS[P]>>
+}>
+
+export type ResultObjectValuesProjectedAsNullable<COLUMNS> = FixOptionalPropertiesProjectedAsNullable<{
+    [P in keyof COLUMNS]: 
+        COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+        ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>> 
+        : InnerResultNullableObjectValues<NonNullable<COLUMNS[P]>>
 }>
 
 // Column name considering picking
@@ -47,6 +54,21 @@ type OptionalMap<TYPE> = { [P in MandatoryPropertiesOf<TYPE>]-?: true } & { [P i
 
 export type MandatoryPropertiesOf<TYPE> = Exclude<keyof TYPE, OptionalPropertiesOf<TYPE>> // Do the substractio to deal with union types
 export type OptionalPropertiesOf<TYPE> = ({ [K in keyof TYPE]-?: null | undefined extends TYPE[K] ? K : (null extends TYPE[K] ? K : (undefined extends TYPE[K] ? K : never)) })[keyof TYPE]
+
+type FixPickableObjectWhereCouldBeNotPickedProjectedAsNullable<RESULT> = // In case all properties in a complex projection can me ommited in a select picked, the object can be absent as well
+    undefined extends string ? RESULT // tsc is working with strict mode disabled. There is no way to infer the optional properties. Keep as required is a better approximation.
+    : { } extends RESULT ? RESULT | undefined | (true extends ContainsNullableProperties<RESULT> ? null : never)
+    : { } extends FixOptionalProperties<RESULT> ? RESULT | null
+    : RESULT
+
+type FixOptionalPropertiesProjectedAsNullable<RESULT> = 
+    undefined extends string ? RESULT // tsc is working with strict mode disabled. There is no way to infer the optional properties. Keep as required is a better approximation.
+    : { [P in keyof OptionalMapProjectedAsNullable<RESULT>]: RESULT[P] }
+
+type OptionalMapProjectedAsNullable<TYPE> = { [P in AlwaysRequestedPropertiesOfProjectedAsNullable<TYPE>]-?: true } & { [P in OmittablePropertiesOfProjectedAsNullable<TYPE>]?: false }
+
+type AlwaysRequestedPropertiesOfProjectedAsNullable<TYPE> = Exclude<keyof TYPE, OmittablePropertiesOfProjectedAsNullable<TYPE>> // Do the substract to deal with union types
+type OmittablePropertiesOfProjectedAsNullable<TYPE> = ({ [K in keyof TYPE]-?: undefined extends TYPE[K] ? K : never })[keyof TYPE]
 
 // For compound
 
@@ -135,7 +157,38 @@ type InnerResultObjectValues<COLUMNS> = FixPickableObjectWhereCouldBeNotPicked<
     }> | undefined
 >
 
+type InnerResultNullableObjectValues<COLUMNS> = FixPickableObjectWhereCouldBeNotPickedProjectedAsNullable<
+    ContainsRequiredInOptionalObject<COLUMNS> extends true ? 
+        FixOptionalPropertiesProjectedAsNullable<{
+            [P in keyof COLUMNS]: 
+                COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+                ? ValueSourceValueTypeForRequiredInNullableOptionalObject<NonNullable<COLUMNS[P]>>
+                : InnerResultNullableObjectValues<NonNullable<COLUMNS[P]>>
+        }> | null
+    : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
+        FixOptionalPropertiesProjectedAsNullable<{
+            [P in keyof COLUMNS]: 
+                COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+                ? ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
+                : InnerResultNullableObjectValues<NonNullable<COLUMNS[P]>>
+        }> | null
+    : ContainsRequired<COLUMNS> extends true ? 
+        FixOptionalPropertiesProjectedAsNullable<{
+            [P in keyof COLUMNS]: 
+                COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+                ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>>
+                : InnerResultNullableObjectValues<NonNullable<COLUMNS[P]>>
+        }>
+    : FixOptionalPropertiesProjectedAsNullable<{
+        [P in keyof COLUMNS]: 
+            COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
+            ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>>
+            : InnerResultNullableObjectValues<NonNullable<COLUMNS[P]>>
+    }> | null
+>
+
 export type InnerResultObjectValuesForAggregatedArray<COLUMNS> = NonNullable<InnerResultObjectValues<COLUMNS>>
+export type InnerResultNullableObjectValuesForAggregatedArray<COLUMNS> = NonNullable<InnerResultNullableObjectValues<COLUMNS>>
 
 type ContainsRequiredInOptionalObject<TYPE> = FalseWhenNever<(
     { [K in keyof TYPE]-?: 
@@ -188,6 +241,8 @@ type IsRequired<OPTIONAL_TYPE extends OptionalType> =
     'any' extends OPTIONAL_TYPE ? never :
     'required' extends OPTIONAL_TYPE ? true :
     never
+
+type ContainsNullableProperties<T> = FalseWhenNever<{ [P in keyof T]-? : null extends T[P] ? true : never }[keyof T]>
 
 // Dealing with never https://github.com/microsoft/TypeScript/issues/23182
 type FalseWhenNever<T> = [T] extends [never] ? false : T

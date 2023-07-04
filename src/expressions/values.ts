@@ -38,8 +38,11 @@ type OptionalValueType<OPTIONAL_TYPE extends OptionalType> =
 export type ValueSourceValueType<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | OptionalValueType<OPTIONAL_TYPE> : never
 export type ValueSourceValueTypeForResult<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' ? never : null) : never
 export type ValueSourceValueTypeForObjectResult<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' ? never : undefined) : never
+export type ValueSourceValueTypeForNullableObjectResult<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' ? never : null) : never
 export type ValueSourceValueTypeForRequiredInOptionalObject<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' | 'requiredInOptionalObject' ? never : undefined) : never
+export type ValueSourceValueTypeForRequiredInNullableOptionalObject<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' | 'requiredInOptionalObject' ? never : null) : never
 export type ValueSourceValueTypeForOptionalObjectResultSameOuterJoin<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' | 'requiredInOptionalObject' | 'originallyRequired' ? never : undefined) : never
+export type ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' | 'requiredInOptionalObject' | 'originallyRequired' ? never : null) : never
 
 export interface AnyValueSource {
     [valueSourceType]: 'ValueSource'

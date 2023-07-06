@@ -25,6 +25,23 @@ class DBConnection extends OracleConnection<'DBConnection'> {
     appendToAllCompaniesName(aditional: string) {
         return this.executeProcedure('append_to_all_companies_name', [this.const(aditional, 'string')])
     }
+    deleteUserReturningObjectWithMessage(userId: string): Promise<{message: string}> {
+        const queryRunner = this.queryRunner
+        const params: any[] = []
+        return queryRunner.executeUpdateReturningOneRow(`begin PR_DEL_E2EUSER(${queryRunner.addParam(params, userId)}, ${queryRunner.addOutParam(params, 'message')}); end;`, params)
+    }
+    deleteUserReturningMessage(userId: string): Promise<string> {
+        const queryRunner = this.queryRunner
+        const params: any[] = []
+        return queryRunner.executeUpdateReturningOneColumnOneRow(`begin PR_DEL_E2EUSER(${queryRunner.addParam(params, userId)}, ${queryRunner.addOutParam(params, 'message')}); end;`, params)
+    }
+    deleteUserLowLevel(userId: string): Promise<string> {
+        return this.queryRunner.execute(async (connection) => {
+            const oracleConnection = connection as oracledb.Connection
+            const result = await oracleConnection.execute('begin PR_DEL_E2EUSER(:id, :message); end;', {id: userId, message: {dir: oracledb.BIND_OUT}})
+            return (result.outBinds as any).message
+        })
+    }
     customerSeq = this.sequence('customer_seq', 'int')
 }
 
@@ -182,6 +199,29 @@ async function main() {
                 opt_bool_e char null check (opt_bool_e = 'T' or opt_bool_e = 'F'),
                 opt_bool_f char null check (opt_bool_f = 'Y' or opt_bool_f = 'N')
             )
+        `)
+
+        try {
+            await connection.queryRunner.executeDatabaseSchemaModification(`drop procedure PR_DEL_E2EUSER`)
+        } catch { /* do nothing*/ }
+        await connection.queryRunner.executeDatabaseSchemaModification(`
+            create PROCEDURE PR_DEL_E2EUSER(
+                P_PATNR IN VARCHAR2,                
+                P_RESMSG OUT VARCHAR2) IS
+
+            BEGIN
+
+                -- ...DO SOMETHING...
+                P_RESMSG:= 'some success message';
+                -- commit;
+
+            EXCEPTION
+            WHEN OTHERS THEN
+                -- rollback;
+                P_RESMSG:= 'some error message';
+
+
+            END PR_DEL_E2EUSER;
         `)
 
         let i = await connection
@@ -680,6 +720,16 @@ async function main() {
         assertEquals(i, 11)
 
         await connection.appendToAllCompaniesName(' Cia.')
+
+        let message: string
+        message = await connection.deleteUserReturningMessage('user_id')
+        assertEquals(message, 'some success message')
+
+        message = (await connection.deleteUserReturningObjectWithMessage('user_id')).message
+        assertEquals(message, 'some success message')
+
+        message = await connection.deleteUserLowLevel('user_id')
+        assertEquals(message, 'some success message')
 
         name = await connection
             .selectFrom(tCompany)

@@ -22,14 +22,14 @@ import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
 import ChainedError from "chained-error"
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue } from "../queryBuilders/FragmentQueryBuilder"
 import { attachSource, attachTransactionSource } from "../utils/attachSource"
-import { database, outerJoinAlias, outerJoinTableOrView, tableOrView, tableOrViewRef, type, valueType } from "../utils/symbols"
+import { database, outerJoinAlias, outerJoinTableOrView, strictValueType, tableOrView, tableOrViewRef, type, valueType } from "../utils/symbols"
 import { callDeferredFunctions, UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { DinamicConditionExtension, DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
 import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilder"
 import { RawFragment } from "../utils/RawFragment"
 import { RawFragmentImpl } from "../internal/RawFragmentImpl"
 import { CustomizedTableOrView, OuterJoinTableOrView } from "../utils/tableOrViewUtils"
-import { InnerResultObjectValuesForAggregatedArray } from "../utils/resultUtils"
+import { InnerResultNullableObjectValuesForAggregatedArray, InnerResultObjectValuesForAggregatedArray } from "../utils/resultUtils"
 
 export abstract class AbstractConnection<DB extends AnyDB> implements IConnection<DB> {
     [database]!: DB
@@ -783,10 +783,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
 
-    aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSource<TableOrViewOfAggregatedArray<COLUMNS>, Array<{ [P in keyof InnerResultObjectValuesForAggregatedArray<COLUMNS>]: InnerResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, 'required'> {
+    aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSource<TableOrViewOfAggregatedArray<COLUMNS>, Array<{ [P in keyof InnerResultObjectValuesForAggregatedArray<COLUMNS>]: InnerResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>]: InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>[P] }>, 'required'> {
         return new AggregateValueAsArrayValueSource(columns, 'InnerResultObject', 'required')
     }
-    aggregateAsArrayOfOneColumn<VALUE extends IValueSource<ITableOrViewRef<DB>, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof tableOrView], Array<VALUE[typeof valueType]>, 'required'> {
+    aggregateAsArrayOfOneColumn<VALUE extends IValueSource<ITableOrViewRef<DB>, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof tableOrView], Array<VALUE[typeof valueType]>, VALUE extends { [strictValueType]: infer STRICT_TYPE } ? Array<STRICT_TYPE> : Array<VALUE[typeof valueType]>, 'required'> {
         return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required')
     }
 

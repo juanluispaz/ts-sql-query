@@ -3,7 +3,7 @@ import type { ITableOrViewOf, NoTableOrViewRequired, NoTableOrViewRequiredView, 
 import type { OuterJoinTableOrView, WithView, WITH_VIEW } from "../utils/tableOrViewUtils"
 import type { AnyDB, TypeWhenSafeDB, TypeSafeDB, TypeUnsafeDB, NoopDB, MariaDB, PostgreSql, Sqlite, Oracle, SqlServer } from "../databases"
 import type { int } from "ts-extended-types"
-import type { columnsType, database, requiredTableOrView, tableOrViewRef, resultType, compoundableColumns, valueType } from "../utils/symbols"
+import type { columnsType, database, requiredTableOrView, tableOrViewRef, resultType, compoundableColumns, valueType, strictValueType } from "../utils/symbols"
 import type { RawFragment } from "../utils/RawFragment"
 import type { ColumnGuard, GuidedObj, GuidedPropName, RequiredKeysOfPickingColumns, ResultObjectValues, FixOptionalProperties, ValueOf, RequiredColumnNames, ColumnsForCompound, ResultObjectValuesProjectedAsNullable } from "../utils/resultUtils"
 import { Column } from "../utils/Column"
@@ -634,8 +634,8 @@ type ForUseAsInlineAggregatedArrayValue<DB extends AnyDB, COLUMNS, REQUIRED_TABL
 
 type ForUseAsInlineAggregatedArrayValueFn<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> =
     COLUMNS extends IValueSource<any, any, any, any>
-    ? () => AggregatedArrayValueSource<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], Array<COLUMNS[typeof valueType]>, 'required'>
-    : () => AggregatedArrayValueSource<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], Array<{ [P in keyof ResultObjectValues<COLUMNS>]: ResultObjectValues<COLUMNS>[P] }>, 'required'>
+    ? () => AggregatedArrayValueSource<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], Array<COLUMNS[typeof valueType]>, COLUMNS extends { [strictValueType]: infer STRICT_TYPE } ? Array<STRICT_TYPE> : Array<COLUMNS[typeof valueType]>, 'required'>
+    : () => AggregatedArrayValueSource<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], Array<{ [P in keyof ResultObjectValues<COLUMNS>]: ResultObjectValues<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullable<COLUMNS>]: ResultObjectValuesProjectedAsNullable<COLUMNS>[P] }>, 'required'>
 
 type CompoundFunction<SUPPORTED_DB extends AnyDB, DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> = 
     DB extends SUPPORTED_DB

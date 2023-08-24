@@ -2,7 +2,7 @@ import type { ITableOrView, ITableOrViewOf, ITableOrViewRef, HasAddWiths } from 
 import type { AnyDB } from "../databases"
 import type { int, double, /*LocalDate, LocalTime, LocalDateTime,*/ stringDouble, stringInt, LocalTime, LocalDateTime, LocalDate, uuid } from "ts-extended-types"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { aggregatedArrayValueSourceType, anyBooleanValueSourceType, bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, optionalType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, typeSafeUuidValueSourceType, uuidValueSourceType, valueSourceType } from "../utils/symbols"
+import type { aggregatedArrayValueSourceType, anyBooleanValueSourceType, bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, optionalType, requiredTableOrView, resultType, strictValueType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, typeSafeUuidValueSourceType, uuidValueSourceType, valueSourceType } from "../utils/symbols"
 import { valueType, valueSourceTypeName, isValueSourceObject } from "../utils/symbols"
 
 export type OptionalType = 'required' | 'requiredInOptionalObject'  | 'originallyRequired' | 'optional' // sorted from the more strict to less strict
@@ -38,11 +38,11 @@ type OptionalValueType<OPTIONAL_TYPE extends OptionalType> =
 export type ValueSourceValueType<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | OptionalValueType<OPTIONAL_TYPE> : never
 export type ValueSourceValueTypeForResult<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' ? never : null) : never
 export type ValueSourceValueTypeForObjectResult<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' ? never : undefined) : never
-export type ValueSourceValueTypeForNullableObjectResult<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' ? never : null) : never
+export type ValueSourceValueTypeForNullableObjectResult<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? (T extends { [strictValueType]: infer STRICT_TYPE } ? STRICT_TYPE : TYPE) | (OPTIONAL_TYPE extends 'required' ? never : null) : never
 export type ValueSourceValueTypeForRequiredInOptionalObject<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' | 'requiredInOptionalObject' ? never : undefined) : never
-export type ValueSourceValueTypeForRequiredInNullableOptionalObject<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' | 'requiredInOptionalObject' ? never : null) : never
+export type ValueSourceValueTypeForRequiredInNullableOptionalObject<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? (T extends { [strictValueType]: infer STRICT_TYPE } ? STRICT_TYPE : TYPE) | (OPTIONAL_TYPE extends 'required' | 'requiredInOptionalObject' ? never : null) : never
 export type ValueSourceValueTypeForOptionalObjectResultSameOuterJoin<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' | 'requiredInOptionalObject' | 'originallyRequired' ? never : undefined) : never
-export type ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' | 'requiredInOptionalObject' | 'originallyRequired' ? never : null) : never
+export type ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? (T extends { [strictValueType]: infer STRICT_TYPE } ? STRICT_TYPE : TYPE) | (OPTIONAL_TYPE extends 'required' | 'requiredInOptionalObject' | 'originallyRequired' ? never : null) : never
 
 export interface AnyValueSource {
     [valueSourceType]: 'ValueSource'
@@ -1908,16 +1908,17 @@ export interface LocalDateTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<
     ignoreWhenAsNull(when: boolean): LocalDateTimeValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
-export interface IAggregatedArrayValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, OPTIONAL_TYPE extends OptionalType> extends IValueSource<TABLE_OR_VIEW, TYPE, 'AggregatedArray', OPTIONAL_TYPE> {
+export interface IAggregatedArrayValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, STRICT_TYPE, OPTIONAL_TYPE extends OptionalType> extends IValueSource<TABLE_OR_VIEW, TYPE, 'AggregatedArray', OPTIONAL_TYPE> {
     [aggregatedArrayValueSourceType]: 'AggregatedArrayValueSource'
+    [strictValueType]: STRICT_TYPE
 }
 
-export interface AggregatedArrayValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, OPTIONAL_TYPE extends OptionalType> extends ValueSource<TABLE_OR_VIEW, TYPE, 'AggregatedArray', OPTIONAL_TYPE>, IAggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, OPTIONAL_TYPE> {
-    useEmptyArrayForNoValue(): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, 'required'>
-    asOptionalNonEmptyArray(): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, 'optional'>
-    asRequiredInOptionalObject(): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, 'requiredInOptionalObject'>
-    onlyWhenOrNull(when: boolean): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, 'optional'>
-    ignoreWhenAsNull(when: boolean): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, 'optional'>
+export interface AggregatedArrayValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, STRICT_TYPE, OPTIONAL_TYPE extends OptionalType> extends ValueSource<TABLE_OR_VIEW, TYPE, 'AggregatedArray', OPTIONAL_TYPE>, IAggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, STRICT_TYPE, OPTIONAL_TYPE> {
+    useEmptyArrayForNoValue(): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, STRICT_TYPE, 'required'>
+    asOptionalNonEmptyArray(): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, STRICT_TYPE, 'optional'>
+    asRequiredInOptionalObject(): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, STRICT_TYPE, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, STRICT_TYPE, 'optional'>
+    ignoreWhenAsNull(when: boolean): AggregatedArrayValueSource<TABLE_OR_VIEW, TYPE, STRICT_TYPE, 'optional'>
 }
 
 export type RemapValueSourceType<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE> =
@@ -1944,7 +1945,7 @@ export type RemapValueSourceType<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, T
         TYPE extends IComparableValueSource<any, any, any, any> ? ComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends IEqualableValueSource<any, any,any, any> ? EqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends INullableValueSource<any, any, any, any> ? NullableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
-        TYPE extends IAggregatedArrayValueSource<any, any, any> ? AggregatedArrayValueSource<TABLE_OR_VIEW, T, OPTIONAL_TYPE> :
+        TYPE extends IAggregatedArrayValueSource<any, any, infer S, any> ? AggregatedArrayValueSource<TABLE_OR_VIEW, T, S, OPTIONAL_TYPE> :
         ValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE>
     ): never
 
@@ -1973,7 +1974,7 @@ export type RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW extends ITableOrV
         TYPE extends IComparableValueSource<any, any,any, any> ? ComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends IEqualableValueSource<any, any, any, any> ? EqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends INullableValueSource<any, any, any, any> ? NullableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
-        TYPE extends IAggregatedArrayValueSource<any, any, any> ? AggregatedArrayValueSource<TABLE_OR_VIEW, T, OPTIONAL_TYPE> :
+        TYPE extends IAggregatedArrayValueSource<any, any, infer S, any> ? AggregatedArrayValueSource<TABLE_OR_VIEW, T, S, OPTIONAL_TYPE> :
         ValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE>
     ): never
 
@@ -2001,7 +2002,7 @@ export type RemapIValueSourceType<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, 
         TYPE extends IComparableValueSource<any, any, any, any> ? IComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends IEqualableValueSource<any, any,any, any> ? IEqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends INullableValueSource<any, any, any, any> ? INullableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
-        TYPE extends IAggregatedArrayValueSource<any, any, any> ? IAggregatedArrayValueSource<TABLE_OR_VIEW, T, OPTIONAL_TYPE> :
+        TYPE extends IAggregatedArrayValueSource<any, any, infer S, any> ? IAggregatedArrayValueSource<TABLE_OR_VIEW, T, S, OPTIONAL_TYPE> :
         IValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE>
     ): never
 
@@ -2029,7 +2030,7 @@ export type RemapIValueSourceTypeWithOptionalType<TABLE_OR_VIEW extends ITableOr
         TYPE extends IComparableValueSource<any, any,any, any> ? IComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends IEqualableValueSource<any, any, any, any> ? IEqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends INullableValueSource<any, any, any, any> ? INullableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
-        TYPE extends IAggregatedArrayValueSource<any, any, any> ? IAggregatedArrayValueSource<TABLE_OR_VIEW, T, OPTIONAL_TYPE> :
+        TYPE extends IAggregatedArrayValueSource<any, any, infer S, any> ? IAggregatedArrayValueSource<TABLE_OR_VIEW, T, S, OPTIONAL_TYPE> :
         IValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE>
     ): never
 

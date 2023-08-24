@@ -161,13 +161,13 @@ export interface ComposeExpressionDeletingExternalPropertyWithoutWhere<EXTERNAL_
 }
 
 export interface WithableExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends ExecutableSelectWithWhere<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>, IExecutableSelectQuery<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW>, ICompoundableSelect<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW> {
-    forUseInQueryAs: ForUseInQueryAs<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW>
+    forUseInQueryAs: ForUseInQueryAs<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
     forUseAsInlineQueryValue: ForUseAsInlineQueryValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
     forUseAsInlineAggregatedArrayValue: ForUseAsInlineAggregatedArrayValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
 }
 
 export interface WithableExecutableSelectWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends ExecutableSelectWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>, IExecutableSelectQuery<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW>, ICompoundableSelect<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW> {
-    forUseInQueryAs: ForUseInQueryAs<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW>
+    forUseInQueryAs: ForUseInQueryAs<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
     forUseAsInlineQueryValue: ForUseAsInlineQueryValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
     forUseAsInlineAggregatedArrayValue: ForUseAsInlineAggregatedArrayValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
 }
@@ -281,7 +281,7 @@ export interface OrderByExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VI
 }
 
 export interface OrderByExecutableSelectExpressionProjectableAsNullable<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    projectingOptionalValuesAsNullable(): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    projectingOptionalValuesAsNullable(): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES | 'projectingOptionalValuesAsNullable'>
 }
 
 export interface OrderedExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
@@ -387,7 +387,7 @@ export interface GroupByOrderByExecutableSelectExpression<DB extends AnyDB, TABL
 }
 
 export interface GroupByOrderByExecutableSelectExpressionProjectableAsNullable<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    projectingOptionalValuesAsNullable(): GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    projectingOptionalValuesAsNullable(): GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES | 'projectingOptionalValuesAsNullable'>
 }
 
 export interface GroupByOrderByHavingExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
@@ -485,7 +485,7 @@ export interface WhereableExecutableSelectExpressionWithGroupBy<DB extends AnyDB
 }
 
 export interface WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    projectingOptionalValuesAsNullable(): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    projectingOptionalValuesAsNullable(): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES | 'projectingOptionalValuesAsNullable'>
 }
 
 export interface DynamicWhereExecutableSelectExpressionWithGroupBy<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
@@ -527,7 +527,7 @@ export interface ExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_
 }
 
 export interface ExecutableSelectExpressionWithoutWhereProjectableAsNullable<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    projectingOptionalValuesAsNullable(): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    projectingOptionalValuesAsNullable(): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES | 'projectingOptionalValuesAsNullable'>
 }
 
 export interface RecursivelyConnectedSelectWhereExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
@@ -593,8 +593,9 @@ export type SelectColumns<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf
 
 type SelectPageWithExtras<COLUMNS, RESULT, EXTRAS> = { data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: int } & Omit<EXTRAS, 'data' | 'count'>
 
-type ForUseInQueryAs<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> =
-    COLUMNS extends undefined
+type ForUseInQueryAs<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> =
+    'projectingOptionalValuesAsNullable' extends FEATURES ? never
+    : COLUMNS extends undefined
     ? never
     : COLUMNS extends AnyValueSource
     ? never
@@ -606,7 +607,8 @@ type ForUseInQueryAs<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends I
     ) : <ALIAS extends string>(as: ALIAS) => WithView<WITH_VIEW<DB, ALIAS>, COLUMNS>
 
 type ForUseAsInlineQueryValue<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> =
-    COLUMNS extends AnyValueSource
+    'projectingOptionalValuesAsNullable' extends FEATURES ? never
+    : COLUMNS extends AnyValueSource
     ? (
         'requiredResult' extends FEATURES
         ? () => RemapValueSourceType<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS>
@@ -614,7 +616,8 @@ type ForUseAsInlineQueryValue<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW 
     ) : never
 
 type ForUseAsInlineAggregatedArrayValue<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> =
-    DB extends SqlServer | Oracle | MariaDB 
+    'projectingOptionalValuesAsNullable' extends FEATURES ? never
+    : DB extends SqlServer | Oracle | MariaDB 
     ? (
         REQUIRED_TABLE_OR_VIEW extends NoTableOrViewRequiredView<DB>
         ? ForUseAsInlineAggregatedArrayValueFn<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW>

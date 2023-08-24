@@ -234,7 +234,7 @@ export interface SqlBuilder extends SqlOperation {
 
     _inlineSelectAsValue(query: SelectData, params: any[]): string
     _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string
-    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string
+    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any, any>, params: any[]): string
 }
 
 export interface ToSql {

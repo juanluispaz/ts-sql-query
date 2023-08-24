@@ -2958,7 +2958,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return 'string_concat(distinct ' + this._appendSql(value, params) + ', ' + this._appendValue(separator, params, 'string', undefined) + ')'
         }
     }
-    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {
+    _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any, any>, params: any[]): string {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
         return this._appendAggragateArrayColumns(aggregatedArrayColumns, params, undefined)

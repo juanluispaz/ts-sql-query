@@ -3,7 +3,7 @@ import type { ITableOrViewOf, NoTableOrViewRequired, NoTableOrViewRequiredView, 
 import type { OuterJoinTableOrView, WithView, WITH_VIEW } from "../utils/tableOrViewUtils"
 import type { AnyDB, TypeWhenSafeDB, TypeSafeDB, TypeUnsafeDB, NoopDB, MariaDB, PostgreSql, Sqlite, Oracle, SqlServer } from "../databases"
 import type { int } from "ts-extended-types"
-import type { columnsType, database, requiredTableOrView, tableOrViewRef, resultType, compoundableColumns, valueType, strictValueType } from "../utils/symbols"
+import type { columnsType, database, requiredTableOrView, tableOrViewRef, resultType, compoundableColumns, valueType, strictValueType, neverUsedSymbol } from "../utils/symbols"
 import type { RawFragment } from "../utils/RawFragment"
 import type { ColumnGuard, GuidedObj, GuidedPropName, RequiredKeysOfPickingColumns, ResultObjectValues, FixOptionalProperties, ValueOf, RequiredColumnNames, ColumnsForCompound, ResultObjectValuesProjectedAsNullable } from "../utils/resultUtils"
 import { Column } from "../utils/Column"
@@ -594,7 +594,9 @@ export type SelectColumns<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf
 type SelectPageWithExtras<COLUMNS, RESULT, EXTRAS> = { data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: int } & Omit<EXTRAS, 'data' | 'count'>
 
 type ForUseInQueryAs<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> =
-    'projectingOptionalValuesAsNullable' extends FEATURES ? never
+    typeof neverUsedSymbol extends FEATURES 
+    ? /* value when FEATURES=any*/ <ALIAS extends string>(as: ALIAS) => WithView<WITH_VIEW<DB, ALIAS>, COLUMNS> 
+    : 'projectingOptionalValuesAsNullable' extends FEATURES ? never
     : COLUMNS extends undefined
     ? never
     : COLUMNS extends AnyValueSource
@@ -607,7 +609,9 @@ type ForUseInQueryAs<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends I
     ) : <ALIAS extends string>(as: ALIAS) => WithView<WITH_VIEW<DB, ALIAS>, COLUMNS>
 
 type ForUseAsInlineQueryValue<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> =
-    'projectingOptionalValuesAsNullable' extends FEATURES ? never
+    typeof neverUsedSymbol extends FEATURES 
+    ? /* value when FEATURES=any*/ () => RemapValueSourceType<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS> 
+    : 'projectingOptionalValuesAsNullable' extends FEATURES ? never
     : COLUMNS extends AnyValueSource
     ? (
         'requiredResult' extends FEATURES
@@ -616,7 +620,9 @@ type ForUseAsInlineQueryValue<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW 
     ) : never
 
 type ForUseAsInlineAggregatedArrayValue<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> =
-    'projectingOptionalValuesAsNullable' extends FEATURES ? never
+    typeof neverUsedSymbol extends FEATURES 
+    ? /* value when FEATURES=any*/ ForUseAsInlineAggregatedArrayValueFn<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW> 
+    : 'projectingOptionalValuesAsNullable' extends FEATURES ? never
     : DB extends SqlServer | Oracle | MariaDB 
     ? (
         REQUIRED_TABLE_OR_VIEW extends NoTableOrViewRequiredView<DB>

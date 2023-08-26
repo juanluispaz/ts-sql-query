@@ -21,13 +21,13 @@ nav:
     - Select: queries/select.md
     - Select page: queries/select-page.md
     - Recursive select: queries/recursive-select.md
-    - SQL Fragments: queries/sql-fragments.md
+    - Complex projections: queries/complex-projections.md
+    - Aggregate as an object array: queries/aggregate-as-object-array.md
     - Insert: queries/insert.md
     - Update: queries/update.md
     - Delete: queries/delete.md
     - Transaction: queries/transaction.md
-    - Complex projections: queries/complex-projections.md
-    - Aggregate as an object array: queries/aggregate-as-object-array.md
+    - SQL Fragments: queries/sql-fragments.md
   - Connection, tables & views: connection-tables-views.md
   - Column types: column-types.md
   - Supported operations: supported-operations.md

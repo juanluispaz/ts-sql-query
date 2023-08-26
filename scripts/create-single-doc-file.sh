@@ -11,8 +11,10 @@ echo '\n# queries/select-page.md\n' >> dist/doc.md
 cat docs/queries/select-page.md >> dist/doc.md
 echo '\n# queries/recursive-select.md\n' >> dist/doc.md
 cat docs/queries/recursive-select.md >> dist/doc.md
-echo '\n# queries/sql-fragments.md\n' >> dist/doc.md
-cat docs/queries/sql-fragments.md >> dist/doc.md
+echo '\n# queries/complex-projections.md\n' >> dist/doc.md
+cat docs/queries/complex-projections.md >> dist/doc.md
+echo '\n# queries/aggregate-as-object-array.md\n' >> dist/doc.md
+cat docs/queries/aggregate-as-object-array.md >> dist/doc.md
 echo '\n# queries/insert.md\n' >> dist/doc.md
 cat docs/queries/insert.md >> dist/doc.md
 echo '\n# queries/update.md\n' >> dist/doc.md
@@ -21,10 +23,8 @@ echo '\n# queries/delete.md\n' >> dist/doc.md
 cat docs/queries/delete.md >> dist/doc.md
 echo '\n# queries/transaction.md\n' >> dist/doc.md
 cat docs/queries/transaction.md >> dist/doc.md
-echo '\n# queries/complex-projections.md\n' >> dist/doc.md
-cat docs/queries/complex-projections.md >> dist/doc.md
-echo '\n# queries/aggregate-as-object-array.md\n' >> dist/doc.md
-cat docs/queries/aggregate-as-object-array.md >> dist/doc.md
+echo '\n# queries/sql-fragments.md\n' >> dist/doc.md
+cat docs/queries/sql-fragments.md >> dist/doc.md
 echo '\n# connection-tables-views.md\n' >> dist/doc.md
 cat docs/connection-tables-views.md >> dist/doc.md
 echo '\n# column-types.md\n' >> dist/doc.md

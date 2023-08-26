@@ -373,6 +373,10 @@ interface AggregatedArrayValueSource extends ValueSource {
     onlyWhenOrNull(when: boolean): AggregatedArrayValueSource
     ignoreWhenAsNull(when: boolean): AggregatedArrayValueSource
 }
+
+interface AggregatedArrayValueSourceProjectableAsNullable extends AggregatedArrayValueSource {
+    projectingOptionalValuesAsNullable(): AggregatedArrayValueSource
+}
 ```
 
 ## Connection definition
@@ -490,7 +494,7 @@ interface Connection {
     /** group_concat(distinct value, separator) sometimes called string_agg or listagg. The default separator is ',' */
     stringConcatDistinct(value: StringValueSource, separator?: string): StringValueSource
     /** Aggregate as object array */
-    aggregateAsArray(columns: SelectValues): AggregatedArrayValueSource
+    aggregateAsArray(columns: SelectValues): AggregatedArrayValueSourceProjectableAsNullable
     aggregateAsArrayOfOneColumn(value: ValueSource): AggregatedArrayValueSource
 
     // Methods that allows create SQL fragments

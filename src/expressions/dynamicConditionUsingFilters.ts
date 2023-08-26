@@ -261,7 +261,7 @@ export type MapValueSourceToFilter<TYPE> =
         TYPE extends IComparableValueSource<any, any, any, any> ? ComparableFilter<T> :
         TYPE extends IEqualableValueSource<any, any, any, any> ? EqualableFilter<T> :
         TYPE extends INullableValueSource<any, any, any, any> ? NullableFilter :
-        TYPE extends IAggregatedArrayValueSource<any, any, any, any>  ? Filter | Array<Filter> : // Keep here to make easy deal with aggreagted arrays
+        TYPE extends IAggregatedArrayValueSource<any, any, any>  ? Filter | Array<Filter> : // Keep here to make easy deal with aggreagted arrays
         Filter
     ) : never
 

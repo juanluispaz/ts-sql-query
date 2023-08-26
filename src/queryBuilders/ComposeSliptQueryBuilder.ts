@@ -450,10 +450,10 @@ export class ComposeSplitQueryBuilder {
 
     __transformRow(row: any, index?: number): any {
         const columns = this.__columns!
-        return this.__transformRootObject('', columns, row, index)
+        return this.__transformRootObject(!!this.__projectOptionalValuesAsNullable, '', columns, row, index)
     }
 
-    __transformRootObject(errorPrefix: string, columns: QueryColumns, row: any, index?: number): any {
+    __transformRootObject(projectOptionalValuesAsNullable: boolean, errorPrefix: string, columns: QueryColumns, row: any, index?: number): any {
         const result: any = {}
         for (let prop in columns) {
             const valueSource = columns[prop]!
@@ -462,23 +462,23 @@ export class ComposeSplitQueryBuilder {
             if (isValueSource(valueSource)) {
                 const valueSourcePrivate = __getValueSourcePrivate(valueSource)
                 if (valueSourcePrivate.__aggregatedArrayColumns) {
-                    transformed = this.__transformAggregatedArray(errorPrefix + prop, valueSource, value, index)
+                    transformed = this.__transformAggregatedArray(!!valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + prop, valueSource, value, index)
                 } else {
                     transformed = this.__transformValueFromDB(valueSource, value, errorPrefix + prop, index)
                 }
             } else {
-                transformed = this.__transformProjectedObject(errorPrefix + prop + '.', prop + '.', valueSource, row, index)
+                transformed = this.__transformProjectedObject(projectOptionalValuesAsNullable, errorPrefix + prop + '.', prop + '.', valueSource, row, index)
             }
             if (transformed !== undefined && transformed !== null) {
                 result[prop] = transformed
-            } else if (this.__projectOptionalValuesAsNullable) {
+            } else if (projectOptionalValuesAsNullable) {
                 result[prop] = null
             }
         }
         return result
     }
 
-    __transformAggregatedArray(errorPrefix: string, valueSource: AnyValueSource, value: any, index?: number): any {
+    __transformAggregatedArray(projectOptionalValuesAsNullable: boolean, errorPrefix: string, valueSource: AnyValueSource, value: any, index?: number): any {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         if (value === null || value === undefined) {
             if (valueSourcePrivate.__optionalType === 'required') {
@@ -525,7 +525,7 @@ export class ComposeSplitQueryBuilder {
             const columnPrivate = __getValueSourcePrivate(columns)
             if (columnPrivate.__aggregatedArrayColumns) {
                 for (let i = 0, lenght = json.length; i < lenght; i++) {
-                    const resultValue = this.__transformAggregatedArray(errorPrefix + '[' + i + ']', columns, json[i], index)
+                    const resultValue = this.__transformAggregatedArray(!!columnPrivate.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + '[' + i + ']', columns, json[i], index)
                     if (resultValue === null || resultValue === undefined) {
                         continue
                     }
@@ -543,7 +543,7 @@ export class ComposeSplitQueryBuilder {
         } else if (valueSourcePrivate.__aggregatedArrayMode === 'ResultObject') {
             for (let i = 0, lenght = json.length; i < lenght; i++) {
                 let row = json[i]
-                const resultObject = this.__transformRootObject(errorPrefix + '[' + i + '].', columns, row, index)
+                const resultObject = this.__transformRootObject(!!valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable, errorPrefix + '[' + i + '].', columns, row, index)
                 if (resultObject === null || resultObject === undefined) {
                     continue
                 }
@@ -552,7 +552,7 @@ export class ComposeSplitQueryBuilder {
         } else {
             for (let i = 0, lenght = json.length; i < lenght; i++) {
                 const row = json[i]
-                const resultObject = this.__transformProjectedObject(errorPrefix + '[' + i + '].', '', columns, row, index)
+                const resultObject = this.__transformProjectedObject(projectOptionalValuesAsNullable, errorPrefix + '[' + i + '].', '', columns, row, index)
                 if (resultObject === null || resultObject === undefined) {
                     continue
                 }
@@ -571,7 +571,7 @@ export class ComposeSplitQueryBuilder {
         return result
     }
 
-    __transformProjectedObject(errorPrefix: string, pathPrefix: string, columns: QueryColumns, row: any, index?: number): any {
+    __transformProjectedObject(projectOptionalValuesAsNullable: boolean, errorPrefix: string, pathPrefix: string, columns: QueryColumns, row: any, index?: number): any {
         const result: any = {}
         let keepObject = false
         // Rule 1
@@ -601,7 +601,7 @@ export class ComposeSplitQueryBuilder {
             if (isValueSource(valueSource)) {
                 const valueSourcePrivate = __getValueSourcePrivate(valueSource)
                 if (valueSourcePrivate.__aggregatedArrayColumns) {
-                    transformed = this.__transformAggregatedArray(propName, valueSource, value, index)
+                    transformed = this.__transformAggregatedArray(!!valueSourcePrivate.__aggreagtedProjectingOptionalValuesAsNullable, propName, valueSource, value, index)
                 } else {
                     transformed = this.__transformValueFromDB(valueSource, value, errorPrefix + propName, index)
                 }
@@ -639,12 +639,12 @@ export class ComposeSplitQueryBuilder {
                     }
                 }
             } else {
-                transformed = this.__transformProjectedObject(errorPrefix, propName + '.', valueSource, row, index)
+                transformed = this.__transformProjectedObject(projectOptionalValuesAsNullable, errorPrefix, propName + '.', valueSource, row, index)
             }
             if (transformed !== undefined && transformed !== null) {
                 keepObject = true
                 result[prop] = transformed
-            } else if (this.__projectOptionalValuesAsNullable) {
+            } else if (projectOptionalValuesAsNullable) {
                 result[prop] = null
             }
         }

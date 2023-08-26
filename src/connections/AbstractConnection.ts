@@ -2,7 +2,7 @@ import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { InsertExpression } from "../expressions/insert"
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expressions/update"
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, TypeSafeBigintValueSource, ITypeSafeBigintValueSource, AlwaysIfValueSource, ValueSourceOf, ValueSourceOfDB, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource, TypeSafeUuidValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, TypeSafeBigintValueSource, ITypeSafeBigintValueSource, AlwaysIfValueSource, ValueSourceOf, ValueSourceOfDB, RemapValueSourceTypeWithOptionalType, IValueSource, TypeSafeUuidValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource } from "../expressions/values"
 import type { Default } from "../expressions/Default"
 import { ITableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf, ITableOrView, __getTableOrViewPrivate, OuterJoinSource } from "../utils/ITableOrView"
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from "../expressions/select"
@@ -22,7 +22,7 @@ import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
 import ChainedError from "chained-error"
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue } from "../queryBuilders/FragmentQueryBuilder"
 import { attachSource, attachTransactionSource } from "../utils/attachSource"
-import { database, outerJoinAlias, outerJoinTableOrView, strictValueType, tableOrView, tableOrViewRef, type, valueType } from "../utils/symbols"
+import { database, outerJoinAlias, outerJoinTableOrView, tableOrView, tableOrViewRef, type, valueType } from "../utils/symbols"
 import { callDeferredFunctions, UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { DinamicConditionExtension, DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
 import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilder"
@@ -783,10 +783,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
 
-    aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSource<TableOrViewOfAggregatedArray<COLUMNS>, Array<{ [P in keyof InnerResultObjectValuesForAggregatedArray<COLUMNS>]: InnerResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>]: InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>[P] }>, 'required'> {
+    aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<TableOrViewOfAggregatedArray<COLUMNS>, Array<{ [P in keyof InnerResultObjectValuesForAggregatedArray<COLUMNS>]: InnerResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>]: InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>[P] }>, 'required'> {
         return new AggregateValueAsArrayValueSource(columns, 'InnerResultObject', 'required')
     }
-    aggregateAsArrayOfOneColumn<VALUE extends IValueSource<ITableOrViewRef<DB>, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof tableOrView], Array<VALUE[typeof valueType]>, VALUE extends { [strictValueType]: infer STRICT_TYPE } ? Array<STRICT_TYPE> : Array<VALUE[typeof valueType]>, 'required'> {
+    aggregateAsArrayOfOneColumn<VALUE extends IValueSource<ITableOrViewRef<DB>, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof tableOrView], Array<VALUE[typeof valueType]>, 'required'> {
         return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required')
     }
 

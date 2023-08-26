@@ -36,7 +36,6 @@ export const valuesForInsert: unique symbol = Symbol('valuesForInsert')
 
 // Columns
 export const valueType: unique symbol = Symbol('valueType')
-export const strictValueType: unique symbol = Symbol('strictValueType')
 export const optionalType: unique symbol = Symbol('optionalType')
 export const hasDefaultValue: unique symbol = Symbol('hasDefaultValue')
 export const optionalValue: unique symbol = Symbol('optionalValue')

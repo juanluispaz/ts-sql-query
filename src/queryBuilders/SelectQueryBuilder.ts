@@ -528,7 +528,12 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         } else {
             aggregatedArrayColumns = this.__columns
         }
-        return new AggregateSelectValueSource(selectData as any, aggregatedArrayColumns, 'ResultObject', 'required')
+        const result = new AggregateSelectValueSource(selectData as any, aggregatedArrayColumns, 'ResultObject', 'required')
+        if (this.__projectOptionalValuesAsNullable) {
+            return result.projectingOptionalValuesAsNullable()
+        } else {
+            return result
+        }
     }
 
     __buildRecursive(fn: (view: any) => ICompoundableSelect<any, any, any, any>, unionAll: boolean): void {

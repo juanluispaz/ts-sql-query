@@ -1,15 +1,15 @@
 import { SqlBuilder, SqlOperationStatic0, SqlOperationStatic1, SqlOperation1, SqlOperation2, ToSql, HasOperation, SqlSequenceOperation, SqlFragmentOperation, AggregateFunctions0, AggregateFunctions1, AggregateFunctions1or2, SqlFunction0, SqlComparator0, SelectData, hasToSql } from "../sqlBuilders/SqlBuilder"
-import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, TypeSafeBigintValueSource, isValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode, UuidValueSource, TypeSafeUuidValueSource } from "../expressions/values"
+import { BooleanValueSource, IntValueSource, DoubleValueSource, NumberValueSource, StringValueSource, TypeSafeStringValueSource, IValueSource, NullableValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, StringIntValueSource, StringDoubleValueSource, StringNumberValueSource, __ValueSourcePrivate, IfValueSource, BigintValueSource, TypeSafeBigintValueSource, isValueSource, AlwaysIfValueSource, IAnyBooleanValueSource, AnyValueSource, ValueSource, OptionalType, IAggregatedArrayValueSource, AggregatedArrayValueSource, __AggregatedArrayColumns, __AggregatedArrayMode, UuidValueSource, TypeSafeUuidValueSource, AggregatedArrayValueSourceProjectableAsNullable } from "../expressions/values"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { HasAddWiths, HasIsValue, ITableOrView, IWithView, __getOldValues, __getTableOrViewPrivate, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import { database, tableOrView, valueSourceType, valueType as valueType_, strictValueType as strictValueType_, optionalType as optionalType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType, valueSourceTypeName, anyBooleanValueSourceType, optionalType, isValueSourceObject, aggregatedArrayValueSourceType, isSelectQueryObject, uuidValueSourceType, typeSafeUuidValueSourceType } from "../utils/symbols"
+import { database, tableOrView, valueSourceType, valueType as valueType_, optionalType as optionalType_ , booleanValueSourceType, comparableValueSourceType, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, timeValueSourceType, typeSafeStringValueSourceType, ifValueSourceType, bigintValueSourceType, typeSafeBigintValueSourceType, valueSourceTypeName, anyBooleanValueSourceType, optionalType, isValueSourceObject, aggregatedArrayValueSourceType, isSelectQueryObject, uuidValueSourceType, typeSafeUuidValueSourceType } from "../utils/symbols"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { ProxyTypeAdapter } from "./ProxyTypeAdapter"
 import { Column } from "../utils/Column"
 import type { FragmentQueryBuilder } from "../queryBuilders/FragmentQueryBuilder"
 
-export abstract class ValueSourceImpl implements IValueSource<any, any, any, any>, NullableValueSource<any, any, any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, BigintValueSource<any, any>, TypeSafeBigintValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, AlwaysIfValueSource<any, any>, IAnyBooleanValueSource<any, any>, IAggregatedArrayValueSource<any, any, any, any>, AggregatedArrayValueSource<any, any, any, any>, UuidValueSource<any, any>, TypeSafeUuidValueSource<any, any>, ToSql, __ValueSourcePrivate {
+export abstract class ValueSourceImpl implements IValueSource<any, any, any, any>, NullableValueSource<any, any, any, any>, BooleanValueSource<any, any>, IntValueSource<any, any>, StringIntValueSource<any, any>, DoubleValueSource<any, any>, StringDoubleValueSource<any, any>, NumberValueSource<any, any>, StringNumberValueSource<any, any>, BigintValueSource<any, any>, TypeSafeBigintValueSource<any, any>, StringValueSource<any, any>, TypeSafeStringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, DateValueSource<any, any>, TimeValueSource<any, any>, DateTimeValueSource<any, any>, IfValueSource<any, any>, AlwaysIfValueSource<any, any>, IAnyBooleanValueSource<any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSourceProjectableAsNullable<any, any, any, any>, UuidValueSource<any, any>, TypeSafeUuidValueSource<any, any>, ToSql, __ValueSourcePrivate {
     [valueSourceType]!: 'ValueSource'
     [nullableValueSourceType]!: 'NullableValueSource'
     [equalableValueSourceType]!: 'EqualableValueSource'
@@ -41,7 +41,6 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     [database]: any
     [tableOrView]: any
     [valueType_]: any
-    [strictValueType_]: any
     [optionalType_]: any
 
     [isValueSourceObject]: true = true
@@ -156,6 +155,9 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             result.__uuidString = this.__uuidString
         }
         return result
+    }
+    projectingOptionalValuesAsNullable(): any {
+        return this
     }
     // SqlComparator0
     isNull(): any {
@@ -2143,10 +2145,9 @@ export class InlineSelectValueSource extends ValueSourceImpl implements HasOpera
     }
 }
 
-export class AggregateSelectValueSource implements ValueSource<any, any, any, any>, IAggregatedArrayValueSource<any, any, any, any>, AggregatedArrayValueSource<any, any, any, any>, __ValueSourcePrivate, ToSql {
+export class AggregateSelectValueSource implements ValueSource<any, any, any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSourceProjectableAsNullable<any, any, any, any>, __ValueSourcePrivate, ToSql {
     [tableOrView]: any
     [valueType_]: any
-    [strictValueType_]: any
     [optionalType_]: any
     [optionalType]: any
     [valueSourceType]!: "ValueSource"
@@ -2161,6 +2162,7 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
     __selectData: InlineSelectData
     __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
     __aggregatedArrayMode: __AggregatedArrayMode
+    __aggreagtedProjectingOptionalValuesAsNullable?: boolean
 
     constructor(selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType) {
         this.__selectData = selectData
@@ -2238,6 +2240,10 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
             return this
         }
     }
+    projectingOptionalValuesAsNullable(): any {
+        this.__aggreagtedProjectingOptionalValuesAsNullable = true
+        return this
+    }
 }
 
 export class AllowWhenAggregateSelectValueSource extends AggregateSelectValueSource {
@@ -2262,10 +2268,9 @@ export class AllowWhenAggregateSelectValueSource extends AggregateSelectValueSou
     }
 }
 
-export class NullAggregateSelectValueSource implements ValueSource<any, any, any, any>, IAggregatedArrayValueSource<any, any, any, any>, AggregatedArrayValueSource<any, any, any, any>, __ValueSourcePrivate, ToSql {
+export class NullAggregateSelectValueSource implements ValueSource<any, any, any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSourceProjectableAsNullable<any, any, any, any>, __ValueSourcePrivate, ToSql {
     [tableOrView]: any
     [valueType_]: any
-    [strictValueType_]: any
     [optionalType_]: any
     [optionalType]: any
     [valueSourceType]!: "ValueSource"
@@ -2354,6 +2359,9 @@ export class NullAggregateSelectValueSource implements ValueSource<any, any, any
             return this
         }
     }
+    projectingOptionalValuesAsNullable(): any {
+        return this
+    }
 }
 
 export class NullAllowWhenAggregateSelectValueSource extends NullAggregateSelectValueSource {
@@ -2428,10 +2436,9 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData, requir
     }
 }
 
-export class AggregateValueAsArrayValueSource implements ValueSource<any, any, any, any>, IAggregatedArrayValueSource<any, any, any, any>, AggregatedArrayValueSource<any, any, any, any>, __ValueSourcePrivate, ToSql {
+export class AggregateValueAsArrayValueSource implements ValueSource<any, any, any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSourceProjectableAsNullable<any, any, any, any>, __ValueSourcePrivate, ToSql {
     [tableOrView]: any
     [valueType_]: any
-    [strictValueType_]: any
     [optionalType_]: any
     [optionalType]: any
     [valueSourceType]!: "ValueSource"
@@ -2445,6 +2452,7 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
     __operation: '_aggregateValueAsArray' = '_aggregateValueAsArray'
     __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
     __aggregatedArrayMode: __AggregatedArrayMode
+    __aggreagtedProjectingOptionalValuesAsNullable?: boolean
 
     constructor(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType) {
         this.__aggregatedArrayColumns = aggregatedArrayColumns
@@ -2604,6 +2612,10 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
             return this
         }
     }
+    projectingOptionalValuesAsNullable(): any {
+        this.__aggreagtedProjectingOptionalValuesAsNullable = true
+        return this
+    }
 }
 
 export class AllowWhenAggregateValueAsArrayValueSource extends AggregateValueAsArrayValueSource {
@@ -2628,10 +2640,9 @@ export class AllowWhenAggregateValueAsArrayValueSource extends AggregateValueAsA
     }
 }
 
-export class NullAggregateValueAsArrayValueSource implements ValueSource<any, any, any, any>, IAggregatedArrayValueSource<any, any, any, any>, AggregatedArrayValueSource<any, any, any, any>, __ValueSourcePrivate, ToSql {
+export class NullAggregateValueAsArrayValueSource implements ValueSource<any, any, any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSourceProjectableAsNullable<any, any, any, any>, __ValueSourcePrivate, ToSql {
     [tableOrView]: any
     [valueType_]: any
-    [strictValueType_]: any
     [optionalType_]: any
     [optionalType]: any
     [valueSourceType]!: "ValueSource"
@@ -2716,6 +2727,9 @@ export class NullAggregateValueAsArrayValueSource implements ValueSource<any, an
         } else {
             return this
         }
+    }
+    projectingOptionalValuesAsNullable(): any {
+        return this
     }
 }
 

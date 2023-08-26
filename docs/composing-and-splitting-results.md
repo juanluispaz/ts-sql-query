@@ -147,6 +147,90 @@ const customerWithCompany: Promise<{
 }>
 ```
 
+## Composing recursive query as an array of objects in two requests
+
+You have the option to use composing results to query the values in the database in two queries, instead of using aggregate inline value; this is useful when the database doesn't support the query or when the inline query doesn't perform good enough. Using the `compose` function is possible to divide the data extraction into two different queries where each result are combined to produce the final result.
+
+```ts
+const parentCompany = tCompany.as('parentCompany')
+
+const myCompany = await connection.selectFrom(tCompany)
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        parentId: tCompany.parentId
+    })
+    .where(tCompany.id.equals(10))
+    .composeDeletingInternalProperty({
+        externalProperty: 'parentId',
+        internalProperty: 'startId',
+        propertyName: 'parents'
+    }).withMany((ids) => {
+        return connection.selectFrom(parentCompany)
+            .select({
+                id: parentCompany.id,
+                name: parentCompany.name,
+                parentId: parentCompany.parentId,
+                startId: parentCompany.id
+            })
+            .where(parentCompany.id.in(ids))
+            .recursiveUnionAll((child) => {
+                return connection.selectFrom(parentCompany)
+                    .join(child).on(child.parentId.equals(parentCompany.id))
+                    .select({
+                        id: parentCompany.id,
+                        name: parentCompany.name,
+                        parentId: parentCompany.parentId,
+                        startId: child.startId
+                    })
+            })
+            .executeSelectMany();
+    })
+    .executeSelectOne()
+```
+
+**Note**: The compose method needs a way to join the values; that is why the column `startId` is created in the second query; the join rule is when the `parentId` column of the first query is the same as `startId` column in the second query.
+
+The first query executed is:
+```sql
+select id as id, name as name, parent_id as parentId 
+from company 
+where id = $1
+```
+
+The parameters of the first query are: `[ 10 ]`
+
+The second query executed is:
+```sql
+with recursive recursive_select_1 as (
+    select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId, parentCompany.id as startId 
+    from company as parentCompany 
+    where parentCompany.id in ($1)
+    union all 
+    select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId, recursive_select_1.startId as startId 
+    from company as parentCompany 
+    join recursive_select_1 on recursive_select_1.parentId = parentCompany.id
+) 
+select id as id, name as name, parentId as 'parentId', startId as 'startId' 
+from recursive_select_1
+```
+
+The parameters of the second query are: `[ 9 ]`
+
+The result type is:
+```tsx
+const myCompany: Promise<{
+    id: number;
+    name: string;
+    parentId?: number;
+    parents: {
+        id: number;
+        name: string;
+        parentId?: number;
+    }[];
+}>
+```
+
 ## Splitting results
 
 **Note**: Before use splitting evaluate if you can use [complex projections](queries/complex-projections.md) instead.

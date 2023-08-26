@@ -5,7 +5,7 @@ import type { int } from "ts-extended-types"
 import type { database, tableOrView, tableOrViewRef } from "../utils/symbols"
 import type { RawFragment } from "../utils/RawFragment"
 import type { OuterJoinTableOrView } from "../utils/tableOrViewUtils"
-import type { ColumnGuard, GuidedObj, GuidedPropName, RequiredKeysOfPickingColumns, ResultObjectValues, FixOptionalProperties, ValueOf } from "../utils/resultUtils"
+import type { ColumnGuard, GuidedObj, GuidedPropName, RequiredKeysOfPickingColumns, ResultObjectValues, FixOptionalProperties, ValueOf, ResultObjectValuesProjectedAsNullable } from "../utils/resultUtils"
 
 export interface DeleteCustomization<DB extends AnyDB> {
     afterDeleteKeyword?: RawFragment<DB>
@@ -230,9 +230,13 @@ export interface ComposableCustomizableExecutableDelete<TABLE extends ITableOrVi
     customizeQuery(customization: DeleteCustomization<TABLE[typeof database]>): ComposableExecutableDelete<TABLE, COLUMNS, RESULT>
 }
 
+export interface ComposableCustomizableExecutableDeleteProjectableAsNullable<TABLE extends ITableOrView<any>, COLUMNS> extends ComposableCustomizableExecutableDelete<TABLE, COLUMNS, ResultObjectValues<COLUMNS>> {
+    projectingOptionalValuesAsNullable(): ComposableCustomizableExecutableDelete<TABLE, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>>
+}
+
 type ReturningFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
     TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Sqlite | MariaDB | Oracle) 
-    ? <COLUMNS extends DeleteColumns<TABLE, USING>>(columns: COLUMNS) => ComposableCustomizableExecutableDelete<TABLE, COLUMNS, ResultObjectValues<COLUMNS>>
+    ? <COLUMNS extends DeleteColumns<TABLE, USING>>(columns: COLUMNS) => ComposableCustomizableExecutableDeleteProjectableAsNullable<TABLE, COLUMNS>
     : never
 
 type ReturningOneColumnFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =

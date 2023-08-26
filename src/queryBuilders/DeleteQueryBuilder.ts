@@ -1,7 +1,7 @@
 import { SqlBuilder, DeleteData, JoinData, QueryColumns, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
 import { HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, OuterJoinSource, __addWiths, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import { IBooleanValueSource, IIfValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
-import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableExecutableDelete, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere } from "../expressions/delete"
+import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableExecutableDelete, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, ComposableCustomizableExecutableDeleteProjectableAsNullable } from "../expressions/delete"
 import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
@@ -11,7 +11,7 @@ import { __getValueSourcePrivate } from "../expressions/values"
 import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
 import { Column } from "../utils/Column"
 
-export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasAddWiths, ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableExecutableDelete<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableDelete<any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any> {
+export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasAddWiths, ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableExecutableDelete<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableDelete<any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any>, ComposableCustomizableExecutableDeleteProjectableAsNullable<any, any> {
     [type]: any
     [database]: any
     [tableOrView]: any
@@ -366,6 +366,10 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         this.__query = ''
         this.__columns = columns
         this.__registerTableOrViewWithOfColumns(columns, this.__withs)
+        return this
+    }
+    projectingOptionalValuesAsNullable(): any {
+        this.__projectOptionalValuesAsNullable = true
         return this
     }
     

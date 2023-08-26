@@ -7,7 +7,7 @@ import type { RawFragment } from "../utils/RawFragment"
 import type { ColumnsForSetOf, ColumnsForSetOfWithShape, ColumnsOf, OptionalColumnsForSetOf, OuterJoinTableOrView, RequiredColumnsForSetOf, ResolveShape } from "../utils/tableOrViewUtils"
 import type { Column, ColumnWithDefaultValue } from "../utils/Column"
 import type { Default } from "./Default"
-import type { ColumnGuard, GuidedObj, GuidedPropName, RequiredKeysOfPickingColumns, ResultObjectValues, FixOptionalProperties, ValueOf } from "../utils/resultUtils"
+import type { ColumnGuard, GuidedObj, GuidedPropName, RequiredKeysOfPickingColumns, ResultObjectValues, FixOptionalProperties, ValueOf, ResultObjectValuesProjectedAsNullable } from "../utils/resultUtils"
 
 export interface UpdateCustomization<DB extends AnyDB> {
     afterUpdateKeyword?: RawFragment<DB>
@@ -458,9 +458,13 @@ export interface ComposableCustomizableExecutableUpdate<TABLE extends ITableOrVi
     customizeQuery(customization: UpdateCustomization<TABLE[typeof database]>): ComposableExecutableUpdate<TABLE, COLUMNS, RESULT>
 }
 
+export interface ComposableCustomizableExecutableUpdateProjectableAsNullable<TABLE extends ITableOrView<any>, COLUMNS> extends ComposableCustomizableExecutableUpdate<TABLE, COLUMNS, ResultObjectValues<COLUMNS>> {
+    projectingOptionalValuesAsNullable(): ComposableCustomizableExecutableUpdate<TABLE, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>>
+}
+
 type ReturningFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =
     TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Oracle)
-    ? <COLUMNS extends UpdateColumns<TABLE, USING>>(columns: COLUMNS) => ComposableCustomizableExecutableUpdate<TABLE, COLUMNS, ResultObjectValues<COLUMNS>>
+    ? <COLUMNS extends UpdateColumns<TABLE, USING>>(columns: COLUMNS) => ComposableCustomizableExecutableUpdateProjectableAsNullable<TABLE, COLUMNS>
     : (TABLE[typeof database] extends Sqlite
     ? <COLUMNS extends UpdateColumns<TABLE, TABLE>>(columns: COLUMNS) => ComposableCustomizableExecutableUpdate<TABLE, COLUMNS, ResultObjectValues<COLUMNS>>
     : never)

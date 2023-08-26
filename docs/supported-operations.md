@@ -375,6 +375,7 @@ interface AggregatedArrayValueSource extends ValueSource {
 }
 
 interface AggregatedArrayValueSourceProjectableAsNullable extends AggregatedArrayValueSource {
+    /** Returns the optional values as null instead of optional undefined values */
     projectingOptionalValuesAsNullable(): AggregatedArrayValueSource
 }
 ```
@@ -1428,6 +1429,8 @@ interface InsertExpression {
      * and the value is the ValueSource where the value will be obtained.
      */
     returning(columns: InsertReturningValues): this
+    /** Returns the optional values as null instead of optional undefined values, can only used immediately after returning(...) */
+    projectingOptionalValuesAsNullable(): this
     /** 
      * Allows to specify the returning clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
@@ -1683,6 +1686,8 @@ interface UpdateExpression {
      * and the value is the ValueSource where the value will be obtained.
      */
     returning(columns: UpdateReturningValues): this
+    /** Returns the optional values as null instead of optional undefined values, can only used immediately after returning(...) */
+    projectingOptionalValuesAsNullable(): this
     /** 
      * Allows to specify the returning clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
@@ -1784,6 +1789,8 @@ interface DeleteExpression {
      * and the value is the ValueSource where the value will be obtained.
      */
     returning(columns: DeleteReturningValues): this
+    /** Returns the optional values as null instead of optional undefined values, can only used immediately after returning(...) */
+    projectingOptionalValuesAsNullable(): this
     /** 
      * Allows to specify the returning clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
@@ -1935,6 +1942,8 @@ interface SelectExpression {
      * and the value is the ValueSource where the value will be obtained.
      */
     select(columns: SelectValues): this
+    /** Returns the optional values as null instead of optional undefined values, can only used immediately after select(...) */
+    projectingOptionalValuesAsNullable(): this
     /** 
      * Allows to specify the select clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.

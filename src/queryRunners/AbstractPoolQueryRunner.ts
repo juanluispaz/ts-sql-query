@@ -138,7 +138,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
         return this.getQueryRunner().then(queryRunner => queryRunner.executeDatabaseSchemaModification(query, params)).finally(() => this.releaseIfNeeded())
     }
     executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
-        if (!this.currentQueryRunner) {
+        if (!this.isTransactionActive()) {
             throw new Error("You are trying to configure a connection when you didn't request a dedicated connection. Begin a transaction to get a dedicated connection")
         }
         return this.getQueryRunner().then(queryRunner => queryRunner.executeConnectionConfiguration(query, params)).finally(() => this.releaseIfNeeded())

@@ -1,5 +1,24 @@
 # Change Log
 
+## v1.55.0 (27 Aug 2023)
+
+**Changes**:
+
+- Add support to projecting optional values in an object as nullable in the output of select, insert, update, delete and aggregate array. This make the optional property required as nullable in the projected value.
+
+**Documentation changes**:
+
+- Reorganize documentation to put select related documentation next to each other.
+- Updating mkdocs, code highlight.
+- Including Google search functionality complementary to the build-in search.
+- Change log excluded from the search output.
+- Improve build-in search.
+- Move "Composing recursive query as an array of objects in two requests" documentation to the "Composing and splitting results (legacy)" page.
+
+**Bug fixes**:
+
+- Fix the error indicating there is no transaction active when `executeConnectionConfiguration` is executed before any other query immediately after opening a transaction.
+
 ## v1.54.0 (27 Jun 2023)
 
 **Changes**:

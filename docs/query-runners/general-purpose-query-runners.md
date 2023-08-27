@@ -102,7 +102,7 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
 'executeProcedure' | 'executeFunction' | 
 'beginTransaction' | 'commit' | 'rollback' |
-'executeDatabaseSchemaModification'
+'executeDatabaseSchemaModification' | 'executeConnectionConfiguration'
 ```
 
 - **`query: string`**: query required to be executed, empty in the case of `beginTransaction`, `commit` or `rollback`
@@ -156,7 +156,7 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
 'executeProcedure' | 'executeFunction' | 
 'beginTransaction' | 'commit' | 'rollback' |
-'executeDatabaseSchemaModification'
+'executeDatabaseSchemaModification' | 'executeConnectionConfiguration'
 ```
 
 - **`query: string`**: query required to be executed, empty in the case of `beginTransaction`, `commit` or `rollback`
@@ -202,7 +202,7 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 
 'executeProcedure' | 'executeFunction' | 
 'beginTransaction' | 'commit' | 'rollback' |
-'executeDatabaseSchemaModification' | 'isTransactionActive'
+'executeDatabaseSchemaModification' | 'isTransactionActive' | 'executeConnectionConfiguration'
 ```
 
 - **`query: string`**: query required to be executed

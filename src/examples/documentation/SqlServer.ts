@@ -4610,6 +4610,371 @@ async function main() {
     })
 
     assertEquals(result4, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'First Name',
+        lastName: 'Last Name',
+        birthday: null
+    }
+    expectedResult.push({
+        id: 1,
+        firstName: 'First Name',
+        lastName: 'Last Name',
+    })
+    expectedQuery.push(`select id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where id = @0`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    //let customerId = 10
+    
+    let customerWithId3 = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(customerId))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        })
+        .projectingOptionalValuesAsNullable()
+        .executeSelectOne()
+    
+    assertEquals(customerWithId3, result)
+
+    let typeValidation3: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        birthday: Date | null;
+    } = null as any
+
+    customerWithId3 = typeValidation3
+    typeValidation3 = customerWithId3
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Smith',
+    }
+    expectedResult.push({...result, birthday: null})
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) output inserted.id as id, inserted.first_name as firstName, inserted.last_name as lastName, inserted.birthday as birthday values (@0, @1, @2)`)
+    expectedParams.push(`["John","Smith",1]`)
+    expectedType.push(`insertReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    let insertReturningCustomerData5 = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        }).returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        })
+        .executeInsertOne()
+
+    assertEquals(insertReturningCustomerData5, result)
+
+    let typeValidation4: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        birthday?: Date;
+    } = null as any
+
+    insertReturningCustomerData5 = typeValidation4
+    typeValidation4 = insertReturningCustomerData5
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Smith',
+        birthday: null
+    }
+    expectedResult.push({
+        id: 1,
+        firstName: 'John',
+        lastName: 'Smith',
+    })
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) output inserted.id as id, inserted.first_name as firstName, inserted.last_name as lastName, inserted.birthday as birthday values (@0, @1, @2)`)
+    expectedParams.push(`["John","Smith",1]`)
+    expectedType.push(`insertReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    let insertReturningCustomerData6 = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        }).returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        })
+        .projectingOptionalValuesAsNullable()
+        .executeInsertOne()
+
+    assertEquals(insertReturningCustomerData6, result)
+
+    let typeValidation5: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        birthday: Date | null;
+    } = null as any
+
+    insertReturningCustomerData6 = typeValidation5
+    typeValidation5 = insertReturningCustomerData6
+
+    /* *** Preparation ************************************************************/
+
+    result = { firstName: 'Ron' }
+    expectedResult.push(result)
+    expectedQuery.push(`update customer set first_name = @0 output inserted.first_name as firstName, inserted.birthday as birthday where id = @1`)
+    expectedParams.push(`["Ron",1]`)
+    expectedType.push(`updateReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    let updatedSmithFirstName2 = await connection.update(tCustomer)
+        .set({
+            firstName: 'Ron'
+        })
+        .where(tCustomer.id.equals(1))
+        .returning({
+            firstName: tCustomer.firstName,
+            birthday: tCustomer.birthday
+        })
+        .executeUpdateOne()
+
+    assertEquals(updatedSmithFirstName2, result)
+
+    let typeValidation6: {
+        firstName: string;
+        birthday?: Date;
+    } = null as any
+
+    updatedSmithFirstName2 = typeValidation6
+    typeValidation6 = updatedSmithFirstName2
+
+    /* *** Preparation ************************************************************/
+
+    result = { firstName: 'Ron', birthday: null }
+    expectedResult.push({ firstName: 'Ron' })
+    expectedQuery.push(`update customer set first_name = @0 output inserted.first_name as firstName, inserted.birthday as birthday where id = @1`)
+    expectedParams.push(`["Ron",1]`)
+    expectedType.push(`updateReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    let updatedSmithFirstName3 = await connection.update(tCustomer)
+        .set({
+            firstName: 'Ron'
+        })
+        .where(tCustomer.id.equals(1))
+        .returning({
+            firstName: tCustomer.firstName,
+            birthday: tCustomer.birthday
+        })
+        .projectingOptionalValuesAsNullable()
+        .executeUpdateOne()
+
+    assertEquals(updatedSmithFirstName3, result)
+
+    let typeValidation7: {
+        firstName: string;
+        birthday: Date | null;
+    } = null as any
+
+    updatedSmithFirstName3 = typeValidation7
+    typeValidation7 = updatedSmithFirstName3
+
+    /* *** Preparation ************************************************************/
+
+    result = { firstName: 'Ron' }
+    expectedResult.push(result)
+    expectedQuery.push(`delete from customer output deleted.first_name as firstName, deleted.birthday as birthday where id = @0`)
+    expectedParams.push(`[1]`)
+    expectedType.push(`deleteReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    let deleteSmithFirstName = await connection.deleteFrom(tCustomer)
+        .where(tCustomer.id.equals(1))
+        .returning({
+            firstName: tCustomer.firstName,
+            birthday: tCustomer.birthday
+        })
+        .executeDeleteOne()
+
+    assertEquals(deleteSmithFirstName, result)
+
+    let typeValidation8: {
+        firstName: string;
+        birthday?: Date;
+    } = null as any
+
+    deleteSmithFirstName = typeValidation8
+    typeValidation8 = deleteSmithFirstName
+
+    /* *** Preparation ************************************************************/
+
+    result = { firstName: 'Ron', birthday: null }
+    expectedResult.push({ firstName: 'Ron' })
+    expectedQuery.push(`delete from customer output deleted.first_name as firstName, deleted.birthday as birthday where id = @0`)
+    expectedParams.push(`[1]`)
+    expectedType.push(`deleteReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    let deleteSmithFirstName2 = await connection.deleteFrom(tCustomer)
+        .where(tCustomer.id.equals(1))
+        .returning({
+            firstName: tCustomer.firstName,
+            birthday: tCustomer.birthday
+        })
+        .projectingOptionalValuesAsNullable()
+        .executeDeleteOne()
+
+    assertEquals(deleteSmithFirstName2, result)
+
+    let typeValidation9: {
+        firstName: string;
+        birthday: Date | null;
+    } = null as any
+
+    deleteSmithFirstName2 = typeValidation9
+    typeValidation9 = deleteSmithFirstName2
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            { id: 1, firstName: 'John', lastName: 'Smith' },
+            { id: 2, firstName: 'Other', lastName: 'Person' },
+            { id: 3, firstName: 'Jane', lastName: 'Doe' }
+        ]
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as id, name as name, parent_id as parentId, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar, id), ', "firstName": ', '"' + string_escape(convert(nvarchar, first_name), 'json') + '"', ', "lastName": ', '"' + string_escape(convert(nvarchar, last_name), 'json') + '"', ', "birthday": ', isnull('"' + convert(nvarchar, birthday, 127) + '"', 'null'), '}'), ','), ']') as [result] from customer where company_id = company.id) as customers from company where id = @0`)
+    expectedParams.push(`[1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedCustomersOfAcme12 = connection.subSelectUsing(tCompany).from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .selectOneColumn(connection.aggregateAsArray({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        }))
+        .forUseAsInlineQueryValue()
+
+    let acmeCompanyWithCustomers12 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            parentId: tCompany.parentId,
+            customers: aggregatedCustomersOfAcme12
+        })
+        .executeSelectOne()
+    
+    assertEquals(acmeCompanyWithCustomers12, result)
+
+    let typeValidation10: {
+        id: number;
+        name: string;
+        parentId?: number;
+        customers?: {
+            id: number;
+            firstName: string;
+            lastName: string;
+            birthday?: Date;
+        }[];
+    } = null as any
+
+    acmeCompanyWithCustomers12 = typeValidation10
+    typeValidation10 = acmeCompanyWithCustomers12
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        name: 'ACME',
+        customers: [
+            { id: 1, firstName: 'John', lastName: 'Smith', birthday: null },
+            { id: 2, firstName: 'Other', lastName: 'Person', birthday: null },
+            { id: 3, firstName: 'Jane', lastName: 'Doe', birthday: null }
+        ]
+    }
+    expectedResult.push({
+        id: 1,
+        name: 'ACME',
+        customers: [
+            { id: 1, firstName: 'John', lastName: 'Smith' },
+            { id: 2, firstName: 'Other', lastName: 'Person' },
+            { id: 3, firstName: 'Jane', lastName: 'Doe' }
+        ]
+    })
+    expectedQuery.push(`select id as id, name as name, parent_id as parentId, (select concat('[', string_agg(concat('{', '"id": ', convert(nvarchar, id), ', "firstName": ', '"' + string_escape(convert(nvarchar, first_name), 'json') + '"', ', "lastName": ', '"' + string_escape(convert(nvarchar, last_name), 'json') + '"', ', "birthday": ', isnull('"' + convert(nvarchar, birthday, 127) + '"', 'null'), '}'), ','), ']') as [result] from customer where company_id = company.id) as customers from company where id = @0`)
+    expectedParams.push(`[1]`)
+    expectedType.push(`selectOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const aggregatedCustomersOfAcme13 = connection.subSelectUsing(tCompany).from(tCustomer)
+        .where(tCustomer.companyId.equals(tCompany.id))
+        .selectOneColumn(connection.aggregateAsArray({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        }).projectingOptionalValuesAsNullable())
+        .forUseAsInlineQueryValue()
+
+    let acmeCompanyWithCustomers13 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.equals(1))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            parentId: tCompany.parentId,
+            customers: aggregatedCustomersOfAcme13
+        })
+        .executeSelectOne()
+    
+    assertEquals(acmeCompanyWithCustomers13, result)
+
+    let typeValidation11: {
+        id: number;
+        name: string;
+        parentId?: number;
+        customers?: {
+            id: number;
+            firstName: string;
+            lastName: string;
+            birthday: Date | null;
+        }[];
+    } = null as any
+
+    acmeCompanyWithCustomers13 = typeValidation11
+    typeValidation11 = acmeCompanyWithCustomers13
+
 }
 
 main().then(() => {

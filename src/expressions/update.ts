@@ -466,7 +466,7 @@ type ReturningFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView
     TABLE[typeof database] extends (NoopDB | PostgreSql | SqlServer | Oracle)
     ? <COLUMNS extends UpdateColumns<TABLE, USING>>(columns: COLUMNS) => ComposableCustomizableExecutableUpdateProjectableAsNullable<TABLE, COLUMNS>
     : (TABLE[typeof database] extends Sqlite
-    ? <COLUMNS extends UpdateColumns<TABLE, TABLE>>(columns: COLUMNS) => ComposableCustomizableExecutableUpdate<TABLE, COLUMNS, ResultObjectValues<COLUMNS>>
+    ? <COLUMNS extends UpdateColumns<TABLE, TABLE>>(columns: COLUMNS) => ComposableCustomizableExecutableUpdateProjectableAsNullable<TABLE, COLUMNS>
     : never)
 
 type ReturningOneColumnFnType<TABLE extends ITableOrView<any>, USING extends ITableOrView<any>> =

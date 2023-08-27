@@ -61,6 +61,8 @@ const updatedSmithFirstName: Promise<string>
 
 **Other options**
 
+You can project optional values in objects as always-required properties that allow null calling `projectingOptionalValuesAsNullable()` immediately after `returning(...)`.
+
 You can execute the query using:
 
 - `executeUpdateNoneOrOne(): Promise<RESULT | null>`: Execute the update query that returns one or no result from the database. In case of more than one result found, it throws and error with message 'Too many rows, expected only zero or one row'.

@@ -37,6 +37,48 @@ const customerWithId: Promise<{
 
 The `executeSelectOne` returns one result, but if it is not found in the database an exception will be thrown. If you want to return the result when it is found or null when it is not found you must use the `executeSelectNoneOrOne` method.
 
+## Projecting optional values
+
+By default, when an object is returned, optional values will be projected as optional properties in TypeScript, like `birthday?: Date`; when the value is absent, the property will not be set. But, you can change this behaviour to project always-required properties that allow null values like `birthday: Date | null` where, in case there is no value, the property will be set as null. To change the behaviour, immediately after indicating the columns you want to project, you must call `projectingOptionalValuesAsNullable()`.
+
+```ts
+const customerId = 10;
+
+const customerWithId = connection.selectFrom(tCustomer)
+    .where(tCustomer.id.equals(customerId))
+    .select({
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    })
+    .projectingOptionalValuesAsNullable()
+    .executeSelectOne();
+```
+
+The executed query is:
+```sql
+select id as id, first_name as firstName, last_name as lastName, birthday as birthday 
+from customer 
+where id = $1
+```
+
+The parameters are: `[ 10 ]`
+
+The result type is:
+```tsx
+const customerWithId: Promise<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    birthday: Date | null;
+}>
+```
+
+**Note**:
+
+Projecting always-required properties that allow null values works in the same way with insert, update or deletes if you call `projectingOptionalValuesAsNullable()` immediately after `returning(...)`, Same, as well, with `connection.aggregateAsArray(...).projectingOptionalValuesAsNullable()`.
+
 ## Other options
 
 You can execute the query using:

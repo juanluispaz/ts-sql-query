@@ -795,6 +795,8 @@ import { SelectedValues } from 'ts-sql-query/extras/types';
 type Company = SelectedValues<typeof tCompany>;
 ```
 
+**Note**: If you query project optional values in objects as always-required properties, use `SelectedValuesProjectedAsNullable` instead.
+
 ### Selected row
 
 This type returns the result type of a select on a table or view where all its columns are included.
@@ -806,6 +808,8 @@ import { SelectedRow } from 'ts-sql-query/extras/types';
 
 type CompanyRow = SelectedRow<typeof tCompany>;
 ```
+
+**Note**: If you query project optional values in objects as always-required properties, use `SelectedRowProjectedAsNullable` instead.
 
 ## Passing tables and views as parameter
 

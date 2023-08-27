@@ -403,6 +403,12 @@ async function getCustomersInformation<FIELDS extends keyof CustomerInformation>
 }
 ```
 
+**Notes**:
+
+- If you query project optional values in objects as always-required properties, use `expandTypeProjectedAsNullableFromDynamicPickPaths` instead of `expandTypeFromDynamicPickPaths`.
+- If you query project optional values in objects as always-required properties, use `PickValuesPathProjectedAsNullable` instead of `PickValuesPath`.
+- If you query project optional values in objects as always-required properties, use `PickValuesPathWitAllPropertiesProjectedAsNullable` instead of `PickValuesPathWitAllProperties`.
+
 **Creating definition based in your database types**:
 
 ```ts

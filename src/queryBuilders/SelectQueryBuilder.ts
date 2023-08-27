@@ -230,6 +230,11 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         })
     }
 
+    projectingOptionalValuesAsNullable(): any {
+        this.__projectOptionalValuesAsNullable = true
+        return this
+    }
+    
     abstract __finishJoinHaving(): void
     orderBy(column: any, mode?: OrderByMode): any {
         this.__finishJoinHaving()
@@ -556,6 +561,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             columns[columnName] = (recursiveView as any)[columnName]
         }
         recursiveSelect.__subSelectUsing = this.__subSelectUsing
+        recursiveSelect.__projectOptionalValuesAsNullable = this.__projectOptionalValuesAsNullable
 
         this.__recursiveInternalView = recursiveInternalView
         this.__recursiveView = recursiveView
@@ -578,6 +584,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             result.__joins = current.__joins.concat()
             result.__subSelectUsing = this.__subSelectUsing
             result.join(view).on(fn(view)).__finishJoinHaving()
+            result.__projectOptionalValuesAsNullable = this.__projectOptionalValuesAsNullable
             return result as any
         }
     }
@@ -707,10 +714,6 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__query = ''
         this.__columns = columns
         this.__registerTableOrViewWithOfColumns(columns, this.__withs)
-        return this
-    }
-    projectingOptionalValuesAsNullable(): any {
-        this.__projectOptionalValuesAsNullable = true
         return this
     }
     selectOneColumn(column: AnyValueSource): any {

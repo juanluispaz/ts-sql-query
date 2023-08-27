@@ -1,17 +1,24 @@
 site_name: ts-sql-query
 site_description: Type-safe SQL query builder for TypeScript.
 repo_url: https://github.com/juanluispaz/ts-sql-query
+plugins:
+  # https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/#+search.separator + ' (escaped as '') + \- moved at the end of group
+  - search:
+      separator: '[\s,:!=\[\]()"\''/\-]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+  - exclude-search:
+      exclude:
+        - CHANGELOG.md
 theme: 
   name: readthedocs
   highlightjs: false
 extra_javascript:
   # MkDocs includes an old version of highlight.js, but it doesn't recognize all modern JS syntax, import a newer version
-  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.3.1/build/highlight.min.js
-  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.3.1/build/languages/typescript.min.js
-  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.3.1/build/languages/pgsql.min.js
+  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.8.0/build/highlight.min.js
+  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.8.0/build/languages/typescript.min.js
+  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.8.0/build/languages/pgsql.min.js
   - custom.js
 extra_css: 
-  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.3.1/build/styles/default.min.css
+  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.8.0/build/styles/default.min.css
   - custom.css
 nav:
   - Introduction: index.md

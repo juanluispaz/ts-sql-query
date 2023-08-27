@@ -33,23 +33,11 @@ h2~h2 {
 body>.rst-versions,
 .wy-nav-side,
 .wy-menu-vertical {
-    width: 310px !important;
+    width: 320px !important;
 }
 
 .wy-nav-side {
     padding-bottom: 2.6rem !important;
-}
-
-.rst-versions:not(.rst-badge)>.rst-current-version {
-    line-height: initial !important;
-}
-
-.rst-versions:not(.rst-badge)>.rst-current-version>span:first-child {
-    float: left;
-}
-
-.rst-versions:not(.rst-badge)>.rst-current-version>span:last-child {
-    margin-left: 15px;
 }
 
 footer {
@@ -62,6 +50,32 @@ footer>hr {
 
 footer>.rst-footer-buttons {
     font-size: 1rem;
+}
+
+.google-search-placeholder {
+    margin-bottom: .809em;
+}
+
+.google-search-placeholder td, 
+.google-search-placeholder th {
+    border: none !important;
+}
+
+.google-search-placeholder input {
+    box-shadow: initial;
+}
+
+/* When Google is visible */
+/*
+.wy-side-nav-search {
+    margin-bottom: 0;
+}
+*/
+
+/* When Google is hidden */
+.google-search-placeholder {
+    height: 0;
+    overflow: hidden;
 }
 
 @media screen and (max-width: 768px) {

@@ -1,5 +1,12 @@
 # Change Log
 
+## v1.56.0 (28 Aug 2023)
+
+**Bug fixes**:
+
+- Fix `inIfValue` and `notInIfValue` forcing include the optional join when it is not required.
+- Fix subquery used as boolean value in a sql fragment when it is not on SqlServer or Oracle databases.
+
 ## v1.55.0 (27 Aug 2023)
 
 **Changes**:

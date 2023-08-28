@@ -133,8 +133,18 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return this._appendRawColumnName(column, params)
     }
     _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string {
-        const result = '((' + this._buildInlineSelect(query, params) + ') = 1)'
-        return result
+        if (query.__oneColumn) {
+            const columns = query.__columns
+            for (const prop in columns) {
+                const column = columns[prop]
+                if (isValueSource(column) && __getValueSourcePrivate(column).__valueType === 'boolean') {
+                    return '((' + this._buildInlineSelect(query, params) + ') = 1)'
+                } else {
+                    return this._buildInlineSelect(query, params)
+                }
+            }
+        } 
+        return this._buildInlineSelect(query, params)
     }
     _appendWithKeyword(_recursive: boolean): string {
         // Sql Server doesn't uses the recursive keyword

@@ -4848,6 +4848,30 @@ async function main() {
 
     acmeCompanyWithCustomers13 = typeValidation11
     typeValidation11 = acmeCompanyWithCustomers13
+    
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select id as id, first_name as firstName, last_name as lastName, birthday as birthday from customer where id = ?`)
+    expectedParams.push(`[12]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const customerWitnNotUsedCompanyOptionalJoin = await connection.selectFrom(tCustomer)
+        .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        })
+        .where(tCustomer.id.equals(12))
+        .and(tCompany.id.inIfValue([]))
+        .executeSelectMany()
+    
+    assertEquals(customerWitnNotUsedCompanyOptionalJoin, result)
 
 }
 

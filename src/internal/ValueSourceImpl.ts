@@ -1384,6 +1384,9 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__typeAdapter)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return
+        }
         this.__valueSource.__addWiths(sqlBuilder, withs)
         const values = this.__value
         if (Array.isArray(values)) {
@@ -1395,6 +1398,9 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         }
     }
     __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return
+        }
         this.__valueSource.__registerTableOrView(sqlBuilder, requiredTablesOrViews)
         const values = this.__value
         if (Array.isArray(values)) {
@@ -1406,6 +1412,9 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         }
     }
     __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return
+        }
         this.__valueSource.__registerRequiredColumn(sqlBuilder, requiredColumns, onlyForTablesOrViews)
         const values = this.__value
         if (Array.isArray(values)) {
@@ -1417,6 +1426,9 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         }
     }
     __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return undefined
+        }
         let result = this.__valueSource.__getOldValues(sqlBuilder)
         if (result) {
             return result
@@ -1435,6 +1447,9 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         return undefined
     }
     __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return undefined
+        }
         let result = this.__valueSource.__getValuesForInsert(sqlBuilder)
         if (result) {
             return result
@@ -1453,6 +1468,9 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         return undefined
     }
     __isAllowed(sqlBuilder: HasIsValue): boolean {
+        if (!sqlBuilder._isValue(this.__value)) {
+            return true
+        }
         let result = this.__valueSource.__isAllowed(sqlBuilder)
         if (!result) {
             return false

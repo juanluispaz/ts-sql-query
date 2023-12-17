@@ -1,4 +1,4 @@
-import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource, __getValueSourceOfObject, __getValueSourcePrivate, TypeSafeUuidValueSource, UuidValueSource, IBooleanValueSource, IStringIntValueSource, IStringNumberValueSource, IIntValueSource, INumberValueSource, ITypeSafeBigintValueSource, IBigintValueSource, IStringDoubleValueSource, IDoubleValueSource, ITypeSafeStringValueSource, IStringValueSource, ITypeSafeUuidValueSource, IUuidValueSource, ILocalDateValueSource, IDateValueSource, ILocalTimeValueSource, ITimeValueSource, ILocalDateTimeValueSource, IDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource } from "./expressions/values"
+import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource, __getValueSourceOfObject, __getValueSourcePrivate, TypeSafeUuidValueSource, UuidValueSource, IBooleanValueSource, IStringIntValueSource, IStringNumberValueSource, IIntValueSource, INumberValueSource, ITypeSafeBigintValueSource, IBigintValueSource, IStringDoubleValueSource, IDoubleValueSource, ITypeSafeStringValueSource, IStringValueSource, ITypeSafeUuidValueSource, IUuidValueSource, ILocalDateValueSource, IDateValueSource, ILocalTimeValueSource, ITimeValueSource, ILocalDateTimeValueSource, IDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueKind } from "./expressions/values"
 import { HasIsValue, IView, IWithView, OfDB, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
 import type { TypeAdapter } from "./TypeAdapter"
 import type { AliasedTableOrView, OuterJoinSourceOf } from "./utils/tableOrViewUtils"
@@ -87,9 +87,9 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     protected column<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T, T, 'required'> & Column
     protected column(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME, 'required'> & Column */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return new ColumnImpl(this, name, adapter, adapter2)
+            return new ColumnImpl(this, name, type as ValueKind, adapter, adapter2)
         }
-        return new ColumnImpl(this, name, type, adapter)
+        return new ColumnImpl(this, name, type as ValueKind, type, adapter)
     }
 
     protected optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<REF, 'optional'> & OptionalColumn
@@ -121,9 +121,9 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     protected optionalColumn<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<REF, T, T, 'optional'> & OptionalColumn
     protected optionalColumn(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME, 'optional'> & OptionalColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return (new ColumnImpl(this, name, adapter, adapter2)).__asOptionalColumn()
+            return (new ColumnImpl(this, name, type as ValueKind, adapter, adapter2)).__asOptionalColumn()
         }
-        return (new ColumnImpl(this, name, type, adapter)).__asOptionalColumn()
+        return (new ColumnImpl(this, name, type as ValueKind, type, adapter)).__asOptionalColumn()
     }
 
     protected virtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<REF[typeof database], 'required'>) => IBooleanValueSource<REF, 'required'>, adapter?: TypeAdapter): BooleanValueSource<REF, 'required'>
@@ -155,11 +155,11 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     protected virtualColumnFromFragment<T>(type: 'customComparable', typeName: string, fn: (fragment: ComparableFragmentExpression<REF[typeof database], T, T, 'required'>) => IComparableValueSource<REF, T, T, 'required'>, adapter?: TypeAdapter): ComparableValueSource<REF, T, T, 'required'>
     protected virtualColumnFromFragment(type: string, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof arg1 === 'string') {
-            const fragmentBuilder =  new FragmentQueryBuilder(arg1, 'required', arg3)
-            return new ValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, arg1, 'required', arg3)
+            const fragmentBuilder =  new FragmentQueryBuilder(type as ValueKind, arg1, 'required', arg3)
+            return new ValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, type as ValueKind, arg1, 'required', arg3)
         }
-        const fragmentBuilder =  new FragmentQueryBuilder(type, 'required', arg2 as TypeAdapter | undefined)
-        return new ValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type, 'required', arg2 as TypeAdapter | undefined)
+        const fragmentBuilder =  new FragmentQueryBuilder(type as ValueKind, type, 'required', arg2 as TypeAdapter | undefined)
+        return new ValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type as ValueKind, type, 'required', arg2 as TypeAdapter | undefined)
     }
 
     protected optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<REF[typeof database], 'optional'>) => IBooleanValueSource<REF, 'optional'>, adapter?: TypeAdapter): BooleanValueSource<REF, 'optional'>
@@ -191,11 +191,11 @@ class ViewOf<REF extends VIEW<AnyDB, any>> implements IView<REF> {
     protected optionalVirtualColumnFromFragment<T>(type: 'customComparable', typeName: string, fn: (fragment: ComparableFragmentExpression<REF[typeof database], T, T, 'optional'>) => IComparableValueSource<REF, T, T, 'optional'>, adapter?: TypeAdapter): ComparableValueSource<REF, T, T, 'optional'>
     protected optionalVirtualColumnFromFragment(type: string, arg1: any, arg2?: any, arg3?: TypeAdapter): any /* EqualableValueSource<REF, T, TYPE_NAME, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof arg1 === 'string') {
-            const fragmentBuilder =  new FragmentQueryBuilder(arg1, 'optional', arg3)
-            return new ValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, arg1, 'optional', arg3)
+            const fragmentBuilder =  new FragmentQueryBuilder(type as ValueKind, arg1, 'optional', arg3)
+            return new ValueSourceFromBuilder(arg2 as (fragment: any) => AnyValueSource, fragmentBuilder, type as ValueKind, arg1, 'optional', arg3)
         }
-        const fragmentBuilder =  new FragmentQueryBuilder(type, 'optional', arg2 as TypeAdapter | undefined)
-        return new ValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type, 'optional', arg2 as TypeAdapter | undefined)
+        const fragmentBuilder =  new FragmentQueryBuilder(type as ValueKind, type, 'optional', arg2 as TypeAdapter | undefined)
+        return new ValueSourceFromBuilder(arg1 as (fragment: any) => AnyValueSource, fragmentBuilder, type as ValueKind, type, 'optional', arg2 as TypeAdapter | undefined)
     }
 
     // @ts-ignore

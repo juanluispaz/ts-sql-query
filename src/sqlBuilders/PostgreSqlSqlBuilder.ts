@@ -2,7 +2,7 @@ import type { ToSql, SelectData, WithValuesData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
-import { isValueSource } from "../expressions/values"
+import { __isBooleanValueSource, isValueSource } from "../expressions/values"
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
@@ -89,7 +89,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         const columnTypeAdapter = columnPrivate.__typeAdapter
         const columnType = columnPrivate.__valueType
 
-        if (columnType !== 'boolean') {
+        if (!__isBooleanValueSource(columnPrivate)) {
             return null // non-boolean
         }
 

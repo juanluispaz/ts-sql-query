@@ -1,21 +1,23 @@
 import type { TypeAdapter } from "../TypeAdapter"
-import { Argument, AnyValueSource, OptionalType, isValueSource } from "../expressions/values"
+import { Argument, AnyValueSource, OptionalType, isValueSource, ValueKind } from "../expressions/values"
 import { FragmentValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop } from "../internal/ValueSourceImpl"
 import { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 
 export class FragmentQueryBuilder {
+    __valueKind: ValueKind
     __type: string
     __adapter: TypeAdapter | undefined
     __optionalType: OptionalType
 
-    constructor(type: string, optionalType: OptionalType, adapter: TypeAdapter | undefined) {
+    constructor(valueKind: ValueKind, type: string, optionalType: OptionalType, adapter: TypeAdapter | undefined) {
+        this.__valueKind = valueKind
         this.__type = type
         this.__adapter = adapter
         this.__optionalType = optionalType
     }
 
     sql(sql: TemplateStringsArray, ...params: AnyValueSource[]): AnyValueSource {
-        return new FragmentValueSource(sql, params, this.__type, this.__optionalType, this.__adapter)
+        return new FragmentValueSource(sql, params, this.__valueKind, this.__type, this.__optionalType, this.__adapter)
     }
 }
 
@@ -35,7 +37,7 @@ export class FragmentFunctionBuilder {
                     newArgs.push(arg)
                 } else {
                     const definition = this.definitions[i]!
-                    const newArg = new SqlOperationConstValueSource(arg, definition.typeName, definition.optionalType, definition.adapter)
+                    const newArg = new SqlOperationConstValueSource(arg, definition.type, definition.typeName, definition.optionalType, definition.adapter)
                     newArgs.push(newArg)
                 }
             }
@@ -73,7 +75,7 @@ export class FragmentFunctionBuilderIfValue {
                             return new SqlOperationValueSourceIfValueAlwaysNoop()
                         }
                     }
-                    const newArg = new SqlOperationConstValueSource(arg, definition.typeName, definition.optionalType, definition.adapter)
+                    const newArg = new SqlOperationConstValueSource(arg, definition.type, definition.typeName, definition.optionalType, definition.adapter)
                     newArgs.push(newArg)
                 }
             }

@@ -1,6 +1,6 @@
 import { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, flattenQueryColumns, WithSelectData, hasToSql, OrderByEntry, getQueryColumn } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
+import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __isUuidValueSource, __isBooleanValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -53,7 +53,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _appendConditionSql(value: ToSql | AnyValueSource, params: any[]): string {
         if (isValueSource(value) && !isColumn(value) && hasToSql(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
-            if (valueSourcePrivate.__valueType === 'boolean' && !valueSourcePrivate.__isBooleanForCondition) {
+            if (__isBooleanValueSource(valueSourcePrivate) && !valueSourcePrivate.__isBooleanForCondition) {
                 const sql = value.__toSqlForCondition(this, params)
                 if (!sql || sql === this._trueValueForCondition || sql === this._falseValueForCondition) {
                     return sql
@@ -80,7 +80,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _appendColumnName(column: Column, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
-        if (columnPrivate.__valueType === 'boolean') {
+        if (__isBooleanValueSource(columnPrivate)) {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
                 if (columnPrivate.__optionalType === 'required') {
                     return 'case when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ' then 1 else 0 end'
@@ -95,7 +95,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _appendColumnNameForCondition(column: Column, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
-        if (columnPrivate.__valueType === 'boolean') {
+        if (__isBooleanValueSource(columnPrivate)) {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
                 return '(' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ')'
             } else {
@@ -110,7 +110,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             const columns = query.__columns
             for (const prop in columns) {
                 const column = columns[prop]
-                if (isValueSource(column) && __getValueSourcePrivate(column).__valueType === 'boolean') {
+                if (isValueSource(column) && __isBooleanValueSource(__getValueSourcePrivate(column))) {
                     return '((' + this._buildInlineSelect(query, params) + ') = 1)'
                 } else {
                     return this._buildInlineSelect(query, params)
@@ -124,7 +124,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const columnTypeAdapter = columnPrivate.__typeAdapter
         const columnType = columnPrivate.__valueType
 
-        if (columnType !== 'boolean') {
+        if (!__isBooleanValueSource(columnPrivate)) {
             return null // non-boolean
         }
 
@@ -224,7 +224,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._getUuidStrategy() === 'custom-functions') {
-            if (__getValueSourcePrivate(value).__valueType === 'uuid') {
+            if (__isUuidValueSource(__getValueSourcePrivate(value))) {
                 return 'raw_to_uuid(' + this._appendSql(value, params) + ')'
             }
         }
@@ -386,8 +386,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     _appendCompoundOrderByColumnAliasInsensitive(entry: OrderByEntry, columnNames: string[], query: SelectData, params: any[]): string {
         const collation = this._connectionConfiguration.insesitiveCollation
-        const columnType = this._getOrderByColumnType(entry, query)
-        if (columnType != 'string') {
+        const stringColumn = this._isStringOrderByColumn(entry, query)
+        if (!stringColumn) {
             // Ignore the insensitive term, it do nothing
             return this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params)
         } else if (collation) {
@@ -999,7 +999,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
         if (isValueSource(aggregatedArrayColumns)) {
-            if (__getValueSourcePrivate(aggregatedArrayColumns).__valueType === 'uuid' && this._getUuidStrategy() === 'custom-functions') {
+            if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'custom-functions') {
                 return 'json_arrayagg(raw_to_uuid' + this._appendSql(aggregatedArrayColumns, params) + '))'
             }
             return 'json_arrayagg(' + this._appendSql(aggregatedArrayColumns, params) + ')'
@@ -1014,7 +1014,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 }
                 result += "'" + prop + "' value "
                 const column = columns[prop]!
-                if (__getValueSourcePrivate(column).__valueType === 'uuid' && this._getUuidStrategy() === 'custom-functions') {
+                if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'custom-functions') {
                     result += 'raw_to_uuid(' + this._appendSql(column, params) + ')'
                 } else {
                     result += this._appendSql(column, params)
@@ -1026,7 +1026,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
-            if (__getValueSourcePrivate(aggregatedArrayColumns).__valueType === 'uuid' && this._getUuidStrategy() === 'custom-functions') {
+            if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'custom-functions') {
                 return 'json_arrayagg(raw_to_uuida_' + aggregateId + '_.result))'
             }
             return 'json_arrayagg(a_' + aggregateId + '_.result)'
@@ -1041,7 +1041,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 }
                 result += "'" + prop + "' value "
                 const column = columns[prop]!
-                if (__getValueSourcePrivate(column).__valueType === 'uuid' && this._getUuidStrategy() === 'custom-functions') {
+                if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'custom-functions') {
                     result += 'raw_to_uuid(a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
                 } else {
                     result += 'a_' + aggregateId + '_.' + this._escape(prop, true)

@@ -199,8 +199,8 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     _appendOrderByColumnExpressionInsensitive(entry: OrderByEntry, query: SelectData, params: any[]): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         const expression = entry.expression
-        const columnType = this._getOrderByColumnType(entry, query)
-        if (columnType === 'string' && collation) {
+        const stringColumn = this._isStringOrderByColumn(entry, query)
+        if (stringColumn && collation) {
             if (typeof expression === 'string') {
                 const column = getQueryColumn(query.__columns, expression)
                 if (!column) {

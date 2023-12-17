@@ -2,7 +2,7 @@ import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { InsertExpression } from "../expressions/insert"
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expressions/update"
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, TypeSafeBigintValueSource, ITypeSafeBigintValueSource, AlwaysIfValueSource, ValueSourceOf, ValueSourceOfDB, RemapValueSourceTypeWithOptionalType, IValueSource, TypeSafeUuidValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, IntValueSource, DoubleValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, TypeSafeStringValueSource, StringNumberValueSource, StringIntValueSource, StringDoubleValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, IIntValueSource, IDoubleValueSource, IStringIntValueSource, IStringDoubleValueSource, INumberValueSource, IStringNumberValueSource, ITypeSafeStringValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, TypeSafeBigintValueSource, ITypeSafeBigintValueSource, AlwaysIfValueSource, ValueSourceOf, ValueSourceOfDB, RemapValueSourceTypeWithOptionalType, IValueSource, TypeSafeUuidValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, ValueKind } from "../expressions/values"
 import type { Default } from "../expressions/Default"
 import { ITableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf, ITableOrView, __getTableOrViewPrivate, OuterJoinSource } from "../utils/ITableOrView"
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from "../expressions/select"
@@ -239,32 +239,32 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     pi(this: IConnection<TypeSafeDB>): DoubleValueSource<NoTableOrViewRequired<DB>, 'required'>
     pi(): NumberValueSource<NoTableOrViewRequired<DB>, 'required'>
     pi(): any {
-        return new SqlOperationStatic0ValueSource('_pi', 'double', 'required', undefined)
+        return new SqlOperationStatic0ValueSource('_pi', 'double', 'double', 'required', undefined)
     }
     random(this: IConnection<TypeSafeDB>): DoubleValueSource<NoTableOrViewRequired<DB>, 'required'>
     random(): NumberValueSource<NoTableOrViewRequired<DB>, 'required'>
     random(): any {
-        return new SqlOperationStatic0ValueSource('_random', 'double', 'required', undefined)
+        return new SqlOperationStatic0ValueSource('_random', 'double', 'double', 'required', undefined)
     }
     currentDate(this: IConnection<TypeSafeDB>): LocalDateValueSource<NoTableOrViewRequired<DB>, 'required'>
     currentDate(): DateValueSource<NoTableOrViewRequired<DB>, 'required'>
     currentDate(): any {
-        return new SqlOperationStatic0ValueSource('_currentDate', 'localDate', 'required', undefined)
+        return new SqlOperationStatic0ValueSource('_currentDate', 'localDate', 'localDate', 'required', undefined)
     }
     currentTime(this: IConnection<TypeSafeDB>): LocalTimeValueSource<NoTableOrViewRequired<DB>, 'required'>
     currentTime(): TimeValueSource<NoTableOrViewRequired<DB>, 'required'>
     currentTime(): any {
-        return new SqlOperationStatic0ValueSource('_currentTime', 'localTime', 'required', undefined)
+        return new SqlOperationStatic0ValueSource('_currentTime', 'localTime', 'localTime', 'required', undefined)
     }
     currentDateTime(this: IConnection<TypeSafeDB>): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, 'required'>
     currentDateTime(): DateTimeValueSource<NoTableOrViewRequired<DB>, 'required'>
     currentDateTime(): any {
-        return new SqlOperationStatic0ValueSource('_currentTimestamp', 'localDateTime', 'required', undefined)
+        return new SqlOperationStatic0ValueSource('_currentTimestamp', 'localDateTime', 'localDateTime', 'required', undefined)
     }
     currentTimestamp(this: IConnection<TypeSafeDB>): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, 'required'>
     currentTimestamp(): DateTimeValueSource<NoTableOrViewRequired<DB>, 'required'>
     currentTimestamp(): any {
-        return new SqlOperationStatic0ValueSource('_currentTimestamp', 'localDateTime', 'required', undefined)
+        return new SqlOperationStatic0ValueSource('_currentTimestamp', 'localDateTime', 'localDateTime', 'required', undefined)
     }
 
     const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NoTableOrViewRequired<DB>, 'required'>
@@ -296,9 +296,9 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     const<T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
     const(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T, TYPE_NAME, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return new SqlOperationConstValueSource(value, adapter, 'required', adapter2)
+            return new SqlOperationConstValueSource(value, type as ValueKind, adapter, 'required', adapter2)
         }
-        return new SqlOperationConstValueSource(value, type, 'required', adapter)
+        return new SqlOperationConstValueSource(value, type as ValueKind, type, 'required', adapter)
     }
 
     optionalConst(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NoTableOrViewRequired<DB>, 'optional'>
@@ -330,9 +330,9 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     optionalConst<T>(value: T | null | undefined, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
     optionalConst(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T, TYPE_NAME, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return new SqlOperationConstValueSource(value, adapter, 'optional', adapter2)
+            return new SqlOperationConstValueSource(value, type as ValueKind, adapter, 'optional', adapter2)
         }
-        return new SqlOperationConstValueSource(value, type, 'optional', adapter)
+        return new SqlOperationConstValueSource(value, type as ValueKind, type, 'optional', adapter)
     }
 
     true<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> = NoTableOrViewRequiredView<DB>>(): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], 'required'> {
@@ -342,10 +342,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new SqlOperationStaticBooleanValueSource('_false')
     }
     exists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: IExecutableSelectQuery<DB, any, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], 'required'> {
-        return new SqlOperationStatic1ValueSource('_exists', select, 'boolean', 'required', undefined)
+        return new SqlOperationStatic1ValueSource('_exists', select, 'boolean', 'boolean', 'required', undefined)
     }
     notExists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: IExecutableSelectQuery<DB, any, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], 'required'> {
-        return new SqlOperationStatic1ValueSource('_notExists', select, 'boolean', 'required', undefined)
+        return new SqlOperationStatic1ValueSource('_notExists', select, 'boolean', 'boolean', 'required', undefined)
     }
 
     protected executeProcedure(procedureName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[]): Promise<void> {
@@ -508,7 +508,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         } else {
             adapter2 = adapter
         }
-        return new FragmentQueryBuilder(type, required as any, adapter2)
+        return new FragmentQueryBuilder(type as ValueKind, type, required as any, adapter2)
     }
 
     protected arg(type: 'boolean', required: 'required', adapter?: TypeAdapter): Argument<'boolean', 'required', 'combined', boolean>
@@ -698,25 +698,25 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     countAll(this: IConnection<TypeSafeDB>): IntValueSource<NoTableOrViewRequired<DB>, 'required'>
     countAll(): NumberValueSource<NoTableOrViewRequired<DB>, 'required'>
     countAll(): ValueSourceOf<NoTableOrViewRequired<DB>> {
-        return new AggregateFunctions0ValueSource('_countAll', 'int', 'required', undefined)
+        return new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
     }
     count<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(this: IConnection<TypeSafeDB>, value: ValueSourceOf<TABLE_OR_VIEW>): IntValueSource<TABLE_OR_VIEW, 'required'>
     count<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): NumberValueSource<TABLE_OR_VIEW, 'required'>
     count<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<NoTableOrViewRequired<DB>> {
-        return new AggregateFunctions1ValueSource('_count', value, 'int', 'required', undefined)
+        return new AggregateFunctions1ValueSource('_count', value, 'int', 'int', 'required', undefined)
     }
     countDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(this: IConnection<TypeSafeDB>, value: ValueSourceOf<TABLE_OR_VIEW>): IntValueSource<TABLE_OR_VIEW, 'required'>
     countDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): NumberValueSource<TABLE_OR_VIEW, 'required'>
     countDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<NoTableOrViewRequired<DB>> {
-        return new AggregateFunctions1ValueSource('_countDistinct', value, 'int', 'required', undefined)
+        return new AggregateFunctions1ValueSource('_countDistinct', value, 'int', 'int', 'required', undefined)
     }
     max<TYPE extends IComparableValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): RemapValueSourceTypeWithOptionalType<TYPE[typeof tableOrView], TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (new AggregateFunctions1ValueSource('_max', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)) as any
+        return (new AggregateFunctions1ValueSource('_max', value, valuePrivate.__valueKind, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)) as any
     }
     min<TYPE extends IComparableValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): RemapValueSourceTypeWithOptionalType<TYPE[typeof tableOrView], TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return (new AggregateFunctions1ValueSource('_min', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)) as any
+        return (new AggregateFunctions1ValueSource('_min', value, valuePrivate.__valueKind, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)) as any
     }
     sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, 'optional'>
     sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, any>): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
@@ -728,7 +728,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
     sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_sum', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_sum', value, valuePrivate.__valueKind, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
     sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, 'optional'>
     sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, any>): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
@@ -740,7 +740,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
     sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_sumDistinct', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_sumDistinct', value, valuePrivate.__valueKind, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
     average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, 'optional'>
     average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, any>): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
@@ -752,7 +752,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
     average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_average', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_average', value, valuePrivate.__valueKind, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
     averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IIntValueSource<TABLE_OR_VIEW, any>): IntValueSource<TABLE_OR_VIEW, 'optional'>
     averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IDoubleValueSource<TABLE_OR_VIEW, any>): DoubleValueSource<TABLE_OR_VIEW, 'optional'>
@@ -764,7 +764,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
     averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_averageDistinct', value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_averageDistinct', value, valuePrivate.__valueKind, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
     stringConcat<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, any>): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
     stringConcat<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>): StringValueSource<TABLE_OR_VIEW, 'optional'>
@@ -772,7 +772,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     stringConcat<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>, separator: string): StringValueSource<TABLE_OR_VIEW, 'optional'>
     stringConcat<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>, separator?: string): ValueSourceOf<TABLE_OR_VIEW> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1or2ValueSource('_stringConcat', separator, value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1or2ValueSource('_stringConcat', separator, value, valuePrivate.__valueKind, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
     stringConcatDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ITypeSafeStringValueSource<TABLE_OR_VIEW, any>): TypeSafeStringValueSource<TABLE_OR_VIEW, 'optional'>
     stringConcatDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>): StringValueSource<TABLE_OR_VIEW, 'optional'>
@@ -780,7 +780,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     stringConcatDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>, separator: string): StringValueSource<TABLE_OR_VIEW, 'optional'>
     stringConcatDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>, separator?: string): ValueSourceOf<TABLE_OR_VIEW> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueKind, valuePrivate.__valueType, 'optional', valuePrivate.__typeAdapter)
     }
 
     aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<TableOrViewOfAggregatedArray<COLUMNS>, Array<{ [P in keyof InnerResultObjectValuesForAggregatedArray<COLUMNS>]: InnerResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>]: InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>[P] }>, 'required'> {

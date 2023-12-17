@@ -1,7 +1,7 @@
 import type { AnyDB, TypeSafeDB } from "../databases"
 import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { BooleanValueSource, StringIntValueSource, StringNumberValueSource, IntValueSource, NumberValueSource, StringDoubleValueSource, DoubleValueSource, TypeSafeStringValueSource, StringValueSource, LocalDateValueSource, DateValueSource, LocalTimeValueSource, TimeValueSource, LocalDateTimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource, TypeSafeUuidValueSource, UuidValueSource } from "../expressions/values"
+import type { BooleanValueSource, StringIntValueSource, StringNumberValueSource, IntValueSource, NumberValueSource, StringDoubleValueSource, DoubleValueSource, TypeSafeStringValueSource, StringValueSource, LocalDateValueSource, DateValueSource, LocalTimeValueSource, TimeValueSource, LocalDateTimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource, TypeSafeUuidValueSource, UuidValueSource, ValueKind } from "../expressions/values"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { IConnection } from "../utils/IConnection"
 import type { Sequence } from "../expressions/sequence";
@@ -44,8 +44,8 @@ export abstract class AbstractAdvancedConnection<DB extends AnyDB> extends Abstr
     protected sequence<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
     protected sequence<_T>(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Sequence<any> {
         if (typeof adapter === 'string') {
-            return new SequenceQueryBuilder(name, adapter, adapter2)
+            return new SequenceQueryBuilder(name, type as ValueKind, adapter, adapter2)
         }
-        return new SequenceQueryBuilder(name, type, adapter)
+        return new SequenceQueryBuilder(name, type as ValueKind, type, adapter)
     }
 }

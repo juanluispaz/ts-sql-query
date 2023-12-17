@@ -1,6 +1,6 @@
 import { ToSql, SelectData, InsertData, UpdateData, FlatQueryColumns, flattenQueryColumns } from "./SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
-import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
+import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __isUuidValueSource, __isLocalDateValueSource, __isLocalTimeValueSource, __isLocalDateTimeValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn } from "../utils/Column"
@@ -22,16 +22,15 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     _getValueSourceDateTimeFormat(valueSource: ToSql): SqliteDateTimeFormat {
         if (isValueSource(valueSource)) {
-            const type = __getValueSourcePrivate(valueSource).__valueType
-            switch(type) {
-                case 'localDate':
-                    return this._getDateTimeFormat('date')
-                case 'localTime':
-                    return this._getDateTimeFormat('time')
-                case 'localDateTime':
-                    return this._getDateTimeFormat('dateTime')
-                default:
-                    throw new Error('Unknown date type type: ' + type)
+            const valueSourcePrivate = __getValueSourcePrivate(valueSource)
+            if (__isLocalDateValueSource(valueSourcePrivate)) {
+                return this._getDateTimeFormat('date')
+            } else if (__isLocalTimeValueSource(valueSourcePrivate)) {
+                return this._getDateTimeFormat('time')
+            } else if (__isLocalDateTimeValueSource(valueSourcePrivate)) {
+                return this._getDateTimeFormat('dateTime')
+            } else {
+                throw new Error('Unknown date type: ' + valueSourcePrivate.__valueKind + ' ' + valueSourcePrivate.__valueType)
             }
         }
         throw new Error('Unable to determine the value source type')
@@ -476,7 +475,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._getUuidStrategy() === 'uuid-extension') {
-            if (__getValueSourcePrivate(value).__valueType === 'uuid') {
+            if (__isUuidValueSource(__getValueSourcePrivate(value))) {
                 return 'uuid_str(' + this._appendSql(value, params) + ')'
             }
         }
@@ -492,7 +491,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
         if (isValueSource(aggregatedArrayColumns)) {
-            if (__getValueSourcePrivate(aggregatedArrayColumns).__valueType === 'uuid' && this._getUuidStrategy() === 'uuid-extension') {
+            if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'uuid-extension') {
                 return 'json_group_array(uuid_str(' + this._appendSql(aggregatedArrayColumns, params) + '))'
             }
             return 'json_group_array(' + this._appendSql(aggregatedArrayColumns, params) + ')'
@@ -507,7 +506,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 }
                 result += "'" + prop + "', "
                 const column = columns[prop]!
-                if (__getValueSourcePrivate(column).__valueType === 'uuid' && this._getUuidStrategy() === 'uuid-extension') {
+                if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'uuid-extension') {
                     result += 'uuid_str(' + this._appendSql(column, params) + ')'
                 } else {
                     result += this._appendSql(column, params)
@@ -519,7 +518,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
-            if (__getValueSourcePrivate(aggregatedArrayColumns).__valueType === 'uuid' && this._getUuidStrategy() === 'uuid-extension') {
+            if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'uuid-extension') {
                 return 'json_group_array(uuid_str(a_' + aggregateId + '_.result))'
             }
             return 'json_group_array(a_' + aggregateId + '_.result)'
@@ -534,7 +533,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 }
                 result += "'" + prop + "', "
                 const column = columns[prop]!
-                if (__getValueSourcePrivate(column).__valueType === 'uuid' && this._getUuidStrategy() === 'uuid-extension') {
+                if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'uuid-extension') {
                     result += 'uuid_str(a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
                 } else {
                     result += 'a_' + aggregateId + '_.' + this._escape(prop, true)

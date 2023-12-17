@@ -188,7 +188,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     __executeSelectCount(source: Error): Promise<any> {
         try {
             this.__sqlBuilder._resetUnique()
-            const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', 'required', undefined)
+            const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
             const params: any[] = []
             const query = this.__buildSelectCount(countAll, params)
             return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(query, params).then((value) => {
@@ -726,7 +726,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     }
     selectCountAll(): any {
         this.__requiredResult = true
-        const column = new AggregateFunctions0ValueSource('_countAll', 'int', 'required', undefined)
+        const column = new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
         this.__finishJoinHaving()
         this.__query = ''
         this.__oneColumn = true

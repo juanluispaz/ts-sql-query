@@ -71,8 +71,21 @@ export interface ValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE,
     disallowWhen(when: boolean, error: Error): this
 }
 
+export type ValueKind = 'boolean'
+    | 'stringInt' | 'int' | 'bigint'
+    | 'stringDouble' | 'double'
+    | 'string'
+    | 'uuid'
+    | 'localDate'
+    | 'localTime'
+    | 'localDateTime'
+    | 'enum' | 'custom' | 'customComparable'
+    | 'aggregatedArray'
+    | '' // TableOrViewFragment
+
 export interface __ValueSourcePrivate extends HasAddWiths {
     [isValueSourceObject]: true
+    __valueKind: ValueKind
     __valueType: string
     __optionalType: OptionalType
     __typeAdapter?: TypeAdapter
@@ -84,6 +97,30 @@ export interface __ValueSourcePrivate extends HasAddWiths {
 
     isConstValue(): boolean
     getConstValue(): any
+}
+
+export function __isBooleanValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
+    return valueSourcePrivate.__valueKind === 'boolean'
+}
+
+export function __isUuidValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
+    return valueSourcePrivate.__valueKind === 'uuid'
+}
+
+export function __isStringValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
+    return valueSourcePrivate.__valueKind === 'string'
+}
+
+export function __isLocalDateValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
+    return valueSourcePrivate.__valueKind === 'localDate'
+}
+
+export function __isLocalTimeValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
+    return valueSourcePrivate.__valueKind === 'localTime'
+}
+
+export function __isLocalDateTimeValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
+    return valueSourcePrivate.__valueKind === 'localDateTime'
 }
 
 export type __AggregatedArrayColumns = {

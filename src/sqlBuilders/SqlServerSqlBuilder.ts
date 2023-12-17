@@ -1,6 +1,6 @@
 import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData, flattenQueryColumns, FlatQueryColumns, QueryColumns, WithValuesData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { AnyValueSource, IExecutableSelectQuery, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
+import { AnyValueSource, IExecutableSelectQuery, isValueSource, __AggregatedArrayColumns, __isUuidValueSource, __isBooleanValueSource } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -54,7 +54,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _appendConditionSql(value: ToSql | AnyValueSource, params: any[]): string {
         if (isValueSource(value) && !isColumn(value) && hasToSql(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
-            if (valueSourcePrivate.__valueType === 'boolean' && !valueSourcePrivate.__isBooleanForCondition) {
+            if (__isBooleanValueSource(valueSourcePrivate) && !valueSourcePrivate.__isBooleanForCondition) {
                 const sql = value.__toSqlForCondition(this, params)
                 if (!sql || sql === this._trueValueForCondition || sql === this._falseValueForCondition) {
                     return sql
@@ -68,7 +68,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _isUuid(value: any): boolean {
         if (isValueSource(value)) {
             const valuePrivate = __getValueSourcePrivate(value)
-            if (valuePrivate.__valueType === 'uuid' || valuePrivate.__uuidString) {
+            if (__isUuidValueSource(valuePrivate) || valuePrivate.__uuidString) {
                 return true
             }
         }
@@ -107,7 +107,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _appendColumnName(column: Column, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
-        if (columnPrivate.__valueType === 'boolean') {
+        if (__isBooleanValueSource(columnPrivate)) {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
                 if (columnPrivate.__optionalType === 'required') {
                     return 'cast(case when ' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ' then 1 else 0 end as bit)'
@@ -122,7 +122,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _appendColumnNameForCondition(column: Column, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
-        if (columnPrivate.__valueType === 'boolean') {
+        if (__isBooleanValueSource(columnPrivate)) {
             if (typeAdapter instanceof CustomBooleanTypeAdapter) {
                 return '(' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ')'
             } else {
@@ -137,7 +137,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             const columns = query.__columns
             for (const prop in columns) {
                 const column = columns[prop]
-                if (isValueSource(column) && __getValueSourcePrivate(column).__valueType === 'boolean') {
+                if (isValueSource(column) && __isBooleanValueSource(__getValueSourcePrivate(column))) {
                     return '((' + this._buildInlineSelect(query, params) + ') = 1)'
                 } else {
                     return this._buildInlineSelect(query, params)
@@ -901,7 +901,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     _appendJsonValueForAggregate(valueSource: AnyValueSource, params: any[]): string {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const type = valueSourcePrivate.__valueType
+        const type = valueSourcePrivate.__valueKind
 
         let result: string
 
@@ -962,7 +962,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     _appendJsonValueForWrappedAggregate(prop: string, valueSource: AnyValueSource, _params: any[], aggregateId: number): string {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
-        const type = valueSourcePrivate.__valueType
+        const type = valueSourcePrivate.__valueKind
 
         let result: string
 

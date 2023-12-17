@@ -1,4 +1,4 @@
-import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __getValueSourcePrivate } from "../expressions/values"
+import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __getValueSourcePrivate, __isUuidValueSource } from "../expressions/values"
 import type { TypeAdapter } from "../TypeAdapter"
 import { ITableOrView } from "../utils/ITableOrView"
 import { AbstractMySqlMariaDBSqlBuilder } from "./AbstractMySqlMariaBDSqlBuilder"
@@ -24,7 +24,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     }
     _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._getUuidStrategy() === 'binary') {
-            if (__getValueSourcePrivate(value).__valueType === 'uuid') {
+            if (__isUuidValueSource(__getValueSourcePrivate(value))) {
                 return 'bin_to_uuid(' + this._appendSql(value, params) + ')'
             }
         }
@@ -40,7 +40,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     }
     _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
         if (isValueSource(aggregatedArrayColumns)) {
-            if (__getValueSourcePrivate(aggregatedArrayColumns).__valueType === 'uuid' && this._getUuidStrategy() === 'binary') {
+            if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'binary') {
                 return 'json_arrayagg(bin_to_uuid(' + this._appendSql(aggregatedArrayColumns, params) + '))'
             }
             return 'json_arrayagg(' + this._appendSql(aggregatedArrayColumns, params) + ')'
@@ -55,7 +55,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
                 }
                 result += "'" + prop + "', "
                 const column = columns[prop]!
-                if (__getValueSourcePrivate(column).__valueType === 'uuid' && this._getUuidStrategy() === 'binary') {
+                if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'binary') {
                     result += 'bin_to_uuid(' + this._appendSql(column, params) + ')'
                 } else {
                     result += this._appendSql(column, params)
@@ -67,7 +67,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     }
     _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
-            if (__getValueSourcePrivate(aggregatedArrayColumns).__valueType === 'uuid' && this._getUuidStrategy() === 'binary') {
+            if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'binary') {
                 return 'json_arrayagg(bin_to_uuid(a_' + aggregateId + '_.result))'
             }
             return 'json_arrayagg(a_' + aggregateId + '_.result)'
@@ -82,7 +82,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
                 }
                 result += "'" + prop + "', "
                 const column = columns[prop]!
-                if (__getValueSourcePrivate(column).__valueType === 'uuid' && this._getUuidStrategy() === 'binary') {
+                if (__isUuidValueSource(__getValueSourcePrivate(column)) && this._getUuidStrategy() === 'binary') {
                     result += 'bin_to_uuid(a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
                 } else {
                     result += 'a_' + aggregateId + '_.' + this._escape(prop, true)

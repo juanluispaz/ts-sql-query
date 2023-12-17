@@ -1,5 +1,5 @@
 import { DynamicConditionExpression, DynamicFilter, Filterable } from "../expressions/dynamicConditionUsingFilters";
-import { BooleanValueSource, isValueSource, __getValueSourcePrivate } from "../expressions/values";
+import { BooleanValueSource, isValueSource, __getValueSourcePrivate, __isUuidValueSource, __isBooleanValueSource } from "../expressions/values";
 import { SqlOperationValueSourceIfValueAlwaysNoop } from "../internal/ValueSourceImpl";
 import { SqlBuilder } from "../sqlBuilders/SqlBuilder";
 
@@ -65,7 +65,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     throw error
                 }
                 const valueSourcePrivate = __getValueSourcePrivate(extensionResult)
-                if (valueSourcePrivate.__valueType !== 'boolean') {
+                if (!__isBooleanValueSource(valueSourcePrivate)) {
                     const error = new Error('Invalid return type for the extension ' + prefix + key + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__valueType + '. Processed value: ' +  value);
                     (error as any).key = prefix + key;
                     (error as any).extensionResult = extensionResult;
@@ -117,7 +117,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     throw error
                 }
                 const valueSourcePrivate = __getValueSourcePrivate(extensionResult)
-                if (valueSourcePrivate.__valueType !== 'boolean') {
+                if (!__isBooleanValueSource(valueSourcePrivate)) {
                     const error = new Error('Invalid return type for the rule ' + key + ' at ' + column + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__valueType + '. Processed value: ' +  value);
                     (error as any).path = column;
                     (error as any).rule = key;
@@ -158,7 +158,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     condition = condition.negate()
                 }
             } else {
-                if (valueSourcePrivate.__valueType === 'uuid' && useAsStringInUuid[key]) {
+                if (__isUuidValueSource(valueSourcePrivate) && useAsStringInUuid[key]) {
                     condition = valueSource.asString()[key](value)
                 } else {
                     condition = valueSource[key](value)
@@ -206,7 +206,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                     throw error
                 }
                 const valueSourcePrivate = __getValueSourcePrivate(extensionResult)
-                if (valueSourcePrivate.__valueType !== 'boolean') {
+                if (!__isBooleanValueSource(valueSourcePrivate)) {
                     const error = new Error('Invalid return type for the rule ' + key + ' at ' + path + '. Expected a boolean value source, but found a value source with type ' + valueSourcePrivate.__valueType + '. Processed value: ' +  value);
                     (error as any).path = path;
                     (error as any).rule = key;

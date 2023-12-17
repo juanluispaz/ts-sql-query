@@ -1,6 +1,6 @@
 import { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, flattenQueryColumns, getQueryColumn, WithSelectData, WithValuesData, OrderByEntry } from "./SqlBuilder"
 import { ITableOrView, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, isValueSource, __AggregatedArrayColumns, __getValueSourceOfObject, __ValueSourcePrivate } from "../expressions/values"
+import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, isValueSource, __AggregatedArrayColumns, __getValueSourceOfObject, __ValueSourcePrivate, __isStringValueSource, __isBooleanValueSource } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
 import { CustomBooleanTypeAdapter, DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
@@ -246,7 +246,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendColumnName(column: Column, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
-        if (columnPrivate.__valueType === 'boolean' && typeAdapter instanceof CustomBooleanTypeAdapter) {
+        if (__isBooleanValueSource(columnPrivate) && typeAdapter instanceof CustomBooleanTypeAdapter) {
             return '(' + this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params) + ')'
         }
         return this._appendRawColumnName(column, params)
@@ -254,7 +254,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _appendColumnNameForCondition(column: Column, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
-        if (columnPrivate.__valueType === 'boolean' && typeAdapter instanceof CustomBooleanTypeAdapter) {
+        if (__isBooleanValueSource(columnPrivate) && typeAdapter instanceof CustomBooleanTypeAdapter) {
             return this._appendRawColumnName(column, params) + ' = ' + this._appendLiteralValue(typeAdapter.trueValue, params)
         }
         return this._appendRawColumnName(column, params)
@@ -1065,8 +1065,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _appendOrderByColumnAliasInsensitive(entry: OrderByEntry, query: SelectData, params: any[]): string {
         const collation = this._connectionConfiguration.insesitiveCollation
-        const columnType = this._getOrderByColumnType(entry, query)
-        if (columnType != 'string') {
+        const stringColumn = this._isStringOrderByColumn(entry, query)
+        if (!stringColumn) {
             // Ignore the insensitive term, it do nothing
             return this._appendOrderByColumnAlias(entry, query, params)
         } else if (collation) {
@@ -1077,7 +1077,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return 'lower(' + this._appendOrderByColumnAlias(entry, query, params) + ')'
         }
     } 
-    _getOrderByColumnType(entry: OrderByEntry, query: SelectData): string | undefined {
+    _isStringOrderByColumn(entry: OrderByEntry, query: SelectData): boolean {
         const expression = entry.expression
         const columns = query.__columns
         if (typeof expression === 'string') {
@@ -1085,11 +1085,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (!column) {
                 throw new Error('Column ' + expression + ' included in the order by not found in the select clause')
             }
-            return __getValueSourcePrivate(column).__valueType
+            return __isStringValueSource(__getValueSourcePrivate(column))
         } else if (isValueSource(expression)) {
-            return __getValueSourcePrivate(expression).__valueType
+            return __isStringValueSource(__getValueSourcePrivate(expression))
         } else {
-            return undefined
+            return false
         }
     }
     _buildSelectLimitOffset(query: SelectData, params: any[]): string {
@@ -1292,7 +1292,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const columnTypeAdapter = columnPrivate.__typeAdapter
         const columnType = columnPrivate.__valueType
 
-        if (columnType !== 'boolean') {
+        if (!__isBooleanValueSource(columnPrivate)) {
             return null // non-boolean
         }
 
@@ -1658,7 +1658,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
             addedColumns.push(columnName)
             columnsForInsert[columnName] = column
-            selectColumns[columnName] = new SequenceValueSource('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__valueType, 'required', columnPrivate.__typeAdapter)
+            selectColumns[columnName] = new SequenceValueSource('_nextSequenceValue', columnPrivate.__sequenceName, columnPrivate.__valueKind, columnPrivate.__valueType, 'required', columnPrivate.__typeAdapter)
         }
         const properties = Object.getOwnPropertyNames(selectColumns)
         for (let i = 0, length = properties.length; i < length; i++) {
@@ -2305,7 +2305,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (isColumn(valueSource) && isColumn(value)) {
             const valueSourcePrivate = __getColumnPrivate(valueSource)
             const valuePrivate = __getColumnPrivate(value)
-            if (valueSourcePrivate.__valueType === 'boolean' && valuePrivate.__valueType === 'boolean') {
+            if (__isBooleanValueSource(valueSourcePrivate) && __isBooleanValueSource(valuePrivate)) {
                 const valueSourceTypeAdapter = valueSourcePrivate.__typeAdapter
                 const valueTypeAdapter = valuePrivate.__typeAdapter
                 if (valueSourceTypeAdapter instanceof CustomBooleanTypeAdapter && valueTypeAdapter instanceof CustomBooleanTypeAdapter) {

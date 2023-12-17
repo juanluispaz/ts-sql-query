@@ -71,7 +71,7 @@ export interface ValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE,
     disallowWhen(when: boolean, error: Error): this
 }
 
-export type ValueKind = 'boolean'
+export type ValueType = 'boolean'
     | 'stringInt' | 'int' | 'bigint'
     | 'stringDouble' | 'double'
     | 'string'
@@ -85,8 +85,8 @@ export type ValueKind = 'boolean'
 
 export interface __ValueSourcePrivate extends HasAddWiths {
     [isValueSourceObject]: true
-    __valueKind: ValueKind
-    __valueType: string
+    __valueType: ValueType
+    __valueTypeName: string
     __optionalType: OptionalType
     __typeAdapter?: TypeAdapter
     __isBooleanForCondition?: boolean
@@ -100,27 +100,27 @@ export interface __ValueSourcePrivate extends HasAddWiths {
 }
 
 export function __isBooleanValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
-    return valueSourcePrivate.__valueKind === 'boolean'
+    return valueSourcePrivate.__valueType === 'boolean'
 }
 
 export function __isUuidValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
-    return valueSourcePrivate.__valueKind === 'uuid'
+    return valueSourcePrivate.__valueType === 'uuid'
 }
 
 export function __isStringValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
-    return valueSourcePrivate.__valueKind === 'string'
+    return valueSourcePrivate.__valueType === 'string'
 }
 
 export function __isLocalDateValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
-    return valueSourcePrivate.__valueKind === 'localDate'
+    return valueSourcePrivate.__valueType === 'localDate'
 }
 
 export function __isLocalTimeValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
-    return valueSourcePrivate.__valueKind === 'localTime'
+    return valueSourcePrivate.__valueType === 'localTime'
 }
 
 export function __isLocalDateTimeValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
-    return valueSourcePrivate.__valueKind === 'localDateTime'
+    return valueSourcePrivate.__valueType === 'localDateTime'
 }
 
 export type __AggregatedArrayColumns = {
@@ -2089,8 +2089,8 @@ export class Argument<T extends ArgumentType, OPTIONAL_TYPE extends ArgumentOpti
     [valueType]!: TYPE
     [valueSourceTypeName]!: TYPE_NAME
 
-    constructor (argumentType: T, typeName: string, optionalType: OPTIONAL_TYPE, mode: MODE, adapter?: TypeAdapter) {
-        this.type = argumentType
+    constructor (type: T, typeName: string, optionalType: OPTIONAL_TYPE, mode: MODE, adapter?: TypeAdapter) {
+        this.type = type
         this.typeName = typeName
         this.optionalType = optionalType
         this.mode = mode

@@ -1,23 +1,23 @@
 import type { TypeAdapter } from "../TypeAdapter"
-import { Argument, AnyValueSource, OptionalType, isValueSource, ValueKind } from "../expressions/values"
+import { Argument, AnyValueSource, OptionalType, isValueSource, ValueType } from "../expressions/values"
 import { FragmentValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop } from "../internal/ValueSourceImpl"
 import { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 
 export class FragmentQueryBuilder {
-    __valueKind: ValueKind
-    __type: string
+    __type: ValueType
+    __typeName: string
     __adapter: TypeAdapter | undefined
     __optionalType: OptionalType
 
-    constructor(valueKind: ValueKind, type: string, optionalType: OptionalType, adapter: TypeAdapter | undefined) {
-        this.__valueKind = valueKind
+    constructor(type: ValueType, typeName: string, optionalType: OptionalType, adapter: TypeAdapter | undefined) {
         this.__type = type
+        this.__typeName = typeName
         this.__adapter = adapter
         this.__optionalType = optionalType
     }
 
     sql(sql: TemplateStringsArray, ...params: AnyValueSource[]): AnyValueSource {
-        return new FragmentValueSource(sql, params, this.__valueKind, this.__type, this.__optionalType, this.__adapter)
+        return new FragmentValueSource(sql, params, this.__type, this.__typeName, this.__optionalType, this.__adapter)
     }
 }
 

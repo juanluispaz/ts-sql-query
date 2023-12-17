@@ -424,9 +424,9 @@ export class ComposeSplitQueryBuilder {
         const typeAdapter = valueSourcePrivate.__typeAdapter
         let result
         if (typeAdapter) {
-            result = typeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueType, this.__sqlBuilder._defaultTypeAdapter)
+            result = typeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueTypeName, this.__sqlBuilder._defaultTypeAdapter)
         } else {
-            result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueType)
+            result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueTypeName)
         }
         if (result !== null && result !== undefined) {
             return result

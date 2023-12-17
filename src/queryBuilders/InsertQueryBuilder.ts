@@ -78,9 +78,9 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
                     const typeAdapter = idColumnPrivate.__typeAdapter
                     let result
                     if (typeAdapter) {
-                        result = typeAdapter.transformValueFromDB(value, idColumnPrivate.__valueType, this.__sqlBuilder._defaultTypeAdapter)
+                        result = typeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName, this.__sqlBuilder._defaultTypeAdapter)
                     } else {
-                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__valueType)
+                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName)
                     }
                     if (!this.onConflictDoNothing && (result === null || result === undefined)) {
                         throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
@@ -97,11 +97,11 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningMultipleLastInsertedId(this.__query, this.__params).then((rows) => {
                     const idColumnPrivate = __getColumnPrivate(idColumn)
                     const typeAdapter = idColumnPrivate.__typeAdapter
-                    const columnType = idColumnPrivate.__valueType
+                    const columnTypeName = idColumnPrivate.__valueTypeName
                     const defaultTypeAdapter = this.__sqlBuilder._defaultTypeAdapter
                     if (typeAdapter) {
                         return rows.map((row, index) => {
-                            const result = typeAdapter.transformValueFromDB(row, columnType, defaultTypeAdapter)
+                            const result = typeAdapter.transformValueFromDB(row, columnTypeName, defaultTypeAdapter)
                             if (result === null || result === undefined) {
                                 throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found at index ' + index)
                             }
@@ -109,7 +109,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
                         })
                     } else {
                         return rows.map((row, index) => {
-                            const result = defaultTypeAdapter.transformValueFromDB(row, columnType)
+                            const result = defaultTypeAdapter.transformValueFromDB(row, columnTypeName)
                             if (result === null || result === undefined) {
                                 throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found at index ' + index)
                             }

@@ -2,6 +2,7 @@ import type { DatabaseType } from "./QueryRunner"
 import type { Connection, TediousType } from 'tedious'
 import { Request, TYPES } from 'tedious'
 import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
+import { ValueType } from "../expressions/values"
 
 export class TediousQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
@@ -123,7 +124,7 @@ export class TediousQueryRunner extends PromiseBasedQueryRunner {
         return '@' + index
     }
 
-    protected predefinedTypes: {[type: string]: TediousType | undefined} = {
+    protected predefinedTypes: {[type in ValueType]?: TediousType | undefined} = {
         boolean: TYPES.Bit,
         stringInt: TYPES.BigInt,
         int: TYPES.Int,
@@ -138,7 +139,7 @@ export class TediousQueryRunner extends PromiseBasedQueryRunner {
     }
 
     protected getType(params: any[], index: number): TediousType {
-        const definedType: string | undefined = (params as any)['@' + index]
+        const definedType: ValueType | undefined = (params as any)['@' + index]
         if (definedType) {
             const type = this.predefinedTypes[definedType]
             if (type) {

@@ -103,8 +103,16 @@ export function __isBooleanValueSource(valueSourcePrivate: __ValueSourcePrivate)
     return valueSourcePrivate.__valueType === 'boolean'
 }
 
+export function __isBooleanValueType(valueType: ValueType): boolean {
+    return valueType === 'boolean'
+}
+
 export function __isUuidValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
     return valueSourcePrivate.__valueType === 'uuid'
+}
+
+export function __isUuidValueType(valueType: ValueType): boolean {
+    return valueType === 'uuid'
 }
 
 export function __isStringValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {

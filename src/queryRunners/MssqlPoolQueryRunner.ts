@@ -2,6 +2,7 @@ import type { DatabaseType } from "./QueryRunner"
 import type { ConnectionPool, ISqlTypeFactory, Transaction, Request } from 'mssql'
 import { TYPES } from 'mssql'
 import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
+import { ValueType } from "../expressions/values"
 
 export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
@@ -94,7 +95,7 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
         }
     }
 
-    protected predefinedTypes: {[type: string]: ISqlTypeFactory | undefined} = {
+    protected predefinedTypes: {[type in ValueType]?: ISqlTypeFactory | undefined} = {
         boolean: TYPES.Bit,
         stringInt: TYPES.BigInt,
         int: TYPES.Int,
@@ -109,7 +110,7 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
     }
 
     protected getType(params: any[], index: number): ISqlTypeFactory {
-        const definedType: string | undefined = (params as any)['@' + index]
+        const definedType: ValueType | undefined = (params as any)['@' + index]
         if (definedType) {
             const type = this.predefinedTypes[definedType]
             if (type) {

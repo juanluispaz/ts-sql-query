@@ -1,4 +1,4 @@
-import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __getValueSourcePrivate, __isUuidValueSource } from "../expressions/values"
+import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __getValueSourcePrivate, __isUuidValueSource, ValueType, __isUuidValueType } from "../expressions/values"
 import type { TypeAdapter } from "../TypeAdapter"
 import { ITableOrView } from "../utils/ITableOrView"
 import { AbstractMySqlMariaDBSqlBuilder } from "./AbstractMySqlMariaBDSqlBuilder"
@@ -16,11 +16,11 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         this._setContainsInsertReturningClause(params, false)
         return ''
     }
-    _appendParam(value: any, params: any[], columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
-        if (columnTypeName === 'uuid' && this._getUuidStrategy() === 'binary') {
-            return 'uuid_to_bin(' + super._appendParam(value, params, columnTypeName, typeAdapter, forceTypeCast) + ')'
+    _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+        if (__isUuidValueType(columnType) && this._getUuidStrategy() === 'binary') {
+            return 'uuid_to_bin(' + super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
         }
-        return super._appendParam(value, params, columnTypeName, typeAdapter, forceTypeCast)
+        return super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
     _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._getUuidStrategy() === 'binary') {

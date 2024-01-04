@@ -12,7 +12,7 @@ import { BetterSqlite3QueryRunner } from "../queryRunners/BetterSqlite3QueryRunn
 import * as betterSqlite3 from 'better-sqlite3'
 import { SynchronousPromise } from "synchronous-promise";
 import { fromBinaryUUID, toBinaryUUID } from "binary-uuid";
-import { v1 as uuidv1 } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration";
 import { Values } from "../Values";
 
@@ -65,9 +65,9 @@ const tRecord = new class TRecord extends Table<DBConnection, 'TRecord'> {
 }()
 
 const db = betterSqlite3(':memory:')
-db.function('uuid', uuidv1)
-db.function('uuid_str', fromBinaryUUID)
-db.function('uuid_blob', toBinaryUUID)
+db.function('uuid', uuidv4 as (_: unknown) => unknown)
+db.function('uuid_str', fromBinaryUUID as (_: unknown) => unknown)
+db.function('uuid_blob', toBinaryUUID as (_: unknown) => unknown)
 
 function main() {
     const connection = new DBConnection(new ConsoleLogQueryRunner(new BetterSqlite3QueryRunner(db, { promise: SynchronousPromise })))

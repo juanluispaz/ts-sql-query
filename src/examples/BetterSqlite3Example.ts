@@ -10,7 +10,7 @@ import { SqliteConnection } from "../connections/SqliteConnection";
 import { BetterSqlite3QueryRunner } from "../queryRunners/BetterSqlite3QueryRunner";
 import * as betterSqlite3 from 'better-sqlite3'
 import { fromBinaryUUID, toBinaryUUID } from "binary-uuid";
-import { v1 as uuidv1 } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration";
 import { Values } from "../Values";
 import { CustomBooleanTypeAdapter } from "../TypeAdapter";
@@ -77,9 +77,9 @@ const tBoolean = new class TBoolean extends Table<DBConnection, 'TBoolean'> {
 }()
 
 const db = betterSqlite3(':memory:')
-db.function('uuid', uuidv1)
-db.function('uuid_str', fromBinaryUUID)
-db.function('uuid_blob', toBinaryUUID)
+db.function('uuid', uuidv4 as (_: unknown) => unknown)
+db.function('uuid_str', fromBinaryUUID as (_: unknown) => unknown)
+db.function('uuid_blob', toBinaryUUID as (_: unknown) => unknown)
 
 async function main() {
     const connection = new DBConnection(new ConsoleLogQueryRunner(new BetterSqlite3QueryRunner(db)))

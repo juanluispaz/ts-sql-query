@@ -29,13 +29,13 @@ To work with [UUIDs in Sqlite](supported-databases.md#uuid-strategies-in-sqlite)
 ```ts
 import * as betterSqlite3 from "better-sqlite3";
 import { fromBinaryUUID, toBinaryUUID } from "binary-uuid";
-import { v1 as uuidv1 } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 
 const db = betterSqlite3(/* ... */);
 
 // Implement uuid extension functions
 
-db.function('uuid', uuidv1)
+db.function('uuid', uuidv4)
 db.function('uuid_str', fromBinaryUUID)
 db.function('uuid_blob', toBinaryUUID)
 

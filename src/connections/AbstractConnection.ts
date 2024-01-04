@@ -23,7 +23,7 @@ import ChainedError from "chained-error"
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue } from "../queryBuilders/FragmentQueryBuilder"
 import { attachSource, attachTransactionSource } from "../utils/attachSource"
 import { database, outerJoinAlias, outerJoinTableOrView, tableOrView, tableOrViewRef, type, valueType } from "../utils/symbols"
-import { callDeferredFunctions, UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { callDeferredFunctions, callDeferredFunctionsStoppingOnError, isPromise, UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { DinamicConditionExtension, DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
 import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilder"
 import { RawFragment } from "../utils/RawFragment"
@@ -50,28 +50,44 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         sqlBuilder._connectionConfiguration = this as any // transform protected methods to public
     }
 
-    private onCommit?: Array<() => void | Promise<void>>
-    private onRollback?: Array<() => void | Promise<void>>
+    private beforeCommit?: Array<() => void | Promise<void>> | null
+    private onCommit?: Array<() => void | Promise<void>> | null
+    private onRollback?: Array<() => void | Promise<void>> | null
+    private beforeCommitStack?: Array<Array<() => void | Promise<void>> | undefined>
     private onCommitStack?: Array<Array<() => void | Promise<void>> | undefined>
     private onRollbackStack?: Array<Array<() => void | Promise<void>> | undefined>
 
     private pushTransactionStack() {
-        if (this.onCommit || this.onCommitStack || this.onRollback || this.onRollbackStack) {
+        if (this.onCommit || this.onCommitStack || this.onRollback || this.onRollbackStack || this.beforeCommit || this.beforeCommitStack) {
+            if (!this.beforeCommitStack) {
+                this.beforeCommitStack = []
+            }
+            this.beforeCommitStack.push(this.beforeCommit || undefined)
+            this.beforeCommit = undefined
+
             if (!this.onCommitStack) {
                 this.onCommitStack = []
             }
-            this.onCommitStack.push(this.onCommit)
+            this.onCommitStack.push(this.onCommit || undefined)
             this.onCommit = undefined
 
             if (!this.onRollbackStack) {
                 this.onRollbackStack = []
             }
-            this.onRollbackStack.push(this.onRollback)
+            this.onRollbackStack.push(this.onRollback || undefined)
             this.onRollback = undefined
         }
     }
 
     private popTransactionStack() {
+        if (this.beforeCommitStack) {
+            this.beforeCommit = this.beforeCommitStack.pop()
+            if (this.beforeCommitStack.length <= 0) {
+                this.beforeCommitStack = undefined
+            }
+        } else {
+            this.beforeCommit = undefined
+        }
         if (this.onCommitStack) {
             this.onCommit = this.onCommitStack.pop()
             if (this.onCommitStack.length <= 0) {
@@ -90,11 +106,38 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         }
     }
 
+    executeBeforeNextCommit(fn: ()=> void): void
+    executeBeforeNextCommit(fn: ()=> Promise<void>): void
+    executeBeforeNextCommit(fn: ()=> void | Promise<void>): void {
+        if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
+            throw new Error('There is no open transaction')
+        }
+        if (this.onRollback === null) {
+            throw new Error('You cannot call executeBeforeNextCommit inside an executeAfterNextRollback')
+        }
+        if (this.onCommit === null) {
+            throw new Error('You cannot call executeBeforeNextCommit inside an executeAfterNextCommit')
+        }
+        if (this.beforeCommit === null) {
+            throw new Error('You cannot call executeBeforeNextCommit inside an executeBeforeNextCommit')
+        }
+        if (!this.beforeCommit) {
+            this.beforeCommit = []
+        }
+        this.beforeCommit.push(fn)
+    }
+
     executeAfterNextCommit(fn: ()=> void): void
     executeAfterNextCommit(fn: ()=> Promise<void>): void
     executeAfterNextCommit(fn: ()=> void | Promise<void>): void {
         if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
             throw new Error('There is no open transaction')
+        }
+        if (this.onRollback === null) {
+            throw new Error('You cannot call executeAfterNextCommit inside an executeAfterNextRollback')
+        }
+        if (this.onCommit === null) {
+            throw new Error('You cannot call executeAfterNextCommit inside an executeAfterNextCommit')
         }
         if (!this.onCommit) {
             this.onCommit = []
@@ -107,6 +150,9 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     executeAfterNextRollback(fn: ()=> void | Promise<void>): void {
         if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
             throw new Error('There is no open transaction')
+        }
+        if (this.onRollback === null) {
+            throw new Error('You cannot call executeAfterNextRollback inside an executeAfterNextRollback')
         }
         if (!this.onRollback) {
             this.onRollback = []
@@ -122,20 +168,33 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
             return this.queryRunner.executeInTransaction(() => {
                 this.pushTransactionStack()
                 try {
-                    return fn()
+                    const result = fn()
+                    if (isPromise(result)) {
+                        return result.then((fnResult) => {
+                            const beforeCommit = this.beforeCommit
+                            this.beforeCommit = null
+                            return callDeferredFunctionsStoppingOnError('before next commit', beforeCommit, fnResult, source)
+                        })
+                    } else if (this.beforeCommit) {
+                        throw new Error('before next commit not supported with high level transaction that return an array')
+                    }
+                    return result
                 } catch (e) {
+                    // TODO: remove when no more array in transaction
                     this.popTransactionStack()
                     throw e
                 }
             }, this.queryRunner).then((result) => {
                 const onCommit = this.onCommit
-                this.popTransactionStack()
+                this.onCommit = null
                 return callDeferredFunctions('after next commit', onCommit, result, source)
             }, (e) => {
                 const throwError = attachTransactionSource(new ChainedError(e), source)
                 const onRollback = this.onRollback
-                this.popTransactionStack()
+                this.onRollback = null
                 return callDeferredFunctions('after next rollback', onRollback, undefined, source, e, throwError)
+            }).finally(() => {
+                this.popTransactionStack()
             })
         } catch (e) {
             throw new ChainedError(e)
@@ -157,15 +216,41 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     }
     commit(): Promise<void> {
         const source = new Error('Query executed at')
+        const beforeCommit = this.beforeCommit
+        if (beforeCommit) {
+            this.beforeCommit = null
+            const result = callDeferredFunctionsStoppingOnError('before next commit', beforeCommit, undefined, source)
+            if (isPromise(result)) {
+                return result.then(() => {
+                    try {
+                        return this.queryRunner.executeCommit().then(() => {
+                            const onCommit = this.onCommit
+                            this.onCommit = null
+                            return callDeferredFunctions('after next commit', onCommit, undefined, source)
+                        }, (e) => {
+                            // Transaction only closed when commit successful, in case of error there is still an open transaction
+                            // No rollback yet, then no executeAfterNextRollback will be executed
+                            throw attachSource(new ChainedError(e), source)
+                        })
+                    } catch (e) {
+                        throw new ChainedError(e)
+                    }
+                }).then(() => {
+                    this.popTransactionStack()
+                })
+            }
+        }
         try {
             return this.queryRunner.executeCommit().then(() => {
                 const onCommit = this.onCommit
-                this.popTransactionStack()
+                this.onCommit = null
                 return callDeferredFunctions('after next commit', onCommit, undefined, source)
             }, (e) => {
                 // Transaction only closed when commit successful, in case of error there is still an open transaction
                 // No rollback yet, then no executeAfterNextRollback will be executed
                 throw attachSource(new ChainedError(e), source)
+            }).then(() => {
+                this.popTransactionStack()
             })
         } catch (e) {
             throw new ChainedError(e)
@@ -176,13 +261,15 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         try {
             return this.queryRunner.executeRollback().then(() => {
                 const onRollback = this.onRollback
-                this.popTransactionStack()
+                this.onRollback = null
                 return callDeferredFunctions('after next rollback', onRollback, undefined, source)
             }, (e) => {
                 const throwError = attachSource(new ChainedError(e), source)
                 const onRollback = this.onRollback
-                this.popTransactionStack()
+                this.onRollback = null
                 return callDeferredFunctions('after next rollback', onRollback, undefined, source, e, throwError)
+            }).finally(() => {
+                this.popTransactionStack()
             })
         } catch (e) {
             throw new ChainedError(e)

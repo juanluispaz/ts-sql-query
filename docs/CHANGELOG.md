@@ -1,5 +1,12 @@
 # Change Log
 
+## v1.57.0 (5 Jan 2024)
+
+**Changes**:
+
+- Allow to defer the execution of a logic till just before the transaction's commit.
+- Add support to execute the queries using an [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md) in Web Assembly.
+
 ## v1.56.0 (28 Aug 2023)
 
 **Bug fixes**:

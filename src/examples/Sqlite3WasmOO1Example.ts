@@ -2030,4 +2030,8 @@ async function run() {
         process.exit(1)
     }
 }
-run()
+if (Number(process.versions.node.split('.')[0]) < 16) {
+    console.log('skiping due old node version')
+} else {
+    run()
+}

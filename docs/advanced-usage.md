@@ -87,6 +87,7 @@ Some query runners support to execute the queries synchronously if you provide a
 The query runners that support execute queries synchronously if you specify a synchronous Promise implementation are:
 
 - [BetterSqlite3QueryRunner](query-runners/recommended-query-runners.md#better-sqlite3)
+- [Sqlite3WasmOO1QueryRunner](query-runners/recommended-query-runners.md#sqlite-wasm-oo1)
 - [ConsoleLogNoopQueryRunner](query-runners/general-purpose-query-runners.md#consolelognoopqueryrunner)
 - [MockQueryRunner](query-runners/general-purpose-query-runners.md#mockqueryrunner)
 - [NoopQueryRunner](query-runners/general-purpose-query-runners.md#noopqueryrunner)

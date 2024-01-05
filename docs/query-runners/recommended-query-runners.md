@@ -459,3 +459,23 @@ async function main() {
     // Do your queries here
 }
 ```
+
+## sqlite-wasm OO1
+
+It allows to execute the queries using an [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [https://sqlite.org/wasm/doc/trunk/api-oo1.md](Object Oriented API 1) in Web Assembly.
+
+**Supported databases**: sqlite
+
+```ts
+import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
+import { Sqlite3WasmOO1QueryRunner } from "ts-sql-query/queryRunners/Sqlite3WasmOO1QueryRunner";
+
+async function main() {
+    const sqlite3 = await sqlite3InitModule();
+    const db: Database = new sqlite3.oo1.DB();
+    const connection = new DBConnection(new Sqlite3WasmOO1QueryRunner(db));
+    // Do your queries here
+}
+```
+
+**Note**: better-sqlite3 supports synchronous query execution. See [Synchronous query runners](../advanced-usage.md#synchronous-query-runners) for more information.

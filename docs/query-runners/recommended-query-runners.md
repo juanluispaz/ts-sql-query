@@ -462,7 +462,7 @@ async function main() {
 
 ## sqlite-wasm OO1
 
-It allows to execute the queries using an [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [https://sqlite.org/wasm/doc/trunk/api-oo1.md](Object Oriented API 1) in Web Assembly.
+It allows to execute the queries using an [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md) in Web Assembly.
 
 **Supported databases**: sqlite
 

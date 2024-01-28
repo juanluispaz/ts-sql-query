@@ -1,5 +1,15 @@
 # Change Log
 
+## v1.58.0 (28 Jan 2024)
+
+**Changes**:
+
+- Add support to complex projections in compound select (`union`, `intersect`, etc.)
+
+**Bug fixes**:
+
+- Fix missing `with` in compound select queries (`union`, `intersect`, etc.)
+
 ## v1.57.0 (5 Jan 2024)
 
 **Changes**:

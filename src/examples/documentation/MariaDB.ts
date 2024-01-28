@@ -4885,6 +4885,50 @@ async function main() {
     
     assertEquals(customerWitnNotUsedCompanyOptionalJoin, result)
 
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push("with companySubQuery as (select id as id, name as name from company) select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, companySubQuery.id as `company.id`, companySubQuery.name as `company.name` from customer inner join companySubQuery on customer.company_id = companySubQuery.id where companySubQuery.name = ? union all select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, companySubQuery.id as `company.id`, companySubQuery.name as `company.name` from customer inner join companySubQuery on customer.company_id = companySubQuery.id where companySubQuery.name = ?")
+    expectedParams.push(`["ACME","FOO"]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const companySubQuery = connection
+        .selectFrom(tCompany)
+        .select({id: tCompany.id, name: tCompany.name})
+        .forUseInQueryAs('companySubQuery')
+    
+    const customerWithCompanyInfo = await connection.selectFrom(tCustomer)
+        .innerJoin(companySubQuery).on(tCustomer.companyId.equals(companySubQuery.id))
+        .where(companySubQuery.name.equals('ACME'))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            company: {
+                id: companySubQuery.id,
+                name: companySubQuery.name
+            }
+        }).unionAll(
+            connection.selectFrom(tCustomer)
+            .innerJoin(companySubQuery).on(tCustomer.companyId.equals(companySubQuery.id))
+            .where(companySubQuery.name.equals('FOO'))
+            .select({
+                id: tCustomer.id,
+                firstName: tCustomer.firstName,
+                lastName: tCustomer.lastName,
+                company: {
+                    id: companySubQuery.id,
+                    name: companySubQuery.name
+                }
+            })  
+        )
+        .executeSelectMany()
+    
+    assertEquals(customerWithCompanyInfo, result)
+
 }
 
 main().then(() => {

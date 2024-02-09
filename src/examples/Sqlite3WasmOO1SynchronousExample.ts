@@ -8,16 +8,18 @@ import { Table } from "../Table";
 import { assertEquals } from "./assertEquals";
 import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
 import { SqliteConnection } from "../connections/SqliteConnection";
-import { BetterSqlite3QueryRunner } from "../queryRunners/BetterSqlite3QueryRunner";
-import * as betterSqlite3 from 'better-sqlite3'
+// @ts-ignore // TODO: remove when mjs conversion
+import type { Database } from '@sqlite.org/sqlite-wasm';
 import { SynchronousPromise } from "synchronous-promise";
-import { fromBinaryUUID, toBinaryUUID } from "binary-uuid";
-import { v4 as uuidv4 } from "uuid";
+// import { fromBinaryUUID, toBinaryUUID } from "binary-uuid";
+// import { v4 as uuidv4 } from "uuid";
 import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration";
 import { Values } from "../Values";
+import { Sqlite3WasmOO1QueryRunner } from "../queryRunners/Sqlite3WasmOO1QueryRunner";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected compatibilityMode = false
+    protected uuidStrategy = 'string' as const
 
     protected getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return 'Unix time milliseconds as integer'
@@ -64,13 +66,8 @@ const tRecord = new class TRecord extends Table<DBConnection, 'TRecord'> {
     }
 }()
 
-const db = betterSqlite3(':memory:')
-db.function('uuid', uuidv4 as (_: unknown) => unknown)
-db.function('uuid_str', fromBinaryUUID as (_: unknown) => unknown)
-db.function('uuid_blob', toBinaryUUID as (_: unknown) => unknown)
-
-function main() {
-    const connection = new DBConnection(new ConsoleLogQueryRunner(new BetterSqlite3QueryRunner(db, { promise: SynchronousPromise })))
+function main(db: Database) {
+    const connection = new DBConnection(new ConsoleLogQueryRunner(new Sqlite3WasmOO1QueryRunner(db, { promise: SynchronousPromise })))
     sync(connection.beginTransaction())
 
     try {
@@ -884,13 +881,27 @@ function main() {
     }
 }
 
-try {
-    main()
-    console.log('All ok')
-    process.exit(0)
-} catch (e) {
-    console.error(e)
-    process.exit(1)
+async function run() {
+    // @ts-ignore // TODO: find a better way to impòrt node version
+    const {default: sqlite3InitModule} = await import('../../node_modules/@sqlite.org/sqlite-wasm/sqlite-wasm/jswasm/sqlite3-node.mjs')
+    try {
+        const sqlite3 = await sqlite3InitModule();
+        const db: Database = new sqlite3.oo1.DB();
+        // db.createFunction('uuid', _ => uuidv4())
+        // db.createFunction('uuid_str', (_context, blob: any) => fromBinaryUUID(blob))
+        // db.createFunction('uuid_blob', (_context, str: any) => toBinaryUUID(str))
+        await main(db);
+        console.log('All ok');
+        process.exit(0);
+    } catch(e) {
+        console.error(e)
+        process.exit(1)
+    }
+}
+if (Number(process.versions.node.split('.')[0]) < 16) {
+    console.log('skiping due old node version')
+} else {
+    run()
 }
 
 /**

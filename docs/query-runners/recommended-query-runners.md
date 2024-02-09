@@ -29,13 +29,13 @@ To work with [UUIDs in Sqlite](supported-databases.md#uuid-strategies-in-sqlite)
 ```ts
 import * as betterSqlite3 from "better-sqlite3";
 import { fromBinaryUUID, toBinaryUUID } from "binary-uuid";
-import { v1 as uuidv1 } from "uuid";
+import { v4 as uuidv4 } from "uuid";
 
 const db = betterSqlite3(/* ... */);
 
 // Implement uuid extension functions
 
-db.function('uuid', uuidv1)
+db.function('uuid', uuidv4)
 db.function('uuid_str', fromBinaryUUID)
 db.function('uuid_blob', toBinaryUUID)
 
@@ -459,3 +459,23 @@ async function main() {
     // Do your queries here
 }
 ```
+
+## sqlite-wasm OO1
+
+It allows to execute the queries using an [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md) in Web Assembly.
+
+**Supported databases**: sqlite
+
+```ts
+import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
+import { Sqlite3WasmOO1QueryRunner } from "ts-sql-query/queryRunners/Sqlite3WasmOO1QueryRunner";
+
+async function main() {
+    const sqlite3 = await sqlite3InitModule();
+    const db: Database = new sqlite3.oo1.DB();
+    const connection = new DBConnection(new Sqlite3WasmOO1QueryRunner(db));
+    // Do your queries here
+}
+```
+
+**Note**: better-sqlite3 supports synchronous query execution. See [Synchronous query runners](../advanced-usage.md#synchronous-query-runners) for more information.

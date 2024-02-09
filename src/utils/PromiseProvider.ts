@@ -28,7 +28,15 @@ export function isPromise(value: any): value is Promise<unknown> {
     return value && (typeof value === 'object') && (typeof value.then === 'function')
 }
 
-export function callDeferredFunctions<T>(name: string, fns: Array<() => void | Promise<void>> | undefined, result: T, source: Error, transactionError?: Error, throwError?: Error) : T | Promise<T> {
+export function callDeferredFunctions<T>(name: string, fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: Error, transactionError?: Error, throwError?: Error) : T | Promise<T> {
+    return internalCallDeferredFunctions(false, name, fns, result, source, transactionError, throwError)
+}
+
+export function callDeferredFunctionsStoppingOnError<T>(name: string, fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: Error, transactionError?: Error, throwError?: Error) : T | Promise<T> {
+    return internalCallDeferredFunctions(true, name, fns, result, source, transactionError, throwError)
+}
+
+function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: string, fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: Error, transactionError?: Error, throwError?: Error) : T | Promise<T> {
     if (!fns) {
         if (throwError) {
             throw throwError
@@ -63,7 +71,7 @@ export function callDeferredFunctions<T>(name: string, fns: Array<() => void | P
             }
         } else {
             const fn = fns[i]!
-            promise = promise.then(callDeferredFunctionAsThen.bind(undefined, fn, errorContainer, true), callDeferredFunctionAsThen.bind(undefined, fn, errorContainer, false))
+            promise = promise.then(callDeferredFunctionAsThen.bind(undefined, fn, errorContainer, true), stopOnFistError ? undefined : callDeferredFunctionAsThen.bind(undefined, fn, errorContainer, false))
         }
     }
     if (promise) {

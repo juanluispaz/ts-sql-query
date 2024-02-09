@@ -545,6 +545,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
         const sqlBuilder = this.__sqlBuilder
         const name = 'recursive_select_' + sqlBuilder._generateUnique()
         const recursiveInternalView = new WithViewImpl<any, any>(this.__sqlBuilder, name, this as any)
+        recursiveInternalView.__ignoreWith = true
         let recursiveInternalSelect 
         if (unionAll) {
             recursiveInternalSelect = this.unionAll(fn(recursiveInternalView))
@@ -1264,6 +1265,19 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         }
 
         createColumnsFrom(this.__sqlBuilder, firstQuery.__columns, this.__columns, new View(''))
+
+        const firstQueryWiths = firstQuery.__withs
+        const thisWiths = this.__withs
+        for (let i = 0, lenght = firstQueryWiths.length; i < lenght; i++) {
+            thisWiths.push(firstQueryWiths[i]!)
+        }
+        const secondQueryWiths = secondQuery.__withs
+        for (let i = 0, lenght = secondQueryWiths.length; i < lenght; i++) {
+            const withTable = secondQueryWiths[i]!
+            if (!thisWiths.includes(withTable)) {
+                thisWiths.push(withTable)
+            }
+        }
     }
 
     __registerRequiredColumnInSelect(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {

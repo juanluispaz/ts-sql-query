@@ -376,7 +376,9 @@ interface Connection {
     isTransactionActive(): boolean
     transaction<T>(fn: () => Promise<T>[]): Promise<T[]>
     transaction<T>(fn: () => Promise<T>): Promise<T>
-    // Fuctions that allow to differ a code execution till the end of the transaction
+    // Fuctions that allow to defer a code execution till the end of the transaction
+    executeBeforeNextCommit(fn: ()=> void): void
+    executeBeforeNextCommit(fn: ()=> Promise<void>): void
     executeAfterNextCommit(fn: ()=> void): void
     executeAfterNextCommit(fn: ()=> Promise<void>): void
     executeAfterNextRollback(fn: ()=> void): void

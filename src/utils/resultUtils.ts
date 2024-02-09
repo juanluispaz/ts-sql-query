@@ -80,7 +80,7 @@ type InnerColumnsForCompound<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, COLUM
     { [K in keyof COLUMNS]: 
         COLUMNS[K] extends AnyValueSource | undefined
         ? RemapIValueSourceTypeWithOptionalType<TABLE_OR_VIEW, COLUMNS[K], CompoundColumnOptionalType<COLUMNS[K]>> 
-        : InnerColumnsForCompound<TABLE_OR_VIEW, COLUMNS> 
+        : InnerColumnsForCompound<TABLE_OR_VIEW, COLUMNS[K]> 
     }
 
 type CompoundColumnOptionalType<COLUMN> = 

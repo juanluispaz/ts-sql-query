@@ -1,7 +1,7 @@
 import type { AnyDB, TypeSafeDB } from "../databases"
 import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { BooleanValueSource, StringIntValueSource, StringNumberValueSource, IntValueSource, NumberValueSource, StringDoubleValueSource, DoubleValueSource, TypeSafeStringValueSource, StringValueSource, LocalDateValueSource, DateValueSource, LocalTimeValueSource, TimeValueSource, LocalDateTimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource, TypeSafeUuidValueSource, UuidValueSource, ValueType } from "../expressions/values"
+import type { BooleanValueSource, StringIntValueSource, StringNumberValueSource, IntValueSource, NumberValueSource, StringDoubleValueSource, DoubleValueSource, TypeSafeStringValueSource, StringValueSource, LocalDateValueSource, DateValueSource, LocalTimeValueSource, TimeValueSource, LocalDateTimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, TypeSafeBigintValueSource, TypeSafeUuidValueSource, UuidValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from "../expressions/values"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { IConnection } from "../utils/IConnection"
 import type { Sequence } from "../expressions/sequence";
@@ -36,9 +36,21 @@ export abstract class AbstractAdvancedConnection<DB extends AnyDB> extends Abstr
     protected sequence(name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<TimeValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<LocalDateTimeValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<DateTimeValueSource<NoTableOrViewRequired<DB>, 'required'>>
+    protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomIntValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
+    protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomDoubleValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
+    protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomUuidValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
+    protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomLocalDateValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
+    protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomLocalTimeValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
+    protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<CustomLocalDateTimeValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
     protected sequence<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): Sequence<ComparableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>>
+    protected sequence<T>(name: string, type: 'customInt', typeName: string, adapter?: TypeAdapter): Sequence<CustomIntValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
+    protected sequence<T>(name: string, type: 'customDouble', typeName: string, adapter?: TypeAdapter): Sequence<CustomDoubleValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
+    protected sequence<T>(name: string, type: 'customUuid', typeName: string, adapter?: TypeAdapter): Sequence<CustomUuidValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
+    protected sequence<T>(name: string, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): Sequence<CustomLocalDateValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
+    protected sequence<T>(name: string, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): Sequence<CustomLocalTimeValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
+    protected sequence<T>(name: string, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): Sequence<CustomLocalDateTimeValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
     protected sequence<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
     protected sequence<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>
     protected sequence<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>>

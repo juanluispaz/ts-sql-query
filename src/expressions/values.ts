@@ -2,7 +2,7 @@ import type { ITableOrView, ITableOrViewOf, ITableOrViewRef, HasAddWiths } from 
 import type { AnyDB } from "../databases"
 import type { int, double, /*LocalDate, LocalTime, LocalDateTime,*/ stringDouble, stringInt, LocalTime, LocalDateTime, LocalDate, uuid } from "ts-extended-types"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { aggregatedArrayValueSourceType, anyBooleanValueSourceType, bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, optionalType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, typeSafeUuidValueSourceType, uuidValueSourceType, valueSourceType } from "../utils/symbols"
+import type { aggregatedArrayValueSourceType, anyBooleanValueSourceType, bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, customDoubleValueSourceType, customIntValueSourceType, customLocalDateTimeValueSourceType, customLocalDateValueSourceType, customLocalTimeValueSourceType, customUuidValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, doubleValueSourceType, equalableValueSourceType, ifValueSourceType, intValueSourceType, localDateTimeValueSourceType, localDateValueSourceType, localTimeValueSourceType, nullableValueSourceType, numberValueSourceType, optionalType, requiredTableOrView, resultType, stringDoubleValueSourceType, stringIntValueSourceType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, typeSafeBigintValueSourceType, typeSafeStringValueSourceType, typeSafeUuidValueSourceType, uuidValueSourceType, valueSourceType } from "../utils/symbols"
 import { valueType, valueSourceTypeName, isValueSourceObject } from "../utils/symbols"
 
 export type OptionalType = 'required' | 'requiredInOptionalObject'  | 'originallyRequired' | 'optional' // sorted from the more strict to less strict
@@ -72,13 +72,13 @@ export interface ValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE,
 }
 
 export type ValueType = 'boolean'
-    | 'stringInt' | 'int' | 'bigint'
-    | 'stringDouble' | 'double'
+    | 'stringInt' | 'int' | 'bigint' | 'customInt'
+    | 'stringDouble' | 'double' | 'customDouble'
     | 'string'
-    | 'uuid'
-    | 'localDate'
-    | 'localTime'
-    | 'localDateTime'
+    | 'uuid' | 'customUuid'
+    | 'localDate' | 'customLocalDate'
+    | 'localTime' | 'customLocalTime'
+    | 'localDateTime' | 'customLocalDateTime'
     | 'enum' | 'custom' | 'customComparable'
     | 'aggregatedArray'
     | '' // TableOrViewFragment
@@ -108,11 +108,11 @@ export function __isBooleanValueType(valueType: ValueType): boolean {
 }
 
 export function __isUuidValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
-    return valueSourcePrivate.__valueType === 'uuid'
+    return valueSourcePrivate.__valueType === 'uuid' || valueSourcePrivate.__valueType === 'customUuid'
 }
 
 export function __isUuidValueType(valueType: ValueType): boolean {
-    return valueType === 'uuid'
+    return valueType === 'uuid' || valueType === 'customUuid'
 }
 
 export function __isStringValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
@@ -120,15 +120,15 @@ export function __isStringValueSource(valueSourcePrivate: __ValueSourcePrivate):
 }
 
 export function __isLocalDateValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
-    return valueSourcePrivate.__valueType === 'localDate'
+    return valueSourcePrivate.__valueType === 'localDate' || valueSourcePrivate.__valueType === 'customLocalDate'
 }
 
 export function __isLocalTimeValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
-    return valueSourcePrivate.__valueType === 'localTime'
+    return valueSourcePrivate.__valueType === 'localTime' || valueSourcePrivate.__valueType === 'customLocalTime'
 }
 
 export function __isLocalDateTimeValueSource(valueSourcePrivate: __ValueSourcePrivate): boolean {
-    return valueSourcePrivate.__valueType === 'localDateTime'
+    return valueSourcePrivate.__valueType === 'localDateTime' || valueSourcePrivate.__valueType === 'customLocalDateTime'
 }
 
 export type __AggregatedArrayColumns = {
@@ -1149,6 +1149,236 @@ export interface TypeSafeBigintValueSource<TABLE_OR_VIEW extends ITableOrViewRef
     ignoreWhenAsNull(when: boolean): TypeSafeBigintValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
+export interface ICustomIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+    [customIntValueSourceType]: 'CustomIntValueSource'
+}
+
+// some methods are commented because there is no double equivalent
+export interface CustomIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW,TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+    // SqlFunction0
+    // Number functions
+    // asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // asStringDouble(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    abs(): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    ceil(): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    floor(): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    round(): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    // exp(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // ln(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // log10(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // sqrt(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // cbrt(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    sign(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // Trigonometric Functions
+    // acos(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // asin(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // atan(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // cos(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // cot(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // sin(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // tan(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // SqlFunction1
+    // power(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // power(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // power<VALUE extends CustomIntValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // power(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // power(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // power<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // logn(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // logn(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // logn<VALUE extends CustomIntValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // logn(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // logn(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // logn<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // roundn(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // roundn(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // roundn<VALUE extends CustomIntValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: TYPE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    minValue(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    minValue<VALUE extends CustomIntValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // minValue(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // minValue(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // minValue<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: TYPE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    maxValue(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    maxValue<VALUE extends CustomIntValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // maxValue(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // maxValue(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // maxValue<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // Number operators
+    add(value: TYPE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    add(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    add<VALUE extends CustomIntValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // add(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // add(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // add<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: TYPE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    substract(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    substract<VALUE extends CustomIntValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // substract(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // substract(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // substract<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    multiply(value: TYPE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    multiply(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    multiply<VALUE extends CustomIntValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // multiply(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // multiply(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // multiply<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // divide(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // divide(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // divide<VALUE extends CustomIntValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // divide(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // divide(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // divide<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo(value: TYPE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    modulo(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    modulo<VALUE extends CustomIntValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // modulo(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // modulo(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // modulo<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use modulo method instead */
+    mod(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated use modulo method instead */
+    mod<VALUE extends CustomIntValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // /** @deprecated use modulo method instead */
+    // mod(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated use modulo method instead */
+    // mod<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // Trigonometric Functions
+    // atan2(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // atan2(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // atan2<VALUE extends CustomIntValueSource<TableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // atan2(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    // atan2(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // atan2<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // Redefined methods
+    valueWhenNull(value: TYPE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'required'>
+    valueWhenNull<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, VALUE[typeof optionalType]>
+    nullIfValue(value: TYPE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    asOptional(): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    asRequiredInOptionalObject(): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    ignoreWhenAsNull(when: boolean): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+}
+
+export interface ICustomDoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+    [customDoubleValueSourceType]: 'CustomDoubleValueSource'
+}
+
+export interface CustomDoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+    // SqlFunction0
+    // Number functions
+    // asInt(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
+    // asDouble(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
+    // asStringDouble(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // asBigint(): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
+    abs(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    ceil(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    floor(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    round(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    exp(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    ln(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    log10(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    sqrt(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    cbrt(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    sign(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // Trigonometric Functions
+    acos(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    asin(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    atan(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    cos(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    cot(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    sin(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    tan(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    // SqlFunction1
+    power(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    power(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    power<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    logn(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    logn(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    logn<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    roundn(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    roundn(value: number): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    roundn(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    roundn(value: number | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    roundn<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    roundn<VALUE extends NumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    minValue(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    minValue(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    minValue<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    maxValue(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    maxValue(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    maxValue<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // Number operators
+    add(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    add(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    add<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    substract(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    substract(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    substract<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    multiply(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    multiply(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    multiply<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    divide(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    divide(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    divide<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    modulo(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    modulo(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    modulo<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use modulo method instead */
+    mod(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated use modulo method instead */
+    mod<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // Trigonometric Functions
+    atan2(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    atan2(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    atan2<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // Redefined methods
+    valueWhenNull(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'required'>
+    valueWhenNull<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, VALUE[typeof optionalType]>
+    nullIfValue(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, 'optional'>
+    asOptional(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    asRequiredInOptionalObject(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    ignoreWhenAsNull(when: boolean): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+}
+
 export interface IStringIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, stringInt, 'StringIntValueSource', OPTIONAL_TYPE> {
     [stringIntValueSourceType]: 'StringIntValueSource'
 }
@@ -1790,6 +2020,23 @@ export interface TypeSafeUuidValueSource<TABLE_OR_VIEW extends ITableOrViewRef<A
     ignoreWhenAsNull(when: boolean): TypeSafeUuidValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
+export interface ICustomUuidValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+    [customUuidValueSourceType]: 'CustomUuidValueSource'
+}
+
+export interface CustomUuidValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomUuidValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+    asString(): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // Redefined methods
+    valueWhenNull(value: TYPE): CustomUuidValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'required'>
+    valueWhenNull<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomUuidValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, VALUE[typeof optionalType]>
+    nullIfValue(value: TYPE): CustomUuidValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomUuidValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, 'optional'>
+    asOptional(): CustomUuidValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    asRequiredInOptionalObject(): CustomUuidValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): CustomUuidValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    ignoreWhenAsNull(when: boolean): CustomUuidValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+}
+
 export interface IDateValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, Date, 'DateValueSource', OPTIONAL_TYPE> {
     [dateValueSourceType]: 'DateValueSource'
 }
@@ -1954,6 +2201,87 @@ export interface LocalDateTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<
     ignoreWhenAsNull(when: boolean): LocalDateTimeValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
+export interface ICustomLocalDateValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+    [customLocalDateValueSourceType]: 'CustomLocalDateValueSource'
+}
+
+export interface CustomLocalDateValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomLocalDateValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+    /** Gets the year */
+    getFullYear(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the month (value between 0 to 11)*/
+    getMonth(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the day-of-the-month */
+    getDate(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the day of the week (0 represents Sunday) */
+    getDay(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    valueWhenNull(value: TYPE): CustomLocalDateValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'required'>
+    valueWhenNull<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomLocalDateValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, VALUE[typeof optionalType]>
+    nullIfValue(value: TYPE): CustomLocalDateValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomLocalDateValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, 'optional'>
+    asOptional(): CustomLocalDateValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    asRequiredInOptionalObject(): CustomLocalDateValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): CustomLocalDateValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    ignoreWhenAsNull(when: boolean): CustomLocalDateValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+}
+
+export interface ICustomLocalTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+    [customLocalTimeValueSourceType]: 'CustomLocalTimeValueSource'
+}
+
+export interface CustomLocalTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomLocalTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+    /** Gets the hours */
+    getHours(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the minutes */
+    getMinutes(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the seconds */
+    getSeconds(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the milliseconds */
+    getMilliseconds(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // Redefined methods
+    valueWhenNull(value: TYPE): CustomLocalTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'required'>
+    valueWhenNull<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomLocalTimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, VALUE[typeof optionalType]>
+    nullIfValue(value: TYPE): CustomLocalTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomLocalTimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, 'optional'>
+    asOptional(): CustomLocalTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    asRequiredInOptionalObject(): CustomLocalTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): CustomLocalTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    ignoreWhenAsNull(when: boolean): CustomLocalTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+}
+
+export interface ICustomLocalDateTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+    [customLocalDateTimeValueSourceType]: 'CustomLocalDateTimeValueSource'
+}
+
+export interface CustomLocalDateTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomLocalDateTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
+    /** Gets the year */
+    getFullYear(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the month (value between 0 to 11)*/
+    getMonth(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the day-of-the-month */
+    getDate(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the day of the week (0 represents Sunday) */
+    getDay(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the hours */
+    getHours(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the minutes */
+    getMinutes(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the seconds */
+    getSeconds(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the milliseconds */
+    getMilliseconds(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** Gets the time value in milliseconds */
+    getTime(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    // Redefined methods
+    valueWhenNull(value: TYPE): CustomLocalDateTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'required'>
+    valueWhenNull<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomLocalDateTimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, VALUE[typeof optionalType]>
+    nullIfValue(value: TYPE): CustomLocalDateTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomLocalDateTimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, 'optional'>
+    asOptional(): CustomLocalDateTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    asRequiredInOptionalObject(): CustomLocalDateTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): CustomLocalDateTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+    ignoreWhenAsNull(when: boolean): CustomLocalDateTimeValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
+}
+
 export interface IAggregatedArrayValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, OPTIONAL_TYPE extends OptionalType> extends IValueSource<TABLE_OR_VIEW, TYPE, 'AggregatedArray', OPTIONAL_TYPE> {
     [aggregatedArrayValueSourceType]: 'AggregatedArrayValueSource'
 }
@@ -1991,6 +2319,12 @@ export type RemapValueSourceType<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, T
         TYPE extends IDateValueSource<any, any> ? DateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ILocalTimeValueSource<any, any> ? LocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ITimeValueSource<any, any> ? TimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ICustomIntValueSource<any, any, any, any> ? CustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomDoubleValueSource<any, any, any, any> ? CustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomUuidValueSource<any, any, any, any> ? CustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomLocalDateTimeValueSource<any, any, any, any> ? CustomLocalDateTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomLocalDateValueSource<any, any, any, any> ? CustomLocalDateValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomLocalTimeValueSource<any, any, any, any> ? CustomLocalTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends IComparableValueSource<any, any, any, any> ? ComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends IEqualableValueSource<any, any,any, any> ? EqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends INullableValueSource<any, any, any, any> ? NullableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -2020,6 +2354,12 @@ export type RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW extends ITableOrV
         TYPE extends IDateValueSource<any, any> ? DateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ILocalTimeValueSource<any, any> ? LocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ITimeValueSource<any, any> ? TimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ICustomIntValueSource<any, any, any, any> ? CustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomDoubleValueSource<any, any, any, any> ? CustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomUuidValueSource<any, any, any, any> ? CustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomLocalDateTimeValueSource<any, any, any, any> ? CustomLocalDateTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomLocalDateValueSource<any, any, any, any> ? CustomLocalDateValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomLocalTimeValueSource<any, any, any, any> ? CustomLocalTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends IComparableValueSource<any, any,any, any> ? ComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends IEqualableValueSource<any, any, any, any> ? EqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends INullableValueSource<any, any, any, any> ? NullableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -2048,6 +2388,12 @@ export type RemapIValueSourceType<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, 
         TYPE extends IDateValueSource<any, any> ? IDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ILocalTimeValueSource<any, any> ? ILocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ITimeValueSource<any, any> ? ITimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ICustomIntValueSource<any, any, any, any> ? ICustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomDoubleValueSource<any, any, any, any> ? ICustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomUuidValueSource<any, any, any, any> ? ICustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomLocalDateTimeValueSource<any, any, any, any> ? ICustomLocalDateTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomLocalDateValueSource<any, any, any, any> ? ICustomLocalDateValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomLocalTimeValueSource<any, any, any, any> ? ICustomLocalTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends IComparableValueSource<any, any, any, any> ? IComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends IEqualableValueSource<any, any,any, any> ? IEqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends INullableValueSource<any, any, any, any> ? INullableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -2076,6 +2422,12 @@ export type RemapIValueSourceTypeWithOptionalType<TABLE_OR_VIEW extends ITableOr
         TYPE extends IDateValueSource<any, any> ? IDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ILocalTimeValueSource<any, any> ? ILocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ITimeValueSource<any, any> ? ITimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ICustomIntValueSource<any, any, any, any> ? ICustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomDoubleValueSource<any, any, any, any> ? ICustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomUuidValueSource<any, any, any, any> ? ICustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomLocalDateTimeValueSource<any, any, any, any> ? ICustomLocalDateTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomLocalDateValueSource<any, any, any, any> ? ICustomLocalDateValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends ICustomLocalTimeValueSource<any, any, any, any> ? ICustomLocalTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends IComparableValueSource<any, any,any, any> ? IComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends IEqualableValueSource<any, any, any, any> ? IEqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends INullableValueSource<any, any, any, any> ? INullableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -2085,7 +2437,7 @@ export type RemapIValueSourceTypeWithOptionalType<TABLE_OR_VIEW extends ITableOr
 
 
 
-export type ArgumentType = 'boolean' | 'stringInt' | 'int' | 'stringDouble' | 'double' | 'bigint' | 'string' | 'uuid' | 'localDateTime' | 'localDate' | 'localTime' | 'customComparable' | 'enum' | 'custom'
+export type ArgumentType = 'boolean' | 'stringInt' | 'int' | 'stringDouble' | 'double' | 'bigint' | 'string' | 'uuid' | 'localDateTime' | 'localDate' | 'localTime' | 'customInt' | 'customDouble' | 'customUuid' | 'customLocalDateTime' | 'customLocalDate' | 'customLocalTime' | 'customComparable' | 'enum' | 'custom'
 export type ArgumentOptionalType = 'required' | 'optional'
 export type ArgumentMode = 'value' | 'combined'
 export class Argument<T extends ArgumentType, OPTIONAL_TYPE extends ArgumentOptionalType, MODE extends ArgumentMode, TYPE, TYPE_NAME = any> {
@@ -2121,6 +2473,12 @@ export type MapArgumentToTypeSafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, 
         TYPE extends 'localDateTime' ? LocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localDate' ? LocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localTime' ? LocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'customInt' ? CustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customDouble' ? CustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customUuid' ? CustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customLocalDateTime' ? CustomLocalDateTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customLocalDate' ? CustomLocalDateValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customLocalTime' ? CustomLocalTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'customComparable'? ComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'enum' ? EqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'custom' ? EqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -2140,6 +2498,12 @@ export type MapArgumentToTypeUnsafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>
         TYPE extends 'localDateTime' ? DateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localDate' ? DateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localTime' ? TimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'customInt' ? CustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customDouble' ? CustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customUuid' ? CustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customLocalDateTime' ? CustomLocalDateTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customLocalDate' ? CustomLocalDateValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customLocalTime' ? CustomLocalTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'customComparable' ? ComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'enum' ? EqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'custom' ? EqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -2159,6 +2523,12 @@ export type MapArgumentToITypeSafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
         TYPE extends 'localDateTime' ? ILocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localDate' ? ILocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localTime' ? ILocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'customInt' ? CustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customDouble' ? ICustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customUuid' ? ICustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customLocalDateTime' ? ICustomLocalDateTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customLocalDate' ? ICustomLocalDateValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customLocalTime' ? ICustomLocalTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'customComparable'? IComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'enum' ? IEqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'custom' ? IEqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -2178,6 +2548,12 @@ export type MapArgumentToITypeUnsafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB
         TYPE extends 'localDateTime' ? IDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localDate' ? IDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'localTime' ? ITimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'customInt' ? CustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customDouble' ? ICustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customUuid' ? ICustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customLocalDateTime' ? ICustomLocalDateTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customLocalDate' ? ICustomLocalDateValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
+        TYPE extends 'customLocalTime' ? ICustomLocalTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'customComparable' ? IComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'enum' ? IEqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'custom' ? IEqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -2197,6 +2573,12 @@ export type MapArgumentToITypeSafeAsAnyOptionalType<TABLE_OR_VIEW extends ITable
         TYPE extends 'localDateTime' ? ILocalDateTimeValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'localDate' ? ILocalDateValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'localTime' ? ILocalTimeValueSource<TABLE_OR_VIEW, any> :
+        TYPE extends 'customInt' ? CustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
+        TYPE extends 'customDouble' ? ICustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
+        TYPE extends 'customUuid' ? ICustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
+        TYPE extends 'customLocalDateTime' ? ICustomLocalDateTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
+        TYPE extends 'customLocalDate' ? ICustomLocalDateValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
+        TYPE extends 'customLocalTime' ? ICustomLocalTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
         TYPE extends 'customComparable'? IComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
         TYPE extends 'enum' ? IEqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
         TYPE extends 'custom' ? IEqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
@@ -2216,6 +2598,12 @@ export type MapArgumentToITypeUnsafeAsAnyOptionalType<TABLE_OR_VIEW extends ITab
         TYPE extends 'localDateTime' ? IDateTimeValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'localDate' ? IDateValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'localTime' ? ITimeValueSource<TABLE_OR_VIEW, any> :
+        TYPE extends 'customInt' ? CustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
+        TYPE extends 'customDouble' ? ICustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
+        TYPE extends 'customUuid' ? ICustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
+        TYPE extends 'customLocalDateTime' ? ICustomLocalDateTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
+        TYPE extends 'customLocalDate' ? ICustomLocalDateValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
+        TYPE extends 'customLocalTime' ? ICustomLocalTimeValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
         TYPE extends 'customComparable' ? IComparableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
         TYPE extends 'enum' ? IEqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
         TYPE extends 'custom' ? IEqualableValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :

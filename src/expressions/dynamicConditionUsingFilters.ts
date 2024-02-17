@@ -1,5 +1,5 @@
 import { double, int, LocalDate, LocalDateTime, LocalTime, stringDouble, stringInt, uuid } from "ts-extended-types";
-import { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, IDateTimeValueSource, IDateValueSource, IDoubleValueSource, IEqualableValueSource, IIntValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, ILocalTimeValueSource, INullableValueSource, INumberValueSource, IStringDoubleValueSource, IStringIntValueSource, IStringNumberValueSource, IStringValueSource, ITimeValueSource, ITypeSafeBigintValueSource, ITypeSafeStringValueSource, ITypeSafeUuidValueSource, IUuidValueSource, IValueSource, MergeOptionalUnion, ValueSourceOf } from "./values";
+import { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, ICustomDoubleValueSource, ICustomIntValueSource, ICustomLocalDateTimeValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomUuidValueSource, IDateTimeValueSource, IDateValueSource, IDoubleValueSource, IEqualableValueSource, IIntValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, ILocalTimeValueSource, INullableValueSource, INumberValueSource, IStringDoubleValueSource, IStringIntValueSource, IStringNumberValueSource, IStringValueSource, ITimeValueSource, ITypeSafeBigintValueSource, ITypeSafeStringValueSource, ITypeSafeUuidValueSource, IUuidValueSource, IValueSource, MergeOptionalUnion, ValueSourceOf } from "./values";
 
 export interface Filter {
 }
@@ -60,6 +60,8 @@ export interface DoubleFilter extends ComparableFilter<double> { }
 export interface BigintFilter extends ComparableFilter<bigint> { }
 export interface StringIntFilter extends ComparableFilter<stringInt> { }
 export interface StringDoubleFilter extends ComparableFilter<stringDouble> { }
+export interface CustomIntFilter<TYPE> extends ComparableFilter<TYPE> { }
+export interface CustomDoubleFilter<TYPE> extends ComparableFilter<TYPE> { }
 export interface StringFilter extends ComparableFilter<string> {
     equalsInsensitiveIfValue?: string | null | undefined
     equalsInsensitive?: string
@@ -103,6 +105,9 @@ export interface DateTimeFilter extends ComparableFilter<Date> { }
 export interface LocalDateFilter extends ComparableFilter<LocalDate> { }
 export interface LocalTimeFilter extends ComparableFilter<LocalTime> { }
 export interface LocalDateTimeFilter extends ComparableFilter<LocalDateTime> { }
+export interface CustomLocalDateFilter<TYPE> extends ComparableFilter<TYPE> { }
+export interface CustomLocalTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
+export interface CustomLocalDateTimeFilter<TYPE> extends ComparableFilter<TYPE> { }
 
 export interface UuidFilter extends ComparableFilter<uuid> {
     equalsInsensitiveIfValue?: string | null | undefined
@@ -142,6 +147,44 @@ export interface UuidFilter extends ComparableFilter<uuid> {
     notContainsInsensitive?: string
 }
 
+export interface CustomUuidFilter<TYPE> extends ComparableFilter<TYPE> {
+    equalsInsensitiveIfValue?: TYPE | null | undefined
+    equalsInsensitive?: TYPE
+    notEqualsInsensitiveIfValue?: TYPE | null | undefined
+    likeIfValue?: TYPE | null | undefined
+    like?: TYPE
+    notLikeIfValue?: TYPE | null | undefined
+    notLike?: TYPE
+    likeInsensitiveIfValue?: TYPE | null | undefined
+    likeInsensitive?: TYPE
+    notLikeInsensitiveIfValue?: TYPE | null | undefined
+    notLikeInsensitive?: TYPE
+    startsWithIfValue?: TYPE | null | undefined
+    startsWith?: TYPE
+    notStartsWithIfValue?: TYPE | null | undefined
+    notStartsWith?: TYPE
+    endsWithIfValue?: TYPE | null | undefined
+    endsWith?: TYPE
+    notEndsWithIfValue?: TYPE | null | undefined
+    notEndsWith?: TYPE
+    startsWithInsensitiveIfValue?: TYPE | null | undefined
+    startsWithInsensitive?: TYPE
+    notStartsWithInsensitiveIfValue?: TYPE | null | undefined
+    notStartsWithInsensitive?: TYPE
+    endsWithInsensitiveIfValue?: TYPE | null | undefined
+    endsWithInsensitive?: TYPE
+    notEndsWithInsensitiveIfValue?: TYPE | null | undefined
+    notEndsWithInsensitive?: TYPE
+    containsIfValue?: TYPE | null | undefined
+    contains?: TYPE
+    notContainsIfValue?: TYPE | null | undefined
+    notContains?: TYPE
+    containsInsensitiveIfValue?: TYPE | null | undefined
+    containsInsensitive?: TYPE
+    notContainsInsensitiveIfValue?: TYPE | null | undefined
+    notContainsInsensitive?: TYPE
+}
+
 export type FilterTypeOf<TYPE> = 
     TYPE extends 'boolean' ? BooleanFilter :
     TYPE extends 'stringInt' ? StringNumberFilter :
@@ -154,6 +197,12 @@ export type FilterTypeOf<TYPE> =
     TYPE extends 'localDate' ? DateFilter :
     TYPE extends 'localTime' ? TimeFilter :
     TYPE extends 'localDateTime' ? DateTimeFilter :
+    TYPE extends ['customInt', infer T] ? CustomIntFilter<T> :
+    TYPE extends ['customDouble', infer T] ? CustomDoubleFilter<T> :
+    TYPE extends ['customUuid', infer T] ? CustomUuidFilter<T> :
+    TYPE extends ['customLocalDate', infer T] ? CustomLocalDateFilter<T> :
+    TYPE extends ['customLocalTime', infer T] ? CustomLocalTimeFilter<T> :
+    TYPE extends ['customLocalDateTime', infer T] ? CustomLocalDateTimeFilter<T> :
     TYPE extends ['enum', infer T] ? EqualableFilter<T> :
     TYPE extends ['custom', infer T] ? EqualableFilter<T> :
     TYPE extends ['customComparable', infer T] ? ComparableFilter<T> :
@@ -171,13 +220,21 @@ export type TypeSafeFilterTypeOf<TYPE> =
     TYPE extends 'localDate' ? LocalDateFilter :
     TYPE extends 'localTime' ? LocalTimeFilter :
     TYPE extends 'localDateTime' ? LocalDateTimeFilter :
+    TYPE extends ['customInt', infer T] ? CustomIntFilter<T> :
+    TYPE extends ['customDouble', infer T] ? CustomDoubleFilter<T> :
+    TYPE extends ['customUuid', infer T] ? CustomUuidFilter<T> :
+    TYPE extends ['customLocalDate', infer T] ? CustomLocalDateFilter<T> :
+    TYPE extends ['customLocalTime', infer T] ? CustomLocalTimeFilter<T> :
+    TYPE extends ['customLocalDateTime', infer T] ? CustomLocalDateTimeFilter<T> :
     TYPE extends ['enum', infer T] ? EqualableFilter<T> :
     TYPE extends ['custom', infer T] ? EqualableFilter<T> :
     TYPE extends ['customComparable', infer T] ? ComparableFilter<T> :
     MapValueSourceToFilter<TYPE>
 
 export type DynamicColumnType<T> = 'boolean' | 'stringInt' | 'int' | 'bigint' | 'stringDouble' | 'double' |
-    'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | ['enum', T] | ['custom', T] | ['customComparable', T]
+    'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | 
+    ['customInt', T] | ['customDouble', T] | ['customUuid', T] | ['customLocalDate', T] | ['customLocalTime', T] | ['customLocalDateTime', T] | 
+    ['enum', T] | ['custom', T] | ['customComparable', T]
 
 export type DynamicDefinition = {
     [key: string]: AnyValueSource | DynamicColumnType<any> | DynamicDefinition
@@ -258,6 +315,12 @@ export type MapValueSourceToFilter<TYPE> =
         TYPE extends IDateValueSource<any, any> ? DateFilter :
         TYPE extends ILocalTimeValueSource<any, any> ? LocalTimeFilter :
         TYPE extends ITimeValueSource<any, any> ? TimeFilter :
+        TYPE extends ICustomIntValueSource<any, any, any, any> ? CustomIntFilter<T> :
+        TYPE extends ICustomDoubleValueSource<any, any, any, any> ? CustomDoubleFilter<T> :
+        TYPE extends ICustomUuidValueSource<any, any, any, any> ? CustomUuidFilter<T> :
+        TYPE extends ICustomLocalDateValueSource<any, any, any, any> ? CustomLocalDateFilter<T> :
+        TYPE extends ICustomLocalTimeValueSource<any, any, any, any> ? CustomLocalTimeFilter<T> :
+        TYPE extends ICustomLocalDateTimeValueSource<any, any, any, any> ? CustomLocalDateTimeFilter<T> :
         TYPE extends IComparableValueSource<any, any, any, any> ? ComparableFilter<T> :
         TYPE extends IEqualableValueSource<any, any, any, any> ? EqualableFilter<T> :
         TYPE extends INullableValueSource<any, any, any, any> ? NullableFilter :

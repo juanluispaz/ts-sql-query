@@ -17,7 +17,7 @@ Be aware, in the database, when null is part of an operation the result of the o
 All the data manipulation operations are implemented as a methods inside the value, that means if you what to calculate the abolute, in sql is `abs(value)` but in ts-sql-query is reprecented as `value.abs()`.
 
 ```ts
-interface ValueSource {
+interface ValueSource<T> {
     isConstValue(): boolean
     /**
      * It returns the proper type of the value, instead of the any type included here to simplify
@@ -36,347 +36,347 @@ interface ValueSource {
     disallowWhen(when: boolean, error: Error): this
 }
 
-interface NullableValueSource extends ValueSource {
-    isNull(): boolean
-    isNotNull(): boolean
-    valueWhenNull(value: this): this
-    nullIfValue(value: this): this | null | undefined
-    asOptional(): this | null | undefined
+interface NullableValueSource<T> extends ValueSource<T> {
+    isNull(): BooleanValueSource
+    isNotNull(): BooleanValueSource
+    valueWhenNull(value: T | this): this
+    nullIfValue(value: T | this): this
+    asOptional(): this
     asRequiredInOptionalObject(): this
     onlyWhenOrNull(when: boolean): this
     ignoreWhenAsNull(when: boolean): this
 }
 
-interface EqualableValueSource extends NullableValueSource {
-    equalsIfValue(value: this | null | undefined): boolean
-    equals(value: this): boolean
-    notEqualsIfValue(value: this | null | undefined): boolean
-    notEquals(value: this): boolean
-    isIfValue(value: this | null | undefined): boolean
+interface EqualableValueSource<T> extends NullableValueSource<T> {
+    equalsIfValue(value: T | null | undefined): BooleanValueSource
+    equals(value: T | this): BooleanValueSource
+    notEqualsIfValue(value: T | null | undefined): BooleanValueSource
+    notEquals(value: T | this): BooleanValueSource
+    isIfValue(value: T | null | undefined): BooleanValueSource
     /** 'is' is the same that equals, but returns true when booth are null */
-    is(value: this): boolean
-    isNotIfValue(value: this | null | undefined): boolean
-    isNot(value: this): boolean
+    is(value: T | this): BooleanValueSource
+    isNotIfValue(value: T | null | undefined): BooleanValueSource
+    isNot(value: T | this): BooleanValueSource
 
-    inIfValue(values: this[] | null | undefined): boolean
-    in(values: this[]): boolean
-    in(select: Subquery): boolean
-    notInIfValue(values: this[] | null | undefined): boolean
-    notIn(values: this[]): boolean
-    notIn(select: Subquery): boolean
-    inN(...value: this[]): boolean
-    notInN(...value: this[]): boolean
+    inIfValue(values: T[] | null | undefined): BooleanValueSource
+    in(values: T[] | this[]): BooleanValueSource
+    in(select: Subquery): BooleanValueSource
+    notInIfValue(values: T[] | null | undefined): BooleanValueSource
+    notIn(values: T[] | this[]): BooleanValueSource
+    notIn(select: Subquery): BooleanValueSource
+    inN(...value: T[] | this[]): BooleanValueSource
+    notInN(...value: T[] | this[]): BooleanValueSource
 }
 
-interface ComparableValueSource extends EqualableValueSource {
-    lessThanIfValue(value: this | null | undefined): boolean
-    lessThan(value: this): boolean
-    greaterThanIfValue(value: this | null | undefined): boolean
-    greaterThan(value: this): boolean
-    lessOrEqualsIfValue(value: this | null | undefined): boolean
-    lessOrEquals(value: this): boolean
-    greaterOrEqualsIfValue(value: this | null | undefined): boolean
-    greaterOrEquals(value: this): boolean
-    between(value: this, value2: this): boolean
-    notBetween(value: this, value2: this): boolean
+interface ComparableValueSource<T> extends EqualableValueSource<T> {
+    lessThanIfValue(value: T | null | undefined): BooleanValueSource
+    lessThan(value: T | this): BooleanValueSource
+    greaterThanIfValue(value: T | null | undefined): BooleanValueSource
+    greaterThan(value: T | this): BooleanValueSource
+    lessOrEqualsIfValue(value: T | null | undefined): BooleanValueSource
+    lessOrEquals(value: T | this): BooleanValueSource
+    greaterOrEqualsIfValue(value: T | null | undefined): BooleanValueSource
+    greaterOrEquals(value: T | this): BooleanValueSource
+    between(value: T | this, value2: T | this): BooleanValueSource
+    notBetween(value: T | this, value2: T | this): BooleanValueSource
 
     /** @deprecated use lessThanIfValue method instead */
-    smallerIfValue(value: this | null | undefined): boolean
+    smallerIfValue(value: T | null | undefined): BooleanValueSource
     /** @deprecated use lessThan method instead */
-    smaller(value: this): boolean
+    smaller(value: T | this): BooleanValueSource
     /** @deprecated use greaterThanIfValue method instead */
-    largerIfValue(value: this | null | undefined): boolean
+    largerIfValue(value: T | null | undefined): BooleanValueSource
     /** @deprecated use greaterThan method instead */
-    larger(value: this): boolean
+    larger(value: T | this): BooleanValueSource
     /** @deprecated use lessOrEqualsIfValue method instead */
-    smallAsIfValue(value: this | null | undefined): boolean
+    smallAsIfValue(value: T | null | undefined): BooleanValueSource
     /** @deprecated use lessOrEquals method instead */
-    smallAs(value: this): boolean
+    smallAs(value: T | this): BooleanValueSource
     /** @deprecated use greaterOrEqualsIfValue method instead */
-    largeAsIfValue(value: this | null | undefined): boolean
+    largeAsIfValue(value: T | null | undefined): BooleanValueSource
     /** @deprecated use greaterOrEquals method instead */
-    largeAs(value: this): boolean
+    largeAs(value: T | this): BooleanValueSource
 }
 
 /**
  * Represents a boolean
  */
-interface BooleanValueSource extends EqualableValueSource {
-    negate(): boolean
-    and(value: boolean): boolean
-    or(value: boolean): boolean
+interface BooleanValueSource extends EqualableValueSource<boolean> {
+    negate(): this
+    and(value: boolean): this
+    or(value: boolean): this
     /** This function returns a boolean expression that only applies if the argument is true */
-    onlyWhen(condition: boolean): boolean
+    onlyWhen(condition: boolean): this
     /** This function returns a boolean expression that only applies if the argument is false, it is ignored when true */
-    ignoreWhen(condition: boolean): boolean
+    ignoreWhen(condition: boolean): this
     /** This function allows to return a true value when null or undefined were provided to the *IfValue function */
-    trueWhenNoValue(): boolean
+    trueWhenNoValue(): this
     /** This function allows to return a false value when null or undefined were provided to the *IfValue function */
-    falseWhenNoValue(): boolean
+    falseWhenNoValue(): this
     /** This function allows to return a value when null or undefined were provided to the *IfValue function */
-    valueWhenNoValue(value: boolean): boolean
+    valueWhenNoValue(value: boolean | this): this
 }
 
 /**
  * Represents an int or a double
  */
-interface NumberValueSource extends ComparableValueSource {
-    asInt(): number
-    asDouble(): number
-    asStringInt(): number|string
-    asStringDouble(): number|string
-    asBigint(): bigint
-    abs(): number
-    ceil(): number
-    floor(): number
-    round(): number
-    exp(): number
-    ln(): number
-    log10(): number
-    sqrt(): number
-    cbrt(): number
-    sign(): number
-    acos(): number
-    asin(): number
-    atan(): number
-    cos(): number
-    cot(): number
-    sin(): number
-    tan(): number
-    power(value: number): number
-    logn(value: number): number
-    roundn(value: number): number
+interface NumberValueSource extends ComparableValueSource<number> {
+    asInt(): NumberValueSource
+    asDouble(): NumberValueSource
+    asStringInt(): StringNumberValueSource
+    asStringDouble(): StringNumberValueSource
+    asBigint(): BigintValueSource
+    abs(): this
+    ceil(): this
+    floor(): this
+    round(): this
+    exp(): this
+    ln(): this
+    log10(): this
+    sqrt(): this
+    cbrt(): this
+    sign(): this
+    acos(): this
+    asin(): this
+    atan(): this
+    cos(): this
+    cot(): this
+    sin(): this
+    tan(): this
+    power(value: number | this): this
+    logn(value: number | this): this
+    roundn(value: number | this): this
     /**
      * This function establish a minimum value for the current value, that means the biggest value must be returned
      */
-    minValue(value: number): number
+    minValue(value: number | this): this
     /**
      * This function establish a maximun value for the current value, that means the smallest value must be returned
      */
-    maxValue(value: number): number
-    add(value: number): number
-    substract(value: number): number
-    multiply(value: number): number
-    divide(value: number): number
-    modulo(value: number): number
+    maxValue(value: number | this): this
+    add(value: number | this): this
+    substract(value: number | this): this
+    multiply(value: number | this): this
+    divide(value: number | this): this
+    modulo(value: number | this): this
     /** @deprecated use modulo method instead */
-    mod(value: number): number
-    atan2(value: number): number
+    mod(value: number | this): this
+    atan2(value: number | this): this
 }
 
 /**
  * Represents a stringInt or a stringDouble
  */
-interface StringNumberValueSource extends ComparableValueSource {
-    asStringInt(): number|string
-    asStringDouble(): number|string
-    asBigint(): bigint
-    abs(): number|string
-    ceil(): number|string
-    floor(): number|string
-    round(): number|string
-    exp(): number|string
-    ln(): number|string
-    log10(): number|string
-    sqrt(): number|string
-    cbrt(): number|string
-    sign(): number|string
-    acos(): number|string
-    asin(): number|string
-    atan(): number|string
-    cos(): number|string
-    cot(): number|string
-    sin(): number|string
-    tan(): number|string
-    power(value: number|string): number|string
-    logn(value: number|string): number|string
-    roundn(value: number|string): number|string
+interface StringNumberValueSource extends ComparableValueSource<string|number> {
+    asStringInt(): StringNumberValueSource
+    asStringDouble(): StringNumberValueSource
+    asBigint(): BigintValueSource
+    abs(): this
+    ceil(): this
+    floor(): this
+    round(): this
+    exp(): this
+    ln(): this
+    log10(): this
+    sqrt(): this
+    cbrt(): this
+    sign(): NumberValueSource
+    acos(): this
+    asin(): this
+    atan(): this
+    cos(): this
+    cot(): this
+    sin(): this
+    tan(): this
+    power(value: number|string | this): this
+    logn(value: number|string | this): this
+    roundn(value: number|string | this): this
     /**
      * This function establish a minimum value for the current value, that means the biggest value must be returned
      */
-    minValue(value: number|string): number|string
+    minValue(value: number|string | this): this
     /**
      * This function establish a maximun value for the current value, that means the smallest value must be returned
      */
-    maxValue(value: number|string): number|string
-    add(value: number|string): number|string
-    substract(value: number|string): number|string
-    multiply(value: number|string): number|string
-    divide(value: number|string): number|string
-    modulo(value: number|string): number|string
+    maxValue(value: number|string | this): this
+    add(value: number|string | this): this
+    substract(value: number|string | this): this
+    multiply(value: number|string | this): this
+    divide(value: number|string | this): this
+    modulo(value: number|string | this): this
     /** @deprecated use modulo method instead */
-    mod(value: number|string): number|string
-    atan2(value: number|string): number|string
+    mod(value: number|string | this): this
+    atan2(value: number|string | this): this
 }
 
 /**
  * Represents a bigint
  */
-interface BigintValueSource extends ComparableValueSource {
-    asStringNumber(): number|string
-    abs(): bigint
-    ceil(): bigint
-    floor(): bigint
-    round(): bigint
-    sign(): number
+interface BigintValueSource extends ComparableValueSource<bigint> {
+    asStringNumber(): StringNumberValueSource
+    abs(): this
+    ceil(): this
+    floor(): this
+    round(): this
+    sign(): NumberValueSource
     /**
      * This function establish a minimum value for the current value, that means the biggest value must be returned
      */
-    minValue(value: bigint): bigint
+    minValue(value: bigint | this): this
     /**
      * This function establish a maximun value for the current value, that means the smallest value must be returned
      */
-    maxValue(value: bigint): bigint
-    add(value: bigint): bigint
-    substract(value: bigint): bigint
-    multiply(value: bigint): bigint
-    modulo(value: bigint): bigint
+    maxValue(value: bigint | this): this
+    add(value: bigint | this): this
+    substract(value: bigint | this): this
+    multiply(value: bigint | this): this
+    modulo(value: bigint | this): this
     /** @deprecated use modulo method instead */
-    mod(value: bigint): bigint
+    mod(value: bigint | this): this
 }
 
 /**
  * Represents a string
  */
-interface StringValueSource extends ComparableValueSource {
-    equalsInsensitiveIfValue(value: string | null | undefined): boolean
-    equalsInsensitive(value: string): boolean
-    notEqualsInsensitiveIfValue(value: string | null | undefined): boolean
-    notEqualsInsensitive(value: string): boolean
-    likeIfValue(value: string | null | undefined): boolean
-    like(value: string): boolean
-    notLikeIfValue(value: string | null | undefined): boolean
-    notLike(value: string): boolean
-    likeInsensitiveIfValue(value: string | null | undefined): boolean
-    likeInsensitive(value: string): boolean
-    notLikeInsensitiveIfValue(value: string | null | undefined): boolean
-    notLikeInsensitive(value: string): boolean
-    startsWithIfValue(value: string | null | undefined): boolean
-    startsWith(value: string): boolean
-    notStartsWithIfValue(value: string | null | undefined): boolean
-    notStartsWith(value: string): boolean
-    endsWithIfValue(value: string | null | undefined): boolean
-    endsWith(value: string): boolean
-    notEndsWithIfValue(value: string | null | undefined): boolean
-    notEndsWith(value: string): boolean
-    startsWithInsensitiveIfValue(value: string | null | undefined): boolean
-    startsWithInsensitive(value: string): boolean
-    notStartsWithInsensitiveIfValue(value: string | null | undefined): boolean
-    notStartsWithInsensitive(value: string): boolean
-    endsWithInsensitiveIfValue(value: string | null | undefined): boolean
-    endsWithInsensitive(value: string): boolean
-    notEndsWithInsensitiveIfValue(value: string | null | undefined): boolean
-    notEndsWithInsensitive(value: string): boolean
-    containsIfValue(value: string | null | undefined): boolean
-    contains(value: string): boolean
-    notContainsIfValue(value: string | null | undefined): boolean
-    notContains(value: string): boolean
-    containsInsensitiveIfValue(value: string | null | undefined): boolean
-    containsInsensitive(value: string): boolean
-    notContainsInsensitiveIfValue(value: string | null | undefined): boolean
-    notContainsInsensitive(value: string): boolean
-    toLowerCase(): string
+interface StringValueSource extends ComparableValueSource<string> {
+    equalsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    equalsInsensitive(value: string | this): BooleanValueSource
+    notEqualsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notEqualsInsensitive(value: string | this): BooleanValueSource
+    likeIfValue(value: string | null | undefined): BooleanValueSource
+    like(value: string | this): BooleanValueSource
+    notLikeIfValue(value: string | null | undefined): BooleanValueSource
+    notLike(value: string | this): BooleanValueSource
+    likeInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    likeInsensitive(value: string | this): BooleanValueSource
+    notLikeInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notLikeInsensitive(value: string | this): BooleanValueSource
+    startsWithIfValue(value: string | null | undefined): BooleanValueSource
+    startsWith(value: string | this): BooleanValueSource
+    notStartsWithIfValue(value: string | null | undefined): BooleanValueSource
+    notStartsWith(value: string | this): BooleanValueSource
+    endsWithIfValue(value: string | null | undefined): BooleanValueSource
+    endsWith(value: string | this): BooleanValueSource
+    notEndsWithIfValue(value: string | null | undefined): BooleanValueSource
+    notEndsWith(value: string | this): BooleanValueSource
+    startsWithInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    startsWithInsensitive(value: string | this): BooleanValueSource
+    notStartsWithInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notStartsWithInsensitive(value: string | this): BooleanValueSource
+    endsWithInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    endsWithInsensitive(value: string | this): BooleanValueSource
+    notEndsWithInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notEndsWithInsensitive(value: string | this): BooleanValueSource
+    containsIfValue(value: string | null | undefined): BooleanValueSource
+    contains(value: string | this): BooleanValueSource
+    notContainsIfValue(value: string | null | undefined): BooleanValueSource
+    notContains(value: string | this): BooleanValueSource
+    containsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    containsInsensitive(value: string | this): BooleanValueSource
+    notContainsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
+    notContainsInsensitive(value: string | this): BooleanValueSource
+    toLowerCase(): StringValueSource
     /** @deprecated use toLowerCase method instead */
-    lower(): string
-    toUpperCase(): string
+    lower(): StringValueSource
+    toUpperCase(): StringValueSource
     /** @deprecated use toUpperCase method instead */
-    upper(): string
-    length(): number
-    trim(): string
-    trimLeft(): string
+    upper(): StringValueSource
+    length(): NumberValueSource
+    trim(): StringValueSource
+    trimLeft(): StringValueSource
     /** @deprecated use trimLeft method instead */
-    ltrim(): string
-    trimRight(): string
+    ltrim(): StringValueSource
+    trimRight(): StringValueSource
     /** @deprecated use trimRight method instead */
-    rtrim(): string
-    reverse(): string
-    concatIfValue(value: string | null | undefined): string
-    concat(value: string): string
-    substrToEnd(start: number): string
-    substringToEnd(start: number): string
-    substr(start: number, count: number): string
-    substring(start: number, end: number): string
+    rtrim(): StringValueSource
+    reverse(): StringValueSource
+    concatIfValue(value: string | null | undefined): StringValueSource
+    concat(value: string | this): StringValueSource
+    substrToEnd(start: number | NumberValueSource): StringValueSource
+    substringToEnd(start: number | NumberValueSource): StringValueSource
+    substr(start: number | NumberValueSource, count: number | NumberValueSource): StringValueSource
+    substring(start: number | NumberValueSource, end: number | NumberValueSource): StringValueSource
     /** @deprecated use replaceAllIfValue method instead */
-    replaceIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): string
-    replaceAllIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): string
+    replaceIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource
+    replaceAllIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource
     /** @deprecated use replaceAll method instead */
-    replace(findString: string, replaceWith: string): string
-    replaceAll(findString: string, replaceWith: string): string
+    replace(findString: string | this, replaceWith: string | this): StringValueSource
+    replaceAll(findString: string | this, replaceWith: string | this): StringValueSource
 }
 
 /**
  * Represents an UUID
  */
- interface UuidValueSource extends ComparableValueSource {
-    asString(): string
+ interface UuidValueSource extends ComparableValueSource<string> {
+    asString(): StringValueSource
  }
 
 /**
  * Represents a local date without time (using a Date object)
  */
-interface DateValueSource extends ComparableValueSource {
+interface DateValueSource extends ComparableValueSource<Date> {
     /** Gets the year */
-    getFullYear(): number
+    getFullYear(): NumberValueSource
     /** Gets the month (value between 0 to 11)*/
-    getMonth(): number
+    getMonth(): NumberValueSource
     /** Gets the day-of-the-month */
-    getDate(): number
+    getDate(): NumberValueSource
     /** Gets the day of the week (0 represents Sunday) */
-    getDay(): number
+    getDay(): NumberValueSource
 }
 
 /**
  * Represents a local time without date (using a Date object)
  */
-interface TimeValueSource extends ComparableValueSource {
+interface TimeValueSource extends ComparableValueSource<Date> {
     /** Gets the hours */
-    getHours(): number
+    getHours(): NumberValueSource
     /** Gets the minutes */
-    getMinutes(): number
+    getMinutes(): NumberValueSource
     /** Gets the seconds */
-    getSeconds(): number
+    getSeconds(): NumberValueSource
     /** Gets the milliseconds */
-    getMilliseconds(): number
+    getMilliseconds(): NumberValueSource
 }
 
 /**
  * Represents a local date with time (using a Date object)
  */
-interface DateTimeValueSource extends ComparableValueSource {
+interface DateTimeValueSource extends ComparableValueSource<Date> {
     /** Gets the year */
-    getFullYear(): number
+    getFullYear(): NumberValueSource
     /** Gets the month (value between 0 to 11)*/
-    getMonth(): number
+    getMonth(): NumberValueSource
     /** Gets the day-of-the-month */
-    getDate(): number
+    getDate(): NumberValueSource
     /** Gets the day of the week (0 represents Sunday) */
-    getDay(): number
+    getDay(): NumberValueSource
     /** Gets the hours */
-    getHours(): number
+    getHours(): NumberValueSource
     /** Gets the minutes */
-    getMinutes(): number
+    getMinutes(): NumberValueSource
     /** Gets the seconds */
-    getSeconds(): number
+    getSeconds(): NumberValueSource
     /** Gets the milliseconds */
-    getMilliseconds(): number
+    getMilliseconds(): NumberValueSource
     /** Gets the time value in milliseconds */
-    getTime(): number
+    getTime(): NumberValueSource
 }
 
 /**
  * Represents the result of an aggregate as object array
  */
-interface AggregatedArrayValueSource extends ValueSource {
-    useEmptyArrayForNoValue(): AggregatedArrayValueSource
-    asOptionalNonEmptyArray(): AggregatedArrayValueSource
-    asRequiredInOptionalObject(): AggregatedArrayValueSource
-    onlyWhenOrNull(when: boolean): AggregatedArrayValueSource
-    ignoreWhenAsNull(when: boolean): AggregatedArrayValueSource
+interface AggregatedArrayValueSource<T> extends ValueSource<T> {
+    useEmptyArrayForNoValue(): AggregatedArrayValueSource<T>
+    asOptionalNonEmptyArray(): AggregatedArrayValueSource<T>
+    asRequiredInOptionalObject(): AggregatedArrayValueSource<T>
+    onlyWhenOrNull(when: boolean): AggregatedArrayValueSource<T>
+    ignoreWhenAsNull(when: boolean): AggregatedArrayValueSource<T>
 }
 
-interface AggregatedArrayValueSourceProjectableAsNullable extends AggregatedArrayValueSource {
+interface AggregatedArrayValueSourceProjectableAsNullable<T> extends AggregatedArrayValueSource<T> {
     /** Returns the optional values as null instead of optional undefined values */
-    projectingOptionalValuesAsNullable(): AggregatedArrayValueSource
+    projectingOptionalValuesAsNullable(): AggregatedArrayValueSource<T>
 }
 ```
 
@@ -445,9 +445,9 @@ interface Connection {
     const(value: Date, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     const(value: Date, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     const(value: Date, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    const<T, TYPE_NAME = T>(value: T, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    const<T, TYPE_NAME = T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    const<T, TYPE_NAME = T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    const<T, TYPE_NAME = T>(value: T, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    const<T, TYPE_NAME = T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    const<T, TYPE_NAME = T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
 
     // methods that allows to create a value source with an optional constant value
     optionalConst(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
@@ -461,9 +461,9 @@ interface Connection {
     optionalConst(value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     optionalConst(value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     optionalConst(value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalConst<T, TYPE_NAME = T>(value: T | null | undefined, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
     
     // allows to use the exits function on a subquery
     exists(select: Subquery): BooleanValueSource
@@ -473,13 +473,13 @@ interface Connection {
     /** count(*) */
     countAll(): NumberValueSource
     /** count(value) */
-    count(value: ValueSource): NumberValueSource
+    count(value: AnyValueSource): NumberValueSource
     /** count(distinct value) */
-    countDistinct(value: ValueSource): NumberValueSource
+    countDistinct(value: AnyValueSource): NumberValueSource
     /** max(value) */
-    max<TYPE extends ComparableValueSource>(value: TYPE): TYPE
+    max<TYPE extends ComparableValueSource<any>>(value: TYPE): TYPE
     /** min(value) */
-    min<TYPE extends ComparableValueSource>(value: TYPE): TYPE
+    min<TYPE extends ComparableValueSource<any>>(value: TYPE): TYPE
     /** sum(value) */
     sum(value: NumberValueSource): NumberValueSource
     sum(value: StringNumberValueSource): StringNumberValueSource
@@ -497,8 +497,8 @@ interface Connection {
     /** group_concat(distinct value, separator) sometimes called string_agg or listagg. The default separator is ',' */
     stringConcatDistinct(value: StringValueSource, separator?: string): StringValueSource
     /** Aggregate as object array */
-    aggregateAsArray(columns: SelectValues): AggregatedArrayValueSourceProjectableAsNullable
-    aggregateAsArrayOfOneColumn(value: ValueSource): AggregatedArrayValueSource
+    aggregateAsArray<T extends SelectValues>(columns: T): AggregatedArrayValueSourceProjectableAsNullable<T>
+    aggregateAsArrayOfOneColumn<T>(value: ValueSource<T>): AggregatedArrayValueSource<T>
 
     // Methods that allows create SQL fragments
     fragmentWithType(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
@@ -519,26 +519,26 @@ interface Connection {
     /** 
      * This is a template, you can call as: .rawFragment`sql text with ${valueSourceParam}` 
      */
-    rawFragment(sql: TemplateStringsArray, ...p: Array<ValueSource | Subquery>): RawFragment
+    rawFragment(sql: TemplateStringsArray, ...p: Array<AnyValueSource | Subquery>): RawFragment
 
     // Protected methods that allows call a stored procedure
-    executeProcedure(procedureName: string, params: ValueSource[]): Promise<void>
+    executeProcedure(procedureName: string, params: AnyValueSource[]): Promise<void>
 
     // Protected methods that allows call a function
-    executeFunction(functionName: string, params: ValueSource[], returnType: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<boolean>
-    executeFunction(functionName: string, params: ValueSource[], returnType: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
-    executeFunction(functionName: string, params: ValueSource[], returnType: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
-    executeFunction(functionName: string, params: ValueSource[], returnType: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<bigint>
-    executeFunction(functionName: string, params: ValueSource[], returnType: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
-    executeFunction(functionName: string, params: ValueSource[], returnType: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
-    executeFunction(functionName: string, params: ValueSource[], returnType: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
-    executeFunction(functionName: string, params: ValueSource[], returnType: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
-    executeFunction(functionName: string, params: ValueSource[], returnType: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
-    executeFunction(functionName: string, params: ValueSource[], returnType: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
-    executeFunction(functionName: string, params: ValueSource[], returnType: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
-    executeFunction<T, TYPE_NAME = T>(functionName: string, params: ValueSource[], returnType: 'enum', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
-    executeFunction<T, TYPE_NAME = T>(functionName: string, params: ValueSource[], returnType: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
-    executeFunction<T, TYPE_NAME = T>(functionName: string, params: ValueSource[], returnType: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
+    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<boolean>
+    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
+    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
+    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<bigint>
+    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
+    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
+    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
+    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'uuid', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
+    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'localDate', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
+    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'localTime', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
+    executeFunction(functionName: string, params: AnyValueSource[], returnType: 'localDateTime', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<Date>
+    executeFunction<T, TYPE_NAME = T>(functionName: string, params: AnyValueSource[], returnType: 'enum', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
+    executeFunction<T, TYPE_NAME = T>(functionName: string, params: AnyValueSource[], returnType: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
+    executeFunction<T, TYPE_NAME = T>(functionName: string, params: AnyValueSource[], returnType: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
 
     // Protected methods to define a sequence (only available in oracle, postgreSql and sqlServer)
     sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource>
@@ -552,9 +552,9 @@ interface Connection {
     sequence(name: string, type: 'localDate', adapter?: TypeAdapter): Sequence<DateValueSource>
     sequence(name: string, type: 'localTime', adapter?: TypeAdapter): Sequence<TimeValueSource>
     sequence(name: string, type: 'localDateTime', adapter?: TypeAdapter): Sequence<DateTimeValueSource>
-    sequence<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource>
-    sequence<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource>
-    sequence<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource>
+    sequence<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<T>>
+    sequence<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): Sequence<EqualableValueSource<T>>
+    sequence<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): Sequence<ComparableValueSource<T>>
 
     // Protected methods to define reusable fragments
     /**
@@ -618,7 +618,7 @@ interface Connection {
     /**
      * Allows to create a condition where the criteria is provided by an external system
      */
-    dynamicConditionFor(definition: { [key: string ]: ValueSource }): DynamicConditionExpression
+    dynamicConditionFor(definition: { [key: string ]: AnyValueSource }): DynamicConditionExpression
 
     /*
      * The fn function will receive as first argument the table name as ValueSource,
@@ -627,7 +627,7 @@ interface Connection {
      * The first argument of the returned function is the table or view, the second argument
      * is a name for the customization; the additional arguments are the same defined in the fn function.
      */
-    createTableOrViewCustomization(fn: (table: ValueSource, alias: ValueSource, ...params: any[]) => RawFragment): (tableOrView: Table | View, name: string, ...params: any[]) => CustomizedTableOrView
+    createTableOrViewCustomization(fn: (table: AnyValueSource, alias: AnyValueSource, ...params: any[]) => RawFragment): (tableOrView: Table | View, name: string, ...params: any[]) => CustomizedTableOrView
 
     /*
      * Configurations
@@ -664,7 +664,7 @@ interface FragmentExpression {
      * This is a template, you can call as: .sql`sql text with ${valueSourceParam}` 
      * You can specify up to 7 parameters.
      */
-    sql(sql: TemplateStringsArray, ...p: ValueSource[]): ValueSource
+    sql(sql: TemplateStringsArray, ...p: AnyValueSource[]): AnyValueSource
 }
 
 interface FragmentBuilder {
@@ -673,7 +673,7 @@ interface FragmentBuilder {
      * The nunber of arguments is the same specified in the function buildFragmentWithArgs (up to 5 arguments).
      * The arguments of the returned function will have the proper parameters type.
      */
-    as(impl: (...args: ValueSource[]) => ValueSource): (...args: any) => ValueSource
+    as(impl: (...args: AnyValueSource[]) => AnyValueSource): (...args: any) => AnyValueSource
 }
 
 interface FragmentBuilderIfValue {
@@ -684,7 +684,7 @@ interface FragmentBuilderIfValue {
      * that argument receives null or undefined.
      * The arguments of the returned function will have the proper parameters type.
      */
-    as(impl: (...args: ValueSource[]) => ValueSource): (...args: any) => BooleanValueSource
+    as(impl: (...args: AnyValueSource[]) => AnyValueSource): (...args: any) => BooleanValueSource
 }
 
 interface Sequence<T> {
@@ -720,9 +720,9 @@ interface Table {
     column(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     column(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     column(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    column<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    column<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    column<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    column<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    column<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    column<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
 
     // Protected methods that allow to create an optional column that admits null
     optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
@@ -736,9 +736,9 @@ interface Table {
     optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
     
     // Protected methods that allow to create a required column that doesn't admits null but have a default value when insert
     columnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
@@ -752,9 +752,9 @@ interface Table {
     columnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     columnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     columnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    columnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    columnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    columnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    columnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    columnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    columnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
     
     // Protected methods that allow to create an optional column that admits null and have a default value when insert
     optionalColumnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
@@ -768,9 +768,9 @@ interface Table {
     optionalColumnWithDefaultValue(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     optionalColumnWithDefaultValue(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     optionalColumnWithDefaultValue(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'enum', typeNme: string, adapter?: TypeAdapter): EqualableValueSource
-    optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'custom', typeNme: string, adapter?: TypeAdapter): EqualableValueSource
-    optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeNme: string, adapter?: TypeAdapter): ComparableValueSource
+    optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'enum', typeNme: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'custom', typeNme: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeNme: string, adapter?: TypeAdapter): ComparableValueSource<T>
     
     // Protected methods that allow to create a primary key column autogenerated in the database
     // When you insert you don't need specify this column
@@ -785,9 +785,9 @@ interface Table {
     autogeneratedPrimaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     autogeneratedPrimaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     autogeneratedPrimaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    autogeneratedPrimaryKey<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    autogeneratedPrimaryKey<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    autogeneratedPrimaryKey<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    autogeneratedPrimaryKey<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    autogeneratedPrimaryKey<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    autogeneratedPrimaryKey<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
 
     // Protected methods that allow to create a primary key column not automatically generated
     // When you insert you must specify this column
@@ -802,9 +802,9 @@ interface Table {
     primaryKey(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     primaryKey(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     primaryKey(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    primaryKey<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    primaryKey<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    primaryKey<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    primaryKey<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    primaryKey<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    primaryKey<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
       
     // Protected methods that allow to create a primary key column generated by a sequence
     // When you insert you don't need specify this column, it will be added automatically by ts-sql-query
@@ -820,9 +820,9 @@ interface Table {
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    autogeneratedPrimaryKeyBySequence<T, TYPE_NAME = T>(name: string, sequenceName: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
 
     // Protected methods that allow to create a computed column that doesn't admits null
     computedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
@@ -836,9 +836,9 @@ interface Table {
     computedColumn(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     computedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     computedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    computedColumn<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    computedColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    computedColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    computedColumn<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    computedColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    computedColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
 
     // Protected methods that allow to create an optional computed column that admits null
     optionalComputedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
@@ -852,9 +852,9 @@ interface Table {
     optionalComputedColumn(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     optionalComputedColumn(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     optionalComputedColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    optionalComputedColumn<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    optionalComputedColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    optionalComputedColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    optionalComputedColumn<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalComputedColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalComputedColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
 
     // Protected methods that allows to create a sql fragment in the table
     virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
@@ -868,9 +868,9 @@ interface Table {
     virtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => DateValueSource, adapter?: TypeAdapter): DateValueSource
     virtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => TimeValueSource, adapter?: TypeAdapter): TimeValueSource
     virtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => DateTimeValueSource, adapter?: TypeAdapter): DateTimeValueSource
-    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
-    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
-    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource, adapter?: TypeAdapter): ComparableValueSource
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T>, adapter?: TypeAdapter): EqualableValueSource<T>
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T>, adapter?: TypeAdapter): EqualableValueSource<T>
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource<T>, adapter?: TypeAdapter): ComparableValueSource<T>
 
     // Protected methods that allows to create an optional sql fragment in the table
     optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
@@ -884,9 +884,9 @@ interface Table {
     optionalVirtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => DateValueSource, adapter?: TypeAdapter): DateValueSource
     optionalVirtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => TimeValueSource, adapter?: TypeAdapter): TimeValueSource
     optionalVirtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => DateTimeValueSource, adapter?: TypeAdapter): DateTimeValueSource
-    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
-    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
-    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource, adapter?: TypeAdapter): ComparableValueSource
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T>, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T>, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource<T>, adapter?: TypeAdapter): ComparableValueSource<T>
 }
 ```
 
@@ -913,9 +913,9 @@ interface View {
     column(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     column(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     column(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    column<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    column<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    column<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    column<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    column<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    column<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
 
     // Protected methods that allow to create an optional column that admits null
     optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
@@ -929,9 +929,9 @@ interface View {
     optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): DateValueSource
     optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalColumn<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
 
     // Protected methods that allows to create a sql fragment in the view
     virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
@@ -945,9 +945,9 @@ interface View {
     virtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => DateValueSource, adapter?: TypeAdapter): DateValueSource
     virtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => TimeValueSource, adapter?: TypeAdapter): TimeValueSource
     virtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => DateTimeValueSource, adapter?: TypeAdapter): DateTimeValueSource
-    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
-    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
-    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource, adapter?: TypeAdapter): ComparableValueSource
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T>, adapter?: TypeAdapter): EqualableValueSource<T>
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T>, adapter?: TypeAdapter): EqualableValueSource<T>
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource<T>, adapter?: TypeAdapter): ComparableValueSource<T>
 
     // Protected methods that allows to create an optional sql fragment in the view
     optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
@@ -961,9 +961,9 @@ interface View {
     optionalVirtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => DateValueSource, adapter?: TypeAdapter): DateValueSource
     optionalVirtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => TimeValueSource, adapter?: TypeAdapter): TimeValueSource
     optionalVirtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => DateTimeValueSource, adapter?: TypeAdapter): DateTimeValueSource
-    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
-    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
-    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource, adapter?: TypeAdapter): ComparableValueSource
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T>, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T>, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource<T>, adapter?: TypeAdapter): ComparableValueSource<T>
 }
 ```
 
@@ -990,9 +990,9 @@ interface Values {
     column(type: 'localDate', adapter?: TypeAdapter): DateValueSource
     column(type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     column(type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    column<T, TYPE_NAME = T>(type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    column<T, TYPE_NAME = T>(type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    column<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    column<T, TYPE_NAME = T>(type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    column<T, TYPE_NAME = T>(type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    column<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
 
     // Protected methods that allow to create an optional column that admits null
     optionalColumn(type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
@@ -1006,9 +1006,9 @@ interface Values {
     optionalColumn(type: 'localDate', adapter?: TypeAdapter): DateValueSource
     optionalColumn(type: 'localTime', adapter?: TypeAdapter): TimeValueSource
     optionalColumn(type: 'localDateTime', adapter?: TypeAdapter): DateTimeValueSource
-    optionalColumn<T, TYPE_NAME = T>(type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    optionalColumn<T, TYPE_NAME = T>(type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource
-    optionalColumn<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource
+    optionalColumn<T, TYPE_NAME = T>(type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalColumn<T, TYPE_NAME = T>(type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalColumn<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
 
     // Protected methods that allows to create a sql fragment in the view
     virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
@@ -1022,9 +1022,9 @@ interface Values {
     virtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => DateValueSource, adapter?: TypeAdapter): DateValueSource
     virtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => TimeValueSource, adapter?: TypeAdapter): TimeValueSource
     virtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => DateTimeValueSource, adapter?: TypeAdapter): DateTimeValueSource
-    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
-    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
-    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource, adapter?: TypeAdapter): ComparableValueSource
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T>, adapter?: TypeAdapter): EqualableValueSource<T>
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T>, adapter?: TypeAdapter): EqualableValueSource<T>
+    virtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource<T>, adapter?: TypeAdapter): ComparableValueSource<T>
 
     // Protected methods that allows to create an optional sql fragment in the view
     optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
@@ -1038,9 +1038,9 @@ interface Values {
     optionalVirtualColumnFromFragment(type: 'localDate', fn: (fragment: FragmentExpression) => DateValueSource, adapter?: TypeAdapter): DateValueSource
     optionalVirtualColumnFromFragment(type: 'localTime', fn: (fragment: FragmentExpression) => TimeValueSource, adapter?: TypeAdapter): TimeValueSource
     optionalVirtualColumnFromFragment(type: 'localDateTime', fn: (fragment: FragmentExpression) => DateTimeValueSource, adapter?: TypeAdapter): DateTimeValueSource
-    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
-    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource, adapter?: TypeAdapter): EqualableValueSource
-    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource, adapter?: TypeAdapter): ComparableValueSource
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'enum', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T>, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'custom', typeName: string, fn: (fragment: FragmentExpression) => EqualableValueSource<T>, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalVirtualColumnFromFragment<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, fn: (fragment: FragmentExpression) => ComparableValueSource<T>, adapter?: TypeAdapter): ComparableValueSource<T>
 }
 ```
 
@@ -1362,7 +1362,7 @@ interface InsertExpression {
      */
     onConflictDoUpdateSetIfValue(columns: UpdateSets): this
     /**Allow to specify the "on conflit" clasue indicating the index column expected by this clause */
-    onConflictOn(column: ValueSource, ...columns: ValueSource[]): this
+    onConflictOn(column: AnyValueSource, ...columns: AnyValueSource[]): this
     /**Allow to specify the "on conflit on constraint" clasue indicating the index name expected by this clause */
     onConflictOnConstraint(constraint: string): this
     /**Allow to specify the "on conflit on constraint" clasue indicating the index name expected by this clause */
@@ -1437,7 +1437,7 @@ interface InsertExpression {
      * Allows to specify the returning clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
      */
-    returningOneColumn(column: ValueSource): this
+    returningOneColumn(column: AnyValueSource): this
     /** Execute the insert query that returns one o no result from the database */
     executeInsertNoneOrOne(): Promise<RESULT | null>
     /** 
@@ -1471,7 +1471,7 @@ type OptionalInsertSets = { [columnName: string]: any }
  * It must be an object where the name of the property is the name of the resulting property
  * and the value is the ValueSource where the value will be obtained.
  */
-type InsertReturningValues = { [columnName: string]: ValueSource }
+type InsertReturningValues = { [columnName: string]: AnyValueSource }
 /** Shape of the values to set */
 type InsertShape = { [propertyNameInValues: string]: string /* column name in the insert table */ }
 ```
@@ -1492,7 +1492,7 @@ interface UpdateExpression {
      * The values set after extending the shape will allow you to include the new properties in the extended shape.
      */
     extendShape(shape: UpdateShape): this
-
+    
     /** Set the values for update */
     set(columns: UpdateSets): this
     /** Set a value only if the provided value is not null, undefined, empty string 
@@ -1694,7 +1694,7 @@ interface UpdateExpression {
      * Allows to specify the returning clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
      */
-    returningOneColumn(column: ValueSource): this
+    returningOneColumn(column: AnyValueSource): this
     /** Execute the update query that returns one o no result from the database */
     executeUpdateNoneOrOne(): Promise<RESULT | null>
     /** 
@@ -1751,9 +1751,9 @@ type OptionalUpdateSets = { [columnName: string]: any }
  * It must be an object where the name of the property is the name of the resulting property
  * and the value is the ValueSource where the value will be obtained.
  */
-type UpdateReturningValues = { [columnName: string]: ValueSource }
+type UpdateReturningValues = { [columnName: string]: AnyValueSource }
 /** Shape of the values to set */
-type UpdateShape = { [propertyNameInValues: string]: string /* column name in the update table */ | ValueSource }
+type UpdateShape = { [propertyNameInValues: string]: string /* column name in the update table */ | AnyValueSource }
 ```
 
 ## Delete definition
@@ -1797,7 +1797,7 @@ interface DeleteExpression {
      * Allows to specify the returning clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
      */
-    returningOneColumn(column: ValueSource): this
+    returningOneColumn(column: AnyValueSource): this
     /** Execute the delete query that returns one o no result from the database */
     executeDeleteNoneOrOne(): Promise<RESULT | null>
     /** 
@@ -1864,7 +1864,7 @@ interface DeleteExpression {
  * It must be an object where the name of the property is the name of the resulting property
  * and the value is the ValueSource where the value will be obtained.
  */
-type DeleteReturningValues = { [columnName: string]: ValueSource }
+type DeleteReturningValues = { [columnName: string]: AnyValueSource }
 ```
 
 ## Select definition
@@ -1922,7 +1922,7 @@ interface SelectExpression {
     where(condition: BooleanValueSource): this
     
     /** Allows to specify the group by of the select query */
-    groupBy(...columns: ValueSource[]): this
+    groupBy(...columns: AnyValueSource[]): this
     /** 
      * Allows to specify the group by of the select query.
      * 
@@ -1950,7 +1950,7 @@ interface SelectExpression {
      * Allows to specify the select clause of a query that returns only one column.
      * It receives as argument the ValueSource where the value will be obtained.
      */
-    selectOneColumn(column: ValueSource): this
+    selectOneColumn(column: AnyValueSource): this
     /** 
      * Allows to specify the select clause of a query that returns only one column with count(*).
      */
@@ -1962,7 +1962,7 @@ interface SelectExpression {
      * If you select one column the name of the column is 'result'.
      */
     orderBy(column: string, mode?: OrderByMode): this
-    orderBy(column: ValueSource, mode?: OrderByMode): this
+    orderBy(column: AnyValueSource, mode?: OrderByMode): this
     orderBy(column: RawFragment, mode?: OrderByMode): this
     /** Allows to specify an order by dynamically, it is parsed from the provided string */
     orderByFromString(orderBy: string): this
@@ -1977,8 +1977,8 @@ interface SelectExpression {
 
     // Oracle's connect by syntax
     startWith(condition: BooleanValueSource): this
-    connectBy(condition: (prior: (column: ValueSource) => ValueSource) => BooleanValueSource): this
-    connectByNoCycle(condition: (prior: (column: ValueSource) => ValueSource) => BooleanValueSource): this
+    connectBy(condition: (prior: (column: AnyValueSource) => AnyValueSource) => BooleanValueSource): this
+    connectByNoCycle(condition: (prior: (column: AnyValueSource) => AnyValueSource) => BooleanValueSource): this
     orderingSiblingsOnly(): this
 
     /** Allows to extends the where, or the on clause of a join, or the having clause using an and */
@@ -2037,12 +2037,12 @@ interface SelectExpression {
     /**
      * Allows to use a select query as an inline query value in another select. 
      */
-    forUseAsInlineQueryValue(): ValueSource
+    forUseAsInlineQueryValue(): AnyValueSource
 
     /**
      * Allows to use a select query as an inline object array value in another select. 
      */
-    forUseAsInlineAggregatedArrayValue(): AggregatedArrayValueSource
+    forUseAsInlineAggregatedArrayValue(): AggregatedArrayValueSource<this>
     
     /** Returns the sql query to be executed in the database */
     query(): string
@@ -2087,7 +2087,7 @@ type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc
  * It must be an object where the name of the property is the name of the resulting property
  * and the value is the ValueSource where the value will be obtained.
  */
-type SelectValues = { [columnName: string]: ValueSource }
+type SelectValues = { [columnName: string]: AnyValueSource }
 ```
 
 ## Type adpaters
@@ -2122,7 +2122,7 @@ class CustomBooleanTypeAdapter implements TypeAdapter {
     transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
 }
 
-declare class ForceTypeCast implements TypeAdapter {
+class ForceTypeCast implements TypeAdapter {
     transformValueFromDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
     transformValueToDB(value: unknown, type: string, next: DefaultTypeAdapter): unknown
     transformPlaceholder(placeholder: string, type: string, _forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string

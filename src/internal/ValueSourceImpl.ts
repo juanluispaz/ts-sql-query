@@ -201,7 +201,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     }
     asString(): any {
         const result = new SqlOperation0ValueSource('_asString', this, 'string', 'string', this.__optionalType, this.__typeAdapter)
-        result.__uuidString = this.__valueType === 'uuid'
+        result.__uuidString = this.__valueType === 'uuid' || this.__valueType === 'customUuid'
         return result
     }
     onlyWhenOrNull(when: boolean): any {
@@ -534,6 +534,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_ceil', this, 'stringInt', 'stringInt', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'bigint') {
             return new SqlOperation0ValueSource('_ceil', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customInt' || this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_ceil', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_ceil', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
         }
@@ -545,6 +547,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_floor', this, 'stringInt', 'stringInt', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'bigint') {
             return new SqlOperation0ValueSource('_floor', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customInt' || this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_floor', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_floor', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
         }
@@ -556,6 +560,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_round', this, 'stringInt', 'stringInt', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'bigint') {
             return new SqlOperation0ValueSource('_round', this, 'bigint', 'bigint', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customInt' || this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_round', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_round', this, 'int', 'int', this.__optionalType, this.__typeAdapter)
         }
@@ -574,6 +580,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_ln', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_ln', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_ln', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_ln', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
         }
@@ -583,6 +591,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_log10', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_log10', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_log10', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_log10', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
         }
@@ -592,6 +602,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_sqrt', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_sqrt', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_sqrt', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_sqrt', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
         }
@@ -601,6 +613,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_cbrt', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_cbrt', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_cbrt', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_cbrt', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
         }
@@ -614,6 +628,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_acos', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_acos', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_acos', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_acos', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
         }
@@ -623,6 +639,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_asin', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_asin', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_asin', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_asin', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
         }
@@ -632,6 +650,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_atan', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_atan', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_atan', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_atan', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
         }
@@ -641,6 +661,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_cos', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_cos', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_cos', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_cos', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
         }
@@ -650,6 +672,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_cot', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_cot', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_cot', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_cot', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
         }
@@ -659,6 +683,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_sin', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_sin', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_sin', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_sin', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
         }
@@ -668,6 +694,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation0ValueSource('_tan', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation0ValueSource('_tan', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation0ValueSource('_tan', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
         } else {
             return new SqlOperation0ValueSource('_tan', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
         }
@@ -719,6 +747,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation1ValueSource('_atan2', this, value, 'stringDouble', 'stringDouble', getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation1ValueSource('_atan2', this, value, 'stringDouble', 'stringDouble', getOptionalType2(this, value), getTypeAdapter2(this, value))
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation1ValueSource('_atan2', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
             return new SqlOperation1ValueSource('_atan2', this, value, 'double', 'double', getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
@@ -742,6 +772,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation1ValueSource('_power', this, value, 'stringDouble', 'stringDouble', getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation1ValueSource('_power', this, value, 'stringDouble', 'stringDouble', getOptionalType2(this, value), getTypeAdapter2(this, value))
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation1ValueSource('_power', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
             return new SqlOperation1ValueSource('_power', this, value, 'double', 'double', getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
@@ -751,6 +783,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation1ValueSource('_logn', this, value, 'stringDouble', 'stringDouble', getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation1ValueSource('_logn', this, value, 'stringDouble', 'stringDouble', getOptionalType2(this, value), getTypeAdapter2(this, value))
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation1ValueSource('_logn', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
             return new SqlOperation1ValueSource('_logn', this, value, 'double', 'double', getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
@@ -760,6 +794,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation1ValueSource('_roundn', this, value, 'stringDouble', 'stringDouble', getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation1ValueSource('_roundn', this, value, 'stringDouble', 'stringDouble', getOptionalType2(this, value), getTypeAdapter2(this, value))
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation1ValueSource('_roundn', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
             return new SqlOperation1ValueSource('_roundn', this, value, 'double', 'double', getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
@@ -791,6 +827,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             return new SqlOperation1ValueSource('_divide', this, value, 'stringDouble', 'stringDouble', getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else if (this.__valueType === 'stringDouble') {
             return new SqlOperation1ValueSource('_divide', this, value, 'stringDouble', 'stringDouble', getOptionalType2(this, value), getTypeAdapter2(this, value))
+        } else if (this.__valueType === 'customDouble') {
+            return new SqlOperation1ValueSource('_divide', this, value, this.__valueType, this.__valueTypeName, getOptionalType2(this, value), getTypeAdapter2(this, value))
         } else {
             return new SqlOperation1ValueSource('_divide', this, value, 'double', 'double', getOptionalType2(this, value), getTypeAdapter2(this, value))
         }
@@ -2003,7 +2041,7 @@ function getTypeAdapter3(a: ValueSourceImpl, b: any, c: any): TypeAdapter | unde
 }
 
 function createSqlOperation1ofOverloadedNumber(thiz: ValueSourceImpl, value: any, operation: keyof SqlOperation1) {
-    if (thiz.__valueType === 'double' || thiz.__valueType === 'stringDouble' || thiz.__valueType === 'bigint') {
+    if (thiz.__valueType === 'double' || thiz.__valueType === 'stringDouble' || thiz.__valueType === 'bigint' || thiz.__valueType === 'customInt' || thiz.__valueType === 'customDouble') {
         return new SqlOperation1ValueSource(operation, thiz, value, thiz.__valueType, thiz.__valueTypeName, getOptionalType2(thiz, value), getTypeAdapter2(thiz, value))
     }
     if (thiz.__valueType === 'stringInt') {

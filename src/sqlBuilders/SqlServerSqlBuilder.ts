@@ -916,7 +916,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         case 'stringInt':
         case 'stringDouble':
         case 'bigint':
+        case 'customInt':
+        case 'customDouble':
         case 'uuid':
+        case 'customUuid':
             result = `'"' + convert(nvarchar, ` + this._appendSql(valueSource, params) + `) + '"'`
             break
         case 'string':
@@ -928,6 +931,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         case 'localDate':
         case 'localTime':
         case 'localDateTime':
+        case 'customLocalDate':
+        case 'customLocalTime':
+        case 'customLocalDateTime':
             result = 'convert(nvarchar, ' + this._appendSql(valueSource, params) + ', 127)'
             result = `'"' + ` + result + ` + '"'`
             break
@@ -977,7 +983,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         case 'stringInt':
         case 'stringDouble':
         case 'bigint':
+        case 'customInt':
+        case 'customDouble':
         case 'uuid':
+        case 'customUuid':
             result = `'"' + convert(nvarchar, a_` + aggregateId + `_.` + this._escape(prop, true) + `) + '"'`
             break
         case 'string':
@@ -989,6 +998,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         case 'localDate':
         case 'localTime':
         case 'localDateTime':
+        case 'customLocalDate':
+        case 'customLocalTime':
+        case 'customLocalDateTime':
             result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ', 127)'
             result = `'"' + ` + result + ` + '"'`
             break

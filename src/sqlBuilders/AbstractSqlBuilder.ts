@@ -2773,6 +2773,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
     }
     _getMathArgumentType(columnType: ValueType, _columnTypeName: string, value: any): ValueType {
+        if (columnType === 'customInt' || columnType === 'customDouble') {
+            return columnType
+        }
         if (typeof value === 'number') {
             if (!Number.isInteger(value)) {
                 if (columnType === 'stringInt' || columnType === 'stringDouble') {
@@ -2797,6 +2800,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return columnType
     }
     _getMathArgumentTypeName(columnType: ValueType, columnTypeName: string, value: any): string {
+        if (columnType === 'customInt' || columnType === 'customDouble') {
+            return columnTypeName
+        }
         if (typeof value === 'number') {
             if (!Number.isInteger(value)) {
                 if (columnType === 'stringInt' || columnType === 'stringDouble') {

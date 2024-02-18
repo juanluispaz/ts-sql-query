@@ -13,6 +13,8 @@ export interface UpdateCustomization<DB extends AnyDB> {
     afterUpdateKeyword?: RawFragment<DB>
     beforeQuery?: RawFragment<DB>
     afterQuery?: RawFragment<DB>
+    queryExecutionName?: string
+    queryExecutionMetadata?: any
 }
 
 export interface UpdateExpressionOf<DB extends AnyDB> {

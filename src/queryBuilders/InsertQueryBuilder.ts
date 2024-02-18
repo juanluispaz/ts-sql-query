@@ -8,7 +8,7 @@ import { attachSource } from "../utils/attachSource"
 import { database, resultType, tableOrView, type } from "../utils/symbols"
 import { AlwaysIfValueSource, AnyValueSource, asAlwaysIfValueSource, IBooleanValueSource, IExecutableSelectQuery, IIfValueSource, IStringValueSource, isValueSource, ITypeSafeStringValueSource, __getValueSourcePrivate } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
-import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
+import { ComposeSplitQueryBuilder, __setQueryMetadata } from "./ComposeSliptQueryBuilder"
 import { RawFragment } from "../utils/RawFragment"
 
 // one implement ommited intentionally to don't confuse TypeScript
@@ -54,6 +54,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     executeInsert(min?: number, max?: number): Promise<any> {
         this.query()
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             const idColumn = this.__idColumn
             const multiple = this.__multiple
@@ -151,6 +152,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     executeInsertNoneOrOne(): Promise<any> {
         this.query()
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
             let result
@@ -186,6 +188,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     executeInsertOne(): Promise<any> {
         this.query()
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
             let result
@@ -221,6 +224,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     executeInsertMany(min?: number, max?: number): Promise<any> {
         const source = new Error('Query executed at')
         this.query()
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
             let result

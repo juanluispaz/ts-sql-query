@@ -30,6 +30,7 @@ import { RawFragment } from "../utils/RawFragment"
 import { RawFragmentImpl } from "../internal/RawFragmentImpl"
 import { CustomizedTableOrView, OuterJoinTableOrView } from "../utils/tableOrViewUtils"
 import { InnerResultNullableObjectValuesForAggregatedArray, InnerResultObjectValuesForAggregatedArray } from "../utils/resultUtils"
+import { __setQueryMetadata } from "../queryBuilders/ComposeSliptQueryBuilder"
 
 export abstract class AbstractConnection<DB extends AnyDB> implements IConnection<DB> {
     [database]!: DB
@@ -464,6 +465,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
             const queryParams: any[] = []
             const query = this.__sqlBuilder._buildCallProcedure(queryParams, procedureName, params)
             const source = new Error('Query executed at')
+            __setQueryMetadata(source, params)
             return this.__sqlBuilder._queryRunner.executeProcedure(query, queryParams).catch((e) => {
                 throw new ChainedError(e)
             }).catch((e) => {
@@ -559,6 +561,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
             const queryParams: any[] = []
             const query = this.__sqlBuilder._buildCallFunction(queryParams, functionName, params)
             const source = new Error('Query executed at')
+            __setQueryMetadata(source, params)
             return this.__sqlBuilder._queryRunner.executeFunction(query, queryParams).then((value) => {
                 let result
                 if (adapter2) {

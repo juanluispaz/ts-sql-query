@@ -8,7 +8,7 @@ import { attachSource } from "../utils/attachSource"
 import { database, resultType, tableOrView, type } from "../utils/symbols"
 import { asAlwaysIfValueSource } from "../expressions/values"
 import { __getValueSourcePrivate } from "../expressions/values"
-import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
+import { ComposeSplitQueryBuilder, __setQueryMetadata } from "./ComposeSliptQueryBuilder"
 import { Column } from "../utils/Column"
 
 export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasAddWiths, ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableExecutableDelete<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableDelete<any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any>, ComposableCustomizableExecutableDeleteProjectableAsNullable<any, any> {
@@ -43,6 +43,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     executeDelete(min?: number, max?: number): Promise<int> & Promise<number> {
         this.query()
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             let result = this.__sqlBuilder._queryRunner.executeDelete(this.__query, this.__params).catch((e) => {
                 throw attachSource(new ChainedError(e), source)
@@ -66,6 +67,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     executeDeleteNoneOrOne(): Promise<any> {
         this.query()
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
             let result
@@ -101,6 +103,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     executeDeleteOne(): Promise<any> {
         this.query()
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
             let result
@@ -136,6 +139,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     executeDeleteMany(min?: number, max?: number): Promise<any> {
         const source = new Error('Query executed at')
         this.query()
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
             let result

@@ -227,6 +227,8 @@ The supported extension point offered by `customizeQuery` are:
 - `afterQuery`: Place the fragment at the end of the query.
 - `beforeWithQuery`: Place the fragment in the with clause (when the query is marked `forUseInQuery`) immediately after the `as` keyboard and before the open parenthesis that contains the query.
 - `afterWithQuery`: Place the fragment in the with clause (when the query is marked `forUseInQuery`) immediately after the close parenthesis that contains the query.
+- `queryExecutionName`: Informative name for the query execution.
+- `queryExecutionMetadata`: Additional metadata for the query execution.
 
 ```ts
 const customizedSelect = connection.selectFrom(tCustomer)
@@ -270,6 +272,8 @@ The supported extension point offered by `customizeQuery` method for an insert a
 - `afterInsertKeyword`: Place the fragment immediately after the `insert` keyword.
 - `beforeQuery`: Place the fragment at the beginning of the query.
 - `afterQuery`: Place the fragment at the end of the query.
+- `queryExecutionName`: Informative name for the query execution.
+- `queryExecutionMetadata`: Additional metadata for the query execution.
 
 ```ts
 const customizedInsert = connection.insertInto(tCustomer).set({
@@ -303,6 +307,8 @@ The supported extension point offered by `customizeQuery` method for an update a
 - `afterUpdateKeyword`: Place the fragment immediately after the `update` keyword.
 - `beforeQuery`: Place the fragment at the beginning of the query.
 - `afterQuery`: Place the fragment at the end of the query.
+- `queryExecutionName`: Informative name for the query execution.
+- `queryExecutionMetadata`: Additional metadata for the query execution.
 
 ```ts
 const customizedUpdate = connection.update(tCustomer).set({
@@ -338,6 +344,8 @@ The supported extension point offered by `customizeQuery` method for a delete ar
 - `afterDeleteKeyword`: Place the fragment immediately after the `delete` keyword.
 - `beforeQuery`: Place the fragment at the beginning of the query.
 - `afterQuery`: Place the fragment at the end of the query.
+- `queryExecutionName`: Informative name for the query execution.
+- `queryExecutionMetadata`: Additional metadata for the query execution.
 
 ```ts
 const customizedDelete = connection.deleteFrom(tCustomer)

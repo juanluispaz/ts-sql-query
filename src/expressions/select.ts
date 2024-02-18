@@ -22,6 +22,17 @@ export interface SelectCustomization<DB extends AnyDB> {
     afterQuery?: RawFragment<DB>
     beforeWithQuery?: RawFragment<DB>
     afterWithQuery?: RawFragment<DB>
+    queryExecutionName?: string
+    queryExecutionMetadata?: any
+}
+
+export interface CompoundSelectCustomization<DB extends AnyDB> {
+    beforeQuery?: RawFragment<DB>
+    afterQuery?: RawFragment<DB>
+    beforeWithQuery?: RawFragment<DB>
+    afterWithQuery?: RawFragment<DB>
+    queryExecutionName?: string
+    queryExecutionMetadata?: any
 }
 
 export interface SelectExpressionBase<DB extends AnyDB, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> {
@@ -173,7 +184,7 @@ export interface WithableExecutableSelectWithoutWhere<DB extends AnyDB, TABLE_OR
 }
 
 export interface CompoundedCustomizableExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends WithableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    customizeQuery(customization: { afterQuery?: RawFragment<DB> }): WithableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    customizeQuery(customization: CompoundSelectCustomization<DB>): WithableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
 }
 
 export interface CompoundedOffsetExecutableSelectExpression<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundedCustomizableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {

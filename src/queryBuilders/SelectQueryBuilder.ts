@@ -14,7 +14,7 @@ import { asAlwaysIfValueSource } from "../expressions/values"
 import { WithViewImpl } from "../internal/WithViewImpl"
 import { createColumnsFrom } from "../internal/ColumnImpl"
 import { View } from "../View"
-import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
+import { ComposeSplitQueryBuilder, __setQueryMetadata } from "./ComposeSliptQueryBuilder"
 import { Column } from "../utils/Column"
 
 abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql, HasAddWiths, IExecutableSelectQuery<any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any, any>, WithableExecutableSelect<any, any, any, any, any>, ExecutableSelect<any, any, any, any>, ComposeExpression<any, any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any, any>,  ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any, any>, LimitExecutableSelectExpression<any,any,any,any, any, any>, OrderByExecutableSelectExpression<any,any,any,any, any, any>, OrderedExecutableSelectExpression<any,any,any,any, any, any>, OffsetExecutableSelectExpression<any, any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any, any>, CompoundedLimitExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderByExecutableSelectExpression<any, any, any, any, any, any>, CompoundedOrderedExecutableSelectExpression<any, any, any, any, any, any>, CompoundedOffsetExecutableSelectExpression<any, any, any, any, any>, CompoundedCustomizableExecutableSelect<any, any, any, any, any>, OrderableExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, ExecutableSelectWithWhere<any, any, any, any>, ExecutableSelectWithoutWhere<any, any, any, any, any>, WithableExecutableSelectWithoutWhere<any, any, any, any, any, any>, CompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpressionWitoutWhere<any, any, any, any, any, any> {
@@ -78,6 +78,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     executeSelectNoneOrOne(): Promise<any> {
         this.query()
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
             let result
@@ -113,6 +114,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     executeSelectOne(): Promise<any> {
         this.query()
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
             let result
@@ -147,6 +149,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
     }
     __executeSelectMany(source: Error): Promise<any> {
         this.query()
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
             let result
@@ -191,6 +194,7 @@ abstract class AbstractSelect extends ComposeSplitQueryBuilder implements ToSql,
             const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
             const params: any[] = []
             const query = this.__buildSelectCount(countAll, params)
+            __setQueryMetadata(source, params, this.__customization, true)
             return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(query, params).then((value) => {
                 return this.__transformValueFromDB(countAll, value, undefined, undefined, true)
             }).catch((e) => {

@@ -11,6 +11,8 @@ export interface DeleteCustomization<DB extends AnyDB> {
     afterDeleteKeyword?: RawFragment<DB>
     beforeQuery?: RawFragment<DB>
     afterQuery?: RawFragment<DB>
+    queryExecutionName?: string
+    queryExecutionMetadata?: any
 }
 
 export interface DeleteExpressionOf<DB extends AnyDB> {

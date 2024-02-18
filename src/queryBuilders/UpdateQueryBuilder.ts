@@ -9,7 +9,7 @@ import { database, resultType, tableOrView, type } from "../utils/symbols"
 import { asAlwaysIfValueSource } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
-import { ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
+import { __setQueryMetadata, ComposeSplitQueryBuilder } from "./ComposeSliptQueryBuilder"
 import { Column, isColumn } from "../utils/Column"
 
 export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasAddWiths, ToSql, UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any>, CustomizableExecutableUpdate<any>, ExecutableUpdateExpression<any, any>, ShapedExecutableUpdateExpression<any, any, any>, NotExecutableUpdateExpression<any, any>, ShapedNotExecutableUpdateExpression<any, any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData, ComposableExecutableUpdate<any, any, any>, ComposeExpression<any, any, any, any, any, any>, ComposeExpressionDeletingInternalProperty<any, any, any, any, any, any>, ComposeExpressionDeletingExternalProperty<any, any, any, any, any, any>, ComposableCustomizableExecutableUpdate<any, any, any>, ReturnableExecutableUpdate<any, any>, ExecutableUpdateReturning<any, any, any>, UpdateSetExpression<any, any>, ShapedUpdateSetExpression<any, any, any>, UpdateSetExpressionAllowingNoWhere<any, any>, ShapedUpdateSetExpressionAllowingNoWhere<any, any, any>, UpdateSetJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, UpdateExpressionWithoutJoin<any, any>, UpdateFromExpression<any, any>, UpdateSetJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, UpdateExpressionWithoutJoinAllowingNoWhere<any, any>, UpdateFromExpressionAllowingNoWhere<any, any>, ComposableCustomizableExecutableUpdateProjectableAsNullable<any, any> {
@@ -47,6 +47,7 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     executeUpdate(min?: number, max?: number): Promise<int> & Promise<number> {
         this.query()
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
                 // Nothing to update, nothing to set
@@ -76,6 +77,7 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     executeUpdateNoneOrOne(): Promise<any> {
         this.query()
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
                 // Nothing to update, nothing to set
@@ -116,6 +118,7 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     executeUpdateOne(): Promise<any> {
         this.query()
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
                 // Nothing to update, nothing to set
@@ -157,6 +160,7 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     executeUpdateMany(min?: number, max?: number): Promise<any> {
         const source = new Error('Query executed at')
         this.query()
+        __setQueryMetadata(source, this.__params, this.__customization)
         try {
             if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
                 // Nothing to update, nothing to set

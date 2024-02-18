@@ -798,3 +798,28 @@ export class ComposeSplitQueryBuilder {
         return undefined
     }
 }
+
+export function  __setQueryMetadata(source: Error, params: any[], queryMetadata?: {queryExecutionName?: string,  queryExecutionMetadata?: any} | undefined, isSelectPageCountQuery?: boolean) {
+    Object.defineProperty(params, '$source', {
+        value: source,
+        writable: true,
+        enumerable: false,
+        configurable: true
+    })
+    if (queryMetadata) {
+        Object.defineProperty(params, '$metadata', {
+            value: queryMetadata,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+    if (isSelectPageCountQuery) {
+        Object.defineProperty(params, '$isSelectPageCountQuery', {
+            value: true,
+            writable: true,
+            enumerable: false,
+            configurable: true
+        })
+    }
+}

@@ -13,6 +13,8 @@ export interface InsertCustomization<DB extends AnyDB> {
     afterInsertKeyword?: RawFragment<DB>
     beforeQuery?: RawFragment<DB>
     afterQuery?: RawFragment<DB>
+    queryExecutionName?: string
+    queryExecutionMetadata?: any
 }
 
 export interface InsertExpressionOf<DB extends AnyDB> {

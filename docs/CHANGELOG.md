@@ -1,5 +1,16 @@
 # Change Log
 
+## v1.59.0 (18 Feb 2024)
+
+**Changes**:
+
+- Add support to more custom types: `customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`.
+- Add the possibility to get some metadata regarding the query execution in a query runner: the query execution stack, information about the function that requests to execute the query, knowing if the query is a select count in a select page, allowing to specify an execution name, allow to specify additional metadata for the execution.
+
+**Documentation changes**:
+
+- Improve documentation, making the simplified type definition more explicit.
+
 ## v1.58.0 (28 Jan 2024)
 
 **Changes**:

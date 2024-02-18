@@ -83,6 +83,8 @@ export type ValueType = 'boolean'
     | 'aggregatedArray'
     | '' // TableOrViewFragment
 
+export type NativeValueType = Exclude<ValueType, 'enum' | 'custom' | 'customComparable' | 'aggregatedArray' | ''>
+
 export interface __ValueSourcePrivate extends HasAddWiths {
     [isValueSourceObject]: true
     __valueType: ValueType

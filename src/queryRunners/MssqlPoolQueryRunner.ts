@@ -2,7 +2,7 @@ import type { DatabaseType } from "./QueryRunner"
 import type { ConnectionPool, ISqlTypeFactory, Transaction, Request } from 'mssql'
 import { TYPES } from 'mssql'
 import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
-import { ValueType } from "../expressions/values"
+import type { NativeValueType } from "../expressions/values"
 
 export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
@@ -95,7 +95,7 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
         }
     }
 
-    protected predefinedTypes: {[type in ValueType]?: ISqlTypeFactory | undefined} = {
+    protected predefinedTypes: {[type: string]: ISqlTypeFactory | undefined} = {
         boolean: TYPES.Bit,
         stringInt: TYPES.BigInt,
         int: TYPES.Int,
@@ -106,11 +106,17 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
         uuid: TYPES.UniqueIdentifier,
         localDate: TYPES.Date,
         localTime: TYPES.Time,
-        localDateTime: TYPES.DateTime2
-    }
+        localDateTime: TYPES.DateTime2,
+        customInt: TYPES.Int,
+        customDouble: TYPES.Real,
+        customUuid: TYPES.UniqueIdentifier,
+        customLocalDate: TYPES.Date,
+        customLocalTime: TYPES.Time,
+        customLocalDateTime: TYPES.DateTime2
+    } as {[type in NativeValueType]: ISqlTypeFactory | undefined}
 
     protected getType(params: any[], index: number): ISqlTypeFactory {
-        const definedType: ValueType | undefined = (params as any)['@' + index]
+        const definedType: string | undefined = (params as any)['@' + index]
         if (definedType) {
             const type = this.predefinedTypes[definedType]
             if (type) {

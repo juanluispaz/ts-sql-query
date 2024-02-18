@@ -1,6 +1,6 @@
 import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData, flattenQueryColumns, FlatQueryColumns, QueryColumns, WithValuesData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { AnyValueSource, IExecutableSelectQuery, isValueSource, __AggregatedArrayColumns, __isUuidValueSource, __isBooleanValueSource, ValueType, __isBooleanValueType } from "../expressions/values"
+import { AnyValueSource, IExecutableSelectQuery, isValueSource, __AggregatedArrayColumns, __isUuidValueSource, __isBooleanValueSource, ValueType, __isBooleanValueType, NativeValueType } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import { __getValueSourcePrivate } from "../expressions/values"
@@ -97,7 +97,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         // keep the data type to use in the query runner
         Object.defineProperty(params, '@' + params.length, {
-            value: columnType,
+            value: columnType in nativeTypedValueType ? columnType : columnTypeName,
             writable: true,
             enumerable: false,
             configurable: true
@@ -1052,6 +1052,25 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
 }
 
+const nativeTypedValueType: {[type in NativeValueType]: boolean | undefined} = {
+    boolean: true,
+    stringInt: true,
+    int: true,
+    bigint: true,
+    stringDouble: true,
+    double: true,
+    string: true,
+    uuid: true,
+    localDate: true,
+    localTime: true,
+    localDateTime: true,
+    customInt: true,
+    customDouble: true,
+    customUuid: true,
+    customLocalDate: true,
+    customLocalTime: true,
+    customLocalDateTime: true
+}
 
 // Source: https://docs.microsoft.com/en-us/sql/t-sql/language-elements/reserved-keywords-transact-sql?view=sql-server-ver15 (version: SqlServer 2019, all possible keywords combined)
 const reservedWords: { [word: string]: boolean | undefined } = {

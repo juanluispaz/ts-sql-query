@@ -2,7 +2,7 @@ import type { DatabaseType } from "./QueryRunner"
 import type { Connection, TediousType } from 'tedious'
 import { Request, TYPES } from 'tedious'
 import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
-import { ValueType } from "../expressions/values"
+import type { NativeValueType } from "../expressions/values"
 
 export class TediousQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
@@ -124,7 +124,7 @@ export class TediousQueryRunner extends PromiseBasedQueryRunner {
         return '@' + index
     }
 
-    protected predefinedTypes: {[type in ValueType]?: TediousType | undefined} = {
+    protected predefinedTypes: {[type: string]: TediousType | undefined} = {
         boolean: TYPES.Bit,
         stringInt: TYPES.BigInt,
         int: TYPES.Int,
@@ -135,11 +135,17 @@ export class TediousQueryRunner extends PromiseBasedQueryRunner {
         uuid: TYPES.UniqueIdentifier,
         localDate: TYPES.Date,
         localTime: TYPES.Time,
-        localDateTime: TYPES.DateTime2
-    }
+        localDateTime: TYPES.DateTime2,
+        customInt: TYPES.Int,
+        customDouble: TYPES.Real,
+        customUuid: TYPES.UniqueIdentifier,
+        customLocalDate: TYPES.Date,
+        customLocalTime: TYPES.Time,
+        customLocalDateTime: TYPES.DateTime2
+    } as {[type in NativeValueType]: TediousType | undefined}
 
     protected getType(params: any[], index: number): TediousType {
-        const definedType: ValueType | undefined = (params as any)['@' + index]
+        const definedType: string | undefined = (params as any)['@' + index]
         if (definedType) {
             const type = this.predefinedTypes[definedType]
             if (type) {

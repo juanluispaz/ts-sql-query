@@ -1,4 +1,4 @@
-import { SqlBuilder, InsertData, SelectData, QueryColumns, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
+import { SqlBuilder, InsertData, SelectData, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
 import{ HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression, ShapedMissingKeysInsertExpression, MissingKeysMultipleInsertExpression, ShapedMissingKeysMultipleInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableExecutableInsert, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional, ExecutableMultipleInsertExpression, ShapedExecutableInsertExpression, ShapedExecutableMultipleInsertExpression, ShapedInsertExpression, ShapedInsertOnConflictSetsExpression, ComposableCustomizableExecutableInsertProjectableAsNullable, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable } from "../expressions/insert"
 import { Column, isColumn } from "../utils/Column"
@@ -29,7 +29,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     __from?: SelectData
     __withs: Array<IWithView<any>> = []
     __customization?: InsertCustomization<any>
-    __columns?: QueryColumns
+    //__columns?: QueryColumns // declared at ComposeSplitQueryBuilder
     __onConflictOnConstraint?: string | IStringValueSource<any, any> | ITypeSafeStringValueSource<any, any> | RawFragment<any>
     __onConflictOnColumns?: AnyValueSource[]
     __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any>

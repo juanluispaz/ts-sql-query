@@ -1,4 +1,4 @@
-import { isAllowedQueryColumns, JoinData, QueryColumns, SqlBuilder, ToSql, UpdateData } from "../sqlBuilders/SqlBuilder"
+import { isAllowedQueryColumns, JoinData, SqlBuilder, ToSql, UpdateData } from "../sqlBuilders/SqlBuilder"
 import { HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, OuterJoinSource, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import { AlwaysIfValueSource, AnyValueSource, IBooleanValueSource, IIfValueSource, isValueSource } from "../expressions/values"
 import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, ComposableExecutableUpdate, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableUpdate, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, ComposableCustomizableExecutableUpdateProjectableAsNullable } from "../expressions/update"
@@ -25,7 +25,7 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
     __customization?: UpdateCustomization<any>
-    __columns?: QueryColumns
+    //__columns?: QueryColumns // declared at ComposeSplitQueryBuilder
     __oldValues?: ITableOrView<any>
     __froms?: Array<ITableOrView<any>>
     __joins?: Array<JoinData>

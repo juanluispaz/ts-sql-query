@@ -1,4 +1,4 @@
-import { SqlBuilder, DeleteData, JoinData, QueryColumns, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
+import { SqlBuilder, DeleteData, JoinData, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
 import { HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, OuterJoinSource, __addWiths, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import { IBooleanValueSource, IIfValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableExecutableDelete, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, ComposableCustomizableExecutableDeleteProjectableAsNullable } from "../expressions/delete"
@@ -22,7 +22,7 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
     __customization?: DeleteCustomization<any>
-    __columns?: QueryColumns
+    //__columns?: QueryColumns // declared at ComposeSplitQueryBuilder
     __using?: Array<ITableOrView<any>>
     __joins?: Array<JoinData>
 

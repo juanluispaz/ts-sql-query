@@ -39,7 +39,6 @@ nav:
   - Column types: column-types.md
   - Supported operations: supported-operations.md
   - Supported databases: supported-databases.md
-  - Supported databases with extended types: supported-databases-with-extended-types.md
   - Query runners:
     - Recommended query runners: query-runners/recommended-query-runners.md
     - Additional query runners: query-runners/additional-query-runners.md
@@ -47,4 +46,5 @@ nav:
   - Advanced usage: advanced-usage.md
   - FAQs & Limitations: faqs-limimitations.md
   - Composing and splitting results (legacy): composing-and-splitting-results.md
+  - Supported databases with extended types: supported-databases-with-extended-types.md
   - Change Log: CHANGELOG.md

@@ -1,8 +1,33 @@
 # Supported databases with extended types
 
+**DEPRECATED**: Use custom types instead.
+
+You can use [ts-extended-types](https://www.npmjs.com/package/ts-extended-types) defineing it as custom columns:
+
+```ts
+import {int, stringInt, double, stringDouble, LocalDate, LocalTime, LocalDateTime, uuid } from 'ts-extended-types';
+```
+
+You can define the columns in this way:
+
+```ts
+this.column<int, 'int'>('ColumnName', 'customInt', 'int')
+this.column<stringInt, 'stringInt'>('ColumnName', 'customInt', 'stringInt')
+this.column<double, 'double'>('ColumnName', 'customDouble', 'double')
+this.column<stringDouble, 'stringDouble'>('ColumnName', 'customDouble', 'stringDouble')
+this.column<LocalDate, 'localDate'>('ColumnName', 'customLocalDate', 'localDate')
+this.column<LocalTime, 'localTime'>('ColumnName', 'customLocalTime', 'localTime')
+this.column<LocalDateTime, 'localDateTime'>('ColumnName', 'customLocalDateTime', 'localDateTime')
+this.column<uuid, 'uuid'>('ColumnName', 'customUuid', 'uuid')
+```
+
+---
+
 If you uses this variant, the types defined in [ts-extended-types](https://www.npmjs.com/package/ts-extended-types). It types allows to make your application even more type-safe and represents better the data handled by the database.
 
 ## MariaDB
+
+**DEPRECATED**: Use custom types instead.
 
 ```ts
 import { TypeSafeMariaDBConnection } from "ts-sql-query/connections/TypeSafeMariaDBConnection";
@@ -40,6 +65,8 @@ class DBConnection extends TypeSafeMariaDBConnection<'DBConnection'> {
 ```
 
 ## MySql
+
+**DEPRECATED**: Use custom types instead.
 
 ```ts
 import { TypeSafeMySqlConnection } from "ts-sql-query/connections/TypeSafeMySqlConnection";
@@ -81,6 +108,8 @@ class DBConnection extends TypeSafeMySqlConnection<'DBConnection'> {
 **Note**: When the compatibility mode is enabled recursive queries are not supported and you will get an error if you try to use them.
 
 ## Oracle
+
+**DEPRECATED**: Use custom types instead.
 
 ```ts
 import { TypeSafeOracleConnection } from "ts-sql-query/connections/TypeSafeOracleConnection";
@@ -160,6 +189,8 @@ END raw_to_uuid;
 
 ## PostgreSql
 
+**DEPRECATED**: Use custom types instead.
+
 ```ts
 import { TypeSafePostgreSqlConnection } from "ts-sql-query/connections/TypeSafePostgreSqlConnection";
 
@@ -182,6 +213,8 @@ You can add your custom type cast or override the default one in the implementat
 
 
 ## Sqlite
+
+**DEPRECATED**: Use custom types instead.
 
 ```ts
 import { TypeSafeSqliteConnection } from "ts-sql-query/connections/TypeSafeSqliteConnection";
@@ -328,6 +361,8 @@ class DBConnection extends TypeSafeSqliteConnection<'DBConnection'> {
 ```
 
 ## SqlServer
+
+**DEPRECATED**: Use custom types instead.
 
 ```ts
 import { TypeSafeSqlServerConnection } from "ts-sql-query/connections/TypeSafeSqlServerConnection";

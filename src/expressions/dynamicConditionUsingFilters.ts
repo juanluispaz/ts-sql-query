@@ -208,6 +208,10 @@ export type FilterTypeOf<TYPE> =
     TYPE extends ['customComparable', infer T] ? ComparableFilter<T> :
     MapValueSourceToFilter<TYPE>
 
+
+/** 
+ * @deprecated Use custom types instead and the FilterTypeOf type
+ */
 export type TypeSafeFilterTypeOf<TYPE> = 
     TYPE extends 'boolean' ? BooleanFilter :
     TYPE extends 'stringInt' ? StringIntFilter :

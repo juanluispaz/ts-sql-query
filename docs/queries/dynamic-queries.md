@@ -300,7 +300,7 @@ const customersWithCompanyName: Promise<{
 }[]>
 ```
 
-The utility type `DynamicCondition` and `TypeSafeDynamicCondition` (when the extended types are used with type-safe connections) from `ts-sql-query/dynamicCondition` allows you to create a type definition for the dynamic criteria using type description or the object with the available fields.
+The utility type `DynamicCondition` from `ts-sql-query/dynamicCondition` allows you to create a type definition for the dynamic criteria using type description or the object with the available fields.
 
 See [Dynamic conditions](../supported-operations.md#dynamic-conditions) for more information.
 

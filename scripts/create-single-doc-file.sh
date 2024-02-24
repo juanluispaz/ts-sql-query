@@ -33,8 +33,6 @@ echo '\n# supported-operations.md\n' >> dist/doc.md
 cat docs/supported-operations.md >> dist/doc.md
 echo '\n# supported-databases.md\n' >> dist/doc.md
 cat docs/supported-databases.md >> dist/doc.md
-echo '\n# supported-databases-with-extended-types.md\n' >> dist/doc.md
-cat docs/supported-databases-with-extended-types.md >> dist/doc.md
 echo '\n# query-runners/recommended-query-runners.md\n' >> dist/doc.md
 cat docs/query-runners/recommended-query-runners.md >> dist/doc.md
 echo '\n# query-runners/additional-query-runners.md\n' >> dist/doc.md
@@ -47,5 +45,7 @@ echo '\n# faqs-limimitations.md\n' >> dist/doc.md
 cat docs/faqs-limimitations.md >> dist/doc.md
 echo '\n# composing-and-splitting-results.md\n' >> dist/doc.md
 cat docs/composing-and-splitting-results.md >> dist/doc.md
+echo '\n# supported-databases-with-extended-types.md\n' >> dist/doc.md
+cat docs/supported-databases-with-extended-types.md >> dist/doc.md
 echo '\n# CHANGELOG.md\n' >> dist/doc.md
 cat docs/CHANGELOG.md >> dist/doc.md

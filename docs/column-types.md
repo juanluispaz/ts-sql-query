@@ -4,30 +4,28 @@
 
 ts-sql-query allows you to define the columns with the following types:
 
-| Column type           | Typescript Type      | Extended type   | Description                                                       |
-|-----------------------|----------------------|-----------------|-------------------------------------------------------------------|
-| `boolean`             | `boolean`            | `boolean`       | Boolean value                                                     |
-| `stringInt`           | `string` or `number` | `stringInt`     | Integer number reprecented as number or string when it is too big |
-| `int`                 | `number`             | `int`           | Integer number                                                    |
-| `bigint`              | `bigint`             | `bigint`        | BigInt number                                                     |
-| `stringDouble`        | `string` or `number` | `stringDouble`  | Floating point number reprecented as number or string             |
-| `double`              | `number`             | `double`        | Floating point number                                             |
-| `string`              | `string`             | `string`        | String value                                                      |
-| `uuid`                | `string`             | `uuid`          | UUID value                                                        |
-| `localDate`           | `Date`               | `LocalDate`     | Date without time                                                 |
-| `localTime`           | `Date`               | `LocalTime`     | Time without date                                                 |
-| `localDateTime`       | `Date`               | `LocalDateTime` | Date with time                                                    |
-| `customInt`           | *custom*             | *custom*        | Int value using a custom type                                     |
-| `customDouble`        | *custom*             | *custom*        | Double value using a custom type                                  |
-| `customUuid`          | *custom*             | *custom*        | UUID value using a custom type                                    |
-| `customLocalDate`     | *custom*             | *custom*        | Date value using a custom type                                    |
-| `customLocalTime`     | *custom*             | *custom*        | Time value using a custom type                                    |
-| `customLocalDateTime` | *custom*             | *custom*        | Date with time value using a custom type                          |
-| `enum`                | *custom*             | *custom*        | Enum value using a custom type                                    |
-| `custom`              | *custom*             | *custom*        | Custom equalable value                                            |
-| `customComparable`    | *custom*             | *custom*        | Custom comparable value                                           |
-
-The extended types are defined in the [ts-extended-types](https://www.npmjs.com/package/ts-extended-types) package. Its types allow you to make your application even more type-safe and better represent the data structure handled by the database. To use these types, you must extend the type-safe variant of the connections defined at [Supported databases with extended types](supported-databases-with-extended-types.md)
+| Column type           | Typescript Type      | Description                                                       |
+|-----------------------|----------------------|-------------------------------------------------------------------|
+| `boolean`             | `boolean`            | Boolean value                                                     |
+| `stringInt`           | `string` or `number` | Integer number reprecented as number or string when it is too big |
+| `int`                 | `number`             | Integer number                                                    |
+| `bigint`              | `bigint`             | BigInt number                                                     |
+| `stringDouble`        | `string` or `number` | Floating point number reprecented as number or string             |
+| `double`              | `number`             | Floating point number                                             |
+| `string`              | `string`             | String value                                                      |
+| `uuid`                | `string`             | UUID value                                                        |
+| `localDate`           | `Date`               | Date without time                                                 |
+| `localTime`           | `Date`               | Time without date                                                 |
+| `localDateTime`       | `Date`               | Date with time                                                    |
+| `customInt`           | *custom*             | Int value using a custom type                                     |
+| `customDouble`        | *custom*             | Double value using a custom type                                  |
+| `customUuid`          | *custom*             | UUID value using a custom type                                    |
+| `customLocalDate`     | *custom*             | Date value using a custom type                                    |
+| `customLocalTime`     | *custom*             | Time value using a custom type                                    |
+| `customLocalDateTime` | *custom*             | Date with time value using a custom type                          |
+| `enum`                | *custom*             | Enum value using a custom type                                    |
+| `custom`              | *custom*             | Custom equalable value                                            |
+| `customComparable`    | *custom*             | Custom comparable value                                           |
 
 You can define a column with these types as indicated next:
 

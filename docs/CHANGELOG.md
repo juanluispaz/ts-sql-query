@@ -1,5 +1,15 @@
 # Change Log
 
+## v1.60.0 (25 Feb 2024)
+
+**Changes**:
+
+- Allow to use `notEqualsInsensitive` in dynamic filters previously not included in the white list of allowed functions.
+- Deprecate Tedious and MsNode query runners in favour of mssql. 
+- Deprecate Prisma's short-running transactions support.
+- Deprecate `stringInt` and `stringDouble` in favour of `customInt` and `customDouble`.
+- Deprecated database connections with extended types: `TypeSafeMariaDBConnection`, `TypeSafeMySqlConnection`, `TypeSafeOracleConnection`, `TypeSafePostgreSqlConnection`, `TypeSafeSqliteConnection`, `TypeSafeSqlServerConnection`.
+
 ## v1.59.0 (18 Feb 2024)
 
 **Changes**:

@@ -88,13 +88,17 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     }
 
     protected column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<REF, 'required'> & Column
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected column(this: OfDB<TypeSafeDB>, name: string, type: 'stringInt', adapter?: TypeAdapter): StringIntValueSource<REF, 'required'> & Column
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected column(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & Column
     protected column(this: OfDB<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, 'required'> & Column
     protected column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & Column
     protected column(this: OfDB<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, 'required'> & Column
     protected column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, 'required'> & Column
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected column(this: OfDB<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, 'required'> & Column
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected column(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & Column
     protected column(this: OfDB<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, 'required'> & Column
     protected column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & Column
@@ -134,13 +138,17 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     }
 
     protected optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<REF, 'optional'> & OptionalColumn
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected optionalColumn(this: OfDB<TypeSafeDB>, name: string, type: 'stringInt', adapter?: TypeAdapter): StringIntValueSource<REF, 'optional'> & OptionalColumn
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected optionalColumn(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(this: OfDB<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(this: OfDB<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, 'optional'> & OptionalColumn
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected optionalColumn(this: OfDB<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, 'optional'> & OptionalColumn
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected optionalColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(this: OfDB<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<REF, 'optional'> & OptionalColumn
@@ -180,13 +188,17 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     }
 
     protected columnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<REF, 'required'> & ColumnWithDefaultValue
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected columnWithDefaultValue(this: OfDB<TypeSafeDB>, name: string, type: 'stringInt', adapter?: TypeAdapter): StringIntValueSource<REF, 'required'> & ColumnWithDefaultValue
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected columnWithDefaultValue(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue(this: OfDB<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue(this: OfDB<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, 'required'> & ColumnWithDefaultValue
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected columnWithDefaultValue(this: OfDB<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, 'required'> & ColumnWithDefaultValue
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected columnWithDefaultValue(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue(this: OfDB<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, 'required'> & ColumnWithDefaultValue
     protected columnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & ColumnWithDefaultValue
@@ -226,13 +238,17 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     }
 
     protected optionalColumnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<REF, 'optional'> & OptionalColumn & ColumnWithDefaultValue
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected optionalColumnWithDefaultValue(this: OfDB<TypeSafeDB>, name: string, type: 'stringInt', adapter?: TypeAdapter): StringIntValueSource<REF, 'optional'> & OptionalColumn & ColumnWithDefaultValue
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected optionalColumnWithDefaultValue(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, 'optional'> & OptionalColumn & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(this: OfDB<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, 'optional'> & OptionalColumn & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, 'optional'> & OptionalColumn & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(this: OfDB<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, 'optional'> & OptionalColumn & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, 'optional'> & OptionalColumn & ColumnWithDefaultValue
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected optionalColumnWithDefaultValue(this: OfDB<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, 'optional'> & OptionalColumn & ColumnWithDefaultValue
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected optionalColumnWithDefaultValue(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, 'optional'> & OptionalColumn & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(this: OfDB<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, 'optional'> & OptionalColumn & ColumnWithDefaultValue
     protected optionalColumnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<REF, 'optional'> & OptionalColumn & ColumnWithDefaultValue
@@ -272,13 +288,17 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     }
 
     protected autogeneratedPrimaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected autogeneratedPrimaryKey(this: OfDB<TypeSafeDB>, name: string, type: 'stringInt', adapter?: TypeAdapter): StringIntValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected autogeneratedPrimaryKey(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(this: OfDB<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(this: OfDB<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected autogeneratedPrimaryKey(this: OfDB<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected autogeneratedPrimaryKey(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(this: OfDB<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
@@ -318,13 +338,17 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     }
 
     protected primaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<REF, 'required'> & PrimaryKeyColumn
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected primaryKey(this: OfDB<TypeSafeDB>, name: string, type: 'stringInt', adapter?: TypeAdapter): StringIntValueSource<REF, 'required'> & PrimaryKeyColumn
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected primaryKey(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & PrimaryKeyColumn
     protected primaryKey(this: OfDB<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, 'required'> & PrimaryKeyColumn
     protected primaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & PrimaryKeyColumn
     protected primaryKey(this: OfDB<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, 'required'> & PrimaryKeyColumn
     protected primaryKey(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, 'required'> & PrimaryKeyColumn
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected primaryKey(this: OfDB<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, 'required'> & PrimaryKeyColumn
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected primaryKey(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & PrimaryKeyColumn
     protected primaryKey(this: OfDB<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, 'required'> & PrimaryKeyColumn
     protected primaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & PrimaryKeyColumn
@@ -364,13 +388,17 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     }
 
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<TypeSafeDB & (Oracle | PostgreSql | SqlServer)>, name: string, sequenceName: string, type: 'stringInt', adapter?: TypeAdapter): StringIntValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<TypeSafeDB & (Oracle | PostgreSql | SqlServer)>, name: string, sequenceName: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<TypeSafeDB & (Oracle | PostgreSql | SqlServer)>, name: string, sequenceName: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<TypeSafeDB & (Oracle | PostgreSql | SqlServer)>, name: string, sequenceName: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<TypeSafeDB & (Oracle | PostgreSql | SqlServer)>, name: string, sequenceName: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
     protected autogeneratedPrimaryKeyBySequence(this: OfDB<Oracle | PostgreSql | SqlServer>, name: string, sequenceName: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & ColumnWithDefaultValue & PrimaryKeyColumn & PrimaryKeyAutogeneratedColumn
@@ -410,13 +438,17 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     }
 
     protected computedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<REF, 'required'> & ComputedColumn
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected computedColumn(this: OfDB<TypeSafeDB>, name: string, type: 'stringInt', adapter?: TypeAdapter): StringIntValueSource<REF, 'required'> & ComputedColumn
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected computedColumn(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & ComputedColumn
     protected computedColumn(this: OfDB<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, 'required'> & ComputedColumn
     protected computedColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & ComputedColumn
     protected computedColumn(this: OfDB<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, 'required'> & ComputedColumn
     protected computedColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, 'required'> & ComputedColumn
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected computedColumn(this: OfDB<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, 'required'> & ComputedColumn
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected computedColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & ComputedColumn
     protected computedColumn(this: OfDB<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, 'required'> & ComputedColumn
     protected computedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & ComputedColumn
@@ -456,13 +488,17 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     }
 
     protected optionalComputedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<REF, 'optional'> & OptionalColumn & ComputedColumn
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected optionalComputedColumn(this: OfDB<TypeSafeDB>, name: string, type: 'stringInt', adapter?: TypeAdapter): StringIntValueSource<REF, 'optional'> & OptionalColumn & ComputedColumn
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected optionalComputedColumn(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, 'optional'> & OptionalColumn & ComputedColumn
     protected optionalComputedColumn(this: OfDB<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): IntValueSource<REF, 'optional'> & OptionalColumn & ComputedColumn
     protected optionalComputedColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, 'optional'> & OptionalColumn & ComputedColumn
     protected optionalComputedColumn(this: OfDB<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, 'optional'> & OptionalColumn & ComputedColumn
     protected optionalComputedColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, 'optional'> & OptionalColumn & ComputedColumn
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected optionalComputedColumn(this: OfDB<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): StringDoubleValueSource<REF, 'optional'> & OptionalColumn & ComputedColumn
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected optionalComputedColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, 'optional'> & OptionalColumn & ComputedColumn
     protected optionalComputedColumn(this: OfDB<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): DoubleValueSource<REF, 'optional'> & OptionalColumn & ComputedColumn
     protected optionalComputedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<REF, 'optional'> & OptionalColumn & ComputedColumn
@@ -502,13 +538,17 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     }
 
     protected virtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<REF[typeof database], 'required'>) => IBooleanValueSource<REF, 'required'>, adapter?: TypeAdapter): BooleanValueSource<REF, 'required'>
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected virtualColumnFromFragment(this: OfDB<TypeSafeDB>, type: 'stringInt', fn: (fragment: StringIntFragmentExpression<REF[typeof database], 'required'>) => IStringIntValueSource<REF, 'required'>, adapter?: TypeAdapter): StringIntValueSource<REF, 'required'>
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected virtualColumnFromFragment(type: 'stringInt', fn: (fragment: StringNumberFragmentExpression<REF[typeof database], 'required'>) => IStringNumberValueSource<REF, 'required'>, adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'>
     protected virtualColumnFromFragment(this: OfDB<TypeSafeDB>, type: 'int', fn: (fragment: IntFragmentExpression<REF[typeof database], 'required'>) => IIntValueSource<REF, 'required'>, adapter?: TypeAdapter): IntValueSource<REF, 'required'>
     protected virtualColumnFromFragment(type: 'int', fn: (fragment: NumberFragmentExpression<REF[typeof database], 'required'>) => INumberValueSource<REF, 'required'>, adapter?: TypeAdapter): NumberValueSource<REF, 'required'>
     protected virtualColumnFromFragment(this: OfDB<TypeSafeDB>, type: 'bigint', fn: (fragment: TypeSafeBigintFragmentExpression<REF[typeof database], 'required'>) => ITypeSafeBigintValueSource<REF, 'required'>, adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, 'required'>
     protected virtualColumnFromFragment(type: 'bigint', fn: (fragment: BigintFragmentExpression<REF[typeof database], 'required'>) => IBigintValueSource<REF, 'required'>, adapter?: TypeAdapter): BigintValueSource<REF, 'required'>
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected virtualColumnFromFragment(this: OfDB<TypeSafeDB>, type: 'stringDouble', fn: (fragment: StringDoubleFragmentExpression<REF[typeof database], 'required'>) => IStringDoubleValueSource<REF, 'required'>, adapter?: TypeAdapter): StringDoubleValueSource<REF, 'required'>
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected virtualColumnFromFragment(type: 'stringDouble', fn: (fragment: StringNumberFragmentExpression<REF[typeof database], 'required'>) => IStringNumberValueSource<REF, 'required'>, adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'>
     protected virtualColumnFromFragment(this: OfDB<TypeSafeDB>, type: 'double', fn: (fragment: DoubleFragmentExpression<REF[typeof database], 'required'>) => IDoubleValueSource<REF, 'required'>, adapter?: TypeAdapter): DoubleValueSource<REF, 'required'>
     protected virtualColumnFromFragment(type: 'double', fn: (fragment: NumberFragmentExpression<REF[typeof database], 'required'>) => INumberValueSource<REF, 'required'>, adapter?: TypeAdapter): NumberValueSource<REF, 'required'>
@@ -550,13 +590,17 @@ class TableOf<REF extends TABLE<AnyDB, any>> implements ITable<REF> {
     }
 
     protected optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<REF[typeof database], 'optional'>) => IBooleanValueSource<REF, 'optional'>, adapter?: TypeAdapter): BooleanValueSource<REF, 'optional'>
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected optionalVirtualColumnFromFragment(this: OfDB<TypeSafeDB>, type: 'stringInt', fn: (fragment: StringIntFragmentExpression<REF[typeof database], 'optional'>) => IStringIntValueSource<REF, 'optional'>, adapter?: TypeAdapter): StringIntValueSource<REF, 'optional'>
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected optionalVirtualColumnFromFragment(type: 'stringInt', fn: (fragment: StringNumberFragmentExpression<REF[typeof database], 'optional'>) => IStringNumberValueSource<REF, 'optional'>, adapter?: TypeAdapter): StringNumberValueSource<REF, 'optional'>
     protected optionalVirtualColumnFromFragment(this: OfDB<TypeSafeDB>, type: 'int', fn: (fragment: IntFragmentExpression<REF[typeof database], 'optional'>) => IIntValueSource<REF, 'optional'>, adapter?: TypeAdapter): IntValueSource<REF, 'optional'>
     protected optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: NumberFragmentExpression<REF[typeof database], 'optional'>) => INumberValueSource<REF, 'optional'>, adapter?: TypeAdapter): NumberValueSource<REF, 'optional'>
     protected optionalVirtualColumnFromFragment(this: OfDB<TypeSafeDB>, type: 'bigint', fn: (fragment: TypeSafeBigintFragmentExpression<REF[typeof database], 'optional'>) => ITypeSafeBigintValueSource<REF, 'optional'>, adapter?: TypeAdapter): TypeSafeBigintValueSource<REF, 'optional'>
     protected optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: BigintFragmentExpression<REF[typeof database], 'optional'>) => IBigintValueSource<REF, 'optional'>, adapter?: TypeAdapter): BigintValueSource<REF, 'optional'>
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected optionalVirtualColumnFromFragment(this: OfDB<TypeSafeDB>, type: 'stringDouble', fn: (fragment: StringDoubleFragmentExpression<REF[typeof database], 'optional'>) => IStringDoubleValueSource<REF, 'optional'>, adapter?: TypeAdapter): StringDoubleValueSource<REF, 'optional'>
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected optionalVirtualColumnFromFragment(type: 'stringDouble', fn: (fragment: StringNumberFragmentExpression<REF[typeof database], 'optional'>) => IStringNumberValueSource<REF, 'optional'>, adapter?: TypeAdapter): StringNumberValueSource<REF, 'optional'>
     protected optionalVirtualColumnFromFragment(this: OfDB<TypeSafeDB>, type: 'double', fn: (fragment: DoubleFragmentExpression<REF[typeof database], 'optional'>) => IDoubleValueSource<REF, 'optional'>, adapter?: TypeAdapter): DoubleValueSource<REF, 'optional'>
     protected optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: NumberFragmentExpression<REF[typeof database], 'optional'>) => INumberValueSource<REF, 'optional'>, adapter?: TypeAdapter): NumberValueSource<REF, 'optional'>

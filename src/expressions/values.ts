@@ -439,7 +439,9 @@ export interface NumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     // Number functions
     asInt(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
     asDouble(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     asStringDouble(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     asBigint(): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
     abs(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -522,14 +524,18 @@ export interface NumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     ignoreWhenAsNull(when: boolean): NumberValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
+/** @deprecated 'stringInt' and 'stringDouble' types are deprecated, define your customInt instead */
 export interface IStringNumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, number | string, 'StringNumberValueSource', OPTIONAL_TYPE> {
     [stringNumberValueSourceType]: 'StringNumberValueSource'
 }
 
+/** @deprecated 'stringInt' and 'stringDouble' types are deprecated, define your customInt instead */
 export interface StringNumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, number | string, 'StringNumberValueSource', OPTIONAL_TYPE>, IStringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
     // SqlFunction0
     // Number functions
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     asStringDouble(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     asBigint(): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
     abs(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -622,9 +628,11 @@ export interface IIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, O
 export interface IntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, int, 'IntValueSource', OPTIONAL_TYPE>, IIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
     // SqlFunction0
     // Number functions
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     asStringInt(): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     asBigint(): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     asDouble(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     asStringDouble(): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     abs(): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     ceil(): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -757,6 +765,7 @@ export interface IDoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>
 export interface DoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, double, 'DoubleValueSource', OPTIONAL_TYPE>, IDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
     // SqlFunction0
     // Number functions
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     asStringDouble(): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     abs(): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     ceil(): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -890,7 +899,9 @@ export interface IBigintValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>
 export interface BigintValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, bigint, 'BigintValueSource', OPTIONAL_TYPE>, IBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
     // SqlFunction0
     // Number functions
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     asStringDouble(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     abs(): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     ceil(): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -1025,7 +1036,9 @@ export interface ITypeSafeBigintValueSource<TABLE_OR_VIEW extends ITableOrViewRe
 export interface TypeSafeBigintValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, bigint, 'TypeSafeBigintValueSource', OPTIONAL_TYPE>, ITypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
     // SqlFunction0
     // Number functions
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     asStringInt(): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     asStringDouble(): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     abs(): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     ceil(): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -1385,9 +1398,11 @@ export interface IStringIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<Any
     [stringIntValueSourceType]: 'StringIntValueSource'
 }
 
+/** @deprecated 'stringInt' type is deprecated, define your customInt instead */
 export interface StringIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, stringInt, 'StringIntValueSource', OPTIONAL_TYPE>, IStringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
     // SqlFunction0
     // Number functions
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     asStringDouble(): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     asBigint(): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     abs(): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -1514,10 +1529,12 @@ export interface StringIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyD
     ignoreWhenAsNull(when: boolean): StringIntValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
+/** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
 export interface IStringDoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, stringDouble, 'StringDoubleValueSource', OPTIONAL_TYPE> {
     [stringDoubleValueSourceType]: 'StringDoubleValueSource'
 }
 
+/** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
 export interface StringDoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, stringDouble, 'StringDoubleValueSource', OPTIONAL_TYPE>, IStringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
     // SqlFunction0
     // Number functions

@@ -491,6 +491,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     asDouble(): any {
         return new SqlOperation0ValueSource('_asDouble', this, 'double', 'double', this.__optionalType, this.__typeAdapter)
     }
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     asStringDouble(): any {
         return new SqlOperation0ValueSource('_asDouble', this, 'stringDouble', 'stringDouble', this.__optionalType, this.__typeAdapter)
     }
@@ -504,6 +505,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         }
         return new NoopValueSource(this, 'int', 'int', this.__optionalType, this.__typeAdapter)
     }
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     asStringInt(): any {
         if (this.__valueType === 'double') {
             // Unsafe cast, it happens when TypeSafe is not in use, we round the value

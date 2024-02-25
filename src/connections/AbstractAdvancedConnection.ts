@@ -16,13 +16,17 @@ export abstract class AbstractAdvancedConnection<DB extends AnyDB> extends Abstr
     }
 
     protected sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource<NoTableOrViewRequired<DB>, 'required'>>
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'stringInt', adapter?: TypeAdapter): Sequence<StringIntValueSource<NoTableOrViewRequired<DB>, 'required'>>
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     protected sequence(name: string, type: 'stringInt', adapter?: TypeAdapter): Sequence<StringNumberValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'int', adapter?: TypeAdapter): Sequence<IntValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'int', adapter?: TypeAdapter): Sequence<NumberValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'bigint', adapter?: TypeAdapter): Sequence<TypeSafeBigintValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'bigint', adapter?: TypeAdapter): Sequence<BigintValueSource<NoTableOrViewRequired<DB>, 'required'>>
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'stringDouble', adapter?: TypeAdapter): Sequence<StringDoubleValueSource<NoTableOrViewRequired<DB>, 'required'>>
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     protected sequence(name: string, type: 'stringDouble', adapter?: TypeAdapter): Sequence<StringNumberValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(this: IConnection<TypeSafeDB>, name: string, type: 'double', adapter?: TypeAdapter): Sequence<DoubleValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'double', adapter?: TypeAdapter): Sequence<NumberValueSource<NoTableOrViewRequired<DB>, 'required'>>

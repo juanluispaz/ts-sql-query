@@ -4,37 +4,35 @@
 
 ts-sql-query allows you to define the columns with the following types:
 
-| Column type           | Typescript Type      | Description                                                       |
-|-----------------------|----------------------|-------------------------------------------------------------------|
-| `boolean`             | `boolean`            | Boolean value                                                     |
-| `stringInt`           | `string` or `number` | Integer number reprecented as number or string when it is too big |
-| `int`                 | `number`             | Integer number                                                    |
-| `bigint`              | `bigint`             | BigInt number                                                     |
-| `stringDouble`        | `string` or `number` | Floating point number reprecented as number or string             |
-| `double`              | `number`             | Floating point number                                             |
-| `string`              | `string`             | String value                                                      |
-| `uuid`                | `string`             | UUID value                                                        |
-| `localDate`           | `Date`               | Date without time                                                 |
-| `localTime`           | `Date`               | Time without date                                                 |
-| `localDateTime`       | `Date`               | Date with time                                                    |
-| `customInt`           | *custom*             | Int value using a custom type                                     |
-| `customDouble`        | *custom*             | Double value using a custom type                                  |
-| `customUuid`          | *custom*             | UUID value using a custom type                                    |
-| `customLocalDate`     | *custom*             | Date value using a custom type                                    |
-| `customLocalTime`     | *custom*             | Time value using a custom type                                    |
-| `customLocalDateTime` | *custom*             | Date with time value using a custom type                          |
-| `enum`                | *custom*             | Enum value using a custom type                                    |
-| `custom`              | *custom*             | Custom equalable value                                            |
-| `customComparable`    | *custom*             | Custom comparable value                                           |
+| Column type                     | Typescript Type      | Description                                                       |
+|---------------------------------|----------------------|-------------------------------------------------------------------|
+| `boolean`                       | `boolean`            | Boolean value                                                     |
+| `stringInt` (**deprecated**)    | `string` or `number` | Integer number reprecented as number or string when it is too big |
+| `int`                           | `number`             | Integer number                                                    |
+| `bigint`                        | `bigint`             | BigInt number                                                     |
+| `stringDouble` (**deprecated**) | `string` or `number` | Floating point number reprecented as number or string             |
+| `double`                        | `number`             | Floating point number                                             |
+| `string`                        | `string`             | String value                                                      |
+| `uuid`                          | `string`             | UUID value                                                        |
+| `localDate`                     | `Date`               | Date without time                                                 |
+| `localTime`                     | `Date`               | Time without date                                                 |
+| `localDateTime`                 | `Date`               | Date with time                                                    |
+| `customInt`                     | *custom*             | Int value using a custom type                                     |
+| `customDouble`                  | *custom*             | Double value using a custom type                                  |
+| `customUuid`                    | *custom*             | UUID value using a custom type                                    |
+| `customLocalDate`               | *custom*             | Date value using a custom type                                    |
+| `customLocalTime`               | *custom*             | Time value using a custom type                                    |
+| `customLocalDateTime`           | *custom*             | Date with time value using a custom type                          |
+| `enum`                          | *custom*             | Enum value using a custom type                                    |
+| `custom`                        | *custom*             | Custom equalable value                                            |
+| `customComparable`              | *custom*             | Custom comparable value                                           |
 
 You can define a column with these types as indicated next:
 
 ```ts
 this.column('ColumnName', 'boolean')
-this.column('ColumnName', 'stringInt')
 this.column('ColumnName', 'int')
 this.column('ColumnName', 'bigint')
-this.column('ColumnName', 'stringDouble')
 this.column('ColumnName', 'double')
 this.column('ColumnName', 'string')
 this.column('ColumnName', 'uuid')
@@ -50,6 +48,16 @@ this.column<MyDateTimeType>('ColumnName', 'customLocalDateTime', 'MyDateTimeType
 this.column<MyEnumType>('ColumnName', 'enum', 'MyEnumTypeName')
 this.column<MyCustomType>('ColumnName', 'custom', 'MyCustomTypeName')
 this.column<MyCustomComparableType>('ColumnName', 'customComparable', 'MyCustomComparableTypeName')
+
+// Deprecated
+this.column('ColumnName', 'stringInt')
+// Use customInt instead:
+this.column<string | number, 'stringInt'>('ColumnName', 'customInt', 'stringInt')
+
+// Deprecared
+this.column('ColumnName', 'stringDouble')
+// Use customDouble instead:
+this.column<string | number, 'stringDouble'>('ColumnName', 'customDouble', 'stringDouble')
 ```
 
 ## Type adapters

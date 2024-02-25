@@ -123,7 +123,9 @@ interface BooleanValueSource extends EqualableValueSource<boolean> {
 interface NumberValueSource extends ComparableValueSource<number> {
     asInt(): NumberValueSource
     asDouble(): NumberValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     asStringInt(): StringNumberValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     asStringDouble(): StringNumberValueSource
     asBigint(): BigintValueSource
     abs(): this
@@ -166,9 +168,13 @@ interface NumberValueSource extends ComparableValueSource<number> {
 
 /**
  * Represents a stringInt or a stringDouble
+ * 
+ * @deprecated 'stringInt' type is deprecated, define your customInt instead
  */
 interface StringNumberValueSource extends ComparableValueSource<string|number> {
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     asStringInt(): StringNumberValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     asStringDouble(): StringNumberValueSource
     asBigint(): BigintValueSource
     abs(): this
@@ -213,6 +219,7 @@ interface StringNumberValueSource extends ComparableValueSource<string|number> {
  * Represents a bigint
  */
 interface BigintValueSource extends ComparableValueSource<bigint> {
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     asStringNumber(): StringNumberValueSource
     abs(): this
     ceil(): this
@@ -561,9 +568,11 @@ interface Connection {
 
     // methods that allows to create a value source with a constant value
     const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     const(value: number | string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     const(value: number, type: 'int', adapter?: TypeAdapter): NumberValueSource
     const(value: number, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     const(value: number | string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     const(value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource
     const(value: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -583,9 +592,11 @@ interface Connection {
 
     // methods that allows to create a value source with an optional constant value
     optionalConst(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     optionalConst(value: number | string | null | undefined, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     optionalConst(value: number | null | undefined, type: 'int', adapter?: TypeAdapter): NumberValueSource
     optionalConst(value: number | null | undefined, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     optionalConst(value: number | string | null | undefined, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalConst(value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalConst(value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -648,9 +659,11 @@ interface Connection {
 
     // Methods that allows create SQL fragments
     fragmentWithType(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     fragmentWithType(type: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     fragmentWithType(type: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
@@ -678,9 +691,11 @@ interface Connection {
 
     // Protected methods that allows call a function
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<boolean>
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<bigint>
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<number>
     executeFunction(functionName: string, params: AnyValueSource[], returnType: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Promise<string>
@@ -700,9 +715,11 @@ interface Connection {
 
     // Protected methods to define a sequence (only available in oracle, postgreSql and sqlServer)
     sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource>
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     sequence(name: string, type: 'stringInt', adapter?: TypeAdapter): Sequence<StringNumberValueSource>
     sequence(name: string, type: 'int', adapter?: TypeAdapter): Sequence<NumberValueSource>
     sequence(name: string, type: 'bigint', adapter?: TypeAdapter): Sequence<BigintValueSource>
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     sequence(name: string, type: 'stringDouble', adapter?: TypeAdapter): Sequence<StringNumberValueSource>
     sequence(name: string, type: 'double', adapter?: TypeAdapter): Sequence<NumberValueSource>
     sequence(name: string, type: 'string', adapter?: TypeAdapter): Sequence<StringValueSource>
@@ -725,9 +742,11 @@ interface Connection {
      * Allows to define arguments that acept the value or a value source of the type specified
      */
     arg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     arg(type: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     arg(type: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     arg(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
@@ -749,9 +768,11 @@ interface Connection {
      * Allows to define arguments that acept the value (but no a value source) of the type specified
      */
     valueArg(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     valueArg(type: 'stringInt', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'int', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'bigint', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     valueArg(type: 'stringDouble', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'double', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
     valueArg(type: 'string', required: 'required' | 'optional', adapter?: TypeAdapter): Argument
@@ -871,6 +892,7 @@ interface Sequence<T> {
 interface DynamicConditionExpression {
     withValues(filter: DynamicFilter): BooleanValueSource
 }
+
 ```
 
 ## Table definition
@@ -886,9 +908,11 @@ interface Table {
 
     // Protected methods that allow to create a required column that doesn't admits null
     column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     column(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     column(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -908,9 +932,11 @@ interface Table {
 
     // Protected methods that allow to create an optional column that admits null
     optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     optionalColumn(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     optionalColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -930,9 +956,11 @@ interface Table {
     
     // Protected methods that allow to create a required column that doesn't admits null but have a default value when insert
     columnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     columnWithDefaultValue(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     columnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     columnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     columnWithDefaultValue(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     columnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     columnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -952,9 +980,11 @@ interface Table {
     
     // Protected methods that allow to create an optional column that admits null and have a default value when insert
     optionalColumnWithDefaultValue(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     optionalColumnWithDefaultValue(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumnWithDefaultValue(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     optionalColumnWithDefaultValue(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     optionalColumnWithDefaultValue(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumnWithDefaultValue(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumnWithDefaultValue(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -975,9 +1005,11 @@ interface Table {
     // Protected methods that allow to create a primary key column autogenerated in the database
     // When you insert you don't need specify this column
     autogeneratedPrimaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     autogeneratedPrimaryKey(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     autogeneratedPrimaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     autogeneratedPrimaryKey(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     autogeneratedPrimaryKey(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     autogeneratedPrimaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     autogeneratedPrimaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -998,9 +1030,11 @@ interface Table {
     // Protected methods that allow to create a primary key column not automatically generated
     // When you insert you must specify this column
     primaryKey(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     primaryKey(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     primaryKey(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     primaryKey(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     primaryKey(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     primaryKey(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     primaryKey(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1022,9 +1056,11 @@ interface Table {
     // When you insert you don't need specify this column, it will be added automatically by ts-sql-query
     // This method is only supported by oracle, postgreSql and sqlServer
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     autogeneratedPrimaryKeyBySequence(name: string, sequenceName: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1044,9 +1080,11 @@ interface Table {
 
     // Protected methods that allow to create a computed column that doesn't admits null
     computedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     computedColumn(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     computedColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     computedColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     computedColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     computedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     computedColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1066,9 +1104,11 @@ interface Table {
 
     // Protected methods that allow to create an optional computed column that admits null
     optionalComputedColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     optionalComputedColumn(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     optionalComputedColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     optionalComputedColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     optionalComputedColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalComputedColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalComputedColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1088,9 +1128,11 @@ interface Table {
 
     // Protected methods that allows to create a sql fragment in the table
     virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     virtualColumnFromFragment(type: 'stringInt', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
     virtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     virtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     virtualColumnFromFragment(type: 'stringDouble', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
     virtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     virtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
@@ -1110,9 +1152,11 @@ interface Table {
 
     // Protected methods that allows to create an optional sql fragment in the table
     optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     optionalVirtualColumnFromFragment(type: 'stringInt', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
     optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     optionalVirtualColumnFromFragment(type: 'stringDouble', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
     optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
@@ -1145,9 +1189,11 @@ interface View {
 
     // Protected methods that allow to create a required column that doesn't admits null
     column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     column(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     column(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1167,9 +1213,11 @@ interface View {
 
     // Protected methods that allow to create an optional column that admits null
     optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     optionalColumn(name: string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     optionalColumn(name: string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1189,9 +1237,11 @@ interface View {
 
     // Protected methods that allows to create a sql fragment in the view
     virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     virtualColumnFromFragment(type: 'stringInt', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
     virtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     virtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     virtualColumnFromFragment(type: 'stringDouble', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
     virtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     virtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
@@ -1211,9 +1261,11 @@ interface View {
 
     // Protected methods that allows to create an optional sql fragment in the view
     optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     optionalVirtualColumnFromFragment(type: 'stringInt', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
     optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     optionalVirtualColumnFromFragment(type: 'stringDouble', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
     optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
@@ -1246,9 +1298,11 @@ interface Values {
 
     // Protected methods that allow to create a required column that doesn't admits null
     column(type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     column(type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     column(type: 'int', adapter?: TypeAdapter): NumberValueSource
     column(type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     column(type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     column(type: 'double', adapter?: TypeAdapter): NumberValueSource
     column(type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1268,9 +1322,11 @@ interface Values {
 
     // Protected methods that allow to create an optional column that admits null
     optionalColumn(type: 'boolean', adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     optionalColumn(type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumn(type: 'int', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(type: 'bigint', adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     optionalColumn(type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource
     optionalColumn(type: 'double', adapter?: TypeAdapter): NumberValueSource
     optionalColumn(type: 'string', adapter?: TypeAdapter): StringValueSource
@@ -1290,9 +1346,11 @@ interface Values {
 
     // Protected methods that allows to create a sql fragment in the view
     virtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     virtualColumnFromFragment(type: 'stringInt', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
     virtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     virtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     virtualColumnFromFragment(type: 'stringDouble', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
     virtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     virtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource
@@ -1312,9 +1370,11 @@ interface Values {
 
     // Protected methods that allows to create an optional sql fragment in the view
     optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: FragmentExpression) => BooleanValueSource, adapter?: TypeAdapter): BooleanValueSource
+    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
     optionalVirtualColumnFromFragment(type: 'stringInt', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
     optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: FragmentExpression) => BigintValueSource, adapter?: TypeAdapter): BigintValueSource
+    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
     optionalVirtualColumnFromFragment(type: 'stringDouble', fn: (fragment: FragmentExpression) => StringNumberValueSource, adapter?: TypeAdapter): StringNumberValueSource
     optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: FragmentExpression) => NumberValueSource, adapter?: TypeAdapter): NumberValueSource
     optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: FragmentExpression) => StringValueSource, adapter?: TypeAdapter): StringValueSource

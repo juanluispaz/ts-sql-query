@@ -28,6 +28,9 @@ export interface SubmittedEventCb { (sql: string, params:any[]): void
 export interface EventColumnCb { (colIndex: number, data:any, more:boolean): void
 }
 
+/**
+ * @deprecated Use mssql instead with MssqlPoolQueryRunner or MssqlPoolQueryRunner
+ */
 export class MsNodeSqlV8QueryRunner<CONNECTION extends Connection> extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: CONNECTION

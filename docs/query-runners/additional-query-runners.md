@@ -264,7 +264,7 @@ Prisma distinguishes between short and long-running transactions. You must under
 
 In a few words:
 
-- A **short-running transaction** allows you to execute multiple queries in a single call to the Prisma server; this allows Prisma to optimize the execution of all the queries in a single database call (if the database support it) or reduce the transaction's duration to the minimum possible. The limitation is you cannot depend on the result of one query as input for the next one.
+- A **short-running transaction** (DEPRECATED) allows you to execute multiple queries in a single call to the Prisma server; this allows Prisma to optimize the execution of all the queries in a single database call (if the database support it) or reduce the transaction's duration to the minimum possible. The limitation is you cannot depend on the result of one query as input for the next one.
 - A **long-running transaction** (also called interactive transactions in the documentation) allows you to obtain a dedicated connection to the database that will allow you to execute all the queries within a transaction. This dedicated connection allows you to query the database while the transaction is open, and the queries can be performed at different times. This model corresponds to the transaction model supported by the other libraries used in ts-sql-query to connect with the database.
 
 The consequence of this design is you cannot call the low-level transaction methods:
@@ -276,6 +276,8 @@ The consequence of this design is you cannot call the low-level transaction meth
 But, you can use `connection.transaction` method to perform a transaction in Prisma (under the hood, it calls `prismaClient.$transaction`). When you use `connection.transaction` method, you can combine ts-sql-query and Prisma operations.
 
 ### Short-running transactions
+
+**DEPRECATED**: Short-running transactions will be removed from ts-sql-query due Prisma's magical promises implementation.
 
 To execute a short running transaction, you must call the transaction method in the connection object. The provided function must return an array with the promises returned directly by ts-sql-query or Prisma of the requested queries.
 
@@ -400,6 +402,7 @@ async function main() {
 ### tedious (with a connection poll)
 
 **DEPRECATED**: [tedious-connection-pool](https://www.npmjs.com/package/tedious-connection-pool) is not maintained any more.
+**DEPRECATED**: Use mssql [mssql](https://www.npmjs.com/package/mssql) instead with [mssql (with a connection pool)](recommended-query-runners.md#mssql-with-a-connection-pool) or [mssql (with a connection pool promise)](recommended-query-runners.md#mssql-with-a-connection-pool-promise)
 
 It allows to execute the queries using a [tedious](https://www.npmjs.com/package/tedious) connection and a [tedious-connection-pool](https://www.npmjs.com/package/tedious-connection-pool) pool.
 
@@ -432,6 +435,8 @@ async function main() {
 ```
 
 ### tedious (with a connection)
+
+**DEPRECATED**: Use mssql [mssql](https://www.npmjs.com/package/mssql) instead with [mssql (with a connection pool)](recommended-query-runners.md#mssql-with-a-connection-pool) or [mssql (with a connection pool promise)](recommended-query-runners.md#mssql-with-a-connection-pool-promise)
 
 **NOTE**: If you are going to use this connector, let me know how to manage a proper connection pool.
 

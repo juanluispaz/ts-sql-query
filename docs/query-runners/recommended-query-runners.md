@@ -107,13 +107,6 @@ It allows to execute the queries using a [mssql](https://www.npmjs.com/package/m
 
 **Supported databases**: sqlServer
 
-It internally uses:
-
-- [tedious](https://www.npmjs.com/package/tedious) for connections to SqlServer on any OS
-- [msnodesqlv8](https://www.npmjs.com/package/msnodesqlv8) for connections to SqlServer only on Windows
-
-**Note**: All of these implementations have a direct implementation here as alternative.
-
 ```ts
 import { ConnectionPool } from 'mssql'
 import { MssqlPoolPromiseQueryRunner } from "./queryRunners/MssqlPoolPromiseQueryRunner";
@@ -136,13 +129,6 @@ async function main() {
 It allows to execute the queries using a [mssql](https://www.npmjs.com/package/mssql) connection pool.
 
 **Supported databases**: sqlServer
-
-It internally uses:
-
-- [tedious](https://www.npmjs.com/package/tedious) for connections to SqlServer on any OS
-- [msnodesqlv8](https://www.npmjs.com/package/msnodesqlv8) for connections to SqlServer only on Windows
-
-**Note**: All of these implementations have a direct implementation here as alternative.
 
 ```ts
 import { ConnectionPool } from 'mssql'

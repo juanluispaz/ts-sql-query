@@ -4,6 +4,9 @@ import { Request, TYPES } from 'tedious'
 import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 import type { NativeValueType } from "../expressions/values"
 
+/**
+ * @deprecated Use mssql instead with MssqlPoolQueryRunner or MssqlPoolQueryRunner
+ */
 export class TediousQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection

@@ -4,7 +4,7 @@ import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { TediousQueryRunner } from "./TediousQueryRunner"
 
 /**
- * @deprecated
+ * @deprecated Use mssql instead with MssqlPoolQueryRunner or MssqlPoolQueryRunner
  */
 export class TediousPoolQueryRunner extends PromiseBasedPoolQueryRunner {
     readonly database: DatabaseType

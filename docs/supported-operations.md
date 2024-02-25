@@ -2594,6 +2594,7 @@ interface StringFilter extends ComparableFilter<string> {
     equalsInsensitiveIfValue?: string | null | undefined
     equalsInsensitive?: string
     notEqualsInsensitiveIfValue?: string | null | undefined
+    notEqualsInsensitive?: string
     likeIfValue?: string | null | undefined
     like?: string
     notLikeIfValue?: string | null | undefined

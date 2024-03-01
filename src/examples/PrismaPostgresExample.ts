@@ -79,7 +79,7 @@ const tBoolean = new class TBoolean extends Table<DBConnection, 'TBoolean'> {
 const prisma = new PrismaClient()
 
 async function main() {
-    const connection = new DBConnection(new ConsoleLogQueryRunner(new PrismaQueryRunner(prisma, {interactiveTransactions: true})))
+    const connection = new DBConnection(new ConsoleLogQueryRunner(new PrismaQueryRunner(prisma)))
     // Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844
     //await connection.beginTransaction()
 

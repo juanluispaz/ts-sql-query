@@ -2,48 +2,6 @@
 
 **Important**: A ts-sql-query connection object and the queries runners objects received as constructor's arguments represent a dedicated connection; consequently, don't share connections between requests when you are handling HTTP requests; create one connection object per request with its own query runners. Even when the ts-sql-query connection object uses a query runner that receives a connection pool, the ts-sql-query connection sill represents a dedicated connection to the database extracted automatically from the pool and must not be shared.
 
-## msnodesqlv8
-
-**EXPERIMENTAL**: If you are going to use [msnodesqlv8](https://www.npmjs.com/package/msnodesqlv8), please, let me know. There is no way to test it easily.
-
-It allows to execute the queries using an [msnodesqlv8](https://www.npmjs.com/package/msnodesqlv8) connection.
-
-**Supported databases**: sqlServer (only on Windows)
-
-```ts
-const sql = require("msnodesqlv8");
-import { MsNodeSqlV8QueryRunner } from "ts-sql-query/queryRunners/MsNodeSqlV8QueryRunner";
-
-const connectionString = "server=.;Database=Master;Trusted_Connection=Yes;Driver={SQL Server Native Client 11.0}";
-
-// Note: this code doesn't create a pool, maybe you want one
-
-function main() {
-    sql.open(connectionString, function (error, sqlServerConnection) {
-        if (error) {
-            throw error;
-        }
-        try {
-            const connection = new DBConnection(new MsNodeSqlV8QueryRunner(sqlServerConnection));
-            yourLogic(connection).finally(() => {
-                sqlServerConnection.close((closeError) => {
-                    throw closeError;
-                });
-            });
-        } catch(e) {
-            sqlServerConnection.close((closeError) => {
-                throw closeError;
-            });
-            throw e;
-        }
-    });
-}
-
-async function doYourLogic(connection: DBConnection) {
-     // Do your queries here
-}
-```
-
 ## mysql
 
 ### mysql (with a connection pool)

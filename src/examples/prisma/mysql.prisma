@@ -6,6 +6,7 @@ datasource db {
 generator client {
     provider = "prisma-client-js"
     output   = "./generated/mysql"
+    previewFeatures = ["interactiveTransactions"]
 }
 
 model Company {

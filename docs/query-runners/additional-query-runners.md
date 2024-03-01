@@ -107,64 +107,21 @@ But, you can use `connection.transaction` method to perform a transaction in Pri
 
 ### Short-running transactions
 
-**DEPRECATED**: Short-running transactions will be removed from ts-sql-query due Prisma's magical promises implementation.
-
-To execute a short running transaction, you must call the transaction method in the connection object. The provided function must return an array with the promises returned directly by ts-sql-query or Prisma of the requested queries.
-
-```ts
-const [prismaCompany, otherCompanyID] = await connection.transaction(() => [
-    prisma.company.create({
-        data: {
-            name: 'Prisma Company'
-        }
-    }),
-    connection
-        .insertInto(tCompany)
-        .values({ name: 'Other Company' })
-        .returningLastInsertedId()
-        .executeInsert()
-])
-```
-
-**Note**: `connection.transaction` have the same limitations that `prismaClient.$transaction`. Ensure the transaction method directly receives the promises returned by Prisma or ts-sql-query; don't use async/await in the function received by `connection.transaction` as an argument.
-
-If you want to use `prismaClient.$transaction` directly, you must create the `PrismaQueryRunner` indicating as the second argument, in the config object, the property `forUseInTransaction`as `true`.
-
-```ts
-const connection = new DBConnection(new PrismaQueryRunner(prisma, {forUseInTransaction: true}));
-
-const [prismaCompany, otherCompanyID] = await prisma.$transaction([
-    prisma.company.create({
-        data: {
-            name: 'Prisma Company'
-        }
-    }),
-    connection
-        .insertInto(tCompany)
-        .values({ name: 'Other Company' })
-        .returningLastInsertedId()
-        .executeInsert()
-])
-```
-
-**Limitation**: When you enable the `forUseInTransaction` mode, the query must be executed in a transaction; otherwise the query will never be executed.
-
-**Known issues**: Some are sent with wrong type in PostgreSQL when you use Prisma 4, see [PostgreSQL typecasting fixes](https://www.prisma.io/docs/concepts/components/prisma-client/raw-database-access#postgresql-typecasting-fixes) and the note in [$queryRawUnsafe](https://www.prisma.io/docs/concepts/components/prisma-client/raw-database-access#queryrawunsafe)
+**NOT SUPPORTED**: Prisma's short-running transactions are not supported in ts-sql-query. Make sure to distinguish Prisma's short-running transactions from standard SQL transactions.
 
 ### Long-running transactions
 
 It is called, as well, interactive transactions in Prisma's documentation.
 
-To use the interactive transactions, you must enable it in your Prisma Schema (see the [documentation](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide#interactive-transactions-in-preview) to find how to do it). Additionally, you must pass as the second argument of the `PrismaQueryRunner` constructor a configuration object enabling it. The configuration object support the following properties:
+To use the interactive transactions, you must enable it in your Prisma Schema (see the [documentation](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide#interactive-transactions-in-preview) to find how to do it). Additionally, you can pass as the second argument of the `PrismaQueryRunner` constructor a configuration for long-running transactions. The configuration object support the following properties:
 
-- `interactiveTransactions` (boolean, optional, default `false`): Enable the interactive transactions when is set to true.
 - `interactiveTransactionsOptions`(object, optional, default `undefined`): Object with the second parament of the `$transaction` method in the Prisma client object. It supports the following properties: 
   - `maxWait` (number, optional, default `2000`): The maximum amount of time (milliseconds) the Prisma Client will wait to acquire a transaction from the database. The default is 2 seconds.
   - `timeout` (number, optional, default `5000`): The maximum amount of time (milliseconds) the interactive transaction can run before being cancelled and rolled back. The default value is 5 seconds.
   - `isolationLevel` (Prisma.TransactionIsolationLevel, optional): Sets the [transaction isolation level](https://www.prisma.io/docs/concepts/components/prisma-client/transactions#transaction-isolation-level). By default this is set to the value currently configured in your database.
 
 ```ts
-const connection = new DBConnection(new PrismaQueryRunner(prisma, {interactiveTransactions: true}));
+const connection = new DBConnection(new PrismaQueryRunner(prisma));
 
 const transactionResult = connection.transaction(async () => {
     const companyId = await connection.insertInto ...

@@ -1,7 +1,6 @@
 import type { AnyValueSource, IBooleanValueSource, IExecutableUpdateQuery, IIfValueSource, RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from "./values"
 import type { ITable, ITableOrView, ITableOrViewOf, NoTableOrViewRequired, OLD, OuterJoinSource, ResolvedShape } from "../utils/ITableOrView"
-import type { AnyDB, MariaDB, MySql, NoopDB, Oracle, PostgreSql, Sqlite, SqlServer, TypeSafeDB } from "../databases"
-import type { int } from "ts-extended-types"
+import type { AnyDB, MariaDB, MySql, NoopDB, Oracle, PostgreSql, Sqlite, SqlServer } from "../databases"
 import type { database, tableOrView, tableOrViewRef } from "../utils/symbols"
 import type { RawFragment } from "../utils/RawFragment"
 import type { ColumnsForSetOf, ColumnsForSetOfWithShape, ColumnsOf, OptionalColumnsForSetOf, OuterJoinTableOrView, RequiredColumnsForSetOf, ResolveShape } from "../utils/tableOrViewUtils"
@@ -26,7 +25,6 @@ export interface UpdateExpressionBase<TABLE extends ITableOrView<any>> extends U
 }
 
 export interface ExecutableUpdate<TABLE extends ITableOrView<any>> extends UpdateExpressionBase<TABLE>, IExecutableUpdateQuery<TABLE, number> {
-    executeUpdate(this: UpdateExpressionOf<TypeSafeDB>, min?: number, max?: number): Promise<int>
     executeUpdate(min?: number, max?: number): Promise<number>
     query(): string
     params(): any[]

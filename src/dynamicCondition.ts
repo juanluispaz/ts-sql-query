@@ -2,7 +2,7 @@ import { AnyValueSource, isValueSource } from './expressions/values'
 import type { MandatoryPropertiesOf, ResultObjectValues, ResultObjectValuesProjectedAsNullable } from './utils/resultUtils'
 import type { neverUsedSymbol } from './utils/symbols'
 
-export type { DynamicCondition, TypeSafeDynamicCondition } from './expressions/dynamicConditionUsingFilters'
+export type { DynamicCondition } from './expressions/dynamicConditionUsingFilters'
 
 export type Pickable = {
     [key in string]?: AnyValueSource | Pickable

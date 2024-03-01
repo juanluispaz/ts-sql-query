@@ -2,7 +2,6 @@ import { SqlBuilder, DeleteData, JoinData, ToSql, isAllowedQueryColumns } from "
 import { HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, OuterJoinSource, __addWiths, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import { IBooleanValueSource, IIfValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableExecutableDelete, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, ComposableCustomizableExecutableDeleteProjectableAsNullable } from "../expressions/delete"
-import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { database, resultType, tableOrView, type } from "../utils/symbols"
@@ -40,14 +39,14 @@ export class DeleteQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         this.__allowNoWhere = allowNoWhere
     }
 
-    executeDelete(min?: number, max?: number): Promise<int> & Promise<number> {
+    executeDelete(min?: number, max?: number): Promise<number> {
         this.query()
         const source = new Error('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             let result = this.__sqlBuilder._queryRunner.executeDelete(this.__query, this.__params).catch((e) => {
                 throw attachSource(new ChainedError(e), source)
-            }) as Promise<int>
+            })
             if (min !== undefined) {
                 result = result.then((count) => {
                     if (count < min) {

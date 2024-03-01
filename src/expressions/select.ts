@@ -1,8 +1,7 @@
-import type { IBooleanValueSource, INumberValueSource, IIntValueSource, IIfValueSource, IExecutableSelectQuery, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource } from "./values"
+import type { IBooleanValueSource, INumberValueSource, IIfValueSource, IExecutableSelectQuery, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource } from "./values"
 import type { ITableOrViewOf, NoTableOrViewRequired, NoTableOrViewRequiredView, OuterJoinSource } from "../utils/ITableOrView"
 import type { OuterJoinTableOrView, WithView, WITH_VIEW } from "../utils/tableOrViewUtils"
-import type { AnyDB, TypeWhenSafeDB, TypeSafeDB, TypeUnsafeDB, NoopDB, MariaDB, PostgreSql, Sqlite, Oracle, SqlServer } from "../databases"
-import type { int } from "ts-extended-types"
+import type { AnyDB, NoopDB, MariaDB, PostgreSql, Sqlite, Oracle, SqlServer } from "../databases"
 import type { columnsType, database, requiredTableOrView, tableOrViewRef, resultType, compoundableColumns, valueType } from "../utils/symbols"
 import type { RawFragment } from "../utils/RawFragment"
 import type { ColumnGuard, GuidedObj, GuidedPropName, RequiredKeysOfPickingColumns, ResultObjectValues, FixOptionalProperties, ValueOf, RequiredColumnNames, ColumnsForCompound, ResultObjectValuesProjectedAsNullable } from "../utils/resultUtils"
@@ -58,9 +57,7 @@ export interface ExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TA
     executeSelectOne(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })>
     executeSelectMany(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[]>
 
-    executeSelectPage(this: SelectExpressionBase<TypeSafeDB, NoTableOrViewRequiredView<DB>>): Promise<{ data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: int }>
     executeSelectPage(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<{ data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: number }>
-    executeSelectPage<EXTRAS extends {}>(this: SelectExpressionBase<TypeSafeDB, NoTableOrViewRequiredView<DB>>, extras: EXTRAS & { data?: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count?: int }): Promise<{ [Q in keyof SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>]: SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>[Q] }>
     executeSelectPage<EXTRAS extends {}>(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>, extras: EXTRAS & { data?: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count?: number }): Promise<{ [Q in keyof SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>]: SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>[Q] }>
 
     query(): string
@@ -188,18 +185,12 @@ export interface CompoundedCustomizableExecutableSelect<DB extends AnyDB, COLUMN
 }
 
 export interface CompoundedOffsetExecutableSelectExpression<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundedCustomizableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    offset(offset: int): CompoundedCustomizableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     offset(offset: number): CompoundedCustomizableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    offset(offset: TypeWhenSafeDB<DB, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>>): CompoundedCustomizableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    offsetIfValue(offset: int | null | undefined): CompoundedCustomizableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     offsetIfValue(offset: number | null | undefined): CompoundedCustomizableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
 }
 
 export interface CompoundedLimitExecutableSelectExpression<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundedCustomizableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    limit(limit: int): CompoundedOffsetExecutableSelectExpression<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     limit(limit: number): CompoundedOffsetExecutableSelectExpression<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limit(limit: TypeWhenSafeDB<DB, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>>): CompoundedOffsetExecutableSelectExpression<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limitIfValue(limit: int | null | undefined): CompoundedOffsetExecutableSelectExpression<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     limitIfValue(limit: number | null | undefined): CompoundedOffsetExecutableSelectExpression<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
 }
 
@@ -269,17 +260,11 @@ export interface CompoundableCustomizableExecutableSelectExpressionWitoutWhere<D
 }
 
 export interface OffsetExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>,  COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    offset(offset: int): CompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     offset(offset: number): CompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    offset(offset: TypeWhenSafeDB<DB, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>>): CompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    offsetIfValue(offset: int | null | undefined): CompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     offsetIfValue(offset: number | null | undefined): CompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
 }
 export interface LimitExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    limit(limit: int): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     limit(limit: number): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limit(limit: TypeWhenSafeDB<DB, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>>): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limitIfValue(limit: int | null | undefined): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
 }
 
@@ -317,10 +302,7 @@ export interface OrderableExecutableSelectExpressionWithoutWhere<DB extends AnyD
     orderByFromString(orderBy: string): OrderedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
 
-    limit(limit: int): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     limit(limit: number): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limit(limit: TypeWhenSafeDB<DB, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>>): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limitIfValue(limit: int | null | undefined): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
 }
 
@@ -329,10 +311,7 @@ export interface LimitExecutableSelectExpressionWithoutWhere<DB extends AnyDB, T
     where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereLimitExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereLimitExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     
-    limit(limit: int): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     limit(limit: number): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limit(limit: TypeWhenSafeDB<DB, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>>): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limitIfValue(limit: int | null | undefined): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
 }
 
@@ -349,10 +328,7 @@ export interface OrderedExecutableSelectExpressionWithoutWhere<DB extends AnyDB,
 }
 
 export interface OffsetExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>,  COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    offset(offset: int): CompoundableCustomizableExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     offset(offset: number): CompoundableCustomizableExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    offset(offset: TypeWhenSafeDB<DB, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>>): CompoundableCustomizableExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    offsetIfValue(offset: int | null | undefined): CompoundableCustomizableExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     offsetIfValue(offset: number | null | undefined): CompoundableCustomizableExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
 
     dynamicWhere(): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
@@ -372,10 +348,7 @@ export interface DynamicWhereLimitExecutableSelectExpression<DB extends AnyDB, T
     or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereLimitExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereLimitExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
 
-    limit(limit: int): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     limit(limit: number): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limit(limit: TypeWhenSafeDB<DB, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>>): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limitIfValue(limit: int | null | undefined): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
     limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
 }
 
@@ -430,8 +403,7 @@ export interface GroupByOrderHavingByExpressionWithoutSelect<DB extends AnyDB, T
 
     select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
     selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectCountAll(this: SelectExpressionBase<TypeSafeDB, any>): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, int, REQUIRED_TABLE_OR_VIEW, FEATURES | 'requiredResult'>
-    selectCountAll(this: SelectExpressionBase<TypeUnsafeDB, any>): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
+    selectCountAll(): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
 }
 
 export interface DynamicHavingExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
@@ -446,8 +418,7 @@ export interface DynamicHavingExpressionWithoutSelect<DB extends AnyDB, TABLE_OR
 
     select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
     selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectCountAll(this: SelectExpressionBase<TypeSafeDB, any>): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, int, REQUIRED_TABLE_OR_VIEW, FEATURES | 'requiredResult'>
-    selectCountAll(this: SelectExpressionBase<TypeUnsafeDB, any>): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
+    selectCountAll(): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
 }
 
 export interface DynamicWhereSelectExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
@@ -458,8 +429,7 @@ export interface DynamicWhereSelectExpressionWithoutSelect<DB extends AnyDB, TAB
 
     select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): OrderByExecutableSelectExpressionProjectableAsNullable<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
     selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectCountAll(this: SelectExpressionBase<TypeSafeDB, any>): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, int, REQUIRED_TABLE_OR_VIEW, FEATURES | 'requiredResult'>
-    selectCountAll(this: SelectExpressionBase<TypeUnsafeDB, any>): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
+    selectCountAll(): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
 }
 
 export interface RecursivelyConnectedExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
@@ -467,8 +437,7 @@ export interface RecursivelyConnectedExpressionWithoutSelect<DB extends AnyDB, T
 
     select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): GroupByOrderByExecutableSelectExpressionProjectableAsNullable<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
     selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectCountAll(this: SelectExpressionBase<TypeSafeDB, any>): GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, int, REQUIRED_TABLE_OR_VIEW, FEATURES | 'requiredResult'>
-    selectCountAll(this: SelectExpressionBase<TypeUnsafeDB, any>): GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
+    selectCountAll(): GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
 }
 
 export interface DynamicWhereExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends RecursivelyConnectedExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES> {
@@ -544,8 +513,7 @@ export interface ExecutableSelectExpressionWithoutWhereProjectableAsNullable<DB 
 export interface RecursivelyConnectedSelectWhereExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
     select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): ExecutableSelectExpressionWithoutWhereProjectableAsNullable<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
     selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectCountAll(this: SelectExpressionBase<TypeSafeDB, any>): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, IIntValueSource<NoTableOrViewRequired<DB>, 'required'>, int, REQUIRED_TABLE_OR_VIEW, FEATURES | 'requiredResult'>
-    selectCountAll(this: SelectExpressionBase<TypeUnsafeDB, any>): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
+    selectCountAll(): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
     dynamicWhere(): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
     where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
     where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
@@ -602,7 +570,7 @@ export type SelectColumns<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf
     [P: number | symbol]: never
 }
 
-type SelectPageWithExtras<COLUMNS, RESULT, EXTRAS> = { data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: int } & Omit<EXTRAS, 'data' | 'count'>
+type SelectPageWithExtras<COLUMNS, RESULT, EXTRAS> = { data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: number } & Omit<EXTRAS, 'data' | 'count'>
 
 type ForUseInQueryAs<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> =
     COLUMNS extends undefined

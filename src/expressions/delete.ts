@@ -1,7 +1,6 @@
 import type { AnyValueSource, IBooleanValueSource, IExecutableDeleteQuery, IIfValueSource, ValueSourceOf, ValueSourceValueTypeForResult } from "./values"
 import type { ITableOrView, ITableOrViewOf, NoTableOrViewRequired, OuterJoinSource } from "../utils/ITableOrView"
-import type { AnyDB, MariaDB, MySql, NoopDB, Oracle, PostgreSql, Sqlite, SqlServer, TypeSafeDB } from "../databases"
-import type { int } from "ts-extended-types"
+import type { AnyDB, MariaDB, MySql, NoopDB, Oracle, PostgreSql, Sqlite, SqlServer } from "../databases"
 import type { database, tableOrView, tableOrViewRef } from "../utils/symbols"
 import type { RawFragment } from "../utils/RawFragment"
 import type { OuterJoinTableOrView } from "../utils/tableOrViewUtils"
@@ -24,7 +23,6 @@ export interface DeleteExpressionBase<TABLE extends ITableOrView<any>> extends D
 }
 
 export interface ExecutableDelete<TABLE extends ITableOrView<any>> extends DeleteExpressionBase<TABLE>, IExecutableDeleteQuery<TABLE, number> {
-    executeDelete(this: DeleteExpressionOf<TypeSafeDB>, min?: number, max?: number): Promise<int>
     executeDelete(min?: number, max?: number): Promise<number>
     query(): string
     params(): any[]

@@ -1,7 +1,6 @@
-import type { IExecutableSelectQuery, RemapIValueSourceType, ValueSourceValueType, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapIValueSourceTypeWithOptionalType, IExecutableInsertQuery, IIfValueSource, IBooleanValueSource, IStringValueSource, ITypeSafeStringValueSource } from "./values"
+import type { IExecutableSelectQuery, RemapIValueSourceType, ValueSourceValueType, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapIValueSourceTypeWithOptionalType, IExecutableInsertQuery, IIfValueSource, IBooleanValueSource, IStringValueSource } from "./values"
 import type { ITableOrView, NoTableOrViewRequired, NoTableOrViewRequiredView, ResolvedShape, VALUES_FOR_INSERT } from "../utils/ITableOrView"
-import type { AnyDB, TypeSafeDB, NoopDB, PostgreSql, SqlServer, Oracle, Sqlite, MariaDB, MySql, TypeWhenSafeDB } from "../databases"
-import type { int } from "ts-extended-types"
+import type { AnyDB, NoopDB, PostgreSql, SqlServer, Oracle, Sqlite, MariaDB, MySql } from "../databases"
 import type { database, tableOrView, tableOrViewRef } from "../utils/symbols"
 import type { ColumnWithDefaultValue } from "../utils/Column"
 import type { RawFragment } from "../utils/RawFragment"
@@ -26,7 +25,6 @@ export interface InsertExpressionBase<TABLE extends ITableOrView<any>> extends I
 }
 
 export interface ExecutableInsert<TABLE extends ITableOrView<any>> extends InsertExpressionBase<TABLE>, IExecutableInsertQuery<TABLE, number> {
-    executeInsert(this: InsertExpressionOf<TypeSafeDB>, min?: number, max?: number): Promise<int>
     executeInsert(min?: number, max?: number): Promise<number>
     query(): string
     params(): any[]
@@ -1049,7 +1047,7 @@ type OnConflictOnConstraintFnType<TABLE extends ITableOrView<any>, NEXT> =
 
 interface OnConflictOnConstraintFnTypeInterface<TABLE extends ITableOrView<any>, NEXT> {
     (constraint: string): NEXT
-    (constraint: TypeWhenSafeDB<TABLE[typeof database], IStringValueSource<NoTableOrViewRequired<TABLE[typeof database]>, 'required'>, ITypeSafeStringValueSource<NoTableOrViewRequired<TABLE[typeof database]>, 'required'>>): NEXT
+    (constraint: IStringValueSource<NoTableOrViewRequired<TABLE[typeof database]>, 'required'>): NEXT
     (constraint: RawFragment<TABLE[typeof database]>): NEXT
 }
 

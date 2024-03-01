@@ -6,7 +6,7 @@ import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { database, resultType, tableOrView, type } from "../utils/symbols"
-import { AlwaysIfValueSource, AnyValueSource, asAlwaysIfValueSource, IBooleanValueSource, IExecutableSelectQuery, IIfValueSource, IStringValueSource, isValueSource, ITypeSafeStringValueSource, __getValueSourcePrivate } from "../expressions/values"
+import { AlwaysIfValueSource, AnyValueSource, asAlwaysIfValueSource, IBooleanValueSource, IExecutableSelectQuery, IIfValueSource, IStringValueSource, isValueSource, __getValueSourcePrivate } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
 import { ComposeSplitQueryBuilder, __setQueryMetadata } from "./ComposeSliptQueryBuilder"
 import { RawFragment } from "../utils/RawFragment"
@@ -30,7 +30,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     __withs: Array<IWithView<any>> = []
     __customization?: InsertCustomization<any>
     //__columns?: QueryColumns // declared at ComposeSplitQueryBuilder
-    __onConflictOnConstraint?: string | IStringValueSource<any, any> | ITypeSafeStringValueSource<any, any> | RawFragment<any>
+    __onConflictOnConstraint?: string | IStringValueSource<any, any> | RawFragment<any>
     __onConflictOnColumns?: AnyValueSource[]
     __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any>
     __onConflictDoNothing?: boolean
@@ -1707,7 +1707,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         }
         return this
     }
-    onConflictOnConstraint(constraint: string | IStringValueSource<any, any> | ITypeSafeStringValueSource<any, any> | RawFragment<any>): this {
+    onConflictOnConstraint(constraint: string | IStringValueSource<any, any> | RawFragment<any>): this {
         this.__query = ''
         if (this.__onConflictOnConstraint) {
             throw new Error('Illegal state')

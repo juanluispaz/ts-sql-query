@@ -1,16 +1,7 @@
-import type { anyDBType, mariaDBType, mySqlType, nextMethodNotSupportedByThisConnection, noopDBType, oracleType, postgreSqlType, sqliteType, sqlServerType, typeSafeDBType, typeUnsafeDBType } from "./utils/symbols";
+import type { anyDBType, mariaDBType, mySqlType, nextMethodNotSupportedByThisConnection, noopDBType, oracleType, postgreSqlType, sqliteType, sqlServerType } from "./utils/symbols";
 
 export interface AnyDB {
     [anyDBType] : 'AnyDB'
-}
-
-export interface TypeSafeDB extends AnyDB {
-    [typeSafeDBType] : 'TypeSafe'
-}
-export type TypeWhenSafeDB<DB extends AnyDB, when, els> = DB extends TypeSafeDB ? when : els
-
-export interface TypeUnsafeDB extends AnyDB {
-    [typeUnsafeDBType] : 'TypeUnsafe'
 }
 
 export interface MariaDB extends AnyDB {

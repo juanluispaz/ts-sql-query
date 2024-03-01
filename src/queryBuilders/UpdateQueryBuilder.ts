@@ -2,7 +2,6 @@ import { isAllowedQueryColumns, JoinData, SqlBuilder, ToSql, UpdateData } from "
 import { HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, OuterJoinSource, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import { AlwaysIfValueSource, AnyValueSource, IBooleanValueSource, IIfValueSource, isValueSource } from "../expressions/values"
 import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, ComposableExecutableUpdate, ComposeExpression, ComposeExpressionDeletingInternalProperty, ComposeExpressionDeletingExternalProperty, ComposableCustomizableExecutableUpdate, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, ComposableCustomizableExecutableUpdateProjectableAsNullable } from "../expressions/update"
-import type { int } from "ts-extended-types"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { database, resultType, tableOrView, type } from "../utils/symbols"
@@ -44,19 +43,19 @@ export class UpdateQueryBuilder extends ComposeSplitQueryBuilder implements HasA
         this.__allowNoWhere = allowNoWhere
     }
 
-    executeUpdate(min?: number, max?: number): Promise<int> & Promise<number> {
+    executeUpdate(min?: number, max?: number): Promise<number> {
         this.query()
         const source = new Error('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
                 // Nothing to update, nothing to set
-                return this.__sqlBuilder._queryRunner.createResolvedPromise(0) as Promise<int>
+                return this.__sqlBuilder._queryRunner.createResolvedPromise(0)
             }
 
             let result = this.__sqlBuilder._queryRunner.executeUpdate(this.__query, this.__params).catch((e) => {
                 throw attachSource(new ChainedError(e), source)
-            }) as Promise<int>
+            })
             
             if (min !== undefined) {
                 result = result.then((count) => {

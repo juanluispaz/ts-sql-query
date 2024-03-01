@@ -1,6 +1,5 @@
 import type { ITableOrView, ITable, IWithView, HasIsValue } from "../utils/ITableOrView"
-import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IIntValueSource, isValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, IStringValueSource, ITypeSafeStringValueSource, __getValueSourcePrivate, ValueType } from "../expressions/values"
-import type { int } from "ts-extended-types"
+import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, isValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, IStringValueSource, __getValueSourcePrivate, ValueType } from "../expressions/values"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode, SelectCustomization } from "../expressions/select"
 import type { Column } from "../utils/Column"
@@ -141,8 +140,8 @@ export interface PlainSelectData extends WithQueryData {
     __groupBy:  Array<AnyValueSource>
     __orderBy?: OrderByEntry[]
     __orderingSiblingsOnly?: boolean // Oracle
-    __limit?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
-    __offset?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
+    __limit?: number | INumberValueSource<any, any>
+    __offset?: number | INumberValueSource<any, any>
     __requiredTablesOrViews?: Set<ITableOrView<any>>
     __asInlineAggregatedArrayValue?: boolean
 }
@@ -159,8 +158,8 @@ export interface CompoundSelectData extends WithQueryData {
     __oneColumn: boolean
     __orderBy?: OrderByEntry[]
     __orderingSiblingsOnly?: boolean // Oracle
-    __limit?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
-    __offset?: int | number | INumberValueSource<any, any> | IIntValueSource<any, any>
+    __limit?: number | INumberValueSource<any, any>
+    __offset?: number | INumberValueSource<any, any>
     __asInlineAggregatedArrayValue?: boolean
 }
 
@@ -173,7 +172,7 @@ export interface InsertData extends WithQueryData {
     __from?: SelectData
     __customization?: InsertCustomization<any>
     __columns?: QueryColumns
-    __onConflictOnConstraint?: string | IStringValueSource<any, any> | ITypeSafeStringValueSource<any, any> | RawFragment<any>
+    __onConflictOnConstraint?: string | IStringValueSource<any, any> | RawFragment<any>
     __onConflictOnColumns?: AnyValueSource[]
     __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any>
     __onConflictDoNothing?: boolean

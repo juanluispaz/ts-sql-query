@@ -29,7 +29,6 @@ ts-node ./src/examples/BetterSqlite3Example.ts || exit 1
 ts-node ./src/examples/BetterSqlite3SynchronousExample.ts || exit 1
 ts-node ./src/examples/Sqlite3WasmOO1Example.ts || exit 1
 ts-node ./src/examples/Sqlite3WasmOO1SynchronousExample.ts || exit 1
-ts-node ./src/examples/AnyDBSqlite3Example.ts || exit 1
 # Disabled on ARM
 #    # ts-node ./src/examples/LoopBackSqlite3Example.ts || exit 1
 ts-node ./src/examples/PrismaSqliteExample.ts || exit 1
@@ -38,7 +37,6 @@ docker run --name ts-sql-query-postgres -p 5432:5432 -e POSTGRES_PASSWORD=mysecr
 sleep 20
 ts-node ./src/examples/PgExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 ts-node ./src/examples/EncriptedIDPgExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
-ts-node ./src/examples/AnyDBPostgresExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 ts-node ./src/examples/LoopBackPostgresqlExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 ts-node ./src/examples/PrismaPostgresExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 ts-node ./src/examples/PostgresExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
@@ -48,7 +46,6 @@ docker rm ts-sql-query-postgres
 docker run --name ts-sql-query-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=my-secret-pw -d bitnami/mysql:5.7.41
 sleep 30
 ts-node ./src/examples/MySqlExample.ts || { docker stop ts-sql-query-mysql; docker rm ts-sql-query-mysql; exit 1; }
-ts-node ./src/examples/AnyDBMySqlExample.ts || { docker stop ts-sql-query-mysql; docker rm ts-sql-query-mysql; exit 1; }
 # Disabled on ARM
 #    # ts-node ./src/examples/LoopBackMySqlExample.ts || { docker stop ts-sql-query-mysql; docker rm ts-sql-query-mysql; exit 1; }
 docker stop ts-sql-query-mysql
@@ -73,7 +70,6 @@ docker run --name ts-sql-query-sqlserver -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=your
 sleep 20
 ts-node ./src/examples/TediousExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
 ts-node ./src/examples/MssqlTediousExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
-ts-node ./src/examples/AnyDBMssqlTediousExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
 ts-node ./src/examples/LoopBackMssqlTediousExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
 ts-node ./src/examples/PrismaSqlServerExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
 docker stop ts-sql-query-sqlserver

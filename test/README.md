@@ -24,7 +24,6 @@ ts-sql-query follows a strategy that can be a little bit different to what is us
       - pg (PostgreSql)
       - sqlite3 (Sqlite)
     - **The alternative one**:
-      - any-db (MariaDB, MySql, PostgreSql, Sqlite, SqlServer)
       - loopback (MariaDB, MySql, PostgreSql, Sqlite, SqlServer, Oracle)
       - mysql (MySql)
       - prisma (MariaDB, MySql, PostgreSql, Sqlite, SqlServer)

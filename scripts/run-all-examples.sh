@@ -8,7 +8,6 @@
 # Download and uncompress instantclient-basic-macos: https://www.oracle.com/es/database/technologies/instant-client/macos-intel-x86-downloads.html
 # Execute the commmand in the uncompressed folder: xattr -d com.apple.quarantine *
 cp -R -X $PWD/../instantclient_19_8/* node_modules/oracledb/build/Release
-rm -Rf node_modules/loopback-connector-oracle/node_modules/oracledb
 
 set -x #echo on
 
@@ -28,14 +27,12 @@ ts-node ./src/examples/BetterSqlite3Example.ts || exit 1
 ts-node ./src/examples/BetterSqlite3SynchronousExample.ts || exit 1
 ts-node ./src/examples/Sqlite3WasmOO1Example.ts || exit 1
 ts-node ./src/examples/Sqlite3WasmOO1SynchronousExample.ts || exit 1
-ts-node ./src/examples/LoopBackSqlite3Example.ts || exit 1
 ts-node ./src/examples/PrismaSqliteExample.ts || exit 1
 
 docker run --name ts-sql-query-postgres -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
 sleep 20
 ts-node ./src/examples/PgExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 ts-node ./src/examples/EncriptedIDPgExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
-ts-node ./src/examples/LoopBackPostgresqlExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 ts-node ./src/examples/PrismaPostgresExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 ts-node ./src/examples/PostgresExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }
 docker stop ts-sql-query-postgres
@@ -44,7 +41,6 @@ docker rm ts-sql-query-postgres
 docker run --name ts-sql-query-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mysql:5.7.29
 sleep 30
 ts-node ./src/examples/MySqlExample.ts || { docker stop ts-sql-query-mysql; docker rm ts-sql-query-mysql; exit 1; }
-ts-node ./src/examples/LoopBackMySqlExample.ts || { docker stop ts-sql-query-mysql; docker rm ts-sql-query-mysql; exit 1; }
 docker stop ts-sql-query-mysql
 docker rm ts-sql-query-mysql
 
@@ -68,7 +64,6 @@ docker run --name ts-sql-query-sqlserver -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=your
 sleep 20
 ts-node ./src/examples/TediousExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
 ts-node ./src/examples/MssqlTediousExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
-ts-node ./src/examples/LoopBackMssqlTediousExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
 ts-node ./src/examples/PrismaSqlServerExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
 docker stop ts-sql-query-sqlserver
 docker rm ts-sql-query-sqlserver
@@ -77,7 +72,6 @@ docker rm ts-sql-query-sqlserver
 docker run --name ts-sql-query-oracle -d -p 1521:1521 quillbuilduser/oracle-18-xe
 sleep 60
 ts-node ./src/examples/OracleDBExample.ts || { docker stop ts-sql-query-oracle; docker rm ts-sql-query-oracle; exit 1; }
-ts-node ./src/examples/LoopBackOracleDBExample.ts || { docker stop ts-sql-query-oracle; docker rm ts-sql-query-oracle; exit 1; }
 docker stop ts-sql-query-oracle
 docker rm ts-sql-query-oracle
 

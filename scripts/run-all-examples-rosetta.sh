@@ -49,8 +49,6 @@ ts-node ./src/examples/OracleDBExample.ts
 echo waiting 7 min of 6 min
 sleep 60
 ts-node ./src/examples/OracleDBExample.ts || { docker stop ts-sql-query-oracle; docker rm ts-sql-query-oracle; colima stop; exit 1; }
-# Disabled on Rosetta
-#    # ts-node ./src/examples/LoopBackOracleDBExample.ts || { docker stop ts-sql-query-oracle; docker rm ts-sql-query-oracle; colima stop; exit 1; }
 docker stop ts-sql-query-oracle
 docker rm ts-sql-query-oracle
 colima stop

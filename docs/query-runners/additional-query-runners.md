@@ -2,52 +2,6 @@
 
 **Important**: A ts-sql-query connection object and the queries runners objects received as constructor's arguments represent a dedicated connection; consequently, don't share connections between requests when you are handling HTTP requests; create one connection object per request with its own query runners. Even when the ts-sql-query connection object uses a query runner that receives a connection pool, the ts-sql-query connection sill represents a dedicated connection to the database extracted automatically from the pool and must not be shared.
 
-## LoopBack DataSource
-
-**DEPRECATED**: [LoopBack](https://loopback.io/) looks mostly dead, and databases connectors are very out-of-date and they doesn't offer full support to the required functionality.
-
-It allows to execute the queries using a [LoopBack](https://loopback.io/) data source.
-
-**Supported databases**: mariaDB, mySql, postgreSql, sqlite, sqlServer, oracle
-
-It internally uses:
-
-- [mysql](https://www.npmjs.com/package/mysql) for connections to MariaDB and MySql.
-- [pg](https://www.npmjs.com/package/pg) for connections to PostgreSql.
-- [sqlite3](https://www.npmjs.com/package/sqlite3) for connections to SqlLite.
-- [tedious](https://www.npmjs.com/package/tedious) for connections to SqlServer.
-- [oracledb](https://www.npmjs.com/package/oracledb) for connections to Oracle.
-
-**Note**: All of these implementations have a direct implementation here as alternative.
-
-**Only the following connectors are supported**:
-
-- **mysql**, using `loopback-connector-mysql` package
-- **postgresql**, using `loopback-connector-postgresql` package
-- **sqlite3**, using `loopback-connector-sqlite3` package
-- **mssql**, using `loopback-connector-mssql` package
-- **oracle**, using `loopback-connector-oracle` package
-
-```ts
-import {juggler} from '@loopback/repository';
-import { createLoopBackQueryRunner } from "ts-sql-query/queryRunners/LoopBackQueryRunner";
-
-const db = new juggler.DataSource({
-    name: 'db',
-    connector: "postgresql",
-    host: 'localhost',
-    port: 5432,
-    database: 'dbname',
-    user: 'user',
-    password: 'pass'
-});
-
-async function main() {
-    const connection = new DBConnection(createLoopBackQueryRunner(db));
-    // Do your queries here
-}
-```
-
 ## msnodesqlv8
 
 **EXPERIMENTAL**: If you are going to use [msnodesqlv8](https://www.npmjs.com/package/msnodesqlv8), please, let me know. There is no way to test it easily.

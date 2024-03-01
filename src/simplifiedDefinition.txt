@@ -60,23 +60,6 @@ interface ComparableValueSource<T> extends EqualableValueSource<T> {
     greaterOrEquals(value: T | this): BooleanValueSource
     between(value: T | this, value2: T | this): BooleanValueSource
     notBetween(value: T | this, value2: T | this): BooleanValueSource
-
-    /** @deprecated use lessThanIfValue method instead */
-    smallerIfValue(value: T | null | undefined): BooleanValueSource
-    /** @deprecated use lessThan method instead */
-    smaller(value: T | this): BooleanValueSource
-    /** @deprecated use greaterThanIfValue method instead */
-    largerIfValue(value: T | null | undefined): BooleanValueSource
-    /** @deprecated use greaterThan method instead */
-    larger(value: T | this): BooleanValueSource
-    /** @deprecated use lessOrEqualsIfValue method instead */
-    smallAsIfValue(value: T | null | undefined): BooleanValueSource
-    /** @deprecated use lessOrEquals method instead */
-    smallAs(value: T | this): BooleanValueSource
-    /** @deprecated use greaterOrEqualsIfValue method instead */
-    largeAsIfValue(value: T | null | undefined): BooleanValueSource
-    /** @deprecated use greaterOrEquals method instead */
-    largeAs(value: T | this): BooleanValueSource
 }
 
 /**
@@ -138,8 +121,6 @@ interface NumberValueSource extends ComparableValueSource<number> {
     multiply(value: number | this): this
     divide(value: number | this): this
     modulo(value: number | this): this
-    /** @deprecated use modulo method instead */
-    mod(value: number | this): this
     atan2(value: number | this): this
 }
 
@@ -164,8 +145,6 @@ interface BigintValueSource extends ComparableValueSource<bigint> {
     substract(value: bigint | this): this
     multiply(value: bigint | this): this
     modulo(value: bigint | this): this
-    /** @deprecated use modulo method instead */
-    mod(value: bigint | this): this
 }
 
 /**
@@ -209,19 +188,11 @@ interface StringValueSource extends ComparableValueSource<string> {
     notContainsInsensitiveIfValue(value: string | null | undefined): BooleanValueSource
     notContainsInsensitive(value: string | this): BooleanValueSource
     toLowerCase(): StringValueSource
-    /** @deprecated use toLowerCase method instead */
-    lower(): StringValueSource
     toUpperCase(): StringValueSource
-    /** @deprecated use toUpperCase method instead */
-    upper(): StringValueSource
     length(): NumberValueSource
     trim(): StringValueSource
     trimLeft(): StringValueSource
-    /** @deprecated use trimLeft method instead */
-    ltrim(): StringValueSource
     trimRight(): StringValueSource
-    /** @deprecated use trimRight method instead */
-    rtrim(): StringValueSource
     reverse(): StringValueSource
     concatIfValue(value: string | null | undefined): StringValueSource
     concat(value: string | this): StringValueSource
@@ -229,11 +200,7 @@ interface StringValueSource extends ComparableValueSource<string> {
     substringToEnd(start: number | NumberValueSource): StringValueSource
     substr(start: number | NumberValueSource, count: number | NumberValueSource): StringValueSource
     substring(start: number | NumberValueSource, end: number | NumberValueSource): StringValueSource
-    /** @deprecated use replaceAllIfValue method instead */
-    replaceIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource
     replaceAllIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource
-    /** @deprecated use replaceAll method instead */
-    replace(findString: string | this, replaceWith: string | this): StringValueSource
     replaceAll(findString: string | this, replaceWith: string | this): StringValueSource
 }
 
@@ -317,8 +284,6 @@ interface CustomIntValueSource<T> extends ComparableValueSource<T> {
     substract(value: T | this): this
     multiply(value: T | this): this
     modulo(value: T | this): this
-    /** @deprecated use modulo method instead */
-    mod(value: T | this): this
 }
 
 /**
@@ -358,8 +323,6 @@ interface CustomDoubleValueSource<T> extends ComparableValueSource<T> {
     multiply(value: T | this): this
     divide(value: T | this): this
     modulo(value: T | this): this
-    /** @deprecated use modulo method instead */
-    mod(value: T | this): this
     atan2(value: T | this): this
 }
 

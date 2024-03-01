@@ -265,30 +265,6 @@ export interface IComparableValueSource<TABLE_OR_VIEW extends ITableOrViewRef<An
 }
 
 export interface ComparableValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends EqualableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>, IComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
-    /** @deprecated use lessThanIfValue method instead */
-    smallerIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use lessThan method instead */
-    smaller(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use lessThan method instead */
-    smaller<VALUE extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated use greaterThanIfValue method instead */
-    largerIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use greaterThan method instead */
-    larger(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use greaterThan method instead */
-    larger<VALUE extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated use lessOrEqualsIfValue method instead */
-    smallAsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use lessOrEquals method instead */
-    smallAs(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use lessOrEquals method instead */
-    smallAs<VALUE extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated use greaterOrEqualsIfValue method instead */
-    largeAsIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use greaterOrEquals method instead */
-    largeAs(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use greaterOrEquals method instead */
-    largeAs<VALUE extends IEqualableValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     lessThanIfValue(value: TYPE | null | undefined): IfValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     lessThan(value: TYPE): BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected falsy value (when the provided value is null or undefined); you should be using lessThanIfValue instead */
@@ -499,10 +475,6 @@ export interface NumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     modulo(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     modulo<VALUE extends INumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated use modulo method instead */
-    mod(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use modulo method instead */
-    mod<VALUE extends INumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions
     atan2(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
@@ -623,14 +595,6 @@ export interface BigintValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // modulo(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // modulo<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated use modulo method instead */
-    mod(value: bigint | OptionalValueType<OPTIONAL_TYPE>): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use modulo method instead */
-    mod<VALUE extends IBigintValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): BigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    // /** @deprecated use modulo method instead */
-    // mod(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    // /** @deprecated use modulo method instead */
-    // mod<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions
     // atan2(value: bigint): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
@@ -755,14 +719,6 @@ export interface CustomIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyD
     // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // modulo(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // modulo<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated use modulo method instead */
-    mod(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
-    /** @deprecated use modulo method instead */
-    mod<VALUE extends CustomIntValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    // /** @deprecated use modulo method instead */
-    // mod(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    // /** @deprecated use modulo method instead */
-    // mod<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions
     // atan2(value: TYPE): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
@@ -857,10 +813,6 @@ export interface CustomDoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<A
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     modulo(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     modulo<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated use modulo method instead */
-    mod(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
-    /** @deprecated use modulo method instead */
-    mod<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // Trigonometric Functions
     atan2(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
@@ -975,19 +927,11 @@ export interface StringValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     notContainsInsensitive<VALUE extends IStringValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): BooleanValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // SqlFunction0
     toLowerCase(): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use toLowerCase method instead */
-    lower(): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     toUpperCase(): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use toUpperCase method instead */
-    upper(): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     length(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     trim(): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     trimLeft(): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use trimLeft method instead */
-    ltrim(): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     trimRight(): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use trimRight method instead */
-    rtrim(): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     reverse(): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // SqlFunction1
     concatIfValue(value: string | null | undefined): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -1010,20 +954,6 @@ export interface StringValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     substring<VALUE2 extends INumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(start: number, end: VALUE2): StringValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
     substring<VALUE extends INumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(start: VALUE, end: number): StringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     substring<VALUE extends INumberValueSource<ITableOrViewRef<this[typeof database]>, any>, VALUE2 extends INumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(start: VALUE, end: VALUE2): StringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView] | VALUE2[typeof tableOrView], MergeOptional<MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>, VALUE2[typeof optionalType]>>
-    /** @deprecated use replaceAllIfValue method instead */
-    replaceIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use replaceAllIfValue method instead */
-    replaceIfValue<VALUE2 extends IStringValueSource<ITableOrViewRef<this[typeof database]>, any>>(findString: string | null | undefined, replaceWith: VALUE2): StringValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
-    /** @deprecated use replaceAllIfValue method instead */
-    replaceIfValue<VALUE extends IStringValueSource<ITableOrViewRef<this[typeof database]>, any>>(findString: VALUE, replaceWith: string | null | undefined): StringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated use replaceAll method instead */
-    replace(findString: string | OptionalValueType<OPTIONAL_TYPE>, replaceWith: string | OptionalValueType<OPTIONAL_TYPE>): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use replaceAll method instead */
-    replace<VALUE2 extends IStringValueSource<ITableOrViewRef<this[typeof database]>, any>>(findString: string | OptionalValueType<OPTIONAL_TYPE>, replaceWith: VALUE2): StringValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
-    /** @deprecated use replaceAll method instead */
-    replace<VALUE extends IStringValueSource<ITableOrViewRef<this[typeof database]>, any>>(findString: VALUE, replaceWith: string | OptionalValueType<OPTIONAL_TYPE>): StringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated use replaceAll method instead */
-    replace<VALUE extends IStringValueSource<ITableOrViewRef<this[typeof database]>, any>, VALUE2 extends IStringValueSource<ITableOrViewRef<this[typeof database]>, any>>(findString: VALUE, replaceWith: VALUE2): StringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView] | VALUE2[typeof tableOrView], MergeOptional<MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>, VALUE2[typeof optionalType]>>
     replaceAllIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     replaceAllIfValue<VALUE2 extends IStringValueSource<ITableOrViewRef<this[typeof database]>, any>>(findString: string | null | undefined, replaceWith: VALUE2): StringValueSource<TABLE_OR_VIEW | VALUE2[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
     replaceAllIfValue<VALUE extends IStringValueSource<ITableOrViewRef<this[typeof database]>, any>>(findString: VALUE, replaceWith: string | null | undefined): StringValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>

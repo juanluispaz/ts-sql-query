@@ -1,4 +1,4 @@
-import { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, ICustomDoubleValueSource, ICustomIntValueSource, ICustomLocalDateTimeValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomUuidValueSource, IDateTimeValueSource, IDateValueSource, IEqualableValueSource, INullableValueSource, INumberValueSource, IStringNumberValueSource, IStringValueSource, ITimeValueSource, IUuidValueSource, IValueSource, MergeOptionalUnion, ValueSourceOf } from "./values";
+import { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, ICustomDoubleValueSource, ICustomIntValueSource, ICustomLocalDateTimeValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomUuidValueSource, IDateTimeValueSource, IDateValueSource, IEqualableValueSource, INullableValueSource, INumberValueSource, IStringValueSource, ITimeValueSource, IUuidValueSource, IValueSource, MergeOptionalUnion, ValueSourceOf } from "./values";
 
 export interface Filter {
 }
@@ -32,23 +32,6 @@ export interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
     lessOrEquals?: TYPE
     greaterOrEqualsIfValue?: TYPE | null | undefined
     greaterOrEquals?: TYPE
-
-    /** @deprecated use lessThanIfValue instead */
-    smallerIfValue?: TYPE | null | undefined
-    /** @deprecated use lessThan instead */
-    smaller?: TYPE
-    /** @deprecated use greaterThanIfValue instead */
-    largerIfValue?: TYPE | null | undefined
-    /** @deprecated use greaterThan instead */
-    larger?: TYPE
-    /** @deprecated use lessOrEqualsIfValue instead */
-    smallAsIfValue?: TYPE | null | undefined
-    /** @deprecated use lessOrEquals instead */
-    smallAs?: TYPE
-    /** @deprecated use greaterOrEqualsIfValue instead */
-    largeAsIfValue?: TYPE | null | undefined
-    /** @deprecated use greaterOrEquals instead */
-    largeAs?: TYPE
 }
 
 export interface BooleanFilter extends EqualableFilter<boolean> { }

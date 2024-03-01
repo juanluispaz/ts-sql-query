@@ -219,38 +219,6 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     notEqualsInsensitive(value: any): any {
         return condition(new SqlOperation1ValueSource('_notEqualsInsensitive', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
-    /** @deprecated use lessThanIfValue method instead */
-    smallerIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    /** @deprecated use lessThan method instead */
-    smaller(value: any): any {
-        return condition(new SqlOperation1ValueSource('_lessThan', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    /** @deprecated use greaterThanIfValue method instead */
-    largerIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterThan', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    /** @deprecated use greaterThan method instead */
-    larger(value: any): any {
-        return condition(new SqlOperation1ValueSource('_greaterThan', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    /** @deprecated use lessOrEqualsIfValue method instead */
-    smallAsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    /** @deprecated use lessOrEquals method instead */
-    smallAs(value: any): any {
-        return condition(new SqlOperation1ValueSource('_lessOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    /** @deprecated use greaterOrEqualsIfValue method instead */
-    largeAsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
-    /** @deprecated use greaterOrEquals method instead */
-    largeAs(value: any): any {
-        return condition(new SqlOperation1ValueSource('_greaterOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
-    }
     lessThanIfValue(value: any): any {
         return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessThan', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
@@ -442,15 +410,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     toLowerCase(): any {
         return new SqlOperation0ValueSource('_toLowerCase', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
     }
-    /** @deprecated use toLowerCase method instead */
-    lower(): any {
-        return new SqlOperation0ValueSource('_toLowerCase', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
-    }
     toUpperCase(): any {
-        return new SqlOperation0ValueSource('_toUpperCase', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
-    }
-    /** @deprecated use toUpperCase method instead */
-    upper(): any {
         return new SqlOperation0ValueSource('_toUpperCase', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
     }
     length(): any {
@@ -462,15 +422,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     trimLeft(): any {
         return new SqlOperation0ValueSource('_trimLeft', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
     }
-    /** @deprecated use trimLeft method instead */
-    ltrim(): any {
-        return new SqlOperation0ValueSource('_trimLeft', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
-    }
     trimRight(): any {
-        return new SqlOperation0ValueSource('_trimRight', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
-    }
-    /** @deprecated use trimRight method instead */
-    rtrim(): any {
         return new SqlOperation0ValueSource('_trimRight', this, this.__valueType, this.__valueTypeName, this.__optionalType, this.__typeAdapter)
     }
     reverse(): any {
@@ -728,24 +680,12 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     modulo(value: any): any {
         return createSqlOperation1ofOverloadedNumber(this, value, '_modulo')
     }
-    /** @deprecated use modulo method instead */
-    mod(value: any): any {
-        return createSqlOperation1ofOverloadedNumber(this, value, '_modulo')
-    }
     // SqlFunction2
     substr(start: any, count: any): any {
         return new SqlOperation2ValueSource('_substr', this, start, count, this.__valueType, this.__valueTypeName, getOptionalType3(this, start, count), getTypeAdapter3(this, start, count))
     }
     substring(start: any, end: any): any {
         return new SqlOperation2ValueSource('_substring', this, start, end, this.__valueType, this.__valueTypeName, getOptionalType3(this, start, end), getTypeAdapter3(this, start, end))
-    }
-    /** @deprecated use replaceAllIfValue method instead */
-    replaceIfValue(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSourceIfValueOrIgnore('_replaceAll', this, findString, replaceWith, this.__valueType, this.__valueTypeName, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
-    }
-    /** @deprecated use replaceAll method instead */
-    replace(findString: any, replaceWith: any): any {
-        return new SqlOperation2ValueSource('_replaceAll', this, findString, replaceWith, this.__valueType, this.__valueTypeName, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))
     }
     replaceAllIfValue(findString: any, replaceWith: any): any {
         return new SqlOperation2ValueSourceIfValueOrIgnore('_replaceAll', this, findString, replaceWith, this.__valueType, this.__valueTypeName, getOptionalType3(this, findString, replaceWith), getTypeAdapter3(this, findString, replaceWith))

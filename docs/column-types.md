@@ -7,10 +7,8 @@ ts-sql-query allows you to define the columns with the following types:
 | Column type                     | Typescript Type      | Description                                                       |
 |---------------------------------|----------------------|-------------------------------------------------------------------|
 | `boolean`                       | `boolean`            | Boolean value                                                     |
-| `stringInt` (**deprecated**)    | `string` or `number` | Integer number reprecented as number or string when it is too big |
 | `int`                           | `number`             | Integer number                                                    |
 | `bigint`                        | `bigint`             | BigInt number                                                     |
-| `stringDouble` (**deprecated**) | `string` or `number` | Floating point number reprecented as number or string             |
 | `double`                        | `number`             | Floating point number                                             |
 | `string`                        | `string`             | String value                                                      |
 | `uuid`                          | `string`             | UUID value                                                        |
@@ -48,16 +46,6 @@ this.column<MyDateTimeType>('ColumnName', 'customLocalDateTime', 'MyDateTimeType
 this.column<MyEnumType>('ColumnName', 'enum', 'MyEnumTypeName')
 this.column<MyCustomType>('ColumnName', 'custom', 'MyCustomTypeName')
 this.column<MyCustomComparableType>('ColumnName', 'customComparable', 'MyCustomComparableTypeName')
-
-// Deprecated
-this.column('ColumnName', 'stringInt')
-// Use customInt instead:
-this.column<string | number, 'stringInt'>('ColumnName', 'customInt', 'stringInt')
-
-// Deprecared
-this.column('ColumnName', 'stringDouble')
-// Use customDouble instead:
-this.column<string | number, 'stringDouble'>('ColumnName', 'customDouble', 'stringDouble')
 ```
 
 ## Type adapters

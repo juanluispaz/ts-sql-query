@@ -913,8 +913,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         case 'double':
             result = 'convert(nvarchar, ' + this._appendSql(valueSource, params) + ')'
             break
-        case 'stringInt':
-        case 'stringDouble':
         case 'bigint':
         case 'customInt':
         case 'customDouble':
@@ -980,8 +978,6 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         case 'double':
             result = 'convert(nvarchar, a_' + aggregateId + '_.' + this._escape(prop, true) + ')'
             break
-        case 'stringInt':
-        case 'stringDouble':
         case 'bigint':
         case 'customInt':
         case 'customDouble':
@@ -1054,10 +1050,8 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
 const nativeTypedValueType: {[type in NativeValueType]: boolean | undefined} = {
     boolean: true,
-    stringInt: true,
     int: true,
     bigint: true,
-    stringDouble: true,
     double: true,
     string: true,
     uuid: true,

@@ -2778,24 +2778,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         if (typeof value === 'number') {
             if (!Number.isInteger(value)) {
-                if (columnType === 'stringInt' || columnType === 'stringDouble') {
-                    return 'stringDouble'
-                }
                 return 'double'
-            }
-            if (columnType === 'stringInt' || columnType === 'stringDouble') {
-                return 'stringInt'
             }
             return 'int'
         }
         if (typeof value === 'bigint') {
             return 'bigint'
-        }
-        if (typeof value === 'string') {
-            if (value.indexOf('.') >= 0) {
-                return 'stringDouble'
-            }
-            return 'stringInt'
         }
         return columnType
     }
@@ -2805,24 +2793,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         if (typeof value === 'number') {
             if (!Number.isInteger(value)) {
-                if (columnType === 'stringInt' || columnType === 'stringDouble') {
-                    return 'stringDouble'
-                }
                 return 'double'
-            }
-            if (columnType === 'stringInt' || columnType === 'stringDouble') {
-                return 'stringInt'
             }
             return 'int'
         }
         if (typeof value === 'bigint') {
             return 'bigint'
-        }
-        if (typeof value === 'string') {
-            if (value.indexOf('.') >= 0) {
-                return 'stringDouble'
-            }
-            return 'stringInt'
         }
         return columnTypeName
     }

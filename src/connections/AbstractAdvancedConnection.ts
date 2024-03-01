@@ -1,7 +1,7 @@
 import type { AnyDB } from "../databases"
 import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { BooleanValueSource, StringNumberValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from "../expressions/values"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { Sequence } from "../expressions/sequence";
 import type { NoTableOrViewRequired } from "../utils/ITableOrView"
@@ -15,12 +15,8 @@ export abstract class AbstractAdvancedConnection<DB extends AnyDB> extends Abstr
     }
 
     protected sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource<NoTableOrViewRequired<DB>, 'required'>>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    protected sequence(name: string, type: 'stringInt', adapter?: TypeAdapter): Sequence<StringNumberValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'int', adapter?: TypeAdapter): Sequence<NumberValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'bigint', adapter?: TypeAdapter): Sequence<BigintValueSource<NoTableOrViewRequired<DB>, 'required'>>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    protected sequence(name: string, type: 'stringDouble', adapter?: TypeAdapter): Sequence<StringNumberValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'double', adapter?: TypeAdapter): Sequence<NumberValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'string', adapter?: TypeAdapter): Sequence<StringValueSource<NoTableOrViewRequired<DB>, 'required'>>
     protected sequence(name: string, type: 'uuid', adapter?: TypeAdapter): Sequence<UuidValueSource<NoTableOrViewRequired<DB>, 'required'>>

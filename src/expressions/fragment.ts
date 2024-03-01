@@ -1,6 +1,6 @@
 import type { AnyDB } from "../databases"
 import type { ITableOrViewRef, NoTableOrViewRequired } from "../utils/ITableOrView"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, StringNumberValueSource, ComparableValueSource, RemapValueSourceType, TypeOfArgument, MapArgumentToTypeUnsafe, UnsafeArgForFn, IfValueSource, UnsafeArgForBuilderIfValue, IBooleanValueSource, IIfValueSource, BigintValueSource, OptionalType, ValueSourceOf, UuidValueSource, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource, RemapValueSourceType, TypeOfArgument, MapArgumentToTypeUnsafe, UnsafeArgForFn, IfValueSource, UnsafeArgForBuilderIfValue, IBooleanValueSource, IIfValueSource, BigintValueSource, OptionalType, ValueSourceOf, UuidValueSource, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from "../expressions/values"
 import { optionalType } from "../utils/symbols"
 
 export interface BooleanFragmentExpression<DB extends AnyDB, OPTIONAL_TYPE extends OptionalType> {
@@ -13,18 +13,6 @@ export interface BooleanFragmentExpression<DB extends AnyDB, OPTIONAL_TYPE exten
     sql<T1 extends ITableOrViewRef<DB>, T2 extends ITableOrViewRef<DB>, T3 extends ITableOrViewRef<DB>, T4 extends ITableOrViewRef<DB>, T5 extends ITableOrViewRef<DB>, T6 extends ITableOrViewRef<DB>>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>, p6: ValueSourceOf<T6>): BooleanValueSource<T1 | T2 | T3 | T4 | T5 | T6, OPTIONAL_TYPE>
     sql<T1 extends ITableOrViewRef<DB>, T2 extends ITableOrViewRef<DB>, T3 extends ITableOrViewRef<DB>, T4 extends ITableOrViewRef<DB>, T5 extends ITableOrViewRef<DB>, T6 extends ITableOrViewRef<DB>, T7 extends ITableOrViewRef<DB>>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>, p6: ValueSourceOf<T6>, p7: ValueSourceOf<T7>): BooleanValueSource<T1 | T2 | T3 | T4 | T5 | T6 | T7, OPTIONAL_TYPE>
     sql<T extends ITableOrViewRef<DB>>(sql: TemplateStringsArray, ...p: ValueSourceOf<T>[]): BooleanValueSource<T, OPTIONAL_TYPE>
-}
-
-export interface StringNumberFragmentExpression<DB extends AnyDB, OPTIONAL_TYPE extends OptionalType> {
-    sql(sql: TemplateStringsArray):  StringNumberValueSource<NoTableOrViewRequired<DB>, OPTIONAL_TYPE>
-    sql<T1 extends ITableOrViewRef<DB>>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>): StringNumberValueSource<T1, OPTIONAL_TYPE>
-    sql<T1 extends ITableOrViewRef<DB>, T2 extends ITableOrViewRef<DB>>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>): StringNumberValueSource<T1 | T2, OPTIONAL_TYPE>
-    sql<T1 extends ITableOrViewRef<DB>, T2 extends ITableOrViewRef<DB>, T3 extends ITableOrViewRef<DB>>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>): StringNumberValueSource<T1 | T2 | T3, OPTIONAL_TYPE>
-    sql<T1 extends ITableOrViewRef<DB>, T2 extends ITableOrViewRef<DB>, T3 extends ITableOrViewRef<DB>, T4 extends ITableOrViewRef<DB>>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>): StringNumberValueSource<T1 | T2 | T3 | T4, OPTIONAL_TYPE>
-    sql<T1 extends ITableOrViewRef<DB>, T2 extends ITableOrViewRef<DB>, T3 extends ITableOrViewRef<DB>, T4 extends ITableOrViewRef<DB>, T5 extends ITableOrViewRef<DB>>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>): StringNumberValueSource<T1 | T2 | T3 | T4 | T5, OPTIONAL_TYPE>
-    sql<T1 extends ITableOrViewRef<DB>, T2 extends ITableOrViewRef<DB>, T3 extends ITableOrViewRef<DB>, T4 extends ITableOrViewRef<DB>, T5 extends ITableOrViewRef<DB>, T6 extends ITableOrViewRef<DB>>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>, p6: ValueSourceOf<T6>): StringNumberValueSource<T1 | T2 | T3 | T4 | T5 | T6, OPTIONAL_TYPE>
-    sql<T1 extends ITableOrViewRef<DB>, T2 extends ITableOrViewRef<DB>, T3 extends ITableOrViewRef<DB>, T4 extends ITableOrViewRef<DB>, T5 extends ITableOrViewRef<DB>, T6 extends ITableOrViewRef<DB>, T7 extends ITableOrViewRef<DB>>(sql: TemplateStringsArray, p1: ValueSourceOf<T1>, p2: ValueSourceOf<T2>, p3: ValueSourceOf<T3>, p4: ValueSourceOf<T4>, p5: ValueSourceOf<T5>, p6: ValueSourceOf<T6>, p7: ValueSourceOf<T7>): StringNumberValueSource<T1 | T2 | T3 | T4 | T5 | T6 | T7, OPTIONAL_TYPE>
-    sql<T extends ITableOrViewRef<DB>>(sql: TemplateStringsArray, ...p: ValueSourceOf<T>[]): StringNumberValueSource<T, OPTIONAL_TYPE>
 }
 
 export interface NumberFragmentExpression<DB extends AnyDB, OPTIONAL_TYPE extends OptionalType> {

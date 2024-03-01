@@ -2,14 +2,14 @@ import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { InsertExpression } from "../expressions/insert"
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expressions/update"
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, StringNumberValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringNumberValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, ValueSourceOf, ValueSourceOfDB, RemapValueSourceTypeWithOptionalType, IValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, ValueSourceOf, ValueSourceOfDB, RemapValueSourceTypeWithOptionalType, IValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource } from "../expressions/values"
 import type { Default } from "../expressions/Default"
 import { ITableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf, ITableOrView, __getTableOrViewPrivate, OuterJoinSource } from "../utils/ITableOrView"
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from "../expressions/select"
 import type { TypeAdapter, DefaultTypeAdapter } from "../TypeAdapter"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { IConnection } from "../utils/IConnection"
-import type { BooleanFragmentExpression, StringNumberFragmentExpression, NumberFragmentExpression, StringFragmentExpression, DateFragmentExpression, TimeFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1TypeUnsafe, FragmentBuilder2TypeUnsafe, FragmentBuilder3TypeUnsafe, FragmentBuilder4TypeUnsafe, FragmentBuilder5TypeUnsafe, FragmentBuilder0IfValue, FragmentBuilder1IfValueTypeUnsafe, FragmentBuilder2IfValueTypeUnsafe, FragmentBuilder3IfValueTypeUnsafe, FragmentBuilder4IfValueTypeUnsafe, FragmentBuilder5IfValueTypeUnsafe, BigintFragmentExpression, UuidFragmentExpression, CustomIntFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression } from "../expressions/fragment"
+import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, DateFragmentExpression, TimeFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1TypeUnsafe, FragmentBuilder2TypeUnsafe, FragmentBuilder3TypeUnsafe, FragmentBuilder4TypeUnsafe, FragmentBuilder5TypeUnsafe, FragmentBuilder0IfValue, FragmentBuilder1IfValueTypeUnsafe, FragmentBuilder2IfValueTypeUnsafe, FragmentBuilder3IfValueTypeUnsafe, FragmentBuilder4IfValueTypeUnsafe, FragmentBuilder5IfValueTypeUnsafe, BigintFragmentExpression, UuidFragmentExpression, CustomIntFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression } from "../expressions/fragment"
 import type { AnyDB } from "../databases"
 import { InsertQueryBuilder } from "../queryBuilders/InsertQueryBuilder"
 import { UpdateQueryBuilder } from "../queryBuilders/UpdateQueryBuilder"
@@ -349,12 +349,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     }
 
     const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NoTableOrViewRequired<DB>, 'required'>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    const(value: number | string, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<NoTableOrViewRequired<DB>, 'required'>
     const(value: number, type: 'int', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, 'required'>
     const(value: bigint, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<NoTableOrViewRequired<DB>, 'required'>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    const(value: number | string, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<NoTableOrViewRequired<DB>, 'required'>
     const(value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, 'required'>
     const(value: string, type: 'string', adapter?: TypeAdapter): StringValueSource<NoTableOrViewRequired<DB>, 'required'>
     const(value: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<NoTableOrViewRequired<DB>, 'required'>
@@ -387,12 +383,8 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     }
 
     optionalConst(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NoTableOrViewRequired<DB>, 'optional'>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    optionalConst(value: number | string | null | undefined, type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<NoTableOrViewRequired<DB>, 'optional'>
     optionalConst(value: number | null | undefined, type: 'int', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, 'optional'>
     optionalConst(value: bigint | null | undefined, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<NoTableOrViewRequired<DB>, 'optional'>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    optionalConst(value: number | string | null | undefined, type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<NoTableOrViewRequired<DB>, 'optional'>
     optionalConst(value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, 'optional'>
     optionalConst(value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource<NoTableOrViewRequired<DB>, 'optional'>
     optionalConst(value: string | null | undefined, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<NoTableOrViewRequired<DB>, 'optional'>
@@ -455,18 +447,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
 
     protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'boolean', required: 'required', adapter?: TypeAdapter): Promise<boolean>
     protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'boolean', required: 'optional', adapter?: TypeAdapter): Promise<boolean | null>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'stringInt', required: 'required', adapter?: TypeAdapter): Promise<number | string>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'stringInt', required: 'optional', adapter?: TypeAdapter): Promise<number | string | null>
     protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'int', required: 'required', adapter?: TypeAdapter): Promise<number>
     protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'int', required: 'optional', adapter?: TypeAdapter): Promise<number | null>
     protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'bigint', required: 'required', adapter?: TypeAdapter): Promise<bigint>
     protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'bigint', required: 'optional', adapter?: TypeAdapter): Promise<bigint | null>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'stringDouble', required: 'required', adapter?: TypeAdapter): Promise<number | string>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Promise<number | string | null>
     protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'double', required: 'required', adapter?: TypeAdapter): Promise<number>
     protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'double', required: 'optional', adapter?: TypeAdapter): Promise<number | null>
     protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'string', required: 'required', adapter?: TypeAdapter): Promise<string>
@@ -552,18 +536,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
 
     fragmentWithType(type: 'boolean', required: 'required', adapter?: TypeAdapter): BooleanFragmentExpression<DB, 'required'>
     fragmentWithType(type: 'boolean', required: 'optional', adapter?: TypeAdapter): BooleanFragmentExpression<DB, 'optional'>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    fragmentWithType(type: 'stringInt', required: 'required', adapter?: TypeAdapter): StringNumberFragmentExpression<DB, 'required'>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    fragmentWithType(type: 'stringInt', required: 'optional', adapter?: TypeAdapter): StringNumberFragmentExpression<DB, 'optional'>
     fragmentWithType(type: 'int', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<DB, 'required'>
     fragmentWithType(type: 'int', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<DB, 'optional'>
     fragmentWithType(type: 'bigint', required: 'required', adapter?: TypeAdapter): BigintFragmentExpression<DB, 'required'>
     fragmentWithType(type: 'bigint', required: 'optional', adapter?: TypeAdapter): BigintFragmentExpression<DB, 'optional'>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    fragmentWithType(type: 'stringDouble', required: 'required', adapter?: TypeAdapter): StringNumberFragmentExpression<DB, 'required'>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    fragmentWithType(type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): StringNumberFragmentExpression<DB, 'optional'>
     fragmentWithType(type: 'double', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<DB, 'required'>
     fragmentWithType(type: 'double', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<DB, 'optional'>
     fragmentWithType(type: 'string', required: 'required', adapter?: TypeAdapter): StringFragmentExpression<DB, 'required'>
@@ -624,18 +600,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
 
     protected arg(type: 'boolean', required: 'required', adapter?: TypeAdapter): Argument<'boolean', 'required', 'combined', boolean>
     protected arg(type: 'boolean', required: 'optional', adapter?: TypeAdapter): Argument<'boolean', 'optional', 'combined', boolean>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    protected arg(type: 'stringInt', required: 'required', adapter?: TypeAdapter): Argument<'stringInt', 'required', 'combined', number | string>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    protected arg(type: 'stringInt', required: 'optional', adapter?: TypeAdapter): Argument<'stringInt', 'optional', 'combined', number | string>
     protected arg(type: 'int', required: 'required', adapter?: TypeAdapter): Argument<'int', 'required', 'combined', number>
     protected arg(type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', 'combined', number>
     protected arg(type: 'bigint', required: 'required', adapter?: TypeAdapter): Argument<'bigint', 'required', 'combined', bigint>
     protected arg(type: 'bigint', required: 'optional', adapter?: TypeAdapter): Argument<'bigint', 'optional', 'combined', bigint>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    protected arg(type: 'stringDouble', required: 'required', adapter?: TypeAdapter): Argument<'stringDouble', 'required', 'combined', number | string>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    protected arg(type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Argument<'stringDouble', 'optional', 'combined', number | string>
     protected arg(type: 'double', required: 'required', adapter?: TypeAdapter): Argument<'double', 'required', 'combined', number>
     protected arg(type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', 'combined', number>
     protected arg(type: 'string', required: 'required', adapter?: TypeAdapter): Argument<'string', 'required', 'combined', string>
@@ -694,18 +662,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
 
     protected valueArg(type: 'boolean', required: 'required', adapter?: TypeAdapter): Argument<'boolean', 'required', 'value', boolean>
     protected valueArg(type: 'boolean', required: 'optional', adapter?: TypeAdapter): Argument<'boolean', 'optional', 'value', boolean>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    protected valueArg(type: 'stringInt', required: 'required', adapter?: TypeAdapter): Argument<'stringInt', 'required', 'value', number | string>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    protected valueArg(type: 'stringInt', required: 'optional', adapter?: TypeAdapter): Argument<'stringInt', 'optional', 'value', number | string>
     protected valueArg(type: 'int', required: 'required', adapter?: TypeAdapter): Argument<'int', 'required', 'value', number>
     protected valueArg(type: 'int', required: 'optional', adapter?: TypeAdapter): Argument<'int', 'optional', 'value', number>
     protected valueArg(type: 'bigint', required: 'required', adapter?: TypeAdapter): Argument<'bigint', 'required', 'value', bigint>
     protected valueArg(type: 'bigint', required: 'optional', adapter?: TypeAdapter): Argument<'bigint', 'optional', 'value', bigint>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    protected valueArg(type: 'stringDouble', required: 'required', adapter?: TypeAdapter): Argument<'stringDouble', 'required', 'value', number | string>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    protected valueArg(type: 'stringDouble', required: 'optional', adapter?: TypeAdapter): Argument<'stringDouble', 'optional', 'value', number | string>
     protected valueArg(type: 'double', required: 'required', adapter?: TypeAdapter): Argument<'double', 'required', 'value', number>
     protected valueArg(type: 'double', required: 'optional', adapter?: TypeAdapter): Argument<'double', 'optional', 'value', number>
     protected valueArg(type: 'string', required: 'required', adapter?: TypeAdapter): Argument<'string', 'required', 'value', string>
@@ -841,7 +801,6 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return (new AggregateFunctions1ValueSource('_min', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)) as any
     }
     sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
-    sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, any>): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
     sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
     sum<TYPE extends ICustomIntValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomIntValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
     sum<TYPE extends ICustomDoubleValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomDoubleValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
@@ -850,7 +809,6 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new AggregateFunctions1ValueSource('_sum', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
     sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
-    sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, any>): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
     sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
     sumDistinct<TYPE extends ICustomIntValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomIntValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
     sumDistinct<TYPE extends ICustomDoubleValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomDoubleValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
@@ -859,7 +817,6 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new AggregateFunctions1ValueSource('_sumDistinct', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
     average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
-    average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, any>): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
     average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
     average<TYPE extends ICustomIntValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomIntValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
     average<TYPE extends ICustomDoubleValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomDoubleValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
@@ -868,7 +825,6 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new AggregateFunctions1ValueSource('_average', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
     averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
-    averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringNumberValueSource<TABLE_OR_VIEW, any>): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
     averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
     averageDistinct<TYPE extends ICustomIntValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomIntValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
     averageDistinct<TYPE extends ICustomDoubleValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomDoubleValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>

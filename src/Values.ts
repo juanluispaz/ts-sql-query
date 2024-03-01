@@ -1,4 +1,4 @@
-import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, StringNumberValueSource, ComparableValueSource, BigintValueSource, __getValueSourceOfObject, __getValueSourcePrivate, UuidValueSource, IBooleanValueSource, IStringNumberValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, IDateValueSource, ITimeValueSource, IDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from "./expressions/values"
+import { BooleanValueSource, NumberValueSource, StringValueSource, DateValueSource, TimeValueSource, DateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, __getValueSourceOfObject, __getValueSourcePrivate, UuidValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, IDateValueSource, ITimeValueSource, IDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from "./expressions/values"
 import { HasIsValue, ITableOrView, IValues, IWithView, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
 import type { TypeAdapter } from "./TypeAdapter"
 import type { AliasedTableOrView, OuterJoinSourceOf } from "./utils/tableOrViewUtils"
@@ -9,7 +9,7 @@ import { database, dontCallConstructor, tableOrViewRef, type, viewName } from ".
 import { IConnection } from "./utils/IConnection"
 import { RawFragment } from "./utils/RawFragment"
 import type { VIEW } from "./typeMarks/VIEW"
-import type { BigintFragmentExpression, BooleanFragmentExpression, ComparableFragmentExpression, CustomDoubleFragmentExpression, CustomIntFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalDateTimeFragmentExpression, CustomLocalTimeFragmentExpression, CustomUuidFragmentExpression, DateFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, NumberFragmentExpression, StringFragmentExpression, StringNumberFragmentExpression, TimeFragmentExpression, UuidFragmentExpression } from "./expressions/fragment"
+import type { BigintFragmentExpression, BooleanFragmentExpression, ComparableFragmentExpression, CustomDoubleFragmentExpression, CustomIntFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalDateTimeFragmentExpression, CustomLocalTimeFragmentExpression, CustomUuidFragmentExpression, DateFragmentExpression, DateTimeFragmentExpression, EqualableFragmentExpression, NumberFragmentExpression, StringFragmentExpression, TimeFragmentExpression, UuidFragmentExpression } from "./expressions/fragment"
 import { ValueSourceFromBuilder } from "./internal/ValueSourceImpl"
 import { FragmentQueryBuilder } from "./queryBuilders/FragmentQueryBuilder"
 import { MandatoryInsertSets } from "./expressions/insert"
@@ -69,12 +69,8 @@ class ValuesOf<REF extends VIEW<AnyDB, any>> implements IValues<REF> {
     }
 
     protected column(type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<REF, 'required'> & Column
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    protected column(type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & Column
     protected column(type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & Column
     protected column(type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, 'required'> & Column
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    protected column(type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'> & Column
     protected column(type: 'double', adapter?: TypeAdapter): NumberValueSource<REF, 'required'> & Column
     protected column(type: 'string', adapter?: TypeAdapter): StringValueSource<REF, 'required'> & Column
     protected column(type: 'uuid', adapter?: TypeAdapter): UuidValueSource<REF, 'required'> & Column
@@ -107,12 +103,8 @@ class ValuesOf<REF extends VIEW<AnyDB, any>> implements IValues<REF> {
     }
 
     protected optionalColumn(type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<REF, 'optional'> & OptionalColumn
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    protected optionalColumn(type: 'stringInt', adapter?: TypeAdapter): StringNumberValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(type: 'int', adapter?: TypeAdapter): NumberValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(type: 'bigint', adapter?: TypeAdapter): BigintValueSource<REF, 'optional'> & OptionalColumn
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    protected optionalColumn(type: 'stringDouble', adapter?: TypeAdapter): StringNumberValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(type: 'double', adapter?: TypeAdapter): NumberValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(type: 'string', adapter?: TypeAdapter): StringValueSource<REF, 'optional'> & OptionalColumn
     protected optionalColumn(type: 'uuid', adapter?: TypeAdapter): UuidValueSource<REF, 'optional'> & OptionalColumn
@@ -145,12 +137,8 @@ class ValuesOf<REF extends VIEW<AnyDB, any>> implements IValues<REF> {
     }
 
     protected virtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<REF[typeof database], 'required'>) => IBooleanValueSource<REF, 'required'>, adapter?: TypeAdapter): BooleanValueSource<REF, 'required'>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    protected virtualColumnFromFragment(type: 'stringInt', fn: (fragment: StringNumberFragmentExpression<REF[typeof database], 'required'>) => IStringNumberValueSource<REF, 'required'>, adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'>
     protected virtualColumnFromFragment(type: 'int', fn: (fragment: NumberFragmentExpression<REF[typeof database], 'required'>) => INumberValueSource<REF, 'required'>, adapter?: TypeAdapter): NumberValueSource<REF, 'required'>
     protected virtualColumnFromFragment(type: 'bigint', fn: (fragment: BigintFragmentExpression<REF[typeof database], 'required'>) => IBigintValueSource<REF, 'required'>, adapter?: TypeAdapter): BigintValueSource<REF, 'required'>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    protected virtualColumnFromFragment(type: 'stringDouble', fn: (fragment: StringNumberFragmentExpression<REF[typeof database], 'required'>) => IStringNumberValueSource<REF, 'required'>, adapter?: TypeAdapter): StringNumberValueSource<REF, 'required'>
     protected virtualColumnFromFragment(type: 'double', fn: (fragment: NumberFragmentExpression<REF[typeof database], 'required'>) => INumberValueSource<REF, 'required'>, adapter?: TypeAdapter): NumberValueSource<REF, 'required'>
     protected virtualColumnFromFragment(type: 'string', fn: (fragment: StringFragmentExpression<REF[typeof database], 'required'>) => IStringValueSource<REF, 'required'>, adapter?: TypeAdapter): StringValueSource<REF, 'required'>
     protected virtualColumnFromFragment(type: 'uuid', fn: (fragment: UuidFragmentExpression<REF[typeof database], 'required'>) => IUuidValueSource<REF, 'required'>, adapter?: TypeAdapter): UuidValueSource<REF, 'required'>
@@ -185,12 +173,8 @@ class ValuesOf<REF extends VIEW<AnyDB, any>> implements IValues<REF> {
     }
 
     protected optionalVirtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<REF[typeof database], 'optional'>) => IBooleanValueSource<REF, 'optional'>, adapter?: TypeAdapter): BooleanValueSource<REF, 'optional'>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    protected optionalVirtualColumnFromFragment(type: 'stringInt', fn: (fragment: StringNumberFragmentExpression<REF[typeof database], 'optional'>) => IStringNumberValueSource<REF, 'optional'>, adapter?: TypeAdapter): StringNumberValueSource<REF, 'optional'>
     protected optionalVirtualColumnFromFragment(type: 'int', fn: (fragment: NumberFragmentExpression<REF[typeof database], 'optional'>) => INumberValueSource<REF, 'optional'>, adapter?: TypeAdapter): NumberValueSource<REF, 'optional'>
     protected optionalVirtualColumnFromFragment(type: 'bigint', fn: (fragment: BigintFragmentExpression<REF[typeof database], 'optional'>) => IBigintValueSource<REF, 'optional'>, adapter?: TypeAdapter): BigintValueSource<REF, 'optional'>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    protected optionalVirtualColumnFromFragment(type: 'stringDouble', fn: (fragment: StringNumberFragmentExpression<REF[typeof database], 'optional'>) => IStringNumberValueSource<REF, 'optional'>, adapter?: TypeAdapter): StringNumberValueSource<REF, 'optional'>
     protected optionalVirtualColumnFromFragment(type: 'double', fn: (fragment: NumberFragmentExpression<REF[typeof database], 'optional'>) => INumberValueSource<REF, 'optional'>, adapter?: TypeAdapter): NumberValueSource<REF, 'optional'>
     protected optionalVirtualColumnFromFragment(type: 'string', fn: (fragment: StringFragmentExpression<REF[typeof database], 'optional'>) => IStringValueSource<REF, 'optional'>, adapter?: TypeAdapter): StringValueSource<REF, 'optional'>
     protected optionalVirtualColumnFromFragment(type: 'uuid', fn: (fragment: UuidFragmentExpression<REF[typeof database], 'optional'>) => IUuidValueSource<REF, 'optional'>, adapter?: TypeAdapter): UuidValueSource<REF, 'optional'>

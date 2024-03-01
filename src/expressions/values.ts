@@ -1,7 +1,7 @@
 import type { ITableOrView, ITableOrViewOf, ITableOrViewRef, HasAddWiths } from "../utils/ITableOrView"
 import type { AnyDB } from "../databases"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { aggregatedArrayValueSourceType, anyBooleanValueSourceType, bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, customDoubleValueSourceType, customIntValueSourceType, customLocalDateTimeValueSourceType, customLocalDateValueSourceType, customLocalTimeValueSourceType, customUuidValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, equalableValueSourceType, ifValueSourceType, nullableValueSourceType, numberValueSourceType, optionalType, requiredTableOrView, resultType, stringNumberValueSourceType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, uuidValueSourceType, valueSourceType } from "../utils/symbols"
+import type { aggregatedArrayValueSourceType, anyBooleanValueSourceType, bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, customDoubleValueSourceType, customIntValueSourceType, customLocalDateTimeValueSourceType, customLocalDateValueSourceType, customLocalTimeValueSourceType, customUuidValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, equalableValueSourceType, ifValueSourceType, nullableValueSourceType, numberValueSourceType, optionalType, requiredTableOrView, resultType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, uuidValueSourceType, valueSourceType } from "../utils/symbols"
 import { valueType, valueSourceTypeName, isValueSourceObject } from "../utils/symbols"
 
 export type OptionalType = 'required' | 'requiredInOptionalObject'  | 'originallyRequired' | 'optional' // sorted from the more strict to less strict
@@ -71,8 +71,8 @@ export interface ValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE,
 }
 
 export type ValueType = 'boolean'
-    | 'stringInt' | 'int' | 'bigint' | 'customInt'
-    | 'stringDouble' | 'double' | 'customDouble'
+    | 'int' | 'bigint' | 'customInt'
+    | 'double' | 'customDouble'
     | 'string'
     | 'uuid' | 'customUuid'
     | 'localDate' | 'customLocalDate'
@@ -438,10 +438,6 @@ export interface NumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     // Number functions
     asInt(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
     asDouble(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    asStringDouble(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     asBigint(): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
     abs(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     ceil(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -523,103 +519,6 @@ export interface NumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     ignoreWhenAsNull(when: boolean): NumberValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
-/** @deprecated 'stringInt' and 'stringDouble' types are deprecated, define your customInt instead */
-export interface IStringNumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, number | string, 'StringNumberValueSource', OPTIONAL_TYPE> {
-    [stringNumberValueSourceType]: 'StringNumberValueSource'
-}
-
-/** @deprecated 'stringInt' and 'stringDouble' types are deprecated, define your customInt instead */
-export interface StringNumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, number | string, 'StringNumberValueSource', OPTIONAL_TYPE>, IStringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
-    // SqlFunction0
-    // Number functions
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    asStringDouble(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    asBigint(): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
-    abs(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    ceil(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    floor(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    round(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    exp(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    ln(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    log10(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    sqrt(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    cbrt(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    sign(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    // Trigonometric Functions
-    acos(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    asin(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    atan(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    cos(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    cot(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    sin(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    tan(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    // SqlFunction1
-    power(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
-    power(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    power<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    power<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    logn(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
-    logn(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    logn<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    roundn(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
-    roundn(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    roundn<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    minValue(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
-    minValue(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    minValue<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    maxValue(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
-    maxValue(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    maxValue<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    // Number operators
-    add(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
-    add(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    add<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    substract(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
-    substract(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    substract<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    multiply(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
-    multiply(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    multiply<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    divide(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
-    divide(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    divide<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    modulo(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
-    modulo(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    modulo<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    /** @deprecated use modulo method instead */
-    mod(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
-    mod(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated use modulo method instead */
-    mod<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    // Trigonometric Functions
-    atan2(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
-    atan2(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    atan2<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    // Redefined methods
-    valueWhenNull(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, 'required'>
-    valueWhenNull<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, number | string, this[typeof valueSourceTypeName], any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], VALUE[typeof optionalType]>
-    nullIfValue(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
-    nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, number | string, this[typeof valueSourceTypeName], any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
-    asOptional(): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
-    asRequiredInOptionalObject(): StringNumberValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
-    onlyWhenOrNull(when: boolean): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
-    ignoreWhenAsNull(when: boolean): StringNumberValueSource<TABLE_OR_VIEW, 'optional'>
-}
-
 export interface IBigintValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, bigint, 'BigintValueSource', OPTIONAL_TYPE> {
     [bigintValueSourceType]: 'BigintValueSource'
 }
@@ -628,10 +527,6 @@ export interface IBigintValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>
 export interface BigintValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, bigint, 'BigintValueSource', OPTIONAL_TYPE>, IBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
     // SqlFunction0
     // Number functions
-    /** @deprecated 'stringInt' type is deprecated, define your customInt instead */
-    asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated 'stringDouble' type is deprecated, define your customInt instead */
-    asStringDouble(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     abs(): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     ceil(): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     floor(): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
@@ -764,8 +659,6 @@ export interface ICustomIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<Any
 export interface CustomIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW,TYPE, TYPE_NAME, OPTIONAL_TYPE>, ICustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
     // SqlFunction0
     // Number functions
-    // asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    // asStringDouble(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     abs(): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     ceil(): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     floor(): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
@@ -899,8 +792,6 @@ export interface CustomDoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<A
     // Number functions
     // asInt(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
     // asDouble(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    // asStringInt(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
-    // asStringDouble(): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // asBigint(): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> // Maybe unsafe cast, we round it when it is necesary
     abs(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     ceil(): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
@@ -1374,7 +1265,6 @@ export type RemapValueSourceType<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, T
     TYPE extends IValueSource<any, infer T, infer TYPE_NAME, infer OPTIONAL_TYPE> ? (
         TYPE extends IBooleanValueSource<any, any> ? BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IBigintValueSource<any, any> ? BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends IStringNumberValueSource<any, any> ? StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends INumberValueSource<any, any> ? NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IStringValueSource<any, any> ? StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IUuidValueSource<any, any> ? UuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1399,7 +1289,6 @@ export type RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW extends ITableOrV
     TYPE extends IValueSource<any, infer T, infer TYPE_NAME, any> ? (
         TYPE extends IBooleanValueSource<any, any> ? BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IBigintValueSource<any, any> ? BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends IStringNumberValueSource<any, any> ? StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends INumberValueSource<any, any> ? NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IStringValueSource<any, any> ? StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IUuidValueSource<any, any> ? UuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1423,7 +1312,6 @@ export type RemapIValueSourceType<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, 
     TYPE extends IValueSource<any, infer T, infer TYPE_NAME, infer OPTIONAL_TYPE> ? (
         TYPE extends IBooleanValueSource<any, any> ? IBooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IBigintValueSource<any, any> ? IBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends IStringNumberValueSource<any, any> ? IStringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends INumberValueSource<any, any> ? INumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IStringValueSource<any, any> ? IStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IUuidValueSource<any, any> ? IUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1447,7 +1335,6 @@ export type RemapIValueSourceTypeWithOptionalType<TABLE_OR_VIEW extends ITableOr
     TYPE extends IValueSource<any, infer T, infer TYPE_NAME, any> ? (
         TYPE extends IBooleanValueSource<any, any> ? IBooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IBigintValueSource<any, any> ? IBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends IStringNumberValueSource<any, any> ? IStringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends INumberValueSource<any, any> ? INumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IStringValueSource<any, any> ? IStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IUuidValueSource<any, any> ? IUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1469,7 +1356,7 @@ export type RemapIValueSourceTypeWithOptionalType<TABLE_OR_VIEW extends ITableOr
 
 
 
-export type ArgumentType = 'boolean' | 'stringInt' | 'int' | 'stringDouble' | 'double' | 'bigint' | 'string' | 'uuid' | 'localDateTime' | 'localDate' | 'localTime' | 'customInt' | 'customDouble' | 'customUuid' | 'customLocalDateTime' | 'customLocalDate' | 'customLocalTime' | 'customComparable' | 'enum' | 'custom'
+export type ArgumentType = 'boolean' | 'int' | 'double' | 'bigint' | 'string' | 'uuid' | 'localDateTime' | 'localDate' | 'localTime' | 'customInt' | 'customDouble' | 'customUuid' | 'customLocalDateTime' | 'customLocalDate' | 'customLocalTime' | 'customComparable' | 'enum' | 'custom'
 export type ArgumentOptionalType = 'required' | 'optional'
 export type ArgumentMode = 'value' | 'combined'
 export class Argument<T extends ArgumentType, OPTIONAL_TYPE extends ArgumentOptionalType, MODE extends ArgumentMode, TYPE, TYPE_NAME = any> {
@@ -1495,9 +1382,7 @@ export type TypeOfArgument<ARG> = ARG extends Argument<any, infer OPTIONAL_TYPE,
 export type MapArgumentToTypeUnsafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
     ARG extends Argument<infer TYPE, infer OPTIONAL_TYPE, any, infer T, infer TYPE_NAME> ? (
         TYPE extends 'boolean' ? BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends 'stringInt' ? StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'int' ? NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends 'stringDouble' ? StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'double' ? NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'bigint' ? BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'string' ? StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1520,9 +1405,7 @@ export type MapArgumentToTypeUnsafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>
 export type MapArgumentToITypeUnsafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
     ARG extends Argument<infer TYPE, infer OPTIONAL_TYPE, any, infer T, infer TYPE_NAME> ? (
         TYPE extends 'boolean' ? IBooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends 'stringInt' ? IStringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'int' ? INumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends 'stringDouble' ? IStringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'double' ? INumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'bigint' ? IBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'string' ? IStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1545,9 +1428,7 @@ export type MapArgumentToITypeUnsafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB
 export type MapArgumentToITypeUnsafeAsAnyOptionalType<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
     ARG extends Argument<infer TYPE, any, any, infer T, infer TYPE_NAME> ? (
         TYPE extends 'boolean' ? IBooleanValueSource<TABLE_OR_VIEW, any> :
-        TYPE extends 'stringInt' ? IStringNumberValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'int' ? INumberValueSource<TABLE_OR_VIEW, any> :
-        TYPE extends 'stringDouble' ? IStringNumberValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'double' ? INumberValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'bigint' ? IBigintValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'string' ? IStringValueSource<TABLE_OR_VIEW, any> :

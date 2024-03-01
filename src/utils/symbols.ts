@@ -68,7 +68,6 @@ export const booleanValueSourceType: unique symbol = Symbol('booleanValueSourceT
 export const ifValueSourceType: unique symbol = Symbol('ifValueSourceType')
 export const anyBooleanValueSourceType: unique symbol = Symbol('anyBooleanValueSourceType')
 export const numberValueSourceType: unique symbol = Symbol('numberValueSourceType')
-export const stringNumberValueSourceType: unique symbol = Symbol('stringNumberValueSourceType')
 export const bigintValueSourceType: unique symbol = Symbol('bigintValueSourceType')
 export const customIntValueSourceType: unique symbol = Symbol('customIntValueSourceType')
 export const customDoubleValueSourceType: unique symbol = Symbol('customDoubleValueSourceType')

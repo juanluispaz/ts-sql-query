@@ -53,7 +53,6 @@ export interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
 
 export interface BooleanFilter extends EqualableFilter<boolean> { }
 export interface NumberFilter extends ComparableFilter<number> { }
-export interface StringNumberFilter extends ComparableFilter<number | string> { }
 export interface BigintFilter extends ComparableFilter<bigint> { }
 export interface CustomIntFilter<TYPE> extends ComparableFilter<TYPE> { }
 export interface CustomDoubleFilter<TYPE> extends ComparableFilter<TYPE> { }
@@ -142,10 +141,8 @@ export interface CustomUuidFilter<TYPE> extends ComparableFilter<TYPE> {
 
 export type FilterTypeOf<TYPE> = 
     TYPE extends 'boolean' ? BooleanFilter :
-    TYPE extends 'stringInt' ? StringNumberFilter :
     TYPE extends 'int' ? NumberFilter :
     TYPE extends 'bigint' ? BigintFilter :
-    TYPE extends 'stringDouble' ? StringNumberFilter :
     TYPE extends 'double' ? NumberFilter :
     TYPE extends 'string' ? StringFilter :
     TYPE extends 'uuid' ? StringFilter :
@@ -163,7 +160,7 @@ export type FilterTypeOf<TYPE> =
     TYPE extends ['customComparable', infer T] ? ComparableFilter<T> :
     MapValueSourceToFilter<TYPE>
 
-export type DynamicColumnType<T> = 'boolean' | 'stringInt' | 'int' | 'bigint' | 'stringDouble' | 'double' |
+export type DynamicColumnType<T> = 'boolean' | 'int' | 'bigint' | 'double' |
     'string' | 'uuid' | 'localDate' | 'localTime' | 'localDateTime' | 
     ['customInt', T] | ['customDouble', T] | ['customUuid', T] | ['customLocalDate', T] | ['customLocalTime', T] | ['customLocalDateTime', T] | 
     ['enum', T] | ['custom', T] | ['customComparable', T]
@@ -203,7 +200,6 @@ export type MapValueSourceToFilter<TYPE> =
     TYPE extends IValueSource<any, infer T, any, any> ? (
         TYPE extends IBooleanValueSource<any, any> ? BooleanFilter :
         TYPE extends IBigintValueSource<any, any> ? BigintFilter :
-        TYPE extends IStringNumberValueSource<any, any> ? StringNumberFilter :
         TYPE extends INumberValueSource<any, any> ? NumberFilter :
         TYPE extends IStringValueSource<any, any> ? StringFilter :
         TYPE extends IUuidValueSource<any, any> ? StringFilter :

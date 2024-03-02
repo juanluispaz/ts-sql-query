@@ -42,9 +42,10 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
         const columns = selectData.__columns
         createColumnsFrom(sqlBuilder, columns, this as any, this)
     }
-    [type]!: "with"
-    [tableOrViewRef]!: REF
-    [database]!: REF[typeof database]
+    // Already defined in IWithView
+    // [type]!: "with"
+    // [tableOrViewRef]!: REF
+    // [database]!: REF[typeof database]
 
     as<ALIAS extends string>(as: ALIAS): AliasedTableOrView<this, ALIAS> {
         const result = new WithViewImpl(this.__sqlBuilder, this.__name, this.__selectData)

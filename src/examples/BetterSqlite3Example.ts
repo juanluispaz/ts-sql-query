@@ -8,7 +8,7 @@ import { assertEquals } from "./assertEquals";
 import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
 import { SqliteConnection } from "../connections/SqliteConnection";
 import { BetterSqlite3QueryRunner } from "../queryRunners/BetterSqlite3QueryRunner";
-import * as betterSqlite3 from 'better-sqlite3'
+import Database from 'better-sqlite3'
 import { fromBinaryUUID, toBinaryUUID } from "binary-uuid";
 import { v4 as uuidv4 } from "uuid";
 import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration";
@@ -76,7 +76,7 @@ const tBoolean = new class TBoolean extends Table<DBConnection, 'TBoolean'> {
     }
 }()
 
-const db = betterSqlite3(':memory:')
+const db = new Database(':memory:')
 db.function('uuid', uuidv4 as (_: unknown) => unknown)
 db.function('uuid_str', fromBinaryUUID as (_: unknown) => unknown)
 db.function('uuid_blob', toBinaryUUID as (_: unknown) => unknown)

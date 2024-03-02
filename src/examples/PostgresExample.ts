@@ -3,7 +3,7 @@
  * docker run --name ts-sql-query-postgres -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
  */
 
-import * as postgres from 'postgres';
+import postgres from 'postgres';
 import { PostgreSqlConnection } from "../connections/PostgreSqlConnection";
 import { Table } from "../Table";
 import { assertEquals } from "./assertEquals";

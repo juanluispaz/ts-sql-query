@@ -45,5 +45,4 @@ nav:
     - General purpose query runners: query-runners/general-purpose-query-runners.md
   - Advanced usage: advanced-usage.md
   - FAQs & Limitations: faqs-limimitations.md
-  - Composing and splitting results (legacy): composing-and-splitting-results.md
   - Change Log: CHANGELOG.md

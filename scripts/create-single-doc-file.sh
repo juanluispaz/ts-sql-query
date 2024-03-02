@@ -43,9 +43,5 @@ echo '\n# advanced-usage.md\n' >> dist/doc.md
 cat docs/advanced-usage.md >> dist/doc.md
 echo '\n# faqs-limimitations.md\n' >> dist/doc.md
 cat docs/faqs-limimitations.md >> dist/doc.md
-echo '\n# composing-and-splitting-results.md\n' >> dist/doc.md
-cat docs/composing-and-splitting-results.md >> dist/doc.md
-echo '\n# supported-databases-with-extended-types.md\n' >> dist/doc.md
-cat docs/supported-databases-with-extended-types.md >> dist/doc.md
 echo '\n# CHANGELOG.md\n' >> dist/doc.md
 cat docs/CHANGELOG.md >> dist/doc.md

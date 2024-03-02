@@ -1545,20 +1545,6 @@ interface InsertExpression {
     /** Returns the required parameters by the sql query */
     params(): any[]
 
-    // Result compose operations
-    compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    split(propertyName: string, mappig: { [property: string]: string }): this
-    splitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    splitOptional(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
-
     // Returning methods
     /** 
      * Allows to specify the returning clause.
@@ -1801,20 +1787,6 @@ interface UpdateExpression {
     /** Returns the required parameters by the sql query */
     params(): any[]
 
-    // Result compose operations
-    compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    split(propertyName: string, mappig: { [property: string]: string }): this
-    splitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    splitOptional(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
-
     // Returning methods
     /** 
      * Allows to specify the returning clause.
@@ -1946,20 +1918,6 @@ interface DeleteExpression {
      *           if the maximum is exceeded an exception will be thrown
      */
     executeDeleteMany(): Promise<RESULT[]>
-
-    // Result compose operations
-    compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    split(propertyName: string, mappig: { [property: string]: string }): this
-    splitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    splitOptional(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
 
     /** Allows to add a using (like a from that doesn't delete) to the delete query */
     using(table: Table | View): this
@@ -2164,20 +2122,6 @@ interface SelectExpression {
     query(): string
     /** Returns the required parameters by the sql query */
     params(): any[]
-
-    // Result compose operations
-    compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    split(propertyName: string, mappig: { [property: string]: string }): this
-    splitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    splitOptional(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
 
     customizeQuery(customization: {
         afterSelectKeyword?: RawFragment

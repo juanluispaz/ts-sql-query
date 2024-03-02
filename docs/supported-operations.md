@@ -1560,20 +1560,6 @@ interface InsertExpression {
     /** Returns the required parameters by the sql query */
     params(): any[]
 
-    // Result compose operations
-    compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    split(propertyName: string, mappig: { [property: string]: string }): this
-    splitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    splitOptional(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
-
     // Returning methods
     /** 
      * Allows to specify the returning clause.
@@ -1817,20 +1803,6 @@ interface UpdateExpression {
     /** Returns the required parameters by the sql query */
     params(): any[]
 
-    // Result compose operations
-    compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    split(propertyName: string, mappig: { [property: string]: string }): this
-    splitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    splitOptional(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
-
     // Returning methods
     /** 
      * Allows to specify the returning clause.
@@ -1965,20 +1937,6 @@ interface DeleteExpression {
      */
     executeDeleteMany(): Promise<RESULT[]>
 
-    // Result compose operations
-    compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    split(propertyName: string, mappig: { [property: string]: string }): this
-    splitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    splitOptional(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
-
     /** Allows to add a using (like a from that doesn't delete) to the delete query */
     using(table: Table | View): this
 
@@ -2021,19 +1979,17 @@ type DeleteReturningValues = { [columnName: string]: AnyValueSource }
 
 The select query definition must follow the logical order or the alternative order:
 
-- **Logical order**: from, join, **WHERE**, **group by**, **having**, **select**, order by, limit, offset, customizeQuery, compose/split
-- **Alternative logical order 1**: from, join, **group by**, **having**, **WHERE**, **select**, order by, limit, offset, customizeQuery, compose/split
-- **Arternative logical order 2**: from, join, **group by**, **having**, **select**, **WHERE**, order by, limit, offset, customizeQuery, compose/split
-- **Arternative logical order 3**: from, join, **group by**, **having**, **select**, order by, **WHERE**, limit, offset, customizeQuery, compose/split
-- **Arternative logical order 4**: from, join, **group by**, **having**, **select**, order by, limit, offset, **WHERE**, customizeQuery, compose/split
-- **Arternative logical order 5**: from, join, **group by**, **having**, **select**, order by, limit, offset, customizeQuery, **WHERE**, compose/split
-- **Arternative logical order 6**: from, join, **group by**, **having**, **select**, order by, limit, offset, customizeQuery, compose/split, **WHERE**
-- **Alternative order 1**: from, join, **select**, **WHERE**, **group by**, **having**, order by, limit, offset, customizeQuery, compose/split
-- **Alternative order 2**: from, join, **select**, **group by**, **having**, **WHERE**, order by, limit, offset, customizeQuery, compose/split
-- **Alternative order 3**: from, join, **select**, **group by**, **having**, order by, **WHERE**, limit, offset, customizeQuery, compose/split
-- **Alternative order 4**: from, join, **select**, **group by**, **having**, order by, limit, offset, **WHERE**, customizeQuery, compose/split
-- **Alternative order 5**: from, join, **select**, **group by**, **having**, order by, limit, offset, customizeQuery, **WHERE**, compose/split
-- **Alternative order 6**: from, join, **select**, **group by**, **having**, order by, limit, offset, customizeQuery, compose/split, **WHERE**
+- **Logical order**: from, join, **WHERE**, **group by**, **having**, **select**, order by, limit, offset, customizeQuery
+- **Alternative logical order 1**: from, join, **group by**, **having**, **WHERE**, **select**, order by, limit, offset, customizeQuery
+- **Arternative logical order 2**: from, join, **group by**, **having**, **select**, **WHERE**, order by, limit, offset, customizeQuery
+- **Arternative logical order 3**: from, join, **group by**, **having**, **select**, order by, **WHERE**, limit, offset, customizeQuery
+- **Arternative logical order 4**: from, join, **group by**, **having**, **select**, order by, limit, offset, **WHERE**, customizeQuery
+- **Arternative logical order 5**: from, join, **group by**, **having**, **select**, order by, limit, offset, customizeQuery, **WHERE**
+- **Alternative order 1**: from, join, **select**, **WHERE**, **group by**, **having**, order by, limit, offset, customizeQuery
+- **Alternative order 2**: from, join, **select**, **group by**, **having**, **WHERE**, order by, limit, offset, customizeQuery
+- **Alternative order 3**: from, join, **select**, **group by**, **having**, order by, **WHERE**, limit, offset, customizeQuery
+- **Alternative order 4**: from, join, **select**, **group by**, **having**, order by, limit, offset, **WHERE**, customizeQuery
+- **Alternative order 5**: from, join, **select**, **group by**, **having**, order by, limit, offset, customizeQuery, **WHERE**
 
 ```ts
 interface SelectExpression {
@@ -2198,20 +2154,6 @@ interface SelectExpression {
     query(): string
     /** Returns the required parameters by the sql query */
     params(): any[]
-
-    // Result compose operations
-    compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
-    withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
-    split(propertyName: string, mappig: { [property: string]: string }): this
-    splitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    splitOptional(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
-    guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
 
     customizeQuery(customization: {
         afterSelectKeyword?: RawFragment

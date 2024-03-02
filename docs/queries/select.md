@@ -479,46 +479,41 @@ const companiesWithNumberOfCustomers: Promise<{
 
 The select query clauses must follow one of the next orders:
 
-- **Logical order**: from, join, **WHERE**, **group by**, **having**, **select**, order by, limit, offset, customizeQuery, compose/split
-- **Alternative logical order 1**: from, join, **group by**, **having**, **WHERE**, **select**, order by, limit, offset, customizeQuery, compose/split
-- **Arternative logical order 2**: from, join, **group by**, **having**, **select**, **WHERE**, order by, limit, offset, customizeQuery, compose/split
-- **Arternative logical order 3**: from, join, **group by**, **having**, **select**, order by, **WHERE**, limit, offset, customizeQuery, compose/split
-- **Arternative logical order 4**: from, join, **group by**, **having**, **select**, order by, limit, offset, **WHERE**, customizeQuery, compose/split
-- **Arternative logical order 5**: from, join, **group by**, **having**, **select**, order by, limit, offset, customizeQuery, **WHERE**, compose/split
-- **Arternative logical order 6**: from, join, **group by**, **having**, **select**, order by, limit, offset, customizeQuery, compose/split, **WHERE**
+- **Logical order**: from, join, **WHERE**, **group by**, **having**, **select**, order by, limit, offset, customizeQuery
+- **Alternative logical order 1**: from, join, **group by**, **having**, **WHERE**, **select**, order by, limit, offset, customizeQuery
+- **Arternative logical order 2**: from, join, **group by**, **having**, **select**, **WHERE**, order by, limit, offset, customizeQuery
+- **Arternative logical order 3**: from, join, **group by**, **having**, **select**, order by, **WHERE**, limit, offset, customizeQuery
+- **Arternative logical order 4**: from, join, **group by**, **having**, **select**, order by, limit, offset, **WHERE**, customizeQuery
+- **Arternative logical order 5**: from, join, **group by**, **having**, **select**, order by, limit, offset, customizeQuery, **WHERE**
   
-- **Alternative order 1**: from, join, **select**, **WHERE**, **group by**, **having**, order by, limit, offset, customizeQuery, compose/split
-- **Alternative order 2**: from, join, **select**, **group by**, **having**, **WHERE**, order by, limit, offset, customizeQuery, compose/split
-- **Alternative order 3**: from, join, **select**, **group by**, **having**, order by, **WHERE**, limit, offset, customizeQuery, compose/split
-- **Alternative order 4**: from, join, **select**, **group by**, **having**, order by, limit, offset, **WHERE**, customizeQuery, compose/split
-- **Alternative order 5**: from, join, **select**, **group by**, **having**, order by, limit, offset, customizeQuery, **WHERE**, compose/split
-- **Alternative order 6**: from, join, **select**, **group by**, **having**, order by, limit, offset, customizeQuery, compose/split, **WHERE**
+- **Alternative order 1**: from, join, **select**, **WHERE**, **group by**, **having**, order by, limit, offset, customizeQuery
+- **Alternative order 2**: from, join, **select**, **group by**, **having**, **WHERE**, order by, limit, offset, customizeQuery
+- **Alternative order 3**: from, join, **select**, **group by**, **having**, order by, **WHERE**, limit, offset, customizeQuery
+- **Alternative order 4**: from, join, **select**, **group by**, **having**, order by, limit, offset, **WHERE**, customizeQuery
+- **Alternative order 5**: from, join, **select**, **group by**, **having**, order by, limit, offset, customizeQuery, **WHERE**
 
 **Oracle variants**:
 
 Oracle support _start with_, _connect by_ and _ordering siblings only_. The _ordering siblings only_ modifier changes the previous `order by` to `order siblings by`.
 
-- **Logical order**: from, join, _start with_, _connect by_, **WHERE**, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery, compose/split
-- **Alternative logical order 0**: from, join, **WHERE**, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery, compose/split
-- **Alternative logical order 1**: from, join, _start with_, _connect by_, **group by**, **having**, **WHERE**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery, compose/split
-- **Arternative logical order 2**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, **WHERE**, order by, _ordering siblings only_, limit, offset, customizeQuery, compose/split
-- **Arternative logical order 3**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, **WHERE**, limit, offset, customizeQuery, compose/split
-- **Arternative logical order 4**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, **WHERE**, customizeQuery, compose/split
-- **Arternative logical order 5**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery, **WHERE**, compose/split
-- **Arternative logical order 6**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery, compose/split, **WHERE**
+- **Logical order**: from, join, _start with_, _connect by_, **WHERE**, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery
+- **Alternative logical order 0**: from, join, **WHERE**, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery
+- **Alternative logical order 1**: from, join, _start with_, _connect by_, **group by**, **having**, **WHERE**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery
+- **Arternative logical order 2**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, **WHERE**, order by, _ordering siblings only_, limit, offset, customizeQuery
+- **Arternative logical order 3**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, **WHERE**, limit, offset, customizeQuery
+- **Arternative logical order 4**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, **WHERE**, customizeQuery
+- **Arternative logical order 5**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery, **WHERE**
 
-- **Alternative order 1**: from, join, _start with_, _connect by_, **select**, **WHERE**, **group by**, **having**, order by, _ordering siblings only_, limit, offset, customizeQuery, compose/split
-- **Alternative order 2**: from, join, _start with_, _connect by_, **select**, **group by**, **having**, **WHERE**, order by, _ordering siblings only_, limit, offset, customizeQuery, compose/split
-- **Alternative order 3**: from, join, _start with_, _connect by_, **select**, **group by**, **having**, order by, _ordering siblings only_, **WHERE**, limit, offset, customizeQuery, compose/split
-- **Alternative order 4**: from, join, _start with_, _connect by_, **select**, **group by**, **having**, order by, _ordering siblings only_, limit, offset, **WHERE**, customizeQuery, compose/split
-- **Alternative order 5**: from, join, _start with_, _connect by_, **select**, **group by**, **having**, order by, _ordering siblings only_, limit, offset, customizeQuery, **WHERE**, compose/split
-- **Alternative order 6**: from, join, _start with_, _connect by_, **select**, **group by**, **having**, order by, _ordering siblings only_, limit, offset, customizeQuery, compose/split, **WHERE**
-- **Logical order (Oracle variant)**: from, join, **WHERE**, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery, compose/split
+- **Alternative order 1**: from, join, _start with_, _connect by_, **select**, **WHERE**, **group by**, **having**, order by, _ordering siblings only_, limit, offset, customizeQuery
+- **Alternative order 2**: from, join, _start with_, _connect by_, **select**, **group by**, **having**, **WHERE**, order by, _ordering siblings only_, limit, offset, customizeQuery
+- **Alternative order 3**: from, join, _start with_, _connect by_, **select**, **group by**, **having**, order by, _ordering siblings only_, **WHERE**, limit, offset, customizeQuery
+- **Alternative order 4**: from, join, _start with_, _connect by_, **select**, **group by**, **having**, order by, _ordering siblings only_, limit, offset, **WHERE**, customizeQuery
+- **Alternative order 5**: from, join, _start with_, _connect by_, **select**, **group by**, **having**, order by, _ordering siblings only_, limit, offset, customizeQuery, **WHERE**
+- **Logical order (Oracle variant)**: from, join, **WHERE**, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery
 
-- **Second alternative order 0**: from, join, **select**, **WHERE**, _start with_, _connect by_, **group by**, **having**, order by, _ordering siblings only_, limit, offset, customizeQuery, compose/split
-- **Second alternative order 1**: from, join, **select**, _start with_, _connect by_, **WHERE**, **group by**, **having**, order by, _ordering siblings only_, limit, offset, customizeQuery, compose/split
-- **Second alternative order 2**: from, join, **select**, _start with_, _connect by_, **group by**, **having**, **WHERE**, order by, _ordering siblings only_, limit, offset, customizeQuery, compose/split
-- **Second alternative order 3**: from, join, **select**, _start with_, _connect by_, **group by**, **having**, order by, _ordering siblings only_, **WHERE**, limit, offset, customizeQuery, compose/split
-- **Second alternative order 4**: from, join, **select**, _start with_, _connect by_, **group by**, **having**, order by, _ordering siblings only_, limit, offset, **WHERE**, customizeQuery, compose/split
-- **Second alternative order 5**: from, join, **select**, _start with_, _connect by_, **group by**, **having**, order by, _ordering siblings only_, limit, offset, customizeQuery, **WHERE**, compose/split
-- **Second alternative order 6**: from, join, **select**, _start with_, _connect by_, **group by**, **having**, order by, _ordering siblings only_, limit, offset, customizeQuery, compose/split, **WHERE**
+- **Second alternative order 0**: from, join, **select**, **WHERE**, _start with_, _connect by_, **group by**, **having**, order by, _ordering siblings only_, limit, offset, customizeQuery
+- **Second alternative order 1**: from, join, **select**, _start with_, _connect by_, **WHERE**, **group by**, **having**, order by, _ordering siblings only_, limit, offset, customizeQuery
+- **Second alternative order 2**: from, join, **select**, _start with_, _connect by_, **group by**, **having**, **WHERE**, order by, _ordering siblings only_, limit, offset, customizeQuery
+- **Second alternative order 3**: from, join, **select**, _start with_, _connect by_, **group by**, **having**, order by, _ordering siblings only_, **WHERE**, limit, offset, customizeQuery
+- **Second alternative order 4**: from, join, **select**, _start with_, _connect by_, **group by**, **having**, order by, _ordering siblings only_, limit, offset, **WHERE**, customizeQuery
+- **Second alternative order 5**: from, join, **select**, _start with_, _connect by_, **group by**, **having**, order by, _ordering siblings only_, limit, offset, customizeQuery, **WHERE**

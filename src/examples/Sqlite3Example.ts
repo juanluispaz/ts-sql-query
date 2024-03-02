@@ -680,12 +680,10 @@ async function main() {
             .select({
                 id: tProduct.id,
                 name: tProduct.name,
-                releaseYear: tProduct.releaseYear,
-                releasePrice: tProduct.releasePrice,
-            })
-            .splitOptional('releaseInfo', {
-                year: 'releaseYear',
-                price: 'releasePrice',
+                releaseInfo: {
+                    year: tProduct.releaseYear,
+                    price: tProduct.releasePrice,
+                }
             })
             .executeSelectMany()
         assertEquals(allProducts, [
@@ -767,41 +765,6 @@ async function main() {
             .where(tCompany.id.equals(10))
             .executeSelectOne()
         assertEquals(lowCompany2, { id: 10, name: 'Low Company', parentId: 9, parents: [{ id: 9, name: 'Mic Company', parentId: 8 }, { id: 8, name: 'Top Company' }] })
-
-        const lowCompany3 = await connection.selectFrom(tCompany)
-            .select({
-                id: tCompany.id,
-                name: tCompany.name,
-                parentId: tCompany.parentId
-            })
-            .where(tCompany.id.equals(10))
-            .composeDeletingInternalProperty({
-                externalProperty: 'parentId',
-                internalProperty: 'startId',
-                propertyName: 'parents'
-            }).withMany((ids) => {
-                return connection.selectFrom(parentCompany)
-                    .select({
-                        id: parentCompany.id,
-                        name: parentCompany.name,
-                        parentId: parentCompany.parentId,
-                        startId: parentCompany.id
-                    })
-                    .where(parentCompany.id.in(ids))
-                    .recursiveUnionAll((child) => {
-                        return connection.selectFrom(parentCompany)
-                            .join(child).on(child.parentId.equals(parentCompany.id))
-                            .select({
-                                id: parentCompany.id,
-                                name: parentCompany.name,
-                                parentId: parentCompany.parentId,
-                                startId: child.startId
-                            })
-                    })
-                    .executeSelectMany()
-            })
-            .executeSelectOne()
-        assertEquals(lowCompany3, { id: 10, name: 'Low Company', parentId: 9, parents: [{ id: 9, name: 'Mic Company', parentId: 8 }, { id: 8, name: 'Top Company' }] })
 
         i = await connection.insertInto(tRecord).values({
                 id: '89bf68fc-7002-11ec-90d6-0242ac120003',

@@ -1,7 +1,7 @@
 import { OracleConnection } from "../../connections/OracleConnection"
 import { DynamicCondition, dynamicPick, DynamicPickPaths, dynamicPickPaths, expandTypeFromDynamicPickPaths, PickValuesPath } from "../../dynamicCondition"
 import { TableOrViewLeftJoinOf, fromRef } from "../../extras/types"
-import { extractColumnNamesFrom, extractColumnsFrom, extractWritableColumnNamesFrom, extractWritableColumnsFrom, mapForGuidedSplit, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "../../extras/utils"
+import { extractColumnNamesFrom, extractColumnsFrom, extractWritableColumnNamesFrom, extractWritableColumnsFrom } from "../../extras/utils"
 import { ConsoleLogQueryRunner } from "../../queryRunners/ConsoleLogQueryRunner"
 import { MockQueryRunner } from "../../queryRunners/MockQueryRunner"
 import { Table } from "../../Table"
@@ -958,342 +958,6 @@ async function main() {
     assertEquals(allDataWithName, result)
     
     /* *** Preparation ************************************************************/
-
-    result = [{
-        id: 10,
-        name: 'ACME Inc.',
-        customers: [{
-            id: 12,
-            firstName: 'John',
-            lastName: 'Smith',
-            birthday: new Date('1990/1/14Z')
-        }, {
-            id: 13,
-            firstName: 'Jorge',
-            lastName: 'Justo',
-            birthday: new Date('1991/2/16Z')
-        }]
-    }, {
-        id: 11,
-        name: 'ACME Corp.',
-        customers: [{
-            id: 14,
-            firstName: 'Maria',
-            lastName: 'Rodriguez',
-            birthday: new Date('1992/3/18Z')
-        }]
-    }]
-    expectedResult.push([{
-        id: 10,
-        name: 'ACME Inc.'
-    }, {
-        id: 11,
-        name: 'ACME Corp.'
-    }])
-    expectedQuery.push(`select id as "id", name as "name" from company where lower(name) like lower('%' || :0 || '%') escape '\\'`)
-    expectedParams.push(`["ACME"]`)
-    expectedType.push(`selectManyRows`)
-    expectedResult.push([{
-        id: 12,
-        firstName: 'John',
-        lastName: 'Smith',
-        birthday: new Date('1990/1/14Z'),
-        companyId: 10
-    }, {
-        id: 13,
-        firstName: 'Jorge',
-        lastName: 'Justo',
-        birthday: new Date('1991/2/16Z'),
-        companyId: 10
-    }, {
-        id: 14,
-        firstName: 'Maria',
-        lastName: 'Rodriguez',
-        birthday: new Date('1992/3/18Z'),
-        companyId: 11
-    }])
-    expectedQuery.push(`select id as "id", first_name as "firstName", last_name as "lastName", birthday as "birthday", company_id as "companyId" from customer where company_id in (:0, :1)`)
-    expectedParams.push(`[10,11]`)
-    expectedType.push(`selectManyRows`)
-    
-    /* *** Example ****************************************************************/
-
-    const companiesWithCustomers = await connection.selectFrom(tCompany)
-            .select({
-                id: tCompany.id,
-                name: tCompany.name
-            }).where(
-                tCompany.name.containsInsensitive('ACME')
-            ).composeDeletingInternalProperty({
-                externalProperty: 'id',
-                internalProperty: 'companyId',
-                propertyName: 'customers'
-            }).withMany((ids) => {
-                return connection.selectFrom(tCustomer)
-                    .select({
-                        id: tCustomer.id,
-                        firstName: tCustomer.firstName,
-                        lastName: tCustomer.lastName,
-                        birthday: tCustomer.birthday,
-                        companyId: tCustomer.companyId
-                    }).where(
-                        tCustomer.companyId.in(ids)
-                    ).executeSelectMany()
-            }).executeSelectMany()
-    
-    assertEquals(companiesWithCustomers, result)
-    
-    /* *** Preparation ************************************************************/
-
-    result = [{
-        id: 10,
-        name: 'ACME Inc.',
-        customers: [{
-            id: 12,
-            firstName: 'John',
-            lastName: 'Smith',
-            birthday: new Date('1990/1/14Z')
-        }, {
-            id: 13,
-            firstName: 'Jorge',
-            lastName: 'Justo',
-            birthday: new Date('1991/2/16Z')
-        }]
-    }, {
-        id: 11,
-        name: 'ACME Corp.'
-    }]
-    expectedResult.push([{
-        id: 10,
-        name: 'ACME Inc.'
-    }, {
-        id: 11,
-        name: 'ACME Corp.'
-    }])
-    expectedQuery.push(`select id as "id", name as "name" from company where lower(name) like lower('%' || :0 || '%') escape '\\'`)
-    expectedParams.push(`["ACME"]`)
-    expectedType.push(`selectManyRows`)
-    expectedResult.push([{
-        id: 12,
-        firstName: 'John',
-        lastName: 'Smith',
-        birthday: new Date('1990/1/14Z'),
-        companyId: 10
-    }, {
-        id: 13,
-        firstName: 'Jorge',
-        lastName: 'Justo',
-        birthday: new Date('1991/2/16Z'),
-        companyId: 10
-    }])
-    expectedQuery.push(`select id as "id", first_name as "firstName", last_name as "lastName", birthday as "birthday", company_id as "companyId" from customer where company_id in (:0, :1)`)
-    expectedParams.push(`[10,11]`)
-    expectedType.push(`selectManyRows`)
-    
-    /* *** Example ****************************************************************/
-
-    const companiesWithCustomers2 = await connection.selectFrom(tCompany)
-            .select({
-                id: tCompany.id,
-                name: tCompany.name
-            }).where(
-                tCompany.name.containsInsensitive('ACME')
-            ).composeDeletingInternalProperty({
-                externalProperty: 'id',
-                internalProperty: 'companyId',
-                propertyName: 'customers'
-            }).withOptionalMany((ids) => {
-                return connection.selectFrom(tCustomer)
-                    .select({
-                        id: tCustomer.id,
-                        firstName: tCustomer.firstName,
-                        lastName: tCustomer.lastName,
-                        birthday: tCustomer.birthday,
-                        companyId: tCustomer.companyId
-                    }).where(
-                        tCustomer.companyId.in(ids)
-                    ).executeSelectMany()
-            }).executeSelectMany()
-    
-    assertEquals(companiesWithCustomers2, result)
-    
-    /* *** Preparation ************************************************************/
-
-    result = [{
-        id: 10,
-        name: 'ACME Inc.',
-        customers: [{
-            id: 12,
-            firstName: 'John',
-            lastName: 'Smith',
-            birthday: new Date('1990/1/14Z')
-        }, {
-            id: 13,
-            firstName: 'Jorge',
-            lastName: 'Justo',
-            birthday: new Date('1991/2/16Z')
-        }]
-    }, {
-        id: 11,
-        name: 'ACME Corp.',
-        customers: []
-    }]
-    expectedResult.push([{
-        id: 10,
-        name: 'ACME Inc.'
-    }, {
-        id: 11,
-        name: 'ACME Corp.'
-    }])
-    expectedQuery.push(`select id as "id", name as "name" from company where lower(name) like lower('%' || :0 || '%') escape '\\'`)
-    expectedParams.push(`["ACME"]`)
-    expectedType.push(`selectManyRows`)
-    expectedResult.push([{
-        id: 12,
-        firstName: 'John',
-        lastName: 'Smith',
-        birthday: new Date('1990/1/14Z'),
-        companyId: 10
-    }, {
-        id: 13,
-        firstName: 'Jorge',
-        lastName: 'Justo',
-        birthday: new Date('1991/2/16Z'),
-        companyId: 10
-    }])
-    expectedQuery.push(`select id as "id", first_name as "firstName", last_name as "lastName", birthday as "birthday", company_id as "companyId" from customer where company_id in (:0, :1)`)
-    expectedParams.push(`[10,11]`)
-    expectedType.push(`selectManyRows`)
-    
-    /* *** Example ****************************************************************/
-
-    const companiesWithCustomers3 = await connection.selectFrom(tCompany)
-            .select({
-                id: tCompany.id,
-                name: tCompany.name
-            }).where(
-                tCompany.name.containsInsensitive('ACME')
-            ).composeDeletingInternalProperty({
-                externalProperty: 'id',
-                internalProperty: 'companyId',
-                propertyName: 'customers'
-            }).withMany((ids) => {
-                return connection.selectFrom(tCustomer)
-                    .select({
-                        id: tCustomer.id,
-                        firstName: tCustomer.firstName,
-                        lastName: tCustomer.lastName,
-                        birthday: tCustomer.birthday,
-                        companyId: tCustomer.companyId
-                    }).where(
-                        tCustomer.companyId.in(ids)
-                    ).executeSelectMany()
-            }).executeSelectMany()
-    
-    assertEquals(companiesWithCustomers3, result)
-    
-    /* *** Preparation ************************************************************/
-    
-    result = {
-        id: 12,
-        firstName: 'John',
-        lastName: 'Smith',
-        birthday: new Date('1990/1/14'),
-        company: {
-            id: 10,
-            name: 'ACME Inc.'
-        }
-    }
-    expectedResult.push({
-        id: 12,
-        firstName: 'John',
-        lastName: 'Smith',
-        birthday: new Date('1990/1/14'),
-        companyId: 10
-    })
-    expectedQuery.push(`select id as "id", first_name as "firstName", last_name as "lastName", birthday as "birthday", company_id as "companyId" from customer where id = :0`)
-    expectedParams.push(`[12]`)
-    expectedType.push(`selectOneRow`)
-    expectedResult.push([{
-        id: 10,
-        name: 'ACME Inc.'
-    }])
-    expectedQuery.push(`select id as "id", name as "name" from company where id in (:0)`)
-    expectedParams.push(`[10]`)
-    expectedType.push(`selectManyRows`)
-    
-    /* *** Example ****************************************************************/
-
-    const customerWithCompany = await connection.selectFrom(tCustomer)
-            .select({
-                id: tCustomer.id,
-                firstName: tCustomer.firstName,
-                lastName: tCustomer.lastName,
-                birthday: tCustomer.birthday,
-                companyId: tCustomer.companyId
-            }).where(
-                tCustomer.id .equals(12)
-            ).composeDeletingExternalProperty({
-                externalProperty: 'companyId',
-                internalProperty: 'id',
-                propertyName: 'company'
-            }).withOne((ids) => {
-                return connection.selectFrom(tCompany)
-                    .select({
-                        id: tCompany.id,
-                        name: tCompany.name
-                    }).where(
-                        tCompany.id.in(ids)
-                    ).executeSelectMany()
-            }).executeSelectOne()
-    
-    assertEquals(customerWithCompany, result)
-    
-    /* *** Preparation ************************************************************/
-    
-    result = {
-        id: 12,
-        firstName: 'John',
-        lastName: 'Smith',
-        birthday: new Date('1990/1/14'),
-        company: {
-            id: 10,
-            name: 'ACME Inc.'
-        }
-    }
-    expectedResult.push({
-        id: 12,
-        firstName: 'John',
-        lastName: 'Smith',
-        birthday: new Date('1990/1/14'),
-        companyId: 10,
-        companyName: 'ACME Inc.'
-    })
-    expectedQuery.push(`select customer.id as "id", customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as "birthday", company.id as "companyId", company.name as "companyName" from customer inner join company on company.id = customer.company_id where customer.id = :0`)
-    expectedParams.push(`[12]`)
-    expectedType.push(`selectOneRow`)
-    
-    /* *** Example ****************************************************************/
-
-    const customerWithCompanyInOneQuery = await connection.selectFrom(tCustomer)
-            .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
-            .select({
-                id: tCustomer.id,
-                firstName: tCustomer.firstName,
-                lastName: tCustomer.lastName,
-                birthday: tCustomer.birthday,
-                companyId: tCompany.id,
-                companyName: tCompany.name
-            }).where(
-                tCustomer.id .equals(12)
-            ).split('company', {
-                id: 'companyId',
-                name: 'companyName'
-            }).executeSelectOne()
-
-    assertEquals(customerWithCompanyInOneQuery, result)
-    
-    /* *** Preparation ************************************************************/
     
     result = {
         id: 12,
@@ -1335,74 +999,6 @@ async function main() {
             ).executeSelectOne()
 
     assertEquals(customerWithCompanyInOneQuery2, result)
-    
-    /* *** Preparation ************************************************************/
-    
-    result = {
-        id: 12,
-        firstName: 'John',
-        lastName: 'Smith',
-        birthday: new Date('1990/1/14'),
-        company: {
-            id: 10,
-            name: 'ACME Inc.'
-        }
-    }
-    expectedResult.push({
-        id: 12,
-        firstName: 'John',
-        lastName: 'Smith',
-        birthday: new Date('1990/1/14'),
-        'company.id': 10,
-        'company.name': 'ACME Inc.'
-    })
-    expectedQuery.push(`select customer.id as "id", customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as "birthday", company.id as "company.id", company.name as "company.name" from customer inner join company on company.id = customer.company_id where company.name = :0 and (lower(customer.first_name) like lower('%' || :1 || '%') escape '\\' or lower(customer.last_name) like lower('%' || :2 || '%') escape '\\') order by lower("company.name") asc, "birthday" desc`)
-    expectedParams.push(`["ACME","John","Smi"]`)
-    expectedType.push(`selectOneRow`)
-    
-    /* *** Example ****************************************************************/
-
-    type QueryFilterType = DynamicCondition<{
-        id: 'int',
-        firstName: 'string',
-        lastName: 'string',
-        birthday: 'localDate',
-        'company.id': 'int',
-        'company.name': 'string'
-    }>
-    
-    const queryFilter: QueryFilterType = {
-        'company.name': {equals: 'ACME'},
-        or: [
-            { firstName: { containsInsensitive: 'John' } },
-            { lastName: { containsInsensitive: 'Smi' } }
-        ]
-    }
-    
-    const queryOrderBy = 'company.name asc insensitive, birthday desc'
-    
-    const querySelectFields = {
-        id: tCustomer.id,
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName,
-        birthday: tCustomer.birthday,
-        'company.id': tCompany.id,
-        'company.name': tCompany.name
-    }
-    
-    const queryDynamicWhere = connection.dynamicConditionFor(querySelectFields).withValues(queryFilter)
-    
-    const customerWithCompanyObject = await connection.selectFrom(tCustomer)
-            .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
-            .select(querySelectFields)
-            .where(queryDynamicWhere)
-            .orderByFromString(queryOrderBy)
-            .split('company', {
-                id: 'company.id',
-                name: 'company.name'
-            }).executeSelectOne()
-    
-    assertEquals(customerWithCompanyObject, result)
     
     /* *** Preparation ************************************************************/
     
@@ -1626,50 +1222,6 @@ async function main() {
     }, {
         id: 19,
         name: 'name2',
-        parentId: 18,
-        parentName: 'name'
-    }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parentId", parent.name as "parentName" from company left join company parent on company.parent_id = parent.id`)
-    expectedParams.push(`[]`)
-    expectedType.push(`selectManyRows`)
-    
-    /* *** Example ****************************************************************/
-
-    const parent = tCompany.forUseInLeftJoinAs('parent')
-    
-    const leftJoinCompany = await connection.selectFrom(tCompany)
-        .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
-        .select({
-            id: tCompany.id,
-            name: tCompany.name,
-            parentId: parent.id,
-            parentName: parent.name
-        }).guidedSplitOptional('parent', {
-            id: 'parentId!',
-            name: 'parentName!'
-        }).executeSelectMany()
-    
-    assertEquals(leftJoinCompany, result)
-    
-    /* *** Preparation ************************************************************/
-
-    result = [{
-        id: 18,
-        name: 'name'
-    }, {
-        id: 19,
-        name: 'name2',
-        parent: {
-            id: 18,
-            name: 'name'
-        }
-    }]
-    expectedResult.push([{
-        id: 18,
-        name: 'name'
-    }, {
-        id: 19,
-        name: 'name2',
         'parent.id': 18,
         'parent.name': 'name'
     }])
@@ -1679,7 +1231,7 @@ async function main() {
     
     /* *** Example ****************************************************************/
 
-    //const parent = tCompany.forUseInLeftJoinAs('parent')
+    const parent = tCompany.forUseInLeftJoinAs('parent')
     
     const leftJoinCompany2 = await connection.selectFrom(tCompany)
         .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
@@ -2316,102 +1868,6 @@ async function main() {
     
     /* *** Preparation ************************************************************/
 
-    result = {
-        customer: {
-            id: 12,
-            firstName: 'John',
-            lastName: 'Smith',
-            birthday: new Date('1990/1/14'),
-        },
-        company: {
-            id: 10,
-            name: 'ACME Inc.'
-        }
-    }
-    expectedResult.push({
-        'customer.id': 12,
-        'customer.firstName': 'John',
-        'customer.lastName': 'Smith',
-        'customer.birthday': new Date('1990/1/14'),
-        'company.id': 10,
-        'company.name': 'ACME Inc.'
-    })
-    expectedQuery.push(`select customer.id as "customer.id", customer.first_name as "customer.firstName", customer.last_name as "customer.lastName", customer.birthday as "customer.birthday", company.id as "company.id", company.name as "company.name" from customer inner join company on company.id = customer.company_id where customer.id = :0`)
-    expectedParams.push(`[12]`)
-    expectedType.push(`selectOneRow`)
-    
-    /* *** Example ****************************************************************/
-
-    const customerColumns = {
-        id: tCustomer.id,
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName,
-        birthday: tCustomer.birthday
-    }
-    
-    const companyColumns = {
-        id: tCompany.id,
-        name: tCompany.name
-    }
-    
-    const customerWithCompanyPrefixed = await connection.selectFrom(tCustomer)
-            .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
-            .select({
-                ...prefixDotted(customerColumns, 'customer'),
-                ...prefixDotted(companyColumns, 'company')
-            }).where(
-                tCustomer.id.equals(12)
-            )
-            .split('customer', prefixMapForSplitDotted(customerColumns, 'customer'))
-            .split('company', prefixMapForSplitDotted(companyColumns, 'company'))
-            .executeSelectOne()
-    
-    assertEquals(customerWithCompanyPrefixed, result)
-    
-    /* *** Preparation ************************************************************/
-
-    result = {
-        customer: {
-            id: 12,
-            firstName: 'John',
-            lastName: 'Smith',
-            birthday: new Date('1990/1/14'),
-        },
-        company: {
-            id: 10,
-            name: 'ACME Inc.'
-        }
-    }
-    expectedResult.push({
-        customerId: 12,
-        customerFirstName: 'John',
-        customerLastName: 'Smith',
-        customerBirthday: new Date('1990/1/14'),
-        companyId: 10,
-        companyName: 'ACME Inc.'
-    })
-    expectedQuery.push(`select customer.id as "customerId", customer.first_name as "customerFirstName", customer.last_name as "customerLastName", customer.birthday as "customerBirthday", company.id as "companyId", company.name as "companyName" from customer inner join company on company.id = customer.company_id where customer.id = :0`)
-    expectedParams.push(`[12]`)
-    expectedType.push(`selectOneRow`)
-    
-    /* *** Example ****************************************************************/
-
-    const customerWithCompanyPrefixed2 = await connection.selectFrom(tCustomer)
-            .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
-            .select({
-                ...prefixCapitalized(customerColumns, 'customer'),
-                ...prefixCapitalized(companyColumns, 'company')
-            }).where(
-                tCustomer.id.equals(12)
-            )
-            .split('customer', prefixMapForSplitCapitalized(customerColumns, 'customer'))
-            .split('company', prefixMapForSplitCapitalized(companyColumns, 'company'))
-            .executeSelectOne()
-    
-    assertEquals(customerWithCompanyPrefixed2, result)
-    
-    /* *** Preparation ************************************************************/
-
     result = [{
         id: 18,
         name: 'name'
@@ -2420,7 +1876,8 @@ async function main() {
         name: 'name2',
         parent: {
             id: 18,
-            name: 'name'
+            name: 'name',
+            parentId: 8
         }
     }]
     expectedResult.push([{
@@ -2429,157 +1886,17 @@ async function main() {
     }, {
         id: 19,
         name: 'name2',
-        parentId: 18,
-        parentName: 'name',
-        parentParentId: null
+        'parent.id': 18,
+        'parent.name': 'name',
+        'parent.parentId': 8
     }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parentId", parent.name as "parentName", parent.parent_id as "parentParentId" from company left join company parent on company.parent_id = parent.id`)
+    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parent.id", parent.name as "parent.name", parent.parent_id as "parent.parentId" from company left join company parent on company.parent_id = parent.id`)
     expectedParams.push(`[]`)
     expectedType.push(`selectManyRows`)
     
     /* *** Example ****************************************************************/
 
     const parentCompany = tCompany.forUseInLeftJoinAs('parent')
-    
-    const companyFields = {
-        id: tCompany.id,
-        name: tCompany.name
-    }
-    
-    const parentCompanyFields = {
-        id: parentCompany.id,
-        name: parentCompany.name,
-        parentId: parentCompany.parentId
-    }
-    
-    const companyPrefixed = await connection.selectFrom(tCompany)
-        .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
-        .select({
-            ...companyFields,
-            ...prefixCapitalized(parentCompanyFields, 'parent')
-        }).guidedSplitOptional('parent', prefixMapForGuidedSplitCapitalized(parentCompanyFields, tCompany, 'parent'))
-        .executeSelectMany()
-    
-    assertEquals(companyPrefixed, result)
-    
-    /* *** Preparation ************************************************************/
-
-    result = [{
-        id: 18,
-        name: 'name'
-    }, {
-        id: 19,
-        name: 'name2',
-        parent: {
-            id: 18,
-            name: 'name',
-            parentId: 8
-        }
-    }]
-    expectedResult.push([{
-        id: 18,
-        name: 'name'
-    }, {
-        id: 19,
-        name: 'name2',
-        'parent.id': 18,
-        'parent.name': 'name',
-        'parent.parentId': 8
-    }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parent.id", parent.name as "parent.name", parent.parent_id as "parent.parentId" from company left join company parent on company.parent_id = parent.id`)
-    expectedParams.push(`[]`)
-    expectedType.push(`selectManyRows`)
-    
-    /* *** Example ****************************************************************/
-
-    const companyPrefixed2 = await connection.selectFrom(tCompany)
-        .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
-        .select({
-            ...companyFields,
-            ...prefixDotted(parentCompanyFields, 'parent')
-        }).guidedSplitOptional('parent', prefixMapForGuidedSplitDotted(parentCompanyFields, tCompany, 'parent'))
-        .executeSelectMany()
-    
-    assertEquals(companyPrefixed2, result)
-    
-    /* *** Preparation ************************************************************/
-
-    result = [{
-        id: 18,
-        name: 'name'
-    }, {
-        id: 19,
-        name: 'name2',
-        parent: {
-            parentId: 18,
-            parentName: 'name'
-        }
-    }]
-    expectedResult.push([{
-        id: 18,
-        name: 'name'
-    }, {
-        id: 19,
-        name: 'name2',
-        parentId: 18,
-        parentName: 'name'
-    }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parentId", parent.name as "parentName", parent.parent_id as "parentParentId" from company left join company parent on company.parent_id = parent.id`)
-    expectedParams.push(`[]`)
-    expectedType.push(`selectManyRows`)
-    
-    /* *** Example ****************************************************************/
-
-    const parentFields = {
-        parentId: parentCompany.id,
-        parentName: parentCompany.name,
-        parentParentId: parentCompany.parentId
-    }
-    
-    const companyPrefixed3 = await connection.selectFrom(tCompany)
-        .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
-        .select({
-            id: tCompany.id,
-            name: tCompany.name,
-            ...parentFields
-        }).guidedSplitOptional('parent', mapForGuidedSplit(parentFields, {
-            parentId: tCompany.id,
-            parentName: tCompany.name,
-            parentParentId: tCompany.parentId
-        }))
-        .executeSelectMany()
-    
-    assertEquals(companyPrefixed3, result)
-    
-    /* *** Preparation ************************************************************/
-
-    result = [{
-        id: 18,
-        name: 'name'
-    }, {
-        id: 19,
-        name: 'name2',
-        parent: {
-            id: 18,
-            name: 'name',
-            parentId: 8
-        }
-    }]
-    expectedResult.push([{
-        id: 18,
-        name: 'name'
-    }, {
-        id: 19,
-        name: 'name2',
-        'parent.id': 18,
-        'parent.name': 'name',
-        'parent.parentId': 8
-    }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parent.id", parent.name as "parent.name", parent.parent_id as "parent.parentId" from company left join company parent on company.parent_id = parent.id`)
-    expectedParams.push(`[]`)
-    expectedType.push(`selectManyRows`)
-    
-    /* *** Example ****************************************************************/
 
     const companyPrefixed4 = await connection.selectFrom(tCompany)
         .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
@@ -2594,80 +1911,6 @@ async function main() {
         }).executeSelectMany()
     
     assertEquals(companyPrefixed4, result)
-    
-    /* *** Preparation ************************************************************/
-
-    result = [{
-        id: 18,
-        name: 'name'
-    }, {
-        id: 19,
-        name: 'name2',
-        parent: {
-            id: 18,
-            name: 'name'
-        }
-    }, {
-        id: 20,
-        name: 'name3',
-        parent: {
-            id: 19,
-            name: 'name2',
-            parent: {
-                id: 18,
-                name: 'name',
-                parentId: 17
-            }
-        }
-    }]
-    expectedResult.push([{
-        id: 18,
-        name: 'name'
-    }, {
-        id: 19,
-        name: 'name2',
-        parentId: 18,
-        parentName: 'name'
-    }, {
-        id: 20,
-        name: 'name3',
-        parentId: 19,
-        parentName: 'name2',
-        parentParentId: 18,
-        parentParentName: 'name',
-        parentParentParentId: 17
-    }])
-    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parentId", parent.name as "parentName", parentParent.id as "parentParentId", parentParent.name as "parentParentName", parentParent.parent_id as "parentParentParentId" from company left join company parent on company.parent_id = parent.id left join company parentParent on parent.parent_id = parentParent.id`)
-    expectedParams.push(`[]`)
-    expectedType.push(`selectManyRows`)
-    
-    /* *** Example ****************************************************************/
-
-    const parentParent = tCompany.forUseInLeftJoinAs('parentParent')
-    
-    const companyMultiSplit = await connection.selectFrom(tCompany)
-        .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
-        .leftJoin(parentParent).on(parent.parentId.equals(parentParent.id))
-        .select({
-            id: tCompany.id,
-            name: tCompany.name,
-            parentId: parent.id,
-            parentName: parent.name,
-            parentParentId: parentParent.id,
-            parentParentName: parentParent.name,
-            parentParentParentId: parentParent.parentId,
-        }).guidedSplitOptional('parentParent', {
-            id: 'parentParentId!',
-            name: 'parentParentName!',
-            parentId: 'parentParentParentId'
-        }).guidedSplitOptional('parent', {
-            id: 'parentId!',
-            name: 'parentName!',
-            parent: 'parentParent'
-        })
-        .executeSelectMany()
-
-    assertEquals(companyMultiSplit, result)
     
     /* *** Preparation ************************************************************/
 
@@ -2717,7 +1960,7 @@ async function main() {
     
     /* *** Example ****************************************************************/
 
-    //const parentParent = tCompany.forUseInLeftJoinAs('parentParent')
+    const parentParent = tCompany.forUseInLeftJoinAs('parentParent')
     
     const companyMultiSplit2 = await connection.selectFrom(tCompany)
         .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
@@ -3437,65 +2680,6 @@ async function main() {
         .executeSelectOne()
     
     assertEquals(lowCompany2, result)
-
-    /* *** Preparation ************************************************************/
-
-    result = { 
-        id: 10, 
-        name: 'Low Company', 
-        parentId: 9, 
-        parents: [
-            { id: 9, name: 'Mic Company', parentId: 8 }, 
-            { id: 8, name: 'Top Company' }
-        ]
-    }
-    expectedResult.push({ id: 10, name: 'Low Company', parentId: 9 })
-    expectedQuery.push(`select id as "id", name as "name", parent_id as "parentId" from company where id = :0`)
-    expectedParams.push(`[10]`)
-    expectedType.push(`selectOneRow`)
-
-    expectedResult.push([{ startId: 9, id: 9, name: 'Mic Company', parentId: 8 }, { startId: 9, id: 8, name: 'Top Company' }])
-    expectedQuery.push(`with recursive_select_1(id, name, parentId, startId) as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId, parentCompany.id as startId from company parentCompany where parentCompany.id in (:0) union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId, recursive_select_1.startId as startId from company parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select id as "id", name as "name", parentId as "parentId", startId as "startId" from recursive_select_1`)
-    expectedParams.push(`[9]`)
-    expectedType.push(`selectManyRows`)
-
-    /* *** Example ****************************************************************/
-
-    const lowCompany3 = await connection.selectFrom(tCompany)
-        .select({
-            id: tCompany.id,
-            name: tCompany.name,
-            parentId: tCompany.parentId
-        })
-        .where(tCompany.id.equals(10))
-        .composeDeletingInternalProperty({
-            externalProperty: 'parentId',
-            internalProperty: 'startId',
-            propertyName: 'parents'
-        }).withMany((ids) => {
-            return connection.selectFrom(parentCompany2)
-                .select({
-                    id: parentCompany2.id,
-                    name: parentCompany2.name,
-                    parentId: parentCompany2.parentId,
-                    startId: parentCompany2.id
-                })
-                .where(parentCompany2.id.in(ids))
-                .recursiveUnionAll((child) => {
-                    return connection.selectFrom(parentCompany2)
-                        .join(child).on(child.parentId.equals(parentCompany2.id))
-                        .select({
-                            id: parentCompany2.id,
-                            name: parentCompany2.name,
-                            parentId: parentCompany2.parentId,
-                            startId: child.startId
-                        })
-                })
-                .executeSelectMany()
-        })
-        .executeSelectOne()
-    
-    assertEquals(lowCompany3, result)
 
     /* *** Preparation ************************************************************/
 

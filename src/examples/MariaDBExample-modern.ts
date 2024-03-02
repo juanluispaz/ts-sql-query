@@ -861,41 +861,6 @@ async function main() {
             .executeSelectOne()
         assertEquals(lowCompany2, { id: 11, name: 'Low Company', parentId: 10, parents: [{ id: 10, name: 'Mic Company', parentId: 9 }, { id: 9, name: 'Top Company' }] }) // For some reason MariaDB skips the number 5
 
-        const lowCompany3 = await connection.selectFrom(tCompany)
-            .select({
-                id: tCompany.id,
-                name: tCompany.name,
-                parentId: tCompany.parentId
-            })
-            .where(tCompany.id.equals(11)) // For some reason MariaDB skips the number 5
-            .composeDeletingInternalProperty({
-                externalProperty: 'parentId',
-                internalProperty: 'startId',
-                propertyName: 'parents'
-            }).withMany((ids) => {
-                return connection.selectFrom(parentCompany)
-                    .select({
-                        id: parentCompany.id,
-                        name: parentCompany.name,
-                        parentId: parentCompany.parentId,
-                        startId: parentCompany.id
-                    })
-                    .where(parentCompany.id.in(ids))
-                    .recursiveUnionAll((child) => {
-                        return connection.selectFrom(parentCompany)
-                            .join(child).on(child.parentId.equals(parentCompany.id))
-                            .select({
-                                id: parentCompany.id,
-                                name: parentCompany.name,
-                                parentId: parentCompany.parentId,
-                                startId: child.startId
-                            })
-                    })
-                    .executeSelectMany()
-            })
-            .executeSelectOne()
-        assertEquals(lowCompany3, { id: 11, name: 'Low Company', parentId: 10, parents: [{ id: 10, name: 'Mic Company', parentId: 9 }, { id: 9, name: 'Top Company' }] }) // For some reason MariaDB skips the number 5
-
         i = await connection.insertInto(tRecord).values({
                 id: '89bf68fc-7002-11ec-90d6-0242ac120003',
                 title: 'My voice memo'

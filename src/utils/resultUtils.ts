@@ -35,13 +35,6 @@ type RequiredInnerColumnNames<T, PREFIX extends string> = { [K in keyof T]-?:
 
 export type RequiredKeysOfPickingColumns<T> = T extends AnyValueSource ? never : { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[keyof T]
 
-// For compose and split
-
-export type ColumnGuard<T> = T extends null | undefined ? never : [T] extends [never] ? never : T extends AnyValueSource ? never : unknown
-export type GuidedObj<T> = T & { [K in keyof T as K extends string | number ? `${K}!` : never]-?: NonNullable<T[K]>} & { [K in keyof T as K extends string | number ? `${K}?` : never]?: T[K]}
-export type GuidedPropName<T> = T extends `${infer Q}!` ? Q : T extends `${infer Q}?` ? Q : T
-export type ValueOf<T> = T[keyof T]
-
 type FixPickableObjectWhereCouldBeNotPicked<RESULT> = // In case all properties in a complex projection can me ommited in a select picked, the object can be absent as well
     undefined extends string ? RESULT // tsc is working with strict mode disabled. There is no way to infer the optional properties. Keep as required is a better approximation.
     : { } extends RESULT ? RESULT | undefined : RESULT

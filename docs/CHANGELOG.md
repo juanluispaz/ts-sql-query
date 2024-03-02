@@ -35,7 +35,7 @@
 **Changes**:
 
 - Deprecate composing and splitting results functionality long warned to be removed in ts-sql-query. Use complex projections or aggregate as an object array instead.
-- Deprecate `mergeType` additional utility type. Use Use `connection.dynamicBooleanExpressionUsing` instead.
+- Deprecate `mergeType` additional utility type. Use `connection.dynamicBooleanExpressionUsing` instead.
 
 ## v1.60.0 (25 Feb 2024)
 

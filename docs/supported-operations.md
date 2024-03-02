@@ -1761,17 +1761,29 @@ interface InsertExpression {
     params(): any[]
 
     // Result compose operations
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     split(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     splitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     splitOptional(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
 
     // Returning methods
@@ -2018,17 +2030,29 @@ interface UpdateExpression {
     params(): any[]
 
     // Result compose operations
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     split(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     splitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     splitOptional(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
 
     // Returning methods
@@ -2166,17 +2190,28 @@ interface DeleteExpression {
     executeDeleteMany(): Promise<RESULT[]>
 
     // Result compose operations
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     split(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     splitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     splitOptional(propertyName: string, mappig: { [property: string]: string }): this
     guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
 
     /** Allows to add a using (like a from that doesn't delete) to the delete query */
@@ -2400,17 +2435,29 @@ interface SelectExpression {
     params(): any[]
 
     // Result compose operations
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     compose(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     composeDeletingInternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     composeDeletingExternalProperty(config: { externalProperty: string, internalProperty: string, propertyName: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withNoneOrOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOne(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOptionalMany(fn: (ids: EXTERNAL_PROPERTY_TYPE[]) => Promise<any[]>): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     split(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     splitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     splitOptional(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     guidedSplitRequired(propertyName: string, mappig: { [property: string]: string }): this
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     guidedSplitOptional(propertyName: string, mappig: { [property: string]: string }): this
 
     customizeQuery(customization: {

@@ -68,16 +68,19 @@ export interface ExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TA
 }
 
 export interface ExecutableSelectWithWhere<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends ExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW> {
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     compose<EXTERNAL_PROP extends keyof RESULT & ColumnGuard<COLUMNS>, INTERNAL_PROP extends string, RESULT_PROP extends string>(config: {
         externalProperty: EXTERNAL_PROP,
         internalProperty: INTERNAL_PROP,
         propertyName: RESULT_PROP
     }): ComposeExpression<EXTERNAL_PROP, INTERNAL_PROP, RESULT_PROP, DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     composeDeletingInternalProperty<EXTERNAL_PROP extends keyof RESULT & ColumnGuard<COLUMNS>, INTERNAL_PROP extends string, RESULT_PROP extends string>(config: {
         externalProperty: EXTERNAL_PROP,
         internalProperty: INTERNAL_PROP,
         propertyName: RESULT_PROP
     }): ComposeExpressionDeletingInternalProperty<EXTERNAL_PROP, INTERNAL_PROP, RESULT_PROP, DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     composeDeletingExternalProperty<EXTERNAL_PROP extends keyof RESULT & ColumnGuard<COLUMNS>, INTERNAL_PROP extends string, RESULT_PROP extends string>(config: {
         externalProperty: EXTERNAL_PROP,
         internalProperty: INTERNAL_PROP,
@@ -85,46 +88,66 @@ export interface ExecutableSelectWithWhere<DB extends AnyDB, COLUMNS, RESULT, RE
     }): ComposeExpressionDeletingExternalProperty<EXTERNAL_PROP, INTERNAL_PROP, RESULT_PROP, DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>
 
     // Note: { [Q in keyof SplitResult<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: SplitResult<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] } is used to define the internal object because { [P in keyof MAPPING]: RESULT[MAPPING[P]] } doesn't respect the optional typing of the props
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     splitRequired<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ExecutableSelectWithWhere<DB, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }}, REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     splitOptional<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ExecutableSelectWithWhere<DB, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }}, REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     split<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ExecutableSelectWithWhere<DB, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & ( {} extends FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }> ? { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }} : { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }}), REQUIRED_TABLE_OR_VIEW>
   
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     guidedSplitRequired<RESULT_PROP extends string, MAPPED_PROPS extends keyof GuidedObj<RESULT> & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ExecutableSelectWithWhere<DB, COLUMNS, Omit<RESULT, GuidedPropName<ValueOf<MAPPING>>> & { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>[Q] }}, REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     guidedSplitOptional<RESULT_PROP extends string, MAPPED_PROPS extends keyof GuidedObj<RESULT> & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): ExecutableSelectWithWhere<DB, COLUMNS, Omit<RESULT, GuidedPropName<ValueOf<MAPPING>>> & { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>[Q] }}, REQUIRED_TABLE_OR_VIEW>
 }
 
 export interface ComposeExpression<EXTERNAL_PROP extends keyof RESULT, INTERNAL_PROP extends string, RESULT_PROP extends string, DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> {
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withNoneOrOne<INTERNAL extends {[key in INTERNAL_PROP]: RESULT[EXTERNAL_PROP]}>(fn: (ids: Array<NonNullable<RESULT[EXTERNAL_PROP]>>) => Promise<INTERNAL[]>): ExecutableSelectWithWhere<DB, COLUMNS, RESULT & { [key in RESULT_PROP]?: INTERNAL }, REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOne<INTERNAL extends {[key in INTERNAL_PROP]: RESULT[EXTERNAL_PROP]}>(fn: (ids: Array<NonNullable<RESULT[EXTERNAL_PROP]>>) => Promise<INTERNAL[]>): ExecutableSelectWithWhere<DB, COLUMNS, RESULT & ( EXTERNAL_PROP extends RequiredKeysOfPickingColumns<COLUMNS> ? { [key in RESULT_PROP]: INTERNAL } : { [key in RESULT_PROP]?: INTERNAL }), REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withMany<INTERNAL extends {[key in INTERNAL_PROP]: RESULT[EXTERNAL_PROP]}>(fn: (ids: Array<NonNullable<RESULT[EXTERNAL_PROP]>>) => Promise<INTERNAL[]>): ExecutableSelectWithWhere<DB, COLUMNS, RESULT & ( EXTERNAL_PROP extends RequiredKeysOfPickingColumns<COLUMNS> ? { [key in RESULT_PROP]: INTERNAL[] } : { [key in RESULT_PROP]?: INTERNAL[] }), REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOptionalMany<INTERNAL extends {[key in INTERNAL_PROP]: RESULT[EXTERNAL_PROP]}>(fn: (ids: Array<NonNullable<RESULT[EXTERNAL_PROP]>>) => Promise<INTERNAL[]>): ExecutableSelectWithWhere<DB, COLUMNS, RESULT & { [key in RESULT_PROP]?: INTERNAL[] }, REQUIRED_TABLE_OR_VIEW>
 }
 export interface ComposeExpressionDeletingInternalProperty<EXTERNAL_PROP extends keyof RESULT, INTERNAL_PROP extends string, RESULT_PROP extends string, DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> {
     // Note: { [P in keyof Omit<INTERNAL, INTERNAL_PROP>]: Omit<INTERNAL, INTERNAL_PROP>[P] } is used to delete the internal prop because Omit<INTERNAL, INTERNAL_PROP> is not expanded in the editor (when see the type)
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withNoneOrOne<INTERNAL extends {[key in INTERNAL_PROP]: RESULT[EXTERNAL_PROP]}>(fn: (ids: Array<NonNullable<RESULT[EXTERNAL_PROP]>>) => Promise<INTERNAL[]>): ExecutableSelectWithWhere<DB, COLUMNS, RESULT & { [key in RESULT_PROP]?: { [P in keyof Omit<INTERNAL, INTERNAL_PROP>]: Omit<INTERNAL, INTERNAL_PROP>[P] }}, REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOne<INTERNAL extends {[key in INTERNAL_PROP]: RESULT[EXTERNAL_PROP]}>(fn: (ids: Array<NonNullable<RESULT[EXTERNAL_PROP]>>) => Promise<INTERNAL[]>): ExecutableSelectWithWhere<DB, COLUMNS, RESULT & ( EXTERNAL_PROP extends RequiredKeysOfPickingColumns<COLUMNS> ? { [key in RESULT_PROP]: { [P in keyof Omit<INTERNAL, INTERNAL_PROP>]: Omit<INTERNAL, INTERNAL_PROP>[P] }} : { [key in RESULT_PROP]?: { [P in keyof Omit<INTERNAL, INTERNAL_PROP>]: Omit<INTERNAL, INTERNAL_PROP>[P] }} ), REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withMany<INTERNAL extends {[key in INTERNAL_PROP]: RESULT[EXTERNAL_PROP]}>(fn: (ids: Array<NonNullable<RESULT[EXTERNAL_PROP]>>) => Promise<INTERNAL[]>): ExecutableSelectWithWhere<DB, COLUMNS, RESULT & ( EXTERNAL_PROP extends RequiredKeysOfPickingColumns<COLUMNS> ? { [key in RESULT_PROP]: Array<{ [P in keyof Omit<INTERNAL, INTERNAL_PROP>]: Omit<INTERNAL, INTERNAL_PROP>[P] }> } : { [key in RESULT_PROP]?: Array<{ [P in keyof Omit<INTERNAL, INTERNAL_PROP>]: Omit<INTERNAL, INTERNAL_PROP>[P] }> }), REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOptionalMany<INTERNAL extends {[key in INTERNAL_PROP]: RESULT[EXTERNAL_PROP]}>(fn: (ids: Array<NonNullable<RESULT[EXTERNAL_PROP]>>) => Promise<INTERNAL[]>): ExecutableSelectWithWhere<DB, COLUMNS, RESULT & { [key in RESULT_PROP]?: Array<{ [P in keyof Omit<INTERNAL, INTERNAL_PROP>]: Omit<INTERNAL, INTERNAL_PROP>[P] }> }, REQUIRED_TABLE_OR_VIEW>
 }
 
 export interface ComposeExpressionDeletingExternalProperty<EXTERNAL_PROP extends keyof RESULT, INTERNAL_PROP extends string, RESULT_PROP extends string, DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> {
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withNoneOrOne<INTERNAL extends {[key in INTERNAL_PROP]: RESULT[EXTERNAL_PROP]}>(fn: (ids: Array<NonNullable<RESULT[EXTERNAL_PROP]>>) => Promise<INTERNAL[]>): ExecutableSelectWithWhere<DB, COLUMNS, Omit<RESULT, EXTERNAL_PROP> & { [key in RESULT_PROP]?: INTERNAL }, REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOne<INTERNAL extends {[key in INTERNAL_PROP]: RESULT[EXTERNAL_PROP]}>(fn: (ids: Array<NonNullable<RESULT[EXTERNAL_PROP]>>) => Promise<INTERNAL[]>): ExecutableSelectWithWhere<DB, COLUMNS, Omit<RESULT, EXTERNAL_PROP> & ( EXTERNAL_PROP extends RequiredKeysOfPickingColumns<COLUMNS> ? { [key in RESULT_PROP]: INTERNAL } : { [key in RESULT_PROP]?: INTERNAL }), REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withMany<INTERNAL extends {[key in INTERNAL_PROP]: RESULT[EXTERNAL_PROP]}>(fn: (ids: Array<NonNullable<RESULT[EXTERNAL_PROP]>>) => Promise<INTERNAL[]>): ExecutableSelectWithWhere<DB, COLUMNS, Omit<RESULT, EXTERNAL_PROP> & ( EXTERNAL_PROP extends RequiredKeysOfPickingColumns<COLUMNS> ? { [key in RESULT_PROP]: INTERNAL[] } : { [key in RESULT_PROP]?: INTERNAL[] }), REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     withOptionalMany<INTERNAL extends {[key in INTERNAL_PROP]: RESULT[EXTERNAL_PROP]}>(fn: (ids: Array<NonNullable<RESULT[EXTERNAL_PROP]>>) => Promise<INTERNAL[]>): ExecutableSelectWithWhere<DB, COLUMNS, Omit<RESULT, EXTERNAL_PROP> & { [key in RESULT_PROP]?: INTERNAL[] }, REQUIRED_TABLE_OR_VIEW>
 }
 
 export interface ExecutableSelectWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends ExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW> {
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     compose<EXTERNAL_PROP extends keyof RESULT & ColumnGuard<COLUMNS>, INTERNAL_PROP extends string, RESULT_PROP extends string>(config: {
         externalProperty: EXTERNAL_PROP,
         internalProperty: INTERNAL_PROP,
         propertyName: RESULT_PROP
     }): ComposeExpressionWithoutWhere<EXTERNAL_PROP, INTERNAL_PROP, RESULT_PROP, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     composeDeletingInternalProperty<EXTERNAL_PROP extends keyof RESULT & ColumnGuard<COLUMNS>, INTERNAL_PROP extends string, RESULT_PROP extends string>(config: {
         externalProperty: EXTERNAL_PROP,
         internalProperty: INTERNAL_PROP,
         propertyName: RESULT_PROP
     }): ComposeExpressionDeletingInternalPropertyWithoutWhere<EXTERNAL_PROP, INTERNAL_PROP, RESULT_PROP, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     composeDeletingExternalProperty<EXTERNAL_PROP extends keyof RESULT & ColumnGuard<COLUMNS>, INTERNAL_PROP extends string, RESULT_PROP extends string>(config: {
         externalProperty: EXTERNAL_PROP,
         internalProperty: INTERNAL_PROP,
@@ -132,11 +155,16 @@ export interface ExecutableSelectWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW ex
     }): ComposeExpressionDeletingExternalPropertyWithoutWhere<EXTERNAL_PROP, INTERNAL_PROP, RESULT_PROP, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>
 
     // Note: { [Q in keyof SplitResult<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: SplitResult<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] } is used to define the internal object because { [P in keyof MAPPING]: RESULT[MAPPING[P]] } doesn't respect the optional typing of the props
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     splitRequired<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): SplitedComposedExecutableSelectWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }}, REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     splitOptional<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): SplitedComposedExecutableSelectWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }}, REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     split<RESULT_PROP extends string, MAPPED_PROPS extends keyof RESULT & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): SplitedComposedExecutableSelectWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, Omit<RESULT, ValueOf<MAPPING>> & ( {} extends FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }> ? { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }} : { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: RESULT[MAPPING[P]] }>[Q] }}), REQUIRED_TABLE_OR_VIEW>
   
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     guidedSplitRequired<RESULT_PROP extends string, MAPPED_PROPS extends keyof GuidedObj<RESULT> & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): SplitedComposedExecutableSelectWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, Omit<RESULT, GuidedPropName<ValueOf<MAPPING>>> & { [key in RESULT_PROP]: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>[Q] }}, REQUIRED_TABLE_OR_VIEW>
+    /** @deprecated Use complex projections or aggregate as an object array instead */
     guidedSplitOptional<RESULT_PROP extends string, MAPPED_PROPS extends keyof GuidedObj<RESULT> & ColumnGuard<COLUMNS>, MAPPING extends { [P: string]: MAPPED_PROPS }>(propertyName: RESULT_PROP, mappig: MAPPING): SplitedComposedExecutableSelectWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, Omit<RESULT, GuidedPropName<ValueOf<MAPPING>>> & { [key in RESULT_PROP]?: { [Q in keyof FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>]: FixOptionalProperties<{ [P in keyof MAPPING]: GuidedObj<RESULT>[MAPPING[P]] }>[Q] }}, REQUIRED_TABLE_OR_VIEW>
 }
 

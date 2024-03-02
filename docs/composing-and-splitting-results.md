@@ -1,6 +1,6 @@
 # Composing and splitting results (legacy)
 
-**LEGACY**: This feature will continue to be maintained, but its usage is not recommended, and its functionality will not be extended. This functionality is intended to be deprecated in the future when the current code using it is migrated away. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
+**DEPRECATED**: This feature will be removed in the next version. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
 Sometime you whan to create a result where the content looks like:
 
@@ -16,6 +16,8 @@ To do this you have two strategies:
 **Note**: You can apply composing/spliting on select/insert/update/delete that returns objects.
 
 ## Composing results
+
+**DEPRECATED**: This feature will be removed in the next version. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
 **Note**: Before use splitting evaluate if you can use [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
@@ -63,6 +65,8 @@ This method receives a function with argument an array with the ids and returns 
 
 ## Composing many items in the result
 
+**DEPRECATED**: This feature will be removed in the next version. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
+
 **Note**: Before use splitting evaluate if you can use [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
 ```ts
@@ -106,6 +110,8 @@ const companiesWithCustomers: Promise<{
 
 ## Composing one item in the result
 
+**DEPRECATED**: This feature will be removed in the next version. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
+
 **Note**: Before use splitting evaluate if you can use [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
 ```ts
@@ -148,6 +154,8 @@ const customerWithCompany: Promise<{
 ```
 
 ## Composing recursive query as an array of objects in two requests
+
+**DEPRECATED**: This feature will be removed in the next version. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
 You have the option to use composing results to query the values in the database in two queries, instead of using aggregate inline value; this is useful when the database doesn't support the query or when the inline query doesn't perform good enough. Using the `compose` function is possible to divide the data extraction into two different queries where each result are combined to produce the final result.
 
@@ -233,6 +241,8 @@ const myCompany: Promise<{
 
 ## Splitting results
 
+**DEPRECATED**: This feature will be removed in the next version. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
+
 **Note**: Before use splitting evaluate if you can use [complex projections](queries/complex-projections.md) instead.
 
 **How it works**:
@@ -258,6 +268,8 @@ Before executing the query, you must call `split` method with the following argu
 2. `mapping`: an object map where the key is the new name of the property and the value is the old name of the property.
 
 ## Splitting the result of one query
+
+**DEPRECATED**: This feature will be removed in the next version. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
 ```ts
 const customerWithCompanyInOneQuery = connection.selectFrom(tCustomer)
@@ -292,6 +304,8 @@ const customerWithCompanyInOneQuery: Promise<{
 ```
 
 ## Splitting results and dynamic queries
+
+**DEPRECATED**: This feature will be removed in the next version. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
 **Note**: Before use splitting evaluate if you can use [complex projections](queries/complex-projections.md) instead.
 
@@ -372,6 +386,8 @@ const customerWithCompanyObject: Promise<{
 
 ## Guided splitting results
 
+**DEPRECATED**: This feature will be removed in the next version. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
+
 **Note**: Before use splitting evaluate if you can use [complex projections](queries/complex-projections.md) instead.
 
 Sometimes the default splitting strategy is not enough to express the correct result type due to optional type information that cannot be extracted from the query. For example: when you perform a left join, all the fields coming from the left join table are optional, but you can know when this join exists; some of these fields are not optional at the same time. Adding additional information, you can express this optional combination in the split object.
@@ -400,6 +416,8 @@ Before executing the query, you must call `guidedSplit` method with the followin
 **Note**: When you force a property as required in the split object when this object is created, the forced-as-required properties must have value; if not, you will get an error.
 
 ## Splitting the result of a left join query
+
+**DEPRECATED**: This feature will be removed in the next version. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
 ```ts
 const parent = tCompany.forUseInLeftJoinAs('parent')
@@ -439,6 +457,8 @@ const leftJoinCompany: Promise<{
 ```
 
 ## Prefixing
+
+**DEPRECATED**: This feature will be removed in the next version. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
 **Note**: Before use splitting evaluate if you can use [complex projections](queries/complex-projections.md) instead.
 
@@ -505,6 +525,8 @@ const customerWithCompanyPrefixed: Promise<{
 ```
 
 ## Prefix map for guided split
+
+**DEPRECATED**: This feature will be removed in the next version. Use [complex projections](queries/complex-projections.md) or [aggregate as an object array](queries/aggregate-as-object-array.md) instead.
 
 **Note**: Before use splitting evaluate if you can use [complex projections](queries/complex-projections.md) instead.
 

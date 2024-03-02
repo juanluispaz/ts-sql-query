@@ -1,5 +1,12 @@
 # Change Log
 
+## v2.0.0-alpha.2 (2 Mar 2024)
+
+**Removals**:
+
+- Remove deprecated `mergeType` additional utility type. Use `connection.dynamicBooleanExpressionUsing` instead.
+- Remove deprecated composing and splitting results functionality long warned to be removed in ts-sql-query. Use complex projections or aggregate as an object array instead.
+
 ## v2.0.0-alpha.1 (2 Mar 2024)
 
 **Removals**:

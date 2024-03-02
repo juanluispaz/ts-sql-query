@@ -1,4 +1,3 @@
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import type { QueryRunner, DatabaseType } from "./QueryRunner"
 
 export abstract class AbstractQueryRunner implements QueryRunner {
@@ -239,9 +238,7 @@ export abstract class AbstractQueryRunner implements QueryRunner {
         throw new Error('Unsupported output parameters')
     }
     abstract createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
-    abstract executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
     abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
-    abstract executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
     abstract executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
 
     isMocked(): boolean {

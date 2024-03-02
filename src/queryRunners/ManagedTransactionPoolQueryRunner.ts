@@ -1,17 +1,10 @@
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider";
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner";
 import { QueryRunner } from "./QueryRunner";
 
 export abstract class ManagedTransactionPoolQueryRunner extends AbstractPoolQueryRunner {
-    executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any> {
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T> {
         return outermostQueryRunner.executeBeginTransaction().then(() => {
             let result = fn()
-            if (Array.isArray(result)) {
-                result = this.createAllPromise(result)
-            }
             return result.then((r) => {
                 return outermostQueryRunner.executeCommit().then(() => {
                     return r
@@ -33,6 +26,4 @@ export abstract class ManagedTransactionPoolQueryRunner extends AbstractPoolQuer
             })
         })
     }
-
-    protected abstract createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>>
 }

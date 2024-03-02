@@ -1,4 +1,3 @@
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { DatabaseType, QueryRunner } from "./QueryRunner"
 
 export abstract class AbstractPoolQueryRunner implements QueryRunner {
@@ -144,9 +143,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
         return this.getQueryRunner().then(queryRunner => queryRunner.executeConnectionConfiguration(query, params)).finally(() => this.releaseIfNeeded())
     }
 
-    abstract executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
     abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
-    abstract executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
     abstract executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
 
     abstract useDatabase(database: DatabaseType): void

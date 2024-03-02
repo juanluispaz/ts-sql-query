@@ -1,4 +1,3 @@
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import type { QueryRunner, DatabaseType } from "./QueryRunner"
 
 export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
@@ -108,10 +107,7 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     isTransactionActive(): boolean {
         return this.queryRunner.isTransactionActive()
     }
-    executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any> {
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T> {
         return this.queryRunner.executeInTransaction(fn, outermostQueryRunner)
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {

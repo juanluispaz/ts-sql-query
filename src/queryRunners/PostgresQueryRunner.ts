@@ -1,4 +1,3 @@
-import type { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { PromiseBasedAbstractQueryRunner } from "./PromiseBasedAbstractQueryRunner"
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { Sql, TransactionSql } from 'postgres'
@@ -55,10 +54,7 @@ export class PostgresQueryRunner extends PromiseBasedAbstractQueryRunner {
         params.push(value)
         return '$' + params.length
     }
-    executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, _outermostQueryRunner: QueryRunner): Promise<any> {
+    executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner): Promise<T> {
         if (this.transaction) {
             throw new Error('Nested transactions is not supported by PostgresQueryRunner')
         }
@@ -68,13 +64,10 @@ export class PostgresQueryRunner extends PromiseBasedAbstractQueryRunner {
             }
             this.transaction = transaction
             let result = fn()
-            if (Array.isArray(result)) {
-                result = this.createAllPromise(result)
-            }
             return result.finally(() => {
                 this.transaction = undefined
             })
-        })
+        }) as Promise<T>
     }
     lowLevelTransactionManagementSupported(): boolean {
         return false

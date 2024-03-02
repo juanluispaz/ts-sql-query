@@ -22,7 +22,7 @@ import ChainedError from "chained-error"
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue } from "../queryBuilders/FragmentQueryBuilder"
 import { attachSource, attachTransactionSource } from "../utils/attachSource"
 import { database, outerJoinAlias, outerJoinTableOrView, tableOrView, tableOrViewRef, type, valueSourceTypeName, valueType } from "../utils/symbols"
-import { callDeferredFunctions, callDeferredFunctionsStoppingOnError, isPromise, UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import { callDeferredFunctions, callDeferredFunctionsStoppingOnError, isPromise } from "../utils/PromiseProvider"
 import { DinamicConditionExtension, DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
 import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilder"
 import { RawFragment } from "../utils/RawFragment"
@@ -160,39 +160,31 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         this.onRollback.push(fn)
     }
 
-    transaction<P extends Promise<any>[]>(fn: () => [...P]): Promise<UnwrapPromiseTuple<P>>
-    transaction<T>(fn: () => Promise<T>): Promise<T>
-    transaction(fn: () => Promise<any>[] | Promise<any>): Promise<any> {
+    transaction<T>(fn: () => Promise<T>): Promise<T> {
         const source = new Error('Transaction executed at')
         try {
-            return this.queryRunner.executeInTransaction(() => {
+            return this.queryRunner.executeInTransaction<T>(() => {
                 this.pushTransactionStack()
                 try {
                     const result = fn()
-                    if (isPromise(result)) {
-                        return result.then((fnResult) => {
-                            const beforeCommit = this.beforeCommit
-                            this.beforeCommit = null
-                            return callDeferredFunctionsStoppingOnError('before next commit', beforeCommit, fnResult, source)
-                        })
-                    } else if (this.beforeCommit) {
-                        throw new Error('before next commit not supported with high level transaction that return an array')
-                    }
-                    return result
+                    return result.then((fnResult) => {
+                        const beforeCommit = this.beforeCommit
+                        this.beforeCommit = null
+                        return callDeferredFunctionsStoppingOnError('before next commit', beforeCommit, fnResult, source)
+                    })
                 } catch (e) {
-                    // TODO: remove when no more array in transaction
                     this.popTransactionStack()
                     throw e
                 }
             }, this.queryRunner).then((result) => {
                 const onCommit = this.onCommit
                 this.onCommit = null
-                return callDeferredFunctions('after next commit', onCommit, result, source)
+                return callDeferredFunctions<T>('after next commit', onCommit, result, source)
             }, (e) => {
                 const throwError = attachTransactionSource(new ChainedError(e), source)
                 const onRollback = this.onRollback
                 this.onRollback = null
-                return callDeferredFunctions('after next rollback', onRollback, undefined, source, e, throwError)
+                return callDeferredFunctions<any>('after next rollback', onRollback, undefined, source, e, throwError)
             }).finally(() => {
                 this.popTransactionStack()
             })

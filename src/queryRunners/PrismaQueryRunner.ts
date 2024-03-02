@@ -1,4 +1,3 @@
-import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { AbstractQueryRunner } from "./AbstractQueryRunner"
 import { DatabaseType, QueryRunner } from "./QueryRunner"
 
@@ -123,10 +122,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
     isTransactionActive(): boolean {
         return this.transactionLevel > 0
     }
-    executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, _outermostQueryRunner: QueryRunner): Promise<any> {
+    executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner): Promise<T> {
         if (this.transaction) {
             throw new Error('Nested interactive transaction is not supported by Prisma')
         }

@@ -1,4 +1,4 @@
-import type { PromiseProvider, UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import type { PromiseProvider } from "../utils/PromiseProvider"
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 
 export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
@@ -470,15 +470,9 @@ export class MockQueryRunner implements QueryRunner {
         return ':' + index
     }
 
-    executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any> {
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T> {
         return outermostQueryRunner.executeBeginTransaction().then(() => {
             let result = fn()
-            if (Array.isArray(result)) {
-                result = this.createAllPromise(result)
-            }
             return result.then((r) => {
                 return outermostQueryRunner.executeCommit().then(() => {
                     return r
@@ -503,9 +497,6 @@ export class MockQueryRunner implements QueryRunner {
 
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.promise.resolve(result) 
-    }
-    createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return this.promise.all(promises) as any
     }
 
     isMocked(): boolean {

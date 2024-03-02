@@ -8,7 +8,7 @@ export type PromiseProvider = PromiseConstructorLike & {
      * synchronous-promise doesn't provide an definition so detailed like the ones included in the standar library
      */
     // all: typeof Promise.all, 
-    all(values: any[]): Promise<any[]>, 
+    // all(values: any[]): Promise<any[]>, 
     /* Not all providers support it, by example: 
      * synchronous-promise doesn't provide an implementation of it
      */
@@ -17,11 +17,6 @@ export type PromiseProvider = PromiseConstructorLike & {
      * synchronous-promise doesn't provide an definition compatible with the ones included in the standar library
      */
     // allSettled: typeof Promise.allSettled
-}
-
-export type UnwrapPromise<P extends any> = P extends Promise<infer R> ? R : P
-export type UnwrapPromiseTuple<Tuple extends any[]> = {
-    [K in keyof Tuple]: UnwrapPromise<Tuple[K]>
 }
 
 export function isPromise(value: any): value is Promise<unknown> {

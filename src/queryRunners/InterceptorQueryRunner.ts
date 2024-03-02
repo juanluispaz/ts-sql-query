@@ -1,6 +1,5 @@
 import type { QueryRunner } from "./QueryRunner"
 import { ChainedQueryRunner } from "./ChainedQueryRunner"
-import type { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 
 export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' |
     'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' |
@@ -249,10 +248,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeInTransaction<P extends Promise<any>[]>(fn: () => [...P], outermostQueryRunner: QueryRunner): Promise<UnwrapPromiseTuple<P>>
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any>
-    executeInTransaction(fn: () => Promise<any>[] | Promise<any>, outermostQueryRunner: QueryRunner): Promise<any> {
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T> {
         if (!this.queryRunner.lowLevelTransactionManagementSupported()) {
             // Emulate beginTransaction, commit and rollback to see in logs
             return this.queryRunner.executeInTransaction(() => {

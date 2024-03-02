@@ -254,33 +254,6 @@ async function main() {
             .executeDelete()
         assertEquals(i, 1)
 
-        let [maybe, page] = await connection.transaction(() => [
-            connection
-                .selectFrom(tCompany)
-                .where(tCompany.id.equals(2))
-                .selectOneColumn(tCompany.name)
-                .executeSelectNoneOrOne(),
-            connection
-                .selectFrom(tCustomer)
-                .select({
-                    id: tCustomer.id,
-                    name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName)
-                })
-                .orderBy('id')
-                .limit(2)
-                .executeSelectPage()
-        ])
-
-        assertEquals(maybe, null)
-
-        assertEquals(page, {
-            count: 3,
-            data: [
-                { id: 1, name: 'John Smith' },
-                { id: 2, name: 'Other Person' }
-            ]
-        })
-
         const customerCountPerCompanyWith = connection.selectFrom(tCompany)
             .innerJoin(tCustomer).on(tCustomer.companyId.equals(tCompany.id))
             .select({

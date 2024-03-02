@@ -164,24 +164,6 @@ async function main() {
             .executeInsert()
         assertEquals(i, 1)
 
-        let [ii, iii] = await connection.transaction(() => [
-            connection
-                .insertInto(tCustomer)
-                .values([
-                    { firstName: 'John', lastName: 'Smith', companyId: 1 },
-                    { firstName: 'Other', lastName: 'Person', companyId: 1 },
-                    { firstName: 'Jane', lastName: 'Doe', companyId: 1 }
-                ])
-                .returningLastInsertedId()
-                .executeInsert(),
-            connection
-                .selectFromNoTable()
-                .selectOneColumn(connection.customerSeq.currentValue())
-                .executeSelectOne()
-        ])
-        assertEquals(ii, [1, 2, 3])
-        assertEquals(iii, 3)
-
         let company = await connection
             .selectFrom(tCompany)
             .where(tCompany.id.equals(1))
@@ -650,7 +632,7 @@ async function main() {
             .executeSelectOne()
         assertEquals(name, 'ACME Cia.')
 
-        ii = await connection
+        let ii = await connection
             .insertInto(tCompany)
             .from(
                 connection

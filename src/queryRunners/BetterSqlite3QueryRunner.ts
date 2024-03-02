@@ -1,6 +1,6 @@
 import type { DatabaseType } from "./QueryRunner"
 import type { Database } from 'better-sqlite3'
-import type { PromiseProvider, UnwrapPromiseTuple } from "../utils/PromiseProvider"
+import type { PromiseProvider } from "../utils/PromiseProvider"
 import { SqlTransactionQueryRunner } from "./SqlTransactionQueryRunner"
 
 export interface BetterSqlite3QueryRunnerConfig {
@@ -73,8 +73,5 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
     }    
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.promise.resolve(result) 
-    }
-    protected createAllPromise<P extends Promise<any>[]>(promises: [...P]): Promise<UnwrapPromiseTuple<P>> {
-        return this.promise.all(promises) as any
     }
 }

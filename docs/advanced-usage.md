@@ -507,6 +507,8 @@ const tCustomerProvidedIdColumnNames = extractProvidedIdColumnNamesFrom(tCustome
 
 ## Merge types
 
+**DEPRECATED**: Use [dynamicBooleanExpressionUsing](queries/dynamic-queries#complex-dynamic-boolean-expressions) instead
+
 **Note**: Before use merge types verify:
 
 - **First**: If you can use `IfValue` functions described at [Easy dynamic queries](queries/dynamic-queries.md#easy-dynamic-queries) instead.

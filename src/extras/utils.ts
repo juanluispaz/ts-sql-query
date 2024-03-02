@@ -425,33 +425,61 @@ export function extractWritableShapeFrom<O extends object, EXCLUDE extends Colum
 
 type HasIfValueSource<VALUE> = VALUE extends {[ifValueSourceType]: 'IfValueSource'} ? true : never
 
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends IAnyBooleanValueSource<any, any>>(value: VALUE): true extends HasIfValueSource<VALUE>? IfValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>> : BooleanValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends IStringIntValueSource<any, any>>(value: VALUE): StringIntValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends IStringNumberValueSource<any, any>>(value: VALUE): StringNumberValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends IIntValueSource<any, any>>(value: VALUE): IntValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends INumberValueSource<any, any>>(value: VALUE): NumberValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends ITypeSafeBigintValueSource<any, any>>(value: VALUE): TypeSafeBigintValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends IBigintValueSource<any, any>>(value: VALUE): BigintValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends IStringDoubleValueSource<any, any>>(value: VALUE): StringDoubleValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends IStringNumberValueSource<any, any>>(value: VALUE): StringNumberValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends IDoubleValueSource<any, any>>(value: VALUE): DoubleValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends INumberValueSource<any, any>>(value: VALUE): NumberValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends ITypeSafeStringValueSource<any, any>>(value: VALUE): TypeSafeStringValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends IStringValueSource<any, any>>(value: VALUE): StringValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends ILocalDateValueSource<any, any>>(value: VALUE): LocalDateValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends IDateValueSource<any, any>>(value: VALUE): DateValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends ILocalTimeValueSource<any, any>>(value: VALUE): LocalTimeValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends ITimeValueSource<any, any>>(value: VALUE): TimeValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends ILocalDateTimeValueSource<any, any>>(value: VALUE): LocalDateTimeValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends IDateTimeValueSource<any, any>>(value: VALUE): DateTimeValueSource<VALUE[typeof tableOrView], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends ICustomIntValueSource<any, any, any, any>>(value: VALUE): ICustomIntValueSource<VALUE[typeof tableOrView], VALUE[typeof valueType], VALUE[typeof valueSourceTypeName], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends ICustomDoubleValueSource<any, any, any, any>>(value: VALUE): ICustomDoubleValueSource<VALUE[typeof tableOrView], VALUE[typeof valueType], VALUE[typeof valueSourceTypeName], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends ICustomUuidValueSource<any, any, any, any>>(value: VALUE): ICustomUuidValueSource<VALUE[typeof tableOrView], VALUE[typeof valueType], VALUE[typeof valueSourceTypeName], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends ICustomLocalDateValueSource<any, any, any, any>>(value: VALUE): ICustomLocalDateValueSource<VALUE[typeof tableOrView], VALUE[typeof valueType], VALUE[typeof valueSourceTypeName], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends ICustomLocalTimeValueSource<any, any, any, any>>(value: VALUE): ICustomLocalTimeValueSource<VALUE[typeof tableOrView], VALUE[typeof valueType], VALUE[typeof valueSourceTypeName], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends ICustomLocalDateTimeValueSource<any, any, any, any>>(value: VALUE): ICustomLocalDateTimeValueSource<VALUE[typeof tableOrView], VALUE[typeof valueType], VALUE[typeof valueSourceTypeName], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends IEqualableValueSource<any, any, any, any>>(value: VALUE): EqualableValueSource<VALUE[typeof tableOrView], VALUE[typeof valueType], VALUE[typeof valueSourceTypeName], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType<VALUE extends IComparableValueSource<any, any, any, any>>(value: VALUE): ComparableValueSource<VALUE[typeof tableOrView], VALUE[typeof valueType], VALUE[typeof valueSourceTypeName], MergeOptionalUnion<VALUE[typeof optionalType]>>
+/** @deprecated Use connection.dynamicBooleanExpressionUsing instead */
 export function mergeType(value: any): any {
     return value
 }

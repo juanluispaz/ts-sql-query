@@ -34,7 +34,7 @@ export class PgQueryRunner extends PromiseBasedWithSqlTransactionQueryRunner {
         return this.connection.query(query, params).then((result) => result.rows)
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return this.connection.query(query, params).then((result) => result.rowCount)
+        return this.connection.query(query, params).then((result) => result.rowCount || 0)
     }
     addParam(params: any[], value: any): string {
         params.push(value)

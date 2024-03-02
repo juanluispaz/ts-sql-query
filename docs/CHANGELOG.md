@@ -1,5 +1,35 @@
 # Change Log
 
+## v2.0.0-alpha.1 (2 Mar 2024)
+
+**Removals**:
+
+- Remove deprecated [any-db](https://www.npmjs.com/package/any-db) support and query runner.
+- Remove deprecated [LoopBack](https://loopback.io/) support and query runner.
+- Remove deprecated [msnodesqlv8](https://www.npmjs.com/package/msnodesqlv8) support and query runner.
+- Remove deprecated [tedious](https://www.npmjs.com/package/tedious) support and query runner. Tedious still available using [mssql](https://www.npmjs.com/package/mssql).
+- Remove deprecated [Prisma](https://www.prisma.io)'s short-running transactions support. Prisma's Long-running transactions continue supported.
+- Remove deprecated connections with extended types: `TypeSafeMariaDBConnection`, `TypeSafeMySqlConnection`, `TypeSafeNoopDBConnection`, `TypeSafeOracleConnection`, `TypeSafePostgreSqlConnection`, `TypeSafeSqliteConnection`, `TypeSafeSqlServerConnection`.
+- Remove `ts-extended-types` dependency.
+- Remove deprecated `stringInt` and `stringDouble` column types in favour of `customInt` and `customDouble`.
+- Remove long deprecated functions:
+  
+    | Removed deprecated nam     | Current name       |
+    | -------------------------- | ------------------ |
+    | `smaller`                  | `lessThan`         |
+    | `smallAs`                  | `lessOrEquals`     |
+    | `larger`                   | `greaterThan`      |
+    | `largeAs`                  | `greaterOrEquals`  |
+    | `mod`                      | `modulo`           |
+    | `lower`                    | `toLowerCase`      |
+    | `upper`                    | `toUpperCase`      |
+    | `ltrim`                    | `trimLeft`         |
+    | `rtrim`                    | `trimRight`        |
+    | `replace`                  | `replaceAll`       |
+    | `replaceIfValue`           | `replaceAllIfValue`|
+
+- Remove long deprecated overload of functions in columns that allowed to send to the database null values in TypeScript when the type were optional.
+
 ## v1.60.0 (25 Feb 2024)
 
 **Changes**:

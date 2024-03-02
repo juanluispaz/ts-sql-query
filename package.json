@@ -1,6 +1,6 @@
 {
     "name": "ts-sql-query",
-    "version": "1.60.0",
+    "version": "2.0.0-alpha.1",
     "description": "Type-safe SQL query builder like QueryDSL or JOOQ in Java or Linq in .Net for TypeScript with MariaDB, MySql, Oracle, PostgreSql, Sqlite and SqlServer support.",
     "license": "MIT",
     "author": "juanluispaz",
@@ -41,6 +41,7 @@
         "coverage": "nyc sh ./scripts/run-all-examples.sh",
         "build": "rm -rf dist/*; tsc --version && tsc && npm run copy-prisma",
         "dist": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm -Rf examples && npm publish",
+        "dist-alpha": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm -Rf examples && npm publish --tag alpha",
         "dist-beta": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm -Rf examples && npm publish --tag beta",
         "docs": "mkdocs serve",
         "create-single-doc-file": "sh ./scripts/create-single-doc-file.sh"

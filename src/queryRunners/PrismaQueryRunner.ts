@@ -2,22 +2,10 @@ import { UnwrapPromiseTuple } from "../utils/PromiseProvider"
 import { AbstractQueryRunner } from "./AbstractQueryRunner"
 import { DatabaseType, QueryRunner } from "./QueryRunner"
 
-interface RawPrismaClient2 {
-    $executeRaw<_T = any>(query: string, ...values: any[]): Promise<number>
-    $queryRaw<T = any>(query: string, ...values: any[]): Promise<T>
-    $transaction(arg: any, options?: any): Promise<any>
-}
-
-interface RawPrismaClient3 {
+interface RawPrismaClient {
     $executeRawUnsafe<_T = any>(query: string, ...values: any[]): Promise<number>
     $queryRawUnsafe<T = any>(query: string, ...values: any[]): Promise<T>;
     $transaction(arg: any, options?: any): Promise<any>
-}
-
-type RawPrismaClient = RawPrismaClient2 | RawPrismaClient3
-
-function isPrisma3(connection: any): connection is RawPrismaClient3 {
-    return connection.$executeRawUnsafe
 }
 
 export interface PrismaConfig {
@@ -91,22 +79,12 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
     }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         const connection = this.transaction || this.connection
-        let result
-        if (isPrisma3(connection)) {
-            result = connection.$queryRawUnsafe<any[]>(query, ...params)
-        } else {
-            result = connection.$queryRaw<any[]>(query, ...params)
-        }
+        const result = connection.$queryRawUnsafe<any[]>(query, ...params)
         return this.wrapPrismaPromise(result)
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
         const connection = this.transaction || this.connection
-        let result
-        if (isPrisma3(connection)) {
-            result = connection.$executeRawUnsafe<any[]>(query, ...params)
-        } else {
-            result = connection.$executeRaw<any[]>(query, ...params)
-        }
+        const result = connection.$executeRawUnsafe<any[]>(query, ...params)
         return this.wrapPrismaPromise(result)
     }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
@@ -134,22 +112,13 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         return super.executeInsertReturningLastInsertedId(query, params)
     }
     executeBeginTransaction(): Promise<void> {
-        if (isPrisma3(this.connection)) {
-            return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
-        }
-        return Promise.reject(new Error('Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844'))
+        return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
     }
     executeCommit(): Promise<void> {
-        if (isPrisma3(this.connection)) {
-            return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
-        }
-        return Promise.reject(new Error('Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844'))
+        return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
     }
     executeRollback(): Promise<void> {
-        if (isPrisma3(this.connection)) {
-            return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
-        }
-        return Promise.reject(new Error('Long running transactions are not supported by Prisma. See https://github.com/prisma/prisma/issues/1844'))
+        return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
     }
     isTransactionActive(): boolean {
         return this.transactionLevel > 0

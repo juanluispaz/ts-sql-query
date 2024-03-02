@@ -72,7 +72,7 @@ async function doYourLogic(connection: DBConnection) {
 
 **EXPERIMENTAL**: This implementation emulates the behaviour of the promise-not-so-like object returned by Prisma; but this can be challenging.
 
-It allows to execute the queries using a [Prisma](https://www.prisma.io) client. It supports Prisma 2, Prisma 3 and Prisma 4.
+It allows to execute the queries using a [Prisma](https://www.prisma.io) client. It supports Prisma 5. It could work as well in Prima 3 and 4, but not tested, if you enable the interactive transactions it in your Prisma Schema (see the [documentation](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide#interactive-transactions-in-preview) to find how to do it).
 
 **Supported databases**: mariaDB, mySql, postgreSql, sqlite, sqlServer
 
@@ -90,11 +90,11 @@ async function main() {
 
 ### Transactions
 
-Prisma distinguishes between short and long-running transactions. You must understand this concept in order to use Prisma's transactions properly. The [blog page](https://www.prisma.io/blog/how-prisma-supports-transactions-x45s1d5l0ww1) explaining it, the [transactions guide](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide/) and the [transaction page](https://www.prisma.io/docs/concepts/components/prisma-client/transactions) details the differences.
+Prisma distinguishes between short (sequential) and long-running (interactive) transactions. You must understand this concept in order to use Prisma's transactions properly. The [blog page](https://www.prisma.io/blog/how-prisma-supports-transactions-x45s1d5l0ww1) explaining it, the [transactions guide](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide/) and the [transaction page](https://www.prisma.io/docs/concepts/components/prisma-client/transactions) details the differences.
 
 In a few words:
 
-- A **short-running transaction** (DEPRECATED) allows you to execute multiple queries in a single call to the Prisma server; this allows Prisma to optimize the execution of all the queries in a single database call (if the database support it) or reduce the transaction's duration to the minimum possible. The limitation is you cannot depend on the result of one query as input for the next one.
+- A **short-running transaction** (NOT SUPPORTED, also called sequential operations) allows you to execute multiple queries in a single call to the Prisma server; this allows Prisma to optimize the execution of all the queries in a single database call (if the database support it) or reduce the transaction's duration to the minimum possible. The limitation is you cannot depend on the result of one query as input for the next one.
 - A **long-running transaction** (also called interactive transactions in the documentation) allows you to obtain a dedicated connection to the database that will allow you to execute all the queries within a transaction. This dedicated connection allows you to query the database while the transaction is open, and the queries can be performed at different times. This model corresponds to the transaction model supported by the other libraries used in ts-sql-query to connect with the database.
 
 The consequence of this design is you cannot call the low-level transaction methods:
@@ -113,7 +113,7 @@ But, you can use `connection.transaction` method to perform a transaction in Pri
 
 It is called, as well, interactive transactions in Prisma's documentation.
 
-To use the interactive transactions, you must enable it in your Prisma Schema (see the [documentation](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide#interactive-transactions-in-preview) to find how to do it). Additionally, you can pass as the second argument of the `PrismaQueryRunner` constructor a configuration for long-running transactions. The configuration object support the following properties:
+You can pass as the second argument of the `PrismaQueryRunner` constructor a configuration for long-running transactions. The configuration object support the following properties:
 
 - `interactiveTransactionsOptions`(object, optional, default `undefined`): Object with the second parament of the `$transaction` method in the Prisma client object. It supports the following properties: 
   - `maxWait` (number, optional, default `2000`): The maximum amount of time (milliseconds) the Prisma Client will wait to acquire a transaction from the database. The default is 2 seconds.

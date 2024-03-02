@@ -55,7 +55,7 @@
     },
     "homepage": "https://ts-sql-query.readthedocs.io/",
     "devDependencies": {
-        "@prisma/client": "^4.5.0",
+        "@prisma/client": "^5.10.2",
         "@types/better-sqlite3": "^7.6.9",
         "@types/mssql": "^9.1.5",
         "@types/mysql": "^2.15.25",
@@ -74,7 +74,7 @@
         "oracledb": "^6.3.0",
         "pg": "^8.11.3",
         "postgres": "^3.4.3",
-        "prisma": "^4.5.0",
+        "prisma": "^5.10.2",
         "sqlite": "^5.1.1",
         "sqlite3": "^5.1.7",
         "synchronous-promise": "^2.0.17",

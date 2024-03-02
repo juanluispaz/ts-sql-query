@@ -1,7 +1,7 @@
 import { SqliteConnection } from "../../connections/SqliteConnection"
 import { DynamicCondition, dynamicPick, DynamicPickPaths, dynamicPickPaths, expandTypeFromDynamicPickPaths, PickValuesPath } from "../../dynamicCondition"
 import { TableOrViewLeftJoinOf, fromRef } from "../../extras/types"
-import { extractColumnNamesFrom, extractColumnsFrom, extractWritableColumnNamesFrom, extractWritableColumnsFrom, mapForGuidedSplit, mergeType, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "../../extras/utils"
+import { extractColumnNamesFrom, extractColumnsFrom, extractWritableColumnNamesFrom, extractWritableColumnsFrom, mapForGuidedSplit, prefixCapitalized, prefixDotted, prefixMapForGuidedSplitCapitalized, prefixMapForGuidedSplitDotted, prefixMapForSplitCapitalized, prefixMapForSplitDotted } from "../../extras/utils"
 import { ConsoleLogQueryRunner } from "../../queryRunners/ConsoleLogQueryRunner"
 import { MockQueryRunner } from "../../queryRunners/MockQueryRunner"
 import { Table } from "../../Table"
@@ -324,32 +324,22 @@ async function main() {
     
     const hideId = false
 
-    let searchedCustomersWhere3
+    let searchedCustomersWhere3 = connection.dynamicBooleanExpressionUsing(tCustomer)
     if (firstNameContains) {
-        searchedCustomersWhere3 = tCustomer.firstName.contains(firstNameContains)
-    } else {
-        searchedCustomersWhere3 = connection.noValueBoolean()
+        searchedCustomersWhere3 = searchedCustomersWhere3.and(tCustomer.firstName.contains(firstNameContains))
     }
     if (lastNameContains) {
-        searchedCustomersWhere3 = mergeType(searchedCustomersWhere3).or(tCustomer.lastName.contains(lastNameContains))
+        searchedCustomersWhere3 = searchedCustomersWhere3.or(tCustomer.lastName.contains(lastNameContains))
     }
     if (birthdayIs) {
-        searchedCustomersWhere3 = mergeType(searchedCustomersWhere3).and(tCustomer.birthday.equals(birthdayIs))
+        searchedCustomersWhere3 = searchedCustomersWhere3.and(tCustomer.birthday.equals(birthdayIs))
     }
-    searchedCustomersWhere3 = mergeType(searchedCustomersWhere3)
-    
-    let idColumn
-    if (hideId) {
-        idColumn = connection.optionalConst(null, 'int')
-    } else {
-        idColumn = tCustomer.id
-    }
-    idColumn = mergeType(idColumn)
+    searchedCustomersWhere3 = searchedCustomersWhere3
     
     const searchedCustomers3 = await connection.selectFrom(tCustomer)
         .where(searchedCustomersWhere3)
         .select({
-            id: idColumn,
+            id: tCustomer.id.ignoreWhenAsNull(hideId),
             name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
             birthday: tCustomer.birthday
         })

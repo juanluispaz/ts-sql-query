@@ -101,7 +101,7 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
         int: TYPES.Int,
         bigint: TYPES.BigInt,
         stringDouble: TYPES.Float,
-        double: TYPES.Real,
+        double: TYPES.Float,
         string: TYPES.NVarChar,
         uuid: TYPES.UniqueIdentifier,
         localDate: TYPES.Date,
@@ -134,7 +134,7 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
             if (Number.isSafeInteger(value)) {
                 return TYPES.Int
             } else {
-                return TYPES.Real
+                return TYPES.Float
             }
         } else if (typeof value === 'bigint') {
             return TYPES.BigInt
@@ -161,7 +161,7 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
                     return TYPES.Int
                 }
             } else if (/^-?\d+\.\d+$/.test(value)) {
-                return TYPES.Real
+                return TYPES.Float
             } else if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
                 return TYPES.Date
             } else if (/^\d{2}\:\d{2}(?:\:\d{2})?(?:\+\d{4})?$/.test(value)) {

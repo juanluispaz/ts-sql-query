@@ -1,4 +1,4 @@
-import { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, ICustomDoubleValueSource, ICustomIntValueSource, ICustomLocalDateTimeValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomUuidValueSource, IDateTimeValueSource, IDateValueSource, IEqualableValueSource, INullableValueSource, INumberValueSource, IStringValueSource, ITimeValueSource, IUuidValueSource, IValueSource, MergeOptionalUnion, ValueSourceOf } from "./values";
+import { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, ICustomDoubleValueSource, ICustomIntValueSource, ICustomLocalDateTimeValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomUuidValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, IEqualableValueSource, INullableValueSource, INumberValueSource, IStringValueSource, ILocalTimeValueSource, IUuidValueSource, IValueSource, MergeOptionalUnion, ValueSourceOf } from "./values";
 
 export interface Filter {
 }
@@ -186,9 +186,9 @@ export type MapValueSourceToFilter<TYPE> =
         TYPE extends INumberValueSource<any, any> ? NumberFilter :
         TYPE extends IStringValueSource<any, any> ? StringFilter :
         TYPE extends IUuidValueSource<any, any> ? StringFilter :
-        TYPE extends IDateTimeValueSource<any, any> ? DateTimeFilter :
-        TYPE extends IDateValueSource<any, any> ? DateFilter :
-        TYPE extends ITimeValueSource<any, any> ? TimeFilter :
+        TYPE extends ILocalDateTimeValueSource<any, any> ? DateTimeFilter :
+        TYPE extends ILocalDateValueSource<any, any> ? DateFilter :
+        TYPE extends ILocalTimeValueSource<any, any> ? TimeFilter :
         TYPE extends ICustomIntValueSource<any, any, any, any> ? CustomIntFilter<T> :
         TYPE extends ICustomDoubleValueSource<any, any, any, any> ? CustomDoubleFilter<T> :
         TYPE extends ICustomUuidValueSource<any, any, any, any> ? CustomUuidFilter<T> :

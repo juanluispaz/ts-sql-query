@@ -1,7 +1,7 @@
 import type { ITableOrView, ITableOrViewOf, ITableOrViewRef, HasAddWiths } from "../utils/ITableOrView"
 import type { AnyDB } from "../databases"
 import type { TypeAdapter } from "../TypeAdapter"
-import type { aggregatedArrayValueSourceType, anyBooleanValueSourceType, bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, customDoubleValueSourceType, customIntValueSourceType, customLocalDateTimeValueSourceType, customLocalDateValueSourceType, customLocalTimeValueSourceType, customUuidValueSourceType, database, dateTimeValueSourceType, dateValueSourceType, equalableValueSourceType, ifValueSourceType, nullableValueSourceType, numberValueSourceType, optionalType, requiredTableOrView, resultType, stringValueSourceType, tableOrView, tableOrViewRef, timeValueSourceType, type, uuidValueSourceType, valueSourceType } from "../utils/symbols"
+import type { aggregatedArrayValueSourceType, anyBooleanValueSourceType, bigintValueSourceType, booleanValueSourceType, columnsType, comparableValueSourceType, customDoubleValueSourceType, customIntValueSourceType, customLocalDateTimeValueSourceType, customLocalDateValueSourceType, customLocalTimeValueSourceType, customUuidValueSourceType, database, localDateTimeValueSourceType, localDateValueSourceType, equalableValueSourceType, ifValueSourceType, nullableValueSourceType, numberValueSourceType, optionalType, requiredTableOrView, resultType, stringValueSourceType, tableOrView, tableOrViewRef, localTimeValueSourceType, type, uuidValueSourceType, valueSourceType } from "../utils/symbols"
 import { valueType, valueSourceTypeName, isValueSourceObject } from "../utils/symbols"
 
 export type OptionalType = 'required' | 'requiredInOptionalObject'  | 'originallyRequired' | 'optional' // sorted from the more strict to less strict
@@ -800,11 +800,11 @@ export interface CustomUuidValueSource<TABLE_OR_VIEW extends ITableOrViewRef<Any
     ignoreWhenAsNull(when: boolean): CustomUuidValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, 'optional'>
 }
 
-export interface IDateValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, Date, 'DateValueSource', OPTIONAL_TYPE> {
-    [dateValueSourceType]: 'DateValueSource'
+export interface ILocalDateValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, Date, 'DateValueSource', OPTIONAL_TYPE> {
+    [localDateValueSourceType]: 'LocalDateValueSource'
 }
 
-export interface DateValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, Date, 'DateValueSource', OPTIONAL_TYPE>, IDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
+export interface LocalDateValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, Date, 'DateValueSource', OPTIONAL_TYPE>, ILocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
     /** Gets the year */
     getFullYear(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** Gets the month (value between 0 to 11)*/
@@ -814,21 +814,21 @@ export interface DateValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, O
     /** Gets the day of the week (0 represents Sunday) */
     getDay(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // Redefined methods
-    valueWhenNull(value: Date): DateValueSource<TABLE_OR_VIEW, 'required'>
-    valueWhenNull<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): DateValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], VALUE[typeof optionalType]>
-    nullIfValue(value: Date): DateValueSource<TABLE_OR_VIEW, 'optional'>
-    nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): DateValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
-    asOptional(): DateValueSource<TABLE_OR_VIEW, 'optional'>
-    asRequiredInOptionalObject(): DateValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
-    onlyWhenOrNull(when: boolean): DateValueSource<TABLE_OR_VIEW, 'optional'>
-    ignoreWhenAsNull(when: boolean): DateValueSource<TABLE_OR_VIEW, 'optional'>
+    valueWhenNull(value: Date): LocalDateValueSource<TABLE_OR_VIEW, 'required'>
+    valueWhenNull<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): LocalDateValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], VALUE[typeof optionalType]>
+    nullIfValue(value: Date): LocalDateValueSource<TABLE_OR_VIEW, 'optional'>
+    nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): LocalDateValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
+    asOptional(): LocalDateValueSource<TABLE_OR_VIEW, 'optional'>
+    asRequiredInOptionalObject(): LocalDateValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): LocalDateValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): LocalDateValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
-export interface ITimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, Date, 'TimeValueSource', OPTIONAL_TYPE> {
-    [timeValueSourceType]: 'TimeValueSource'
+export interface ILocalTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, Date, 'TimeValueSource', OPTIONAL_TYPE> {
+    [localTimeValueSourceType]: 'LocalTimeValueSource'
 }
 
-export interface TimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, Date, 'TimeValueSource', OPTIONAL_TYPE>, ITimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
+export interface LocalTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, Date, 'TimeValueSource', OPTIONAL_TYPE>, ILocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
     /** Gets the hours */
     getHours(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** Gets the minutes */
@@ -838,21 +838,21 @@ export interface TimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, O
     /** Gets the milliseconds */
     getMilliseconds(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // Redefined methods
-    valueWhenNull(value: Date): TimeValueSource<TABLE_OR_VIEW, 'required'>
-    valueWhenNull<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): TimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], VALUE[typeof optionalType]>
-    nullIfValue(value: Date): TimeValueSource<TABLE_OR_VIEW, 'optional'>
-    nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): TimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
-    asOptional(): TimeValueSource<TABLE_OR_VIEW, 'optional'>
-    asRequiredInOptionalObject(): TimeValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
-    onlyWhenOrNull(when: boolean): TimeValueSource<TABLE_OR_VIEW, 'optional'>
-    ignoreWhenAsNull(when: boolean): TimeValueSource<TABLE_OR_VIEW, 'optional'>
+    valueWhenNull(value: Date): LocalTimeValueSource<TABLE_OR_VIEW, 'required'>
+    valueWhenNull<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): LocalTimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], VALUE[typeof optionalType]>
+    nullIfValue(value: Date): LocalTimeValueSource<TABLE_OR_VIEW, 'optional'>
+    nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): LocalTimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
+    asOptional(): LocalTimeValueSource<TABLE_OR_VIEW, 'optional'>
+    asRequiredInOptionalObject(): LocalTimeValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): LocalTimeValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): LocalTimeValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
-export interface IDateTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, Date, 'DateTimeValueSource', OPTIONAL_TYPE> {
-    [dateTimeValueSourceType]: 'DateTimeValueSource'
+export interface ILocalDateTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, Date, 'DateTimeValueSource', OPTIONAL_TYPE> {
+    [localDateTimeValueSourceType]: 'LocalDateTimeValueSource'
 }
 
-export interface DateTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, Date, 'DateTimeValueSource', OPTIONAL_TYPE>, IDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
+export interface LocalDateTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OPTIONAL_TYPE extends OptionalType> extends ComparableValueSource<TABLE_OR_VIEW, Date, 'DateTimeValueSource', OPTIONAL_TYPE>, ILocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> {
     /** Gets the year */
     getFullYear(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** Gets the month (value between 0 to 11)*/
@@ -872,14 +872,14 @@ export interface DateTimeValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB
     /** Gets the time value in milliseconds */
     getTime(): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // Redefined methods
-    valueWhenNull(value: Date): DateTimeValueSource<TABLE_OR_VIEW, 'required'>
-    valueWhenNull<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): DateTimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], VALUE[typeof optionalType]>
-    nullIfValue(value: Date): DateTimeValueSource<TABLE_OR_VIEW, 'optional'>
-    nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): DateTimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
-    asOptional(): DateTimeValueSource<TABLE_OR_VIEW, 'optional'>
-    asRequiredInOptionalObject(): DateTimeValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
-    onlyWhenOrNull(when: boolean): DateTimeValueSource<TABLE_OR_VIEW, 'optional'>
-    ignoreWhenAsNull(when: boolean): DateTimeValueSource<TABLE_OR_VIEW, 'optional'>
+    valueWhenNull(value: Date): LocalDateTimeValueSource<TABLE_OR_VIEW, 'required'>
+    valueWhenNull<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): LocalDateTimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], VALUE[typeof optionalType]>
+    nullIfValue(value: Date): LocalDateTimeValueSource<TABLE_OR_VIEW, 'optional'>
+    nullIfValue<VALUE extends IValueSource<ITableOrViewRef<this[typeof database]>, Date, this[typeof valueSourceTypeName], any>>(value: VALUE): LocalDateTimeValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], 'optional'>
+    asOptional(): LocalDateTimeValueSource<TABLE_OR_VIEW, 'optional'>
+    asRequiredInOptionalObject(): LocalDateTimeValueSource<TABLE_OR_VIEW, 'requiredInOptionalObject'>
+    onlyWhenOrNull(when: boolean): LocalDateTimeValueSource<TABLE_OR_VIEW, 'optional'>
+    ignoreWhenAsNull(when: boolean): LocalDateTimeValueSource<TABLE_OR_VIEW, 'optional'>
 }
 
 export interface ICustomLocalDateValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE, TYPE_NAME, OPTIONAL_TYPE extends OptionalType> extends IComparableValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE> {
@@ -986,9 +986,9 @@ export type RemapValueSourceType<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, T
         TYPE extends INumberValueSource<any, any> ? NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IStringValueSource<any, any> ? StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IUuidValueSource<any, any> ? UuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends IDateTimeValueSource<any, any> ? DateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends IDateValueSource<any, any> ? DateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends ITimeValueSource<any, any> ? TimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ILocalDateTimeValueSource<any, any> ? LocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ILocalDateValueSource<any, any> ? LocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ILocalTimeValueSource<any, any> ? LocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ICustomIntValueSource<any, any, any, any> ? CustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends ICustomDoubleValueSource<any, any, any, any> ? CustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends ICustomUuidValueSource<any, any, any, any> ? CustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -1010,9 +1010,9 @@ export type RemapValueSourceTypeWithOptionalType<TABLE_OR_VIEW extends ITableOrV
         TYPE extends INumberValueSource<any, any> ? NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IStringValueSource<any, any> ? StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IUuidValueSource<any, any> ? UuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends IDateTimeValueSource<any, any> ? DateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends IDateValueSource<any, any> ? DateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends ITimeValueSource<any, any> ? TimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ILocalDateTimeValueSource<any, any> ? LocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ILocalDateValueSource<any, any> ? LocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ILocalTimeValueSource<any, any> ? LocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ICustomIntValueSource<any, any, any, any> ? CustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends ICustomDoubleValueSource<any, any, any, any> ? CustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends ICustomUuidValueSource<any, any, any, any> ? CustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -1033,9 +1033,9 @@ export type RemapIValueSourceType<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, 
         TYPE extends INumberValueSource<any, any> ? INumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IStringValueSource<any, any> ? IStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IUuidValueSource<any, any> ? IUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends IDateTimeValueSource<any, any> ? IDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends IDateValueSource<any, any> ? IDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends ITimeValueSource<any, any> ? ITimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ILocalDateTimeValueSource<any, any> ? ILocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ILocalDateValueSource<any, any> ? ILocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ILocalTimeValueSource<any, any> ? ILocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ICustomIntValueSource<any, any, any, any> ? ICustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends ICustomDoubleValueSource<any, any, any, any> ? ICustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends ICustomUuidValueSource<any, any, any, any> ? ICustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -1056,9 +1056,9 @@ export type RemapIValueSourceTypeWithOptionalType<TABLE_OR_VIEW extends ITableOr
         TYPE extends INumberValueSource<any, any> ? INumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IStringValueSource<any, any> ? IStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends IUuidValueSource<any, any> ? IUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends IDateTimeValueSource<any, any> ? IDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends IDateValueSource<any, any> ? IDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends ITimeValueSource<any, any> ? ITimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ILocalDateTimeValueSource<any, any> ? ILocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ILocalDateValueSource<any, any> ? ILocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends ILocalTimeValueSource<any, any> ? ILocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends ICustomIntValueSource<any, any, any, any> ? ICustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends ICustomDoubleValueSource<any, any, any, any> ? ICustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends ICustomUuidValueSource<any, any, any, any> ? ICustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -1105,9 +1105,9 @@ export type MapArgumentToTypeUnsafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>
         TYPE extends 'bigint' ? BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'string' ? StringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'uuid' ? UuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends 'localDateTime' ? DateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends 'localDate' ? DateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends 'localTime' ? TimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'localDateTime' ? LocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'localDate' ? LocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'localTime' ? LocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'customInt' ? CustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'customDouble' ? CustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'customUuid' ? CustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -1128,9 +1128,9 @@ export type MapArgumentToITypeUnsafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB
         TYPE extends 'bigint' ? IBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'string' ? IStringValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'uuid' ? IUuidValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends 'localDateTime' ? IDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends 'localDate' ? IDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
-        TYPE extends 'localTime' ? ITimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'localDateTime' ? ILocalDateTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'localDate' ? ILocalDateValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
+        TYPE extends 'localTime' ? ILocalTimeValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'customInt' ? CustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'customDouble' ? ICustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
         TYPE extends 'customUuid' ? ICustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, OPTIONAL_TYPE> :
@@ -1151,9 +1151,9 @@ export type MapArgumentToITypeUnsafeAsAnyOptionalType<TABLE_OR_VIEW extends ITab
         TYPE extends 'bigint' ? IBigintValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'string' ? IStringValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'uuid' ? IUuidValueSource<TABLE_OR_VIEW, any> :
-        TYPE extends 'localDateTime' ? IDateTimeValueSource<TABLE_OR_VIEW, any> :
-        TYPE extends 'localDate' ? IDateValueSource<TABLE_OR_VIEW, any> :
-        TYPE extends 'localTime' ? ITimeValueSource<TABLE_OR_VIEW, any> :
+        TYPE extends 'localDateTime' ? ILocalDateTimeValueSource<TABLE_OR_VIEW, any> :
+        TYPE extends 'localDate' ? ILocalDateValueSource<TABLE_OR_VIEW, any> :
+        TYPE extends 'localTime' ? ILocalTimeValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'customInt' ? CustomIntValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
         TYPE extends 'customDouble' ? ICustomDoubleValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :
         TYPE extends 'customUuid' ? ICustomUuidValueSource<TABLE_OR_VIEW, T, TYPE_NAME, any> :

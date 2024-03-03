@@ -1,5 +1,5 @@
 import type { DatabaseType } from "./QueryRunner"
-import type { Connection, QueryError, OkPacket, RowDataPacket } from "mysql2"
+import type { Connection, QueryError, ResultSetHeader, RowDataPacket } from "mysql2"
 import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 
 export class MySql2QueryRunner extends PromiseBasedQueryRunner {
@@ -47,7 +47,7 @@ export class MySql2QueryRunner extends PromiseBasedQueryRunner {
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return new Promise((resolve, reject) => {
-            this.connection.query(query, params, (error: QueryError | null, results: OkPacket) => {
+            this.connection.query(query, params, (error: QueryError | null, results: ResultSetHeader) => {
                 if (error) {
                     reject(error)
                 } else {
@@ -62,7 +62,7 @@ export class MySql2QueryRunner extends PromiseBasedQueryRunner {
         }
         
         return new Promise((resolve, reject) => {
-            this.connection.query(query, params, (error: QueryError | null, results: OkPacket) => {
+            this.connection.query(query, params, (error: QueryError | null, results: ResultSetHeader) => {
                 if (error) {
                     reject(error)
                 } else {

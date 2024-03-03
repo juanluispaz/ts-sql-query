@@ -1,7 +1,6 @@
-import type { DatabaseType } from "./QueryRunner"
+import type { DatabaseType, PromiseProvider } from "./QueryRunner"
 // @ts-ignore // TODO: remove when mjs conversion
 import type { Database } from '@sqlite.org/sqlite-wasm'
-import type { PromiseProvider } from "../utils/PromiseProvider"
 import { SqlTransactionQueryRunner } from "./SqlTransactionQueryRunner"
 
 export interface Sqlite3WasmOO1QueryRunnerConfig {

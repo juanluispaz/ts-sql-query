@@ -44,6 +44,32 @@ export interface QueryRunner {
 
 export type DatabaseType = 'mariaDB' | 'mySql' | 'noopDB' | 'oracle' | 'postgreSql' | 'sqlite' | 'sqlServer'
 
+export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' |
+    'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' |
+    'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
+    'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' |
+    'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
+    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 
+    'executeDatabaseSchemaModification' | 'executeConnectionConfiguration'
+
+export type PromiseProvider = PromiseConstructorLike & {
+    resolve: typeof Promise.resolve,
+    reject: typeof Promise.reject,
+    /* Not all providers have compatible interface, by example:
+        * synchronous-promise doesn't provide an definition so detailed like the ones included in the standar library
+        */
+    // all: typeof Promise.all, 
+    // all(values: any[]): Promise<any[]>, 
+    /* Not all providers support it, by example: 
+        * synchronous-promise doesn't provide an implementation of it
+        */
+    // race: typeof Promise.race, 
+    /* So new, introduced in ES2020. Not all providers have compatible interface, by example:
+        * synchronous-promise doesn't provide an definition compatible with the ones included in the standar library
+        */
+    // allSettled: typeof Promise.allSettled
+}
+
 export function getQueryExecutionName(query: string, params: any[]): string | undefined {
     query
     return (params as any).$metadata?.queryExecutionName

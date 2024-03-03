@@ -1,15 +1,6 @@
-import type { PromiseProvider } from "../utils/PromiseProvider"
-import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { DatabaseType, PromiseProvider, QueryRunner, QueryType } from "./QueryRunner"
 
-export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
-    'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 
-    'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
-    'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' | 
-    'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 
-    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification' | 'isTransactionActive' |
-    'executeConnectionConfiguration'
-
-export type QueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
+export type MockQueryExecutor = (type: QueryType | 'isTransactionActive', query: string, params: any[], index: number) => any
 
 export interface MockQueryRunnerConfig {
     database?: DatabaseType
@@ -18,12 +9,12 @@ export interface MockQueryRunnerConfig {
 
 export class MockQueryRunner implements QueryRunner {
     private count = 0
-    readonly queryExecutor: QueryExecutor
+    readonly queryExecutor: MockQueryExecutor
 
     readonly database: DatabaseType
     readonly promise: PromiseProvider
 
-    constructor(queryExecutor: QueryExecutor, databaseOrConfig: DatabaseType | MockQueryRunnerConfig = 'noopDB') {
+    constructor(queryExecutor: MockQueryExecutor, databaseOrConfig: DatabaseType | MockQueryRunnerConfig = 'noopDB') {
         this.queryExecutor = queryExecutor
         if (typeof databaseOrConfig === 'string') {
             databaseOrConfig = { database: databaseOrConfig }

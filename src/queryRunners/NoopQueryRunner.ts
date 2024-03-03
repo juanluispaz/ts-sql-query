@@ -1,5 +1,4 @@
-import type { PromiseProvider } from "../utils/PromiseProvider"
-import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { DatabaseType, PromiseProvider, QueryRunner } from "./QueryRunner"
 
 export interface NoopQueryRunnerConfig {
     database?: DatabaseType

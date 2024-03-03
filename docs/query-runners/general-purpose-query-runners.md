@@ -56,7 +56,8 @@ A query runner that intercept all the queries and delegate the execution of the 
 **Supported databases**: mariaDB, mySql, oracle, postgreSql, sqlite, sqlServer
 
 ```ts
-import { InterceptorQueryRunner, QueryType } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
+import { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
+import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
 
 interface DurationPlayload {
     startTime: number
@@ -95,14 +96,13 @@ All these functions receive as argument:
 - **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
 
 ```ts
-type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
-'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 
-'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
-'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' | 
-'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
-'executeProcedure' | 'executeFunction' | 
-'beginTransaction' | 'commit' | 'rollback' |
-'executeDatabaseSchemaModification' | 'executeConnectionConfiguration'
+type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' |
+    'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' |
+    'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
+    'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' |
+    'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
+    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 
+    'executeDatabaseSchemaModification' | 'executeConnectionConfiguration'
 ```
 
 - **`query: string`**: query required to be executed, empty in the case of `beginTransaction`, `commit` or `rollback`
@@ -149,14 +149,13 @@ All these functions receive as argument:
 - **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
 
 ```ts
-type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
-'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 
-'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
-'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' | 
-'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
-'executeProcedure' | 'executeFunction' | 
-'beginTransaction' | 'commit' | 'rollback' |
-'executeDatabaseSchemaModification' | 'executeConnectionConfiguration'
+type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' |
+    'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' |
+    'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
+    'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' |
+    'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
+    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 
+    'executeDatabaseSchemaModification' | 'executeConnectionConfiguration'
 ```
 
 - **`query: string`**: query required to be executed, empty in the case of `beginTransaction`, `commit` or `rollback`
@@ -192,17 +191,16 @@ async function main() {
 
 The `MockQueryRunner` receives a function as argument to the constructor, this function returns the result of the query execution and receive as argument:
 
-- **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
+- **`type: QueryType | 'isTransactionActive'`**: type of the query to be executed. The `QueryType` is defined as:
 
 ```ts
-type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' | 
-'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' | 
-'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
-'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' | 
-'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' | 
-'executeProcedure' | 'executeFunction' | 
-'beginTransaction' | 'commit' | 'rollback' |
-'executeDatabaseSchemaModification' | 'isTransactionActive' | 'executeConnectionConfiguration'
+type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' |
+    'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' |
+    'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
+    'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' |
+    'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
+    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 
+    'executeDatabaseSchemaModification' | 'executeConnectionConfiguration'
 ```
 
 - **`query: string`**: query required to be executed

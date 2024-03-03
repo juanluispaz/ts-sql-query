@@ -1,6 +1,5 @@
-import type { DatabaseType } from "./QueryRunner"
+import type { DatabaseType, PromiseProvider } from "./QueryRunner"
 import type { Database } from 'better-sqlite3'
-import type { PromiseProvider } from "../utils/PromiseProvider"
 import { SqlTransactionQueryRunner } from "./SqlTransactionQueryRunner"
 
 export interface BetterSqlite3QueryRunnerConfig {

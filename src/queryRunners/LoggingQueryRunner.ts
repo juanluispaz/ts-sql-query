@@ -1,13 +1,5 @@
-import type { QueryRunner } from "./QueryRunner"
+import type { QueryRunner, QueryType } from "./QueryRunner"
 import { ChainedQueryRunner } from "./ChainedQueryRunner"
-
-export type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' |
-    'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' |
-    'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
-    'update' | 'updateReturningOneRow' | 'updateReturningManyRows' | 'updateReturningOneColumnOneRow' | 'updateReturningOneColumnManyRows' |
-    'delete' | 'deleteReturningOneRow' | 'deleteReturningManyRows' | 'deleteReturningOneColumnOneRow' | 'deleteReturningOneColumnManyRows' |
-    'executeProcedure' | 'executeFunction' | 'beginTransaction' | 'commit' | 'rollback' | 'executeDatabaseSchemaModification' |
-    'executeConnectionConfiguration'
 
 export interface QueryLogger {
     onQuery?: (queryType: QueryType, query: string, params: any[], timestamps: { startedAt: bigint }) => void;

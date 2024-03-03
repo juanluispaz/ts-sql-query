@@ -113,7 +113,7 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
         customLocalDate: TYPES.Date,
         customLocalTime: TYPES.Time,
         customLocalDateTime: TYPES.DateTime2
-    } as {[type in NativeValueType]: ISqlTypeFactory | undefined}
+    } satisfies {[type in NativeValueType | 'stringInt' | 'stringDouble']: ISqlTypeFactory | undefined}
 
     protected getType(params: any[], index: number): ISqlTypeFactory {
         const definedType: string | undefined = (params as any)['@' + index]

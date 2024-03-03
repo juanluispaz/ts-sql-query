@@ -734,7 +734,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             selectQuery += this._buildSelectWithColumnsInfoForCompound(query.__secondQuery, params, columnsForInsert, isOutermostQuery)
 
             if (!query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
+                const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
+                this._setSafeTableOrView(params, undefined)
                 selectQuery += this._buildSelectOrderBy(query, params)
+                this._setSafeTableOrView(params, oldSafeTableOrViewInOrderBy)
             }
             if (!query.__asInlineAggregatedArrayValue || !this._supportLimitWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
                 selectQuery += this._buildSelectLimitOffset(query, params)
@@ -918,7 +921,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
 
         if (!query.__asInlineAggregatedArrayValue || !this._supportOrderByWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
+            const oldSafeTableOrViewInOrderBy = this._getSafeTableOrView(params)
+            this._setSafeTableOrView(params, undefined)
             selectQuery += this._buildSelectOrderBy(query, params)
+            this._setSafeTableOrView(params, oldSafeTableOrViewInOrderBy)
         }
         if (!query.__asInlineAggregatedArrayValue || !this._supportLimitWhenAggregateArray || this._isAggregateArrayWrapped(params)) {
             selectQuery += this._buildSelectLimitOffset(query, params)
@@ -1050,16 +1056,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
             return this._appendColumnAlias(expression, params)
         } else if (isValueSource(expression)) {
-            const oldSafeTableOrView = this._getSafeTableOrView(params)
-            this._setSafeTableOrView(params, undefined)
             const result = this._appendSql(expression, params)
-            this._setSafeTableOrView(params, oldSafeTableOrView)
             return result
         } else {
-            const oldSafeTableOrView = this._getSafeTableOrView(params)
-            this._setSafeTableOrView(params, undefined)
             const result = this._appendRawFragment(expression, params)
-            this._setSafeTableOrView(params, oldSafeTableOrView)
             return result
         }
     }

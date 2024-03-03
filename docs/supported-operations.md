@@ -1594,6 +1594,8 @@ interface InsertExpression {
     customizeQuery(customization: {
         afterInsertKeyword?: RawFragment
         afterQuery?: RawFragment
+        queryExecutionName?: string
+        queryExecutionMetadata?: any
     }): this
 }
 
@@ -1860,6 +1862,8 @@ interface UpdateExpression {
     customizeQuery(customization: {
         afterUpdateKeyword?: RawFragment
         afterQuery?: RawFragment
+        queryExecutionName?: string
+        queryExecutionMetadata?: any
     }): this
 }
 
@@ -1963,6 +1967,8 @@ interface DeleteExpression {
     customizeQuery(customization: {
         afterDeleteKeyword?: RawFragment
         afterQuery?: RawFragment
+        queryExecutionName?: string
+        queryExecutionMetadata?: any
     }): this
 }
 
@@ -2162,6 +2168,8 @@ interface SelectExpression {
         afterQuery?: RawFragment
         beforeWithQuery?: RawFragment
         afterWithQuery?: RawFragment
+        queryExecutionName?: string
+        queryExecutionMetadata?: any
     }): this
 }
 

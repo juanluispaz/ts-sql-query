@@ -1097,7 +1097,7 @@ export class Argument<T extends ArgumentType, OPTIONAL_TYPE extends ArgumentOpti
 
 export type TypeOfArgument<ARG> = ARG extends Argument<any, infer OPTIONAL_TYPE, any, infer T> ? T | OptionalValueType<OPTIONAL_TYPE> : never
 
-export type MapArgumentToTypeUnsafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
+export type MapArgumentToValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
     ARG extends Argument<infer TYPE, infer OPTIONAL_TYPE, any, infer T, infer TYPE_NAME> ? (
         TYPE extends 'boolean' ? BooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'int' ? NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1120,7 +1120,7 @@ export type MapArgumentToTypeUnsafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>
         never
     ): never
 
-export type MapArgumentToITypeUnsafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
+export type MapArgumentToIValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
     ARG extends Argument<infer TYPE, infer OPTIONAL_TYPE, any, infer T, infer TYPE_NAME> ? (
         TYPE extends 'boolean' ? IBooleanValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
         TYPE extends 'int' ? INumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE> :
@@ -1143,7 +1143,7 @@ export type MapArgumentToITypeUnsafe<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB
         never
     ): never
 
-export type MapArgumentToITypeUnsafeAsAnyOptionalType<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
+export type MapArgumentToIValueSourceAsAnyOptionalType<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
     ARG extends Argument<infer TYPE, any, any, infer T, infer TYPE_NAME> ? (
         TYPE extends 'boolean' ? IBooleanValueSource<TABLE_OR_VIEW, any> :
         TYPE extends 'int' ? INumberValueSource<TABLE_OR_VIEW, any> :
@@ -1166,12 +1166,12 @@ export type MapArgumentToITypeUnsafeAsAnyOptionalType<TABLE_OR_VIEW extends ITab
         never
     ): never
 
-export type UnsafeArgForFn<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
+export type ArgForFn<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
     ARG extends Argument<any, infer OPTIONAL_TYPE, infer MODE, any> ? (
         MODE extends 'value' ? never : (
             'required' extends OPTIONAL_TYPE
-            ? MapArgumentToITypeUnsafe<TABLE_OR_VIEW, ARG>
-            : MapArgumentToITypeUnsafeAsAnyOptionalType<TABLE_OR_VIEW, ARG>
+            ? MapArgumentToIValueSource<TABLE_OR_VIEW, ARG>
+            : MapArgumentToIValueSourceAsAnyOptionalType<TABLE_OR_VIEW, ARG>
         )
     ): never
 
@@ -1180,8 +1180,8 @@ export type RequiredArgumentWhenValueMode<ARG> =
         MODE extends 'value' ? Argument<TYPE, 'required', MODE, T> : ARG
     ): never
 
-export type UnsafeArgForBuilderIfValue<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
-    MapArgumentToTypeUnsafe<TABLE_OR_VIEW, RequiredArgumentWhenValueMode<ARG>>
+export type ArgForBuilderIfValue<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
+    MapArgumentToValueSource<TABLE_OR_VIEW, RequiredArgumentWhenValueMode<ARG>>
 
 
 export type RemapValueSourceTypeIfValue<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, TYPE> =

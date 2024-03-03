@@ -9,7 +9,7 @@ import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSub
 import type { TypeAdapter, DefaultTypeAdapter } from "../TypeAdapter"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { IConnection } from "../utils/IConnection"
-import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1TypeUnsafe, FragmentBuilder2TypeUnsafe, FragmentBuilder3TypeUnsafe, FragmentBuilder4TypeUnsafe, FragmentBuilder5TypeUnsafe, FragmentBuilder0IfValue, FragmentBuilder1IfValueTypeUnsafe, FragmentBuilder2IfValueTypeUnsafe, FragmentBuilder3IfValueTypeUnsafe, FragmentBuilder4IfValueTypeUnsafe, FragmentBuilder5IfValueTypeUnsafe, BigintFragmentExpression, UuidFragmentExpression, CustomIntFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression } from "../expressions/fragment"
+import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, CustomIntFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression } from "../expressions/fragment"
 import type { AnyDB } from "../databases"
 import { InsertQueryBuilder } from "../queryBuilders/InsertQueryBuilder"
 import { UpdateQueryBuilder } from "../queryBuilders/UpdateQueryBuilder"
@@ -715,21 +715,21 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     }
 
     protected buildFragmentWithArgs(): FragmentBuilder0<DB>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilder1TypeUnsafe<DB, A1>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilder2TypeUnsafe<DB, A1, A2>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilder3TypeUnsafe<DB, A1, A2, A3>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4TypeUnsafe<DB, A1, A2, A3, A4>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5TypeUnsafe<DB, A1, A2, A3, A4, A5>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilder1<DB, A1>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilder2<DB, A1, A2>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilder3<DB, A1, A2, A3>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4<DB, A1, A2, A3, A4>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5<DB, A1, A2, A3, A4, A5>
     protected buildFragmentWithArgs(...args: Argument<any, any, any, any>[]): any {
         return new FragmentFunctionBuilder(args)
     }
 
     protected buildFragmentWithArgsIfValue(): FragmentBuilder0IfValue<DB>
-    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilder1IfValueTypeUnsafe<DB, A1>
-    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilder2IfValueTypeUnsafe<DB, A1, A2>
-    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilder3IfValueTypeUnsafe<DB, A1, A2, A3>
-    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4IfValueTypeUnsafe<DB, A1, A2, A3, A4>
-    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5IfValueTypeUnsafe<DB, A1, A2, A3, A4, A5>
+    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilder1IfValue<DB, A1>
+    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilder2IfValue<DB, A1, A2>
+    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilder3IfValue<DB, A1, A2, A3>
+    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4IfValue<DB, A1, A2, A3, A4>
+    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5IfValue<DB, A1, A2, A3, A4, A5>
     protected buildFragmentWithArgsIfValue(...args: Argument<any, any, any, any>[]): any {
         return new FragmentFunctionBuilderIfValue(this as any, args) // make this protected fields as public
     }

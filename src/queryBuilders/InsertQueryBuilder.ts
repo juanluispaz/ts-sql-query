@@ -8,12 +8,12 @@ import { attachSource } from "../utils/attachSource"
 import { database, resultType, tableOrView, type } from "../utils/symbols"
 import { AlwaysIfValueSource, AnyValueSource, asAlwaysIfValueSource, IBooleanValueSource, IExecutableSelectQuery, IIfValueSource, IStringValueSource, isValueSource, __getValueSourcePrivate } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
-import { ComposeSplitQueryBuilder, __setQueryMetadata } from "./ComposeSliptQueryBuilder"
+import { AbstractQueryBuilder, __setQueryMetadata } from "./AbstractQueryBuilder"
 import { RawFragment } from "../utils/RawFragment"
 
 // one implement ommited intentionally to don't confuse TypeScript
 
-export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasAddWiths, ToSql, InsertExpression<any>, ShapedInsertExpression<any, any, any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, ShapedExecutableInsertExpression<any, any>, ExecutableMultipleInsertExpression<any>, ShapedExecutableMultipleInsertExpression<any, any>, CustomizableExecutableMultipleInsert<any, any>, CustomizableExecutableInsertFromSelect<any, any>, CustomizableExecutableInsertReturningLastInsertedId<any, any>, CustomizableExecutableSimpleInsert<any, any>, /*MissingKeysInsertExpression<any, any>, ShapedMissingKeysInsertExpression<any, any, any>, MissingKeysMultipleInsertExpression<any, any>, ShapedMissingKeysMultipleInsertExpression<any, any, any>,*/ InsertData, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any>, ExecutableInsert<any>, CustomizableExecutableInsert<any>, OnConflictDoMultipleInsert<any, any>, InsertOnConflictSetsExpression<any, any, any>, ShapedInsertOnConflictSetsExpression<any, any, any, any>, DynamicOnConflictWhereExpression<any, any>, OnConflictOnColumnWhere<any, any>, CustomizableExecutableInsertFromSelectOnConflict<any>, CustomizableExecutableSimpleInsertOnConflict<any>, OnConflictDoSimpleInsert<any, any>, CustomizableExecutableMultipleInsertOnConfict<any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any>, CustomizableExecutableSimpleInsertOnConflictOptional<any>, CustomizableExecutableMultipleInsertOnConfictOptional<any>, ComposableCustomizableExecutableInsertProjectableAsNullable<any, any>, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable<any, any> {
+export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWiths, ToSql, InsertExpression<any>, ShapedInsertExpression<any, any, any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, ShapedExecutableInsertExpression<any, any>, ExecutableMultipleInsertExpression<any>, ShapedExecutableMultipleInsertExpression<any, any>, CustomizableExecutableMultipleInsert<any, any>, CustomizableExecutableInsertFromSelect<any, any>, CustomizableExecutableInsertReturningLastInsertedId<any, any>, CustomizableExecutableSimpleInsert<any, any>, /*MissingKeysInsertExpression<any, any>, ShapedMissingKeysInsertExpression<any, any, any>, MissingKeysMultipleInsertExpression<any, any>, ShapedMissingKeysMultipleInsertExpression<any, any, any>,*/ InsertData, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any>, ExecutableInsert<any>, CustomizableExecutableInsert<any>, OnConflictDoMultipleInsert<any, any>, InsertOnConflictSetsExpression<any, any, any>, ShapedInsertOnConflictSetsExpression<any, any, any, any>, DynamicOnConflictWhereExpression<any, any>, OnConflictOnColumnWhere<any, any>, CustomizableExecutableInsertFromSelectOnConflict<any>, CustomizableExecutableSimpleInsertOnConflict<any>, OnConflictDoSimpleInsert<any, any>, CustomizableExecutableMultipleInsertOnConfict<any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any>, CustomizableExecutableSimpleInsertOnConflictOptional<any>, CustomizableExecutableMultipleInsertOnConfictOptional<any>, ComposableCustomizableExecutableInsertProjectableAsNullable<any, any>, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable<any, any> {
     [type]: any
     [database]: any
     [tableOrView]: any
@@ -29,7 +29,7 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     __from?: SelectData
     __withs: Array<IWithView<any>> = []
     __customization?: InsertCustomization<any>
-    //__columns?: QueryColumns // declared at ComposeSplitQueryBuilder
+    //__columns?: QueryColumns // declared at AbstractQueryBuilder
     __onConflictOnConstraint?: string | IStringValueSource<any, any> | RawFragment<any>
     __onConflictOnColumns?: AnyValueSource[]
     __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any>

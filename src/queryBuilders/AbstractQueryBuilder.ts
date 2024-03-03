@@ -3,7 +3,7 @@ import { getQueryColumn, QueryColumns, SqlBuilder } from "../sqlBuilders/SqlBuil
 import { Column } from "../utils/Column"
 import { ITableOrView, IWithView, __getTableOrViewPrivate, __registerRequiredColumn } from "../utils/ITableOrView"
 
-export class ComposeSplitQueryBuilder {
+export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
     __columns?: QueryColumns
     __projectOptionalValuesAsNullable?: boolean

@@ -29,7 +29,7 @@ import { RawFragment } from "../utils/RawFragment"
 import { RawFragmentImpl } from "../internal/RawFragmentImpl"
 import { CustomizedTableOrView, OuterJoinTableOrView } from "../utils/tableOrViewUtils"
 import { InnerResultNullableObjectValuesForAggregatedArray, InnerResultObjectValuesForAggregatedArray } from "../utils/resultUtils"
-import { __setQueryMetadata } from "../queryBuilders/ComposeSliptQueryBuilder"
+import { __setQueryMetadata } from "../queryBuilders/AbstractQueryBuilder"
 
 export abstract class AbstractConnection<DB extends AnyDB> implements IConnection<DB> {
     [database]!: DB

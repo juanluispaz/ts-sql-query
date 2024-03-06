@@ -189,7 +189,7 @@ import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
 class DBConnection extends SqliteConnection<'DBConnection'> { }
 ```
 
-**Note**: If you use [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) to connect to the database you can run your queries synchronously. See [BetterSqlite3QueryRunner](query-runners/recommended-query-runners.md#better-sqlite3) and [Synchronous query runners](advanced-usage.md#synchronous-query-runners) for more information.
+**Note**: If you use [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) or [sqlite-wasm OO1](https://sqlite.org/wasm/doc/trunk/api-oo1.md) to connect to the database you can run your queries synchronously. See [BetterSqlite3QueryRunner](query-runners/recommended-query-runners.md#better-sqlite3), [Sqlite3WasmOO1QueryRunner](query-runners/recommended-query-runners/#sqlite-wasm-oo1) and [Synchronous query runners](advanced-usage.md#synchronous-query-runners) for more information.
 
 ### Working with Date and Time in Sqlite
 

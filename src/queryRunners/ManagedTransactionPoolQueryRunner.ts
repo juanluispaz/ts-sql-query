@@ -1,16 +1,16 @@
 import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner";
-import { QueryRunner } from "./QueryRunner";
+import type { BeginTransactionOpts, QueryRunner } from "./QueryRunner";
 
 export abstract class ManagedTransactionPoolQueryRunner extends AbstractPoolQueryRunner {
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T> {
-        return outermostQueryRunner.executeBeginTransaction().then(() => {
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T> {
+        return outermostQueryRunner.executeBeginTransaction(opts).then(() => {
             let result = fn()
             return result.then((r) => {
-                return outermostQueryRunner.executeCommit().then(() => {
+                return outermostQueryRunner.executeCommit(opts as any).then(() => {
                     return r
                 })
             }).catch((e) => {
-                return outermostQueryRunner.executeRollback().then(() => {
+                return outermostQueryRunner.executeRollback(opts as any).then(() => {
                     throw e
                 }, () => {
                     // Throw the innermost error

@@ -118,7 +118,8 @@ You can pass as the second argument of the `PrismaQueryRunner` constructor a con
 - `interactiveTransactionsOptions`(object, optional, default `undefined`): Object with the second parament of the `$transaction` method in the Prisma client object. It supports the following properties: 
   - `maxWait` (number, optional, default `2000`): The maximum amount of time (milliseconds) the Prisma Client will wait to acquire a transaction from the database. The default is 2 seconds.
   - `timeout` (number, optional, default `5000`): The maximum amount of time (milliseconds) the interactive transaction can run before being cancelled and rolled back. The default value is 5 seconds.
-  - `isolationLevel` (Prisma.TransactionIsolationLevel, optional): Sets the [transaction isolation level](https://www.prisma.io/docs/concepts/components/prisma-client/transactions#transaction-isolation-level). By default this is set to the value currently configured in your database.
+
+**Note** Prisma doesn't allow to specify an access mode in the isolation level when you initiate a transaction.
 
 ```ts
 const connection = new DBConnection(new PrismaQueryRunner(prisma));

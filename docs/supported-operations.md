@@ -429,12 +429,13 @@ interface Connection {
     readonly queryRunner: QueryRunner
 
     // Transaction management
-    beginTransaction(): Promise<void>
+    beginTransaction(isolationLevel?: TransactionIsolationLevel): Promise<void>
     commit(): Promise<void>
     rollback(): Promise<void>
     isTransactionActive(): boolean
-    transaction<T>(fn: () => Promise<T>[]): Promise<T[]>
-    transaction<T>(fn: () => Promise<T>): Promise<T>
+    transaction<T>(fn: () => Promise<T>, isolationLevel?: TransactionIsolationLevel): Promise<T>
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel
+    isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel
     // Fuctions that allow to defer a code execution till the end of the transaction
     executeBeforeNextCommit(fn: ()=> void): void
     executeBeforeNextCommit(fn: ()=> Promise<void>): void

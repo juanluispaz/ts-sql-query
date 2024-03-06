@@ -1,5 +1,5 @@
 import { AbstractQueryRunner } from "./AbstractQueryRunner"
-import { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from "./QueryRunner"
 
 interface RawPrismaClient {
     $executeRawUnsafe<_T = any>(query: string, ...values: any[]): Promise<number>
@@ -8,16 +8,15 @@ interface RawPrismaClient {
 }
 
 export interface PrismaConfig {
-    interactiveTransactionsOptions?: { maxWait?: number, timeout?: number, isolationLevel?: string },
+    interactiveTransactionsOptions?: { maxWait?: number, timeout?: number },
     forUseInTransaction?: boolean
 }
 
 export class PrismaQueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType;
     readonly connection: RawPrismaClient
-    readonly transaction?: RawPrismaClient
+    private transaction?: RawPrismaClient
     readonly config?: PrismaConfig
-    private transactionLevel = 0
 
     constructor(connection: RawPrismaClient, config?: PrismaConfig) {
         super()
@@ -39,17 +38,8 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
             default:
                 throw new Error('Unknown Prisma provider of name ' + (connection as any)._activeProvider)
         }
-        try {
-            if (connection.$transaction as any) {
-                this.transaction = undefined
-            }
-        } catch {
-            // This is running in an interactiveTransaction
-            this.transaction = connection
-            this.transactionLevel = 1
-        }
         if (config?.forUseInTransaction) {
-            this.transactionLevel = 1
+            this.transaction = connection
         }
     }
     useDatabase(database: DatabaseType): void {
@@ -110,39 +100,60 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         
         return super.executeInsertReturningLastInsertedId(query, params)
     }
-    executeBeginTransaction(): Promise<void> {
+    executeBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
         return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
     }
-    executeCommit(): Promise<void> {
+    executeCommit(_opts: CommitOpts): Promise<void> {
         return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
     }
-    executeRollback(): Promise<void> {
+    executeRollback(_opts: RollbackOpts): Promise<void> {
         return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
     }
     isTransactionActive(): boolean {
-        return this.transactionLevel > 0
+        return !!this.transaction
     }
-    executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner): Promise<T> {
+    executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T> {
         if (this.transaction) {
-            throw new Error('Nested interactive transaction is not supported by Prisma')
+            return Promise.reject(new Error(this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
         }
-        return this.connection.$transaction((interactiveTransactions: RawPrismaClient) => {
-            // @ts-ignore
-            this.transaction = interactiveTransactions
-            this.transactionLevel++
-            const promises = fn()
-            let result
-            if (Array.isArray(promises)) {
-                result = Promise.all(promises)
-            } else {
-                result = promises
+
+        const level = opts?.[0]
+        const accessMode = opts?.[1]
+        if (accessMode) {
+            return Promise.reject(new Error(this.database + " doesn't support the transactions access mode: " + accessMode + " (using " + this.constructor.name + ")"))
+        }
+        if (this.database === 'sqlite' && level && level !== 'serializable') {
+            return Promise.reject(new Error(this.database + " doesn't support the transactions level: " + level))
+        }
+        
+        let isolationLevel
+        if (!level) {
+        } else if (level === 'read uncommitted') {
+            isolationLevel = 'ReadUncommitted'
+        } else if (level === 'read committed') {
+            isolationLevel = 'ReadCommitted'
+        } else if (level === 'repeatable read') {
+            isolationLevel = 'RepeatableRead'
+        } else if (level === 'snapshot') {
+            if (this.database !== 'sqlServer') {
+                return Promise.reject(new Error(this.database + " doesn't support the transactions level: " + level))
             }
-            return result.finally(() => {
-                this.transactionLevel--
-                // @ts-ignore
+            isolationLevel = 'Snapshot'
+        } else if (level === 'serializable') {
+            isolationLevel = 'Serializable'
+        } else {
+            return Promise.reject(new Error(this.database + " doesn't support the transactions level: " + level))
+        }
+
+        return this.connection.$transaction((interactiveTransactions: RawPrismaClient) => {
+            if (this.transaction) {
+                throw new Error('Forbidden concurrent usage of the query runner was detected when it tried to start a transaction.')
+            }
+            this.transaction = interactiveTransactions
+            return fn().finally(() => {
                 this.transaction = undefined
             })
-        }, this.config?.interactiveTransactionsOptions)
+        }, {...this.config?.interactiveTransactionsOptions, isolationLevel})
     }
     addParam(params: any[], value: any): string {
         const index = params.length
@@ -177,6 +188,9 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
     }
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result)
+    }
+    createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
+        return Promise.reject(error)
     }
     executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
         return fn1().then((r1) => {

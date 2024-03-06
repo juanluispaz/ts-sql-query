@@ -2,14 +2,20 @@ import type { DatabaseType } from "./QueryRunner"
 import type { ClientBase } from 'pg'
 import { PromiseBasedWithSqlTransactionQueryRunner } from "./PromiseBasedWithSqlTransactionQueryRunner"
 
+export interface PgQueryRunnerConfig {
+    allowNestedTransactions?: boolean
+}
+
 export class PgQueryRunner extends PromiseBasedWithSqlTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: ClientBase
+    private config?: PgQueryRunnerConfig
 
-    constructor(connection: ClientBase) {
+    constructor(connection: ClientBase, config?: PgQueryRunnerConfig) {
         super()
         this.connection = connection
         this.database = 'postgreSql'
+        this.config = config
     }
 
     useDatabase(database: DatabaseType): void {
@@ -39,5 +45,8 @@ export class PgQueryRunner extends PromiseBasedWithSqlTransactionQueryRunner {
     addParam(params: any[], value: any): string {
         params.push(value)
         return '$' + params.length
+    }
+    nestedTransactionsSupported(): boolean {
+        return !!this.config?.allowNestedTransactions
     }
 }

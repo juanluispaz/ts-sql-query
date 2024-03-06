@@ -1,9 +1,10 @@
-import type { QueryRunner } from "../queryRunners/QueryRunner"
+import type { BeginTransactionOpts, CommitOpts, QueryRunner, RollbackOpts } from "../queryRunners/QueryRunner"
 import { NoopDBSqlBuilder } from "../sqlBuilders/NoopDBSqlBuilder"
 import { NoopQueryRunner } from "../queryRunners/NoopQueryRunner"
 import type { DB } from "../typeMarks/NoopDBDB"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
 import { ChainedQueryRunner } from "../queryRunners/ChainedQueryRunner"
+import { TransactionIsolationLevel } from "./AbstractConnection"
 
 export abstract class NoopDBConnection<NAME extends string> extends AbstractAdvancedConnection<DB<NAME>> {
 
@@ -12,13 +13,17 @@ export abstract class NoopDBConnection<NAME extends string> extends AbstractAdva
         queryRunner.useDatabase('noopDB')
     }
 
-    get lastQuery(): string {
-        return (this.queryRunner as NoopIterceptQueryRunner<any>).lastQuery
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel
+    isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable' | 'read write' | 'read only', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel {
+        if (level === 'read write' || level === 'read only') {
+            return [undefined, accessMode] as any
+        }
+        if (accessMode) {
+            return [level, accessMode] as any
+        }
+        return [level] as any
     }
-    get lastParams(): any[] {
-        return (this.queryRunner as NoopIterceptQueryRunner<any>).lastParams
-    }
-
 }
 
 class NoopIterceptQueryRunner<T extends QueryRunner> extends ChainedQueryRunner<T> {
@@ -80,20 +85,20 @@ class NoopIterceptQueryRunner<T extends QueryRunner> extends ChainedQueryRunner<
         this.lastParams = params
         return this.queryRunner.executeFunction(query, params)
     }
-    executeBeginTransaction(): Promise<void> {
+    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
         this.lastQuery = 'begin transaction'
-        this.lastParams = []
-        return this.queryRunner.executeBeginTransaction()
+        this.lastParams = opts || []
+        return this.queryRunner.executeBeginTransaction(opts)
     }
-    executeCommit(): Promise<void> {
+    executeCommit(opts: CommitOpts): Promise<void> {
         this.lastQuery = 'commit'
-        this.lastParams = []
-        return this.queryRunner.executeCommit()
+        this.lastParams = opts || []
+        return this.queryRunner.executeCommit(opts)
     }
-    executeRollback(): Promise<void> {
+    executeRollback(opts: RollbackOpts): Promise<void> {
         this.lastQuery = 'rollback'
-        this.lastParams = []
-        return this.queryRunner.executeRollback()
+        this.lastParams = opts || []
+        return this.queryRunner.executeRollback(opts)
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         this.lastQuery = query

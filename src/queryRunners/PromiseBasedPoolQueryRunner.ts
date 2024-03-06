@@ -4,4 +4,7 @@ export abstract class PromiseBasedPoolQueryRunner extends ManagedTransactionPool
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return Promise.resolve(result) 
     }
+    createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
+        return Promise.reject(error)
+    }
 }

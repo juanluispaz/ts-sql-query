@@ -17,11 +17,6 @@ const transactionResult = connection.transaction(async () => {
 });
 ```
 
-The `transaction` method have two overloads:
-
-- `transaction<T>(fn: () => Promise<T>[]): Promise<T[]>`
-- `transaction<T>(fn: () => Promise<T>): Promise<T>`
-
 ## Low-level transaction management
 
 Sometimes a fine-grain control over the transaction is required, in that situations ts-sql-query offer you the possibility to manually:
@@ -45,6 +40,50 @@ await connection.rollback();
 ```
 
 When you use these methods, you must ensure the transaction begin before call commit or rollback.
+
+## Transaction isolation
+
+ts-sql-query allows you to indicate the transaction level when you start a new transaction.
+
+Avaliable isolation levels:
+
+| **Database**                                                                                                     | `read uncommitted` | `read committed` | `repeatable read` | `snapshot` | `serializable` |
+| ---------------------------------------------------------------------------------------------------------------- | ------------------ | ---------------- | ----------------- | ---------- | -------------- |
+| [MariaDB](https://mariadb.com/kb/en/set-transaction/#isolation-levels)                                           | **YES**            | **YES**\*        | **YES**           | _no_       | **YES**        |
+| [MySql](https://dev.mysql.com/doc/refman/8.0/en/innodb-transaction-isolation-levels.html)                        | **YES**            | **YES**\*        | **YES**           | _no_       | **YES**        |
+| [Oracle](https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/SET-TRANSACTION.html)               | _no_               | **YES**\*        | _no_              | _no_       | **YES**        |
+| [PostgreSql](https://www.postgresql.org/docs/16/transaction-iso.html)                                            | **YES**            | **YES**\*        | **YES**           | _no_       | **YES**        |
+| [Sqlite](https://www.sqlite.org/isolation.html)                                                                  | _no_               | _no_             | _no_              | _no_       | _no_\*         |
+| [SqlServer](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-transaction-isolation-level-transact-sql) | **YES**            | **YES**\*        | **YES**           | **YES**    | **YES**        |
+
+\* _Default_
+
+Available access modes:
+
+| **Database**                                                                                                     | `read write` | `read only` |
+| ---------------------------------------------------------------------------------------------------------------- | ------------ | ----------- |
+| [MariaDB](https://mariadb.com/kb/en/start-transaction/#access-mode)                                              | **YES**\*    | **YES**     |
+| [MySql](https://dev.mysql.com/doc/refman/8.0/en/set-transaction.html)                                            | **YES**\*    | **YES**     |
+| [Oracle](https://docs.oracle.com/en/database/oracle/oracle-database/23/sqlrf/SET-TRANSACTION.html)               | **YES**\*    | **YES**     |
+| [PostgreSql](https://www.postgresql.org/docs/16/transaction-iso.html)                                            | **YES**\*    | **YES**     |
+| [Sqlite](https://www.sqlite.org/lang_transaction.html)                                                           | _no_\*       | _no_        |
+| [SqlServer](https://learn.microsoft.com/en-us/sql/t-sql/statements/set-transaction-isolation-level-transact-sql) | _no_\*       | _no_        |
+
+\* _Default_
+
+You can set the transaction's isolation level by providing an additional argument to the `transaction` or `beginTransaction` method with a value created calling the `connection.isolationLevel` method. This function receives the isolation level as the first argument and the access mode as an optional second argument. You can also provide the access mode as the only argument. 
+
+**Note**: The Oracle database doesn't support specifying the isolation level and the access mode simultaneously.
+
+```ts
+const transactionResult = connection.transaction(async () => {
+    ...
+}, connection.isolationLevel('serializable', 'read only'));
+```
+
+```ts
+await connection.beginTransaction(connection.isolationLevel('serializable', 'read only'));
+```
 
 ## Defering execution till transaction ends
 

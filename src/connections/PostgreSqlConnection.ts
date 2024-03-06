@@ -2,12 +2,25 @@ import type { QueryRunner } from "../queryRunners/QueryRunner"
 import { PostgreSqlSqlBuilder } from "../sqlBuilders/PostgreSqlSqlBuilder"
 import type { DB } from "../typeMarks/PostgreSqlDB"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
+import { TransactionIsolationLevel } from "./AbstractConnection"
 
 export abstract class PostgreSqlConnection<NAME extends string> extends AbstractAdvancedConnection<DB<NAME>> {
 
     constructor(queryRunner: QueryRunner, sqlBuilder = new PostgreSqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('postgreSql')
+    }
+
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel
+    isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable' | 'read write' | 'read only', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel {
+        if (level === 'read write' || level === 'read only') {
+            return [undefined, accessMode] as any
+        }
+        if (accessMode) {
+            return [level, accessMode] as any
+        }
+        return [level] as any
     }
 
     protected transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {

@@ -1,4 +1,4 @@
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts } from "./QueryRunner"
 
 export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     readonly queryRunner: T
@@ -95,20 +95,20 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     executeFunction(query: string, params: any[] = []): Promise<any> {
         return this.queryRunner.executeFunction(query, params)
     }
-    executeBeginTransaction(): Promise<void> {
-        return this.queryRunner.executeBeginTransaction()
+    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
+        return this.queryRunner.executeBeginTransaction(opts)
     }
-    executeCommit(): Promise<void> {
-        return this.queryRunner.executeCommit()
+    executeCommit(opts: CommitOpts): Promise<void> {
+        return this.queryRunner.executeCommit(opts)
     }
-    executeRollback(): Promise<void> {
-        return this.queryRunner.executeRollback()
+    executeRollback(opts: RollbackOpts): Promise<void> {
+        return this.queryRunner.executeRollback(opts)
     }
     isTransactionActive(): boolean {
         return this.queryRunner.isTransactionActive()
     }
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T> {
-        return this.queryRunner.executeInTransaction(fn, outermostQueryRunner)
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T> {
+        return this.queryRunner.executeInTransaction(fn, outermostQueryRunner, opts)
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         return this.queryRunner.executeDatabaseSchemaModification(query, params)
@@ -125,6 +125,9 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.queryRunner.createResolvedPromise(result)
     }
+    createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
+        return this.queryRunner.createRejectedPromise(error)
+    }
     executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
         return this.queryRunner.executeCombined(fn1, fn2)
     }
@@ -133,5 +136,8 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     }
     lowLevelTransactionManagementSupported(): boolean {
         return this.queryRunner.isMocked()
+    }
+    nestedTransactionsSupported(): boolean {
+        return this.queryRunner.nestedTransactionsSupported()
     }
 }

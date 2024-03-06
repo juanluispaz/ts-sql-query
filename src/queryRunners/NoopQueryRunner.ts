@@ -1,14 +1,16 @@
-import type { DatabaseType, PromiseProvider, QueryRunner } from "./QueryRunner"
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, RollbackOpts } from "./QueryRunner"
 
 export interface NoopQueryRunnerConfig {
     database?: DatabaseType
     promise?: PromiseProvider
+    allowNestedTransactions?: boolean
 }
 
 export class NoopQueryRunner implements QueryRunner {
     readonly database: DatabaseType
     readonly promise: PromiseProvider
     private transactionLevel = 0
+    private allowNestedTransactions: boolean
 
     constructor(databaseOrConfig: DatabaseType | NoopQueryRunnerConfig = 'noopDB') {
         if (typeof databaseOrConfig === 'string') {
@@ -16,6 +18,7 @@ export class NoopQueryRunner implements QueryRunner {
         }
         this.database = databaseOrConfig.database || 'noopDB'
         this.promise = databaseOrConfig.promise || Promise
+        this.allowNestedTransactions = !!databaseOrConfig.allowNestedTransactions
     }
 
     useDatabase(database: DatabaseType): void {
@@ -104,15 +107,15 @@ export class NoopQueryRunner implements QueryRunner {
     executeFunction(_query: string, _params: any[] = []): Promise<any> {
         return this.promise.resolve(undefined)
     }
-    executeBeginTransaction(): Promise<void> {
+    executeBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
         this.transactionLevel++
         return this.promise.resolve()
     }
-    executeCommit(): Promise<void> {
+    executeCommit(_opts: CommitOpts): Promise<void> {
         this.transactionLevel--
         return this.promise.resolve()
     }
-    executeRollback(): Promise<void> {
+    executeRollback(_opts: RollbackOpts): Promise<void> {
         this.transactionLevel--
         return this.promise.resolve()
     }
@@ -161,15 +164,15 @@ export class NoopQueryRunner implements QueryRunner {
         params.push({ out_param_with_name: name })
         return ':' + index
     }
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T> {
-        return outermostQueryRunner.executeBeginTransaction().then(() => {
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T> {
+        return outermostQueryRunner.executeBeginTransaction(opts).then(() => {
             let result = fn()
             return result.then((r) => {
-                return outermostQueryRunner.executeCommit().then(() => {
+                return outermostQueryRunner.executeCommit(opts as any).then(() => {
                     return r
                 })
             }, (e) => {
-                return outermostQueryRunner.executeRollback().then(() => {
+                return outermostQueryRunner.executeRollback(opts as any).then(() => {
                     throw e
                 }, () => {
                     // Throw the innermost error
@@ -188,10 +191,16 @@ export class NoopQueryRunner implements QueryRunner {
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.promise.resolve(result) 
     }
+    createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
+        return this.promise.reject(error)
+    }
     isMocked(): boolean {
         return false
     }
     lowLevelTransactionManagementSupported(): boolean {
         return true
+    }
+    nestedTransactionsSupported(): boolean {
+        return this.allowNestedTransactions
     }
 }

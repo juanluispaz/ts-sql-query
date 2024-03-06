@@ -77,4 +77,7 @@ export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.promise.resolve(result) 
     }
+    createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
+        return this.promise.reject(error)
+    }
 }

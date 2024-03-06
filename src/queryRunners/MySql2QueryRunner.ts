@@ -1,11 +1,10 @@
-import type { DatabaseType } from "./QueryRunner"
+import type { BeginTransactionOpts, DatabaseType } from "./QueryRunner"
 import type { Connection, QueryError, ResultSetHeader, RowDataPacket } from "mysql2"
-import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
+import { PromiseBasedWithSqlTransactionQueryRunner } from "./PromiseBasedWithSqlTransactionQueryRunner"
 
-export class MySql2QueryRunner extends PromiseBasedQueryRunner {
+export class MySql2QueryRunner extends PromiseBasedWithSqlTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
-    private transactionLevel = 0
 
     constructor(connection: Connection, database: 'mariaDB' | 'mySql' = 'mySql') {
         super()
@@ -71,58 +70,41 @@ export class MySql2QueryRunner extends PromiseBasedQueryRunner {
             })
         })
     }
-    executeBeginTransaction(): Promise<void> {
-        if (this.transactionLevel >= 1) {
-            throw new Error("MySql doesn't support nested transactions. This error is thrown to avoid MariaDB silently finishing the previous transaction")
+    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
+        return super.executeBeginTransaction(opts).then(() => {
+            const setTransactionSql = this.createSetTransactionQuery(opts)
+            if (setTransactionSql) {
+                return this.executeMutation(setTransactionSql, []).then(() => {
+                    return undefined
+                })
+            }
+            return undefined
+        })
+    }
+    createBeginTransactionQuery(opts: BeginTransactionOpts): string {
+        let sql = 'start transaction'
+        // validate transaction level
+        this.getTransactionLevel(opts)
+        const accessMode = this.getTransactionAccessMode(opts)
+        if (accessMode) {
+            sql += ' ' + accessMode
         }
-        return new Promise((resolve, reject) => {
-            this.connection.beginTransaction((error: QueryError | null) => {
-                if (error) {
-                    reject(error)
-                } else {
-                    this.transactionLevel++
-                    if (this.transactionLevel >= 2) {
-                        reject(new Error("MySql doesn't support nested transactions. The previous transaction was silently finished"))
-                    } else {
-                        resolve()
-                    }
-                }
-            })
-        })
+        return sql
     }
-    executeCommit(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.connection.commit((error: QueryError | null) => {
-                if (error) {
-                    // Transaction count only modified when commit successful, in case of error there is still an open transaction 
-                    reject(error)
-                } else {
-                    this.transactionLevel--
-                    if (this.transactionLevel < 0) {
-                        this.transactionLevel = 0
-                    }
-                    resolve()
-                }
-            })
-        })
-    }
-    executeRollback(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            this.connection.rollback((error?: QueryError | null) => {
-                this.transactionLevel--
-                if (this.transactionLevel < 0) {
-                    this.transactionLevel = 0
-                }
-                if (error) {
-                    reject(error)
-                } else {
-                    resolve()
-                }
-            })
-        })
-    }
-    isTransactionActive(): boolean {
-        return this.transactionLevel > 0
+    createSetTransactionQuery(opts: BeginTransactionOpts): string | undefined {
+        let level = this.getTransactionLevel(opts)
+        if (!level) {
+            return undefined
+        }
+        let sql = 'set transaction isolation level ' + level
+        const acessMode = this.getTransactionAccessMode(opts)
+        if (acessMode) {
+            if (sql) {
+                sql += ', '
+            }
+            sql += acessMode
+        }
+        return sql
     }
     addParam(params: any[], value: any): string {
         params.push(value)

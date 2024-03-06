@@ -27,19 +27,21 @@ export interface QueryRunner {
     executeDeleteReturningOneColumnManyRows(query: string, params?: any[]): Promise<any[]>
     executeProcedure(query: string, params?: any[]): Promise<void>
     executeFunction(query: string, params?: any[]): Promise<any>
-    executeBeginTransaction(): Promise<void>
-    executeCommit(): Promise<void>
-    executeRollback(): Promise<void>
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
+    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void>
+    executeCommit(opts: CommitOpts): Promise<void>
+    executeRollback(opts: RollbackOpts): Promise<void>
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T>
     isTransactionActive(): boolean
     executeDatabaseSchemaModification(query: string, params?: any[]): Promise<void>
     executeConnectionConfiguration(query: string, params?: any[]): Promise<void>
     addParam(params: any[], value: any): string
     addOutParam(params: any[], name: string): string
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
+    createRejectedPromise<RESULT = any>(error: any): Promise<RESULT>
     executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
     isMocked(): boolean
     lowLevelTransactionManagementSupported(): boolean
+    nestedTransactionsSupported(): boolean
 }
 
 export type DatabaseType = 'mariaDB' | 'mySql' | 'noopDB' | 'oracle' | 'postgreSql' | 'sqlite' | 'sqlServer'
@@ -69,6 +71,10 @@ export type PromiseProvider = PromiseConstructorLike & {
         */
     // allSettled: typeof Promise.allSettled
 }
+
+export type BeginTransactionOpts = [transactionLevel?: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable', accessMode?: 'read write' | 'read only' ]
+export type CommitOpts = []
+export type RollbackOpts = []
 
 export function getQueryExecutionName(query: string, params: any[]): string | undefined {
     query

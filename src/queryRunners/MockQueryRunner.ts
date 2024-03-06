@@ -1,4 +1,4 @@
-import type { DatabaseType, PromiseProvider, QueryRunner, QueryType } from "./QueryRunner"
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, QueryType, RollbackOpts } from "./QueryRunner"
 
 export type MockQueryExecutor = (type: QueryType | 'isTransactionActive', query: string, params: any[], index: number) => any
 
@@ -10,7 +10,6 @@ export interface MockQueryRunnerConfig {
 export class MockQueryRunner implements QueryRunner {
     private count = 0
     readonly queryExecutor: MockQueryExecutor
-
     readonly database: DatabaseType
     readonly promise: PromiseProvider
 
@@ -346,10 +345,10 @@ export class MockQueryRunner implements QueryRunner {
             return this.promise.reject(e)
         }
     }
-    executeBeginTransaction(): Promise<void> {
+    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
         try {
             const index = this.count++
-            const result = this.queryExecutor('beginTransaction', 'begin transaction', [], index)
+            const result = this.queryExecutor('beginTransaction', 'begin transaction', opts || [], index)
             if (result !== undefined && result !== null) {
                 throw new Error('Invalid test case result for a beginTransaction with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
@@ -358,10 +357,10 @@ export class MockQueryRunner implements QueryRunner {
             return this.promise.reject(e)
         }
     }
-    executeCommit(): Promise<void> {
+    executeCommit(opts: CommitOpts): Promise<void> {
         try {
             const index = this.count++
-            const result = this.queryExecutor('commit', 'commit', [], index)
+            const result = this.queryExecutor('commit', 'commit', opts || [], index)
             if (result !== undefined && result !== null) {
                 throw new Error('Invalid test case result for a commit with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
@@ -370,10 +369,10 @@ export class MockQueryRunner implements QueryRunner {
             return this.promise.reject(e)
         }
     }
-    executeRollback(): Promise<void> {
+    executeRollback(opts: RollbackOpts): Promise<void> {
         try {
             const index = this.count++
-            const result = this.queryExecutor('rollback', 'rollback', [], index)
+            const result = this.queryExecutor('rollback', 'rollback', opts || [], index)
             if (result !== undefined && result !== null) {
                 throw new Error('Invalid test case result for a commit with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
@@ -461,15 +460,15 @@ export class MockQueryRunner implements QueryRunner {
         return ':' + index
     }
 
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T> {
-        return outermostQueryRunner.executeBeginTransaction().then(() => {
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T> {
+        return outermostQueryRunner.executeBeginTransaction(opts).then(() => {
             let result = fn()
             return result.then((r) => {
-                return outermostQueryRunner.executeCommit().then(() => {
+                return outermostQueryRunner.executeCommit(opts as any).then(() => {
                     return r
                 })
             }, (e) => {
-                return outermostQueryRunner.executeRollback().then(() => {
+                return outermostQueryRunner.executeRollback(opts as any).then(() => {
                     throw e
                 }, () => {
                     // Throw the innermost error
@@ -489,11 +488,17 @@ export class MockQueryRunner implements QueryRunner {
     createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.promise.resolve(result) 
     }
+    createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
+        return this.promise.reject(error)
+    }
 
     isMocked(): boolean {
         return true
     }
     lowLevelTransactionManagementSupported(): boolean {
+        return true
+    }
+    nestedTransactionsSupported(): boolean {
         return true
     }
 }

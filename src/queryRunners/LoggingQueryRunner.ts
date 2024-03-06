@@ -1,4 +1,4 @@
-import type { QueryRunner, QueryType } from "./QueryRunner"
+import type { BeginTransactionOpts, CommitOpts, QueryRunner, QueryType, RollbackOpts } from "./QueryRunner"
 import { ChainedQueryRunner } from "./ChainedQueryRunner"
 
 export interface QueryLogger {
@@ -521,12 +521,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T> {
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T> {
         if (!this.queryRunner.lowLevelTransactionManagementSupported()) {
             // Emulate beginTransaction, commit and rollback to see in logs
             return this.queryRunner.executeInTransaction(() => {
                 const query: string = ''
-                const params: any[] = []
+                const params: any[] = opts || []
                 const logger = this.logger
                 if (logger.onQuery) {
                     logger.onQuery('beginTransaction', query, params, { startedAt: 0n })
@@ -535,10 +535,10 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
                     logger.onQueryResult('beginTransaction', query, params, undefined, { startedAt: 0n, endedAt: 0n })
                 }
                 return fn()
-            }, outermostQueryRunner).then((r) => {
+            }, outermostQueryRunner, opts).then((r) => {
                 try {
                     const query: string = ''
-                    const params: any[] = []
+                    const params: any[] = opts || []
                     const logger = this.logger
                     if (logger.onQuery) {
                         logger.onQuery('commit', query, params, { startedAt: 0n })
@@ -553,7 +553,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
             }, (e) => {
                 try {
                     const query: string = ''
-                    const params: any[] = []
+                    const params: any[] = opts || []
                     const logger = this.logger
                     const startedAt = process.hrtime.bigint()
                     if (logger.onQuery) {
@@ -568,17 +568,17 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
                 throw e
             })
         }
-        return this.queryRunner.executeInTransaction(fn, outermostQueryRunner)
+        return this.queryRunner.executeInTransaction(fn, outermostQueryRunner, opts)
     }
-    executeBeginTransaction(): Promise<void> {
+    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
         const query: string = ''
-        const params: any[] = []
+        const params: any[] = opts || []
         const logger = this.logger
         const startedAt = process.hrtime.bigint()
         if (logger.onQuery) {
             logger.onQuery('beginTransaction', query, params, { startedAt })
         }
-        let result = this.queryRunner.executeBeginTransaction()
+        let result = this.queryRunner.executeBeginTransaction(opts)
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
@@ -594,15 +594,15 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeCommit(): Promise<void> {
+    executeCommit(opts: CommitOpts): Promise<void> {
         const query: string = ''
-        const params: any[] = []
+        const params: any[] = opts || []
         const logger = this.logger
         const startedAt = process.hrtime.bigint()
         if (logger.onQuery) {
             logger.onQuery('commit', query, params, { startedAt })
         }
-        let result = this.queryRunner.executeCommit()
+        let result = this.queryRunner.executeCommit(opts)
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
@@ -618,15 +618,15 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeRollback(): Promise<void> {
+    executeRollback(opts: RollbackOpts): Promise<void> {
         const query: string = ''
-        const params: any[] = []
+        const params: any[] = opts || []
         const logger = this.logger
         const startedAt = process.hrtime.bigint()
         if (logger.onQuery) {
             logger.onQuery('rollback', query, params, { startedAt })
         }
-        let result = this.queryRunner.executeRollback()
+        let result = this.queryRunner.executeRollback(opts)
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {

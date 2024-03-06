@@ -1,9 +1,9 @@
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import { MariaDBSqlBuilder } from "../sqlBuilders/MariaDBSqlBuilder"
 import type { DB } from "../typeMarks/MariaDBDB"
-import { AbstractMySqlMariaDBConnection } from "./AbstractMySqlMariaDBConnection"
+import { AbstractConnection, TransactionIsolationLevel } from "./AbstractConnection"
 
-export abstract class MariaDBConnection<NAME extends string> extends AbstractMySqlMariaDBConnection<DB<NAME>> {
+export abstract class MariaDBConnection<NAME extends string> extends AbstractConnection<DB<NAME>> {
  
     protected uuidStrategy: 'string' | 'uuid' = 'uuid'
 
@@ -18,5 +18,17 @@ export abstract class MariaDBConnection<NAME extends string> extends AbstractMyS
     constructor(queryRunner: QueryRunner, sqlBuilder = new MariaDBSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('mariaDB')
+    }
+
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel
+    isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable' | 'read write' | 'read only', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel {
+        if (level === 'read write' || level === 'read only') {
+            return [undefined, accessMode] as any
+        }
+        if (accessMode) {
+            return [level, accessMode] as any
+        }
+        return [level] as any
     }
 }

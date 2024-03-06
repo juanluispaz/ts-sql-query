@@ -2,6 +2,7 @@ import type { QueryRunner } from "../queryRunners/QueryRunner"
 import { OracleSqlBuilder } from "../sqlBuilders/OracleSqlBuilder"
 import type { DB } from "../typeMarks/OracleDB"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
+import { TransactionIsolationLevel } from "./AbstractConnection"
 
 export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<DB<NAME>> {
 
@@ -10,6 +11,13 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
     constructor(queryRunner: QueryRunner, sqlBuilder = new OracleSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('oracle')
+    }
+
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel {
+        if (accessMode) {
+            return [level, accessMode] as any
+        }
+        return [level] as any
     }
 
     protected transformValueToDB(value: unknown, type: string): unknown {

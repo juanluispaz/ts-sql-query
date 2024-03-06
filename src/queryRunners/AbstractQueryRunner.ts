@@ -1,4 +1,4 @@
-import type { QueryRunner, DatabaseType } from "./QueryRunner"
+import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts } from "./QueryRunner"
 
 export abstract class AbstractQueryRunner implements QueryRunner {
     abstract readonly database: DatabaseType
@@ -229,16 +229,17 @@ export abstract class AbstractQueryRunner implements QueryRunner {
         return this.executeQueryReturning(query, params)
     }
 
-    abstract executeBeginTransaction(): Promise<void>
-    abstract executeCommit(): Promise<void>
-    abstract executeRollback(): Promise<void>
+    abstract executeBeginTransaction(opts: BeginTransactionOpts): Promise<void>
+    abstract executeCommit(opts: CommitOpts): Promise<void>
+    abstract executeRollback(opts: RollbackOpts): Promise<void>
     abstract isTransactionActive(): boolean
     abstract addParam(params: any[], value: any): string
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')
     }
     abstract createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
-    abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
+    abstract createRejectedPromise<RESULT = any>(error: any): Promise<RESULT>
+    abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T>
     abstract executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
 
     isMocked(): boolean {
@@ -246,5 +247,8 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     }
     lowLevelTransactionManagementSupported(): boolean {
         return true
+    }
+    nestedTransactionsSupported(): boolean {
+        return false
     }
 }

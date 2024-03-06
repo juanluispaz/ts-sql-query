@@ -2,7 +2,12 @@ import type { QueryRunner } from "../queryRunners/QueryRunner"
 import { SqliteSqlBuilder } from "../sqlBuilders/SqliteSqlBuilder"
 import type { DB } from "../typeMarks/SqliteDB"
 import { AbstractConnection } from "./AbstractConnection"
-import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "./SqliteConfiguration"
+
+export type SqliteDateTimeFormat = 'localdate as text' | 'localdate as text using T separator' 
+    | 'UTC as text' | 'UTC as text using T separator' | 'UTC as text using Z timezone' | 'UTC as text using T separator and Z timezone' 
+    | 'Julian day as real number' | 'Unix time seconds as integer' | 'Unix time milliseconds as integer'
+
+export type SqliteDateTimeFormatType = 'date' | 'time' | 'dateTime'
 
 export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<DB<NAME>> {
 

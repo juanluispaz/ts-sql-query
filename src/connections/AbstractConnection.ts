@@ -21,7 +21,7 @@ import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
 import ChainedError from "chained-error"
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue } from "../queryBuilders/FragmentQueryBuilder"
 import { attachSource, attachTransactionSource } from "../utils/attachSource"
-import { database, outerJoinAlias, outerJoinTableOrView, tableOrView, tableOrViewRef, type, valueSourceTypeName, valueType } from "../utils/symbols"
+import { database, outerJoinAlias, outerJoinTableOrView, tableOrView, tableOrViewRef, transactionIsolationLevel, type, valueSourceTypeName, valueType } from "../utils/symbols"
 import { callDeferredFunctions, callDeferredFunctionsStoppingOnError, isPromise } from "../utils/PromiseUtils"
 import { DinamicConditionExtension, DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
 import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilder"
@@ -160,8 +160,13 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         this.onRollback.push(fn)
     }
 
-    transaction<T>(fn: () => Promise<T>): Promise<T> {
+    transaction<T>(fn: () => Promise<T>, isolationLevel?: TransactionIsolationLevel): Promise<T> {
+        if (!this.queryRunner.isMocked() && this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
+            throw new Error('Nested transactions not supported')
+        }
+        const opts: any = isolationLevel || []
         const source = new Error('Transaction executed at')
+        __setQueryMetadata(source, opts)
         try {
             return this.queryRunner.executeInTransaction<T>(() => {
                 this.pushTransactionStack()
@@ -176,7 +181,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
                     this.popTransactionStack()
                     throw e
                 }
-            }, this.queryRunner).then((result) => {
+            }, this.queryRunner, opts).then((result) => {
                 const onCommit = this.onCommit
                 this.onCommit = null
                 return callDeferredFunctions<T>('after next commit', onCommit, result, source)
@@ -193,10 +198,15 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         }
     }
 
-    beginTransaction(): Promise<void> {
+    beginTransaction(isolationLevel?: TransactionIsolationLevel): Promise<void> {
+        if (!this.queryRunner.isMocked() && this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
+            throw new Error('Nested transactions not supported')
+        }
+        const opts: any = isolationLevel || []
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, opts)
         try {
-            return this.queryRunner.executeBeginTransaction().then((result) => {
+            return this.queryRunner.executeBeginTransaction(opts).then((result) => {
                 this.pushTransactionStack()
                 return result
             }, (e) => {
@@ -207,7 +217,12 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         }
     }
     commit(): Promise<void> {
+        if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
+            throw new Error('There is no open transaction')
+        }
+        const opts: any = []
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, opts)
         const beforeCommit = this.beforeCommit
         if (beforeCommit) {
             this.beforeCommit = null
@@ -215,7 +230,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
             if (isPromise(result)) {
                 return result.then(() => {
                     try {
-                        return this.queryRunner.executeCommit().then(() => {
+                        return this.queryRunner.executeCommit(opts).then(() => {
                             const onCommit = this.onCommit
                             this.onCommit = null
                             return callDeferredFunctions('after next commit', onCommit, undefined, source)
@@ -233,7 +248,7 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
             }
         }
         try {
-            return this.queryRunner.executeCommit().then(() => {
+            return this.queryRunner.executeCommit(opts).then(() => {
                 const onCommit = this.onCommit
                 this.onCommit = null
                 return callDeferredFunctions('after next commit', onCommit, undefined, source)
@@ -249,9 +264,14 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         }
     }
     rollback(): Promise<void> {
+        if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
+            throw new Error('There is no open transaction')
+        }
+        const opts: any = []
         const source = new Error('Query executed at')
+        __setQueryMetadata(source, opts)
         try {
-            return this.queryRunner.executeRollback().then(() => {
+            return this.queryRunner.executeRollback(opts).then(() => {
                 const onRollback = this.onRollback
                 this.onRollback = null
                 return callDeferredFunctions('after next rollback', onRollback, undefined, source)
@@ -1177,6 +1197,10 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return identifier
     }
 
+}
+
+export interface TransactionIsolationLevel {
+    [transactionIsolationLevel]: 'transactionIsolationLevel'
 }
 
 type AggregatedArrayColumns<DB extends AnyDB> = {

@@ -1,9 +1,10 @@
-import { DatabaseType, QueryRunner } from "./QueryRunner"
+import { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from "./QueryRunner"
 
 export abstract class AbstractPoolQueryRunner implements QueryRunner {
     abstract readonly database: DatabaseType
     private currentQueryRunner?: QueryRunner
     private transactionLevel = 0
+    private transactionOpts?: BeginTransactionOpts
 
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
         return this.getQueryRunner().then(queryRunner => queryRunner.execute(fn)).finally(() => this.releaseIfNeeded())
@@ -77,56 +78,64 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     executeFunction(query: string, params: any[] = []): Promise<any> {
         return this.getQueryRunner().then(queryRunner => queryRunner.executeFunction(query, params)).finally(() => this.releaseIfNeeded())
     }
-    executeBeginTransaction(): Promise<void> {
+    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
+        if (!this.nestedTransactionsSupported() && this.transactionLevel >= 1) {
+            return this.createRejectedPromise(new Error(this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
+        }
         if (this.transactionLevel <= 0) {
             this.transactionLevel = 1
+            this.transactionOpts = opts
             return this.createResolvedPromise(undefined)
         } else {
-            return this.getQueryRunner().then(queryRunner => queryRunner.executeBeginTransaction()).then(() => {
+            return this.getQueryRunner().then(queryRunner => queryRunner.executeBeginTransaction(opts)).then(() => {
                 this.transactionLevel++
             })
         }
     }
-    executeCommit(): Promise<void> {
+    executeCommit(opts: CommitOpts): Promise<void> {
         if (this.transactionLevel <= 0) {
-            throw new Error('You are not in a transaction')
+            return this.createRejectedPromise(new Error('You are not in a transaction'))
         }
         
         if (this.currentQueryRunner) {
-            return this.currentQueryRunner.executeCommit().then(() => {
+            return this.currentQueryRunner.executeCommit(opts).then(() => {
                 // Transaction count and release only modified when commit successful, in case of error there is still an open transaction 
                 this.transactionLevel--
-                if (this.transactionLevel < 0) {
+                if (this.transactionLevel <= 0) {
                     this.transactionLevel = 0
+                    this.transactionOpts = undefined
                 }
                 this.releaseIfNeeded()
             })
         }
 
         this.transactionLevel--
-        if (this.transactionLevel < 0) {
+        if (this.transactionLevel <= 0) {
             this.transactionLevel = 0
+            this.transactionOpts = undefined
         }
         return this.createResolvedPromise(undefined)
     }
-    executeRollback(): Promise<void> {
+    executeRollback(opts: RollbackOpts): Promise<void> {
         if (this.transactionLevel <= 0) {
-            throw new Error('You are not in a transaction')
+            return this.createRejectedPromise(new Error('You are not in a transaction'))
         }
 
         if (this.currentQueryRunner) {
-            return this.currentQueryRunner.executeRollback().finally(() => {
+            return this.currentQueryRunner.executeRollback(opts).finally(() => {
                 this.transactionLevel--
-                if (this.transactionLevel < 0) {
+                if (this.transactionLevel <= 0) {
                     this.transactionLevel = 0
+                    this.transactionOpts = undefined
                 }
                 this.releaseIfNeeded()
             })
         }
 
         this.transactionLevel--
-        if (this.transactionLevel < 0) {
+        if (this.transactionLevel <= 0) {
             this.transactionLevel = 0
+            this.transactionOpts = undefined
         }
         return this.createResolvedPromise(undefined)
     }
@@ -138,12 +147,12 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     }
     executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
         if (!this.isTransactionActive()) {
-            throw new Error("You are trying to configure a connection when you didn't request a dedicated connection. Begin a transaction to get a dedicated connection")
+            this.createRejectedPromise(new Error("You are trying to configure a connection when you didn't request a dedicated connection. Begin a transaction to get a dedicated connection"))
         }
         return this.getQueryRunner().then(queryRunner => queryRunner.executeConnectionConfiguration(query, params)).finally(() => this.releaseIfNeeded())
     }
 
-    abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner): Promise<T>
+    abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T>
     abstract executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
 
     abstract useDatabase(database: DatabaseType): void
@@ -159,6 +168,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
         throw new Error('Unsupported output parameters')
     }
     abstract createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
+    abstract createRejectedPromise<RESULT = any>(error: any): Promise<RESULT>
 
     private getQueryRunner(): Promise<QueryRunner> {
         if (!this.currentQueryRunner) {
@@ -169,7 +179,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
                 }
                 this.currentQueryRunner = queryRunner
                 if (this.transactionLevel > 0) {
-                    return this.currentQueryRunner.executeBeginTransaction().then(() => {
+                    return this.currentQueryRunner.executeBeginTransaction(this.transactionOpts!).then(() => {
                         return queryRunner
                     })
                 }
@@ -193,5 +203,8 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     }
     lowLevelTransactionManagementSupported(): boolean {
         return true
+    }
+    nestedTransactionsSupported(): boolean {
+        return false
     }
 }

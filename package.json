@@ -56,6 +56,7 @@
     "homepage": "https://ts-sql-query.readthedocs.io/",
     "devDependencies": {
         "@prisma/client": "^5.10.2",
+        "@sqlite.org/sqlite-wasm": "^3.45.1-build1",
         "@types/better-sqlite3": "^7.6.9",
         "@types/mssql": "^9.1.5",
         "@types/mysql": "^2.15.25",
@@ -63,7 +64,6 @@
         "@types/pg": "^8.11.2",
         "@types/sqlite3": "^3.1.11",
         "@types/uuid": "^9.0.8",
-        "@sqlite.org/sqlite-wasm": "^3.45.1-build1",
         "better-sqlite3": "^9.4.3",
         "binary-uuid": "^2.0.3",
         "mariadb": "^3.2.3",
@@ -79,7 +79,7 @@
         "sqlite3": "^5.1.7",
         "synchronous-promise": "^2.0.17",
         "ts-node": "^10.9.2",
-        "typescript": "^5.3.3",
+        "typescript": "5.3.3",
         "uuid": "^9.0.1"
     },
     "devDependenciesToDisableOnArm": {

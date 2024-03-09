@@ -521,7 +521,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T> {
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         if (!this.queryRunner.lowLevelTransactionManagementSupported()) {
             // Emulate beginTransaction, commit and rollback to see in logs
             return this.queryRunner.executeInTransaction(() => {
@@ -570,9 +570,9 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return this.queryRunner.executeInTransaction(fn, outermostQueryRunner, opts)
     }
-    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
+    executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         const query: string = ''
-        const params: any[] = opts || []
+        const params: any[] = opts
         const logger = this.logger
         const startedAt = process.hrtime.bigint()
         if (logger.onQuery) {
@@ -594,9 +594,9 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeCommit(opts: CommitOpts): Promise<void> {
+    executeCommit(opts: CommitOpts = []): Promise<void> {
         const query: string = ''
-        const params: any[] = opts || []
+        const params: any[] = opts
         const logger = this.logger
         const startedAt = process.hrtime.bigint()
         if (logger.onQuery) {
@@ -618,9 +618,9 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeRollback(opts: RollbackOpts): Promise<void> {
+    executeRollback(opts: RollbackOpts = []): Promise<void> {
         const query: string = ''
-        const params: any[] = opts || []
+        const params: any[] = opts
         const logger = this.logger
         const startedAt = process.hrtime.bigint()
         if (logger.onQuery) {

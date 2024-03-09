@@ -1,12 +1,11 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from "./QueryRunner"
 import type { Connection } from 'oracledb'
 import { OUT_FORMAT_OBJECT, BIND_OUT } from 'oracledb'
-import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
+import { PromiseBasedWithDelegatedSetTransactionQueryRunner } from "./PromiseBasedWithDelegatedSetTransactionQueryRunner"
 
-export class OracleDBQueryRunner extends PromiseBasedQueryRunner {
+export class OracleDBQueryRunner extends PromiseBasedWithDelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
-    private transactionLevel = 0
 
     constructor(connection: Connection) {
         super()
@@ -43,63 +42,19 @@ export class OracleDBQueryRunner extends PromiseBasedQueryRunner {
             return this.processOutBinds(params, result.outBinds)
         })
     }
-    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
-        const transactionLevel = this.transactionLevel
-        if (!this.nestedTransactionsSupported() && transactionLevel >= 1) {
-            return this.createRejectedPromise(new Error(this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
-        }
-
+    doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
         // Oracle automatically begins the transaction, but the level must set in a query
-        let sql
-        try {
-            sql = this.createSetTransactionQuery(opts)
-        } catch (error) {
-            return this.createRejectedPromise(error)
-        }
-        let result
-        if (sql) {
-            result = this.executeMutation(sql, [])
-        } else {
-            result = Promise.resolve()
-        }
-        return result.then(() => {
-            this.transactionLevel++
-            if (this.transactionLevel !== transactionLevel + 1) {
-                throw new Error('Forbidden concurrent usage of the query runner was detected when it tried to start a transaction.')
-            }
-            return undefined
-        })
+        return  Promise.resolve()
     }
-    executeCommit(_opts: CommitOpts): Promise<void> {
+    doCommit(_opts: CommitOpts): Promise<void> {
+        return this.connection.commit()
+    }
+    doRollback(_opts: RollbackOpts): Promise<void> {
+        return this.connection.rollback()
+    }
+    validateIntransaction(): boolean {
         // Do not validate if in transaction due automatic in transaction oracle's hehaviour
-        return this.connection.commit().then(() => {
-            // Transaction count only modified when commit successful, in case of error there is still an open transaction 
-            this.transactionLevel--
-            if (this.transactionLevel < 0) {
-                this.transactionLevel = 0
-            }
-            return undefined
-        })
-    }
-    executeRollback(_opts: RollbackOpts): Promise<void> {
-        // Do not validate if in transaction due automatic in transaction oracle's hehaviour
-        this.transactionLevel--
-        return this.connection.rollback().then(() => {
-            this.transactionLevel--
-            if (this.transactionLevel < 0) {
-                this.transactionLevel = 0
-            }
-            return undefined
-        }, (error) => {
-            this.transactionLevel--
-            if (this.transactionLevel < 0) {
-                this.transactionLevel = 0
-            }
-            throw error
-        })
-    }
-    isTransactionActive(): boolean {
-        return this.transactionLevel > 0
+        return false
     }
     addParam(params: any[], value: any): string {
         const index = params.length
@@ -114,35 +69,6 @@ export class OracleDBQueryRunner extends PromiseBasedQueryRunner {
             params.push({dir: BIND_OUT})
         }
         return ':' + index
-    }
-    getTransactionLevel(opts: BeginTransactionOpts): string | undefined {
-        const level = opts?.[0]
-        if (!level || level === 'read uncommitted' || level === 'read committed' || level === 'repeatable read' || level === 'serializable') {
-            return level
-        }
-        throw new Error(this.database + " doesn't support the transactions level: " + level)
-    }
-    getTransactionAccessMode(opts: BeginTransactionOpts): string | undefined {
-        const acessMode = opts?.[1]
-        if (!acessMode || acessMode === 'read write' || acessMode === 'read only') {
-            return acessMode
-        }
-        throw new Error(this.database + " doesn't support the transactions access mode: " + acessMode)
-    }
-    createSetTransactionQuery(opts: BeginTransactionOpts): string | undefined {
-        let sql
-        let level = this.getTransactionLevel(opts)
-        if (level) {
-            sql = 'set transaction isolation level ' + level
-        }
-        const accessMode = this.getTransactionAccessMode(opts)
-        if (accessMode) {
-            throw new Error(this.database + " doesn't support the transactions level " + level + " and access mode " + accessMode + " at the same time")
-        }
-        if (accessMode) {
-            sql = 'set transaction ' + accessMode
-        }
-        return sql
     }
     processOutBinds(params: any[], outBinds: any): any[] {
         if (!outBinds) {

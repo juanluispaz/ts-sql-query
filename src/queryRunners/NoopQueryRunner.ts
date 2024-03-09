@@ -107,15 +107,15 @@ export class NoopQueryRunner implements QueryRunner {
     executeFunction(_query: string, _params: any[] = []): Promise<any> {
         return this.promise.resolve(undefined)
     }
-    executeBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
+    executeBeginTransaction(_opts: BeginTransactionOpts =[]): Promise<void> {
         this.transactionLevel++
         return this.promise.resolve()
     }
-    executeCommit(_opts: CommitOpts): Promise<void> {
+    executeCommit(_opts: CommitOpts = []): Promise<void> {
         this.transactionLevel--
         return this.promise.resolve()
     }
-    executeRollback(_opts: RollbackOpts): Promise<void> {
+    executeRollback(_opts: RollbackOpts = []): Promise<void> {
         this.transactionLevel--
         return this.promise.resolve()
     }
@@ -164,7 +164,7 @@ export class NoopQueryRunner implements QueryRunner {
         params.push({ out_param_with_name: name })
         return ':' + index
     }
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T> {
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         return outermostQueryRunner.executeBeginTransaction(opts).then(() => {
             let result = fn()
             return result.then((r) => {

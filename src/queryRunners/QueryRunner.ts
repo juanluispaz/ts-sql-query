@@ -27,10 +27,10 @@ export interface QueryRunner {
     executeDeleteReturningOneColumnManyRows(query: string, params?: any[]): Promise<any[]>
     executeProcedure(query: string, params?: any[]): Promise<void>
     executeFunction(query: string, params?: any[]): Promise<any>
-    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void>
-    executeCommit(opts: CommitOpts): Promise<void>
-    executeRollback(opts: RollbackOpts): Promise<void>
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T>
+    executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void>
+    executeCommit(opts?: CommitOpts): Promise<void>
+    executeRollback(opts?: RollbackOpts): Promise<void>
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts?: BeginTransactionOpts): Promise<T>
     isTransactionActive(): boolean
     executeDatabaseSchemaModification(query: string, params?: any[]): Promise<void>
     executeConnectionConfiguration(query: string, params?: any[]): Promise<void>

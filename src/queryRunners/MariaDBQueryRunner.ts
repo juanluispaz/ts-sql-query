@@ -1,11 +1,10 @@
-import type { DatabaseType } from "./QueryRunner"
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from "./QueryRunner"
 import type { Connection, UpsertResult } from 'mariadb'
-import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
+import { PromiseBasedWithDelegatedSetTransactionQueryRunner } from "./PromiseBasedWithDelegatedSetTransactionQueryRunner"
 
-export class MariaDBQueryRunner extends PromiseBasedQueryRunner {
+export class MariaDBQueryRunner extends PromiseBasedWithDelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
-    private transactionLevel = 0
 
     constructor(connection: Connection, database: 'mariaDB' | 'mySql' = 'mariaDB') {
         super()
@@ -47,43 +46,14 @@ export class MariaDBQueryRunner extends PromiseBasedQueryRunner {
         
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.insertId)
     }
-    executeBeginTransaction(): Promise<void> {
-        if (this.transactionLevel >= 1) {
-            throw new Error("MariaDB doesn't support nested transactions. This error is thrown to avoid MariaDB silently finishing the previous transaction")
-        }
-        return this.connection.beginTransaction().then(() => {
-            this.transactionLevel++
-            if (this.transactionLevel >= 2) {
-                throw new Error("MariaDB doesn't support nested transactions. The previous transaction was silently finished")
-            }
-            return undefined
-        })
+    doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
+        return this.connection.beginTransaction()
     }
-    executeCommit(): Promise<void> {
-        return this.connection.commit().then(() => {
-            // Transaction count only modified when commit successful, in case of error there is still an open transaction 
-            this.transactionLevel--
-            if (this.transactionLevel < 0) {
-                this.transactionLevel = 0
-            }
-        })
+    doCommit(_opts: CommitOpts): Promise<void> {
+        return this.connection.commit()
     }
-    executeRollback(): Promise<void> {
-        return this.connection.rollback().then(() => {
-            this.transactionLevel--
-            if (this.transactionLevel < 0) {
-                this.transactionLevel = 0
-            }
-        }, (error) => {
-            this.transactionLevel--
-            if (this.transactionLevel < 0) {
-                this.transactionLevel = 0
-            }
-            throw error
-        })
-    }
-    isTransactionActive(): boolean {
-        return this.transactionLevel > 0
+    doRollback(_opts: RollbackOpts): Promise<void> {
+        return this.connection.rollback()
     }
     addParam(params: any[], value: any): string {
         params.push(value)

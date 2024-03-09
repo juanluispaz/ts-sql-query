@@ -240,7 +240,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T> {
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         if (!this.queryRunner.lowLevelTransactionManagementSupported()) {
             // Emulate beginTransaction, commit and rollback to see in logs
             return this.queryRunner.executeInTransaction(() => {
@@ -273,9 +273,9 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
         }
         return this.queryRunner.executeInTransaction(fn, outermostQueryRunner, opts)
     }
-    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
+    executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         const query: string = ''
-        const params: any[] = opts || []
+        const params: any[] = opts
         const playload = this.onQuery('beginTransaction', query, params)
         return this.queryRunner.executeBeginTransaction(opts).then(r => {
             this.onQueryResult('beginTransaction', query, params, r, playload)
@@ -285,9 +285,9 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeCommit(opts: CommitOpts): Promise<void> {
+    executeCommit(opts: CommitOpts = []): Promise<void> {
         const query: string = ''
-        const params: any[] = opts || []
+        const params: any[] = opts
         const playload = this.onQuery('commit', query, params)
         return this.queryRunner.executeCommit(opts).then(r => {
             this.onQueryResult('commit', query, params, r, playload)
@@ -297,9 +297,9 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeRollback(opts: RollbackOpts): Promise<void> {
+    executeRollback(opts: RollbackOpts = []): Promise<void> {
         const query: string = ''
-        const params: any[] = opts || []
+        const params: any[] = opts
         const playload = this.onQuery('rollback', query, params)
         return this.queryRunner.executeRollback(opts).then(r => {
             this.onQueryResult('rollback', query, params, r, playload)

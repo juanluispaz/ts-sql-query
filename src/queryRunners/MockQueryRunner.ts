@@ -345,10 +345,10 @@ export class MockQueryRunner implements QueryRunner {
             return this.promise.reject(e)
         }
     }
-    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
+    executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         try {
             const index = this.count++
-            const result = this.queryExecutor('beginTransaction', 'begin transaction', opts || [], index)
+            const result = this.queryExecutor('beginTransaction', 'begin transaction', opts, index)
             if (result !== undefined && result !== null) {
                 throw new Error('Invalid test case result for a beginTransaction with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
@@ -357,10 +357,10 @@ export class MockQueryRunner implements QueryRunner {
             return this.promise.reject(e)
         }
     }
-    executeCommit(opts: CommitOpts): Promise<void> {
+    executeCommit(opts: CommitOpts = []): Promise<void> {
         try {
             const index = this.count++
-            const result = this.queryExecutor('commit', 'commit', opts || [], index)
+            const result = this.queryExecutor('commit', 'commit', opts, index)
             if (result !== undefined && result !== null) {
                 throw new Error('Invalid test case result for a commit with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
@@ -369,7 +369,7 @@ export class MockQueryRunner implements QueryRunner {
             return this.promise.reject(e)
         }
     }
-    executeRollback(opts: RollbackOpts): Promise<void> {
+    executeRollback(opts: RollbackOpts = []): Promise<void> {
         try {
             const index = this.count++
             const result = this.queryExecutor('rollback', 'rollback', opts || [], index)
@@ -460,7 +460,7 @@ export class MockQueryRunner implements QueryRunner {
         return ':' + index
     }
 
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T> {
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         return outermostQueryRunner.executeBeginTransaction(opts).then(() => {
             let result = fn()
             return result.then((r) => {

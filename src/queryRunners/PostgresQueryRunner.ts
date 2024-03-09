@@ -38,13 +38,13 @@ export class PostgresQueryRunner extends PromiseBasedAbstractQueryRunner {
             return result.count
         })
     }
-    executeBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
+    executeBeginTransaction(_opts: BeginTransactionOpts = []): Promise<void> {
         return Promise.reject(new Error('Low level transaction management is not supported by PostgresQueryRunner'))
     }
-    executeCommit(_opts: CommitOpts): Promise<void> {
+    executeCommit(_opts: CommitOpts = []): Promise<void> {
         return Promise.reject(new Error('Low level transaction management is not supported by PostgresQueryRunner'))
     }
-    executeRollback(_opts: RollbackOpts): Promise<void> {
+    executeRollback(_opts: RollbackOpts = []): Promise<void> {
         return Promise.reject(new Error('Low level transaction management is not supported by PostgresQueryRunner'))
     }
     isTransactionActive(): boolean {
@@ -54,7 +54,7 @@ export class PostgresQueryRunner extends PromiseBasedAbstractQueryRunner {
         params.push(value)
         return '$' + params.length
     }
-    executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T> {
+    executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         if (this.transaction) {
             throw new Error('Nested transactions is not supported by PostgresQueryRunner')
         }

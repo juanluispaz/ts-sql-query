@@ -1,8 +1,8 @@
-import type { BeginTransactionOpts, DatabaseType } from "./QueryRunner"
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from "./QueryRunner"
 import type { Connection, QueryError, ResultSetHeader, RowDataPacket } from "mysql2"
-import { PromiseBasedWithSqlTransactionQueryRunner } from "./PromiseBasedWithSqlTransactionQueryRunner"
+import { PromiseBasedWithDelegatedSetTransactionQueryRunner } from "./PromiseBasedWithDelegatedSetTransactionQueryRunner"
 
-export class MySql2QueryRunner extends PromiseBasedWithSqlTransactionQueryRunner {
+export class MySql2QueryRunner extends PromiseBasedWithDelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
 
@@ -70,41 +70,38 @@ export class MySql2QueryRunner extends PromiseBasedWithSqlTransactionQueryRunner
             })
         })
     }
-    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
-        return super.executeBeginTransaction(opts).then(() => {
-            const setTransactionSql = this.createSetTransactionQuery(opts)
-            if (setTransactionSql) {
-                return this.executeMutation(setTransactionSql, []).then(() => {
-                    return undefined
-                })
-            }
-            return undefined
+    doBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.connection.beginTransaction((error: QueryError | null) => {
+                if (error) {
+                    reject(error)
+                } else {
+                    resolve(undefined)
+                }
+            })
         })
     }
-    createBeginTransactionQuery(opts: BeginTransactionOpts): string {
-        let sql = 'start transaction'
-        // validate transaction level
-        this.getTransactionLevel(opts)
-        const accessMode = this.getTransactionAccessMode(opts)
-        if (accessMode) {
-            sql += ' ' + accessMode
-        }
-        return sql
+    doCommit(_opts: CommitOpts): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.connection.commit((error: QueryError | null) => {
+                if (error) {
+                    reject(error)
+                } else {
+                    resolve(undefined)
+                }
+            })
+        })
     }
-    createSetTransactionQuery(opts: BeginTransactionOpts): string | undefined {
-        let level = this.getTransactionLevel(opts)
-        if (!level) {
-            return undefined
-        }
-        let sql = 'set transaction isolation level ' + level
-        const acessMode = this.getTransactionAccessMode(opts)
-        if (acessMode) {
-            if (sql) {
-                sql += ', '
-            }
-            sql += acessMode
-        }
-        return sql
+    doRollback(_opts: RollbackOpts): Promise<void> {
+        return new Promise((resolve, reject) => {
+            this.connection.beginTransaction((error: QueryError | null) => {
+                if (error) {
+                    reject(error)
+                } else {
+                    resolve(undefined)
+                }
+            })
+        })
     }
     addParam(params: any[], value: any): string {
         params.push(value)

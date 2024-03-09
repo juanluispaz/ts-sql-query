@@ -78,7 +78,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     executeFunction(query: string, params: any[] = []): Promise<any> {
         return this.getQueryRunner().then(queryRunner => queryRunner.executeFunction(query, params)).finally(() => this.releaseIfNeeded())
     }
-    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
+    executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         if (!this.nestedTransactionsSupported() && this.transactionLevel >= 1) {
             return this.createRejectedPromise(new Error(this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
         }
@@ -92,9 +92,9 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             })
         }
     }
-    executeCommit(opts: CommitOpts): Promise<void> {
+    executeCommit(opts: CommitOpts = []): Promise<void> {
         if (this.transactionLevel <= 0) {
-            return this.createRejectedPromise(new Error('You are not in a transaction'))
+            return Promise.reject(new Error('Not in an transaction, you cannot commit the transaction'))
         }
         
         if (this.currentQueryRunner) {
@@ -116,9 +116,9 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
         }
         return this.createResolvedPromise(undefined)
     }
-    executeRollback(opts: RollbackOpts): Promise<void> {
+    executeRollback(opts: RollbackOpts = []): Promise<void> {
         if (this.transactionLevel <= 0) {
-            return this.createRejectedPromise(new Error('You are not in a transaction'))
+            return Promise.reject(new Error('Not in an transaction, you cannot rollback the transaction'))
         }
 
         if (this.currentQueryRunner) {
@@ -152,7 +152,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
         return this.getQueryRunner().then(queryRunner => queryRunner.executeConnectionConfiguration(query, params)).finally(() => this.releaseIfNeeded())
     }
 
-    abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T>
+    abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts?: BeginTransactionOpts): Promise<T>
     abstract executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
 
     abstract useDatabase(database: DatabaseType): void
@@ -179,7 +179,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
                 }
                 this.currentQueryRunner = queryRunner
                 if (this.transactionLevel > 0) {
-                    return this.currentQueryRunner.executeBeginTransaction(this.transactionOpts!).then(() => {
+                    return this.currentQueryRunner.executeBeginTransaction(this.transactionOpts).then(() => {
                         return queryRunner
                     })
                 }

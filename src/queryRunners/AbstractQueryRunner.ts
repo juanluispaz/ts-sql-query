@@ -229,9 +229,9 @@ export abstract class AbstractQueryRunner implements QueryRunner {
         return this.executeQueryReturning(query, params)
     }
 
-    abstract executeBeginTransaction(opts: BeginTransactionOpts): Promise<void>
-    abstract executeCommit(opts: CommitOpts): Promise<void>
-    abstract executeRollback(opts: RollbackOpts): Promise<void>
+    abstract executeBeginTransaction(opts?: BeginTransactionOpts): Promise<void>
+    abstract executeCommit(opts?: CommitOpts): Promise<void>
+    abstract executeRollback(opts?: RollbackOpts): Promise<void>
     abstract isTransactionActive(): boolean
     abstract addParam(params: any[], value: any): string
     addOutParam(_params: any[], _name: string): string {
@@ -239,7 +239,7 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     }
     abstract createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
     abstract createRejectedPromise<RESULT = any>(error: any): Promise<RESULT>
-    abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T>
+    abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts?: BeginTransactionOpts): Promise<T>
     abstract executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
 
     isMocked(): boolean {

@@ -4,7 +4,7 @@ import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __isUuidValueS
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn } from "../utils/Column"
-import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration"
+import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration"
 import { ITableOrView } from "../utils/ITableOrView"
 
 export class SqliteSqlBuilder extends AbstractSqlBuilder {

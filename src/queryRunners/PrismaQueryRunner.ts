@@ -100,19 +100,19 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         
         return super.executeInsertReturningLastInsertedId(query, params)
     }
-    executeBeginTransaction(_opts: BeginTransactionOpts): Promise<void> {
+    executeBeginTransaction(_opts: BeginTransactionOpts = []): Promise<void> {
         return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
     }
-    executeCommit(_opts: CommitOpts): Promise<void> {
+    executeCommit(_opts: CommitOpts = []): Promise<void> {
         return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
     }
-    executeRollback(_opts: RollbackOpts): Promise<void> {
+    executeRollback(_opts: RollbackOpts = []): Promise<void> {
         return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
     }
     isTransactionActive(): boolean {
         return !!this.transaction
     }
-    executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T> {
+    executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         if (this.transaction) {
             return Promise.reject(new Error(this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
         }

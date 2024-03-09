@@ -95,19 +95,19 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     executeFunction(query: string, params: any[] = []): Promise<any> {
         return this.queryRunner.executeFunction(query, params)
     }
-    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
+    executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         return this.queryRunner.executeBeginTransaction(opts)
     }
-    executeCommit(opts: CommitOpts): Promise<void> {
+    executeCommit(opts: CommitOpts = []): Promise<void> {
         return this.queryRunner.executeCommit(opts)
     }
-    executeRollback(opts: RollbackOpts): Promise<void> {
+    executeRollback(opts: RollbackOpts = []): Promise<void> {
         return this.queryRunner.executeRollback(opts)
     }
     isTransactionActive(): boolean {
         return this.queryRunner.isTransactionActive()
     }
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts): Promise<T> {
+    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         return this.queryRunner.executeInTransaction(fn, outermostQueryRunner, opts)
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {

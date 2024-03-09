@@ -54,12 +54,12 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
             return result.rowsAffected[0]!
         })
     }
-    executeBeginTransaction(opts: BeginTransactionOpts): Promise<void> {
+    executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         if (this.transaction) {
             return Promise.reject(new Error(this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
         }
-        const level = opts?.[0]
-        const accessMode = opts?.[1]
+        const level = opts[0]
+        const accessMode = opts[1]
         if (accessMode) {
             return Promise.reject(new Error(this.database + " doesn't support the transactions access mode: " + accessMode))
         }
@@ -86,7 +86,7 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
             return Promise.reject(new Error(this.database + " doesn't support the transactions level: " + level))
         }
     }
-    executeCommit(_opts: CommitOpts): Promise<void> {
+    executeCommit(_opts: CommitOpts = []): Promise<void> {
         if (!this.transaction) {
             return Promise.reject(new Error('Not in an transaction, you cannot commit the transaction'))
         }
@@ -95,7 +95,7 @@ export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
             this.transaction = undefined
         })
     }
-    executeRollback(_opts: RollbackOpts): Promise<void> {
+    executeRollback(_opts: RollbackOpts = []): Promise<void> {
         if (!this.transaction) {
             return Promise.reject(new Error('Not in an transaction, you cannot rollback the transaction'))
         }

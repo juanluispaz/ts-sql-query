@@ -796,6 +796,7 @@ interface Connection {
      */
     buildFragmentWithArgs(...argumentDefinitions: Argument[]): FragmentBuilder
     buildFragmentWithArgsIfValue(...argumentDefinitions: Argument[]): FragmentBuilderIfValue
+    buildFragmentWithMaybeOptionalArgs(...argumentDefinitions: Argument[]): FragmentBuilderMaybeOptional
 
     /**
      * Return the same special neutral boolean mark returned by the IfValue functions when there is no value
@@ -882,6 +883,18 @@ interface FragmentBuilderIfValue {
      * The arguments of the returned function will have the proper parameters type.
      */
     as(impl: (...args: AnyValueSource[]) => AnyValueSource): (...args: any) => BooleanValueSource
+}
+
+interface FragmentBuilderMaybeOptional {
+    /*
+     * The impl function will receive the proper ValueSource type according to the argument definition.
+     * The nunber of arguments is the same specified in the function buildFragmentWithArgs (up to 5 arguments).
+     * The arguments of the returned function will have the proper parameters type.
+     * The function will return an optional value if any of the provided arguments when invoked is optional; 
+     * otherwise, the return type will be marked as required.
+     * All arguments that can be optional must be marked as optional; the return fragment must be marked as optional.
+     */
+    as(impl: (...args: AnyValueSource[]) => AnyValueSource): (...args: any) => AnyValueSource
 }
 
 interface Sequence<T> {

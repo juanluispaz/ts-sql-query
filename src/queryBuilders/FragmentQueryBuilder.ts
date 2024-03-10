@@ -1,5 +1,5 @@
 import type { TypeAdapter } from "../TypeAdapter"
-import { Argument, AnyValueSource, OptionalType, isValueSource, ValueType } from "../expressions/values"
+import { Argument, AnyValueSource, OptionalType, isValueSource, ValueType, __getValueSourcePrivate, __mergeOptional } from "../expressions/values"
 import { FragmentValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop } from "../internal/ValueSourceImpl"
 import { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 
@@ -80,6 +80,44 @@ export class FragmentFunctionBuilderIfValue {
                 }
             }
             return impl.apply(undefined, newArgs)
+        }
+    }
+}
+
+export class FragmentFunctionBuilderMaybeOptional {
+    definitions: Argument<any, any, any, any>[]
+    sqlBuilderSource: SqlBuilderSource
+
+    constructor(sqlBuilderSource: SqlBuilderSource, definitions: Argument<any, any, any, any>[]) {
+        this.sqlBuilderSource = sqlBuilderSource
+        this.definitions = definitions
+    }
+
+    as(impl: (...vs: AnyValueSource[]) => AnyValueSource): ((...args: any[]) => AnyValueSource) {
+        return (...args: any[]): AnyValueSource => {
+            let optionalType: OptionalType = 'required'
+            const newArgs: AnyValueSource[] = []
+            for (let i = 0, length = args.length; i < length; i++) {
+                const arg = args[i]
+                let argOptionalType: OptionalType
+                if (isValueSource(arg)) {
+                    argOptionalType = __getValueSourcePrivate(arg).__optionalType
+                    newArgs.push(arg)
+                } else {
+                    if (this.sqlBuilderSource.__sqlBuilder._isValue(arg)) {
+                        argOptionalType = 'required'
+                    } else {
+                        argOptionalType = 'optional'
+                    }
+                    const definition = this.definitions[i]!
+                    const newArg = new SqlOperationConstValueSource(arg, definition.type, definition.typeName, definition.optionalType, definition.adapter)
+                    newArgs.push(newArg)
+                }
+                optionalType = __mergeOptional(optionalType, argOptionalType)
+            }
+            const result = impl.apply(undefined, newArgs)
+            __getValueSourcePrivate(result).__optionalType = optionalType
+            return result
         }
     }
 }

@@ -37,6 +37,12 @@
 
 - Remove long deprecated overload of functions in columns that allowed to send to the database null values in TypeScript when the type were optional.
 
+## v1.62.0 (10 Mar 2024)
+
+**Changes**:
+
+- Add support to custom reusable SQL fragments that the returning value can be optional or required depending on the provided arguments.
+
 ## v1.61.0 (2 Mar 2024)
 
 **Changes**:

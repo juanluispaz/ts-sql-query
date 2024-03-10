@@ -9,7 +9,7 @@ import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSub
 import type { TypeAdapter, DefaultTypeAdapter } from "../TypeAdapter"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { IConnection } from "../utils/IConnection"
-import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, CustomIntFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression } from "../expressions/fragment"
+import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, CustomIntFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from "../expressions/fragment"
 import type { AnyDB } from "../databases"
 import { InsertQueryBuilder } from "../queryBuilders/InsertQueryBuilder"
 import { UpdateQueryBuilder } from "../queryBuilders/UpdateQueryBuilder"
@@ -19,7 +19,7 @@ import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, Aggrega
 import { DefaultImpl } from "../expressions/Default"
 import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
 import ChainedError from "chained-error"
-import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue } from "../queryBuilders/FragmentQueryBuilder"
+import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue, FragmentFunctionBuilderMaybeOptional } from "../queryBuilders/FragmentQueryBuilder"
 import { attachSource, attachTransactionSource } from "../utils/attachSource"
 import { database, outerJoinAlias, outerJoinTableOrView, tableOrView, tableOrViewRef, transactionIsolationLevel, type, valueSourceTypeName, valueType } from "../utils/symbols"
 import { callDeferredFunctions, callDeferredFunctionsStoppingOnError, isPromise } from "../utils/PromiseUtils"
@@ -752,6 +752,16 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5IfValue<DB, A1, A2, A3, A4, A5>
     protected buildFragmentWithArgsIfValue(...args: Argument<any, any, any, any>[]): any {
         return new FragmentFunctionBuilderIfValue(this as any, args) // make this protected fields as public
+    }
+
+    protected buildFragmentWithMaybeOptionalArgs(): FragmentBuilderMaybeOptional0<DB>
+    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilderMaybeOptional1<DB, A1>
+    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilderMaybeOptional2<DB, A1, A2>
+    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilderMaybeOptional3<DB, A1, A2, A3>
+    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilderMaybeOptional4<DB, A1, A2, A3, A4>
+    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilderMaybeOptional5<DB, A1, A2, A3, A4, A5>
+    protected buildFragmentWithMaybeOptionalArgs(...args: Argument<any, any, any, any>[]): any {
+        return new FragmentFunctionBuilderMaybeOptional(this as any, args)
     }
 
     rawFragment(sql: TemplateStringsArray, ...params: Array<ValueSourceOfDB<DB> | IExecutableSelectQuery<DB, any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): RawFragment<DB> {

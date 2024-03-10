@@ -21,6 +21,15 @@ class DBConnection extends OracleConnection<'DBConnection'> {
         return this.fragmentWithType('int', 'required').sql`${left} << ${right}`
     })
 
+    bitwiseShiftLeft2 = this.buildFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional'),
+        this.arg('int', 'optional')
+    ).as((left, right) => {
+        // The fragment here is: ${left} << ${right}
+        // Could be another fragment like a function call: myFunction(${left}, ${right})
+        return this.fragmentWithType('int', 'optional').sql`${left} << ${right}`
+    })
+
     valuePlusOneEqualsIfValue = this.buildFragmentWithArgsIfValue(
         this.arg('int', 'required'),
         this.valueArg('int', 'optional')
@@ -520,6 +529,75 @@ async function main() {
         .executeSelectMany()
     
     assertEquals(companiesUsingCustomFunctionFragment, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = [{id: 1, name: 'John'}]
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", name as "name", id << :0 as "idMultiplyBy2" from company where (id * :1) = (id << :2)`)
+    expectedParams.push(`[null,2,null]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const bitwiseMovements2 = null
+    //const multiplier = 2
+    const companiesUsingCustomFunctionFragment2 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.multiply(multiplier).equals(connection.bitwiseShiftLeft2(tCompany.id, bitwiseMovements2)))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            idMultiplyBy2: connection.bitwiseShiftLeft2(tCompany.id, bitwiseMovements2)
+        })
+        .executeSelectMany()
+    
+    assertEquals(companiesUsingCustomFunctionFragment2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = [{id: 1, name: 'John', idMultiplyBy2: 2}]
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", name as "name", id << :0 as "idMultiplyBy2" from company where (id * :1) = (id << :2)`)
+    expectedParams.push(`[1,2,1]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const bitwiseMovements3 = 1
+    //const multiplier = 2
+    const companiesUsingCustomFunctionFragment3 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.multiply(multiplier).equals(connection.bitwiseShiftLeft2(tCompany.id, bitwiseMovements3)))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            idMultiplyBy2: connection.bitwiseShiftLeft2(tCompany.id, bitwiseMovements3)
+        })
+        .executeSelectMany()
+    
+    assertEquals(companiesUsingCustomFunctionFragment3, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = [{id: 1, name: 'John'}]
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", name as "name", id << :0 as "idMultiplyBy2" from company where (id * :1) = (id << :2)`)
+    expectedParams.push(`[1,2,1]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const bitwiseMovements4 = 1
+    //const multiplier = 2
+    const companiesUsingCustomFunctionFragment4 = await connection.selectFrom(tCompany)
+        .where(tCompany.id.multiply(multiplier).equals(connection.bitwiseShiftLeft2(tCompany.id, bitwiseMovements4)))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            idMultiplyBy2: connection.bitwiseShiftLeft2(tCompany.id.asOptional(), bitwiseMovements4)
+        })
+        .executeSelectMany()
+    
+    assertEquals(companiesUsingCustomFunctionFragment4, result)
     
     /* *** Preparation ************************************************************/
 

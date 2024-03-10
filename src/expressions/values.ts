@@ -18,6 +18,28 @@ export type MergeOptional<OP1 extends OptionalType, OP2 extends OptionalType> =
         OP2 extends 'required' | 'requiredInOptionalObject' ? 'originallyRequired' : OP2
     ) : 'optional'
 
+export function __mergeOptional(op1: OptionalType, op2: OptionalType): OptionalType {
+    // Always select the less strict option
+    if (op1 === 'required') {
+        return op2
+    }
+    if (op1 === 'requiredInOptionalObject') {
+        if (op2 === 'required') {
+            return 'requiredInOptionalObject'
+        } else {
+            return op2
+        }
+    }
+    if (op1 === 'originallyRequired') {
+        if (op2 === 'required' || op2 === 'requiredInOptionalObject') {
+            return 'originallyRequired'
+        } else {
+            return op2
+        }
+    }
+    return 'optional'
+}
+
 export type MergeOptionalUnion<OPTIONAL_TYPE extends OptionalType> =
     // Always select the less strict option
     'any' extends OPTIONAL_TYPE ? 'optional' :
@@ -33,6 +55,12 @@ export type OptionalTypeRequiredOrAny<OPTIONAL_TYPE extends OptionalType> =
 
 type OptionalValueType<OPTIONAL_TYPE extends OptionalType> =
     OPTIONAL_TYPE extends 'optional' ? null | undefined : never
+
+export type OptionalTypeOfValue<T> =
+    undefined extends string ? 'optional' // tsc is working with strict mode disabled. There is no way to infer the optional properties. Keep as optional is a better approximation.
+    : undefined extends T ? 'optional'
+    : null extends T ? 'optional'
+    : 'required'
 
 export type ValueSourceValueType<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | OptionalValueType<OPTIONAL_TYPE> : never
 export type ValueSourceValueTypeForResult<T> = T extends IValueSource<any, infer TYPE, any, infer OPTIONAL_TYPE> ? TYPE | (OPTIONAL_TYPE extends 'required' ? never : null) : never
@@ -1172,6 +1200,15 @@ export type ArgForFn<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, ARG> =
             'required' extends OPTIONAL_TYPE
             ? MapArgumentToIValueSource<TABLE_OR_VIEW, ARG>
             : MapArgumentToIValueSourceAsAnyOptionalType<TABLE_OR_VIEW, ARG>
+        )
+    ): never
+
+export type ArgBaseTypeForFn<ARG> =
+    ARG extends Argument<any, infer OPTIONAL_TYPE, infer MODE, any> ? (
+        MODE extends 'value' ? never : (
+            'required' extends OPTIONAL_TYPE
+            ? MapArgumentToIValueSource<any, ARG>
+            : MapArgumentToIValueSourceAsAnyOptionalType<any, ARG>
         )
     ): never
 

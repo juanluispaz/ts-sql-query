@@ -55,7 +55,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; this arguments can be numbers or elements in the database that represents integer numbers. If you create the argument using the function `valueArg` instead of the `arg` function, the defined function only will accept values but not elements of the database. You can use the defined function as a regular database function in your query.
+You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; these arguments can be numbers or elements in the database that represent integer numbers. If you create the argument using the function `valueArg` instead of the `arg` function, the defined function will accept values only but not database elements. You can use the defined function as a regular database function in your query.
 
 ```ts
 const bitwiseMovements = 1;
@@ -115,7 +115,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; this arguments can be numbers or elements in the database that represents integer numbers. If you create the argument using the function `valueArg` instead of the `arg` function, the defined function only will accept values but not elements of the database. You can use the defined function as a regular database function in your query.
+You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; these arguments can be numbers or elements in the database that represent integer numbers. If you create the argument using the function `valueArg` instead of the `arg` function, the defined function will accept values only but not database elements. You can use the defined function as a regular database function in your query.
 
 ```ts
 const noValue = null
@@ -145,6 +145,60 @@ The result type is:
 const companiesUsingCustomFunctionFragment: Promise<{
     id: number;
     name: string;
+}[]>
+```
+
+## Select with custom reusable SQL fragment (maybe optional)
+
+You can define functions in your connection that create custom reusable SQL fragments that detect if the returned value is required or optional based on the provided arguments, that give you the possibility to do some operations or functions not included in ts-sql-query allowing to have overloaded version where the returned type can be required or optional.
+
+If you define your connection like:
+
+```ts
+import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
+
+    bitwiseShiftLeft = this.buildFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional'),
+        this.arg('int', 'optional')
+    ).as((left, right) => {
+        // The fragment here is: ${left} << ${right}
+        // Could be another fragment like a function call: myFunction(${left}, ${right})
+        return this.fragmentWithType('int', 'optional').sql`${left} << ${right}`
+    })
+}
+```
+
+You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; these arguments can be numbers or elements in the database that represent integer numbers. If you create the argument using the function `valueArg` instead of the `arg` function, the defined function will accept values only but not database elements. You can use the defined function as a regular database function in your query. The function will return an optional value if any of the provided arguments when invoked is optional; otherwise, the return type will be marked as required. **Note**: All arguments that can be optional must be marked as optional; the return fragment must be marked as optional.
+
+```ts
+const bitwiseMovements = null;
+const multiplier = 2;
+
+const companiesUsingCustomFunctionFragment = connection.selectFrom(tCompany)
+    .select({
+        id: tCompany.id,
+        name: tCompany.name,
+        idMultiplyBy2: connection.bitwiseShiftLeft(tCompany.id, bitwiseMovements)
+    })
+    .executeSelectMany();
+```
+
+The executed query is:
+```sql
+select id as id, name as name, id << $1 as idMultiplyBy2 
+from company
+```
+
+The parameters are: `[ null, 2 ]`
+
+The result type is:
+```tsx
+const companiesUsingCustomFunctionFragment: Promise<{
+    id: number;
+    name: string;
+    idMultiplyBy2?: number;
 }[]>
 ```
 

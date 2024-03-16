@@ -1,50 +1,60 @@
-import type { IBooleanValueSource, INumberValueSource, IIfValueSource, IExecutableSelectQuery, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource } from "./values"
-import type { ITableOrViewOf, NoTableOrViewRequired, NoTableOrViewRequiredView, OuterJoinSource } from "../utils/ITableOrView"
-import type { OuterJoinTableOrView, WithView, WITH_VIEW } from "../utils/tableOrViewUtils"
-import type { AnyDB, NoopDB, MariaDB, PostgreSql, Sqlite, Oracle, SqlServer } from "../databases"
-import type { columnsType, database, requiredTableOrView, tableOrViewRef, resultType, compoundableColumns, valueType } from "../utils/symbols"
-import type { RawFragment } from "../utils/RawFragment"
+import type { IBooleanValueSource, INumberValueSource, IIfValueSource, IExecutableSelectQuery, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource, RemapIValueSourceType } from "./values"
+import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, NoTableOrViewRequiredOfSameDB, OfDB, OfSameDB } from "../utils/ITableOrView"
+import type { WithView } from "../utils/tableOrViewUtils"
+import type { resultType, compoundableColumns, valueType, from, using, source, selectColumnsType } from "../utils/symbols"
 import type { ResultObjectValues, RequiredColumnNames, ColumnsForCompound, ResultObjectValuesProjectedAsNullable } from "../utils/resultUtils"
-import { Column } from "../utils/Column"
+import type { NAnyNoTableOrViewRequired, NCompoundableFrom, NDbType, NNoTableOrViewRequiredFrom, NRecursiveFrom, NSource, NWithFrom } from "../utils/sourceName"
 
 export type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last' | 'insensitive' |
                           'asc insensitive' | 'desc insensitive' | 'asc nulls first insensitive' | 'asc nulls last insensitive' | 
                           'desc nulls first insensitive' | 'desc nulls last insensitive'
 
-export interface SelectCustomization<DB extends AnyDB> {
-    afterSelectKeyword?: RawFragment<DB>
-    beforeColumns?: RawFragment<DB>
-    customWindow?: RawFragment<DB>
-    beforeOrderByItems?: RawFragment<DB>
-    afterOrderByItems?: RawFragment<DB>
-    beforeQuery?: RawFragment<DB>
-    afterQuery?: RawFragment<DB>
-    beforeWithQuery?: RawFragment<DB>
-    afterWithQuery?: RawFragment<DB>
+export interface SelectCustomization</*in|out*/ FROM extends HasSource<any>, /*in|out*/ _REQUIRED extends HasSource<any>> {
+    afterSelectKeyword?: IRawFragment<FROM[typeof source]>
+    beforeColumns?: IRawFragment<FROM[typeof source]>
+    customWindow?: IRawFragment<FROM[typeof source]>
+    beforeOrderByItems?: IRawFragment<FROM[typeof source]>
+    afterOrderByItems?: IRawFragment<FROM[typeof source]>
+    beforeQuery?: IRawFragment<FROM[typeof source]>
+    afterQuery?: IRawFragment<FROM[typeof source]>
+    beforeWithQuery?: IRawFragment<FROM[typeof source]>
+    afterWithQuery?: IRawFragment<FROM[typeof source]>
     queryExecutionName?: string
     queryExecutionMetadata?: any
 }
 
-export interface CompoundSelectCustomization<DB extends AnyDB> {
-    beforeQuery?: RawFragment<DB>
-    afterQuery?: RawFragment<DB>
-    beforeWithQuery?: RawFragment<DB>
-    afterWithQuery?: RawFragment<DB>
+export interface CompoundSelectCustomization</*in|out*/ FROM extends HasSource<any>, /*in|out*/ _REQUIRED extends HasSource<any>> {
+    beforeQuery?: IRawFragment<FROM[typeof source]>
+    afterQuery?: IRawFragment<FROM[typeof source]>
+    beforeWithQuery?: IRawFragment<FROM[typeof source]>
+    afterWithQuery?: IRawFragment<FROM[typeof source]>
     queryExecutionName?: string
     queryExecutionMetadata?: any
 }
 
-export interface SelectExpressionBase<DB extends AnyDB, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> {
-    [database]: DB
-    [requiredTableOrView]: REQUIRED_TABLE_OR_VIEW
+export interface NotSubselectUsing {
+    [using]: HasSource<NAnyNoTableOrViewRequired>
 }
 
-export interface ICompoundableSelect<DB extends AnyDB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends IExecutableSelectQuery<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW> {
-    [compoundableColumns]: (input: ColumnsForCompound<any, COLUMNS>) => ColumnsForCompound<any, COLUMNS>
+export interface SelectExpressionBase</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>> {
+    [from]: FROM
+    [using]: REQUIRED
 }
 
-export interface ExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
-    [columnsType]: COLUMNS
+export interface ICompoundableSelect</*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT> extends IExecutableSelectQuery<REQUIRED[typeof source], ExecutableSelectColumns<COLUMNS>, RESULT> {
+    [compoundableColumns]: (input: ColumnsForCompound<NCompoundableFrom<REQUIRED[typeof source]>, COLUMNS>) => ColumnsForCompound<NCompoundableFrom<REQUIRED[typeof source]>, COLUMNS>
+    [using]: REQUIRED
+}
+
+type ExecutableSelectColumns<COLUMNS> = 
+    COLUMNS extends AnyValueSource
+    ? RemapIValueSourceType<any, COLUMNS>
+    : {
+        [P in keyof COLUMNS]: RemapIValueSourceType<any, COLUMNS[P]>
+    }
+
+export interface ExecutableSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT> extends SelectExpressionBase<FROM, REQUIRED> {
+    [selectColumnsType]: COLUMNS
     [resultType]: RESULT
     /*
      * Results of execute methods returns an anonymous type with a exact copy of the result
@@ -53,450 +63,451 @@ export interface ExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TA
      *
      * Please, don't remove it or put in a type declaration
      */
-    executeSelectNoneOrOne(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] }) | null>
-    executeSelectOne(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })>
-    executeSelectMany(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[]>
+    executeSelectNoneOrOne(this: NotSubselectUsing): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] }) | null>
+    executeSelectOne(this: NotSubselectUsing): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })>
+    executeSelectMany(this: NotSubselectUsing): Promise<( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[]>
 
-    executeSelectPage(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>): Promise<{ data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: number }>
-    executeSelectPage<EXTRAS extends {}>(this: SelectExpressionBase<DB, NoTableOrViewRequiredView<DB>>, extras: EXTRAS & { data?: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count?: number }): Promise<{ [Q in keyof SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>]: SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>[Q] }>
+    executeSelectPage(this: NotSubselectUsing): Promise<{ data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: number }>
+    executeSelectPage<EXTRAS extends {}>(this: NotSubselectUsing, extras: EXTRAS & { data?: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count?: number }): Promise<{ [Q in keyof SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>]: SelectPageWithExtras<COLUMNS, RESULT, EXTRAS>[Q] }>
 
     query(): string
     params(): any[]
 }
 
-export interface WithableExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends ExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>, IExecutableSelectQuery<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW>, ICompoundableSelect<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW> {
-    forUseInQueryAs: ForUseInQueryAs<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW>
-    forUseAsInlineQueryValue: ForUseAsInlineQueryValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    forUseAsInlineAggregatedArrayValue: ForUseAsInlineAggregatedArrayValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface WithableExecutableSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends ExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT>, ICompoundableSelect<REQUIRED, COLUMNS, RESULT> {
+    forUseInQueryAs: ForUseInQueryAs<FROM, REQUIRED, COLUMNS>
+    forUseAsInlineQueryValue: ForUseAsInlineQueryValue<FROM, REQUIRED, COLUMNS, FEATURES>
+    forUseAsInlineAggregatedArrayValue: ForUseAsInlineAggregatedArrayValue<FROM, REQUIRED, COLUMNS, FEATURES>
 }
 
-export interface WithableExecutableSelectWithoutWhere<DB extends AnyDB, _TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends ExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW>, IExecutableSelectQuery<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW>, ICompoundableSelect<DB, RESULT, COLUMNS, REQUIRED_TABLE_OR_VIEW> {
-    forUseInQueryAs: ForUseInQueryAs<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW>
-    forUseAsInlineQueryValue: ForUseAsInlineQueryValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    forUseAsInlineAggregatedArrayValue: ForUseAsInlineAggregatedArrayValue<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface WithableExecutableSelectWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends ExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT>, ICompoundableSelect<REQUIRED, COLUMNS, RESULT> {
+    forUseInQueryAs: ForUseInQueryAs<FROM, REQUIRED, COLUMNS>
+    forUseAsInlineQueryValue: ForUseAsInlineQueryValue<FROM, REQUIRED, COLUMNS, FEATURES>
+    forUseAsInlineAggregatedArrayValue: ForUseAsInlineAggregatedArrayValue<FROM, REQUIRED, COLUMNS, FEATURES>
 }
 
-export interface CompoundedCustomizableExecutableSelect<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends WithableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    customizeQuery(customization: CompoundSelectCustomization<DB>): WithableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface CompoundedCustomizableExecutableSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WithableExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    customizeQuery(customization: CompoundSelectCustomization<FROM, REQUIRED>): WithableExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface CompoundedOffsetExecutableSelectExpression<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundedCustomizableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    offset(offset: number): CompoundedCustomizableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    offsetIfValue(offset: number | null | undefined): CompoundedCustomizableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface CompoundedOffsetExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundedCustomizableExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    offset(offset: number): CompoundedCustomizableExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    offsetIfValue(offset: number | null | undefined): CompoundedCustomizableExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface CompoundedLimitExecutableSelectExpression<DB extends AnyDB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundedCustomizableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    limit(limit: number): CompoundedOffsetExecutableSelectExpression<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limitIfValue(limit: number | null | undefined): CompoundedOffsetExecutableSelectExpression<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface CompoundedLimitExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundedCustomizableExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    limit(limit: number): CompoundedOffsetExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    limitIfValue(limit: number | null | undefined): CompoundedOffsetExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface CompoundedOrderByExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundedLimitExecutableSelectExpression<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    orderBy(column: RequiredColumnNames<COLUMNS>, mode?: OrderByMode): CompoundedOrderedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderBy(column: ValueSourceOf<NoTableOrViewRequired<DB>>, mode?: OrderByMode): CompoundedOrderedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderBy(column: RawFragment<DB>, mode?: OrderByMode): CompoundedOrderedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderByFromString(orderBy: string): CompoundedOrderedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderByFromStringIfValue(orderBy: string | null | undefined): CompoundedOrderedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface CompoundedOrderByExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundedLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    orderBy(column: RequiredColumnNames<COLUMNS>, mode?: OrderByMode): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: ValueSourceOf<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>>, mode?: OrderByMode): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: IRawFragment<FROM[typeof source]>, mode?: OrderByMode): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderByFromString(orderBy: string): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderByFromStringIfValue(orderBy: string | null | undefined): CompoundedOrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface CompoundedOrderedExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundedOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    orderingSiblingsOnly: OrderingSiblingsOnlyFnType<FEATURES, CompoundedLimitExecutableSelectExpression<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>>
+export interface CompoundedOrderedExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundedOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    orderingSiblingsOnly: OrderingSiblingsOnlyFnType<FEATURES, CompoundedLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>>
 }
 
-export interface CompoundableExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends WithableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    union<SELECT extends ICompoundableSelect<DB, RESULT, ColumnsForCompound<any, COLUMNS>, any>>(select: SELECT): CompoundedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW | SELECT[typeof requiredTableOrView], FEATURES | 'compound'>
-    unionAll<SELECT extends ICompoundableSelect<DB, RESULT, ColumnsForCompound<any, COLUMNS>, any>>(select: SELECT): CompoundedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW | SELECT[typeof requiredTableOrView], FEATURES | 'compound'>
-    intersect: CompoundFunction<NoopDB | MariaDB | PostgreSql | Sqlite | SqlServer | Oracle, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    intersectAll: CompoundFunction<NoopDB | MariaDB | PostgreSql, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    except: CompoundFunction<NoopDB | MariaDB | PostgreSql | Sqlite | SqlServer | Oracle, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    exceptAll: CompoundFunction<NoopDB | MariaDB | PostgreSql, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    minus: CompoundFunction<NoopDB | MariaDB | PostgreSql | Sqlite | SqlServer | Oracle, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    minusAll: CompoundFunction<NoopDB | MariaDB | PostgreSql, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
+export interface CompoundableExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WithableExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    union<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    unionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    intersect: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    intersectAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    except: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    exceptAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    minus: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
 
-    recursiveUnion<SELECT extends ICompoundableSelect<DB, RESULT, ColumnsForCompound<any, COLUMNS>, any>>(fn: (view: WithView<WITH_VIEW<DB, 'recursive'>, COLUMNS>) => SELECT): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW | SELECT[typeof requiredTableOrView], FEATURES | 'recursive'>
-    recursiveUnionAll<SELECT extends ICompoundableSelect<DB, RESULT, ColumnsForCompound<any, COLUMNS>, any>>(fn: (view: WithView<WITH_VIEW<DB, 'recursive'>, COLUMNS>) => SELECT): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW | SELECT[typeof requiredTableOrView], FEATURES | 'recursive'>
-    recursiveUnionOn(fn: (view: WithView<WITH_VIEW<DB, 'recursive'>, COLUMNS>) => IBooleanValueSource<WITH_VIEW<DB, 'recursive'> | TABLE_OR_VIEW[typeof tableOrViewRef], any>): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'recursive'>
-    recursiveUnionAllOn(fn: (view: WithView<WITH_VIEW<DB, 'recursive'>, COLUMNS>) => IBooleanValueSource<WITH_VIEW<DB, 'recursive'> | TABLE_OR_VIEW[typeof tableOrViewRef], any>): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'recursive'>
+    recursiveUnion<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionAllOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
 }
 
-export interface CompoundableExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends WithableExecutableSelectWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    union<SELECT extends ICompoundableSelect<DB, RESULT, ColumnsForCompound<any, COLUMNS>, any>>(select: SELECT): CompoundedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW | SELECT[typeof requiredTableOrView], FEATURES | 'compound'>
-    unionAll<SELECT extends ICompoundableSelect<DB, RESULT, ColumnsForCompound<any, COLUMNS>, any>>(select: SELECT): CompoundedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW | SELECT[typeof requiredTableOrView], FEATURES | 'compound'>
-    intersect: CompoundFunction<NoopDB | MariaDB | PostgreSql | Sqlite | SqlServer | Oracle, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    intersectAll: CompoundFunction<NoopDB | MariaDB | PostgreSql, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    except: CompoundFunction<NoopDB | MariaDB | PostgreSql | Sqlite | SqlServer | Oracle, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    exceptAll: CompoundFunction<NoopDB | MariaDB | PostgreSql, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    minus: CompoundFunction<NoopDB | MariaDB | PostgreSql | Sqlite | SqlServer | Oracle, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    minusAll: CompoundFunction<NoopDB | MariaDB | PostgreSql, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
+export interface CompoundableExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WithableExecutableSelectWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    union<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    unionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    intersect: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    intersectAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    except: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    exceptAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    minus: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
 
-    recursiveUnion<SELECT extends ICompoundableSelect<DB, RESULT, ColumnsForCompound<any, COLUMNS>, any>>(fn: (view: WithView<WITH_VIEW<DB, 'recursive'>, COLUMNS>) => SELECT): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW | SELECT[typeof requiredTableOrView], FEATURES | 'recursive'>
-    recursiveUnionAll<SELECT extends ICompoundableSelect<DB, RESULT, ColumnsForCompound<any, COLUMNS>, any>>(fn: (view: WithView<WITH_VIEW<DB, 'recursive'>, COLUMNS>) => SELECT): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW | SELECT[typeof requiredTableOrView], FEATURES | 'recursive'>
-    recursiveUnionOn(fn: (view: WithView<WITH_VIEW<DB, 'recursive'>, COLUMNS>) => IBooleanValueSource<WITH_VIEW<DB, 'recursive'> | TABLE_OR_VIEW[typeof tableOrViewRef], any>): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'recursive'>
-    recursiveUnionAllOn(fn: (view: WithView<WITH_VIEW<DB, 'recursive'>, COLUMNS>) => IBooleanValueSource<WITH_VIEW<DB, 'recursive'> | TABLE_OR_VIEW[typeof tableOrViewRef], any>): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'recursive'>
+    recursiveUnion<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionAllOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
 }
 
-export interface WhereableCompoundableExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    dynamicWhere(): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface WhereableCompoundableExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    dynamicWhere(): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends WithableExecutableSelect<DB, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface DynamicWhereLastCompoundableCustomizableExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WithableExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface CompoundableCustomizableExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    customizeQuery(customization: SelectCustomization<DB>): CompoundableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface CompoundableCustomizableExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    customizeQuery(customization: SelectCustomization<FROM, REQUIRED>): CompoundableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface CompoundableCustomizableExecutableSelectExpressionWitoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    customizeQuery(customization: SelectCustomization<DB>): WhereableCompoundableExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface CompoundableCustomizableExecutableSelectExpressionWitoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    customizeQuery(customization: SelectCustomization<FROM, REQUIRED>): WhereableCompoundableExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface OffsetExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>,  COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    offset(offset: number): CompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    offsetIfValue(offset: number | null | undefined): CompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface OffsetExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    offset(offset: number): CompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    offsetIfValue(offset: number | null | undefined): CompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
-export interface LimitExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    limit(limit: number): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-}
-
-export interface OrderByExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends LimitExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    orderBy(column: RequiredColumnNames<COLUMNS>, mode?: OrderByMode): OrderedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderBy(column: ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>, mode?: OrderByMode): OrderedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderBy(column: RawFragment<DB>, mode?: OrderByMode): OrderedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderByFromString(orderBy: string): OrderedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface LimitExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    limit(limit: number): OffsetExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface OrderByExecutableSelectExpressionProjectableAsNullable<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    projectingOptionalValuesAsNullable(): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface OrderByExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends LimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    orderBy(column: RequiredColumnNames<COLUMNS>, mode?: OrderByMode): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: ValueSourceOf<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: IRawFragment<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderByFromString(orderBy: string): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface OrderedExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    orderingSiblingsOnly: OrderingSiblingsOnlyFnType<FEATURES, LimitExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>>
+export interface OrderByExecutableSelectExpressionProjectableAsNullable</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    projectingOptionalValuesAsNullable(): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES>
 }
 
-export interface CompoundedExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundedOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    union<SELECT extends ICompoundableSelect<DB, RESULT, ColumnsForCompound<any, COLUMNS>, any>>(select: SELECT): CompoundedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW | SELECT[typeof requiredTableOrView], FEATURES | 'compound'>
-    unionAll<SELECT extends ICompoundableSelect<DB, RESULT, ColumnsForCompound<any, COLUMNS>, any>>(select: SELECT): CompoundedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW | SELECT[typeof requiredTableOrView], FEATURES | 'compound'>
-    intersect: CompoundFunction<NoopDB | MariaDB | PostgreSql | Sqlite | SqlServer | Oracle, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    intersectAll: CompoundFunction<NoopDB | MariaDB | PostgreSql, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    except: CompoundFunction<NoopDB | MariaDB | PostgreSql | Sqlite | SqlServer | Oracle, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    exceptAll: CompoundFunction<NoopDB | MariaDB | PostgreSql, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    minus: CompoundFunction<NoopDB | MariaDB | PostgreSql | Sqlite | SqlServer | Oracle, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
-    minusAll: CompoundFunction<NoopDB | MariaDB | PostgreSql, DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'compound'>
+export interface OrderedExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    orderingSiblingsOnly: OrderingSiblingsOnlyFnType<FEATURES, LimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>>
 }
 
-export interface OrderableExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    orderBy(column: RequiredColumnNames<COLUMNS>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderBy(column: ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderBy(column: RawFragment<DB>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderByFromString(orderBy: string): OrderedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-
-    limit(limit: number): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface CompoundedExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundedOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    union<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    unionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    intersect: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    intersectAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    except: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    exceptAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    minus: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
 }
 
-export interface LimitExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    dynamicWhere(): DynamicWhereLimitExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereLimitExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereLimitExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface OrderableExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    orderBy(column: RequiredColumnNames<COLUMNS>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: ValueSourceOf<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: IRawFragment<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderByFromString(orderBy: string): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+
+    limit(limit: number): OffsetExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+}
+
+export interface LimitExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    dynamicWhere(): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     
-    limit(limit: number): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    limit(limit: number): OffsetExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface OrderByExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends LimitExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    orderBy(column: RequiredColumnNames<COLUMNS>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderBy(column: ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderBy(column: RawFragment<DB>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderByFromString(orderBy: string): OrderedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface OrderByExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends LimitExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    orderBy(column: RequiredColumnNames<COLUMNS>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: ValueSourceOf<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderBy(column: IRawFragment<FROM[typeof source]>, mode?: OrderByMode): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderByFromString(orderBy: string): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    orderByFromStringIfValue(orderBy: string | null | undefined): OrderedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface OrderedExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends OrderByExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    orderingSiblingsOnly: OrderingSiblingsOnlyFnType<FEATURES, LimitExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>>
+export interface OrderedExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    orderingSiblingsOnly: OrderingSiblingsOnlyFnType<FEATURES, LimitExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>>
 }
 
-export interface OffsetExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>,  COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    offset(offset: number): CompoundableCustomizableExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    offsetIfValue(offset: number | null | undefined): CompoundableCustomizableExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface OffsetExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    offset(offset: number): CompoundableCustomizableExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    offsetIfValue(offset: number | null | undefined): CompoundableCustomizableExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 
-    dynamicWhere(): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    dynamicWhere(): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface CompoundableCustomizableExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>,  COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    dynamicWhere(): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface CompoundableCustomizableExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    dynamicWhere(): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface DynamicWhereLimitExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>,  COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereLimitExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereLimitExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereLimitExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereLimitExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface DynamicWhereLimitExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 
-    limit(limit: number): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    limit(limit: number): OffsetExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>,  COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends CompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface DynamicWhereCompoundableCustomizableExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface RecursivelyConnectedExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    groupBy(...columns: RequiredColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'groupBy'>
-    groupBy(...columns: ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef]>[]): GroupByOrderByHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'groupBy'>
+export interface RecursivelyConnectedExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    groupBy(...columns: RequiredColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
+    groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
 }
 
-export interface GroupByOrderByExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends RecursivelyConnectedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    startWith: StartWithFnType<DB, TABLE_OR_VIEW, RecursivelyConnectedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'connectBy'>>
-    connectBy: ConnectByFnType<DB, TABLE_OR_VIEW, RecursivelyConnectedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'connectBy'>>
-    connectByNoCycle: ConnectByFnType<DB, TABLE_OR_VIEW, RecursivelyConnectedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'connectBy'>>
+export interface GroupByOrderByExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends RecursivelyConnectedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    startWith: StartWithFnType<FROM, REQUIRED, RecursivelyConnectedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'connectBy'>>
+    connectBy: ConnectByFnType<FROM, REQUIRED, RecursivelyConnectedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'connectBy'>>
+    connectByNoCycle: ConnectByFnType<FROM, REQUIRED, RecursivelyConnectedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'connectBy'>>
 }
 
-export interface GroupByOrderByExecutableSelectExpressionProjectableAsNullable<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    projectingOptionalValuesAsNullable(): GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface GroupByOrderByExecutableSelectExpressionProjectableAsNullable</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends GroupByOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    projectingOptionalValuesAsNullable(): GroupByOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES>
 }
 
-export interface GroupByOrderByHavingExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    groupBy(...columns: RequiredColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'groupBy'>
-    groupBy(...columns: ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef]>[]): GroupByOrderByHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'groupBy'>
+export interface GroupByOrderByHavingExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    groupBy(...columns: RequiredColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
+    groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
 
-    dynamicHaving(): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    having(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    having(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    dynamicHaving(): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    having(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    having(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface DynamicHavingExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface DynamicHavingExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface GroupByOrderHavingByExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
-    groupBy(...columns: ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef]>[]): GroupByOrderHavingByExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES | 'groupBy'>
+export interface GroupByOrderHavingByExpressionWithoutSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
+    groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderHavingByExpressionWithoutSelect<FROM, REQUIRED, FEATURES | 'groupBy'>
 
-    dynamicHaving(): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    having(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    having(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    dynamicHaving(): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    having(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    having(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
-    dynamicWhere(): DynamicWhereSelectExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereSelectExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereSelectExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    dynamicWhere(): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
-    select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectCountAll(): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
+    select<COLUMNS extends SelectColumns<FROM[typeof source]>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
+    selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
+    selectCountAll(): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, INumberValueSource<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>, 'required'>, number, FEATURES | 'requiredResult'>
 }
 
-export interface DynamicHavingExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
-    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface DynamicHavingExpressionWithoutSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
+    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
-    dynamicWhere(): DynamicWhereSelectExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereSelectExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereSelectExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    dynamicWhere(): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
-    select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectCountAll(): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
+    select<COLUMNS extends SelectColumns<FROM[typeof source]>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
+    selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
+    selectCountAll(): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, INumberValueSource<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>, 'required'>, number, FEATURES | 'requiredResult'>
 }
 
-export interface DynamicWhereSelectExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
-    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereSelectExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereSelectExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereSelectExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereSelectExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface DynamicWhereSelectExpressionWithoutSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
+    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
-    select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): OrderByExecutableSelectExpressionProjectableAsNullable<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectCountAll(): OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
+    select<COLUMNS extends SelectColumns<FROM[typeof source]>>(columns: COLUMNS): OrderByExecutableSelectExpressionProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
+    selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
+    selectCountAll(): OrderByExecutableSelectExpression<FROM, REQUIRED, INumberValueSource<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>, 'required'>, number, FEATURES| 'requiredResult'>
 }
 
-export interface RecursivelyConnectedExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
-    groupBy(...columns: ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef]>[]): GroupByOrderHavingByExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES | 'groupBy'>
+export interface RecursivelyConnectedExpressionWithoutSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
+    groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderHavingByExpressionWithoutSelect<FROM, REQUIRED, FEATURES | 'groupBy'>
 
-    select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): GroupByOrderByExecutableSelectExpressionProjectableAsNullable<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectCountAll(): GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
+    select<COLUMNS extends SelectColumns<FROM[typeof source]>>(columns: COLUMNS): GroupByOrderByExecutableSelectExpressionProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
+    selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): GroupByOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
+    selectCountAll(): GroupByOrderByExecutableSelectExpression<FROM, REQUIRED, INumberValueSource<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>, 'required'>, number, FEATURES | 'requiredResult'>
 }
 
-export interface DynamicWhereExpressionWithoutSelect<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends RecursivelyConnectedExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface DynamicWhereExpressionWithoutSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends RecursivelyConnectedExpressionWithoutSelect<FROM, REQUIRED, FEATURES> {
+    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
-    startWith: StartWithFnType<DB, TABLE_OR_VIEW, RecursivelyConnectedExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES | 'connectBy'>>
-    connectBy: ConnectByFnType<DB, TABLE_OR_VIEW, RecursivelyConnectedExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES | 'connectBy'>>
-    connectByNoCycle: ConnectByFnType<DB, TABLE_OR_VIEW, RecursivelyConnectedExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES | 'connectBy'>>
+    startWith: StartWithFnType<FROM, REQUIRED, RecursivelyConnectedExpressionWithoutSelect<FROM, REQUIRED, FEATURES | 'connectBy'>>
+    connectBy: ConnectByFnType<FROM, REQUIRED, RecursivelyConnectedExpressionWithoutSelect<FROM, REQUIRED, FEATURES | 'connectBy'>>
+    connectByNoCycle: ConnectByFnType<FROM, REQUIRED, RecursivelyConnectedExpressionWithoutSelect<FROM, REQUIRED, FEATURES | 'connectBy'>>
 }
 
-export interface DynamicWhereExecutableSelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends GroupByOrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface DynamicWhereExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends GroupByOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface WhereableExecutableSelectExpressionWithGroupBy<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends OrderableExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    dynamicWhere(): DynamicWhereExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface WhereableExecutableSelectExpressionWithGroupBy</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderableExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    dynamicWhere(): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    projectingOptionalValuesAsNullable(): WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    projectingOptionalValuesAsNullable(): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES>
 }
 
-export interface DynamicWhereExecutableSelectExpressionWithGroupBy<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends OrderByExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface DynamicWhereExecutableSelectExpressionWithGroupBy</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    groupBy(...columns: RequiredColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'groupBy'>
-    groupBy(...columns: ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef]>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'groupBy'>
+export interface GroupByOrderByHavingExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    groupBy(...columns: RequiredColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
+    groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
 
-    dynamicHaving(): DynamicHavingExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    having(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    having(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    dynamicHaving(): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    having(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    having(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface DynamicHavingExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicHavingExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface DynamicHavingExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface RecursivelyConnectedExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends OrderableExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    groupBy(...columns: RequiredColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'groupBy'>
-    groupBy(...columns: ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef]>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'groupBy'>
+export interface RecursivelyConnectedExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderableExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    groupBy(...columns: RequiredColumnNames<COLUMNS>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
+    groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
     
-    dynamicWhere(): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES>
+    dynamicWhere(): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
-export interface ExecutableSelectExpressionWithoutWhere<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends RecursivelyConnectedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    startWith: StartWithFnType<DB, TABLE_OR_VIEW, RecursivelyConnectedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'connectBy'>>
-    connectBy: ConnectByFnType<DB, TABLE_OR_VIEW, RecursivelyConnectedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'connectBy'>>
-    connectByNoCycle: ConnectByFnType<DB, TABLE_OR_VIEW, RecursivelyConnectedExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES | 'connectBy'>>
+export interface ExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends RecursivelyConnectedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    startWith: StartWithFnType<FROM, REQUIRED, RecursivelyConnectedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'connectBy'>>
+    connectBy: ConnectByFnType<FROM, REQUIRED, RecursivelyConnectedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'connectBy'>>
+    connectByNoCycle: ConnectByFnType<FROM, REQUIRED, RecursivelyConnectedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'connectBy'>>
 }
 
-export interface ExecutableSelectExpressionWithoutWhereProjectableAsNullable<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    projectingOptionalValuesAsNullable(): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface ExecutableSelectExpressionWithoutWhereProjectableAsNullable</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends ExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
+    projectingOptionalValuesAsNullable(): ExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, ResultObjectValuesProjectedAsNullable<COLUMNS>, FEATURES>
 }
 
-export interface RecursivelyConnectedSelectWhereExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
-    select<COLUMNS extends SelectColumns<DB, TABLE_OR_VIEW>>(columns: COLUMNS): ExecutableSelectExpressionWithoutWhereProjectableAsNullable<DB, TABLE_OR_VIEW, COLUMNS, ResultObjectValues<COLUMNS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectOneColumn<COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>>>(column: COLUMN): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, COLUMN, ValueSourceValueTypeForResult<COLUMN>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    selectCountAll(): ExecutableSelectExpressionWithoutWhere<DB, TABLE_OR_VIEW, INumberValueSource<NoTableOrViewRequired<DB>, 'required'>, number, REQUIRED_TABLE_OR_VIEW, FEATURES| 'requiredResult'>
-    dynamicWhere(): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    where(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicWhereExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    groupBy(...columns: ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef]>[]): GroupByOrderHavingByExpressionWithoutSelect<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES | 'groupBy'>
+export interface RecursivelyConnectedSelectWhereExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
+    select<COLUMNS extends SelectColumns<FROM[typeof source]>>(columns: COLUMNS): ExecutableSelectExpressionWithoutWhereProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
+    selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): ExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
+    selectCountAll(): ExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, INumberValueSource<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>, 'required'>, number, FEATURES| 'requiredResult'>
+    dynamicWhere(): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderHavingByExpressionWithoutSelect<FROM, REQUIRED, FEATURES | 'groupBy'>
 }
 
-export interface SelectWhereExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends RecursivelyConnectedSelectWhereExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    startWith: StartWithFnType<DB, TABLE_OR_VIEW, RecursivelyConnectedSelectWhereExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES | 'connectBy'>>
-    connectBy: ConnectByFnType<DB, TABLE_OR_VIEW, RecursivelyConnectedSelectWhereExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES | 'connectBy'>>
-    connectByNoCycle: ConnectByFnType<DB, TABLE_OR_VIEW, RecursivelyConnectedSelectWhereExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES | 'connectBy'>>
+export interface SelectWhereExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends RecursivelyConnectedSelectWhereExpression<FROM, REQUIRED, FEATURES> {
+    startWith: StartWithFnType<FROM, REQUIRED, RecursivelyConnectedSelectWhereExpression<FROM, REQUIRED, FEATURES | 'connectBy'>>
+    connectBy: ConnectByFnType<FROM, REQUIRED, RecursivelyConnectedSelectWhereExpression<FROM, REQUIRED, FEATURES | 'connectBy'>>
+    connectByNoCycle: ConnectByFnType<FROM, REQUIRED, RecursivelyConnectedSelectWhereExpression<FROM, REQUIRED, FEATURES | 'connectBy'>>
 }
 
-export interface SelectWhereJoinExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectWhereExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    join<TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW2): OnExpression<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    innerJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW2): OnExpression<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    leftJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>): OnExpression<DB, TABLE_OR_VIEW | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    leftOuterJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>): OnExpression<DB, TABLE_OR_VIEW | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    optionalJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW2): OnExpression<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    optionalInnerJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW2): OnExpression<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    optionalLeftJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>): OnExpression<DB, TABLE_OR_VIEW | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    optionalLeftOuterJoin<TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>, ALIAS>(source: OuterJoinSource<TABLE_OR_VIEW2, ALIAS>): OnExpression<DB, TABLE_OR_VIEW | OuterJoinTableOrView<TABLE_OR_VIEW2, ALIAS>, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface SelectWhereJoinExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectWhereExpression<FROM, REQUIRED, FEATURES> {
+    join<T2 extends ITableOrView<any>>(table: T2 & OfSameDB<REQUIRED>): OnExpression<FROM | T2, REQUIRED, FEATURES>
+    innerJoin<T2 extends ITableOrView<any>>(table: T2 & OfSameDB<REQUIRED>): OnExpression<FROM | T2, REQUIRED, FEATURES>
+    leftJoin<T2 extends ForUseInLeftJoin<any>>(source: T2 & OfSameDB<REQUIRED>): OnExpression<FROM | T2, REQUIRED, FEATURES>
+    leftOuterJoin<T2 extends ForUseInLeftJoin<any>>(source: T2 & OfSameDB<REQUIRED>): OnExpression<FROM | T2, REQUIRED, FEATURES>
+    optionalJoin<T2 extends ITableOrView<any>>(table: T2 & OfSameDB<REQUIRED>): OnExpression<FROM | T2, REQUIRED, FEATURES>
+    optionalInnerJoin<T2 extends ITableOrView<any>>(table: T2 & OfSameDB<REQUIRED>): OnExpression<FROM | T2, REQUIRED, FEATURES>
+    optionalLeftJoin<T2 extends ForUseInLeftJoin<any>>(source: T2 & OfSameDB<REQUIRED>): OnExpression<FROM | T2, REQUIRED, FEATURES>
+    optionalLeftOuterJoin<T2 extends ForUseInLeftJoin<any>>(source: T2 & OfSameDB<REQUIRED>): OnExpression<FROM | T2, REQUIRED, FEATURES>
 }
 
-export interface DynamicOnExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectWhereJoinExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    and(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    and(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    or(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface DynamicOnExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectWhereJoinExpression<FROM, REQUIRED, FEATURES> {
+    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
+    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
+    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
+    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
 }
 
-export interface OnExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectWhereJoinExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    dynamicOn(): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    on(condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
-    on(condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): DynamicOnExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface OnExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectWhereJoinExpression<FROM, REQUIRED, FEATURES> {
+    dynamicOn(): DynamicOnExpression<FROM, REQUIRED, FEATURES>
+    on(condition: IIfValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
+    on(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
 }
 
-export interface SelectExpressionWithoutJoin<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectWhereExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    from<TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW2): SelectExpressionWithoutJoin<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface SelectExpressionWithoutJoin</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectWhereExpression<FROM, REQUIRED, FEATURES> {
+    from<T2 extends ITableOrView<any>>(table: T2 & OfSameDB<REQUIRED>): SelectExpressionWithoutJoin<FROM | T2, REQUIRED, FEATURES>
 }
 
-export interface SelectExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectWhereJoinExpression<DB, TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES> {
-    from<TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW2): SelectExpressionWithoutJoin<DB, TABLE_OR_VIEW | TABLE_OR_VIEW2, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface SelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectWhereJoinExpression<FROM, REQUIRED, FEATURES> {
+    from<T2 extends ITableOrView<any>>(table: T2 & OfSameDB<REQUIRED>): SelectExpressionWithoutJoin<FROM | T2, REQUIRED, FEATURES>
 }
 
-export interface SelectExpressionSubquery<DB extends AnyDB, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> extends SelectExpressionBase<DB, REQUIRED_TABLE_OR_VIEW> {
-    from<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpression<DB, TABLE_OR_VIEW | REQUIRED_TABLE_OR_VIEW, REQUIRED_TABLE_OR_VIEW, FEATURES>
+export interface SelectExpressionSubquery</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
+    from<T extends ITableOrView<any>>(table: T & OfSameDB<REQUIRED>): SelectExpression<FROM | T, REQUIRED, FEATURES>
 }
 
-export interface SelectExpressionFromNoTable<DB extends AnyDB, FEATURES> extends SelectWhereExpression<AnyDB, NoTableOrViewRequiredView<DB>, NoTableOrViewRequiredView<DB>, FEATURES> {
+export interface SelectExpressionFromNoTable</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectWhereExpression<FROM, REQUIRED, FEATURES> {
 }
 
-export type SelectColumns<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> = {
-    [P: string]: ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>> | SelectColumns<DB, TABLE_OR_VIEW>
+export type SelectColumns<SOURCE extends NSource> = {
+    [P: string]:  ValueSourceOf<SOURCE> | SelectColumns<SOURCE>
     [P: number | symbol]: never
 }
 
 type SelectPageWithExtras<COLUMNS, RESULT, EXTRAS> = { data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: number } & Omit<EXTRAS, 'data' | 'count'>
 
-type ForUseInQueryAs<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> =
-    COLUMNS extends undefined
+type ForUseInQueryAs<_FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS> =
+    unknown extends REQUIRED ? <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS> // this is the case when te arguments are of type any
+    : [COLUMNS] extends [undefined]
     ? never
-    : COLUMNS extends AnyValueSource
+    : [COLUMNS] extends [AnyValueSource]
     ? never
-    : DB extends SqlServer | Oracle | MariaDB 
+    : [REQUIRED] extends [OfDB<'sqlServer' | 'oracle' | 'mariaDB'>]
     ? (
-        REQUIRED_TABLE_OR_VIEW extends NoTableOrViewRequiredView<DB>
-        ? <ALIAS extends string>(as: ALIAS) => WithView<WITH_VIEW<DB, ALIAS>, COLUMNS>
+        [REQUIRED] extends [NoTableOrViewRequiredOfSameDB<REQUIRED>]
+        ? <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS>
         : never // Not supported by SqlServer (No inner with), Oracle (No outer references in inner with) and MariaDB (No outer references in inner with)
-    ) : <ALIAS extends string>(as: ALIAS) => WithView<WITH_VIEW<DB, ALIAS>, COLUMNS>
+    ) : <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS>
 
-type ForUseAsInlineQueryValue<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> =
+type ForUseAsInlineQueryValue<_FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, FEATURES> =
     COLUMNS extends AnyValueSource
     ? (
         'requiredResult' extends FEATURES
-        ? () => RemapValueSourceType<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS>
-        : () => RemapValueSourceTypeWithOptionalType<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], COLUMNS, 'optional'> 
+        ? () => RemapValueSourceType<REQUIRED[typeof source], COLUMNS>
+        : () => RemapValueSourceTypeWithOptionalType<REQUIRED[typeof source], COLUMNS, 'optional'> 
     ) : never
 
-type ForUseAsInlineAggregatedArrayValue<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> =
-    DB extends SqlServer | Oracle | MariaDB 
+type ForUseAsInlineAggregatedArrayValue<FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, FEATURES> =
+    [REQUIRED] extends [OfDB<'sqlServer' | 'oracle' | 'mariaDB'>]
     ? (
-        REQUIRED_TABLE_OR_VIEW extends NoTableOrViewRequiredView<DB>
-        ? ForUseAsInlineAggregatedArrayValueFn<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW>
+        [REQUIRED] extends [NoTableOrViewRequiredOfSameDB<REQUIRED>]
+        ? ForUseAsInlineAggregatedArrayValueFn<FROM, REQUIRED, COLUMNS>
         : 'recursive' extends FEATURES
         ? never // Not supported by SqlServer (No inner with), Oracle (No outer references in inner with) and MariaDB (No outer references in inner with)
-        : DB extends SqlServer | Oracle
-        ? ForUseAsInlineAggregatedArrayValueFn<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW>
+        : REQUIRED extends OfDB<'sqlServer' | 'oracle'>
+        ? ForUseAsInlineAggregatedArrayValueFn<FROM, REQUIRED, COLUMNS>
         // Only in MariaDB
         : 'compound' extends FEATURES
         ? never // Not supported by MariaDB (No outer references in inner from)
@@ -504,37 +515,37 @@ type ForUseAsInlineAggregatedArrayValue<DB extends AnyDB, COLUMNS, REQUIRED_TABL
         ? never // Not supported by MariaDB (No outer references in inner from)
         : 'distinct' extends FEATURES
         ? never // Not supported by MariaDB (No outer references in inner from)
-        : ForUseAsInlineAggregatedArrayValueFn<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW>
-    ) : ForUseAsInlineAggregatedArrayValueFn<DB, COLUMNS, REQUIRED_TABLE_OR_VIEW>
+        : ForUseAsInlineAggregatedArrayValueFn<FROM, REQUIRED, COLUMNS>
+    ) : ForUseAsInlineAggregatedArrayValueFn<FROM, REQUIRED, COLUMNS>
 
-type ForUseAsInlineAggregatedArrayValueFn<DB extends AnyDB, COLUMNS, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>> =
+type ForUseAsInlineAggregatedArrayValueFn<_FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS> =
     COLUMNS extends IValueSource<any, any, any, any>
-    ? () => AggregatedArrayValueSource<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], Array<COLUMNS[typeof valueType]>, 'required'>
-    : () => AggregatedArrayValueSource<REQUIRED_TABLE_OR_VIEW[typeof tableOrViewRef], Array<{ [P in keyof ResultObjectValues<COLUMNS>]: ResultObjectValues<COLUMNS>[P] }>, 'required'>
+    ? () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<COLUMNS[typeof valueType]>, 'required'>
+    : () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<{ [P in keyof ResultObjectValues<COLUMNS>]: ResultObjectValues<COLUMNS>[P] }>, 'required'>
 
-type CompoundFunction<SUPPORTED_DB extends AnyDB, DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, FEATURES> = 
-    DB extends SUPPORTED_DB
-    ? <SELECT extends ICompoundableSelect<DB, RESULT, ColumnsForCompound<any, COLUMNS>, any>>(select: SELECT) => CompoundedExecutableSelectExpression<DB, TABLE_OR_VIEW, COLUMNS, RESULT, REQUIRED_TABLE_OR_VIEW | SELECT[typeof requiredTableOrView], FEATURES>
+type CompoundFunction<SUPPORTED_DB extends NDbType, FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, RESULT, FEATURES> = 
+    [REQUIRED] extends [OfDB<SUPPORTED_DB>]
+    ? <SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT) => CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     : never
 
-type StartWithFnType<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NEXT> =
-    DB extends (NoopDB | Oracle)
-        ? StartWithFn<DB, TABLE_OR_VIEW, NEXT>
+type StartWithFnType<FROM extends HasSource<any>, REQUIRED extends HasSource<any>, NEXT> =
+    [REQUIRED] extends [OfDB<'noopDB' | 'oracle'>]
+        ? StartWithFn<FROM, REQUIRED, NEXT>
         : never
 
-export interface StartWithFn<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NEXT> {
-    (condition: IIfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): ConnectByExpression<DB, TABLE_OR_VIEW, NEXT>
-    (condition: IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): ConnectByExpression<DB, TABLE_OR_VIEW, NEXT>
+export interface StartWithFn</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ NEXT> {
+    (condition: IIfValueSource<FROM[typeof source], any>): ConnectByExpression<FROM, REQUIRED, NEXT>
+    (condition: IBooleanValueSource<FROM[typeof source], any>): ConnectByExpression<FROM, REQUIRED, NEXT>
 }
 
-export interface ConnectByExpression<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NEXT> {
-    connectBy(condition: (prior: <COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef]>>(column: COLUMN & Column) => COLUMN) => IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): NEXT
-    connectByNoCycle(condition: (prior: <COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef]>>(column: COLUMN & Column) => COLUMN) => IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>): NEXT
+export interface ConnectByExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ _REQUIRED extends HasSource<any>, NEXT> {
+    connectBy(condition: (prior: <COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN) => COLUMN) => IBooleanValueSource<FROM[typeof source], any>): NEXT
+    connectByNoCycle(condition: (prior: <COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN) => COLUMN) => IBooleanValueSource<FROM[typeof source], any>): NEXT
 }
 
-type ConnectByFnType<DB extends AnyDB, TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NEXT> =
-    DB extends (NoopDB | Oracle)
-        ? (condition: (prior: <COLUMN extends ValueSourceOf<TABLE_OR_VIEW[typeof tableOrViewRef]>>(column: COLUMN & Column) => COLUMN) => IBooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef] | NoTableOrViewRequired<DB>, any>) => NEXT
+type ConnectByFnType<FROM extends HasSource<any>, REQUIRED extends HasSource<any>, NEXT> =
+    [REQUIRED] extends [OfDB<'noopDB' | 'oracle'>]
+        ? (condition: (prior: <COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN) => COLUMN) => IBooleanValueSource<FROM[typeof source], any>) => NEXT
         : never
 
 type OrderingSiblingsOnlyFnType<FEATURES, NEXT> =

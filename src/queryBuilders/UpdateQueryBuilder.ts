@@ -1,20 +1,21 @@
 import { isAllowedQueryColumns, JoinData, SqlBuilder, ToSql, UpdateData } from "../sqlBuilders/SqlBuilder"
-import { HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, OuterJoinSource, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
+import { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import { AlwaysIfValueSource, AnyValueSource, IBooleanValueSource, IIfValueSource, isValueSource } from "../expressions/values"
-import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, ComposableCustomizableExecutableUpdate, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, ComposableCustomizableExecutableUpdateProjectableAsNullable } from "../expressions/update"
+import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, CustomizableExecutableUpdateReturning, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, CustomizableExecutableUpdateProjectableAsNullable } from "../expressions/update"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
-import { database, resultType, tableOrView, type } from "../utils/symbols"
+import { from, resultType, source, type, using } from "../utils/symbols"
 import { asAlwaysIfValueSource } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { __setQueryMetadata, AbstractQueryBuilder } from "./AbstractQueryBuilder"
 import { Column, isColumn } from "../utils/Column"
 
-export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWiths, ToSql, UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any>, CustomizableExecutableUpdate<any>, ExecutableUpdateExpression<any, any>, ShapedExecutableUpdateExpression<any, any, any>, NotExecutableUpdateExpression<any, any>, ShapedNotExecutableUpdateExpression<any, any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData, ComposableCustomizableExecutableUpdate<any, any, any>, ReturnableExecutableUpdate<any, any>, ExecutableUpdateReturning<any, any, any>, UpdateSetExpression<any, any>, ShapedUpdateSetExpression<any, any, any>, UpdateSetExpressionAllowingNoWhere<any, any>, ShapedUpdateSetExpressionAllowingNoWhere<any, any, any>, UpdateSetJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, UpdateExpressionWithoutJoin<any, any>, UpdateFromExpression<any, any>, UpdateSetJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, UpdateExpressionWithoutJoinAllowingNoWhere<any, any>, UpdateFromExpressionAllowingNoWhere<any, any>, ComposableCustomizableExecutableUpdateProjectableAsNullable<any, any> {
+export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWiths, ToSql, UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any, any>, CustomizableExecutableUpdate<any, any>, ExecutableUpdateExpression<any, any>, ShapedExecutableUpdateExpression<any, any, any>, NotExecutableUpdateExpression<any, any>, ShapedNotExecutableUpdateExpression<any, any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData, CustomizableExecutableUpdateReturning<any, any, any, any>, ReturnableExecutableUpdate<any, any>, ExecutableUpdateReturning<any, any, any, any>, UpdateSetExpression<any, any>, ShapedUpdateSetExpression<any, any, any>, UpdateSetExpressionAllowingNoWhere<any, any>, ShapedUpdateSetExpressionAllowingNoWhere<any, any, any>, UpdateSetJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, UpdateExpressionWithoutJoin<any, any>, UpdateFromExpression<any, any>, UpdateSetJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, UpdateExpressionWithoutJoinAllowingNoWhere<any, any>, UpdateFromExpressionAllowingNoWhere<any, any>, CustomizableExecutableUpdateProjectableAsNullable<any, any, any> {
+    [source]: any
+    [from]: any
+    [using]: any
     [type]: any
-    [database]: any
-    [tableOrView]: any
     [resultType]: any
 
     __table: ITable<any>
@@ -23,10 +24,10 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     __where?: AlwaysIfValueSource<any, any>
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
-    __customization?: UpdateCustomization<any>
+    __customization?: UpdateCustomization<any, any>
     //__columns?: QueryColumns // declared at AbstractQueryBuilder
-    __oldValues?: ITableOrView<any>
-    __froms?: Array<ITableOrView<any>>
+    __oldValues?: AnyTableOrView
+    __froms?: Array<AnyTableOrView>
     __joins?: Array<JoinData>
 
     __oneColumn?: boolean
@@ -844,7 +845,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
 
     
 
-    from(table: ITableOrView<any>): any {
+    from(table: AnyTableOrView): any {
         this.__finishJoin()
         this.__query = ''
         if (!this.__froms) {
@@ -854,7 +855,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
-    join(table: ITableOrView<any>): any {
+    join(table: AnyTableOrView): any {
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
@@ -867,7 +868,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
-    innerJoin(table: ITableOrView<any>): any {
+    innerJoin(table: AnyTableOrView): any {
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
@@ -880,7 +881,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
-    leftJoin(source: OuterJoinSource<any, any>): any {
+    leftJoin(source: ForUseInLeftJoin<any>): any {
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
@@ -893,7 +894,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         __getTableOrViewPrivate(source).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
-    leftOuterJoin(source: OuterJoinSource<any, any>): any {
+    leftOuterJoin(source: ForUseInLeftJoin<any>): any {
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
@@ -934,7 +935,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
 
 
 
-    customizeQuery(customization: UpdateCustomization<any>): this {
+    customizeQuery(customization: UpdateCustomization<any, any>): this {
         this.__customization = customization
         __addWiths(customization.beforeQuery, this.__sqlBuilder, this.__withs)
         __addWiths(customization.afterUpdateKeyword, this.__sqlBuilder, this.__withs)
@@ -942,7 +943,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         return this
     }
 
-    returning(columns: UpdateColumns<any, any>): this {
+    returning(columns: UpdateColumns<any>): this {
         this.__query = ''
         this.__columns = columns
         this.__registerTableOrViewWithOfColumns(columns, this.__withs)
@@ -971,17 +972,17 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             __getTableOrViewPrivate(withView).__addWiths(sqlBuilder, withs)
         }
     }
-    __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<AnyTableOrView>): void {
         // do nothing because it is not possible to add external dependency
     }
-    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<AnyTableOrView>): void {
         // do nothing because it is not possible to add external dependency
     }
-    __getOldValues(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+    __getOldValues(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         // old values fake table is not possible to be used here
         return undefined
     }
-    __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+    __getValuesForInsert(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         // values for insert fake table is not possible to be used here
         return undefined
     }

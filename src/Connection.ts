@@ -1,5 +1,5 @@
 import type { AbstractConnection } from "./connections/AbstractConnection"
-import type { AnyDB } from "./databases"
+import { NDB } from "./utils/sourceName"
 
-export type Connection<DB extends AnyDB> = AbstractConnection<DB>
+export type Connection<DB extends NDB> = AbstractConnection<DB>
 export type { TransactionIsolationLevel } from "./connections/AbstractConnection"

@@ -1,10 +1,10 @@
+import type { NConnection } from "../utils/sourceName"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import { SqlServerSqlBuilder } from "../sqlBuilders/SqlServerSqlBuilder"
-import type { DB } from "../typeMarks/SqlServerDB"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
 import type { TransactionIsolationLevel } from "./AbstractConnection"
 
-export abstract class SqlServerConnection<NAME extends string> extends AbstractAdvancedConnection<DB<NAME>> {
+export abstract class SqlServerConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'sqlServer', NAME>> {
 
     constructor(queryRunner: QueryRunner, sqlBuilder = new SqlServerSqlBuilder()) {
         super(queryRunner, sqlBuilder)

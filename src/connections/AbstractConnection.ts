@@ -2,15 +2,14 @@ import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { InsertExpression } from "../expressions/insert"
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expressions/update"
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, ValueSourceOf, ValueSourceOfDB, RemapValueSourceTypeWithOptionalType, IValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, ValueSourceOf, RemapValueSourceTypeWithOptionalType, IValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, AnyValueSource } from "../expressions/values"
 import type { Default } from "../expressions/Default"
-import { ITableOrViewRef, NoTableOrViewRequired, NoTableOrViewRequiredView, ITableOf, ITableOrViewOf, ITableOrView, __getTableOrViewPrivate, OuterJoinSource } from "../utils/ITableOrView"
+import { NoTableOrViewRequired, ITableOrView, __getTableOrViewPrivate, ITable, SameDB, HasSource, ForUseInLeftJoin } from "../utils/ITableOrView"
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from "../expressions/select"
 import type { TypeAdapter, DefaultTypeAdapter } from "../TypeAdapter"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { IConnection } from "../utils/IConnection"
 import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, CustomIntFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from "../expressions/fragment"
-import type { AnyDB } from "../databases"
 import { InsertQueryBuilder } from "../queryBuilders/InsertQueryBuilder"
 import { UpdateQueryBuilder } from "../queryBuilders/UpdateQueryBuilder"
 import { DeleteQueryBuilder } from "../queryBuilders/DeleteQueryBuilder"
@@ -21,19 +20,19 @@ import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
 import ChainedError from "chained-error"
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue, FragmentFunctionBuilderMaybeOptional } from "../queryBuilders/FragmentQueryBuilder"
 import { attachSource, attachTransactionSource } from "../utils/attachSource"
-import { database, outerJoinAlias, outerJoinTableOrView, tableOrView, tableOrViewRef, transactionIsolationLevel, type, valueSourceTypeName, valueType } from "../utils/symbols"
+import { connection, source, transactionIsolationLevel, typeName, valueType } from "../utils/symbols"
 import { callDeferredFunctions, callDeferredFunctionsStoppingOnError, isPromise } from "../utils/PromiseUtils"
-import { DinamicConditionExtension, DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
+import type { DinamicConditionExtension, DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
 import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilder"
-import { RawFragment } from "../utils/RawFragment"
+import type { RawFragment } from "../utils/RawFragment"
 import { RawFragmentImpl } from "../internal/RawFragmentImpl"
-import { CustomizedTableOrView, OuterJoinTableOrView } from "../utils/tableOrViewUtils"
-import { InnerResultNullableObjectValuesForAggregatedArray, InnerResultObjectValuesForAggregatedArray } from "../utils/resultUtils"
+import type { CustomizedTableOrView } from "../utils/tableOrViewUtils"
+import type { InnerResultNullableObjectValuesForAggregatedArray, InnerResultObjectValuesForAggregatedArray } from "../utils/resultUtils"
 import { __setQueryMetadata } from "../queryBuilders/AbstractQueryBuilder"
+import type { NDB, NNoTableOrViewRequired, NSource, NWithDB } from "../utils/sourceName"
 
-export abstract class AbstractConnection<DB extends AnyDB> implements IConnection<DB> {
-    [database]!: DB
-    [type]!: 'Connection'
+export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
+    [connection]!: DB
 
     protected __sqlBuilder: SqlBuilder
     protected allowEmptyString: boolean = false
@@ -291,42 +290,46 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return this.queryRunner.isTransactionActive()
     }
 
-    insertInto<TABLE extends ITableOf<DB, any>>(table: TABLE): InsertExpression<TABLE> {
+    insertInto<T extends ITable<any>>(table: T & SameDB<DB>): InsertExpression<T, NoTableOrViewRequired<DB> | T> {
         return new InsertQueryBuilder(this.__sqlBuilder, table) as any
     }
-    update<TABLE extends ITableOf<DB, any>>(table: TABLE): UpdateExpression<TABLE, TABLE> {
+    update<T extends ITable<any>>(table: T & SameDB<DB>): UpdateExpression<T, NoTableOrViewRequired<DB> | T> {
         return new UpdateQueryBuilder(this.__sqlBuilder, table, false) as any
     }
-    updateAllowingNoWhere<TABLE extends ITableOf<DB, any>>(table: TABLE): UpdateExpressionAllowingNoWhere<TABLE, TABLE> {
+    updateAllowingNoWhere<T extends ITable<any>>(table: T & SameDB<DB>): UpdateExpressionAllowingNoWhere<T, NoTableOrViewRequired<DB> | T> {
         return new UpdateQueryBuilder(this.__sqlBuilder, table, true) as any
     }
-    deleteFrom<TABLE extends ITableOf<DB, any>>(table: TABLE): DeleteExpression<TABLE, TABLE> {
+    deleteFrom<T extends ITable<any>>(table: T & SameDB<DB>): DeleteExpression<T, NoTableOrViewRequired<DB> | T> {
         return new DeleteQueryBuilder(this.__sqlBuilder, table, false) as any
     }
-    deleteAllowingNoWhereFrom<TABLE extends ITableOf<DB, any>>(table: TABLE): DeleteExpressionAllowingNoWhere<TABLE, TABLE> {
+    deleteAllowingNoWhereFrom<T extends ITable<any>>(table: T & SameDB<DB>): DeleteExpressionAllowingNoWhere<T, NoTableOrViewRequired<DB> | T> {
         return new DeleteQueryBuilder(this.__sqlBuilder, table, true) as any
     }
-    selectFrom<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpression<DB, TABLE_OR_VIEW, NoTableOrViewRequiredView<DB>, never> {
+    selectFrom<T extends ITableOrView<any>>(table: T & SameDB<DB>): SelectExpression<T | NoTableOrViewRequired<DB>, NoTableOrViewRequired<DB>, never> {
         return new SelectQueryBuilder(this.__sqlBuilder, [table], false) as any // cast to any to improve typescript performace
     }
-    selectDistinctFrom<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(table: TABLE_OR_VIEW): SelectExpression<DB, TABLE_OR_VIEW, NoTableOrViewRequiredView<DB>, 'distinct'> {
+    selectDistinctFrom<T extends ITableOrView<any>>(table: T & SameDB<DB>): SelectExpression<T | NoTableOrViewRequired<DB>, NoTableOrViewRequired<DB>, 'distinct'> {
         return new SelectQueryBuilder(this.__sqlBuilder, [table], true) as any // cast to any to improve typescript performace
     }
-    selectFromNoTable(): SelectExpressionFromNoTable<DB, never> {
+    selectFromNoTable(): SelectExpressionFromNoTable<NoTableOrViewRequired<DB>, NoTableOrViewRequired<DB>, never> {
         return new SelectQueryBuilder(this.__sqlBuilder, [], false) as any // cast to any to improve typescript performace
     }
-    subSelectUsing<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW[typeof outerJoinTableOrView], TABLE_OR_VIEW[typeof outerJoinAlias]> : TABLE_OR_VIEW, never>
-    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, (TABLE_OR_VIEW1 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW1[typeof outerJoinTableOrView], TABLE_OR_VIEW1[typeof outerJoinAlias]> : TABLE_OR_VIEW1) | (TABLE_OR_VIEW2 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW2[typeof outerJoinTableOrView], TABLE_OR_VIEW2[typeof outerJoinAlias]> : TABLE_OR_VIEW2), never>
-    subSelectUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, (TABLE_OR_VIEW1 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW1[typeof outerJoinTableOrView], TABLE_OR_VIEW1[typeof outerJoinAlias]> : TABLE_OR_VIEW1) | (TABLE_OR_VIEW2 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW2[typeof outerJoinTableOrView], TABLE_OR_VIEW2[typeof outerJoinAlias]> : TABLE_OR_VIEW2) | (TABLE_OR_VIEW3 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW3[typeof outerJoinTableOrView], TABLE_OR_VIEW3[typeof outerJoinAlias]> : TABLE_OR_VIEW3), never>
-    subSelectUsing(...tables: any[]): SelectExpressionSubquery<DB, any, never> {
+    subSelectUsing<T extends ITableOrView<any> | ForUseInLeftJoin<any>>(table: T & SameDB<DB>): SelectExpressionSubquery<T | NoTableOrViewRequired<DB>, T | NoTableOrViewRequired<DB>, never>
+    subSelectUsing<T1 extends ITableOrView<any> | ForUseInLeftJoin<any>, T2 extends ITableOrView<any> | ForUseInLeftJoin<any>>(table1: T1 & SameDB<DB>, table2: T2 & SameDB<DB>): SelectExpressionSubquery<T1 | T2 | NoTableOrViewRequired<DB>, T1 | T2 | NoTableOrViewRequired<DB>, never>
+    subSelectUsing<T1 extends ITableOrView<any> | ForUseInLeftJoin<any>, T2 extends ITableOrView<any> | ForUseInLeftJoin<any>, T3 extends ITableOrView<any> | ForUseInLeftJoin<any>>(table1: T1 & SameDB<DB>, table2: T2 & SameDB<DB>, table3: T3 & SameDB<DB>): SelectExpressionSubquery<T1 | T2 | T3 | NoTableOrViewRequired<DB>, T1 | T2 | T3 | NoTableOrViewRequired<DB>, never>
+    subSelectUsing<T1 extends ITableOrView<any> | ForUseInLeftJoin<any>, T2 extends ITableOrView<any> | ForUseInLeftJoin<any>, T3 extends ITableOrView<any> | ForUseInLeftJoin<any>, T4 extends ITableOrView<any> | ForUseInLeftJoin<any>>(table1: T1 & SameDB<DB>, table2: T2 & SameDB<DB>, table3: T3 & SameDB<DB>, table4: T4 & SameDB<DB>): SelectExpressionSubquery<T1 | T2 | T3 | T4 | NoTableOrViewRequired<DB>, T1 | T2 | T3 | T4 | NoTableOrViewRequired<DB>, never>
+    subSelectUsing<T1 extends ITableOrView<any> | ForUseInLeftJoin<any>, T2 extends ITableOrView<any> | ForUseInLeftJoin<any>, T3 extends ITableOrView<any> | ForUseInLeftJoin<any>, T4 extends ITableOrView<any> | ForUseInLeftJoin<any>, T5 extends ITableOrView<any> | ForUseInLeftJoin<any>>(table1: T1 & SameDB<DB>, table2: T2 & SameDB<DB>, table3: T3 & SameDB<DB>, table4: T4 & SameDB<DB>, table5: T4 & SameDB<DB>): SelectExpressionSubquery<T1 | T2 | T3 | T4 | T5 | NoTableOrViewRequired<DB>, T1 | T2 | T3 | T4 | T5 | NoTableOrViewRequired<DB>, never>
+    subSelectUsing(...tables: any[]): SelectExpressionSubquery<any, any, never> {
         const result = new SelectQueryBuilder(this.__sqlBuilder, [], false)
         result.__subSelectUsing = tables
         return result as any // cast to any to improve typescript performace
     }
-    subSelectDistinctUsing<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>>(table: TABLE_OR_VIEW): SelectExpressionSubquery<DB, TABLE_OR_VIEW extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW[typeof outerJoinTableOrView], TABLE_OR_VIEW[typeof outerJoinAlias]> : TABLE_OR_VIEW, 'distinct'>
-    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2): SelectExpressionSubquery<DB, (TABLE_OR_VIEW1 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW1[typeof outerJoinTableOrView], TABLE_OR_VIEW1[typeof outerJoinAlias]> : TABLE_OR_VIEW1) | (TABLE_OR_VIEW2 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW2[typeof outerJoinTableOrView], TABLE_OR_VIEW2[typeof outerJoinAlias]> : TABLE_OR_VIEW2), 'distinct'>
-    subSelectDistinctUsing<TABLE_OR_VIEW1 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>, TABLE_OR_VIEW2 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>, TABLE_OR_VIEW3 extends ITableOrViewOf<DB, any> | OuterJoinSource<ITableOrViewOf<DB, any>, any>>(table1: TABLE_OR_VIEW1, table2: TABLE_OR_VIEW2, table3: TABLE_OR_VIEW3): SelectExpressionSubquery<DB, (TABLE_OR_VIEW1 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW1[typeof outerJoinTableOrView], TABLE_OR_VIEW1[typeof outerJoinAlias]> : TABLE_OR_VIEW1) | (TABLE_OR_VIEW2 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW2[typeof outerJoinTableOrView], TABLE_OR_VIEW2[typeof outerJoinAlias]> : TABLE_OR_VIEW2) | (TABLE_OR_VIEW3 extends OuterJoinSource<any, any> ? OuterJoinTableOrView<TABLE_OR_VIEW3[typeof outerJoinTableOrView], TABLE_OR_VIEW3[typeof outerJoinAlias]> : TABLE_OR_VIEW3), 'distinct'>
-    subSelectDistinctUsing(...tables: any[]): SelectExpressionSubquery<DB, any, 'distinct'> {
+    subSelectDistinctUsing<T extends ITableOrView<any> | ForUseInLeftJoin<any>>(table: T & SameDB<DB>): SelectExpressionSubquery<T | NoTableOrViewRequired<DB>, T | NoTableOrViewRequired<DB>, 'distinct'>
+    subSelectDistinctUsing<T1 extends ITableOrView<any> | ForUseInLeftJoin<any>, T2 extends ITableOrView<any> | ForUseInLeftJoin<any>>(table1: T1 & SameDB<DB>, table2: T2 & SameDB<DB>): SelectExpressionSubquery<T1 | T2 | NoTableOrViewRequired<DB>, T1 | T2 | NoTableOrViewRequired<DB>, 'distinct'>
+    subSelectDistinctUsing<T1 extends ITableOrView<any> | ForUseInLeftJoin<any>, T2 extends ITableOrView<any> | ForUseInLeftJoin<any>, T3 extends ITableOrView<any> | ForUseInLeftJoin<any>>(table1: T1 & SameDB<DB>, table2: T2 & SameDB<DB>, table3: T3 & SameDB<DB>): SelectExpressionSubquery<T1 | T2 | T3 | NoTableOrViewRequired<DB>, T1 | T2 | T3 | NoTableOrViewRequired<DB>, 'distinct'>
+    subSelectDistinctUsing<T1 extends ITableOrView<any> | ForUseInLeftJoin<any>, T2 extends ITableOrView<any> | ForUseInLeftJoin<any>, T3 extends ITableOrView<any> | ForUseInLeftJoin<any>, T4 extends ITableOrView<any> | ForUseInLeftJoin<any>>(table1: T1 & SameDB<DB>, table2: T2 & SameDB<DB>, table3: T3 & SameDB<DB>, table4: T4 & SameDB<DB>): SelectExpressionSubquery<T1 | T2 | T3 | T4 | NoTableOrViewRequired<DB>, T1 | T2 | T3 | T4 | NoTableOrViewRequired<DB>, 'distinct'>
+    subSelectDistinctUsing<T1 extends ITableOrView<any> | ForUseInLeftJoin<any>, T2 extends ITableOrView<any> | ForUseInLeftJoin<any>, T3 extends ITableOrView<any> | ForUseInLeftJoin<any>, T4 extends ITableOrView<any> | ForUseInLeftJoin<any>, T5 extends ITableOrView<any> | ForUseInLeftJoin<any>>(table1: T1 & SameDB<DB>, table2: T2 & SameDB<DB>, table3: T3 & SameDB<DB>, table4: T4 & SameDB<DB>, table5: T4 & SameDB<DB>): SelectExpressionSubquery<T1 | T2 | T3 | T4 | T5 | NoTableOrViewRequired<DB>, T1 | T2 | T3 | T4 | T5 | NoTableOrViewRequired<DB>, 'distinct'>
+    subSelectDistinctUsing(...tables: any[]): SelectExpressionSubquery<any, any, 'distinct'> {
         const result = new SelectQueryBuilder(this.__sqlBuilder, [], false)
         result.__subSelectUsing = tables
         return result as any // cast to any to improve typescript performace
@@ -335,58 +338,58 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     default(): Default {
         return new DefaultImpl()
     }
-    pi(): NumberValueSource<NoTableOrViewRequired<DB>, 'required'>
+    pi(): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>
     pi(): any {
         return new SqlOperationStatic0ValueSource('_pi', 'double', 'double', 'required', undefined)
     }
-    random(): NumberValueSource<NoTableOrViewRequired<DB>, 'required'>
+    random(): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>
     random(): any {
         return new SqlOperationStatic0ValueSource('_random', 'double', 'double', 'required', undefined)
     }
-    currentDate(): LocalDateValueSource<NoTableOrViewRequired<DB>, 'required'>
+    currentDate(): LocalDateValueSource<NNoTableOrViewRequired<DB>, 'required'>
     currentDate(): any {
         return new SqlOperationStatic0ValueSource('_currentDate', 'localDate', 'localDate', 'required', undefined)
     }
-    currentTime(): LocalTimeValueSource<NoTableOrViewRequired<DB>, 'required'>
+    currentTime(): LocalTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>
     currentTime(): any {
         return new SqlOperationStatic0ValueSource('_currentTime', 'localTime', 'localTime', 'required', undefined)
     }
-    currentDateTime(): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, 'required'>
+    currentDateTime(): LocalDateTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>
     currentDateTime(): any {
         return new SqlOperationStatic0ValueSource('_currentTimestamp', 'localDateTime', 'localDateTime', 'required', undefined)
     }
-    currentTimestamp(): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, 'required'>
+    currentTimestamp(): LocalDateTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>
     currentTimestamp(): any {
         return new SqlOperationStatic0ValueSource('_currentTimestamp', 'localDateTime', 'localDateTime', 'required', undefined)
     }
 
-    const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NoTableOrViewRequired<DB>, 'required'>
-    const(value: number, type: 'int', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, 'required'>
-    const(value: bigint, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<NoTableOrViewRequired<DB>, 'required'>
-    const(value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, 'required'>
-    const(value: string, type: 'string', adapter?: TypeAdapter): StringValueSource<NoTableOrViewRequired<DB>, 'required'>
-    const(value: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<NoTableOrViewRequired<DB>, 'required'>
-    const(value: Date, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<NoTableOrViewRequired<DB>, 'required'>
-    const(value: Date, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<NoTableOrViewRequired<DB>, 'required'>
-    const(value: Date, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, 'required'>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
-    const<T, TYPE_NAME extends string>(value: T, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
-    const<T, TYPE_NAME extends string>(value: T, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
-    const<T, TYPE_NAME extends string>(value: T, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
-    const<T>(value: T, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
-    const<T>(value: T, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
-    const<T>(value: T, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
-    const<T>(value: T, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
-    const<T>(value: T, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
-    const<T>(value: T, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
-    const<T>(value: T, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
-    const<T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
-    const<T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T, T, 'required'>
+    const(value: boolean, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NNoTableOrViewRequired<DB>, 'required'>
+    const(value: number, type: 'int', adapter?: TypeAdapter): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>
+    const(value: bigint, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<NNoTableOrViewRequired<DB>, 'required'>
+    const(value: number, type: 'double', adapter?: TypeAdapter): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>
+    const(value: string, type: 'string', adapter?: TypeAdapter): StringValueSource<NNoTableOrViewRequired<DB>, 'required'>
+    const(value: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<NNoTableOrViewRequired<DB>, 'required'>
+    const(value: Date, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<NNoTableOrViewRequired<DB>, 'required'>
+    const(value: Date, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>
+    const(value: Date, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<NNoTableOrViewRequired<DB>, 'required'>
+    const<T, TYPE_NAME extends string>(value: T, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    const<T, TYPE_NAME extends string>(value: T, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    const<T, TYPE_NAME extends string>(value: T, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    const<T, TYPE_NAME extends string>(value: T, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    const<T, TYPE_NAME extends string>(value: T, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    const<T, TYPE_NAME extends string>(value: T, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    const<T, TYPE_NAME extends string>(value: T, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    const<T, TYPE_NAME extends string>(value: T, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    const<T, TYPE_NAME extends string>(value: T, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    const<T>(value: T, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    const<T>(value: T, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    const<T>(value: T, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    const<T>(value: T, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    const<T>(value: T, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    const<T>(value: T, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    const<T>(value: T, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    const<T>(value: T, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    const<T>(value: T, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NNoTableOrViewRequired<DB>, T, T, 'required'>
     const(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T, TYPE_NAME, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return new SqlOperationConstValueSource(value, type as ValueType, adapter, 'required', adapter2)
@@ -394,33 +397,33 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new SqlOperationConstValueSource(value, type as ValueType, type, 'required', adapter)
     }
 
-    optionalConst(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: number | null | undefined, type: 'int', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: bigint | null | undefined, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<NoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource<NoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource<NoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: string | null | undefined, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<NoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<NoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<NoTableOrViewRequired<DB>, 'optional'>
-    optionalConst(value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<NoTableOrViewRequired<DB>, 'optional'>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
-    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
-    optionalConst<T>(value: T | null | undefined, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
-    optionalConst<T>(value: T | null | undefined, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
-    optionalConst<T>(value: T | null | undefined, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
-    optionalConst<T>(value: T | null | undefined, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
-    optionalConst<T>(value: T | null | undefined, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
-    optionalConst<T>(value: T | null | undefined, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
-    optionalConst<T>(value: T | null | undefined, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
-    optionalConst<T>(value: T | null | undefined, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
-    optionalConst<T>(value: T | null | undefined, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NoTableOrViewRequired<DB>, T, T, 'optional'>
+    optionalConst(value: boolean | null | undefined, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<NNoTableOrViewRequired<DB>, 'optional'>
+    optionalConst(value: number | null | undefined, type: 'int', adapter?: TypeAdapter): NumberValueSource<NNoTableOrViewRequired<DB>, 'optional'>
+    optionalConst(value: bigint | null | undefined, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<NNoTableOrViewRequired<DB>, 'optional'>
+    optionalConst(value: number | null | undefined, type: 'double', adapter?: TypeAdapter): NumberValueSource<NNoTableOrViewRequired<DB>, 'optional'>
+    optionalConst(value: string | null | undefined, type: 'string', adapter?: TypeAdapter): StringValueSource<NNoTableOrViewRequired<DB>, 'optional'>
+    optionalConst(value: string | null | undefined, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<NNoTableOrViewRequired<DB>, 'optional'>
+    optionalConst(value: Date | null | undefined, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<NNoTableOrViewRequired<DB>, 'optional'>
+    optionalConst(value: Date | null | undefined, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<NNoTableOrViewRequired<DB>, 'optional'>
+    optionalConst(value: Date | null | undefined, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<NNoTableOrViewRequired<DB>, 'optional'>
+    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    optionalConst<T, TYPE_NAME extends string>(value: T | null | undefined, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    optionalConst<T>(value: T | null | undefined, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    optionalConst<T>(value: T | null | undefined, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    optionalConst<T>(value: T | null | undefined, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    optionalConst<T>(value: T | null | undefined, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    optionalConst<T>(value: T | null | undefined, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    optionalConst<T>(value: T | null | undefined, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    optionalConst<T>(value: T | null | undefined, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    optionalConst<T>(value: T | null | undefined, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    optionalConst<T>(value: T | null | undefined, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<NNoTableOrViewRequired<DB>, T, T, 'optional'>
     optionalConst(value: any, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<NoTableRequired, T, TYPE_NAME, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
             return new SqlOperationConstValueSource(value, type as ValueType, adapter, 'optional', adapter2)
@@ -428,20 +431,20 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         return new SqlOperationConstValueSource(value, type as ValueType, type, 'optional', adapter)
     }
 
-    true<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> = NoTableOrViewRequiredView<DB>>(): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], 'required'> {
+    true(): BooleanValueSource<NNoTableOrViewRequired<DB>, 'required'> {
         return new SqlOperationStaticBooleanValueSource('_true')
     }
-    false<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> = NoTableOrViewRequiredView<DB>>(): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], 'required'> {
+    false(): BooleanValueSource<NNoTableOrViewRequired<DB>, 'required'> {
         return new SqlOperationStaticBooleanValueSource('_false')
     }
-    exists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: IExecutableSelectQuery<DB, any, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], 'required'> {
+    exists<SOURCE extends NSource>(select: IExecutableSelectQuery<SOURCE, any, any> & SameDB<DB>): BooleanValueSource<SOURCE, 'required'> {
         return new SqlOperationStatic1ValueSource('_exists', select, 'boolean', 'boolean', 'required', undefined)
     }
-    notExists<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>>(select: IExecutableSelectQuery<DB, any, any, TABLE_OR_VIEW>): BooleanValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], 'required'> {
+    notExists<SOURCE extends NSource>(select: IExecutableSelectQuery<SOURCE, any, any> & SameDB<DB>): BooleanValueSource<SOURCE, 'required'> {
         return new SqlOperationStatic1ValueSource('_notExists', select, 'boolean', 'boolean', 'required', undefined)
     }
 
-    protected executeProcedure(procedureName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[]): Promise<void> {
+    protected executeProcedure(procedureName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[]): Promise<void> {
         try {
             const queryParams: any[] = []
             const query = this.__sqlBuilder._buildCallProcedure(queryParams, procedureName, params)
@@ -457,61 +460,61 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         }
     }
 
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'boolean', required: 'required', adapter?: TypeAdapter): Promise<boolean>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'boolean', required: 'optional', adapter?: TypeAdapter): Promise<boolean | null>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'int', required: 'required', adapter?: TypeAdapter): Promise<number>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'int', required: 'optional', adapter?: TypeAdapter): Promise<number | null>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'bigint', required: 'required', adapter?: TypeAdapter): Promise<bigint>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'bigint', required: 'optional', adapter?: TypeAdapter): Promise<bigint | null>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'double', required: 'required', adapter?: TypeAdapter): Promise<number>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'double', required: 'optional', adapter?: TypeAdapter): Promise<number | null>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'string', required: 'required', adapter?: TypeAdapter): Promise<string>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'string', required: 'optional', adapter?: TypeAdapter): Promise<string | null>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'uuid', required: 'required', adapter?: TypeAdapter): Promise<string>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'uuid', required: 'optional', adapter?: TypeAdapter): Promise<string | null>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'localDate', required: 'required', adapter?: TypeAdapter): Promise<Date>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'localDate', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'localTime', required: 'required', adapter?: TypeAdapter): Promise<Date>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'localTime', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'localDateTime', required: 'required', adapter?: TypeAdapter): Promise<Date>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customInt', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customInt', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customDouble', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customDouble', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customUuid', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customUuid', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalDate', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalDate', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalTime', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalTime', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalDateTime', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalDateTime', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'enum', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'enum', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'custom', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'custom', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customInt', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customInt', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customDouble', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customDouble', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customUuid', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customUuid', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalDate', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalDate', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalTime', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalTime', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalDateTime', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customLocalDateTime', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
-    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
-    protected executeFunction(functionName: string, params: ValueSourceOf<NoTableOrViewRequired<DB>>[], returnType: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Promise<any> {
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'boolean', required: 'required', adapter?: TypeAdapter): Promise<boolean>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'boolean', required: 'optional', adapter?: TypeAdapter): Promise<boolean | null>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'int', required: 'required', adapter?: TypeAdapter): Promise<number>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'int', required: 'optional', adapter?: TypeAdapter): Promise<number | null>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'bigint', required: 'required', adapter?: TypeAdapter): Promise<bigint>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'bigint', required: 'optional', adapter?: TypeAdapter): Promise<bigint | null>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'double', required: 'required', adapter?: TypeAdapter): Promise<number>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'double', required: 'optional', adapter?: TypeAdapter): Promise<number | null>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'string', required: 'required', adapter?: TypeAdapter): Promise<string>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'string', required: 'optional', adapter?: TypeAdapter): Promise<string | null>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'uuid', required: 'required', adapter?: TypeAdapter): Promise<string>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'uuid', required: 'optional', adapter?: TypeAdapter): Promise<string | null>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'localDate', required: 'required', adapter?: TypeAdapter): Promise<Date>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'localDate', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'localTime', required: 'required', adapter?: TypeAdapter): Promise<Date>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'localTime', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'localDateTime', required: 'required', adapter?: TypeAdapter): Promise<Date>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'localDateTime', required: 'optional', adapter?: TypeAdapter): Promise<Date | null>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customInt', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customInt', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customDouble', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customDouble', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customUuid', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customUuid', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customLocalDate', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customLocalDate', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customLocalTime', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customLocalTime', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customLocalDateTime', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customLocalDateTime', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'enum', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'enum', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'custom', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'custom', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T, TYPE_NAME extends string>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customInt', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customInt', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customDouble', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customDouble', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customUuid', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customUuid', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customLocalDate', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customLocalDate', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customLocalTime', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customLocalTime', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customLocalDateTime', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customLocalDateTime', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
+    protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
+    protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Promise<any> {
         try {
             if (typeof adapter === 'string') {
                 returnType = required
@@ -546,60 +549,60 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         }
     }
 
-    fragmentWithType(type: 'boolean', required: 'required', adapter?: TypeAdapter): BooleanFragmentExpression<DB, 'required'>
-    fragmentWithType(type: 'boolean', required: 'optional', adapter?: TypeAdapter): BooleanFragmentExpression<DB, 'optional'>
-    fragmentWithType(type: 'int', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<DB, 'required'>
-    fragmentWithType(type: 'int', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<DB, 'optional'>
-    fragmentWithType(type: 'bigint', required: 'required', adapter?: TypeAdapter): BigintFragmentExpression<DB, 'required'>
-    fragmentWithType(type: 'bigint', required: 'optional', adapter?: TypeAdapter): BigintFragmentExpression<DB, 'optional'>
-    fragmentWithType(type: 'double', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<DB, 'required'>
-    fragmentWithType(type: 'double', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<DB, 'optional'>
-    fragmentWithType(type: 'string', required: 'required', adapter?: TypeAdapter): StringFragmentExpression<DB, 'required'>
-    fragmentWithType(type: 'string', required: 'optional', adapter?: TypeAdapter): StringFragmentExpression<DB, 'optional'>
-    fragmentWithType(type: 'uuid', required: 'required', adapter?: TypeAdapter): UuidFragmentExpression<DB, 'required'>
-    fragmentWithType(type: 'uuid', required: 'optional', adapter?: TypeAdapter): UuidFragmentExpression<DB, 'optional'>
-    fragmentWithType(type: 'localDate', required: 'required', adapter?: TypeAdapter):  LocalDateFragmentExpression<DB, 'required'>
-    fragmentWithType(type: 'localDate', required: 'optional', adapter?: TypeAdapter):  LocalDateFragmentExpression<DB, 'optional'>
-    fragmentWithType(type: 'localTime', required: 'required', adapter?: TypeAdapter): LocalTimeFragmentExpression<DB, 'required'>
-    fragmentWithType(type: 'localTime', required: 'optional', adapter?: TypeAdapter): LocalTimeFragmentExpression<DB, 'optional'>
-    fragmentWithType(type: 'localDateTime', required: 'required', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<DB, 'required'>
-    fragmentWithType(type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<DB, 'optional'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomIntFragmentExpression<DB, T, TYPE_NAME, 'required'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomIntFragmentExpression<DB, T, TYPE_NAME, 'optional'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomDoubleFragmentExpression<DB, T, TYPE_NAME, 'required'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomDoubleFragmentExpression<DB, T, TYPE_NAME, 'optional'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomUuidFragmentExpression<DB, T, TYPE_NAME, 'required'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomUuidFragmentExpression<DB, T, TYPE_NAME, 'optional'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<DB, T, TYPE_NAME, 'required'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<DB, T, TYPE_NAME, 'optional'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<DB, T, TYPE_NAME, 'required'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<DB, T, TYPE_NAME, 'optional'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<DB, T, TYPE_NAME, 'required'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<DB, T, TYPE_NAME, 'optional'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, TYPE_NAME, 'required'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, TYPE_NAME, 'optional'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, TYPE_NAME, 'required'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, TYPE_NAME, 'optional'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T, TYPE_NAME, 'required'>
-    fragmentWithType<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T, TYPE_NAME, 'optional'>
-    fragmentWithType<T>(type: 'customInt', typeName: string, required: 'required', adapter?: TypeAdapter): CustomIntFragmentExpression<DB, T, T, 'required'>
-    fragmentWithType<T>(type: 'customInt', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomIntFragmentExpression<DB, T, T, 'optional'>
-    fragmentWithType<T>(type: 'customDouble', typeName: string, required: 'required', adapter?: TypeAdapter): CustomDoubleFragmentExpression<DB, T, T, 'required'>
-    fragmentWithType<T>(type: 'customDouble', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomDoubleFragmentExpression<DB, T, T, 'optional'>
-    fragmentWithType<T>(type: 'customUuid', typeName: string, required: 'required', adapter?: TypeAdapter): CustomUuidFragmentExpression<DB, T, T, 'required'>
-    fragmentWithType<T>(type: 'customUuid', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomUuidFragmentExpression<DB, T, T, 'optional'>
-    fragmentWithType<T>(type: 'customLocalDate', typeName: string, required: 'required', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<DB, T, T, 'required'>
-    fragmentWithType<T>(type: 'customLocalDate', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<DB, T, T, 'optional'>
-    fragmentWithType<T>(type: 'customLocalTime', typeName: string, required: 'required', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<DB, T, T, 'required'>
-    fragmentWithType<T>(type: 'customLocalTime', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<DB, T, T, 'optional'>
-    fragmentWithType<T>(type: 'customLocalDateTime', typeName: string, required: 'required', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<DB, T, T, 'required'>
-    fragmentWithType<T>(type: 'customLocalDateTime', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<DB, T, T, 'optional'>
-    fragmentWithType<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, T, 'required'>
-    fragmentWithType<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, T, 'optional'>
-    fragmentWithType<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, T, 'required'>
-    fragmentWithType<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<DB, T, T, 'optional'>
-    fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T, T, 'required'>
-    fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<DB, T, T, 'optional'>
+    fragmentWithType(type: 'boolean', required: 'required', adapter?: TypeAdapter): BooleanFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
+    fragmentWithType(type: 'boolean', required: 'optional', adapter?: TypeAdapter): BooleanFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
+    fragmentWithType(type: 'int', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
+    fragmentWithType(type: 'int', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
+    fragmentWithType(type: 'bigint', required: 'required', adapter?: TypeAdapter): BigintFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
+    fragmentWithType(type: 'bigint', required: 'optional', adapter?: TypeAdapter): BigintFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
+    fragmentWithType(type: 'double', required: 'required', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
+    fragmentWithType(type: 'double', required: 'optional', adapter?: TypeAdapter): NumberFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
+    fragmentWithType(type: 'string', required: 'required', adapter?: TypeAdapter): StringFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
+    fragmentWithType(type: 'string', required: 'optional', adapter?: TypeAdapter): StringFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
+    fragmentWithType(type: 'uuid', required: 'required', adapter?: TypeAdapter): UuidFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
+    fragmentWithType(type: 'uuid', required: 'optional', adapter?: TypeAdapter): UuidFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
+    fragmentWithType(type: 'localDate', required: 'required', adapter?: TypeAdapter):  LocalDateFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
+    fragmentWithType(type: 'localDate', required: 'optional', adapter?: TypeAdapter):  LocalDateFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
+    fragmentWithType(type: 'localTime', required: 'required', adapter?: TypeAdapter): LocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
+    fragmentWithType(type: 'localTime', required: 'optional', adapter?: TypeAdapter): LocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
+    fragmentWithType(type: 'localDateTime', required: 'required', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'required'>
+    fragmentWithType(type: 'localDateTime', required: 'optional', adapter?: TypeAdapter): LocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, 'optional'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomIntFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customInt', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomIntFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomDoubleFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customDouble', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomDoubleFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomUuidFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customUuid', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomUuidFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalDate', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalTime', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customLocalDateTime', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'enum', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'custom', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'required', adapter?: TypeAdapter): ComparableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'required'>
+    fragmentWithType<T, TYPE_NAME extends string>(type: 'customComparable', typeName: TYPE_NAME, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<NNoTableOrViewRequired<DB>, T, TYPE_NAME, 'optional'>
+    fragmentWithType<T>(type: 'customInt', typeName: string, required: 'required', adapter?: TypeAdapter): CustomIntFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    fragmentWithType<T>(type: 'customInt', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomIntFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    fragmentWithType<T>(type: 'customDouble', typeName: string, required: 'required', adapter?: TypeAdapter): CustomDoubleFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    fragmentWithType<T>(type: 'customDouble', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomDoubleFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    fragmentWithType<T>(type: 'customUuid', typeName: string, required: 'required', adapter?: TypeAdapter): CustomUuidFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    fragmentWithType<T>(type: 'customUuid', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomUuidFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    fragmentWithType<T>(type: 'customLocalDate', typeName: string, required: 'required', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    fragmentWithType<T>(type: 'customLocalDate', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomLocalDateFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    fragmentWithType<T>(type: 'customLocalTime', typeName: string, required: 'required', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    fragmentWithType<T>(type: 'customLocalTime', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomLocalTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    fragmentWithType<T>(type: 'customLocalDateTime', typeName: string, required: 'required', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    fragmentWithType<T>(type: 'customLocalDateTime', typeName: string, required: 'optional', adapter?: TypeAdapter): CustomLocalDateTimeFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    fragmentWithType<T>(type: 'enum', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    fragmentWithType<T>(type: 'enum', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    fragmentWithType<T>(type: 'custom', typeName: string, required: 'required', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    fragmentWithType<T>(type: 'custom', typeName: string, required: 'optional', adapter?: TypeAdapter): EqualableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional'>
+    fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): ComparableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'required'>
+    fragmentWithType<T>(type: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): ComparableFragmentExpression<NNoTableOrViewRequired<DB>, T, T, 'optional'>
     fragmentWithType(type: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any {
         if (typeof adapter === 'string') {
             type = required
@@ -735,47 +738,56 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     }
 
     protected buildFragmentWithArgs(): FragmentBuilder0<DB>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilder1<DB, A1>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilder2<DB, A1, A2>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilder3<DB, A1, A2, A3>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4<DB, A1, A2, A3, A4>
-    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5<DB, A1, A2, A3, A4, A5>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilder1<NNoTableOrViewRequired<DB>, A1>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilder2<NNoTableOrViewRequired<DB>, A1, A2>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilder3<NNoTableOrViewRequired<DB>, A1, A2, A3>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4<NNoTableOrViewRequired<DB>, A1, A2, A3, A4>
+    protected buildFragmentWithArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5<NNoTableOrViewRequired<DB>, A1, A2, A3, A4, A5>
     protected buildFragmentWithArgs(...args: Argument<any, any, any, any>[]): any {
         return new FragmentFunctionBuilder(args)
     }
 
     protected buildFragmentWithArgsIfValue(): FragmentBuilder0IfValue<DB>
-    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilder1IfValue<DB, A1>
-    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilder2IfValue<DB, A1, A2>
-    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilder3IfValue<DB, A1, A2, A3>
-    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4IfValue<DB, A1, A2, A3, A4>
-    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5IfValue<DB, A1, A2, A3, A4, A5>
+    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilder1IfValue<NNoTableOrViewRequired<DB>, A1>
+    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilder2IfValue<NNoTableOrViewRequired<DB>, A1, A2>
+    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilder3IfValue<NNoTableOrViewRequired<DB>, A1, A2, A3>
+    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilder4IfValue<NNoTableOrViewRequired<DB>, A1, A2, A3, A4>
+    protected buildFragmentWithArgsIfValue<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilder5IfValue<NNoTableOrViewRequired<DB>, A1, A2, A3, A4, A5>
     protected buildFragmentWithArgsIfValue(...args: Argument<any, any, any, any>[]): any {
         return new FragmentFunctionBuilderIfValue(this as any, args) // make this protected fields as public
     }
 
     protected buildFragmentWithMaybeOptionalArgs(): FragmentBuilderMaybeOptional0<DB>
-    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilderMaybeOptional1<DB, A1>
-    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilderMaybeOptional2<DB, A1, A2>
-    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilderMaybeOptional3<DB, A1, A2, A3>
-    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilderMaybeOptional4<DB, A1, A2, A3, A4>
-    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilderMaybeOptional5<DB, A1, A2, A3, A4, A5>
+    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>>(a1: A1): FragmentBuilderMaybeOptional1<NNoTableOrViewRequired<DB>, A1>
+    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>>(a1: A1, a2: A2): FragmentBuilderMaybeOptional2<NNoTableOrViewRequired<DB>, A1, A2>
+    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3): FragmentBuilderMaybeOptional3<NNoTableOrViewRequired<DB>, A1, A2, A3>
+    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4): FragmentBuilderMaybeOptional4<NNoTableOrViewRequired<DB>, A1, A2, A3, A4>
+    protected buildFragmentWithMaybeOptionalArgs<A1 extends Argument<any, any, any, any>, A2 extends Argument<any, any, any, any>, A3 extends Argument<any, any, any, any>, A4 extends Argument<any, any, any, any>, A5 extends Argument<any, any, any, any>>(a1: A1, a2: A2, a3: A3, a4: A4, a5: A5): FragmentBuilderMaybeOptional5<NNoTableOrViewRequired<DB>, A1, A2, A3, A4, A5>
     protected buildFragmentWithMaybeOptionalArgs(...args: Argument<any, any, any, any>[]): any {
         return new FragmentFunctionBuilderMaybeOptional(this as any, args)
     }
 
-    rawFragment(sql: TemplateStringsArray, ...params: Array<ValueSourceOfDB<DB> | IExecutableSelectQuery<DB, any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): RawFragment<DB> {
+    rawFragment(sql: TemplateStringsArray): RawFragment<NNoTableOrViewRequired<DB>>
+    rawFragment<T1 extends NSource>(sql: TemplateStringsArray, p1: RawFragmentArg<T1, DB>): RawFragment<T1>
+    rawFragment<T1 extends NSource, T2 extends NSource>(sql: TemplateStringsArray, p1: RawFragmentArg<T1, DB>, p2: RawFragmentArg<T2, DB>): RawFragment<T1 | T2>
+    rawFragment<T1 extends NSource, T2 extends NSource, T3 extends NSource>(sql: TemplateStringsArray, p1: RawFragmentArg<T1, DB>, p2: RawFragmentArg<T2, DB>, p3: RawFragmentArg<T3, DB>): RawFragment<T1 | T2 | T3>
+    rawFragment<T1 extends NSource, T2 extends NSource, T3 extends NSource, T4 extends NSource>(sql: TemplateStringsArray, p1: RawFragmentArg<T1, DB>, p2: RawFragmentArg<T2, DB>, p3: RawFragmentArg<T3, DB>, p4: RawFragmentArg<T4, DB>): RawFragment<T1 | T2 | T3 | T4>
+    rawFragment<T1 extends NSource, T2 extends NSource, T3 extends NSource, T4 extends NSource, T5 extends NSource>(sql: TemplateStringsArray, p1: RawFragmentArg<T1, DB>, p2: RawFragmentArg<T2, DB>, p3: RawFragmentArg<T3, DB>, p4: RawFragmentArg<T4, DB>, p5: RawFragmentArg<T5, DB>): RawFragment<T1 | T2 | T3 | T4 | T5>
+    rawFragment<T1 extends NSource, T2 extends NSource, T3 extends NSource, T4 extends NSource, T5 extends NSource, T6 extends NSource>(sql: TemplateStringsArray, p1: RawFragmentArg<T1, DB>, p2: RawFragmentArg<T2, DB>, p3: RawFragmentArg<T3, DB>, p4: RawFragmentArg<T4, DB>, p5: RawFragmentArg<T5, DB>, p6: RawFragmentArg<T6, DB>): RawFragment<T1 | T2 | T3 | T4 | T5 | T6>
+    rawFragment<T1 extends NSource, T2 extends NSource, T3 extends NSource, T4 extends NSource, T5 extends NSource, T6 extends NSource, T7 extends NSource>(sql: TemplateStringsArray, p1: RawFragmentArg<T1, DB>, p2: RawFragmentArg<T2, DB>, p3: RawFragmentArg<T3, DB>, p4: RawFragmentArg<T4, DB>, p5: RawFragmentArg<T5, DB>, p6: RawFragmentArg<T6, DB>, p7: RawFragmentArg<T7, DB>): RawFragment<T1 | T2 | T3 | T4 | T5 | T6 | T7>
+    rawFragment<T extends NSource>(sql: TemplateStringsArray, ...p: Array<RawFragmentArg<T, DB>>): RawFragment<T>
+    rawFragment(sql: TemplateStringsArray, ...params: any): RawFragment<any> {
         return new RawFragmentImpl(sql, params)
     }
 
-    protected createTableOrViewCustomization(fn: (table: ValueSourceOf<NoTableOrViewRequired<DB>>, alias: ValueSourceOf<NoTableOrViewRequired<DB>>) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>)
-    protected createTableOrViewCustomization<P1>(fn: (table: ValueSourceOf<NoTableOrViewRequired<DB>>, alias: ValueSourceOf<NoTableOrViewRequired<DB>>, p1: P1) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME, p1: P1) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>)
-    protected createTableOrViewCustomization<P1, P2>(fn: (table: ValueSourceOf<NoTableOrViewRequired<DB>>, alias: ValueSourceOf<NoTableOrViewRequired<DB>>, p1: P1, p2: P2) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME, p1: P1, p2: P2) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>)
-    protected createTableOrViewCustomization<P1, P2, P3>(fn: (table: ValueSourceOf<NoTableOrViewRequired<DB>>, alias: ValueSourceOf<NoTableOrViewRequired<DB>>, p1: P1, p2: P2, p3: P3) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME, p1: P1, p2: P2, p3: P3) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>)
-    protected createTableOrViewCustomization<P1, P2, P3, P4>(fn: (table: ValueSourceOf<NoTableOrViewRequired<DB>>, alias: ValueSourceOf<NoTableOrViewRequired<DB>>, p1: P1, p2: P2, p3: P3, p4: P4) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME, p1: P1, p2: P2, p3: P3, p4: P4) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>)
-    protected createTableOrViewCustomization<P1, P2, P3, P4, P5>(fn: (table: ValueSourceOf<NoTableOrViewRequired<DB>>, alias: ValueSourceOf<NoTableOrViewRequired<DB>>, p1: P1, p2: P2, p3: P3, p4: P4, p5: P5) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME, p1: P1, p2: P2, p3: P3, p4: P4, p5: P5) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>)
-    protected createTableOrViewCustomization(fn: (table: ValueSourceOf<NoTableOrViewRequired<DB>>, alias: ValueSourceOf<NoTableOrViewRequired<DB>>, ...params: any[]) => RawFragment<DB>): (<TABLE_OR_VIEW extends ITableOrViewOf<DB, any>, NAME extends string>(tableOrView: TABLE_OR_VIEW, name: NAME, ...params: any[]) => CustomizedTableOrView<TABLE_OR_VIEW, NAME>) {
-        return (tableOrView: ITableOrViewOf<DB, any>, name: string, ...params: any[]) => {
+    protected createTableOrViewCustomization(fn: (table: ValueSourceOf<NNoTableOrViewRequired<DB>>, alias: ValueSourceOf<NNoTableOrViewRequired<DB>>) => RawFragment<NNoTableOrViewRequired<DB>>): (<T extends ITableOrView<any>, NAME extends string>(tableOrView: T & SameDB<DB>, name: NAME) => CustomizedTableOrView<T, NAME>)
+    protected createTableOrViewCustomization<P1>(fn: (table: ValueSourceOf<NNoTableOrViewRequired<DB>>, alias: ValueSourceOf<NNoTableOrViewRequired<DB>>, p1: P1) => RawFragment<NNoTableOrViewRequired<DB>>): (<T extends ITableOrView<any>, NAME extends string>(tableOrView: T & SameDB<DB>, name: NAME, p1: P1) => CustomizedTableOrView<T, NAME>)
+    protected createTableOrViewCustomization<P1, P2>(fn: (table: ValueSourceOf<NNoTableOrViewRequired<DB>>, alias: ValueSourceOf<NNoTableOrViewRequired<DB>>, p1: P1, p2: P2) => RawFragment<NNoTableOrViewRequired<DB>>): (<T extends ITableOrView<any>, NAME extends string>(tableOrView: T & SameDB<DB>, name: NAME, p1: P1, p2: P2) => CustomizedTableOrView<T, NAME>)
+    protected createTableOrViewCustomization<P1, P2, P3>(fn: (table: ValueSourceOf<NNoTableOrViewRequired<DB>>, alias: ValueSourceOf<NNoTableOrViewRequired<DB>>, p1: P1, p2: P2, p3: P3) => RawFragment<NNoTableOrViewRequired<DB>>): (<T extends ITableOrView<any>, NAME extends string>(tableOrView: T & SameDB<DB>, name: NAME, p1: P1, p2: P2, p3: P3) => CustomizedTableOrView<T, NAME>)
+    protected createTableOrViewCustomization<P1, P2, P3, P4>(fn: (table: ValueSourceOf<NNoTableOrViewRequired<DB>>, alias: ValueSourceOf<NNoTableOrViewRequired<DB>>, p1: P1, p2: P2, p3: P3, p4: P4) => RawFragment<NNoTableOrViewRequired<DB>>): (<T extends ITableOrView<any>, NAME extends string>(tableOrView: T & SameDB<DB>, name: NAME, p1: P1, p2: P2, p3: P3, p4: P4) => CustomizedTableOrView<T, NAME>)
+    protected createTableOrViewCustomization<P1, P2, P3, P4, P5>(fn: (table: ValueSourceOf<NNoTableOrViewRequired<DB>>, alias: ValueSourceOf<NNoTableOrViewRequired<DB>>, p1: P1, p2: P2, p3: P3, p4: P4, p5: P5) => RawFragment<NNoTableOrViewRequired<DB>>): (<T extends ITableOrView<any>, NAME extends string>(tableOrView: T & SameDB<DB>, name: NAME, p1: P1, p2: P2, p3: P3, p4: P4, p5: P5) => CustomizedTableOrView<T, NAME>)
+    protected createTableOrViewCustomization(fn: (table: ValueSourceOf<NNoTableOrViewRequired<DB>>, alias: ValueSourceOf<NNoTableOrViewRequired<DB>>, ...params: any[]) => RawFragment<NNoTableOrViewRequired<DB>>): (<T extends ITableOrView<any>, NAME extends string>(tableOrView: T, name: NAME, ...params: any[]) => CustomizedTableOrView<T, NAME>) {
+        return (tableOrView: ITableOrView<any>, name: string, ...params: any[]) => {
             const as = __getTableOrViewPrivate(tableOrView).__as
             const result = (tableOrView as any).as(as)
             const table = new TableOrViewRawFragmentValueSource(result, '_rawFragmentTableName')
@@ -788,89 +800,86 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
         }
     }
 
-    noValueBoolean<TABLE_OR_VIEW extends ITableOrViewOf<DB, any> = NoTableOrViewRequiredView<DB>>(): IfValueSource<TABLE_OR_VIEW[typeof tableOrViewRef], 'required'> {
+    noValueBoolean(): IfValueSource<NNoTableOrViewRequired<DB>, 'required'> {
         return new SqlOperationValueSourceIfValueAlwaysNoop()
     }
 
-    dynamicBooleanExpressionUsing<REF extends ITableOrViewRef<DB>>(table: ITableOrView<REF>): AlwaysIfValueSource<REF | NoTableOrViewRequired<DB>, any>
-    dynamicBooleanExpressionUsing<REF1 extends ITableOrViewRef<DB>, REF2 extends ITableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>): AlwaysIfValueSource<REF1 | REF2 | NoTableOrViewRequired<DB>, any>
-    dynamicBooleanExpressionUsing<REF1 extends ITableOrViewRef<DB>, REF2 extends ITableOrViewRef<DB>, REF3 extends ITableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>, table3: ITableOrView<REF3>): AlwaysIfValueSource<REF1 | REF2 | REF3 | NoTableOrViewRequired<DB>, any>
-    dynamicBooleanExpressionUsing<REF1 extends ITableOrViewRef<DB>, REF2 extends ITableOrViewRef<DB>, REF3 extends ITableOrViewRef<DB>, REF4 extends ITableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>, table3: ITableOrView<REF3>, table4: ITableOrView<REF4>): AlwaysIfValueSource<REF1 | REF2 | REF3 | REF4 | NoTableOrViewRequired<DB>, any>
-    dynamicBooleanExpressionUsing<REF1 extends ITableOrViewRef<DB>, REF2 extends ITableOrViewRef<DB>, REF3 extends ITableOrViewRef<DB>, REF4 extends ITableOrViewRef<DB>, REF5 extends ITableOrViewRef<DB>>(table1: ITableOrView<REF1>, table2: ITableOrView<REF2>, table3: ITableOrView<REF3>, table4: ITableOrView<REF4>, table5: ITableOrView<REF5>): AlwaysIfValueSource<REF1 | REF2 | REF3 | REF4 | REF5 | NoTableOrViewRequired<DB>, any>
+    dynamicBooleanExpressionUsing<SOURCE extends NSource>(table: ITableOrView<SOURCE> & SameDB<DB>): AlwaysIfValueSource<SOURCE | NNoTableOrViewRequired<DB>, any>
+    dynamicBooleanExpressionUsing<S1 extends NSource, S2 extends NSource>(table1: ITableOrView<S1> & SameDB<DB>, table2: ITableOrView<S2> & SameDB<DB>): AlwaysIfValueSource<S1 | S2 | NNoTableOrViewRequired<DB>, any>
+    dynamicBooleanExpressionUsing<S1 extends NSource, S2 extends NSource, S3 extends NSource>(table1: ITableOrView<S1> & SameDB<DB>, table2: ITableOrView<S2> & SameDB<DB>, table3: ITableOrView<S3> & SameDB<DB>): AlwaysIfValueSource<S1 | S2 | S3 | NNoTableOrViewRequired<DB>, any>
+    dynamicBooleanExpressionUsing<S1 extends NSource, S2 extends NSource, S3 extends NSource, S4 extends NSource>(table1: ITableOrView<S1> & SameDB<DB>, table2: ITableOrView<S2> & SameDB<DB>, table3: ITableOrView<S3> & SameDB<DB>, table4: ITableOrView<S4> & SameDB<DB>): AlwaysIfValueSource<S1 | S2 | S3 | S4 | NNoTableOrViewRequired<DB>, any>
+    dynamicBooleanExpressionUsing<S1 extends NSource, S2 extends NSource, S3 extends NSource, S4 extends NSource, S5 extends NSource>(table1: ITableOrView<S1> & SameDB<DB>, table2: ITableOrView<S2> & SameDB<DB>, table3: ITableOrView<S3> & SameDB<DB>, table4: ITableOrView<S4> & SameDB<DB>, table5: ITableOrView<S5> & SameDB<DB>): AlwaysIfValueSource<S1 | S2 | S3 | S4 | S5 | NNoTableOrViewRequired<DB>, any>
     dynamicBooleanExpressionUsing(..._tables: any[]): AlwaysIfValueSource<any, any> {
         return new SqlOperationValueSourceIfValueAlwaysNoop()
     }
 
     // Agregate functions
-    countAll(): NumberValueSource<NoTableOrViewRequired<DB>, 'required'>
-    countAll(): ValueSourceOf<NoTableOrViewRequired<DB>> {
+    countAll(): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'> {
         return new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
     }
-    count<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): NumberValueSource<TABLE_OR_VIEW, 'required'>
-    count<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<NoTableOrViewRequired<DB>> {
+    count<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB>): NumberValueSource<SOURCE, 'required'> {
         return new AggregateFunctions1ValueSource('_count', value, 'int', 'int', 'required', undefined)
     }
-    countDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): NumberValueSource<TABLE_OR_VIEW, 'required'>
-    countDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<NoTableOrViewRequired<DB>> {
+    countDistinct<SOURCE extends NSource>(value: ValueSourceOf<SOURCE> & SameDB<DB>): NumberValueSource<SOURCE, 'required'> {
         return new AggregateFunctions1ValueSource('_countDistinct', value, 'int', 'int', 'required', undefined)
     }
-    max<TYPE extends IComparableValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): RemapValueSourceTypeWithOptionalType<TYPE[typeof tableOrView], TYPE, 'optional'> {
+    max<TYPE extends IComparableValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source], TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource('_max', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)) as any
     }
-    min<TYPE extends IComparableValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): RemapValueSourceTypeWithOptionalType<TYPE[typeof tableOrView], TYPE, 'optional'> {
+    min<TYPE extends IComparableValueSource<NSource, any, any, any>>(value: TYPE & SameDB<DB>): RemapValueSourceTypeWithOptionalType<TYPE[typeof source], TYPE, 'optional'> {
         const valuePrivate = __getValueSourcePrivate(value)
         return (new AggregateFunctions1ValueSource('_min', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)) as any
     }
-    sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
-    sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
-    sum<TYPE extends ICustomIntValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomIntValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
-    sum<TYPE extends ICustomDoubleValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomDoubleValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
-    sum<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
+    sum<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB>): NumberValueSource<SOURCE, 'optional'>
+    sum<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB>): BigintValueSource<SOURCE, 'optional'>
+    sum<TYPE extends ICustomIntValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomIntValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    sum<TYPE extends ICustomDoubleValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomDoubleValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    sum(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_sum', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
-    sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
-    sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
-    sumDistinct<TYPE extends ICustomIntValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomIntValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
-    sumDistinct<TYPE extends ICustomDoubleValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomDoubleValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
-    sumDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
+    sumDistinct<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB>): NumberValueSource<SOURCE, 'optional'>
+    sumDistinct<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB>): BigintValueSource<SOURCE, 'optional'>
+    sumDistinct<TYPE extends ICustomIntValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomIntValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    sumDistinct<TYPE extends ICustomDoubleValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomDoubleValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    sumDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_sumDistinct', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
-    average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
-    average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
-    average<TYPE extends ICustomIntValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomIntValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
-    average<TYPE extends ICustomDoubleValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomDoubleValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
-    average<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
+    average<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB>): NumberValueSource<SOURCE, 'optional'>
+    average<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB>): BigintValueSource<SOURCE, 'optional'>
+    average<TYPE extends ICustomIntValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomIntValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    average<TYPE extends ICustomDoubleValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomDoubleValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    average(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_average', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
-    averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: INumberValueSource<TABLE_OR_VIEW, any>): NumberValueSource<TABLE_OR_VIEW, 'optional'>
-    averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IBigintValueSource<TABLE_OR_VIEW, any>): BigintValueSource<TABLE_OR_VIEW, 'optional'>
-    averageDistinct<TYPE extends ICustomIntValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomIntValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
-    averageDistinct<TYPE extends ICustomDoubleValueSource<ITableOrViewRef<DB>, any, any, any>>(value: TYPE): CustomDoubleValueSource<TYPE[typeof tableOrView], TYPE[typeof valueType], TYPE[typeof valueSourceTypeName], 'optional'>
-    averageDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>): ValueSourceOf<TABLE_OR_VIEW> {
+    averageDistinct<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB>): NumberValueSource<SOURCE, 'optional'>
+    averageDistinct<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB>): BigintValueSource<SOURCE, 'optional'>
+    averageDistinct<TYPE extends ICustomIntValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomIntValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    averageDistinct<TYPE extends ICustomDoubleValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomDoubleValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    averageDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_averageDistinct', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
-    stringConcat<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>): StringValueSource<TABLE_OR_VIEW, 'optional'>
-    stringConcat<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>, separator: string): StringValueSource<TABLE_OR_VIEW, 'optional'>
-    stringConcat<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>, separator?: string): ValueSourceOf<TABLE_OR_VIEW> {
+    stringConcat<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB>): StringValueSource<SOURCE, 'optional'>
+    stringConcat<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB>, separator: string): StringValueSource<SOURCE, 'optional'>
+    stringConcat(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcat', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
-    stringConcatDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>): StringValueSource<TABLE_OR_VIEW, 'optional'>
-    stringConcatDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: IStringValueSource<TABLE_OR_VIEW, any>, separator: string): StringValueSource<TABLE_OR_VIEW, 'optional'>
-    stringConcatDistinct<TABLE_OR_VIEW extends ITableOrViewRef<DB>>(value: ValueSourceOf<TABLE_OR_VIEW>, separator?: string): ValueSourceOf<TABLE_OR_VIEW> {
+    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB>): StringValueSource<SOURCE, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB>, separator: string): StringValueSource<SOURCE, 'optional'>
+    stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
 
-    aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<TableOrViewOfAggregatedArray<COLUMNS>, Array<{ [P in keyof InnerResultObjectValuesForAggregatedArray<COLUMNS>]: InnerResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>]: InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>[P] }>, 'required'> {
+    aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS>, Array<{ [P in keyof InnerResultObjectValuesForAggregatedArray<COLUMNS>]: InnerResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>]: InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>[P] }>, 'required'> {
         return new AggregateValueAsArrayValueSource(columns, 'InnerResultObject', 'required')
     }
-    aggregateAsArrayOfOneColumn<VALUE extends IValueSource<ITableOrViewRef<DB>, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof tableOrView], Array<VALUE[typeof valueType]>, 'required'> {
+    aggregateAsArrayOfOneColumn<VALUE extends IValueSource<any, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof source], Array<VALUE[typeof valueType]>, 'required'> {
         return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required')
     }
 
@@ -1209,59 +1218,61 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
 
 }
 
+export type RawFragmentArg<T extends NSource, DB extends NDB> = HasSource<T> & SameDB<DB> & (AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>)
+
 export interface TransactionIsolationLevel {
     [transactionIsolationLevel]: 'transactionIsolationLevel'
 }
 
-type AggregatedArrayColumns<DB extends AnyDB> = {
-    [P: string]: ValueSourceOfDB<DB> | AggregatedArrayColumns<DB>
+type AggregatedArrayColumns<DB extends NDB> = {
+    [P: string]: ValueSourceOf<NWithDB<DB>> | AggregatedArrayColumns<DB>
 }
 
 // Handled in a maximum of 12 levels to avoid infinite instantiation in TypeScript
-type TableOrViewOfAggregatedArray<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray2<TYPE[KEY]>
+type SourceOfAggregatedArray<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray2<TYPE[KEY]>
 })[keyof TYPE]
 
-type TableOrViewOfAggregatedArray2<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray3<TYPE[KEY]>
+type SourceOfAggregatedArray2<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray3<TYPE[KEY]>
 })[keyof TYPE]
 
-type TableOrViewOfAggregatedArray3<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray4<TYPE[KEY]>
+type SourceOfAggregatedArray3<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray4<TYPE[KEY]>
 })[keyof TYPE]
 
-type TableOrViewOfAggregatedArray4<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray5<TYPE[KEY]>
+type SourceOfAggregatedArray4<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray5<TYPE[KEY]>
 })[keyof TYPE]
 
-type TableOrViewOfAggregatedArray5<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray6<TYPE[KEY]>
+type SourceOfAggregatedArray5<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray6<TYPE[KEY]>
 })[keyof TYPE]
 
-type TableOrViewOfAggregatedArray6<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray7<TYPE[KEY]>
+type SourceOfAggregatedArray6<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray7<TYPE[KEY]>
 })[keyof TYPE]
 
-type TableOrViewOfAggregatedArray7<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray8<TYPE[KEY]>
+type SourceOfAggregatedArray7<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray8<TYPE[KEY]>
 })[keyof TYPE]
 
-type TableOrViewOfAggregatedArray8<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray9<TYPE[KEY]>
+type SourceOfAggregatedArray8<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray9<TYPE[KEY]>
 })[keyof TYPE]
 
-type TableOrViewOfAggregatedArray9<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray10<TYPE[KEY]>
+type SourceOfAggregatedArray9<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray10<TYPE[KEY]>
 })[keyof TYPE]
 
-type TableOrViewOfAggregatedArray10<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray11<TYPE[KEY]>
+type SourceOfAggregatedArray10<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray11<TYPE[KEY]>
 })[keyof TYPE]
 
-type TableOrViewOfAggregatedArray11<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : TableOrViewOfAggregatedArray12<TYPE[KEY]>
+type SourceOfAggregatedArray11<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray12<TYPE[KEY]>
 })[keyof TYPE]
 
-type TableOrViewOfAggregatedArray12<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer TABLE_OR_VIEW> ? TABLE_OR_VIEW : never
+type SourceOfAggregatedArray12<TYPE> = ({
+    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : never
 })[keyof TYPE]

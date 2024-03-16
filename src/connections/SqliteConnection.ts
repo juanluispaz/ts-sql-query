@@ -1,10 +1,10 @@
+import type { NConnection } from "../utils/sourceName"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import { SqliteSqlBuilder } from "../sqlBuilders/SqliteSqlBuilder"
-import type { DB } from "../typeMarks/SqliteDB"
 import { AbstractConnection } from "./AbstractConnection"
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "./SqliteConfiguration"
 
-export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<DB<NAME>> {
+export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<NConnection<'sqlite', NAME>> {
 
     protected uuidStrategy: 'string' | 'uuid-extension' = 'uuid-extension'
 

@@ -1,18 +1,18 @@
 import { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from "../expressions/values"
 import { SqlBuilder, ToSql } from "../sqlBuilders/SqlBuilder"
 import { Column } from "../utils/Column"
-import { HasAddWiths, HasIsValue, ITableOrView, IWithView, __addWiths, __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import { RawFragment } from "../utils/RawFragment"
-import { database, rawFragment } from "../utils/symbols"
+import { AnyTableOrView, HasAddWiths, HasIsValue, IWithView, __addWiths, __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
+import type { RawFragment } from "../utils/RawFragment"
+import { source, type } from "../utils/symbols"
 
 export class RawFragmentImpl implements RawFragment<any>, HasAddWiths, ToSql {
-    [rawFragment]!: "rawFragment"
-    [database]: any
+    [type]!: "rawFragment"
+    [source]: any
 
     __template: TemplateStringsArray
-    __params: Array<AnyValueSource | IExecutableSelectQuery<any, any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>
+    __params: Array<AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>
 
-    constructor(template: TemplateStringsArray, params: Array<AnyValueSource | IExecutableSelectQuery<any, any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>) {
+    constructor(template: TemplateStringsArray, params: Array<AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>) {
         this.__template = template
         this.__params = params
     }
@@ -29,19 +29,19 @@ export class RawFragmentImpl implements RawFragment<any>, HasAddWiths, ToSql {
             __addWiths(params[i], sqlBuilder, withs)
         }
     }
-    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
         const params = this.__params
         for (let i = 0, length = params.length; i < length; i++) {
             __registerTableOrView(params[i], sqlBuilder, requiredTablesOrViews)
         }
     }
-    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
         const params = this.__params
         for (let i = 0, length = params.length; i < length; i++) {
             __registerRequiredColumn(params[i], sqlBuilder, requiredColumns, onlyForTablesOrViews)
         }
     }
-    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+    __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         const params = this.__params
         for (let i = 0, length = params.length; i < length; i++) {
             const result = __getOldValues(params[i], sqlBuilder)
@@ -51,7 +51,7 @@ export class RawFragmentImpl implements RawFragment<any>, HasAddWiths, ToSql {
         }
         return undefined
     }
-    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+    __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         const params = this.__params
         for (let i = 0, length = params.length; i < length; i++) {
             const result = __getValuesForInsert(params[i], sqlBuilder)

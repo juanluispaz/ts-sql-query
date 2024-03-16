@@ -4,7 +4,7 @@ import { AnyValueSource, isValueSource, __AggregatedArrayColumns, ValueType } fr
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
-import { ITableOrView } from "../utils/ITableOrView"
+import { AnyTableOrView } from "../utils/ITableOrView"
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from "../internal/ValueSourceImpl"
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
@@ -328,7 +328,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
-    _buildUpdateFrom(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: Set<ITableOrView<any>> | undefined, _requiredColumns: Set<Column> | undefined, _params: any[]): string {
+    _buildUpdateFrom(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: Set<AnyTableOrView> | undefined, _requiredColumns: Set<Column> | undefined, _params: any[]): string {
         return ''
     }
     _buidDeleteUsing(query: DeleteData, params: any[]): string {

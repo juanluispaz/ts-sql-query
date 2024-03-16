@@ -1,10 +1,10 @@
+import type { NConnection } from "../utils/sourceName"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import { OracleSqlBuilder } from "../sqlBuilders/OracleSqlBuilder"
-import type { DB } from "../typeMarks/OracleDB"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
 import { TransactionIsolationLevel } from "./AbstractConnection"
 
-export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<DB<NAME>> {
+export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'oracle', NAME>> {
 
     protected uuidStrategy: 'string' | 'custom-functions' = 'custom-functions'
 

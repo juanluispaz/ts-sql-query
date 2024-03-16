@@ -1,4 +1,4 @@
-import type { ITableOrView, ITable, IWithView, HasIsValue } from "../utils/ITableOrView"
+import type { ITable, IWithView, HasIsValue, AnyTableOrView } from "../utils/ITableOrView"
 import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, isValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, IStringValueSource, __getValueSourcePrivate, ValueType } from "../expressions/values"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode, SelectCustomization } from "../expressions/select"
@@ -9,7 +9,7 @@ import type { UpdateCustomization } from "../expressions/update"
 import type { DeleteCustomization } from "../expressions/delete"
 import type { InsertCustomization } from "../expressions/insert"
 import type { isSelectQueryObject } from "../utils/symbols"
-import { RawFragment } from "../utils/RawFragment"
+import type { RawFragment } from "../utils/RawFragment"
 
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
 export type FlatQueryColumns = { [property: string]: AnyValueSource }
@@ -87,7 +87,7 @@ export interface WithValuesData {
     __name: string
     __as?: string
     __values: any[]
-    __getTableOrView(): ITableOrView<any>
+    __getTableOrView(): AnyTableOrView
 }
 
 export type WithData = WithSelectData | WithValuesData
@@ -106,15 +106,15 @@ export function getWithData(withView: IWithView<any>): WithData {
 
 export interface JoinData {
     __joinType: 'join' | 'innerJoin' | 'leftJoin' | 'leftOuterJoin'
-    __tableOrView: ITableOrView<any>
+    __tableOrView: AnyTableOrView
     __on?: AlwaysIfValueSource<any, any>
     __optional?: boolean
 }
 
 export interface WithQueryData {
     __withs: Array<IWithView<any>>
-    __customization?: SelectCustomization<any>
-    __subSelectUsing?: Array<ITableOrView<any>>
+    __customization?: SelectCustomization<any, any>
+    __subSelectUsing?: Array<AnyTableOrView>
 }
 
 export type OrderByEntry = {
@@ -130,7 +130,7 @@ export interface PlainSelectData extends WithQueryData {
     __distinct: boolean
     __columns: QueryColumns
     __oneColumn: boolean
-    __tablesOrViews: Array<ITableOrView<any>>
+    __tablesOrViews: Array<AnyTableOrView>
     __joins: Array<JoinData>
     __where?: AlwaysIfValueSource<any, any>
     __startWith?: AlwaysIfValueSource<any, any> // Oracle
@@ -142,7 +142,7 @@ export interface PlainSelectData extends WithQueryData {
     __orderingSiblingsOnly?: boolean // Oracle
     __limit?: number | INumberValueSource<any, any>
     __offset?: number | INumberValueSource<any, any>
-    __requiredTablesOrViews?: Set<ITableOrView<any>>
+    __requiredTablesOrViews?: Set<AnyTableOrView>
     __asInlineAggregatedArrayValue?: boolean
 }
 
@@ -170,7 +170,7 @@ export interface InsertData extends WithQueryData {
     __multiple?: { [property: string]: any }[]
     __idColumn?: Column
     __from?: SelectData
-    __customization?: InsertCustomization<any>
+    __customization?: InsertCustomization<any, any>
     __columns?: QueryColumns
     __onConflictOnConstraint?: string | IStringValueSource<any, any> | RawFragment<any>
     __onConflictOnColumns?: AnyValueSource[]
@@ -179,7 +179,7 @@ export interface InsertData extends WithQueryData {
     __onConflictUpdateShape?: { [property: string] : string }
     __onConflictUpdateSets?: { [property: string]: any }
     __onConflictUpdateWhere?: AlwaysIfValueSource<any, any>
-    __valuesForInsert?: ITableOrView<any>
+    __valuesForInsert?: AnyTableOrView
 }
 
 export interface UpdateData extends WithQueryData {
@@ -188,10 +188,10 @@ export interface UpdateData extends WithQueryData {
     __sets: { [property: string] : any}
     __where?: AlwaysIfValueSource<any, any>
     __allowNoWhere: boolean
-    __customization?: UpdateCustomization<any>
+    __customization?: UpdateCustomization<any, any>
     __columns?: QueryColumns
-    __oldValues?: ITableOrView<any>
-    __froms?: Array<ITableOrView<any>>
+    __oldValues?: AnyTableOrView
+    __froms?: Array<AnyTableOrView>
     __joins?: Array<JoinData>
 }
 
@@ -199,9 +199,9 @@ export interface DeleteData extends WithQueryData {
     __table: ITable<any>,
     __where?: AlwaysIfValueSource<any, any>
     __allowNoWhere: boolean
-    __customization?: DeleteCustomization<any>
+    __customization?: DeleteCustomization<any, any>
     __columns?: QueryColumns
-    __using?: Array<ITableOrView<any>>
+    __using?: Array<AnyTableOrView>
     __joins?: Array<JoinData>
 }
 
@@ -227,9 +227,9 @@ export interface SqlBuilder extends SqlOperation {
     _generateUnique(): number
     _resetUnique(): void
 
-    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): string
-    _rawFragmentTableName(params: any[], tableOrView: ITableOrView<any>): string
-    _rawFragmentTableAlias(params: any[], tableOrView: ITableOrView<any>): string
+    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): string
+    _rawFragmentTableName(params: any[], tableOrView: AnyTableOrView): string
+    _rawFragmentTableAlias(params: any[], tableOrView: AnyTableOrView): string
 
     _inlineSelectAsValue(query: SelectData, params: any[]): string
     _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string

@@ -1,28 +1,29 @@
 import { SqlBuilder, DeleteData, JoinData, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
-import { HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, OuterJoinSource, __addWiths, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
+import { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView, __addWiths, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import { IBooleanValueSource, IIfValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
-import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, ComposableCustomizableExecutableDeleteProjectableAsNullable } from "../expressions/delete"
+import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, CustomizableExecutableDeleteProjectableAsNullable } from "../expressions/delete"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
-import { database, resultType, tableOrView, type } from "../utils/symbols"
+import { from, resultType, source, type, using } from "../utils/symbols"
 import { asAlwaysIfValueSource } from "../expressions/values"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { AbstractQueryBuilder, __setQueryMetadata } from "./AbstractQueryBuilder"
 import { Column } from "../utils/Column"
 
-export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWiths, ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any>, ExecutableDelete<any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableCustomizableExecutableDelete<any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any>, ComposableCustomizableExecutableDeleteProjectableAsNullable<any, any> {
+export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWiths, ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any, any>, ExecutableDelete<any, any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableCustomizableExecutableDelete<any, any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any>, CustomizableExecutableDeleteProjectableAsNullable<any, any, any> {
+    [source]: any
+    [from]: any
+    [using]: any
     [type]: any
-    [database]: any
-    [tableOrView]: any
     [resultType]: any
 
     __table: ITable<any>
     __where?: AlwaysIfValueSource<any, any>
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
-    __customization?: DeleteCustomization<any>
+    __customization?: DeleteCustomization<any, any>
     //__columns?: QueryColumns // declared at AbstractQueryBuilder
-    __using?: Array<ITableOrView<any>>
+    __using?: Array<AnyTableOrView>
     __joins?: Array<JoinData>
 
     __oneColumn?: boolean
@@ -265,7 +266,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
 
 
 
-    using(table: ITableOrView<any>): any {
+    using(table: AnyTableOrView): any {
         this.__finishJoin()
         this.__query = ''
         if (!this.__using) {
@@ -275,7 +276,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
-    join(table: ITableOrView<any>): any {
+    join(table: AnyTableOrView): any {
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
@@ -288,7 +289,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
-    innerJoin(table: ITableOrView<any>): any {
+    innerJoin(table: AnyTableOrView): any {
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
@@ -301,7 +302,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         __getTableOrViewPrivate(table).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
-    leftJoin(source: OuterJoinSource<any, any>): any {
+    leftJoin(source: ForUseInLeftJoin<any>): any {
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
@@ -314,7 +315,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         __getTableOrViewPrivate(source).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
-    leftOuterJoin(source: OuterJoinSource<any, any>): any {
+    leftOuterJoin(source: ForUseInLeftJoin<any>): any {
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
@@ -355,7 +356,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
 
 
     
-    customizeQuery(customization: DeleteCustomization<any>): this {
+    customizeQuery(customization: DeleteCustomization<any, any>): this {
         this.__finishJoin()
         this.__customization = customization
         __addWiths(customization.beforeQuery, this.__sqlBuilder, this.__withs)
@@ -364,7 +365,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         return this
     }
 
-    returning(columns: DeleteColumns<any, any>): this {
+    returning(columns: DeleteColumns<any>): this {
         this.__finishJoin()
         this.__query = ''
         this.__columns = columns
@@ -392,17 +393,17 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             __getTableOrViewPrivate(withView).__addWiths(sqlBuilder, withs)
         }
     }
-    __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<AnyTableOrView>): void {
         // do nothing because it is not possible to add external dependency
     }
-    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<AnyTableOrView>): void {
         // do nothing because it is not possible to add external dependency
     }
-    __getOldValues(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+    __getOldValues(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         // old values fake table is not possible to be used here
         return undefined
     }
-    __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+    __getValuesForInsert(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         // values for insert fake table is not possible to be used here
         return undefined
     }

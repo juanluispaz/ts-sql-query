@@ -509,7 +509,7 @@ async function main() {
                 firstName: tCustomer.firstName,
                 lastName: tCustomer.lastName
             }).union(
-                connection.subSelectUsing(tCompany).from(tCustomer)
+                connection.selectFrom(tCustomer)
                 .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
                 .select({
                     id: tCustomer.id,
@@ -548,7 +548,7 @@ async function main() {
                 firstName: tCustomer.firstName,
                 lastName: tCustomer.lastName
             }).union(
-                connection.subSelectUsing(tCompany).from(tCustomer)
+                connection.selectFrom(tCustomer)
                 .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
                 .select({
                     id: tCustomer.id,
@@ -581,7 +581,7 @@ async function main() {
             .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
             .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
             .union(
-                connection.subSelectUsing(tCompany).from(tCustomer)
+                connection.selectFrom(tCustomer)
                 .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
                 .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
             )
@@ -611,7 +611,7 @@ async function main() {
             .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
             .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
             .union(
-                connection.subSelectUsing(tCompany).from(tCustomer)
+                connection.selectFrom(tCustomer)
                 .where(tCustomer.companyId.equals(1)) // Outer reference replaced by value
                 .selectOneColumn(tCustomer.firstName.concat(' ').concat(tCustomer.lastName))
             ).orderBy('result')

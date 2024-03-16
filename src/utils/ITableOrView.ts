@@ -1,22 +1,32 @@
-import type { AnyDB } from "../databases"
-import { RawFragment } from "./RawFragment"
-import type { database, noTableOrViewRequired, oldValues, outerJoinAlias, outerJoinDatabase, outerJoinTableOrView, resolvedShape, tableOrView, tableOrViewAlias, tableOrViewCustomName, tableOrViewRef, tableOrViewRefType, type, valuesForInsert } from "./symbols"
+import type { RawFragment } from "./RawFragment"
+import type { NDB, NDBWithType, NDbType, NGetDBFrom, NNoTableOrViewRequired, NSource, NWithSameDB } from "./sourceName"
+import type { isTableOrViewObject, source, type } from "./symbols"
 
-export interface ITableOrViewRef<DB extends AnyDB> {
-    [database]: DB
-    [tableOrViewRefType]: 'tableOrViewRef'
+export interface HasSource</*in|out*/ SOURCE extends NSource> {
+    [source]: SOURCE
 }
 
-export interface OfDB<DB extends AnyDB> {
-    [database]: DB
+export interface AvailableIn</*in|out*/ SOURCE extends NSource> {
+    [source]: SOURCE
 }
 
-export interface ITableOrView<REF extends ITableOrViewRef<AnyDB>> extends OfDB<REF[typeof database]> {
-    [tableOrViewRef]: REF
+export interface OfDB</*in|out*/ DB_TYPE extends NDbType> {
+    [source]: NDBWithType<DB_TYPE>
 }
 
-export interface ITableOrViewOf<DB extends AnyDB, REF extends ITableOrViewRef<DB>> extends ITableOrView<REF> {
-    
+export interface OfSameDB</*in|out*/ SOURCE extends HasSource<any>> {
+    [source]: NWithSameDB<SOURCE[typeof source]>
+}
+
+export interface SameDB</*in|out*/ DB extends NDB> {
+    [source]: NWithSameDB<DB>
+}
+
+export interface AnyTableOrView {
+    [isTableOrViewObject]: true
+}
+
+export interface ITableOrView</*in|out*/ SOURCE extends NSource> extends AnyTableOrView, HasSource<SOURCE> {
 }
 
 // Duplicated here to avoid circular reference
@@ -30,10 +40,10 @@ export interface HasIsValue {
 
 export interface HasAddWiths {
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void
-    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void
-    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void
-    __getOldValues(sqlBuilder: HasIsValue): ITableOrView<any> | undefined
-    __getValuesForInsert(sqlBuilder: HasIsValue): ITableOrView<any> | undefined
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<AnyTableOrView>): void
+    __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined
+    __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined
     __isAllowed(sqlBuilder: HasIsValue): boolean
 }
 
@@ -46,7 +56,7 @@ export function __addWiths(value: any, sqlBuilder: HasIsValue, withs: Array<IWit
     }
 }
 
-export function __registerTableOrView(value: any, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+export function __registerTableOrView(value: any, sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
     if (value === undefined || value === null) {
         return
     }
@@ -55,7 +65,7 @@ export function __registerTableOrView(value: any, sqlBuilder: HasIsValue, requir
     }
 }
 
-export function __registerRequiredColumn(value: any, sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+export function __registerRequiredColumn(value: any, sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
     if (value === undefined || value === null) {
         return
     }
@@ -64,7 +74,7 @@ export function __registerRequiredColumn(value: any, sqlBuilder: HasIsValue, req
     }
 }
 
-export function __getOldValues(value: any, sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+export function __getOldValues(value: any, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
     if (value === undefined || value === null) {
         return undefined
     }
@@ -74,7 +84,7 @@ export function __getOldValues(value: any, sqlBuilder: HasIsValue): ITableOrView
     return undefined
 }
 
-export function __getValuesForInsert(value: any, sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+export function __getValuesForInsert(value: any, sqlBuilder: HasIsValue): AnyTableOrView | undefined {
     if (value === undefined || value === null) {
         return undefined
     }
@@ -95,6 +105,7 @@ export function __isAllowed(value: any, sqlBuilder: HasIsValue): boolean {
 }
 
 export interface __ITableOrViewPrivate extends HasAddWiths {
+    [isTableOrViewObject]: true
     __name: string
     __as?: string
     __type: 'table' | 'view' | 'with' | 'values'
@@ -106,95 +117,51 @@ export interface __ITableOrViewPrivate extends HasAddWiths {
     __hasExternalDependencies?: boolean
 }
 
-export function __getTableOrViewPrivate(table: ITableOrView<any> | OuterJoinSource<any, any>): __ITableOrViewPrivate {
+export function __getTableOrViewPrivate(table: AnyTableOrView | ForUseInLeftJoin<any>): __ITableOrViewPrivate {
     return table as any
 }
 
-export interface ITable<REF extends ITableOrViewRef<AnyDB>> extends ITableOrView<REF>{
+export interface ITable</*in|out*/ SOURCE extends NSource> extends ITableOrView<SOURCE> {
     [type]: 'table'
 }
 
-export interface ITableOf<DB extends AnyDB, REF extends ITableOrViewRef<DB>> extends ITable<REF> {
-    
-}
-
-export interface ITableOfDB<DB extends AnyDB> extends ITable<ITableOrViewRef<DB>> {
-
-}
-
-export interface IView<REF extends ITableOrViewRef<AnyDB>> extends ITableOrView<REF>{
+export interface IView</*in|out*/ SOURCE extends NSource> extends ITableOrView<SOURCE> {
     [type]: 'view'
 }
 
-export interface IValues<REF extends ITableOrViewRef<AnyDB>> extends ITableOrView<REF>{
+export interface IValues</*in|out*/ SOURCE extends NSource> extends ITableOrView<SOURCE> {
     [type]: 'values'
 }
 
-export interface IWithView<REF extends ITableOrViewRef<AnyDB>> extends ITableOrView<REF>{
+export interface IWithView</*in|out*/ SOURCE extends NSource> extends ITableOrView<SOURCE> {
     [type]: 'with'
 }
 
-export interface NoTableOrViewRequired<DB extends AnyDB> extends ITableOrViewRef<DB> {
-    [noTableOrViewRequired]: 'NoTableOrViewRequired'
+export interface ITableOrViewAlias</*in|out*/ SOURCE extends NSource> extends ITableOrView<SOURCE> {
+    [type]: 'tableOrViewAlias'
 }
 
-export interface NoTableOrViewRequiredView<DB extends AnyDB> extends IView<NoTableOrViewRequired<DB>> {
-    [noTableOrViewRequired]: 'NoTableOrViewRequiredView'
+export interface NoTableOrViewRequired</*in|out*/ DB extends NDB> extends IView<NNoTableOrViewRequired<DB>> {
 }
 
-export interface OLD<REF extends ITableOrViewRef<AnyDB>> extends ITableOrViewRef<REF[typeof database]> {
-    [tableOrViewRef]: REF
-    [oldValues]: 'OldValues'
+export type NoTableOrViewRequiredOfSameDB<SOURCE extends HasSource<any>> = NoTableOrViewRequired<NGetDBFrom<SOURCE[typeof source]>>
+
+export interface OldValues</*in|out*/ SOURCE extends NSource> extends HasSource<SOURCE> {
+    [type]: 'oldValues'
 }
 
-export interface OldTableOrView<TABLE_OR_VIEW extends ITableOrView<any>> extends ITableOrView<OLD<TABLE_OR_VIEW[typeof tableOrViewRef]>> {
-    [tableOrView]: TABLE_OR_VIEW
-    [oldValues]: 'OldValuesTableOrView'
+export interface ValuesForInsert</*in|out*/ SOURCE extends NSource> extends HasSource<SOURCE> {
+    [type]: 'valuesForInsert'
 }
 
-export interface VALUES_FOR_INSERT<REF extends ITableOrViewRef<AnyDB>> extends ITableOrViewRef<REF[typeof database]> {
-    [tableOrViewRef]: REF
-    [valuesForInsert]: 'ValuesForInsert'
+export interface ForUseInLeftJoin</*in|out*/ SOURCE extends NSource> extends HasSource<SOURCE> {
+    [type]: 'forUseInLeftJoin'
 }
 
-export interface ValuesForInsertTableOrView<TABLE_OR_VIEW extends ITableOrView<any>> extends ITableOrView<OLD<TABLE_OR_VIEW[typeof tableOrViewRef]>> {
-    [tableOrView]: TABLE_OR_VIEW
-    [valuesForInsert]: 'ValuesForInsertTableOrView'
+export interface ResolvedShape</*in|out*/ SOURCE extends NSource> extends HasSource<SOURCE> {
+    [type]: 'resolvedShape'
 }
 
-export interface TABLE_OR_VIEW_ALIAS<REF extends ITableOrViewRef<AnyDB>, ALIAS> extends ITableOrViewRef<REF[typeof database]> {
-    [tableOrViewAlias]: ALIAS
-    [tableOrViewRef]: REF
-}
-
-export interface CUSTOMIZED_TABLE_OR_VIEW<REF extends ITableOrViewRef<AnyDB>, NAME> extends ITableOrViewRef<REF[typeof database]> {
-    [tableOrViewCustomName]: NAME
-    [tableOrViewRef]: REF
-}
-
-export interface TableOrViewAlias<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> extends ITableOrView<TABLE_OR_VIEW_ALIAS<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>> {
-    [tableOrView]: TABLE_OR_VIEW
-    [tableOrViewAlias]: ALIAS
-}
-
-export interface OuterJoinSource<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> {
-    [outerJoinDatabase]: TABLE_OR_VIEW[typeof database]
-    [outerJoinTableOrView]: TABLE_OR_VIEW
-    [outerJoinAlias]: ALIAS
-}
-
-export interface OUTER_JOIN_SOURCE<REF extends ITableOrViewRef<AnyDB>, ALIAS> extends ITableOrViewRef<REF[typeof database]> {
-    [outerJoinDatabase]: REF[typeof database]
-    [outerJoinTableOrView]: REF
-    [outerJoinAlias]: ALIAS
-}
-
-export interface ITableOrViewOuterJoin<TABLE_OR_VIEW extends ITableOrView<any>, ALIAS> extends ITableOrView<OUTER_JOIN_SOURCE<TABLE_OR_VIEW[typeof tableOrViewRef], ALIAS>> {
-    [tableOrView]: TABLE_OR_VIEW
-    [tableOrViewAlias]: ALIAS
-    [outerJoinAlias]: ALIAS
-}
-
-export interface ResolvedShape<TABLE extends ITableOrView<any>> extends ITableOfDB<TABLE[typeof database]> {
-    [resolvedShape]: 'resolvedShape'
+export interface IRawFragment</*in|out*/ SOURCE extends NSource> extends HasSource<SOURCE> {
+    [type]: 'rawFragment'
 }

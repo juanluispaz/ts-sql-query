@@ -1,8 +1,5 @@
-import { AnyDB } from "../databases"
 import type { AnyValueSource, IValueSource, OptionalType, OptionalTypeRequiredOrAny, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueTypeForRequiredInOptionalObject, ValueSourceValueTypeForObjectResult, ValueSourceValueTypeForOptionalObjectResultSameOuterJoin, ValueSourceValueTypeForNullableObjectResult, ValueSourceValueTypeForRequiredInNullableOptionalObject, ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin } from "../expressions/values"
-import { NoTableOrViewRequired, OUTER_JOIN_SOURCE, ITableOrViewRef } from "./ITableOrView"
-import { database } from "./symbols"
-
+import { NAnyLeftJoin, NNoTableOrViewRequiredFrom, NSource } from "./sourceName"
 // Result
 
 export type ResultObjectValues<COLUMNS> = FixOptionalProperties<{
@@ -19,7 +16,7 @@ export type ResultObjectValuesProjectedAsNullable<COLUMNS> = FixOptionalProperti
         : InnerResultNullableObjectValues<NonNullable<COLUMNS[P]>>
 }>
 
-// Column name considering picking
+// Column name with path structure
 
 export type RequiredColumnNames<T> = T extends AnyValueSource ? 'result' : 'any' extends T ? never : RequiredInnerColumnNames<T, ''> // Discard any cases to avoid "Type instantiation is excessively deep and possibly infinite.ts(2589)"
 type RequiredInnerColumnNames<T, PREFIX extends string> = { [K in keyof T]-?: 
@@ -33,13 +30,11 @@ type RequiredInnerColumnNames<T, PREFIX extends string> = { [K in keyof T]-?:
 
 // Picking
 
-export type RequiredKeysOfPickingColumns<T> = T extends AnyValueSource ? never : { [K in keyof T]-?: {} extends Pick<T, K> ? never : K }[keyof T]
-
 type FixPickableObjectWhereCouldBeNotPicked<RESULT> = // In case all properties in a complex projection can me ommited in a select picked, the object can be absent as well
     undefined extends string ? RESULT // tsc is working with strict mode disabled. There is no way to infer the optional properties. Keep as required is a better approximation.
     : { } extends RESULT ? RESULT | undefined : RESULT
 
-export type FixOptionalProperties<RESULT> = 
+type FixOptionalProperties<RESULT> = 
     undefined extends string ? RESULT // tsc is working with strict mode disabled. There is no way to infer the optional properties. Keep as required is a better approximation.
     : { [P in keyof OptionalMap<RESULT>]: true extends OptionalMap<RESULT> ? RESULT[P] : NonNullable<RESULT[P]>}
 
@@ -65,15 +60,15 @@ type OmittablePropertiesOfProjectedAsNullable<TYPE> = ({ [K in keyof TYPE]-?: un
 
 // For compound
 
-export type ColumnsForCompound<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, COLUMNS> = COLUMNS extends AnyValueSource 
-    ? RemapIValueSourceTypeWithOptionalType<TABLE_OR_VIEW, COLUMNS, CompoundColumnOptionalType<COLUMNS>> 
-    : InnerColumnsForCompound<TABLE_OR_VIEW, COLUMNS>
+export type ColumnsForCompound<SOURCE extends NSource, COLUMNS> = COLUMNS extends AnyValueSource 
+    ? RemapIValueSourceTypeWithOptionalType<SOURCE, COLUMNS, CompoundColumnOptionalType<COLUMNS>> 
+    : InnerColumnsForCompound<SOURCE, COLUMNS>
 
-type InnerColumnsForCompound<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, COLUMNS> =
+type InnerColumnsForCompound<SOURCE extends NSource, COLUMNS> =
     { [K in keyof COLUMNS]: 
         COLUMNS[K] extends AnyValueSource | undefined
-        ? RemapIValueSourceTypeWithOptionalType<TABLE_OR_VIEW, COLUMNS[K], CompoundColumnOptionalType<COLUMNS[K]>> 
-        : InnerColumnsForCompound<TABLE_OR_VIEW, COLUMNS[K]> 
+        ? RemapIValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], CompoundColumnOptionalType<COLUMNS[K]>> 
+        : InnerColumnsForCompound<SOURCE, COLUMNS[K]> 
     }
 
 type CompoundColumnOptionalType<COLUMN> = 
@@ -204,19 +199,19 @@ type InnerObjectIsRequired<TYPE> =
     
 type AllFromSameLeftJoinWithOriginallyRequired<TYPE> = FalseWhenNever<(
     { [K in keyof TYPE]-?: 
-        TYPE[K] extends IValueSource<infer T, any, any, infer OPTIONAL_TYPE> | undefined // Undefined is to deal with picking columns
-        ? OUTER_JOIN_SOURCE<any, any> extends T
+        TYPE[K] extends IValueSource<infer SOURCE, any, any, infer OPTIONAL_TYPE> | undefined // Undefined is to deal with picking columns
+        ? SOURCE extends NAnyLeftJoin
             ? (
-                InnerTables<TYPE> | NoTableOrViewRequired<T[typeof database]> extends T | NoTableOrViewRequired<T[typeof database]>
+                InnerTables<TYPE> |  NNoTableOrViewRequiredFrom<SOURCE> extends SOURCE | NNoTableOrViewRequiredFrom<SOURCE>
                 ? IsOriginallyRequired<OPTIONAL_TYPE>
                 : false
-            ) : T extends NoTableOrViewRequired<T[typeof database]> 
+            ) : SOURCE extends NNoTableOrViewRequiredFrom<SOURCE>
                 ? never
                 : false
         : never
     })[keyof TYPE]>
 
-type InnerTables<TYPE> = ({ [K in keyof TYPE]-?: TYPE[K] extends ValueSourceOf<infer T> | undefined ? T : never})[keyof TYPE] // Undefined is to deal with picking columns
+type InnerTables<TYPE> = ({ [K in keyof TYPE]-?: TYPE[K] extends ValueSourceOf<infer SOURCE> | undefined ? SOURCE : never})[keyof TYPE] // Undefined is to deal with picking columns
 
 type IsRequiredInOptionalObject<OPTIONAL_TYPE extends OptionalType> =
     'any' extends OPTIONAL_TYPE ? never :

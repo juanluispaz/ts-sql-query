@@ -1,5 +1,5 @@
 import { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, flattenQueryColumns, getQueryColumn, WithSelectData, WithValuesData, OrderByEntry } from "./SqlBuilder"
-import { ITableOrView, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
+import { AnyTableOrView, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, isValueSource, __AggregatedArrayColumns, __getValueSourceOfObject, __ValueSourcePrivate, __isStringValueSource, __isBooleanValueSource, ValueType } from "../expressions/values"
 import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
 import { CustomBooleanTypeAdapter, DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
@@ -11,7 +11,7 @@ import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import { QueryRunner } from "../queryRunners/QueryRunner"
 import { getWithData } from "./SqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
-import { RawFragment } from "../utils/RawFragment"
+import type { RawFragment } from "../utils/RawFragment"
 
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore
@@ -51,10 +51,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _resetUnique(): void {
         this._unique = 1
     }
-    _getSafeTableOrView(params: any[]): ITableOrView<any> | undefined {
+    _getSafeTableOrView(params: any[]): AnyTableOrView | undefined {
         return (params as any)._safeTableOrView
     }
-    _setSafeTableOrView(params: any[], tableOrView: ITableOrView<any> | undefined): void {
+    _setSafeTableOrView(params: any[], tableOrView: AnyTableOrView | undefined): void {
         Object.defineProperty(params, '_safeTableOrView', {
             value: tableOrView,
             writable: true,
@@ -73,10 +73,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             configurable: true
         })
     }
-    _getForceAliasFor(params: any[]): ITableOrView<any> | undefined {
+    _getForceAliasFor(params: any[]): AnyTableOrView | undefined {
         return (params as any)._forceAliasFor
     }
-    _setForceAliasFor(params: any[], value: ITableOrView<any> | undefined): void {
+    _setForceAliasFor(params: any[], value: AnyTableOrView | undefined): void {
         Object.defineProperty(params, '_forceAliasFor', {
             value: value,
             writable: true,
@@ -84,10 +84,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
             configurable: true
         })
     }
-    _getFakeNamesOf(params: any[]): Set<ITableOrView<any>> | undefined {
+    _getFakeNamesOf(params: any[]): Set<AnyTableOrView> | undefined {
         return (params as any)._fakeNamesOf
     }
-    _setFakeNamesOf(params: any[], value: Set<ITableOrView<any>> | undefined): void {
+    _setFakeNamesOf(params: any[], value: Set<AnyTableOrView> | undefined): void {
         Object.defineProperty(params, '_fakeNamesOf', {
             value: value,
             writable: true,
@@ -303,7 +303,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return "'" + value + "'"
         }
     }
-    _getTableOrViewVisibleName(table: ITableOrView<any>): string {
+    _getTableOrViewVisibleName(table: AnyTableOrView): string {
         const t = __getTableOrViewPrivate(table)
         let result = this._escape(t.__name, false)
         if (t.__as) {
@@ -315,7 +315,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return result
     }
     _supportTableAliasWithAs = true
-    _appendTableOrViewName(table: ITableOrView<any>, params: any[]): string {
+    _appendTableOrViewName(table: AnyTableOrView, params: any[]): string {
         const t = __getTableOrViewPrivate(table)
         if (t.__template) {
             return this._appendRawFragment(t.__template, params)
@@ -352,11 +352,11 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
-    _appendTableOrViewNameForFrom(table: ITableOrView<any>, _params: any[]): string {
+    _appendTableOrViewNameForFrom(table: AnyTableOrView, _params: any[]): string {
         const t = __getTableOrViewPrivate(table)
         return this._escape(t.__name, false)
     }
-    _appendTableOrViewNoAliasForFrom(_table: ITableOrView<any>, _params: any[]): string {
+    _appendTableOrViewNoAliasForFrom(_table: AnyTableOrView, _params: any[]): string {
         return ''
     }
     _appendRawFragment(rawFragment: RawFragment<any>, params: any[]): string {
@@ -380,7 +380,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendCondition(condition, params)
     }
-    _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>, params: any[]): string {
+    _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>, params: any[]): string {
         return (value as ToSql).__toSql(this, params) // All ValueSource or Column have a hidden implemetation of ToSql
     }
     _appendSqlParenthesis(value: ToSql | AnyValueSource, params: any[]): string {
@@ -650,7 +650,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
-    _buildFromJoins(tables: ITableOrView<any>[] | undefined, joins: JoinData[] | undefined, requiredTablesOrViews: Set<ITableOrView<any>> | undefined, params: any[]): string {
+    _buildFromJoins(tables: AnyTableOrView[] | undefined, joins: JoinData[] | undefined, requiredTablesOrViews: Set<AnyTableOrView> | undefined, params: any[]): string {
         let fromJoins = ''
 
         if (tables && tables.length > 0) {
@@ -764,7 +764,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const oldFakeNameOf = this._getFakeNamesOf(params)
         if (oldFakeNameOf) {
             if (requiredTablesOrViews) {
-                const newFakeNameOf = new Set<ITableOrView<any>>()
+                const newFakeNameOf = new Set<AnyTableOrView>()
                 requiredTablesOrViews.forEach(v => {
                     if (oldFakeNameOf.has(v)) {
                         newFakeNameOf.add(v)
@@ -2023,7 +2023,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._resetRootQuery(query, params)
         return updateQuery
     }
-    _extractAdditionalRequiredTablesForUpdate(query: UpdateData, _params: any[]): Set<ITableOrView<any>> | undefined {
+    _extractAdditionalRequiredTablesForUpdate(query: UpdateData, _params: any[]): Set<AnyTableOrView> | undefined {
         if (!this._updateOldValueInFrom || !query.__oldValues) {
             return undefined
         }
@@ -2033,7 +2033,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return undefined
         }
 
-        const result = new Set<ITableOrView<any>>()
+        const result = new Set<AnyTableOrView>()
 
         const sets = query.__sets
         for (let property in sets) {
@@ -2054,7 +2054,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
-    _extractAdditionalRequiredColumnsForUpdate(query: UpdateData, requiredTables: Set<ITableOrView<any>> | undefined, _params: any[]): Set<Column> | undefined {
+    _extractAdditionalRequiredColumnsForUpdate(query: UpdateData, requiredTables: Set<AnyTableOrView> | undefined, _params: any[]): Set<Column> | undefined {
         if (!requiredTables) {
             return undefined
         }
@@ -2084,7 +2084,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const columnPrivate = __getColumnPrivate(column)
         return this._escape(columnPrivate.__name, true)
     }
-    _appendUpdateOldValueForUpdate(query: UpdateData, updatePrimaryKey: boolean, _requiredTables: Set<ITableOrView<any>> | undefined, _params: any[]) {
+    _appendUpdateOldValueForUpdate(query: UpdateData, updatePrimaryKey: boolean, _requiredTables: Set<AnyTableOrView> | undefined, _params: any[]) {
         const oldValues = query.__oldValues
         if (!oldValues) {
             return ''
@@ -2104,7 +2104,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildAfterUpdateTable(_query: UpdateData, _params: any[]): string {
         return ''
     }
-    _buildUpdateFrom(query: UpdateData, updatePrimaryKey: boolean, requiredTables: Set<ITableOrView<any>> | undefined, requiredColumns: Set<Column> | undefined, params: any[]): string {
+    _buildUpdateFrom(query: UpdateData, updatePrimaryKey: boolean, requiredTables: Set<AnyTableOrView> | undefined, requiredColumns: Set<Column> | undefined, params: any[]): string {
         if (!this._updateOldValueInFrom) {
             const from = this._buildFromJoins(query.__froms, query.__joins, undefined, params)
             if (from) {
@@ -2893,7 +2893,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         result += sql[sql.length - 1]
         return result
     }
-    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): string {
+    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any> | IExecutableInsertQuery<any, any> | IExecutableUpdateQuery<any, any> | IExecutableDeleteQuery<any, any>>): string {
         if (sqlParams.length <= 0) {
             return sql[0]!
         }
@@ -2905,10 +2905,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         result += sql[sql.length - 1]
         return result
     }
-    _rawFragmentTableName(params: any[], tableOrView: ITableOrView<any>): string {
+    _rawFragmentTableName(params: any[], tableOrView: AnyTableOrView): string {
         return this._appendTableOrViewNameForFrom(tableOrView, params)
     }
-    _rawFragmentTableAlias(params: any[], tableOrView: ITableOrView<any>): string {
+    _rawFragmentTableAlias(params: any[], tableOrView: AnyTableOrView): string {
         const forceAliasFor = this._getForceAliasFor(params)
         const forceAliasAs = this._getForceAliasAs(params)
         const as = __getTableOrViewPrivate(tableOrView).__as

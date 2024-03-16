@@ -1,7 +1,7 @@
 import { AnyValueSource, isValueSource, __getValueSourcePrivate } from "../expressions/values"
 import { getQueryColumn, QueryColumns, SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import { Column } from "../utils/Column"
-import { ITableOrView, IWithView, __getTableOrViewPrivate, __registerRequiredColumn } from "../utils/ITableOrView"
+import { AnyTableOrView, IWithView, __getTableOrViewPrivate, __registerRequiredColumn } from "../utils/ITableOrView"
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
@@ -175,7 +175,7 @@ export class AbstractQueryBuilder {
         let containsRequiredInOptionalObject = false
         let requiredInOptionalObjectHaveValue = true
         // Rule 2
-        let firstRequiredTables = new Set<ITableOrView<any>>()
+        let firstRequiredTables = new Set<AnyTableOrView>()
         let alwaysSameRequiredTablesSize : undefined | boolean = undefined
         let originallyRequiredHaveValue = true
 
@@ -221,7 +221,7 @@ export class AbstractQueryBuilder {
                     valueSourcePrivate.__registerTableOrView(this.__sqlBuilder, firstRequiredTables)
                     alwaysSameRequiredTablesSize = true
                 } else if (alwaysSameRequiredTablesSize) {
-                    let valueSourceRequiredTables = new Set<ITableOrView<any>>()
+                    let valueSourceRequiredTables = new Set<AnyTableOrView>()
                     valueSourcePrivate.__registerTableOrView(this.__sqlBuilder, valueSourceRequiredTables)
                     const initialSize = firstRequiredTables.size
                     if (initialSize !== valueSourceRequiredTables.size) {
@@ -276,7 +276,7 @@ export class AbstractQueryBuilder {
         return result
     }
 
-    __getOldValueOfColumns(columns: QueryColumns | undefined): ITableOrView<any> | undefined {
+    __getOldValueOfColumns(columns: QueryColumns | undefined): AnyTableOrView | undefined {
         for (const property in columns) {
             const column = columns[property]!
             if (isValueSource(column)) {
@@ -294,7 +294,7 @@ export class AbstractQueryBuilder {
         return undefined
     }
 
-    __getValuesForInsertOfColumns(columns: { [property: string]: any } | undefined): ITableOrView<any> | undefined {
+    __getValuesForInsertOfColumns(columns: { [property: string]: any } | undefined): AnyTableOrView | undefined {
         for (const property in columns) {
             const column = columns[property]!
             if (isValueSource(column)) {
@@ -307,7 +307,7 @@ export class AbstractQueryBuilder {
         return undefined
     }
 
-    __registerTableOrViewOfColumns(columns: QueryColumns | undefined, requiredTablesOrViews: Set<ITableOrView<any>>) {
+    __registerTableOrViewOfColumns(columns: QueryColumns | undefined, requiredTablesOrViews: Set<AnyTableOrView>) {
         for (const property in columns) {
             const column = columns[property]!
             if (isValueSource(column)) {
@@ -329,7 +329,7 @@ export class AbstractQueryBuilder {
         }
     }
 
-    __registerRequiredColumnOfColmns(columns: QueryColumns | undefined, requiredColumns: Set<Column>, newOnly: Set<ITableOrView<any>>) {
+    __registerRequiredColumnOfColmns(columns: QueryColumns | undefined, requiredColumns: Set<Column>, newOnly: Set<AnyTableOrView>) {
         for (const property in columns) {
             const column = columns[property]!
             if (isValueSource(column)) {

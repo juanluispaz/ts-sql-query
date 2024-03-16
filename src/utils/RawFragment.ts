@@ -1,7 +1,5 @@
-import { AnyDB } from "../databases"
-import { database, rawFragment } from "./symbols"
+import type { IRawFragment } from "./ITableOrView"
+import type { NSource } from "./sourceName"
 
-export class RawFragment<DB extends AnyDB> {
-    [rawFragment]!: 'rawFragment'
-    [database]!: DB
+export interface RawFragment</*in|out*/ SOURCE extends NSource> extends IRawFragment<SOURCE> {
 }

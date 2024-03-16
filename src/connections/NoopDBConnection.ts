@@ -1,12 +1,12 @@
 import type { BeginTransactionOpts, CommitOpts, QueryRunner, RollbackOpts } from "../queryRunners/QueryRunner"
 import { NoopDBSqlBuilder } from "../sqlBuilders/NoopDBSqlBuilder"
 import { NoopQueryRunner } from "../queryRunners/NoopQueryRunner"
-import type { DB } from "../typeMarks/NoopDBDB"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
 import { ChainedQueryRunner } from "../queryRunners/ChainedQueryRunner"
 import { TransactionIsolationLevel } from "./AbstractConnection"
+import type { NConnection } from "../utils/sourceName"
 
-export abstract class NoopDBConnection<NAME extends string> extends AbstractAdvancedConnection<DB<NAME>> {
+export abstract class NoopDBConnection</*in|out*/ NAME extends string> extends AbstractAdvancedConnection<NConnection<'noopDB', NAME>> {
 
     constructor(queryRunner: QueryRunner = new NoopQueryRunner(), sqlBuilder = new NoopDBSqlBuilder()) {
         super(new NoopIterceptQueryRunner(queryRunner), sqlBuilder)

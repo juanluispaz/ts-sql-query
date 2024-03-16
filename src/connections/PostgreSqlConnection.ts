@@ -1,10 +1,10 @@
+import type { NConnection } from "../utils/sourceName"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import { PostgreSqlSqlBuilder } from "../sqlBuilders/PostgreSqlSqlBuilder"
-import type { DB } from "../typeMarks/PostgreSqlDB"
 import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
 import { TransactionIsolationLevel } from "./AbstractConnection"
 
-export abstract class PostgreSqlConnection<NAME extends string> extends AbstractAdvancedConnection<DB<NAME>> {
+export abstract class PostgreSqlConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'postgreSql', NAME>> {
 
     constructor(queryRunner: QueryRunner, sqlBuilder = new PostgreSqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)

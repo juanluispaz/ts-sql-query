@@ -1,17 +1,16 @@
-import { HasIsValue, ITableOrView, IWithView, __addWiths, __getTableOrViewPrivate, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import type { AliasedTableOrView, OuterJoinSourceOf, WITH_VIEW } from "../utils/tableOrViewUtils"
-import type { AnyDB } from "../databases"
+import { HasIsValue, IWithView, __addWiths, __getTableOrViewPrivate, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView, AnyTableOrView } from "../utils/ITableOrView"
+import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from "../utils/tableOrViewUtils"
 import type { SelectData, SqlBuilder, WithSelectData } from "../sqlBuilders/SqlBuilder"
 import { createColumnsFrom } from "../internal/ColumnImpl"
-import { database, tableOrViewRef, type } from "../utils/symbols"
+import { isTableOrViewObject, source, type } from "../utils/symbols"
 import { __getValueSourceOfObject, __getValueSourcePrivate } from "../expressions/values"
-import { RawFragment } from "../utils/RawFragment"
+import type { RawFragment } from "../utils/RawFragment"
 import { Column } from "../utils/Column"
 
-export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME>> implements IWithView<REF>, WithSelectData, __ITableOrViewPrivate {
-    [database]!: REF[typeof database]
+export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrViewPrivate {
+    [isTableOrViewObject]: true = true;
+    [source]: any
     [type]!: 'with'
-    [tableOrViewRef]!: REF
     __sqlBuilder: SqlBuilder
 
     /* implements __ITableOrViewPrivate as private members*/
@@ -53,10 +52,10 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
         result.__originalWith = this as any
         return result as any
     }
-    forUseInLeftJoin(): OuterJoinSourceOf<this, ''> {
-        return this.forUseInLeftJoinAs('')
+    forUseInLeftJoin(): AsForUseInLeftJoin<this> {
+        return this.forUseInLeftJoinAs('') as any
     }
-    forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): OuterJoinSourceOf<this, ALIAS> {
+    forUseInLeftJoinAs<ALIAS extends string>(as: ALIAS): AsAliasedForUseInLeftJoin<this, ALIAS> {
         const result = new WithViewImpl(this.__sqlBuilder, this.__name, this.__selectData)
         result.__as = as
         result.__forUseInLeftJoin = true
@@ -89,17 +88,17 @@ export class WithViewImpl<NAME extends string, REF extends WITH_VIEW<AnyDB, NAME
         }
         __addWiths(this.__template, sqlBuilder, withs)
     }
-    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
         requiredTablesOrViews.add(this)
         __registerTableOrView(this.__template, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
         __registerRequiredColumn(this.__template, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
-    __getOldValues(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+    __getOldValues(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         return undefined
     }
-    __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+    __getValuesForInsert(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         return undefined
     }
     __isAllowed(_sqlBuilder: HasIsValue): boolean {

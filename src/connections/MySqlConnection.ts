@@ -1,9 +1,9 @@
+import type { NConnection } from "../utils/sourceName"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import { MySqlSqlBuilder } from "../sqlBuilders/MySqlSqlBuilder"
-import type { DB } from "../typeMarks/MySqlDB"
 import { AbstractConnection, TransactionIsolationLevel } from "./AbstractConnection"
 
-export abstract class MySqlConnection<NAME extends string> extends AbstractConnection<DB<NAME>> {
+export abstract class MySqlConnection</*in|out*/ NAME extends string> extends AbstractConnection<NConnection<'mySql', NAME>> {
 
     protected uuidStrategy: 'string' | 'binary' = 'binary'
 

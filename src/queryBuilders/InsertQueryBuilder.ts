@@ -1,22 +1,23 @@
 import { SqlBuilder, InsertData, SelectData, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
-import{ HasAddWiths, HasIsValue, ITable, ITableOrView, IWithView, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
+import{ AnyTableOrView, HasAddWiths, HasIsValue, ITable, IWithView, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression, ShapedMissingKeysInsertExpression, MissingKeysMultipleInsertExpression, ShapedMissingKeysMultipleInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional, ExecutableMultipleInsertExpression, ShapedExecutableInsertExpression, ShapedExecutableMultipleInsertExpression, ShapedInsertExpression, ShapedInsertOnConflictSetsExpression, ComposableCustomizableExecutableInsertProjectableAsNullable, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable } from "../expressions/insert"
 import { Column, isColumn } from "../utils/Column"
 import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
-import { database, resultType, tableOrView, type } from "../utils/symbols"
+import { from, resultType, source, type, using } from "../utils/symbols"
 import { AlwaysIfValueSource, AnyValueSource, asAlwaysIfValueSource, IBooleanValueSource, IExecutableSelectQuery, IIfValueSource, IStringValueSource, isValueSource, __getValueSourcePrivate } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
 import { AbstractQueryBuilder, __setQueryMetadata } from "./AbstractQueryBuilder"
-import { RawFragment } from "../utils/RawFragment"
+import type { RawFragment } from "../utils/RawFragment"
 
 // one implement ommited intentionally to don't confuse TypeScript
 
-export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWiths, ToSql, InsertExpression<any>, ShapedInsertExpression<any, any, any>, ExecutableInsertReturningLastInsertedId<any, any>, ExecutableInsert<any>, ExecutableInsertExpression<any>, ShapedExecutableInsertExpression<any, any>, ExecutableMultipleInsertExpression<any>, ShapedExecutableMultipleInsertExpression<any, any>, CustomizableExecutableMultipleInsert<any, any>, CustomizableExecutableInsertFromSelect<any, any>, CustomizableExecutableInsertReturningLastInsertedId<any, any>, CustomizableExecutableSimpleInsert<any, any>, /*MissingKeysInsertExpression<any, any>, ShapedMissingKeysInsertExpression<any, any, any>, MissingKeysMultipleInsertExpression<any, any>, ShapedMissingKeysMultipleInsertExpression<any, any, any>,*/ InsertData, ComposableCustomizableExecutableInsert<any, any, any>, ExecutableInsertReturning<any, any, any>, ExecutableInsert<any>, CustomizableExecutableInsert<any>, OnConflictDoMultipleInsert<any, any>, InsertOnConflictSetsExpression<any, any, any>, ShapedInsertOnConflictSetsExpression<any, any, any, any>, DynamicOnConflictWhereExpression<any, any>, OnConflictOnColumnWhere<any, any>, CustomizableExecutableInsertFromSelectOnConflict<any>, CustomizableExecutableSimpleInsertOnConflict<any>, OnConflictDoSimpleInsert<any, any>, CustomizableExecutableMultipleInsertOnConfict<any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any>, CustomizableExecutableSimpleInsertOnConflictOptional<any>, CustomizableExecutableMultipleInsertOnConfictOptional<any>, ComposableCustomizableExecutableInsertProjectableAsNullable<any, any>, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable<any, any> {
+export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWiths, ToSql, InsertExpression<any, any>, ShapedInsertExpression<any, any, any, any>, ExecutableInsertReturningLastInsertedId<any, any, any>, ExecutableInsert<any, any>, ExecutableInsertExpression<any, any>, ShapedExecutableInsertExpression<any, any, any>, ExecutableMultipleInsertExpression<any, any>, ShapedExecutableMultipleInsertExpression<any, any, any>, CustomizableExecutableMultipleInsert<any, any, any>, CustomizableExecutableInsertFromSelect<any, any, any>, CustomizableExecutableInsertReturningLastInsertedId<any, any, any>, CustomizableExecutableSimpleInsert<any, any, any>, /*MissingKeysInsertExpression<any, any>, ShapedMissingKeysInsertExpression<any, any, any>, MissingKeysMultipleInsertExpression<any, any>, ShapedMissingKeysMultipleInsertExpression<any, any, any>,*/ InsertData, ComposableCustomizableExecutableInsert<any, any, any, any>, ExecutableInsertReturning<any, any, any, any>, ExecutableInsert<any, any>, CustomizableExecutableInsert<any, any>, OnConflictDoMultipleInsert<any, any, any>, InsertOnConflictSetsExpression<any, any, any, any>, ShapedInsertOnConflictSetsExpression<any, any, any, any, any>, DynamicOnConflictWhereExpression<any, any, any>, OnConflictOnColumnWhere<any, any, any>, CustomizableExecutableInsertFromSelectOnConflict<any, any>, CustomizableExecutableSimpleInsertOnConflict<any, any>, OnConflictDoSimpleInsert<any, any, any>, CustomizableExecutableMultipleInsertOnConfict<any, any>, CustomizableExecutableInsertFromSelectOnConflictOptional<any, any>, CustomizableExecutableSimpleInsertOnConflictOptional<any, any>, CustomizableExecutableMultipleInsertOnConfictOptional<any, any>, ComposableCustomizableExecutableInsertProjectableAsNullable<any, any, any>, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable<any, any, any> {
+    [source]: any
+    [from]: any
+    [using]: any
     [type]: any
-    [database]: any
-    [tableOrView]: any
     [resultType]: any
 
     __table: ITable<any>
@@ -28,7 +29,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     __idColumn?: Column
     __from?: SelectData
     __withs: Array<IWithView<any>> = []
-    __customization?: InsertCustomization<any>
+    __customization?: InsertCustomization<any, any>
     //__columns?: QueryColumns // declared at AbstractQueryBuilder
     __onConflictOnConstraint?: string | IStringValueSource<any, any> | RawFragment<any>
     __onConflictOnColumns?: AnyValueSource[]
@@ -37,7 +38,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     __onConflictUpdateShape?: { [property: string] : string }
     __onConflictUpdateSets?: { [property: string]: any }
     __onConflictUpdateWhere?: AlwaysIfValueSource<any, any>
-    __valuesForInsert?: ITableOrView<any>
+    __valuesForInsert?: AnyTableOrView
 
     __oneColumn?: boolean
 
@@ -1554,13 +1555,13 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     dynamicValues(columns: any): this {
         return this.values(columns)
     }
-    from(select: IExecutableSelectQuery<any, any, any, any>): this {
+    from(select: IExecutableSelectQuery<any, any, any>): this {
         this.__from = select as any as SelectData
         __addWiths(select, this.__sqlBuilder, this.__withs)
         return this
     }
 
-    customizeQuery(customization: InsertCustomization<any>): this {
+    customizeQuery(customization: InsertCustomization<any, any>): this {
         this.__customization = customization
         __addWiths(customization.beforeQuery, this.__sqlBuilder, this.__withs)
         __addWiths(customization.afterInsertKeyword, this.__sqlBuilder, this.__withs)
@@ -1879,17 +1880,17 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             __getTableOrViewPrivate(withView).__addWiths(sqlBuilder, withs)
         }
     }
-    __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<AnyTableOrView>): void {
         // do nothing because it is not possible to add external dependency
     }
-    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<AnyTableOrView>): void {
         // do nothing because it is not possible to add external dependency
     }
-    __getOldValues(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+    __getOldValues(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         // old values fake table is not possible to be used here
         return undefined
     }
-    __getValuesForInsert(_sqlBuilder: HasIsValue): ITableOrView<any> | undefined {
+    __getValuesForInsert(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         // values for insert fake table is not possible to be used here
         return undefined
     }

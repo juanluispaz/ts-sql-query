@@ -1,9 +1,9 @@
+import type { NConnection } from "../utils/sourceName"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import { MariaDBSqlBuilder } from "../sqlBuilders/MariaDBSqlBuilder"
-import type { DB } from "../typeMarks/MariaDBDB"
 import { AbstractConnection, TransactionIsolationLevel } from "./AbstractConnection"
 
-export abstract class MariaDBConnection<NAME extends string> extends AbstractConnection<DB<NAME>> {
+export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends AbstractConnection<NConnection<'mariaDB', NAME>> {
  
     protected uuidStrategy: 'string' | 'uuid' = 'uuid'
 

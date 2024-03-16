@@ -1,6 +1,6 @@
 import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __getValueSourcePrivate, __isUuidValueSource, ValueType, __isUuidValueType } from "../expressions/values"
 import type { TypeAdapter } from "../TypeAdapter"
-import { ITableOrView } from "../utils/ITableOrView"
+import { AnyTableOrView } from "../utils/ITableOrView"
 import { AbstractMySqlMariaDBSqlBuilder } from "./AbstractMySqlMariaBDSqlBuilder"
 import { FlatQueryColumns, flattenQueryColumns, hasWithData, InsertData, SelectData, ToSql, WithQueryData } from "./SqlBuilder"
 
@@ -100,7 +100,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
         return super._buildWith(withData, params)
     }
-    _appendTableOrViewNameForFrom(table: ITableOrView<any>, params: any[]): string {
+    _appendTableOrViewNameForFrom(table: AnyTableOrView, params: any[]): string {
         if (this._connectionConfiguration.compatibilityMode) {
             // The with clause must be expanded inline when it is required
             if (hasWithData(table)) {
@@ -116,7 +116,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
         return super._appendTableOrViewNameForFrom(table, params)
     }
-    _appendTableOrViewNoAliasForFrom(table: ITableOrView<any>, params: any[]): string {
+    _appendTableOrViewNoAliasForFrom(table: AnyTableOrView, params: any[]): string {
         if (this._connectionConfiguration.compatibilityMode) {
             // The with name must be used as alias
             if (hasWithData(table)) {
@@ -126,7 +126,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
 
         return super._appendTableOrViewNoAliasForFrom(table, params)
     }
-    _setSafeTableOrView(params: any[], tableOrView: ITableOrView<any> | undefined): void {
+    _setSafeTableOrView(params: any[], tableOrView: AnyTableOrView | undefined): void {
         if (this._connectionConfiguration.compatibilityMode) {
             // The inline query alias (from the with) always requires explicit name
             if (hasWithData(tableOrView)) {

@@ -38,7 +38,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     _trueValueForCondition = '(1=1)'
     _falseValueForCondition = '(0=1)'
     _nullValueForCondition = '(0=null)'
-    _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any, any>, params: any[]): string {
+    _appendSql(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any>, params: any[]): string {
         if (isValueSource(value) && !isColumn(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (valueSourcePrivate.__isBooleanForCondition) {
@@ -74,7 +74,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return false
     }
-    _appendSqlMaybeUuid(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any, any>, params: any[]): string {
+    _appendSqlMaybeUuid(value: ToSql | AnyValueSource | IExecutableSelectQuery<any, any, any>, params: any[]): string {
         if (this._isUuid(value)) {
             return 'convert(nvarchar, ' + this._appendSql(value, params) + ')'
         } else {
@@ -1029,7 +1029,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         result += sql[sql.length - 1]
         return result
     }
-    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any, any>>): string {
+    _rawFragment(params: any[], sql: TemplateStringsArray, sqlParams: Array<AnyValueSource | IExecutableSelectQuery<any, any, any>>): string {
         if (sqlParams.length <= 0) {
             return sql[0]!
         }

@@ -1,4 +1,4 @@
-import type { IBooleanValueSource, INumberValueSource, IIfValueSource, IExecutableSelectQuery, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource, RemapIValueSourceType } from "./values"
+import type { IBooleanValueSource, INumberValueSource, IAnyBooleanValueSource, IExecutableSelectQuery, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapValueSourceType, RemapValueSourceTypeWithOptionalType, AggregatedArrayValueSource, IValueSource, RemapIValueSourceType } from "./values"
 import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, NoTableOrViewRequiredOfSameDB, OfDB, OfSameDB } from "../utils/ITableOrView"
 import type { WithView } from "../utils/tableOrViewUtils"
 import type { resultType, compoundableColumns, valueType, from, using, source, selectColumnsType } from "../utils/symbols"
@@ -146,15 +146,12 @@ export interface CompoundableExecutableSelectExpressionWithoutWhere</*in|out*/ F
 
 export interface WhereableCompoundableExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
     dynamicWhere(): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface DynamicWhereLastCompoundableCustomizableExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WithableExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereLastCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface CompoundableCustomizableExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -214,8 +211,7 @@ export interface OrderableExecutableSelectExpressionWithoutWhere</*in|out*/ FROM
 
 export interface LimitExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
     dynamicWhere(): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     
     limit(limit: number): OffsetExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
@@ -238,31 +234,25 @@ export interface OffsetExecutableSelectExpressionWithoutWhere</*in|out*/ FROM ex
     offsetIfValue(offset: number | null | undefined): CompoundableCustomizableExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 
     dynamicWhere(): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface CompoundableCustomizableExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpressionWitoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
     dynamicWhere(): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface DynamicWhereLimitExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereLimitExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 
     limit(limit: number): OffsetExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     limitIfValue(limit: number | null | undefined): OffsetExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface DynamicWhereCompoundableCustomizableExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereCompoundableCustomizableExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface RecursivelyConnectedExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -285,27 +275,22 @@ export interface GroupByOrderByHavingExecutableSelectExpression</*in|out*/ FROM 
     groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderByHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
 
     dynamicHaving(): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    having(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    having(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    having(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface DynamicHavingExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface GroupByOrderHavingByExpressionWithoutSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
     groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderHavingByExpressionWithoutSelect<FROM, REQUIRED, FEATURES | 'groupBy'>
 
     dynamicHaving(): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    having(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    having(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    having(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
     dynamicWhere(): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    where(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
     select<COLUMNS extends SelectColumns<FROM[typeof source]>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
     selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
@@ -313,14 +298,11 @@ export interface GroupByOrderHavingByExpressionWithoutSelect</*in|out*/ FROM ext
 }
 
 export interface DynamicHavingExpressionWithoutSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
-    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
     dynamicWhere(): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    where(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
     select<COLUMNS extends SelectColumns<FROM[typeof source]>>(columns: COLUMNS): WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
     selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
@@ -328,10 +310,8 @@ export interface DynamicHavingExpressionWithoutSelect</*in|out*/ FROM extends Ha
 }
 
 export interface DynamicWhereSelectExpressionWithoutSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectExpressionBase<FROM, REQUIRED> {
-    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereSelectExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
     select<COLUMNS extends SelectColumns<FROM[typeof source]>>(columns: COLUMNS): OrderByExecutableSelectExpressionProjectableAsNullable<FROM, REQUIRED, COLUMNS, ResultObjectValues<COLUMNS>, FEATURES>
     selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
@@ -347,10 +327,8 @@ export interface RecursivelyConnectedExpressionWithoutSelect</*in|out*/ FROM ext
 }
 
 export interface DynamicWhereExpressionWithoutSelect</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends RecursivelyConnectedExpressionWithoutSelect<FROM, REQUIRED, FEATURES> {
-    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
 
     startWith: StartWithFnType<FROM, REQUIRED, RecursivelyConnectedExpressionWithoutSelect<FROM, REQUIRED, FEATURES | 'connectBy'>>
     connectBy: ConnectByFnType<FROM, REQUIRED, RecursivelyConnectedExpressionWithoutSelect<FROM, REQUIRED, FEATURES | 'connectBy'>>
@@ -358,16 +336,13 @@ export interface DynamicWhereExpressionWithoutSelect</*in|out*/ FROM extends Has
 }
 
 export interface DynamicWhereExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends GroupByOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface WhereableExecutableSelectExpressionWithGroupBy</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderableExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
     dynamicWhere(): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -375,10 +350,8 @@ export interface WhereableExecutableSelectExpressionWithGroupByProjectableAsNull
 }
 
 export interface DynamicWhereExecutableSelectExpressionWithGroupBy</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface GroupByOrderByHavingExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -386,15 +359,12 @@ export interface GroupByOrderByHavingExecutableSelectExpressionWithoutWhere</*in
     groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
 
     dynamicHaving(): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    having(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    having(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    having(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface DynamicHavingExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WhereableExecutableSelectExpressionWithGroupBy<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface RecursivelyConnectedExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends OrderableExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -402,8 +372,7 @@ export interface RecursivelyConnectedExecutableSelectExpressionWithoutWhere</*in
     groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderByHavingExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'groupBy'>
     
     dynamicWhere(): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
-    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    where(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
 }
 
 export interface ExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends RecursivelyConnectedExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -421,8 +390,7 @@ export interface RecursivelyConnectedSelectWhereExpression</*in|out*/ FROM exten
     selectOneColumn<COLUMN extends ValueSourceOf<FROM[typeof source]>>(column: COLUMN): ExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMN, ValueSourceValueTypeForResult<COLUMN>, FEATURES>
     selectCountAll(): ExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, INumberValueSource<NNoTableOrViewRequiredFrom<REQUIRED[typeof source]>, 'required'>, number, FEATURES| 'requiredResult'>
     dynamicWhere(): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    where(condition: IIfValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
-    where(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
+    where(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicWhereExpressionWithoutSelect<FROM, REQUIRED, FEATURES>
     groupBy(...columns: ValueSourceOf<FROM[typeof source]>[]): GroupByOrderHavingByExpressionWithoutSelect<FROM, REQUIRED, FEATURES | 'groupBy'>
 }
 
@@ -444,16 +412,13 @@ export interface SelectWhereJoinExpression</*in|out*/ FROM extends HasSource<any
 }
 
 export interface DynamicOnExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectWhereJoinExpression<FROM, REQUIRED, FEATURES> {
-    and(condition: IIfValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
-    and(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
-    or(condition: IIfValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
-    or(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
+    and(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
+    or(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
 }
 
 export interface OnExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectWhereJoinExpression<FROM, REQUIRED, FEATURES> {
     dynamicOn(): DynamicOnExpression<FROM, REQUIRED, FEATURES>
-    on(condition: IIfValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
-    on(condition: IBooleanValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
+    on(condition: IAnyBooleanValueSource<FROM[typeof source], any>): DynamicOnExpression<FROM, REQUIRED, FEATURES>
 }
 
 export interface SelectExpressionWithoutJoin</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectWhereExpression<FROM, REQUIRED, FEATURES> {
@@ -534,8 +499,7 @@ type StartWithFnType<FROM extends HasSource<any>, REQUIRED extends HasSource<any
         : never
 
 export interface StartWithFn</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ NEXT> {
-    (condition: IIfValueSource<FROM[typeof source], any>): ConnectByExpression<FROM, REQUIRED, NEXT>
-    (condition: IBooleanValueSource<FROM[typeof source], any>): ConnectByExpression<FROM, REQUIRED, NEXT>
+    (condition: IAnyBooleanValueSource<FROM[typeof source], any>): ConnectByExpression<FROM, REQUIRED, NEXT>
 }
 
 export interface ConnectByExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ _REQUIRED extends HasSource<any>, NEXT> {

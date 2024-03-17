@@ -1,7 +1,7 @@
 import { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData, QueryColumns, isAllowedQueryColumns, OrderByEntry } from "../sqlBuilders/SqlBuilder"
 import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, /*SelectExpressionFromNoTable,*/ SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderableExecutableSelectExpressionWithoutWhere, OrderByExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereLimitExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, WhereableCompoundableExecutableSelectExpressionWithoutWhere, RecursivelyConnectedExecutableSelectExpression, RecursivelyConnectedExpressionWithoutSelect, RecursivelyConnectedExecutableSelectExpressionWithoutWhere, CompoundedLimitExecutableSelectExpression, CompoundedOrderedExecutableSelectExpression, LimitExecutableSelectExpression, OrderedExecutableSelectExpression, LimitExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, RecursivelyConnectedSelectWhereExpression, ConnectByExpression, OrderByExecutableSelectExpressionProjectableAsNullable, GroupByOrderByExecutableSelectExpressionProjectableAsNullable, WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable } from "../expressions/select"
 import { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, IWithView, __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import { IIfValueSource, IBooleanValueSource, INumberValueSource, IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
+import { IAnyBooleanValueSource, IBooleanValueSource, INumberValueSource, IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import { __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import ChainedError from "chained-error"
@@ -862,7 +862,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__query = ''
         return this
     }
-    on(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
+    on(condition: IAnyBooleanValueSource<any, any>): any {
         this.__query = ''
         if (!this.__lastJoin) {
             throw new Error('Illegal state')
@@ -883,7 +883,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__query = ''
         return this
     }
-    where(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
+    where(condition: IAnyBooleanValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__where) {
@@ -893,7 +893,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
-    and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
+    and(condition: IAnyBooleanValueSource<any, any>): any {
         this.__query = ''
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
@@ -919,7 +919,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return this
     }
-    or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
+    or(condition: IAnyBooleanValueSource<any, any>): any {
         this.__query = ''
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
@@ -951,7 +951,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__inHaving = true
         return this
     }
-    having(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
+    having(condition: IAnyBooleanValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         this.__inHaving = true
@@ -980,7 +980,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return this
     }
-    startWith(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
+    startWith(condition: IAnyBooleanValueSource<any, any>): any {
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__startWith) {

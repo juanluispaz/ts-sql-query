@@ -6,7 +6,7 @@ import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { from, resultType, source, type, using } from "../utils/symbols"
-import { AlwaysIfValueSource, AnyValueSource, asAlwaysIfValueSource, IBooleanValueSource, IExecutableSelectQuery, IIfValueSource, IStringValueSource, isValueSource, __getValueSourcePrivate } from "../expressions/values"
+import { AlwaysIfValueSource, AnyValueSource, asAlwaysIfValueSource, IExecutableSelectQuery, IAnyBooleanValueSource, IStringValueSource, isValueSource, __getValueSourcePrivate } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
 import { AbstractQueryBuilder, __setQueryMetadata } from "./AbstractQueryBuilder"
 import type { RawFragment } from "../utils/RawFragment"
@@ -1804,7 +1804,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__query = ''
         return this
     }
-    where(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    where(condition: IAnyBooleanValueSource<any, any>): this {
         this.__query = ''
 
         if (this.__onConflictUpdateSets) {
@@ -1826,7 +1826,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
         return this
     }
-    and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    and(condition: IAnyBooleanValueSource<any, any>): this {
         this.__query = ''
         if (this.__onConflictUpdateSets) {
             if (!this.__onConflictUpdateWhere) {
@@ -1849,7 +1849,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
         return this
     }
-    or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    or(condition: IAnyBooleanValueSource<any, any>): this {
         this.__query = ''
         if (this.__onConflictUpdateSets) {
             if (!this.__onConflictUpdateWhere) {

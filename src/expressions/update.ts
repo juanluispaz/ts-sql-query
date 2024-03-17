@@ -1,4 +1,4 @@
-import type { AnyValueSource, IBooleanValueSource, IExecutableUpdateQuery, IIfValueSource, RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from "./values"
+import type { AnyValueSource, IExecutableUpdateQuery, IAnyBooleanValueSource, RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from "./values"
 import type { ForUseInLeftJoin, HasSource, IRawFragment, ITable, ITableOrView, OfDB, OfSameDB, ResolvedShape } from "../utils/ITableOrView"
 import type { from, source, using } from "../utils/symbols"
 import type { ColumnsForSetOf, ColumnsForSetOfWithShape, ColumnsKeyOf, OptionalColumnsForSetOf, RequiredColumnsForSetOf, ResolveShape } from "../utils/tableOrViewUtils"
@@ -88,8 +88,7 @@ export interface ExecutableUpdateExpression</*in|out*/ TABLE extends HasSource<a
     disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ExecutableUpdateExpression<TABLE, USING>
 
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE, USING>
-    where(condition: IIfValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
-    where(condition: IBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
+    where(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
 }
 
 export interface ShapedExecutableUpdateExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, /*in|out*/ SHAPE> extends ReturnableExecutableUpdate<TABLE, USING> {
@@ -112,8 +111,7 @@ export interface ShapedExecutableUpdateExpression</*in|out*/ TABLE extends HasSo
     ignoreAnySetWithNoValue(): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
 
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE, USING>
-    where(condition: IIfValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
-    where(condition: IBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
+    where(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
 }
 
 export interface NotExecutableUpdateExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends UpdateExpressionBase<TABLE, USING> {
@@ -135,8 +133,7 @@ export interface NotExecutableUpdateExpression</*in|out*/ TABLE extends HasSourc
     ignoreAnySetWithNoValue(): NotExecutableUpdateExpression<TABLE, USING>
 
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE, USING>
-    where(condition: IIfValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
-    where(condition: IBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
+    where(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
 }
 
 export interface ShapedNotExecutableUpdateExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, /*in|out*/ SHAPE> extends UpdateExpressionBase<TABLE, USING> {
@@ -159,15 +156,12 @@ export interface ShapedNotExecutableUpdateExpression</*in|out*/ TABLE extends Ha
     ignoreAnySetWithNoValue(): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
 
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE, USING>
-    where(condition: IIfValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
-    where(condition: IBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
+    where(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
 }
 
 export interface DynamicExecutableUpdateExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends ReturnableExecutableUpdate<TABLE, USING> {
-    and(condition: IIfValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
-    and(condition: IBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
-    or(condition: IIfValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
-    or(condition: IBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
+    and(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
+    or(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
 }
 
 export interface UpdateSetExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends UpdateExpressionBase<TABLE, USING> {
@@ -305,16 +299,13 @@ export interface UpdateSetJoinExpression</*in|out*/ TABLE extends HasSource<any>
 }
 
 export interface DynamicOnExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends UpdateSetJoinExpression<TABLE, USING> {
-    and(condition: IIfValueSource<USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
-    and(condition: IBooleanValueSource<USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
-    or(condition: IIfValueSource<USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
-    or(condition: IBooleanValueSource<USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
+    and(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
+    or(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
 }
 
 export interface OnExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends UpdateSetJoinExpression<TABLE, USING> {
     dynamicOn(): DynamicOnExpression<TABLE, USING>
-    on(condition: IIfValueSource<USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
-    on(condition: IBooleanValueSource<USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
+    on(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
 }
 
 export interface UpdateExpressionWithoutJoin</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends UpdateSetExpression<TABLE, USING> {
@@ -352,16 +343,13 @@ export interface UpdateSetJoinExpressionAllowingNoWhere</*in|out*/ TABLE extends
 }
 
 export interface DynamicOnExpressionAllowingNoWhere</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends UpdateSetJoinExpressionAllowingNoWhere<TABLE, USING> {
-    and(condition: IIfValueSource<USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
-    and(condition: IBooleanValueSource<USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
-    or(condition: IIfValueSource<USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
-    or(condition: IBooleanValueSource<USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    and(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    or(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
 }
 
 export interface OnExpressionAllowingNoWhere</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends UpdateSetJoinExpressionAllowingNoWhere<TABLE, USING> {
     dynamicOn(): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
-    on(condition: IIfValueSource<USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
-    on(condition: IBooleanValueSource<USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    on(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
 }
 
 export interface UpdateExpressionWithoutJoinAllowingNoWhere</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends UpdateSetExpressionAllowingNoWhere<TABLE, USING> {

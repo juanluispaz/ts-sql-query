@@ -6,10 +6,6 @@ export interface HasSource</*in|out*/ SOURCE extends NSource> {
     [source]: SOURCE
 }
 
-export interface AvailableIn</*in|out*/ SOURCE extends NSource> {
-    [source]: SOURCE
-}
-
 export interface OfDB</*in|out*/ DB_TYPE extends NDbType> {
     [source]: NDBWithType<DB_TYPE>
 }

@@ -1,4 +1,4 @@
-import type { IExecutableSelectQuery, RemapIValueSourceType, ValueSourceValueType, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapIValueSourceTypeWithOptionalType, IExecutableInsertQuery, IIfValueSource, IBooleanValueSource, IStringValueSource } from "./values"
+import type { IExecutableSelectQuery, RemapIValueSourceType, ValueSourceValueType, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapIValueSourceTypeWithOptionalType, IExecutableInsertQuery, IAnyBooleanValueSource, IStringValueSource } from "./values"
 import type { HasSource, IRawFragment, OfDB, ResolvedShape } from "../utils/ITableOrView"
 import type { from, source, using } from "../utils/symbols"
 import type { ColumnWithDefaultValue } from "../utils/Column"
@@ -882,16 +882,13 @@ export interface ShapedInsertOnConflictSetsExpression</*in|out*/ TABLE extends H
 }
 
 export interface DynamicOnConflictWhereExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, NEXT> {
-    and(condition: IIfValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
-    and(condition: IBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
-    or(condition: IIfValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
-    or(condition: IBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
+    and(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
+    or(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
 }
 
 export interface OnConflictOnColumnWhere</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, NEXT> {
     dynamicWhere() : DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
-    where(condition: IIfValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
-    where(condition: IBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
+    where(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
 }
 
 type OnConflictDoNothingFnType<TABLE extends HasSource<any>, _USING extends HasSource<any>, NEXT> =
@@ -934,8 +931,7 @@ type OnConflictDoUpdateWhereFnType<TABLE extends HasSource<any>, USING extends H
     : never
 
 interface OnConflictDoUpdateWhereFnTypeInterface</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>, /*in|out*/ NEXT> {
-    (condition: IIfValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
-    (condition: IBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
+    (condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnConflictWhereExpression<TABLE, USING,  NEXT> & NEXT
 }
 
 type OnConflictOnColumnFnType<TABLE extends HasSource<any>, USING extends HasSource<any>, NEXT> =

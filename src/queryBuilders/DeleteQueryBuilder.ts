@@ -1,6 +1,6 @@
 import { SqlBuilder, DeleteData, JoinData, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
 import { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView, __addWiths, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
-import { IBooleanValueSource, IIfValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
+import { IAnyBooleanValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, CustomizableExecutableDeleteProjectableAsNullable } from "../expressions/delete"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
@@ -217,7 +217,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__query = ''
         return this
     }
-    where(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    where(condition: IAnyBooleanValueSource<any, any>): this {
         this.__finishJoin()
         this.__query = ''
         if (this.__where) {
@@ -227,7 +227,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
-    and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    and(condition: IAnyBooleanValueSource<any, any>): this {
         this.__query = ''
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
@@ -245,7 +245,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
         return this
     }
-    or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    or(condition: IAnyBooleanValueSource<any, any>): this {
         this.__query = ''
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
@@ -332,7 +332,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__query = ''
         return this
     }
-    on(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
+    on(condition: IAnyBooleanValueSource<any, any>): any {
         this.__query = ''
         if (!this.__lastJoin) {
             throw new Error('Illegal state')

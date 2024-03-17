@@ -1,6 +1,6 @@
 import { isAllowedQueryColumns, JoinData, SqlBuilder, ToSql, UpdateData } from "../sqlBuilders/SqlBuilder"
 import { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
-import { AlwaysIfValueSource, AnyValueSource, IBooleanValueSource, IIfValueSource, isValueSource } from "../expressions/values"
+import { AlwaysIfValueSource, AnyValueSource, IAnyBooleanValueSource, isValueSource } from "../expressions/values"
 import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, CustomizableExecutableUpdateReturning, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, CustomizableExecutableUpdateProjectableAsNullable } from "../expressions/update"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
@@ -797,7 +797,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__query = ''
         return this
     }
-    where(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    where(condition: IAnyBooleanValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
             throw new Error('Illegal state')
@@ -806,7 +806,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
-    and(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    and(condition: IAnyBooleanValueSource<any, any>): this {
         this.__query = ''
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
@@ -824,7 +824,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
         return this
     }
-    or(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): this {
+    or(condition: IAnyBooleanValueSource<any, any>): this {
         this.__query = ''
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         if (this.__lastJoin) {
@@ -911,7 +911,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__query = ''
         return this
     }
-    on(condition: IBooleanValueSource<any, any> | IIfValueSource<any, any>): any {
+    on(condition: IAnyBooleanValueSource<any, any>): any {
         this.__query = ''
         if (!this.__lastJoin) {
             throw new Error('Illegal state')

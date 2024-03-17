@@ -1,4 +1,4 @@
-import type { AnyValueSource, IBooleanValueSource, IExecutableDeleteQuery, IIfValueSource, ValueSourceOf, ValueSourceValueTypeForResult } from "./values"
+import type { AnyValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, ValueSourceOf, ValueSourceValueTypeForResult } from "./values"
 import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, OfDB, OfSameDB } from "../utils/ITableOrView"
 import type { ResultObjectValues, ResultObjectValuesProjectedAsNullable } from "../utils/resultUtils"
 import type { NNoTableOrViewRequiredFrom, NSource } from "../utils/sourceName"
@@ -28,16 +28,13 @@ export interface CustomizableExecutableDelete</*in|out*/ TABLE extends HasSource
 }
 
 export interface DynamicExecutableDeleteExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends ReturnableExecutableDelete<TABLE, USING> {
-    and(condition: IIfValueSource <USING[typeof source], any>): DynamicExecutableDeleteExpression<TABLE, USING>
-    and(condition: IBooleanValueSource <USING[typeof source], any>): DynamicExecutableDeleteExpression<TABLE, USING>
-    or(condition: IIfValueSource <USING[typeof source], any>): DynamicExecutableDeleteExpression<TABLE, USING>
-    or(condition: IBooleanValueSource <USING[typeof source], any>): DynamicExecutableDeleteExpression<TABLE, USING>
+    and(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicExecutableDeleteExpression<TABLE, USING>
+    or(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicExecutableDeleteExpression<TABLE, USING>
 }
 
 export interface DeleteWhereExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends DeleteExpressionBase<TABLE, USING> {
     dynamicWhere() : DynamicExecutableDeleteExpression<TABLE, USING>
-    where(condition: IIfValueSource <USING[typeof source], any>): DynamicExecutableDeleteExpression<TABLE, USING>
-    where(condition: IBooleanValueSource <USING[typeof source], any>): DynamicExecutableDeleteExpression<TABLE, USING>
+    where(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicExecutableDeleteExpression<TABLE, USING>
 }
 
 export interface DeleteExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends DeleteWhereExpression<TABLE, USING> {
@@ -50,8 +47,7 @@ export interface DeleteExpression</*in|out*/ TABLE extends HasSource<any>, /*in|
 
 export interface DeleteWhereExpressionAllowingNoWhere</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends ReturnableExecutableDelete<TABLE, USING> {
     dynamicWhere() : DynamicExecutableDeleteExpression<TABLE, USING>
-    where(condition: IIfValueSource <USING[typeof source], any>): DynamicExecutableDeleteExpression<TABLE, USING>
-    where(condition: IBooleanValueSource <USING[typeof source], any>): DynamicExecutableDeleteExpression<TABLE, USING>
+    where(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicExecutableDeleteExpression<TABLE, USING>
 }
 
 export interface DeleteExpressionAllowingNoWhere</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends DeleteWhereExpressionAllowingNoWhere<TABLE, USING> {
@@ -74,16 +70,13 @@ export interface DeleteWhereJoinExpression</*in|out*/ TABLE extends HasSource<an
 }
 
 export interface DynamicOnExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends DeleteWhereJoinExpression<TABLE, USING> {
-    and(condition: IIfValueSource <USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
-    and(condition: IBooleanValueSource <USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
-    or(condition: IIfValueSource <USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
-    or(condition: IBooleanValueSource <USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
+    and(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
+    or(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
 }
 
 export interface OnExpression</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends DeleteWhereJoinExpression<TABLE, USING> {
     dynamicOn(): DynamicOnExpression<TABLE, USING>
-    on(condition: IIfValueSource <USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
-    on(condition: IBooleanValueSource <USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
+    on(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnExpression<TABLE, USING>
 }
 
 export interface DeleteExpressionWithoutJoin</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends DeleteWhereExpression<TABLE, USING> {
@@ -121,16 +114,13 @@ export interface DeleteWhereJoinExpressionAllowingNoWhere</*in|out*/ TABLE exten
 }
 
 export interface DynamicOnExpressionAllowingNoWhere</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends DeleteWhereJoinExpressionAllowingNoWhere<TABLE, USING> {
-    and(condition: IIfValueSource <USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
-    and(condition: IBooleanValueSource <USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
-    or(condition: IIfValueSource <USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
-    or(condition: IBooleanValueSource <USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    and(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    or(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
 }
 
 export interface OnExpressionAllowingNoWhere</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends DeleteWhereJoinExpressionAllowingNoWhere<TABLE, USING> {
     dynamicOn(): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
-    on(condition: IIfValueSource <USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
-    on(condition: IBooleanValueSource <USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
+    on(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicOnExpressionAllowingNoWhere<TABLE, USING>
 }
 
 export interface DeleteExpressionWithoutJoinAllowingNoWhere</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> extends DeleteWhereExpressionAllowingNoWhere<TABLE, USING> {

@@ -1,4 +1,4 @@
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, RemapValueSourceType, TypeOfArgument, MapArgumentToValueSource, ArgForFn, IfValueSource, ArgForBuilderIfValue, IBooleanValueSource, IIfValueSource, BigintValueSource, OptionalType, ValueSourceOf, UuidValueSource, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, IValueSource, RemapValueSourceTypeWithOptionalType, OptionalTypeOfValue, ArgBaseTypeForFn, MergeOptionalUnion } from "../expressions/values"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, RemapValueSourceType, TypeOfArgument, MapArgumentToValueSource, ArgForFn, IfValueSource, ArgForBuilderIfValue, IAnyBooleanValueSource, BigintValueSource, OptionalType, ValueSourceOf, UuidValueSource, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, IValueSource, RemapValueSourceTypeWithOptionalType, OptionalTypeOfValue, ArgBaseTypeForFn, MergeOptionalUnion } from "../expressions/values"
 import type { optionalType, source } from "../utils/symbols"
 import type { NSource } from "../utils/sourceName"
 
@@ -285,27 +285,27 @@ export interface FragmentFunction5</*in|out*/ NO_SOURCE extends NSource, A1, A2,
 }
 
 export interface FragmentBuilder0IfValue</*in|out*/ NO_SOURCE extends NSource> {
-    as<RESULT extends IBooleanValueSource<NO_SOURCE, any> | IIfValueSource<NO_SOURCE, any>>(impl: () => RESULT): () => IfValueSource<NO_SOURCE, RESULT[typeof optionalType]>
+    as<RESULT extends IAnyBooleanValueSource<NO_SOURCE, any>>(impl: () => RESULT): () => IfValueSource<NO_SOURCE, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder1IfValue</*in|out*/ NO_SOURCE extends NSource, A1> {
-    as<RESULT extends IBooleanValueSource<NO_SOURCE, any> | IIfValueSource<NO_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>) => RESULT): FragmentFunctionIfValue1<NO_SOURCE, A1, RESULT[typeof optionalType]>
+    as<RESULT extends IAnyBooleanValueSource<NO_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>) => RESULT): FragmentFunctionIfValue1<NO_SOURCE, A1, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder2IfValue</*in|out*/ NO_SOURCE extends NSource, A1, A2> {
-    as<RESULT extends IBooleanValueSource<NO_SOURCE, any> | IIfValueSource<NO_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>) => RESULT): FragmentFunctionIfValue2<NO_SOURCE, A1, A2, RESULT[typeof optionalType]>
+    as<RESULT extends IAnyBooleanValueSource<NO_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>) => RESULT): FragmentFunctionIfValue2<NO_SOURCE, A1, A2, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder3IfValue</*in|out*/ NO_SOURCE extends NSource, A1, A2, A3> {
-    as<RESULT extends IBooleanValueSource<NO_SOURCE, any> | IIfValueSource<NO_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>, a3: ArgForBuilderIfValue<NO_SOURCE, A3>) => RESULT): FragmentFunctionIfValue3<NO_SOURCE, A1, A2, A3, RESULT[typeof optionalType]>
+    as<RESULT extends IAnyBooleanValueSource<NO_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>, a3: ArgForBuilderIfValue<NO_SOURCE, A3>) => RESULT): FragmentFunctionIfValue3<NO_SOURCE, A1, A2, A3, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder4IfValue</*in|out*/ NO_SOURCE extends NSource, A1, A2, A3, A4> {
-    as<RESULT extends IBooleanValueSource<NO_SOURCE, any> | IIfValueSource<NO_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>, a3: ArgForBuilderIfValue<NO_SOURCE, A3>, a4: ArgForBuilderIfValue<NO_SOURCE, A4>) => RESULT): FragmentFunctionIfValue4<NO_SOURCE, A1, A2, A3, A4, RESULT[typeof optionalType]>
+    as<RESULT extends IAnyBooleanValueSource<NO_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>, a3: ArgForBuilderIfValue<NO_SOURCE, A3>, a4: ArgForBuilderIfValue<NO_SOURCE, A4>) => RESULT): FragmentFunctionIfValue4<NO_SOURCE, A1, A2, A3, A4, RESULT[typeof optionalType]>
 }
 
 export interface FragmentBuilder5IfValue</*in|out*/ NO_SOURCE extends NSource, A1, A2, A3, A4, A5> {
-    as<RESULT extends BooleanValueSource<NO_SOURCE, any> | IIfValueSource<NO_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>, a3: ArgForBuilderIfValue<NO_SOURCE, A3>, a4: ArgForBuilderIfValue<NO_SOURCE, A4>, a5: ArgForBuilderIfValue<NO_SOURCE, A5>) => RESULT): FragmentFunctionIfValue5<NO_SOURCE, A1, A2, A3, A4, A5, RESULT[typeof optionalType]>
+    as<RESULT extends IAnyBooleanValueSource<NO_SOURCE, any>>(impl: (a1: ArgForBuilderIfValue<NO_SOURCE, A1>, a2: ArgForBuilderIfValue<NO_SOURCE, A2>, a3: ArgForBuilderIfValue<NO_SOURCE, A3>, a4: ArgForBuilderIfValue<NO_SOURCE, A4>, a5: ArgForBuilderIfValue<NO_SOURCE, A5>) => RESULT): FragmentFunctionIfValue5<NO_SOURCE, A1, A2, A3, A4, A5, RESULT[typeof optionalType]>
 }
 
 export interface FragmentFunctionIfValue1</*in|out*/ NO_SOURCE extends NSource, A1, /*in|out*/ OPTIONAL_TYPE extends OptionalType> {

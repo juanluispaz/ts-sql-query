@@ -4,6 +4,8 @@
 
 In ts-sql-query, the result of a query doesn't require to be a flat object; you can create a result that is an object that contains properties that are objects as well (multiple object nesting is supported).
 
+**IMPORTANT**: Only 5 nesting levels are supported.
+
 ```ts
 const companyId = 24;
 
@@ -50,7 +52,7 @@ const customersOfCompany: Promise<{
 
 1. In the case there are properties defined as `asRequiredInOptionalObject`: all other non-required properties will be marked as optional; the properties defined as `asRequiredInOptionalObject` will be considered required; the object will be considered optional. If any property defined as `asRequiredInOptionalObject` has no value, the whole object will be ignored, independently if there are other properties with value.
 2. In the case that all properties are coming from the same outer (left) join and the original table has required properties, those properties will be treated automatically as `asRequiredInOptionalObject`.
-3. In the case there are required properties or inner objects: all other non-required properties or inner objects properties will be marked as optional; the object will be considered required.
+3. In the case there are required properties or required inner objects: all other non-required properties or non-required inner objects properties will be marked as optional; the object will be considered required.
 4. In any other case: all properties and inner objects will be marked as optional, the object will be considered optional.
 
 **Detailed rules (in priority order)**:
@@ -77,6 +79,8 @@ const customersOfCompany: Promise<{
 **Note**: When you indicate that a table will be used in a left join, all required columns are treated as optional in ts-sql-query because the left join is per se optional; the rule number 2 is the only one that can revert it implicitly.
 
 **Limitation**: You cannot use complex projections in queries that will be used as table in other query (created using `forUseInQueryAs` that corresponds to the with clause in SQL)
+
+**IMPORTANT**: Only 5 nesting levels are supported.
 
 ## Optional inner object with required properties
 

@@ -1,8 +1,10 @@
 import type { AnyValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, ValueSourceOf, ValueSourceValueTypeForResult } from "./values"
 import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, OfDB, OfSameDB } from "../utils/ITableOrView"
-import type { ResultObjectValues, ResultObjectValuesProjectedAsNullable } from "../utils/resultUtils"
 import type { NNoTableOrViewRequiredFrom, NSource } from "../utils/sourceName"
 import type { source, from, using } from "../utils/symbols"
+import type { DataToProject } from "../complexProjections/dataToProject"
+import type { ResultObjectValuesProjectedAsNullable } from "../complexProjections/resultWithOptionalsAsNull"
+import type { ResultObjectValues } from "../complexProjections/resultWithOptionalsAsUndefined"
 
 export interface DeleteCustomization</*in|out*/ _TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> {
     afterDeleteKeyword?: IRawFragment<USING[typeof source]>
@@ -186,7 +188,4 @@ type ReturningOneColumnFnType<TABLE extends HasSource<any>, USING extends HasSou
     ? <COLUMN extends ValueSourceOf<TABLE[typeof source] | NNoTableOrViewRequiredFrom<TABLE[typeof source]>>>(column: COLUMN) => ComposableCustomizableExecutableDelete<TABLE, USING, COLUMN, ValueSourceValueTypeForResult<COLUMN>>
     : never
 
-export type DeleteColumns</*in|out*/ SOURCE extends NSource> = {
-    [P: string]: ValueSourceOf<SOURCE> | DeleteColumns<SOURCE>
-    [P: number | symbol]: never
-}
+export type DeleteColumns</*in|out*/ SOURCE extends NSource> = DataToProject<SOURCE>

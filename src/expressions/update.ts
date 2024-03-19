@@ -4,8 +4,10 @@ import type { from, source, using } from "../utils/symbols"
 import type { ColumnsForSetOf, ColumnsForSetOfWithShape, ColumnsKeyOf, OptionalColumnsForSetOf, RequiredColumnsForSetOf, ResolveShape } from "../utils/tableOrViewUtils"
 import type { Column, ColumnWithDefaultValue } from "../utils/Column"
 import type { Default } from "./Default"
-import type { ResultObjectValues, ResultObjectValuesProjectedAsNullable } from "../utils/resultUtils"
 import type { NNoTableOrViewRequiredFrom, NOldValuesFrom, NSource } from "../utils/sourceName"
+import type { DataToProject } from "../complexProjections/dataToProject"
+import type { ResultObjectValuesProjectedAsNullable } from "../complexProjections/resultWithOptionalsAsNull"
+import type { ResultObjectValues } from "../complexProjections/resultWithOptionalsAsUndefined"
 
 export interface UpdateCustomization</*in|out*/ _TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> {
     afterUpdateKeyword?: IRawFragment<USING[typeof source]>
@@ -415,7 +417,4 @@ type ReturningOneColumnFnType<TABLE extends HasSource<any>, USING extends HasSou
     ? <COLUMN extends ValueSourceOf<TABLE[typeof source] | NNoTableOrViewRequiredFrom<TABLE[typeof source]>> | NOldValuesFrom<TABLE[typeof source]>>(column: COLUMN) => CustomizableExecutableUpdateReturning<TABLE, USING, COLUMN, ValueSourceValueTypeForResult<COLUMN>>
     : never
 
-export type UpdateColumns</*in|out*/ SOURCE extends NSource> = {
-    [P: string]: ValueSourceOf<SOURCE> | UpdateColumns<SOURCE>
-    [P: number | symbol]: never
-}
+export type UpdateColumns</*in|out*/ SOURCE extends NSource> = DataToProject<SOURCE>

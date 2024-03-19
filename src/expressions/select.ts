@@ -2,8 +2,11 @@ import type { IBooleanValueSource, INumberValueSource, IAnyBooleanValueSource, I
 import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, NoTableOrViewRequiredOfSameDB, OfDB, OfSameDB } from "../utils/ITableOrView"
 import type { WithView } from "../utils/tableOrViewUtils"
 import type { resultType, compoundableColumns, valueType, from, using, source, selectColumnsType } from "../utils/symbols"
-import type { ResultObjectValues, RequiredColumnNames, ColumnsForCompound, ResultObjectValuesProjectedAsNullable } from "../utils/resultUtils"
 import type { NAnyNoTableOrViewRequired, NCompoundableFrom, NDbType, NNoTableOrViewRequiredFrom, NRecursiveFrom, NSource, NWithFrom } from "../utils/sourceName"
+import type { DataToProject, RequiredColumnNames } from "../complexProjections/dataToProject"
+import type { ResultObjectValuesProjectedAsNullable } from "../complexProjections/resultWithOptionalsAsNull"
+import type { ResultObjectValues } from "../complexProjections/resultWithOptionalsAsUndefined"
+import type { ColumnsForCompound } from "../complexProjections/compound"
 
 export type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last' | 'insensitive' |
                           'asc insensitive' | 'desc insensitive' | 'asc nulls first insensitive' | 'asc nulls last insensitive' | 
@@ -436,15 +439,12 @@ export interface SelectExpressionSubquery</*in|out*/ FROM extends HasSource<any>
 export interface SelectExpressionFromNoTable</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ FEATURES> extends SelectWhereExpression<FROM, REQUIRED, FEATURES> {
 }
 
-export type SelectColumns<SOURCE extends NSource> = {
-    [P: string]:  ValueSourceOf<SOURCE> | SelectColumns<SOURCE>
-    [P: number | symbol]: never
-}
+export type SelectColumns<SOURCE extends NSource> = DataToProject<SOURCE>
 
 type SelectPageWithExtras<COLUMNS, RESULT, EXTRAS> = { data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: number } & Omit<EXTRAS, 'data' | 'count'>
 
 type ForUseInQueryAs<_FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS> =
-    unknown extends REQUIRED ? <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS> // this is the case when te arguments are of type any
+    unknown extends REQUIRED ? <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS> // this is the case when the arguments are of type any
     : [COLUMNS] extends [undefined]
     ? never
     : [COLUMNS] extends [AnyValueSource]

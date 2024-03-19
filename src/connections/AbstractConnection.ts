@@ -27,9 +27,11 @@ import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilde
 import type { RawFragment } from "../utils/RawFragment"
 import { RawFragmentImpl } from "../internal/RawFragmentImpl"
 import type { CustomizedTableOrView } from "../utils/tableOrViewUtils"
-import type { InnerResultNullableObjectValuesForAggregatedArray, InnerResultObjectValuesForAggregatedArray } from "../utils/resultUtils"
 import { __setQueryMetadata } from "../queryBuilders/AbstractQueryBuilder"
 import type { NDB, NNoTableOrViewRequired, NSource, NWithDB } from "../utils/sourceName"
+import type { DataToProject, GetDataToProjectSource } from "../complexProjections/dataToProject"
+import type { ResultObjectValuesForAggregatedArray } from "../complexProjections/resultWithOptionalsAsUndefined"
+import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from "../complexProjections/resultWithOptionalsAsNull"
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
     [connection]!: DB
@@ -876,7 +878,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
 
-    aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS>, Array<{ [P in keyof InnerResultObjectValuesForAggregatedArray<COLUMNS>]: InnerResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>]: InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>[P] }>, 'required'> {
+    aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
         return new AggregateValueAsArrayValueSource(columns, 'InnerResultObject', 'required')
     }
     aggregateAsArrayOfOneColumn<VALUE extends IValueSource<any, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof source], Array<VALUE[typeof valueType]>, 'required'> {
@@ -1224,55 +1226,5 @@ export interface TransactionIsolationLevel {
     [transactionIsolationLevel]: 'transactionIsolationLevel'
 }
 
-type AggregatedArrayColumns<DB extends NDB> = {
-    [P: string]: ValueSourceOf<NWithDB<DB>> | AggregatedArrayColumns<DB>
-}
-
-// Handled in a maximum of 12 levels to avoid infinite instantiation in TypeScript
-type SourceOfAggregatedArray<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray2<TYPE[KEY]>
-})[keyof TYPE]
-
-type SourceOfAggregatedArray2<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray3<TYPE[KEY]>
-})[keyof TYPE]
-
-type SourceOfAggregatedArray3<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray4<TYPE[KEY]>
-})[keyof TYPE]
-
-type SourceOfAggregatedArray4<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray5<TYPE[KEY]>
-})[keyof TYPE]
-
-type SourceOfAggregatedArray5<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray6<TYPE[KEY]>
-})[keyof TYPE]
-
-type SourceOfAggregatedArray6<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray7<TYPE[KEY]>
-})[keyof TYPE]
-
-type SourceOfAggregatedArray7<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray8<TYPE[KEY]>
-})[keyof TYPE]
-
-type SourceOfAggregatedArray8<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray9<TYPE[KEY]>
-})[keyof TYPE]
-
-type SourceOfAggregatedArray9<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray10<TYPE[KEY]>
-})[keyof TYPE]
-
-type SourceOfAggregatedArray10<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray11<TYPE[KEY]>
-})[keyof TYPE]
-
-type SourceOfAggregatedArray11<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : SourceOfAggregatedArray12<TYPE[KEY]>
-})[keyof TYPE]
-
-type SourceOfAggregatedArray12<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : never
-})[keyof TYPE]
+type AggregatedArrayColumns<DB extends NDB> = DataToProject<NWithDB<DB>>
+type SourceOfAggregatedArray<TYPE> = GetDataToProjectSource<TYPE>

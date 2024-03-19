@@ -79,7 +79,7 @@
         "sqlite3": "^5.1.7",
         "synchronous-promise": "^2.0.17",
         "ts-node": "^10.9.2",
-        "typescript": "5.3.3",
+        "typescript": "^5.4.2",
         "uuid": "^9.0.1"
     },
     "devDependenciesToDisableOnArm": {

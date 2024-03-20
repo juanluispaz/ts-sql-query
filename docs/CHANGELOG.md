@@ -37,6 +37,12 @@
 
 - Remove long deprecated overload of functions in columns that allowed to send to the database null values in TypeScript when the type were optional.
 
+## v1.63.0 (20 Mar 2024)
+
+**Bug fixes**:
+
+- Fix insert multiple no-inserting records when `setForAllIfHasNoValue` is called and the records to insert contain a single record.
+
 ## v1.62.0 (10 Mar 2024)
 
 **Changes**:

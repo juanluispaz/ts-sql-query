@@ -755,6 +755,33 @@ async function main() {
     
     /* *** Preparation ************************************************************/
 
+    // result = 1
+    // expectedResult.push(result)
+    // expectedQuery.push(`insert into customer (first_name, last_name, company_id, birthday) values ($1, $2, $3, $4)`)
+    // expectedParams.push(`["John","Smith",1,"2000-03-01T00:00:00.000Z"]`)
+    // expectedType.push(`insert`)
+    
+    // /* *** Example ****************************************************************/
+
+    // const valuesToInsert3 = [
+    //     {
+    //         firstName: 'John',
+    //         lastName: 'Smith',
+    //         companyId: 1
+    //     }
+    // ]
+    
+    // const insertMultipleCustomers3 = await connection.insertInto(tCustomer)
+    //     .dynamicValues(valuesToInsert3)
+    //     .setForAllIfHasNoValue({
+    //         birthday: new Date('2000-03-01')
+    //     })
+    //     .executeInsert();
+    
+    // assertEquals(insertMultipleCustomers3, result)
+    
+    /* *** Preparation ************************************************************/
+
     result = 1
     expectedResult.push(result)
     expectedQuery.push(`insert into customer (first_name, last_name, company_id) select first_name as firstName, last_name as lastName, company_id as companyId from customer where company_id = ?`)

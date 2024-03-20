@@ -361,14 +361,16 @@ export class InsertQueryBuilder extends ComposeSplitQueryBuilder implements HasA
     }
     __getSetsForMultipleInsert(): { [property: string]: any }[] {
         const multiple = this.__multiple
+        const sets = this.__sets
+        if (this.__multipleAlreadyCopied) {
+            return multiple || [sets]
+        }
         if (!multiple) {
-            const result : { [property: string]: any }[] = []
-            this.__multiple = result
+            const newSets = {...sets}
+            const result = [newSets]
+            this.__sets = newSets
             this.__multipleAlreadyCopied = true
             return result
-        }
-        if (this.__multipleAlreadyCopied) {
-            return multiple
         }
 
         const result : { [property: string]: any }[] = []

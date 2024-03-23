@@ -1,8 +1,8 @@
 import type { DatabaseType } from "./QueryRunner"
 import type { Database } from 'sqlite3'
-import { PromiseBasedWithSqlTransactionQueryRunner } from "./PromiseBasedWithSqlTransactionQueryRunner"
+import { SqlTransactionQueryRunner } from "./SqlTransactionQueryRunner"
 
-export class Sqlite3QueryRunner extends PromiseBasedWithSqlTransactionQueryRunner {
+export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Database
 

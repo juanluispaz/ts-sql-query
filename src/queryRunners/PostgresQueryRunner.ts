@@ -1,8 +1,8 @@
-import { PromiseBasedAbstractQueryRunner } from "./PromiseBasedAbstractQueryRunner"
+import { AbstractQueryRunner } from "./AbstractQueryRunner"
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from "./QueryRunner"
 import type { Sql, TransactionSql } from 'postgres'
 
-export class PostgresQueryRunner extends PromiseBasedAbstractQueryRunner {
+export class PostgresQueryRunner extends AbstractQueryRunner {
     database: DatabaseType
     readonly connection: Sql
     transaction?: TransactionSql

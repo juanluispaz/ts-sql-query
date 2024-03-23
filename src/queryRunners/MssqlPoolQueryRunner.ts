@@ -1,10 +1,10 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from "./QueryRunner"
 import type { ConnectionPool, ISqlTypeFactory, Transaction, Request } from 'mssql'
 import { TYPES, ISOLATION_LEVEL } from 'mssql'
-import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 import type { NativeValueType } from "../expressions/values"
+import { ManagedTransactionQueryRunner } from "./ManagedTransactionQueryRunner"
 
-export class MssqlPoolQueryRunner extends PromiseBasedQueryRunner {
+export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     readonly database: DatabaseType
     readonly pool: ConnectionPool
     transaction?: Transaction

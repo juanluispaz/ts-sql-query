@@ -1,13 +1,13 @@
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { Pool, PoolClient } from 'pg'
-import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { PgQueryRunner } from "./PgQueryRunner"
+import { ManagedTransactionPoolQueryRunner } from "./ManagedTransactionPoolQueryRunner"
 
 export interface PgPoolQueryRunnerConfig {
     allowNestedTransactions?: boolean
 }
 
-export class PgPoolQueryRunner extends PromiseBasedPoolQueryRunner {
+export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
     readonly pool: Pool
     private config?: PgPoolQueryRunnerConfig

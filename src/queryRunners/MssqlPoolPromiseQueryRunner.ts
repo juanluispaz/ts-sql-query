@@ -1,9 +1,9 @@
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { ConnectionPool, Transaction } from 'mssql'
-import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { MssqlPoolQueryRunner } from "./MssqlPoolQueryRunner"
+import { ManagedTransactionPoolQueryRunner } from "./ManagedTransactionPoolQueryRunner"
 
-export class MssqlPoolPromiseQueryRunner extends PromiseBasedPoolQueryRunner {
+export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
     readonly promisePool: Promise<ConnectionPool>
 

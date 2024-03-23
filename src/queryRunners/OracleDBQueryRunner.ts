@@ -1,9 +1,9 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from "./QueryRunner"
 import type { Connection } from 'oracledb'
 import { OUT_FORMAT_OBJECT, BIND_OUT } from 'oracledb'
-import { PromiseBasedWithDelegatedSetTransactionQueryRunner } from "./PromiseBasedWithDelegatedSetTransactionQueryRunner"
+import { DelegatedSetTransactionQueryRunner } from "./DelegatedSetTransactionQueryRunner"
 
-export class OracleDBQueryRunner extends PromiseBasedWithDelegatedSetTransactionQueryRunner {
+export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
 

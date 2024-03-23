@@ -1,8 +1,8 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from "./QueryRunner"
 import type { Connection, QueryError, ResultSetHeader, RowDataPacket } from "mysql2"
-import { PromiseBasedWithDelegatedSetTransactionQueryRunner } from "./PromiseBasedWithDelegatedSetTransactionQueryRunner"
+import { DelegatedSetTransactionQueryRunner } from "./DelegatedSetTransactionQueryRunner"
 
-export class MySql2QueryRunner extends PromiseBasedWithDelegatedSetTransactionQueryRunner {
+export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
 

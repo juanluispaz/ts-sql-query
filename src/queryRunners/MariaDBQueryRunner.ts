@@ -1,8 +1,8 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from "./QueryRunner"
 import type { Connection, UpsertResult } from 'mariadb'
-import { PromiseBasedWithDelegatedSetTransactionQueryRunner } from "./PromiseBasedWithDelegatedSetTransactionQueryRunner"
+import { DelegatedSetTransactionQueryRunner } from "./DelegatedSetTransactionQueryRunner"
 
-export class MariaDBQueryRunner extends PromiseBasedWithDelegatedSetTransactionQueryRunner {
+export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection
 

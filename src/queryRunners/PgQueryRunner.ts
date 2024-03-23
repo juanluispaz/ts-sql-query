@@ -1,12 +1,12 @@
 import type { DatabaseType } from "./QueryRunner"
 import type { ClientBase } from 'pg'
-import { PromiseBasedWithSqlTransactionQueryRunner } from "./PromiseBasedWithSqlTransactionQueryRunner"
+import { SqlTransactionQueryRunner } from "./SqlTransactionQueryRunner"
 
 export interface PgQueryRunnerConfig {
     allowNestedTransactions?: boolean
 }
 
-export class PgQueryRunner extends PromiseBasedWithSqlTransactionQueryRunner {
+export class PgQueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: ClientBase
     private config?: PgQueryRunnerConfig

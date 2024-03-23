@@ -1,9 +1,9 @@
 import type { DatabaseType, QueryRunner } from "./QueryRunner"
 import type { Pool, PoolConnection } from "mysql2"
-import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { MySql2QueryRunner } from "./MySql2QueryRunner"
+import { ManagedTransactionPoolQueryRunner } from "./ManagedTransactionPoolQueryRunner"
 
-export class MySql2PoolQueryRunner extends PromiseBasedPoolQueryRunner {
+export class MySql2PoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
     readonly pool: Pool
 

@@ -237,10 +237,7 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     addOutParam(_params: any[], _name: string): string {
         throw new Error('Unsupported output parameters')
     }
-    abstract createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT>
-    abstract createRejectedPromise<RESULT = any>(error: any): Promise<RESULT>
     abstract executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts?: BeginTransactionOpts): Promise<T>
-    abstract executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]>
 
     isMocked(): boolean {
         return false
@@ -250,5 +247,20 @@ export abstract class AbstractQueryRunner implements QueryRunner {
     }
     nestedTransactionsSupported(): boolean {
         return false
+    }
+
+    // Promises
+    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+        return Promise.resolve(result) 
+    }
+    createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
+        return Promise.reject(error)
+    }
+    executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
+        return fn1().then((r1) => {
+            return fn2().then((r2) => {
+                return [r1, r2]
+            })
+        })
     }
 }

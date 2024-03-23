@@ -9,7 +9,7 @@ import { asAlwaysIfValueSource } from "../expressions/values"
 import { __addWiths } from "../utils/ITableOrView"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { __setQueryMetadata, AbstractQueryBuilder } from "./AbstractQueryBuilder"
-import { Column, isColumn } from "../utils/Column"
+import { DBColumn, isColumn } from "../utils/Column"
 
 export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWiths, ToSql, UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any, any>, CustomizableExecutableUpdate<any, any>, ExecutableUpdateExpression<any, any>, ShapedExecutableUpdateExpression<any, any, any>, NotExecutableUpdateExpression<any, any>, ShapedNotExecutableUpdateExpression<any, any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData, CustomizableExecutableUpdateReturning<any, any, any, any>, ReturnableExecutableUpdate<any, any>, ExecutableUpdateReturning<any, any, any, any>, UpdateSetExpression<any, any>, ShapedUpdateSetExpression<any, any, any>, UpdateSetExpressionAllowingNoWhere<any, any>, ShapedUpdateSetExpressionAllowingNoWhere<any, any, any>, UpdateSetJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, UpdateExpressionWithoutJoin<any, any>, UpdateFromExpression<any, any>, UpdateSetJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, UpdateExpressionWithoutJoinAllowingNoWhere<any, any>, UpdateFromExpressionAllowingNoWhere<any, any>, CustomizableExecutableUpdateProjectableAsNullable<any, any, any> {
     [source]: any
@@ -19,7 +19,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     [resultType]: any
 
     __table: ITable<any>
-    __shape?: { [property: string] : Column | string }
+    __shape?: { [property: string] : DBColumn | string }
     __sets: { [property: string] : any} = {}
     __where?: AlwaysIfValueSource<any, any>
     __allowNoWhere: boolean
@@ -975,7 +975,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     __registerTableOrView(_sqlBuilder: HasIsValue, _requiredTablesOrViews: Set<AnyTableOrView>): void {
         // do nothing because it is not possible to add external dependency
     }
-    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<Column>, _onlyForTablesOrViews: Set<AnyTableOrView>): void {
+    __registerRequiredColumn(_sqlBuilder: HasIsValue, _requiredColumns: Set<DBColumn>, _onlyForTablesOrViews: Set<AnyTableOrView>): void {
         // do nothing because it is not possible to add external dependency
     }
     __getOldValues(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {

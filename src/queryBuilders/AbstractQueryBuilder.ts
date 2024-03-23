@@ -1,6 +1,6 @@
 import { AnyValueSource, isValueSource, __getValueSourcePrivate } from "../expressions/values"
 import { getQueryColumn, QueryColumns, SqlBuilder } from "../sqlBuilders/SqlBuilder"
-import { Column } from "../utils/Column"
+import type { DBColumn } from "../utils/Column"
 import { AnyTableOrView, IWithView, __getTableOrViewPrivate, __registerRequiredColumn } from "../utils/ITableOrView"
 
 export class AbstractQueryBuilder {
@@ -329,7 +329,7 @@ export class AbstractQueryBuilder {
         }
     }
 
-    __registerRequiredColumnOfColmns(columns: QueryColumns | undefined, requiredColumns: Set<Column>, newOnly: Set<AnyTableOrView>) {
+    __registerRequiredColumnOfColmns(columns: QueryColumns | undefined, requiredColumns: Set<DBColumn>, newOnly: Set<AnyTableOrView>) {
         for (const property in columns) {
             const column = columns[property]!
             if (isValueSource(column)) {
@@ -340,7 +340,7 @@ export class AbstractQueryBuilder {
         }
     }
 
-    __getColumnFromColumnsObject(prop: string| number | symbol): AnyValueSource | undefined {
+    __getColumnFromColumnsObject(prop: string): AnyValueSource | undefined {
         return getQueryColumn(this.__columns!, prop)
     }
 

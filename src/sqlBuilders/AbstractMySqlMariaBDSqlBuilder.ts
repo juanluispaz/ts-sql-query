@@ -3,7 +3,7 @@ import type { TypeAdapter } from "../TypeAdapter"
 import { AnyValueSource, isValueSource, __AggregatedArrayColumns, ValueType } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
 import { __getValueSourcePrivate } from "../expressions/values"
-import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
+import { isColumn, __getColumnOfObject, __getColumnPrivate, DBColumn } from "../utils/Column"
 import { AnyTableOrView } from "../utils/ITableOrView"
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from "../internal/ValueSourceImpl"
 
@@ -311,11 +311,11 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return ''
         }
     }
-    _appendRawColumnNameForValuesForInsert(column: Column, _params: any[]): string {
+    _appendRawColumnNameForValuesForInsert(column: DBColumn, _params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         return 'values(' + this._escape(columnPrivate.__name, true) + ')'
     }
-    _appendColumnNameForUpdate(column: Column, params: any[]) {
+    _appendColumnNameForUpdate(column: DBColumn, params: any[]) {
         return this._appendRawColumnName(column, params)
     }
     _buildAfterUpdateTable(query: UpdateData, params: any[]): string {
@@ -328,7 +328,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
-    _buildUpdateFrom(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: Set<AnyTableOrView> | undefined, _requiredColumns: Set<Column> | undefined, _params: any[]): string {
+    _buildUpdateFrom(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: Set<AnyTableOrView> | undefined, _requiredColumns: Set<DBColumn> | undefined, _params: any[]): string {
         return ''
     }
     _buidDeleteUsing(query: DeleteData, params: any[]): string {

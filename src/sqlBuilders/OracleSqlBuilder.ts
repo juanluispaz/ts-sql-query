@@ -2,7 +2,7 @@ import { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQuer
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __isUuidValueSource, __isBooleanValueSource, ValueType, __isBooleanValueType, __isUuidValueType } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
+import { isColumn, __getColumnOfObject, __getColumnPrivate, DBColumn } from "../utils/Column"
 import { __getValueSourcePrivate } from "../expressions/values"
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
@@ -77,7 +77,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return this._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _appendColumnName(column: Column, params: any[]): string {
+    _appendColumnName(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate)) {
@@ -92,7 +92,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         return this._appendRawColumnName(column, params)
     }
-    _appendColumnNameForCondition(column: Column, params: any[]): string {
+    _appendColumnNameForCondition(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate)) {
@@ -119,7 +119,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         } 
         return this._buildInlineSelect(query, params)
     }
-    _appendCustomBooleanRemapForColumnIfRequired(column: Column, value: any, params: any[]): string | null {
+    _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, params: any[]): string | null {
         const columnPrivate = __getColumnPrivate(column)
         const columnTypeAdapter = columnPrivate.__typeAdapter
         const columnTypeName = columnPrivate.__valueTypeName
@@ -261,7 +261,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 throw new Error('Invalid compound operator: ' + compoundOperator)
         }   
     }
-    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
+    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
         if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return 'select * from (' + result + ')'

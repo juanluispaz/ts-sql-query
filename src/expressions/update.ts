@@ -2,7 +2,7 @@ import type { AnyValueSource, IExecutableUpdateQuery, IAnyBooleanValueSource, Re
 import type { ForUseInLeftJoin, HasSource, IRawFragment, ITable, ITableOrView, OfDB, OfSameDB, ResolvedShape } from "../utils/ITableOrView"
 import type { from, source, using } from "../utils/symbols"
 import type { ColumnsForSetOf, ColumnsForSetOfWithShape, ColumnsKeyOf, OptionalColumnsForSetOf, RequiredColumnsForSetOf, ResolveShape } from "../utils/tableOrViewUtils"
-import type { Column, ColumnWithDefaultValue } from "../utils/Column"
+import type { WritableDBColumn, WritableDBColumnWithDefaultValue } from "../utils/Column"
 import type { Default } from "./Default"
 import type { NNoTableOrViewRequiredFrom, NOldValuesFrom, NSource } from "../utils/sourceName"
 import type { DataToProject } from "../complexProjections/dataToProject"
@@ -250,9 +250,9 @@ export type UpdateValues<CONTAINER, SHAPE> =
 export type UpdateShape<TABLE extends HasSource<any>, USING extends HasSource<any>> = 
     TABLE extends OfDB<'noopDB' | 'mariaDB' | 'mySql'>
     ? {
-        [key: string]: ValueSourceOf<FilterTables<USING>[typeof source]> & Column | ColumnsForSetOf<TABLE>
+        [key: string]: ValueSourceOf<FilterTables<USING>[typeof source]> & WritableDBColumn | ColumnsForSetOf<TABLE>
     } : {
-        [key: string]: ValueSourceOf<TABLE[typeof source]> & Column | ColumnsForSetOf<TABLE>
+        [key: string]: ValueSourceOf<TABLE[typeof source]> & WritableDBColumn | ColumnsForSetOf<TABLE>
     }
 
 type FilterTables<USING extends HasSource<any>> = USING extends ITable<any> ? USING : never
@@ -276,7 +276,7 @@ type OptionalUpdateSetsContent<TABLE extends HasSource<any>, ALLOWING extends NS
 
 type InputTypeOfColumnAllowing<CONTAINER, K extends ColumnsKeyOf<CONTAINER>, ALLOWING extends NSource> =
     CONTAINER[K] extends AnyValueSource ?
-    (CONTAINER[K] extends ColumnWithDefaultValue ? (
+    (CONTAINER[K] extends WritableDBColumnWithDefaultValue ? (
         ValueSourceValueType<CONTAINER[K]> | RemapIValueSourceType<ALLOWING, CONTAINER[K]> | Default
     ) : (
         ValueSourceValueType<CONTAINER[K]> | RemapIValueSourceType<ALLOWING, CONTAINER[K]>
@@ -285,7 +285,7 @@ type InputTypeOfColumnAllowing<CONTAINER, K extends ColumnsKeyOf<CONTAINER>, ALL
 
 type InputTypeOfOptionalColumnAllowing<CONTAINER, K extends ColumnsKeyOf<CONTAINER>, ALLOWING extends NSource> =
     CONTAINER[K] extends AnyValueSource ?
-    (CONTAINER[K] extends ColumnWithDefaultValue ? (
+    (CONTAINER[K] extends WritableDBColumnWithDefaultValue ? (
         ValueSourceValueType<CONTAINER[K]> | RemapIValueSourceTypeWithOptionalType<ALLOWING, CONTAINER[K], any> | Default
     ) : (
         ValueSourceValueType<CONTAINER[K]> | RemapIValueSourceTypeWithOptionalType<ALLOWING, CONTAINER[K], any>

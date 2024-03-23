@@ -1,6 +1,6 @@
 import type { RawFragment } from "./RawFragment"
 import type { NDB, NDBWithType, NDbType, NGetDBFrom, NNoTableOrViewRequired, NSource, NWithSameDB } from "./sourceName"
-import type { isTableOrViewObject, source, type } from "./symbols"
+import type { isTableOrViewObject, isValueSourceObject, source, type } from "./symbols"
 
 export interface HasSource</*in|out*/ SOURCE extends NSource> {
     [source]: SOURCE
@@ -26,8 +26,9 @@ export interface ITableOrView</*in|out*/ SOURCE extends NSource> extends AnyTabl
 }
 
 // Duplicated here to avoid circular reference
-interface Column {
+interface DBColumn {
     [type]: 'column'
+    [isValueSourceObject]: true
 }
 
 export interface HasIsValue {
@@ -37,7 +38,7 @@ export interface HasIsValue {
 export interface HasAddWiths {
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void
     __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void
-    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<AnyTableOrView>): void
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void
     __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined
     __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined
     __isAllowed(sqlBuilder: HasIsValue): boolean
@@ -61,7 +62,7 @@ export function __registerTableOrView(value: any, sqlBuilder: HasIsValue, requir
     }
 }
 
-export function __registerRequiredColumn(value: any, sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+export function __registerRequiredColumn(value: any, sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
     if (value === undefined || value === null) {
         return
     }

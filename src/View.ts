@@ -2,8 +2,7 @@ import { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValu
 import { HasIsValue, IView, IWithView, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
 import type { TypeAdapter } from "./TypeAdapter"
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from "./utils/tableOrViewUtils"
-import { Column, OptionalColumn } from "./utils/Column"
-import { ColumnImpl } from "./internal/ColumnImpl"
+import { DBColumnImpl } from "./internal/DBColumnImpl"
 import { connection, isTableOrViewObject, source, type } from "./utils/symbols"
 import { IConnection } from "./utils/IConnection"
 import type { RawFragment } from "./utils/RawFragment"
@@ -56,72 +55,72 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
         return result as any
     }
 
-    protected column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'> & Column
-    protected column(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column
-    protected column<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column
-    protected column<T>(name: string, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, T, 'required'> & Column
-    protected column<T>(name: string, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, T, 'required'> & Column
-    protected column<T>(name: string, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<SOURCE, T, T, 'required'> & Column
-    protected column<T>(name: string, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<SOURCE, T, T, 'required'> & Column
-    protected column<T>(name: string, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<SOURCE, T, T, 'required'> & Column
-    protected column<T>(name: string, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<SOURCE, T, T, 'required'> & Column
-    protected column<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, T, 'required'> & Column
-    protected column<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, T, 'required'> & Column
-    protected column<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, T, 'required'> & Column
-    protected column(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected column(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'>
+    protected column(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'>
+    protected column(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<SOURCE, 'required'>
+    protected column(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'required'>
+    protected column(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'required'>
+    protected column(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'required'>
+    protected column(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'required'>
+    protected column(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'required'>
+    protected column(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'required'>
+    protected column<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'required'>
+    protected column<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'required'>
+    protected column<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<SOURCE, T, TYPE_NAME, 'required'>
+    protected column<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<SOURCE, T, TYPE_NAME, 'required'>
+    protected column<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<SOURCE, T, TYPE_NAME, 'required'>
+    protected column<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<SOURCE, T, TYPE_NAME, 'required'>
+    protected column<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'>
+    protected column<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'>
+    protected column<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'required'>
+    protected column<T>(name: string, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, T, 'required'>
+    protected column<T>(name: string, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, T, 'required'>
+    protected column<T>(name: string, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<SOURCE, T, T, 'required'>
+    protected column<T>(name: string, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<SOURCE, T, T, 'required'>
+    protected column<T>(name: string, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<SOURCE, T, T, 'required'>
+    protected column<T>(name: string, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<SOURCE, T, T, 'required'>
+    protected column<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, T, 'required'>
+    protected column<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, T, 'required'>
+    protected column<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, T, 'required'>
+    protected column(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return new ColumnImpl(this, name, type as ValueType, adapter, adapter2)
+            return new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)
         }
-        return new ColumnImpl(this, name, type as ValueType, type, adapter)
+        return new DBColumnImpl(this, name, type as ValueType, type, adapter)
     }
 
-    protected optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'optional'> & OptionalColumn
-    protected optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'> & OptionalColumn
-    protected optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<SOURCE, 'optional'> & OptionalColumn
-    protected optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'> & OptionalColumn
-    protected optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'optional'> & OptionalColumn
-    protected optionalColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'optional'> & OptionalColumn
-    protected optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'optional'> & OptionalColumn
-    protected optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'optional'> & OptionalColumn
-    protected optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'optional'> & OptionalColumn
-    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'optional'> & OptionalColumn
-    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'optional'> & OptionalColumn
-    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<SOURCE, T, TYPE_NAME, 'optional'> & OptionalColumn
-    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<SOURCE, T, TYPE_NAME, 'optional'> & OptionalColumn
-    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<SOURCE, T, TYPE_NAME, 'optional'> & OptionalColumn
-    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<SOURCE, T, TYPE_NAME, 'optional'> & OptionalColumn
-    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, TYPE_NAME, 'optional'> & OptionalColumn
-    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, TYPE_NAME, 'optional'> & OptionalColumn
-    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'optional'> & OptionalColumn
-    protected optionalColumn<T>(name: string, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, T, 'optional'> & OptionalColumn
-    protected optionalColumn<T>(name: string, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, T, 'optional'> & OptionalColumn
-    protected optionalColumn<T>(name: string, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<SOURCE, T, T, 'optional'> & OptionalColumn
-    protected optionalColumn<T>(name: string, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<SOURCE, T, T, 'optional'> & OptionalColumn
-    protected optionalColumn<T>(name: string, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<SOURCE, T, T, 'optional'> & OptionalColumn
-    protected optionalColumn<T>(name: string, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<SOURCE, T, T, 'optional'> & OptionalColumn
-    protected optionalColumn<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, T, 'optional'> & OptionalColumn
-    protected optionalColumn<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, T, 'optional'> & OptionalColumn
-    protected optionalColumn<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, T, 'optional'> & OptionalColumn
-    protected optionalColumn(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'optional'> & OptionalColumn */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
+    protected optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'optional'>
+    protected optionalColumn(name: string, type: 'int', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'>
+    protected optionalColumn(name: string, type: 'bigint', adapter?: TypeAdapter): BigintValueSource<SOURCE, 'optional'>
+    protected optionalColumn(name: string, type: 'double', adapter?: TypeAdapter): NumberValueSource<SOURCE, 'optional'>
+    protected optionalColumn(name: string, type: 'string', adapter?: TypeAdapter): StringValueSource<SOURCE, 'optional'>
+    protected optionalColumn(name: string, type: 'uuid', adapter?: TypeAdapter): UuidValueSource<SOURCE, 'optional'>
+    protected optionalColumn(name: string, type: 'localDate', adapter?: TypeAdapter): LocalDateValueSource<SOURCE, 'optional'>
+    protected optionalColumn(name: string, type: 'localTime', adapter?: TypeAdapter): LocalTimeValueSource<SOURCE, 'optional'>
+    protected optionalColumn(name: string, type: 'localDateTime', adapter?: TypeAdapter): LocalDateTimeValueSource<SOURCE, 'optional'>
+    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customInt', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, TYPE_NAME, 'optional'>
+    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customDouble', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, TYPE_NAME, 'optional'>
+    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customUuid', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomUuidValueSource<SOURCE, T, TYPE_NAME, 'optional'>
+    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalDate', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateValueSource<SOURCE, T, TYPE_NAME, 'optional'>
+    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalTimeValueSource<SOURCE, T, TYPE_NAME, 'optional'>
+    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customLocalDateTime', typeName: TYPE_NAME, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<SOURCE, T, TYPE_NAME, 'optional'>
+    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'enum', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, TYPE_NAME, 'optional'>
+    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'custom', typeName: TYPE_NAME, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, TYPE_NAME, 'optional'>
+    protected optionalColumn<T, TYPE_NAME extends string>(name: string, type: 'customComparable', typeName: TYPE_NAME, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, TYPE_NAME, 'optional'>
+    protected optionalColumn<T>(name: string, type: 'customInt', typeName: string, adapter?: TypeAdapter): CustomIntValueSource<SOURCE, T, T, 'optional'>
+    protected optionalColumn<T>(name: string, type: 'customDouble', typeName: string, adapter?: TypeAdapter): CustomDoubleValueSource<SOURCE, T, T, 'optional'>
+    protected optionalColumn<T>(name: string, type: 'customUuid', typeName: string, adapter?: TypeAdapter): CustomUuidValueSource<SOURCE, T, T, 'optional'>
+    protected optionalColumn<T>(name: string, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<SOURCE, T, T, 'optional'>
+    protected optionalColumn<T>(name: string, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<SOURCE, T, T, 'optional'>
+    protected optionalColumn<T>(name: string, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<SOURCE, T, T, 'optional'>
+    protected optionalColumn<T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, T, 'optional'>
+    protected optionalColumn<T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<SOURCE, T, T, 'optional'>
+    protected optionalColumn<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, T, 'optional'>
+    protected optionalColumn(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return (new ColumnImpl(this, name, type as ValueType, adapter, adapter2)).__asOptionalColumn()
+            return (new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)).__asOptionalColumn()
         }
-        return (new ColumnImpl(this, name, type as ValueType, type, adapter)).__asOptionalColumn()
+        return (new DBColumnImpl(this, name, type as ValueType, type, adapter)).__asOptionalColumn()
     }
 
     protected virtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => IBooleanValueSource<SOURCE, 'required'>, adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'>
@@ -208,7 +207,7 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     }
 
     // @ts-ignore
-    private __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
+    private __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumnn>, onlyForTablesOrViews: Set<ITableOrView<any>>): void {
         __registerRequiredColumn(this.__template, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
 

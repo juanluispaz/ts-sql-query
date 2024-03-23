@@ -1,7 +1,7 @@
 import { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, flattenQueryColumns, getQueryColumn, WithSelectData, WithValuesData, OrderByEntry } from "./SqlBuilder"
 import { AnyTableOrView, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, isValueSource, __AggregatedArrayColumns, __getValueSourceOfObject, __ValueSourcePrivate, __isStringValueSource, __isBooleanValueSource, ValueType } from "../expressions/values"
-import { Column, isColumn, __ColumnPrivate } from "../utils/Column"
+import { isColumn, __ColumnPrivate, DBColumn } from "../utils/Column"
 import { CustomBooleanTypeAdapter, DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 import { SequenceValueSource } from "../internal/ValueSourceImpl"
@@ -243,7 +243,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return false
     }
-    _appendColumnName(column: Column, params: any[]): string {
+    _appendColumnName(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate) && typeAdapter instanceof CustomBooleanTypeAdapter) {
@@ -251,7 +251,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendRawColumnName(column, params)
     }
-    _appendColumnNameForCondition(column: Column, params: any[]): string {
+    _appendColumnNameForCondition(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate) && typeAdapter instanceof CustomBooleanTypeAdapter) {
@@ -259,7 +259,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return this._appendRawColumnName(column, params)
     }
-    _appendRawColumnName(column: Column, params: any[]): string {
+    _appendRawColumnName(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const tableOrView = columnPrivate.__tableOrView
         const tablePrivate = __getTableOrViewPrivate(tableOrView)
@@ -292,7 +292,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             return this._escape(tablePrivate.__name, false) + '.' + this._escape(columnPrivate.__name, true)
         }
     }
-    _appendRawColumnNameForValuesForInsert(column: Column, _params: any[]): string {
+    _appendRawColumnNameForValuesForInsert(column: DBColumn, _params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         return 'excluded.' + this._escape(columnPrivate.__name, true)
     }
@@ -643,7 +643,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 throw new Error('Invalid compound operator: ' + compoundOperator)
         }
     }
-    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
+    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
         if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return '(' + result + ')'
@@ -704,7 +704,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         return fromJoins
     }
-    _buildSelectWithColumnsInfo(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
+    _buildSelectWithColumnsInfo(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
         const oldWithGenerated = this._isWithGenerated(params)
         const oldWithGeneratedFinished = this._isWithGeneratedFinished(params)
@@ -947,7 +947,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._setAggregateArrayWrapped(params, oldAggregateArrayWrapped)
         return selectQuery
     }
-    _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: Column | undefined, isOutermostQuery: boolean): string {
+    _appendSelectColumn(value: AnyValueSource, params: any[], columnForInsert: DBColumn | undefined, isOutermostQuery: boolean): string {
         if (columnForInsert) {
             const sql = this._appendCustomBooleanRemapForColumnIfRequired(columnForInsert, value, params)
             if (sql) {
@@ -1287,7 +1287,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         this._resetRootQuery(query, params)
         return insertQuery
     }
-    _appendCustomBooleanRemapForColumnIfRequired(column: Column, value: any, params: any[]): string | null {
+    _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, params: any[]): string | null {
         const columnPrivate = __getColumnPrivate(column)
         const columnTypeAdapter = columnPrivate.__typeAdapter
         const columnTypeName = columnPrivate.__valueTypeName
@@ -1347,7 +1347,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         // if not it is same boolean, nothing to transform here
         return null
     }
-    _appendValueForColumn(column: Column, value: any, params: any[], forceTypeCast: boolean = false): string {
+    _appendValueForColumn(column: DBColumn, value: any, params: any[], forceTypeCast: boolean = false): string {
         const sql = this._appendCustomBooleanRemapForColumnIfRequired(column, value, params)
         if (sql) {
             return sql
@@ -1640,7 +1640,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         insertQuery += 'into '
         insertQuery += this._appendTableOrViewName(table, params)
 
-        const columnsForInsert: { [name: string]: Column | undefined } = {}
+        const columnsForInsert: { [name: string]: DBColumn | undefined } = {}
 
         let columns = ''
         const addedColumns: string[] = []
@@ -2054,12 +2054,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
-    _extractAdditionalRequiredColumnsForUpdate(query: UpdateData, requiredTables: Set<AnyTableOrView> | undefined, _params: any[]): Set<Column> | undefined {
+    _extractAdditionalRequiredColumnsForUpdate(query: UpdateData, requiredTables: Set<AnyTableOrView> | undefined, _params: any[]): Set<DBColumn> | undefined {
         if (!requiredTables) {
             return undefined
         }
 
-        const result = new Set<Column>()
+        const result = new Set<DBColumn>()
 
         const sets = query.__sets
         for (let property in sets) {
@@ -2080,7 +2080,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     }
     _updateNewAlias = '_new_'
     _updateOldValueInFrom = true
-    _appendColumnNameForUpdate(column: Column, _params: any[]) {
+    _appendColumnNameForUpdate(column: DBColumn, _params: any[]) {
         const columnPrivate = __getColumnPrivate(column)
         return this._escape(columnPrivate.__name, true)
     }
@@ -2104,7 +2104,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildAfterUpdateTable(_query: UpdateData, _params: any[]): string {
         return ''
     }
-    _buildUpdateFrom(query: UpdateData, updatePrimaryKey: boolean, requiredTables: Set<AnyTableOrView> | undefined, requiredColumns: Set<Column> | undefined, params: any[]): string {
+    _buildUpdateFrom(query: UpdateData, updatePrimaryKey: boolean, requiredTables: Set<AnyTableOrView> | undefined, requiredColumns: Set<DBColumn> | undefined, params: any[]): string {
         if (!this._updateOldValueInFrom) {
             const from = this._buildFromJoins(query.__froms, query.__joins, undefined, params)
             if (from) {
@@ -2302,7 +2302,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _isNotNull(params: any[], valueSource: ToSql): string {
         return this._appendSqlParenthesis(valueSource, params) + ' is not null'
     }
-    _hasSameBooleanTypeAdapter(valueSource: Column, value: Column): valueSource is Column  {
+    _hasSameBooleanTypeAdapter(valueSource: DBColumn, value: DBColumn): valueSource is DBColumn  {
         if (isColumn(valueSource) && isColumn(value)) {
             const valueSourcePrivate = __getColumnPrivate(valueSource)
             const valuePrivate = __getColumnPrivate(value)

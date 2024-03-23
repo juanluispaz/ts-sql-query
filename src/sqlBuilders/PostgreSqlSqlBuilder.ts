@@ -1,7 +1,7 @@
 import type { ToSql, SelectData, WithValuesData } from "./SqlBuilder"
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
+import { isColumn, __getColumnOfObject, __getColumnPrivate, DBColumn } from "../utils/Column"
 import { ValueType, __isBooleanValueSource, isValueSource } from "../expressions/values"
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
@@ -84,7 +84,7 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
-    _appendCustomBooleanRemapForColumnIfRequired(column: Column, value: any, params: any[]): string | null {
+    _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, params: any[]): string | null {
         const columnPrivate = __getColumnPrivate(column)
         const columnTypeAdapter = columnPrivate.__typeAdapter
         const columnTypeName = columnPrivate.__valueTypeName

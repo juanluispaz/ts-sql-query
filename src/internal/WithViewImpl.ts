@@ -1,11 +1,11 @@
 import { HasIsValue, IWithView, __addWiths, __getTableOrViewPrivate, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView, AnyTableOrView } from "../utils/ITableOrView"
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from "../utils/tableOrViewUtils"
 import type { SelectData, SqlBuilder, WithSelectData } from "../sqlBuilders/SqlBuilder"
-import { createColumnsFrom } from "../internal/ColumnImpl"
+import { createColumnsFrom } from "./DBColumnImpl"
 import { isTableOrViewObject, source, type } from "../utils/symbols"
 import { __getValueSourceOfObject, __getValueSourcePrivate } from "../expressions/values"
 import type { RawFragment } from "../utils/RawFragment"
-import { Column } from "../utils/Column"
+import type { DBColumn } from "../utils/Column"
 
 export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrViewPrivate {
     [isTableOrViewObject]: true = true;
@@ -92,7 +92,7 @@ export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrV
         requiredTablesOrViews.add(this)
         __registerTableOrView(this.__template, sqlBuilder, requiredTablesOrViews)
     }
-    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
         __registerRequiredColumn(this.__template, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }
     __getOldValues(_sqlBuilder: HasIsValue): AnyTableOrView | undefined {

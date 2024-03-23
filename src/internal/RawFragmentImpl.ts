@@ -1,6 +1,6 @@
 import { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from "../expressions/values"
 import { SqlBuilder, ToSql } from "../sqlBuilders/SqlBuilder"
-import { Column } from "../utils/Column"
+import { DBColumn } from "../utils/Column"
 import { AnyTableOrView, HasAddWiths, HasIsValue, IWithView, __addWiths, __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
 import type { RawFragment } from "../utils/RawFragment"
 import { source, type } from "../utils/symbols"
@@ -35,7 +35,7 @@ export class RawFragmentImpl implements RawFragment<any>, HasAddWiths, ToSql {
             __registerTableOrView(params[i], sqlBuilder, requiredTablesOrViews)
         }
     }
-    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
         const params = this.__params
         for (let i = 0, length = params.length; i < length; i++) {
             __registerRequiredColumn(params[i], sqlBuilder, requiredColumns, onlyForTablesOrViews)

@@ -2,7 +2,7 @@ import type { ITable, IWithView, HasIsValue, AnyTableOrView } from "../utils/ITa
 import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, isValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, IStringValueSource, __getValueSourcePrivate, ValueType } from "../expressions/values"
 import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import type { OrderByMode, SelectCustomization } from "../expressions/select"
-import type { Column } from "../utils/Column"
+import type { DBColumn } from "../utils/Column"
 import type { QueryRunner } from "../queryRunners/QueryRunner"
 import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 import type { UpdateCustomization } from "../expressions/update"
@@ -14,7 +14,7 @@ import type { RawFragment } from "../utils/RawFragment"
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
 export type FlatQueryColumns = { [property: string]: AnyValueSource }
 
-export function getQueryColumn(columns: QueryColumns, prop: string| number | symbol): AnyValueSource | undefined {
+export function getQueryColumn(columns: QueryColumns, prop: string): AnyValueSource | undefined {
     const propName = prop as string
     let valueSource = columns[propName]
     if (valueSource) {
@@ -168,7 +168,7 @@ export interface InsertData extends WithQueryData {
     __shape?: { [property: string] : string }
     __sets: { [property: string]: any }
     __multiple?: { [property: string]: any }[]
-    __idColumn?: Column
+    __idColumn?: DBColumn
     __from?: SelectData
     __customization?: InsertCustomization<any, any>
     __columns?: QueryColumns
@@ -184,7 +184,7 @@ export interface InsertData extends WithQueryData {
 
 export interface UpdateData extends WithQueryData {
     __table: ITable<any>
-    __shape?: { [property: string] : Column | string }
+    __shape?: { [property: string] : DBColumn | string }
     __sets: { [property: string] : any}
     __where?: AlwaysIfValueSource<any, any>
     __allowNoWhere: boolean
@@ -212,8 +212,8 @@ export interface SqlBuilder extends SqlOperation {
     _isValue(value: any): boolean
     _isReservedKeyword(word: string): boolean
     _forceAsIdentifier(identifier: string): string
-    _appendColumnName(column: Column, params: any[]): string
-    _appendColumnNameForCondition(column: Column, params: any[]): string
+    _appendColumnName(column: DBColumn, params: any[]): string
+    _appendColumnNameForCondition(column: DBColumn, params: any[]): string
     _buildSelect(query: SelectData, params: any[]): string
     _buildInlineSelect(query: SelectData, params: any[]): string
     _buildInsertDefaultValues(query: InsertData, params: any[]): string

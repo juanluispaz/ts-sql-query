@@ -2,7 +2,7 @@ import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData, flatte
 import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
 import { AnyValueSource, IExecutableSelectQuery, isValueSource, __AggregatedArrayColumns, __isUuidValueSource, __isBooleanValueSource, ValueType, __isBooleanValueType, NativeValueType } from "../expressions/values"
 import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { Column, isColumn, __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
+import { isColumn, __getColumnOfObject, __getColumnPrivate, DBColumn } from "../utils/Column"
 import { __getValueSourcePrivate } from "../expressions/values"
 import { ITable, __getTableOrViewPrivate } from "../utils/ITableOrView"
 
@@ -13,7 +13,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._getMonth = true
         this._operationsThatNeedParenthesis._getDay = true
     }
-    _appendRawColumnName(column: Column, params: any[]): string {
+    _appendRawColumnName(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const tableOrView = columnPrivate.__tableOrView
         if (__getTableOrViewPrivate(tableOrView).__oldValues) {
@@ -104,7 +104,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         })
         return super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _appendColumnName(column: Column, params: any[]): string {
+    _appendColumnName(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate)) {
@@ -119,7 +119,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         return this._appendRawColumnName(column, params)
     }
-    _appendColumnNameForCondition(column: Column, params: any[]): string {
+    _appendColumnNameForCondition(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate)) {
@@ -195,7 +195,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
 
         return result
     }
-    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: Column | undefined }, isOutermostQuery: boolean): string {
+    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
         if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return 'select * from (' + result + ') _t_' + this._generateUnique() + '_'

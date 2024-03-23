@@ -10,10 +10,10 @@ import { attachSource } from "../utils/attachSource"
 import { columnsType, resultType, type, compoundableColumns, isSelectQueryObject, source, from, using, selectColumnsType } from "../utils/symbols"
 import { asAlwaysIfValueSource } from "../expressions/values"
 import { WithViewImpl } from "../internal/WithViewImpl"
-import { createColumnsFrom } from "../internal/ColumnImpl"
+import { createColumnsFrom } from "../internal/DBColumnImpl"
 import { View } from "../View"
 import { AbstractQueryBuilder, __setQueryMetadata } from "./AbstractQueryBuilder"
-import { Column } from "../utils/Column"
+import type { DBColumn } from "../utils/Column"
 
 abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, HasAddWiths, IExecutableSelectQuery<any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any>, WithableExecutableSelect<any, any, any, any, any>, ExecutableSelect<any, any, any, any>, LimitExecutableSelectExpression<any,any,any,any, any>, OrderByExecutableSelectExpression<any,any,any,any, any>, OrderedExecutableSelectExpression<any,any,any,any, any>, OffsetExecutableSelectExpression<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any>, CompoundedLimitExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderByExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderedExecutableSelectExpression<any, any, any, any, any>, CompoundedOffsetExecutableSelectExpression<any, any, any, any, any>, CompoundedCustomizableExecutableSelect<any, any, any, any, any>, OrderableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, WithableExecutableSelectWithoutWhere<any, any, any, any, any>, CompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpressionWitoutWhere<any, any, any, any, any> {
     [source]: any
@@ -434,7 +434,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
             __getTableOrViewPrivate(tableOrView).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
         }
     }
-    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+    __registerRequiredColumn(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
         const subSelectUsing = this.__subSelectUsing
         if (!subSelectUsing) {
             return
@@ -470,7 +470,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
 
         this.__registerRequiredColumnInSelect(sqlBuilder, requiredColumns, newOnly)
     }
-    abstract __registerRequiredColumnInSelect(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<AnyTableOrView>): void
+    abstract __registerRequiredColumnInSelect(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void
     __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         const subSelectUsing = this.__subSelectUsing
         if (!subSelectUsing) {
@@ -644,7 +644,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
     }
 
-    __registerRequiredColumnInSelect(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+    __registerRequiredColumnInSelect(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
         const tablesOrViews = this.__tablesOrViews
         for (let i = 0, length = tablesOrViews.length; i < length; i++) {
             __registerRequiredColumn(tablesOrViews[i], sqlBuilder, requiredColumns, onlyForTablesOrViews)
@@ -962,7 +962,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         return this
     }
-    groupBy(...columns: Array<string| number | symbol | AnyValueSource>): any {
+    groupBy(...columns: Array<string | AnyValueSource>): any {
         this.__finishJoinHaving()
         this.__query = ''
         for (let i = 0, length = columns.length; i < length; i++) {
@@ -1284,7 +1284,7 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         }
     }
 
-    __registerRequiredColumnInSelect(sqlBuilder: HasIsValue, requiredColumns: Set<Column>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+    __registerRequiredColumnInSelect(sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
         __registerRequiredColumn(this.__firstQuery, sqlBuilder, requiredColumns, onlyForTablesOrViews)
         __registerRequiredColumn(this.__secondQuery, sqlBuilder, requiredColumns, onlyForTablesOrViews)
     }

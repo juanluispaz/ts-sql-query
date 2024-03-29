@@ -1,0 +1,42 @@
+on:
+  workflow_dispatch:
+
+name: Release
+
+jobs:
+  build:
+    name: build library
+    runs-on: ubuntu-latest
+    steps:
+      # Setup environment
+      - uses: actions/checkout@v4
+      - name: Use Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      # Validate branch
+      - name: Validate if in master branch
+        run: '[ "$GITHUB_HEAD_REF" == "master" ] || exit 1'
+
+      # Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Build
+      - name: Prepare
+        run: npm run generate-prisma
+      - name: Build
+        run: npm run build
+
+      # Light tests (docker tests not supported yet)
+      - name: Light tests
+        run: npm run no-docker-examples
+
+      # Publish
+      - name: Build for dist & Publish
+        run: npm run dist
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+

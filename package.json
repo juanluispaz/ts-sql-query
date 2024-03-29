@@ -43,6 +43,7 @@
         "dist": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm -Rf examples && npm publish",
         "dist-alpha": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm -Rf examples && npm publish --tag alpha",
         "dist-beta": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm -Rf examples && npm publish --tag beta",
+        "test-dist": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && rm -Rf examples && npm publish --dry-run",
         "docs": "mkdocs serve",
         "create-single-doc-file": "sh ./scripts/create-single-doc-file.sh"
     },

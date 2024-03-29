@@ -18,7 +18,7 @@ jobs:
 
       # Validate branch
       - name: Validate if in master branch
-        run: '[ "$GITHUB_HEAD_REF" == "master" ] || exit 1'
+        run: '[ "$GITHUB_HEAD_REF" == "master" ] || { echo "Not in master: $GITHUB_HEAD_REF"; exit 1 }'
 
       # Install dependencies
       - name: Install dependencies

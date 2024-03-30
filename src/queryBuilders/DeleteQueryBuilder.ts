@@ -1,7 +1,7 @@
 import { SqlBuilder, DeleteData, JoinData, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
 import { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView, __addWiths, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import { IAnyBooleanValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
-import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, CustomizableExecutableDeleteProjectableAsNullable } from "../expressions/delete"
+import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteReturningColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, CustomizableExecutableDeleteProjectableAsNullable } from "../expressions/delete"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { from, resultType, source, type, using } from "../utils/symbols"
@@ -365,7 +365,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         return this
     }
 
-    returning(columns: DeleteColumns<any>): this {
+    returning(columns: DeleteReturningColumns<any>): this {
         this.__finishJoin()
         this.__query = ''
         this.__columns = columns

@@ -683,7 +683,7 @@ export interface ComposableCustomizableExecutableInsertOptionalProjectableAsNull
 
 type ReturningFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
     TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'sqlite' | 'mariaDB' | 'oracle'>
-    ? <COLUMNS extends InsertColumns<USING[typeof source]>>(columns: COLUMNS) => ComposableCustomizableExecutableInsertProjectableAsNullable<TABLE, USING, COLUMNS>
+    ? <COLUMNS extends InsertReturningColumns<USING[typeof source]>>(columns: COLUMNS) => ComposableCustomizableExecutableInsertProjectableAsNullable<TABLE, USING, COLUMNS>
     : never
 
 type ReturningOneColumnFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
@@ -693,7 +693,7 @@ type ReturningOneColumnFnType<TABLE extends HasSource<any>, USING extends HasSou
 
 type ReturningFromSelectFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
     TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'sqlite' | 'mariaDB'>
-    ? <COLUMNS extends InsertColumns<USING[typeof source]>>(columns: COLUMNS) => ComposableCustomizableExecutableInsertProjectableAsNullable<TABLE, USING, COLUMNS>
+    ? <COLUMNS extends InsertReturningColumns<USING[typeof source]>>(columns: COLUMNS) => ComposableCustomizableExecutableInsertProjectableAsNullable<TABLE, USING, COLUMNS>
     : never
 
 type ReturningOneColumnFromSelectFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
@@ -724,7 +724,7 @@ type ReturningLastInsertedIdFromSelectType<TABLE extends HasSource<any>, USING e
 
 type ReturningOptionalFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
     TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'sqlite' | 'mariaDB' | 'oracle'>
-    ? <COLUMNS extends InsertColumns<USING[typeof source]>>(columns: COLUMNS) => ComposableCustomizableExecutableInsertOptionalProjectableAsNullable<TABLE, USING, COLUMNS>
+    ? <COLUMNS extends InsertReturningColumns<USING[typeof source]>>(columns: COLUMNS) => ComposableCustomizableExecutableInsertOptionalProjectableAsNullable<TABLE, USING, COLUMNS>
     : never
 
 type ReturningOneColumnOptionalFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
@@ -734,7 +734,7 @@ type ReturningOneColumnOptionalFnType<TABLE extends HasSource<any>, USING extend
 
 type ReturningFromSelectOptionalFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
     TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'sqlite' | 'mariaDB'>
-    ? <COLUMNS extends InsertColumns<USING[typeof source]>>(columns: COLUMNS) => ComposableCustomizableExecutableInsertOptionalProjectableAsNullable<TABLE, USING, COLUMNS>
+    ? <COLUMNS extends InsertReturningColumns<USING[typeof source]>>(columns: COLUMNS) => ComposableCustomizableExecutableInsertOptionalProjectableAsNullable<TABLE, USING, COLUMNS>
     : never
 
 type ReturningOneColumnFromSelectOptionalFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
@@ -959,7 +959,7 @@ interface OnConflictOnConstraintFnTypeInterface</*in|out*/ TABLE extends HasSour
 
 
 
-export type InsertColumns</*in|out*/ SOURCE extends NSource> = DataToProject<SOURCE>
+export type InsertReturningColumns</*in|out*/ SOURCE extends NSource> = DataToProject<SOURCE>
 
 
 

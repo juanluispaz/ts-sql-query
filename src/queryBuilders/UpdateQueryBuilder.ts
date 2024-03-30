@@ -1,7 +1,7 @@
 import { isAllowedQueryColumns, JoinData, SqlBuilder, ToSql, UpdateData } from "../sqlBuilders/SqlBuilder"
 import { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import { AlwaysIfValueSource, AnyValueSource, IAnyBooleanValueSource, isValueSource } from "../expressions/values"
-import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, CustomizableExecutableUpdateReturning, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, CustomizableExecutableUpdateProjectableAsNullable } from "../expressions/update"
+import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, CustomizableExecutableUpdateReturning, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateReturningColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, CustomizableExecutableUpdateProjectableAsNullable } from "../expressions/update"
 import ChainedError from "chained-error"
 import { attachSource } from "../utils/attachSource"
 import { from, resultType, source, type, using } from "../utils/symbols"
@@ -943,7 +943,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         return this
     }
 
-    returning(columns: UpdateColumns<any>): this {
+    returning(columns: UpdateReturningColumns<any>): this {
         this.__query = ''
         this.__columns = columns
         this.__registerTableOrViewWithOfColumns(columns, this.__withs)

@@ -176,9 +176,9 @@ export interface CustomizableExecutableDeleteProjectableAsNullable</*in|out*/ TA
 
 type ReturningFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
     TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'mariaDB' | 'oracle'>
-    ? <COLUMNS extends DeleteColumns<USING[typeof source]>>(columns: COLUMNS) => CustomizableExecutableDeleteProjectableAsNullable<TABLE, USING, COLUMNS>
+    ? <COLUMNS extends DeleteReturningColumns<USING[typeof source]>>(columns: COLUMNS) => CustomizableExecutableDeleteProjectableAsNullable<TABLE, USING, COLUMNS>
     : TABLE extends OfDB<'sqlite'>
-    ? <COLUMNS extends DeleteColumns<TABLE[typeof source] | NNoTableOrViewRequiredFrom<TABLE[typeof source]>>>(columns: COLUMNS) => CustomizableExecutableDeleteProjectableAsNullable<TABLE, USING, COLUMNS>
+    ? <COLUMNS extends DeleteReturningColumns<TABLE[typeof source] | NNoTableOrViewRequiredFrom<TABLE[typeof source]>>>(columns: COLUMNS) => CustomizableExecutableDeleteProjectableAsNullable<TABLE, USING, COLUMNS>
     : never
 
 type ReturningOneColumnFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
@@ -188,4 +188,4 @@ type ReturningOneColumnFnType<TABLE extends HasSource<any>, USING extends HasSou
     ? <COLUMN extends ValueSourceOf<TABLE[typeof source] | NNoTableOrViewRequiredFrom<TABLE[typeof source]>>>(column: COLUMN) => ComposableCustomizableExecutableDelete<TABLE, USING, COLUMN, ValueSourceValueTypeForResult<COLUMN>>
     : never
 
-export type DeleteColumns</*in|out*/ SOURCE extends NSource> = DataToProject<SOURCE>
+export type DeleteReturningColumns</*in|out*/ SOURCE extends NSource> = DataToProject<SOURCE>

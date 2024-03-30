@@ -1,5 +1,5 @@
 import type { AnyValueSource, IExecutableUpdateQuery, IAnyBooleanValueSource, RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from "./values"
-import type { ForUseInLeftJoin, HasSource, IRawFragment, ITable, ITableOrView, OfDB, OfSameDB, ResolvedShape } from "../utils/ITableOrView"
+import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, OfDB, OfSameDB, ResolvedShape } from "../utils/ITableOrView"
 import type { from, source, using } from "../utils/symbols"
 import type { ColumnsForSetOf, ColumnsForSetOfWithShape, ColumnsKeyOf, OptionalColumnsForSetOf, RequiredColumnsForSetOf, ResolveShape } from "../utils/tableOrViewUtils"
 import type { WritableDBColumn, WritableDBColumnWithDefaultValue } from "../utils/Column"
@@ -250,12 +250,10 @@ export type UpdateValues<CONTAINER, SHAPE> =
 export type UpdateShape<TABLE extends HasSource<any>, USING extends HasSource<any>> = 
     TABLE extends OfDB<'noopDB' | 'mariaDB' | 'mySql'>
     ? {
-        [key: string]: ValueSourceOf<FilterTables<USING>[typeof source]> & WritableDBColumn | ColumnsForSetOf<TABLE>
+        [key: string]: ValueSourceOf<USING[typeof source]> & WritableDBColumn | ColumnsForSetOf<TABLE>
     } : {
         [key: string]: ValueSourceOf<TABLE[typeof source]> & WritableDBColumn | ColumnsForSetOf<TABLE>
     }
-
-type FilterTables<USING extends HasSource<any>> = USING extends ITable<any> ? USING : never
 
 export type OptionalUpdateSets<TABLE extends HasSource<any>, USING extends HasSource<any>, SHAPE> = OptionalUpdateSetsContent<TABLE, USING[typeof source], SHAPE>
 type OptionalUpdateSetsContent<TABLE extends HasSource<any>, ALLOWING extends NSource, SHAPE> = 
@@ -405,9 +403,9 @@ export interface CustomizableExecutableUpdateProjectableAsNullable</*in|out*/ TA
 
 type ReturningFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
     TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'oracle'>
-    ? <COLUMNS extends UpdateColumns<USING[typeof source] | NOldValuesFrom<TABLE[typeof source]>>>(columns: COLUMNS) => CustomizableExecutableUpdateProjectableAsNullable<TABLE, USING, COLUMNS>
+    ? <COLUMNS extends UpdateReturningColumns<USING[typeof source] | NOldValuesFrom<TABLE[typeof source]>>>(columns: COLUMNS) => CustomizableExecutableUpdateProjectableAsNullable<TABLE, USING, COLUMNS>
     : TABLE extends OfDB<'sqlite'>
-    ? <COLUMNS extends UpdateColumns<TABLE[typeof source] | NNoTableOrViewRequiredFrom<TABLE[typeof source]>>>(columns: COLUMNS) => CustomizableExecutableUpdateProjectableAsNullable<TABLE, USING, COLUMNS>
+    ? <COLUMNS extends UpdateReturningColumns<TABLE[typeof source] | NNoTableOrViewRequiredFrom<TABLE[typeof source]>>>(columns: COLUMNS) => CustomizableExecutableUpdateProjectableAsNullable<TABLE, USING, COLUMNS>
     : never
 
 type ReturningOneColumnFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
@@ -417,4 +415,4 @@ type ReturningOneColumnFnType<TABLE extends HasSource<any>, USING extends HasSou
     ? <COLUMN extends ValueSourceOf<TABLE[typeof source] | NNoTableOrViewRequiredFrom<TABLE[typeof source]>> | NOldValuesFrom<TABLE[typeof source]>>(column: COLUMN) => CustomizableExecutableUpdateReturning<TABLE, USING, COLUMN, ValueSourceValueTypeForResult<COLUMN>>
     : never
 
-export type UpdateColumns</*in|out*/ SOURCE extends NSource> = DataToProject<SOURCE>
+export type UpdateReturningColumns</*in|out*/ SOURCE extends NSource> = DataToProject<SOURCE>

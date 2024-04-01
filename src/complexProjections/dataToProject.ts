@@ -1,4 +1,6 @@
 import type { AnyValueSource, ValueSourceOf } from "../expressions/values"
+import { AnyForUseInLeftJoin, AnyTableOrView, ForUseInLeftJoin, ITableOrView } from '../utils/ITableOrView'
+import type { UsableKeyOf } from '../utils/objectUtils'
 import type { NSource } from "../utils/sourceName"
 import type { source } from "../utils/symbols"
 
@@ -8,26 +10,28 @@ import type { source } from "../utils/symbols"
  */
 
 // [source]?: SOURCE is here to improve TS error messages
-export type DataToProject</*in|out*/ SOURCE extends NSource> = {
-    [P: string]: ValueSourceOf<SOURCE> | DataToProject2<SOURCE>
+export type DataToProject</*in|out*/ SOURCE extends NSource> = DataToProject1<SOURCE> | ITableOrView<SOURCE> | ForUseInLeftJoin<SOURCE>
+
+type DataToProject1</*in|out*/ SOURCE extends NSource> = {
+    [P: string]: ValueSourceOf<SOURCE> | DataToProject2<SOURCE> | ITableOrView<SOURCE> | ForUseInLeftJoin<SOURCE>
     // Source si here to improve TS error messages
     [source]?: SOURCE
 }
 
 type DataToProject2</*in|out*/ SOURCE extends NSource> = {
-    [P: string]: ValueSourceOf<SOURCE> | DataToProject3<SOURCE>
+    [P: string]: ValueSourceOf<SOURCE> | DataToProject3<SOURCE> | ITableOrView<SOURCE> | ForUseInLeftJoin<SOURCE>
     // Source si here to improve TS error messages
     [source]?: SOURCE
 }
 
 type DataToProject3</*in|out*/ SOURCE extends NSource> = {
-    [P: string]: ValueSourceOf<SOURCE> | DataToProject4<SOURCE>
+    [P: string]: ValueSourceOf<SOURCE> | DataToProject4<SOURCE> | ITableOrView<SOURCE> | ForUseInLeftJoin<SOURCE>
     // Source si here to improve TS error messages
     [source]?: SOURCE
 }
 
 type DataToProject4</*in|out*/ SOURCE extends NSource> = {
-    [P: string]: ValueSourceOf<SOURCE> | DataToProject5<SOURCE>
+    [P: string]: ValueSourceOf<SOURCE> | DataToProject5<SOURCE> | ITableOrView<SOURCE> | ForUseInLeftJoin<SOURCE>
     // Source si here to improve TS error messages
     [source]?: SOURCE
 }
@@ -40,20 +44,22 @@ type DataToProject5</*in|out*/ SOURCE extends NSource> = {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export type DataToProjectOfAny = {
-    [P: string]: AnyValueSource | DataToProjectOfAny2
+export type DataToProjectOfAny = DataToProjectOfAny1 | AnyTableOrView | AnyForUseInLeftJoin
+
+export type DataToProjectOfAny1 = {
+    [P: string]: AnyValueSource | DataToProjectOfAny2 | AnyTableOrView | AnyForUseInLeftJoin
 }
 
 type DataToProjectOfAny2 = {
-    [P: string]: AnyValueSource | DataToProjectOfAny3
+    [P: string]: AnyValueSource | DataToProjectOfAny3 | AnyTableOrView | AnyForUseInLeftJoin
 }
 
 type DataToProjectOfAny3 = {
-    [P: string]: AnyValueSource | DataToProjectOfAny4
+    [P: string]: AnyValueSource | DataToProjectOfAny4 | AnyTableOrView | AnyForUseInLeftJoin
 }
 
 type DataToProjectOfAny4 = {
-    [P: string]: AnyValueSource | DataToProjectOfAny5
+    [P: string]: AnyValueSource | DataToProjectOfAny5 | AnyTableOrView | AnyForUseInLeftJoin
 }
 
 type DataToProjectOfAny5 = {
@@ -85,24 +91,24 @@ type DataToProjectOf5<T> = {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export type GetDataToProjectSource<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : GetDataToProjectSource2<TYPE[KEY]>
-})[keyof TYPE]
+    [KEY in UsableKeyOf<TYPE>]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : GetDataToProjectSource2<TYPE[KEY]>
+})[UsableKeyOf<TYPE>]
 
 type GetDataToProjectSource2<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : GetDataToProjectSource3<TYPE[KEY]>
-})[keyof TYPE]
+    [KEY in UsableKeyOf<TYPE>]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : GetDataToProjectSource3<TYPE[KEY]>
+})[UsableKeyOf<TYPE>]
 
 type GetDataToProjectSource3<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : GetDataToProjectSource4<TYPE[KEY]>
-})[keyof TYPE]
+    [KEY in UsableKeyOf<TYPE>]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : GetDataToProjectSource4<TYPE[KEY]>
+})[UsableKeyOf<TYPE>]
 
 type GetDataToProjectSource4<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : GetDataToProjectSource5<TYPE[KEY]>
-})[keyof TYPE]
+    [KEY in UsableKeyOf<TYPE>]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : GetDataToProjectSource5<TYPE[KEY]>
+})[UsableKeyOf<TYPE>]
 
 type GetDataToProjectSource5<TYPE> = ({
-    [KEY in keyof TYPE]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : never
-})[keyof TYPE]
+    [KEY in UsableKeyOf<TYPE>]-?: TYPE[KEY] extends ValueSourceOf<infer SOURCE> ? SOURCE : never
+})[UsableKeyOf<TYPE>]
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -111,47 +117,47 @@ export type RequiredColumnNames<T> =
     : unknown extends T // this is the case when the arguments are of type any
     ? never : RequiredColumnNames1<T>
 
-type RequiredColumnNames1<T> = { [K in keyof T]-?: 
+type RequiredColumnNames1<T> = { [K in UsableKeyOf<T>]-?: 
     K extends string 
     ?
         T[K] extends AnyValueSource | undefined // Undefined is to deal with picking columns
         ? ({} extends Pick<T, K> ? never : `${K}`) 
         : RequiredColumnNames2<T[K], `${K}.`>
     : never
-}[keyof T]
+}[UsableKeyOf<T>]
 
-type RequiredColumnNames2<T, PREFIX extends string> = { [K in keyof T]-?: 
+type RequiredColumnNames2<T, PREFIX extends string> = { [K in UsableKeyOf<T>]-?: 
     K extends string 
     ?
         T[K] extends AnyValueSource | undefined // Undefined is to deal with picking columns
         ? ({} extends Pick<T, K> ? never : `${PREFIX}${K}`) 
         : RequiredColumnNames3<T[K], `${PREFIX}${K}.`>
     : never
-}[keyof T]
+}[UsableKeyOf<T>]
 
-type RequiredColumnNames3<T, PREFIX extends string> = { [K in keyof T]-?: 
+type RequiredColumnNames3<T, PREFIX extends string> = { [K in UsableKeyOf<T>]-?: 
     K extends string 
     ?
         T[K] extends AnyValueSource | undefined // Undefined is to deal with picking columns
         ? ({} extends Pick<T, K> ? never : `${PREFIX}${K}`) 
         : RequiredColumnNames4<T[K], `${PREFIX}${K}.`>
     : never
-}[keyof T]
+}[UsableKeyOf<T>]
 
-type RequiredColumnNames4<T, PREFIX extends string> = { [K in keyof T]-?: 
+type RequiredColumnNames4<T, PREFIX extends string> = { [K in UsableKeyOf<T>]-?: 
     K extends string 
     ?
         T[K] extends AnyValueSource | undefined // Undefined is to deal with picking columns
         ? ({} extends Pick<T, K> ? never : `${PREFIX}${K}`) 
         : RequiredColumnNames5<T[K], `${PREFIX}${K}.`>
     : never
-}[keyof T]
+}[UsableKeyOf<T>]
 
-type RequiredColumnNames5<T, PREFIX extends string> = { [K in keyof T]-?: 
+type RequiredColumnNames5<T, PREFIX extends string> = { [K in UsableKeyOf<T>]-?: 
     K extends string 
     ?
         T[K] extends AnyValueSource | undefined // Undefined is to deal with picking columns
         ? ({} extends Pick<T, K> ? never : `${PREFIX}${K}`) 
         : never
     : never
-}[keyof T]
+}[UsableKeyOf<T>]

@@ -1,7 +1,7 @@
-import { DynamicConditionExpression, DynamicFilter, Filterable } from "../expressions/dynamicConditionUsingFilters";
+import type { DynamicConditionExpression, DynamicFilter, Filterable } from "../expressions/dynamicConditionUsingFilters";
 import { BooleanValueSource, isValueSource, __getValueSourcePrivate, __isUuidValueSource, __isBooleanValueSource } from "../expressions/values";
 import { SqlOperationValueSourceIfValueAlwaysNoop } from "../internal/ValueSourceImpl";
-import { SqlBuilder } from "../sqlBuilders/SqlBuilder";
+import type { QueryColumns, SqlBuilder } from "../sqlBuilders/SqlBuilder";
 
 export class DynamicConditionBuilder implements DynamicConditionExpression<any, any> {
     sqlBuilder: SqlBuilder
@@ -19,6 +19,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
     }
 
     processFilter(filter: DynamicFilter<any>, definition: Filterable, extension: any, prefix: string): BooleanValueSource<any, any> {
+        const definitionColumns = definition as QueryColumns
         let result: BooleanValueSource<any, any> = new SqlOperationValueSourceIfValueAlwaysNoop() as any
         
         if (filter === null || filter === undefined) {
@@ -38,7 +39,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                 if (!Array.isArray(value)) {
                     throw new Error('The and conjunction expect an array as value')
                 }
-                condition = this.processAndFilter(value, definition, extension, prefix)
+                condition = this.processAndFilter(value, definitionColumns, extension, prefix)
             } else if (key === 'or') {
                 if (value === null || value === undefined) {
                     continue
@@ -46,12 +47,12 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                 if (!Array.isArray(value)) {
                     throw new Error('The or conjunction expect an array as value')
                 }
-                condition = this.processOrFilter(value, definition, extension, prefix)
+                condition = this.processOrFilter(value, definitionColumns, extension, prefix)
             } else if (key === 'not') {
                 if (value === null || value === undefined) {
                     continue
                 }
-                condition = this.processFilter(value, definition, extension, prefix).negate()
+                condition = this.processFilter(value, definitionColumns, extension, prefix).negate()
             } else if (extension && typeof extension[key] === 'function') {
                 if (value === null || value === undefined) {
                     continue
@@ -74,7 +75,7 @@ export class DynamicConditionBuilder implements DynamicConditionExpression<any, 
                 }
                 condition = extensionResult as any
             } else {
-                const column = definition[key]
+                const column = definitionColumns[key]
                 if (!column) {
                     throw new Error('Unknown column with name "' + prefix + key + '" provided as dynamic filter condition')
                 }

@@ -1953,6 +1953,54 @@ async function main() {
     
     /* *** Preparation ************************************************************/
 
+    result = {
+        id: 9,
+        firstName: 'First Name',
+        lastName: 'Last Name',
+        name: 'First Name Last Name',
+        companyId: 7
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as id, first_name as firstName, last_name as lastName, birthday as birthday, company_id as companyId, first_name || ? || last_name as name, calculateAge(birthday) as age from customer where id = ?`)
+    expectedParams.push(`[" ",9]`)
+    expectedType.push(`selectOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    const selectAll3 = await connection.selectFrom(tCustomer)
+        .select(tCustomer)
+        .where(tCustomer.id.equals(9))
+        .executeSelectOne()
+    
+    assertEquals(selectAll3, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = { 
+        result: {
+            id: 9,
+            firstName: 'First Name',
+            lastName: 'Last Name',
+            name: 'First Name Last Name',
+            companyId: 7
+        }
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "result.id", first_name as "result.firstName", last_name as "result.lastName", birthday as "result.birthday", company_id as "result.companyId", first_name || ? || last_name as "result.name", calculateAge(birthday) as "result.age" from customer where id = ?`)
+    expectedParams.push(`[" ",9]`)
+    expectedType.push(`selectOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    const selectAll4 = await connection.selectFrom(tCustomer)
+        .select({ result: tCustomer })
+        .where(tCustomer.id.equals(9))
+        .executeSelectOne()
+    
+    assertEquals(selectAll4, result)
+    
+    /* *** Preparation ************************************************************/
+
     result = [{
         id: 18,
         name: 'name'

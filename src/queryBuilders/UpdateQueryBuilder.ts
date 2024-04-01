@@ -1,4 +1,4 @@
-import { isAllowedQueryColumns, JoinData, SqlBuilder, ToSql, UpdateData } from "../sqlBuilders/SqlBuilder"
+import { isAllowedQueryColumns, JoinData, QueryColumns, SqlBuilder, ToSql, UpdateData } from "../sqlBuilders/SqlBuilder"
 import { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import { AlwaysIfValueSource, AnyValueSource, IAnyBooleanValueSource, isValueSource } from "../expressions/values"
 import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, CustomizableExecutableUpdateReturning, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateReturningColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, CustomizableExecutableUpdateProjectableAsNullable } from "../expressions/update"
@@ -945,9 +945,9 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
 
     returning(columns: UpdateReturningColumns<any>): this {
         this.__query = ''
-        this.__columns = columns
-        this.__registerTableOrViewWithOfColumns(columns, this.__withs)
-        this.__oldValues = this.__getOldValueOfColumns(columns)
+        this.__columns = columns as QueryColumns
+        this.__registerTableOrViewWithOfColumns(columns as QueryColumns, this.__withs)
+        this.__oldValues = this.__getOldValueOfColumns(columns as QueryColumns)
         return this
     }
     projectingOptionalValuesAsNullable(): any {

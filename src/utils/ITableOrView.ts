@@ -151,8 +151,11 @@ export interface ValuesForInsert</*in|out*/ SOURCE extends NSource> extends HasS
     [type]: 'valuesForInsert'
 }
 
-export interface ForUseInLeftJoin</*in|out*/ SOURCE extends NSource> extends HasSource<SOURCE> {
+export interface AnyForUseInLeftJoin {
     [type]: 'forUseInLeftJoin'
+}
+
+export interface ForUseInLeftJoin</*in|out*/ SOURCE extends NSource> extends AnyForUseInLeftJoin, HasSource<SOURCE> {
 }
 
 export interface ResolvedShape</*in|out*/ SOURCE extends NSource> extends HasSource<SOURCE> {

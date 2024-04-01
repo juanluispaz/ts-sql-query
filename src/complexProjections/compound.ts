@@ -1,4 +1,5 @@
 import type { AnyValueSource, IValueSource, OptionalTypeRequiredOrAny, RemapIValueSourceTypeWithOptionalType } from "../expressions/values"
+import type { UsableKeyOf } from '../utils/objectUtils'
 import type { NSource } from "../utils/sourceName"
 
 /*
@@ -13,35 +14,35 @@ export type ColumnsForCompound<SOURCE extends NSource, COLUMNS> = COLUMNS extend
     : ColumnsForCompound1<SOURCE, COLUMNS>
 
 type ColumnsForCompound1<SOURCE extends NSource, COLUMNS> =
-    { [K in keyof COLUMNS]: 
+    { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
         ? RemapIValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], CompoundColumnOptionalType<COLUMNS[K]>> 
         : ColumnsForCompound2<SOURCE, COLUMNS[K]> 
     }
 
 type ColumnsForCompound2<SOURCE extends NSource, COLUMNS> =
-    { [K in keyof COLUMNS]: 
+    { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
         ? RemapIValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], CompoundColumnOptionalType<COLUMNS[K]>> 
         : ColumnsForCompound3<SOURCE, COLUMNS[K]> 
     }
     
 type ColumnsForCompound3<SOURCE extends NSource, COLUMNS> =
-    { [K in keyof COLUMNS]: 
+    { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
         ? RemapIValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], CompoundColumnOptionalType<COLUMNS[K]>> 
         : ColumnsForCompound4<SOURCE, COLUMNS[K]> 
     }
     
 type ColumnsForCompound4<SOURCE extends NSource, COLUMNS> =
-    { [K in keyof COLUMNS]: 
+    { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
         ? RemapIValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], CompoundColumnOptionalType<COLUMNS[K]>> 
         : ColumnsForCompound5<SOURCE, COLUMNS[K]> 
     }
     
 type ColumnsForCompound5<SOURCE extends NSource, COLUMNS> =
-    { [K in keyof COLUMNS]: 
+    { [K in UsableKeyOf<COLUMNS>]: 
         COLUMNS[K] extends AnyValueSource | undefined
         ? RemapIValueSourceTypeWithOptionalType<SOURCE, COLUMNS[K], CompoundColumnOptionalType<COLUMNS[K]>> 
         : COLUMNS[K] // Stop recursion

@@ -1,5 +1,5 @@
 import { AnyValueSource, isValueSource, __getValueSourcePrivate } from "../expressions/values"
-import { getQueryColumn, QueryColumns, SqlBuilder } from "../sqlBuilders/SqlBuilder"
+import { getQueryColumn, isUsableValue, QueryColumns, SqlBuilder } from "../sqlBuilders/SqlBuilder"
 import type { DBColumn } from "../utils/Column"
 import { AnyTableOrView, IWithView, __getTableOrViewPrivate, __registerRequiredColumn } from "../utils/ITableOrView"
 
@@ -56,6 +56,9 @@ export class AbstractQueryBuilder {
             const valueSource = columns[prop]!
             let value = row[prop]
             let transformed 
+            if (!isUsableValue(prop, valueSource, columns)) {
+                continue
+            }
             if (isValueSource(valueSource)) {
                 const valueSourcePrivate = __getValueSourcePrivate(valueSource)
                 if (valueSourcePrivate.__aggregatedArrayColumns) {
@@ -181,6 +184,9 @@ export class AbstractQueryBuilder {
 
         for (let prop in columns) {
             const valueSource = columns[prop]!
+            if (!isUsableValue(prop, valueSource, columns)) {
+                continue
+            }
             const propName = pathPrefix + prop
             let value 
             if (propName in row) {
@@ -279,6 +285,9 @@ export class AbstractQueryBuilder {
     __getOldValueOfColumns(columns: QueryColumns | undefined): AnyTableOrView | undefined {
         for (const property in columns) {
             const column = columns[property]!
+            if (!isUsableValue(property, column, columns)) {
+                continue
+            }
             if (isValueSource(column)) {
                 const oldValues = __getValueSourcePrivate(column).__getOldValues(this.__sqlBuilder)
                 if (oldValues) {
@@ -310,6 +319,9 @@ export class AbstractQueryBuilder {
     __registerTableOrViewOfColumns(columns: QueryColumns | undefined, requiredTablesOrViews: Set<AnyTableOrView>) {
         for (const property in columns) {
             const column = columns[property]!
+            if (!isUsableValue(property, column, columns)) {
+                continue
+            }
             if (isValueSource(column)) {
                 __getValueSourcePrivate(column).__registerTableOrView(this.__sqlBuilder, requiredTablesOrViews)
             } else {
@@ -321,6 +333,9 @@ export class AbstractQueryBuilder {
     __registerTableOrViewWithOfColumns(columns: QueryColumns | undefined, withs: IWithView<any>[]) {
         for (const property in columns) {
             const column = columns[property]!
+            if (!isUsableValue(property, column, columns)) {
+                continue
+            }
             if (isValueSource(column)) {
                 __getValueSourcePrivate(column).__addWiths(this.__sqlBuilder, withs)
             } else {
@@ -332,6 +347,9 @@ export class AbstractQueryBuilder {
     __registerRequiredColumnOfColmns(columns: QueryColumns | undefined, requiredColumns: Set<DBColumn>, newOnly: Set<AnyTableOrView>) {
         for (const property in columns) {
             const column = columns[property]!
+            if (!isUsableValue(property, column, columns)) {
+                continue
+            }
             if (isValueSource(column)) {
                 __getValueSourcePrivate(column).__registerRequiredColumn(this.__sqlBuilder, requiredColumns, newOnly)
             } else {
@@ -345,11 +363,14 @@ export class AbstractQueryBuilder {
     }
 
     __getColumnNameFromColumnsObjectLowerCase(prop: string| number | symbol): string | undefined {
-        const columns = this.__columns!
+        let columns = this.__columns!
         const propName = (prop as string).toLowerCase()
 
         let map: { [columnNameInLowerCase: string]: string | undefined } = {}
         for (const property in columns) {
+            if (!isUsableValue(property, columns[property], columns)) {
+                continue
+            }
             map[property.toLowerCase()] = property
         }
 
@@ -389,6 +410,9 @@ export class AbstractQueryBuilder {
 
             map = {}
             for (const property in valueSource) {
+                if (!isUsableValue(property, valueSource[property], valueSource)) {
+                    continue
+                }
                 map[property.toLowerCase()] = property
             }
         }

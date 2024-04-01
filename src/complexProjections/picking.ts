@@ -1,5 +1,5 @@
 import type { AnyValueSource } from "../expressions/values"
-import type { Expand, RequiredKeys } from "../utils/objectUtils"
+import type { Expand, RequiredKeys, UsableKeyOf } from "../utils/objectUtils"
 
 type ExtractFirstPropertyInPath<PATH extends string> = PATH extends `${infer FIRST}.${any}` ? FIRST : never
 type UnprefixPath<NAME extends string, PREFIX extends string> = NAME extends `${PREFIX}.${infer R}` ? R : never
@@ -208,29 +208,29 @@ type PickMandatoryOnly5<TYPE, MANDATORY_AT_LEVEL extends string, MANDATORY_PAREN
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 type MadatoriyValuesKeysForPickResult<TYPE, MANDATORY extends string, MANDATORY_PARENT> =
-    { [K in keyof TYPE]-?: 
+    { [K in UsableKeyOf<TYPE>]-?: 
         TYPE[K] extends AnyValueSource | undefined ? (
             MANDATORY_PARENT extends true ? K : K extends MANDATORY ? K : never
         ) : never // Not AnyValueSource
-    }[keyof TYPE] & string
+    }[UsableKeyOf<TYPE>]
 
 type OptionalValueKeysForPickResult<TYPE, MANDATORY extends string, MANDATORY_PARENT> =
-    { [K in keyof TYPE]-?: 
+    { [K in UsableKeyOf<TYPE>]-?: 
         TYPE[K] extends AnyValueSource | undefined ? (
             MANDATORY_PARENT extends true ? never : K extends MANDATORY ? never : K
         ) : never // Not AnyValueSource
-    } [keyof TYPE] & string
+    } [UsableKeyOf<TYPE>]
 
 type MandatoryNonValueKeysForResult<TYPE, MANDATORY extends string, MANDATORY_PARENT> =
-    { [K in keyof TYPE]-?: 
+    { [K in UsableKeyOf<TYPE>]-?: 
         TYPE[K] extends AnyValueSource | undefined ? never 
         : MANDATORY_PARENT extends true ? K : K extends MANDATORY ? K: never
-    } [keyof TYPE] & string
+    } [UsableKeyOf<TYPE>]
 
 type OptionalNonValueKeysForResult<TYPE, MANDATORY extends string, MANDATORY_PARENT> =
-    { [K in keyof TYPE]-?: 
+    { [K in UsableKeyOf<TYPE>]-?: 
         TYPE[K] extends AnyValueSource | undefined ? never 
         : MANDATORY_PARENT extends true ? never : K extends MANDATORY ? never : K
-    } [keyof TYPE] & string
+    } [UsableKeyOf<TYPE>]
 
 type InMandatory<K, MANDATORY, MANDATORY_PARENT> = K extends MANDATORY ? true : MANDATORY_PARENT

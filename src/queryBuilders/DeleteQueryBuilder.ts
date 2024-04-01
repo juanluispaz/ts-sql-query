@@ -1,4 +1,4 @@
-import { SqlBuilder, DeleteData, JoinData, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
+import { SqlBuilder, DeleteData, JoinData, ToSql, isAllowedQueryColumns, QueryColumns } from "../sqlBuilders/SqlBuilder"
 import { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView, __addWiths, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import { IAnyBooleanValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteReturningColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, CustomizableExecutableDeleteProjectableAsNullable } from "../expressions/delete"
@@ -368,8 +368,8 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     returning(columns: DeleteReturningColumns<any>): this {
         this.__finishJoin()
         this.__query = ''
-        this.__columns = columns
-        this.__registerTableOrViewWithOfColumns(columns, this.__withs)
+        this.__columns = columns as QueryColumns
+        this.__registerTableOrViewWithOfColumns(columns as QueryColumns, this.__withs)
         return this
     }
     projectingOptionalValuesAsNullable(): any {

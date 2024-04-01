@@ -15,6 +15,14 @@ export type Expand<T> = T extends object
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
+ * Dircard any key that is not a string or the value is a function
+ */
+
+export type UsableKeyOf<T> = { [K in (keyof T) & string]: T[K] extends Function ? never : K}[(keyof T) & string]
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*
  * Detect optional keys in a object
  * https://gist.github.com/eddiemoore/7873191f366675e520e802a9fb2531d8
  * 
@@ -23,7 +31,7 @@ export type Expand<T> = T extends object
  * Only string keys will be returned, non-string keys are not used in ts-sql-query
  */
 
-type Undefined<T> = { [P in keyof T]: P extends undefined ? T[P] : never }
+type Undefined<T> = { [P in UsableKeyOf<T>]: P extends undefined ? T[P] : never }
 
 type FilterFlags<Base, Condition> = {
   [Key in keyof Base]: Base[Key] extends Condition ? Key : never
@@ -35,5 +43,5 @@ type AllowedNames<Base, Condition> =
 type SubType<Base, Condition> =
   Pick<Base, AllowedNames<Base, Condition>>
 
-export type OptionalKeys<T> = Exclude<keyof T, NonNullable<keyof SubType<Undefined<T>, never>>> & string
-export type RequiredKeys<T> = NonNullable<keyof SubType<Undefined<T>, never>> & string
+export type OptionalKeys<T> = Exclude<keyof T, NonNullable<keyof SubType<Undefined<T>, never>>>
+export type RequiredKeys<T> = NonNullable<keyof SubType<Undefined<T>, never>>

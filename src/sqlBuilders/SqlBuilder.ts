@@ -8,7 +8,7 @@ import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
 import type { UpdateCustomization } from "../expressions/update"
 import type { DeleteCustomization } from "../expressions/delete"
 import type { InsertCustomization } from "../expressions/insert"
-import type { isSelectQueryObject } from "../utils/symbols"
+import { isSelectQueryObject, isTableOrViewObject, isValueSourceObject } from "../utils/symbols"
 import type { RawFragment } from "../utils/RawFragment"
 
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
@@ -44,6 +44,9 @@ export function getQueryColumn(columns: QueryColumns, prop: string): AnyValueSou
 export function flattenQueryColumns(columns: QueryColumns, target: FlatQueryColumns, prefix: string) {
     for (let prop in columns) {
         const column = columns[prop]!
+        if (!isUsableValue(prop, column, columns)) {
+            continue
+        }
         if (isValueSource(column)) {
             const name = prefix + prop
             if (target[name]) {
@@ -59,6 +62,9 @@ export function flattenQueryColumns(columns: QueryColumns, target: FlatQueryColu
 export function isAllowedQueryColumns(columns: QueryColumns, sqlBuilder: HasIsValue) {
     for (let prop in columns) {
         const column = columns[prop]!
+        if (!isUsableValue(prop, column, columns)) {
+            continue
+        }
         if (isValueSource(column)) {
             const result = __getValueSourcePrivate(column).__isAllowed(sqlBuilder)
             if (!result) {
@@ -72,6 +78,25 @@ export function isAllowedQueryColumns(columns: QueryColumns, sqlBuilder: HasIsVa
         }
     }
     return true
+}
+
+export function isUsableValue(prop: string, value: any, _columns: QueryColumns) {
+    if (prop.startsWith('__')) {
+        return false
+    }
+    if (!value) {
+        return false
+    }
+    if (typeof value !== 'object') {
+        return false
+    }
+    if (value[isValueSourceObject]) {
+        return true
+    }
+    if (value[isTableOrViewObject]) {
+        return true
+    }
+    return value.constructor === Object // Plain object
 }
 
 export interface WithSelectData {

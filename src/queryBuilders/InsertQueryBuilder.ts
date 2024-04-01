@@ -1,4 +1,4 @@
-import { SqlBuilder, InsertData, SelectData, ToSql, isAllowedQueryColumns } from "../sqlBuilders/SqlBuilder"
+import { SqlBuilder, InsertData, SelectData, ToSql, isAllowedQueryColumns, QueryColumns } from "../sqlBuilders/SqlBuilder"
 import{ AnyTableOrView, HasAddWiths, HasIsValue, ITable, IWithView, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
 import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression, ShapedMissingKeysInsertExpression, MissingKeysMultipleInsertExpression, ShapedMissingKeysMultipleInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertReturningColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional, ExecutableMultipleInsertExpression, ShapedExecutableInsertExpression, ShapedExecutableMultipleInsertExpression, ShapedInsertExpression, ShapedInsertOnConflictSetsExpression, ComposableCustomizableExecutableInsertProjectableAsNullable, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable } from "../expressions/insert"
 import { DBColumn, isColumn } from "../utils/Column"
@@ -1602,8 +1602,8 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     
     returning(columns: InsertReturningColumns<any>): this {
         this.__query = ''
-        this.__columns = columns
-        this.__registerTableOrViewWithOfColumns(columns, this.__withs)
+        this.__columns = columns as QueryColumns
+        this.__registerTableOrViewWithOfColumns(columns as QueryColumns, this.__withs)
         return this
     }
     projectingOptionalValuesAsNullable(): any {

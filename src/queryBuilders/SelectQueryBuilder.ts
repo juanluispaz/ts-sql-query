@@ -717,8 +717,8 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     select(columns: SelectColumns<any>): any { // any to avoid deep errors
         this.__finishJoinHaving()
         this.__query = ''
-        this.__columns = columns
-        this.__registerTableOrViewWithOfColumns(columns, this.__withs)
+        this.__columns = columns as QueryColumns
+        this.__registerTableOrViewWithOfColumns(columns as QueryColumns, this.__withs)
         return this
     }
     selectOneColumn(column: AnyValueSource): any {

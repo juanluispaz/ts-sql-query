@@ -1,4 +1,5 @@
 import type { DataToProjectOf, DataToProjectOfAny, GetDataToProjectSource } from "../complexProjections/dataToProject";
+import type { UsableKeyOf } from '../utils/objectUtils'
 import type { AnyValueSource, BooleanValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IBigintValueSource, IBooleanValueSource, IComparableValueSource, ICustomDoubleValueSource, ICustomIntValueSource, ICustomLocalDateTimeValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomUuidValueSource, ILocalDateTimeValueSource, ILocalDateValueSource, IEqualableValueSource, INullableValueSource, INumberValueSource, IStringValueSource, ILocalTimeValueSource, IUuidValueSource, IValueSource } from "./values";
 
 export interface Filter {
@@ -208,7 +209,7 @@ export type Filterable = DataToProjectOfAny
 export type DinamicConditionExtension = DataToProjectOf<DynamicConditionRule<any>>
 export type DynamicConditionRule<T> = (rule: T) => IAnyBooleanValueSource<any, any>
 
-type NonReplacedField<DEFINITION, EXTENSION> = Exclude<keyof DEFINITION, DynamicConditionExtensionKeys<EXTENSION>> 
+type NonReplacedField<DEFINITION, EXTENSION> = Exclude<UsableKeyOf<DEFINITION>, DynamicConditionExtensionKeys<EXTENSION>> 
 type DynamicConditionExtensionKeys<EXTENSION> = {[K in keyof EXTENSION]: EXTENSION[K] extends DynamicConditionRule<any> ? K : never }[keyof EXTENSION]
 
 type ExtendDefinition<T, EXTENSION> = Omit<T, DynamicConditionExtensionKeys<EXTENSION>> & {
@@ -221,7 +222,7 @@ export type DynamicFilter<DEFINITION extends Filterable> = {
     and?: Array<DynamicFilter<DEFINITION> | undefined>
     or?: Array<DynamicFilter<DEFINITION> | undefined>
 } & {
-    [KEY in keyof DEFINITION]?: DEFINITION[KEY] extends AnyValueSource ? MapValueSourceToFilter<DEFINITION[KEY]> : DEFINITION[KEY] extends Filterable ? DynamicFilter<DEFINITION[KEY]> : never
+    [KEY in UsableKeyOf<DEFINITION>]?: DEFINITION[KEY] extends AnyValueSource ? MapValueSourceToFilter<DEFINITION[KEY]> : DEFINITION[KEY] extends Filterable ? DynamicFilter<DEFINITION[KEY]> : never
 }
 
 export interface DynamicConditionExpression<DEFINITION extends Filterable, EXTENSION extends DinamicConditionExtension> {

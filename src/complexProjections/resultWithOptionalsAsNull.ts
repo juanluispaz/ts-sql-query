@@ -1,4 +1,5 @@
 import type { AnyValueSource, ValueSourceValueTypeForNullableObjectResult, ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin, ValueSourceValueTypeForRequiredInNullableOptionalObject } from "../expressions/values"
+import type { UsableKeyOf } from '../utils/objectUtils'
 import type { AllFromSameLeftJoinWithOriginallyRequired, ContainsRequired, ContainsRequiredInOptionalObject } from "./projectionRules"
 
 /*
@@ -53,7 +54,7 @@ import type { AllFromSameLeftJoinWithOriginallyRequired, ContainsRequired, Conta
  */
 
 export type ResultObjectValuesProjectedAsNullable<COLUMNS> = {
-    [P in keyof COLUMNS]: 
+    [P in UsableKeyOf<COLUMNS>]: 
         COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
         ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>> 
         : ResultObjectValuesProjectedAsNullable2<NonNullable<COLUMNS[P]>>
@@ -62,27 +63,27 @@ export type ResultObjectValuesProjectedAsNullable<COLUMNS> = {
 export type ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS> = 
     ContainsRequiredInOptionalObject<COLUMNS> extends true ? 
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForRequiredInNullableOptionalObject<NonNullable<COLUMNS[P]>>
                 : ResultObjectValuesProjectedAsNullable2<NonNullable<COLUMNS[P]>>
         } // the result for aggregateAsArray must not be nullable, | null doesn't apply here
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
                 : ResultObjectValuesProjectedAsNullable2<NonNullable<COLUMNS[P]>>
         } // the result for aggregateAsArray must not be nullable, | null doesn't apply here
     : ContainsRequired<COLUMNS> extends true ? 
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>>
                 : ResultObjectValuesProjectedAsNullable2<NonNullable<COLUMNS[P]>>
         }
     : {
-        [P in keyof COLUMNS]: 
+        [P in UsableKeyOf<COLUMNS>]: 
             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
             ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>>
             : ResultObjectValuesProjectedAsNullable2<NonNullable<COLUMNS[P]>>
@@ -91,27 +92,27 @@ export type ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS> =
 type ResultObjectValuesProjectedAsNullable2<COLUMNS> = 
     ContainsRequiredInOptionalObject<COLUMNS> extends true ? 
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForRequiredInNullableOptionalObject<NonNullable<COLUMNS[P]>>
                 : ResultObjectValuesProjectedAsNullable3<NonNullable<COLUMNS[P]>>
         } | null
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
                 : ResultObjectValuesProjectedAsNullable3<NonNullable<COLUMNS[P]>>
         } | null
     : ContainsRequired<COLUMNS> extends true ? 
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>>
                 : ResultObjectValuesProjectedAsNullable3<NonNullable<COLUMNS[P]>>
         }
     : {
-        [P in keyof COLUMNS]: 
+        [P in UsableKeyOf<COLUMNS>]: 
             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
             ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>>
             : ResultObjectValuesProjectedAsNullable3<NonNullable<COLUMNS[P]>>
@@ -120,27 +121,27 @@ type ResultObjectValuesProjectedAsNullable2<COLUMNS> =
 type ResultObjectValuesProjectedAsNullable3<COLUMNS> = 
     ContainsRequiredInOptionalObject<COLUMNS> extends true ? 
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForRequiredInNullableOptionalObject<NonNullable<COLUMNS[P]>>
                 : ResultObjectValuesProjectedAsNullable4<NonNullable<COLUMNS[P]>>
         } | null
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
                 : ResultObjectValuesProjectedAsNullable4<NonNullable<COLUMNS[P]>>
         } | null
     : ContainsRequired<COLUMNS> extends true ? 
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>>
                 : ResultObjectValuesProjectedAsNullable4<NonNullable<COLUMNS[P]>>
         }
     : {
-        [P in keyof COLUMNS]: 
+        [P in UsableKeyOf<COLUMNS>]: 
             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
             ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>>
             : ResultObjectValuesProjectedAsNullable4<NonNullable<COLUMNS[P]>>
@@ -149,27 +150,27 @@ type ResultObjectValuesProjectedAsNullable3<COLUMNS> =
 type ResultObjectValuesProjectedAsNullable4<COLUMNS> = 
     ContainsRequiredInOptionalObject<COLUMNS> extends true ? 
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForRequiredInNullableOptionalObject<NonNullable<COLUMNS[P]>>
                 : ResultObjectValuesProjectedAsNullable5<NonNullable<COLUMNS[P]>>
         } | null
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
                 : ResultObjectValuesProjectedAsNullable5<NonNullable<COLUMNS[P]>>
         } | null
     : ContainsRequired<COLUMNS> extends true ? 
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>>
                 : ResultObjectValuesProjectedAsNullable5<NonNullable<COLUMNS[P]>>
         }
     : {
-        [P in keyof COLUMNS]: 
+        [P in UsableKeyOf<COLUMNS>]: 
             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
             ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>>
             : ResultObjectValuesProjectedAsNullable5<NonNullable<COLUMNS[P]>>
@@ -178,27 +179,27 @@ type ResultObjectValuesProjectedAsNullable4<COLUMNS> =
 type ResultObjectValuesProjectedAsNullable5<COLUMNS> = 
     ContainsRequiredInOptionalObject<COLUMNS> extends true ? 
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForRequiredInNullableOptionalObject<NonNullable<COLUMNS[P]>>
                 : never // Stop recursion here
         } | null
     : AllFromSameLeftJoinWithOriginallyRequired<COLUMNS> extends true ?
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForOptionalNullableObjectResultSameOuterJoin<NonNullable<COLUMNS[P]>>
                 : never // Stop recursion here
         } | null
     : ContainsRequired<COLUMNS> extends true ? 
         {
-            [P in keyof COLUMNS]: 
+            [P in UsableKeyOf<COLUMNS>]: 
                 COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
                 ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>>
                 : never // Stop recursion here
         }
     : {
-        [P in keyof COLUMNS]: 
+        [P in UsableKeyOf<COLUMNS>]: 
             COLUMNS[P] extends AnyValueSource | undefined // Undefined is to deal with picking columns
             ? ValueSourceValueTypeForNullableObjectResult<NonNullable<COLUMNS[P]>>
             : never // Stop recursion here

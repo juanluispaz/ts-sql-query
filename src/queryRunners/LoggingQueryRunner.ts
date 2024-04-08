@@ -16,6 +16,16 @@ export interface QueryLogger {
     onQueryError?: (queryType: QueryType, query: string, params: any[], error: any, timestamps: { startedAt: bigint, endedAt: bigint }) => void;
 }
 
+function now(): bigint {
+    if (typeof process !== 'undefined') {
+        // NodeJS process module available
+        return process.hrtime.bigint();
+    } else {
+        // NodeJS process module not available
+        return BigInt(Math.floor(performance.now() * 1000 * 1000));
+    }
+}
+
 export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunner<T> {
     readonly logger: QueryLogger
 
@@ -26,7 +36,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
 
     executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('selectOneRow', query, params, { startedAt })
         }
@@ -34,12 +44,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('selectOneRow', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('selectOneRow', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('selectOneRow', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('selectOneRow', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -48,7 +58,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('selectManyRows', query, params, { startedAt })
         }
@@ -56,12 +66,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('selectManyRows', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('selectManyRows', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('selectManyRows', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('selectManyRows', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -70,7 +80,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('selectOneColumnOneRow', query, params, { startedAt })
         }
@@ -78,12 +88,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('selectOneColumnOneRow', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('selectOneColumnOneRow', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('selectOneColumnOneRow', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('selectOneColumnOneRow', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -92,7 +102,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('selectOneColumnManyRows', query, params, { startedAt })
         }
@@ -100,12 +110,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('selectOneColumnManyRows', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('selectOneColumnManyRows', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('selectOneColumnManyRows', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('selectOneColumnManyRows', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -114,7 +124,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeInsert(query: string, params: any[] = []): Promise<number> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('insert', query, params, { startedAt })
         }
@@ -122,12 +132,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('insert', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('insert', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('insert', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('insert', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -136,7 +146,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('insertReturningLastInsertedId', query, params, { startedAt })
         }
@@ -144,12 +154,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('insertReturningLastInsertedId', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('insertReturningLastInsertedId', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('insertReturningLastInsertedId', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('insertReturningLastInsertedId', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -158,7 +168,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('insertReturningMultipleLastInsertedId', query, params, { startedAt })
         }
@@ -166,12 +176,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('insertReturningMultipleLastInsertedId', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('insertReturningMultipleLastInsertedId', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('insertReturningMultipleLastInsertedId', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('insertReturningMultipleLastInsertedId', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -180,7 +190,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('insertReturningOneRow', query, params, { startedAt })
         }
@@ -188,12 +198,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('insertReturningOneRow', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('insertReturningOneRow', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('insertReturningOneRow', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('insertReturningOneRow', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -202,7 +212,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('insertReturningManyRows', query, params, { startedAt })
         }
@@ -210,12 +220,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('insertReturningManyRows', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('insertReturningManyRows', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('insertReturningManyRows', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('insertReturningManyRows', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -224,7 +234,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('insertReturningOneColumnOneRow', query, params, { startedAt })
         }
@@ -232,12 +242,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('insertReturningOneColumnOneRow', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('insertReturningOneColumnOneRow', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('insertReturningOneColumnOneRow', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('insertReturningOneColumnOneRow', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -246,7 +256,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeInsertReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('insertReturningOneColumnManyRows', query, params, { startedAt })
         }
@@ -254,12 +264,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('insertReturningOneColumnManyRows', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('insertReturningOneColumnManyRows', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('insertReturningOneColumnManyRows', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('insertReturningOneColumnManyRows', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -268,7 +278,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeUpdate(query: string, params: any[] = []): Promise<number> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('update', query, params, { startedAt })
         }
@@ -276,12 +286,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('update', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('update', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('update', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('update', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -290,7 +300,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeUpdateReturningOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('updateReturningOneRow', query, params, { startedAt })
         }
@@ -298,12 +308,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('updateReturningOneRow', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('updateReturningOneRow', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('updateReturningOneRow', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('updateReturningOneRow', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -312,7 +322,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeUpdateReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('updateReturningManyRows', query, params, { startedAt })
         }
@@ -320,12 +330,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('updateReturningManyRows', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('updateReturningManyRows', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('updateReturningManyRows', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('updateReturningManyRows', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -334,7 +344,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeUpdateReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('updateReturningOneColumnOneRow', query, params, { startedAt })
         }
@@ -342,12 +352,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('updateReturningOneColumnOneRow', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('updateReturningOneColumnOneRow', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('updateReturningOneColumnOneRow', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('updateReturningOneColumnOneRow', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -356,7 +366,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeUpdateReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('updateReturningOneColumnManyRows', query, params, { startedAt })
         }
@@ -364,12 +374,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('updateReturningOneColumnManyRows', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('updateReturningOneColumnManyRows', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('updateReturningOneColumnManyRows', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('updateReturningOneColumnManyRows', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -378,7 +388,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeDelete(query: string, params: any[] = []): Promise<number> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('delete', query, params, { startedAt })
         }
@@ -386,12 +396,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('delete', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('delete', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('delete', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('delete', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -400,7 +410,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('deleteReturningOneRow', query, params, { startedAt })
         }
@@ -408,12 +418,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('deleteReturningOneRow', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('deleteReturningOneRow', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('deleteReturningOneRow', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('deleteReturningOneRow', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -422,7 +432,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeDeleteReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('deleteReturningManyRows', query, params, { startedAt })
         }
@@ -430,12 +440,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('deleteReturningManyRows', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('deleteReturningManyRows', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('deleteReturningManyRows', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('deleteReturningManyRows', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -444,7 +454,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeDeleteReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('deleteReturningOneColumnOneRow', query, params, { startedAt })
         }
@@ -452,12 +462,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('deleteReturningOneColumnOneRow', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('deleteReturningOneColumnOneRow', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('deleteReturningOneColumnOneRow', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('deleteReturningOneColumnOneRow', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -466,7 +476,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeDeleteReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('deleteReturningOneColumnManyRows', query, params, { startedAt })
         }
@@ -474,12 +484,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('deleteReturningOneColumnManyRows', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('deleteReturningOneColumnManyRows', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('deleteReturningOneColumnManyRows', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('deleteReturningOneColumnManyRows', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -488,7 +498,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeProcedure(query: string, params: any[] = []): Promise<void> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('executeProcedure', query, params, { startedAt })
         }
@@ -496,12 +506,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('executeProcedure', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('executeProcedure', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('executeProcedure', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('executeProcedure', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -510,7 +520,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeFunction(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('executeFunction', query, params, { startedAt })
         }
@@ -518,12 +528,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('executeFunction', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('executeFunction', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('executeFunction', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('executeFunction', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -567,12 +577,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
                     const query: string = ''
                     const params: any[] = []
                     const logger = this.logger
-                    const startedAt = process.hrtime.bigint()
+                    const startedAt = now()
                     if (logger.onQuery) {
                         logger.onQuery('rollback', query, params, { startedAt })
                     }
                     if (logger.onQueryResult) {
-                        logger.onQueryResult('rollback', query, params, undefined, { startedAt, endedAt: process.hrtime.bigint() })
+                        logger.onQueryResult('rollback', query, params, undefined, { startedAt, endedAt: now() })
                     }
                 } catch {
                     // Throw the innermost error
@@ -586,7 +596,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         const query: string = ''
         const params: any[] = []
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('beginTransaction', query, params, { startedAt })
         }
@@ -594,12 +604,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('beginTransaction', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('beginTransaction', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('beginTransaction', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('beginTransaction', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -610,7 +620,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         const query: string = ''
         const params: any[] = []
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('commit', query, params, { startedAt })
         }
@@ -618,12 +628,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('commit', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('commit', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('commit', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('commit', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -634,7 +644,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         const query: string = ''
         const params: any[] = []
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('rollback', query, params, { startedAt })
         }
@@ -642,12 +652,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('rollback', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('rollback', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('rollback', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('rollback', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -656,7 +666,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('executeDatabaseSchemaModification', query, params, { startedAt })
         }
@@ -664,12 +674,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('executeDatabaseSchemaModification', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('executeDatabaseSchemaModification', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('executeDatabaseSchemaModification', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('executeDatabaseSchemaModification', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })
@@ -678,7 +688,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
     }
     executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
         const logger = this.logger
-        const startedAt = process.hrtime.bigint()
+        const startedAt = now()
         if (logger.onQuery) {
             logger.onQuery('executeConnectionConfiguration', query, params, { startedAt })
         }
@@ -686,12 +696,12 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         if (logger.onQueryResult || logger.onQueryError) {
             result = result.then(r => {
                 if (logger.onQueryResult) {
-                    logger.onQueryResult('executeConnectionConfiguration', query, params, r, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryResult('executeConnectionConfiguration', query, params, r, { startedAt, endedAt: now() })
                 }
                 return r
             }, e => {
                 if (logger.onQueryError) {
-                    logger.onQueryError('executeConnectionConfiguration', query, params, e, { startedAt, endedAt: process.hrtime.bigint() })
+                    logger.onQueryError('executeConnectionConfiguration', query, params, e, { startedAt, endedAt: now() })
                 }
                 throw e
             })

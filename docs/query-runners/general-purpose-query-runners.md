@@ -39,7 +39,7 @@ The `` receives a secondary optional argument with the folloging definition:
 ```ts
 interface ConsoleLogQueryRunnerOpts {
     timeGranularity?: 'ms' | 'us' | 'ns' // Granularity of time and duration logged, default 'ms'
-    logTimestamps?: boolean // Include the time value of process.hrtime.bigint() when the log happened, default false
+    logTimestamps?: boolean // Include the time value when the log happened in naonseconds since an arbitrary starting point, default false
     logDurations?: boolean // Include the duration of the query execution, default false
     logResults?: boolean // Include the result object in the log, default false
     paramsAsObject?: boolean // Write in the log the query, params, result and error wrapped in an object, default false
@@ -163,8 +163,8 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 - **`params: any[]`**: parameters received by the query.
 - **`result: any`**: (only in `onQueryResult`) result of the execution of the query.
 - **`error: any`**: (only in `onQueryError`) error that happens executiong the query.
-- **`startedAt`**: value of `process.hrtime.bigint()` before the query execution.
-- **`endedAt`**: (only in `onQueryResult` or  `onQueryError`) value of `process.hrtime.bigint()` after the query execution.
+- **`startedAt`**: elapsed time value in naonoseconds before the query execution.
+- **`endedAt`**: (only in `onQueryResult` or  `onQueryError`) elapsed time value in naonoseconds after the query execution.
 
 **Note**:
 - `onQuery`, `onQueryResult` and `onQueryError` are optionals; you can defined only the method that you needs.

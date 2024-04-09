@@ -1,4 +1,4 @@
-import { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, __getValueSourceOfObject, __getValueSourcePrivate, UuidValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, ILocalDateValueSource, ILocalTimeValueSource, ILocalDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from "./expressions/values"
+import { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, __getValueSourcePrivate, UuidValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, ILocalDateValueSource, ILocalTimeValueSource, ILocalDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from "./expressions/values"
 import { HasIsValue, IView, IWithView, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
 import type { TypeAdapter } from "./TypeAdapter"
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from "./utils/tableOrViewUtils"
@@ -10,6 +10,7 @@ import type { BigintFragmentExpression, BooleanFragmentExpression, ComparableFra
 import { ValueSourceFromBuilder } from "./internal/ValueSourceImpl"
 import { FragmentQueryBuilder } from "./queryBuilders/FragmentQueryBuilder"
 import { NNoTableOrViewRequiredFrom, NView } from "./utils/sourceName"
+import { __setColumnsForLeftJoin } from './utils/leftJoinUtils'
 
 class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE> {
     [isTableOrViewObject]: true = true;
@@ -43,15 +44,7 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
         const result = new ((this as any).constructor)() as ViewOf<any>
         result.__as = as
         result.__forUseInLeftJoin = true
-        for (const prop in result) {
-            const column = __getValueSourceOfObject(result, prop)
-            if (column) {
-                const columnPrivate = __getValueSourcePrivate(column)
-                if (columnPrivate.__optionalType === 'required') {
-                    columnPrivate.__optionalType = 'originallyRequired'
-                }
-            }
-        }
+        __setColumnsForLeftJoin(result as any)
         return result as any
     }
 

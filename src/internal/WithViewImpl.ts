@@ -3,9 +3,10 @@ import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin 
 import type { SelectData, SqlBuilder, WithSelectData } from "../sqlBuilders/SqlBuilder"
 import { createColumnsFrom } from "./DBColumnImpl"
 import { isTableOrViewObject, source, type } from "../utils/symbols"
-import { __getValueSourceOfObject, __getValueSourcePrivate } from "../expressions/values"
+import { __getValueSourcePrivate } from "../expressions/values"
 import type { RawFragment } from "../utils/RawFragment"
 import type { DBColumn } from "../utils/Column"
+import { __setColumnsForLeftJoin } from '../utils/leftJoinUtils'
 
 export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrViewPrivate {
     [isTableOrViewObject]: true = true;
@@ -60,15 +61,7 @@ export class WithViewImpl implements IWithView<any>, WithSelectData, __ITableOrV
         result.__as = as
         result.__forUseInLeftJoin = true
         result.__originalWith = this as any
-        for (const prop in result) {
-            const column = __getValueSourceOfObject(result, prop)
-            if (column) {
-                const columnPrivate = __getValueSourcePrivate(column)
-                if (columnPrivate.__optionalType === 'required') {
-                    columnPrivate.__optionalType = 'originallyRequired'
-                }
-            }
-        }
+        __setColumnsForLeftJoin(result as any)
         return result as any
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {

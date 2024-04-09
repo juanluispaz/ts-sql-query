@@ -139,7 +139,7 @@ export function createColumnsFrom(sqlBuilder: HasIsValue, columns: QueryColumns,
             target[property] = withColumn
         } else {
             const newTarget = {}
-            createColumnsFromInnerObject(sqlBuilder, column, target, table, property + '.')
+            createColumnsFromInnerObject(sqlBuilder, column, newTarget, table, property + '.')
             target[property] = newTarget
         }
     }
@@ -194,7 +194,7 @@ export function createColumnsFromInnerObject(sqlBuilder: HasIsValue, columns: Qu
             target[property] = withColumn
         } else {
             const newTarget = {}
-            createColumnsFromInnerObject(sqlBuilder, column, target, table, prefix + property + '.')
+            createColumnsFromInnerObject(sqlBuilder, column, newTarget, table, prefix + property + '.')
             target[property] = newTarget
         }
     }

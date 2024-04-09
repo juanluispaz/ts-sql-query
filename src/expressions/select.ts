@@ -7,6 +7,7 @@ import type { DataToProject, RequiredColumnNames } from "../complexProjections/d
 import type { ResultObjectValuesProjectedAsNullable } from "../complexProjections/resultWithOptionalsAsNull"
 import type { ResultObjectValues } from "../complexProjections/resultWithOptionalsAsUndefined"
 import type { ColumnsForCompound } from "../complexProjections/compound"
+import { ColumnsForWithView } from '../complexProjections/asWithView'
 
 export type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last' | 'insensitive' |
                           'asc insensitive' | 'desc insensitive' | 'asc nulls first insensitive' | 'asc nulls last insensitive' | 
@@ -125,10 +126,10 @@ export interface CompoundableExecutableSelectExpression</*in|out*/ FROM extends 
     minus: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
 
-    recursiveUnion<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
-    recursiveUnionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
-    recursiveUnionOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
-    recursiveUnionAllOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnion<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionAllOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
 }
 
 export interface CompoundableExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WithableExecutableSelectWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -141,10 +142,10 @@ export interface CompoundableExecutableSelectExpressionWithoutWhere</*in|out*/ F
     minus: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
 
-    recursiveUnion<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
-    recursiveUnionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
-    recursiveUnionOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
-    recursiveUnionAllOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnion<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionAllOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
 }
 
 export interface WhereableCompoundableExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundableExecutableSelectExpressionWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
@@ -444,7 +445,7 @@ export type SelectColumns<SOURCE extends NSource> = DataToProject<SOURCE>
 type SelectPageWithExtras<COLUMNS, RESULT, EXTRAS> = { data: ( COLUMNS extends AnyValueSource ? RESULT : { [P in keyof RESULT]: RESULT[P] })[], count: number } & Omit<EXTRAS, 'data' | 'count'>
 
 type ForUseInQueryAs<_FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS> =
-    unknown extends REQUIRED ? <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS> // this is the case when the arguments are of type any
+    unknown extends REQUIRED ? <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, ColumnsForWithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS>> // this is the case when the arguments are of type any
     : [COLUMNS] extends [undefined]
     ? never
     : [COLUMNS] extends [AnyValueSource]
@@ -452,9 +453,9 @@ type ForUseInQueryAs<_FROM extends HasSource<any>, REQUIRED extends HasSource<an
     : [REQUIRED] extends [OfDB<'sqlServer' | 'oracle' | 'mariaDB'>]
     ? (
         [REQUIRED] extends [NoTableOrViewRequiredOfSameDB<REQUIRED>]
-        ? <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS>
+        ? <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, ColumnsForWithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS>>
         : never // Not supported by SqlServer (No inner with), Oracle (No outer references in inner with) and MariaDB (No outer references in inner with)
-    ) : <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS>
+    ) : <ALIAS extends string>(as: ALIAS) => WithView<NWithFrom<REQUIRED[typeof source], ALIAS>, ColumnsForWithView<NWithFrom<REQUIRED[typeof source], ALIAS>, COLUMNS>>
 
 type ForUseAsInlineQueryValue<_FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, FEATURES> =
     COLUMNS extends AnyValueSource

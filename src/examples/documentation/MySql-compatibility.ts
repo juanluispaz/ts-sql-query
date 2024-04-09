@@ -4245,6 +4245,67 @@ async function main() {
     
     assertEquals(customerWithCompanyInfo, result)
 
+    /* *** Preparation ************************************************************/
+
+    result = [{
+        id: 12,
+        firstName: 'John',
+        lastName: 'Smith',
+        company: {
+            id: 10,
+            name: 'ACME Inc.',
+            parentId: 1
+        }
+    }]
+    expectedResult.push([{
+        id: 12,
+        firstName: 'John',
+        lastName: 'Smith',
+        'company.id': 10,
+        'company.name': 'ACME Inc.',
+        'company.parentId': 1
+    }])
+    expectedQuery.push("select customerWithCompanyInfo.id as id, customerWithCompanyInfo.firstName as firstName, customerWithCompanyInfo.lastName as lastName, customerWithCompanyInfo.`company.id` as `company.id`, customerWithCompanyInfo.`company.name` as `company.name`, customerWithCompanyInfo.`company.parentId` as `company.parentId` from (select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, company.id as `company.id`, company.`name` as `company.name`, company.parent_id as `company.parentId` from customer inner join company on customer.company_id = company.id where company.`name` = ?) as customerWithCompanyInfo")
+    expectedParams.push(`["ACME"]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+    
+    const customerWithCompanyInfoWith = connection.selectFrom(tCustomer)
+        .innerJoin(tCompany).on(tCustomer.companyId.equals(tCompany.id))
+        .where(tCompany.name.equals('ACME'))
+        .select({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            company: {
+                id: tCompany.id,
+                name: tCompany.name,
+                parentId: tCompany.parentId
+            }
+        })
+        .forUseInQueryAs('customerWithCompanyInfo')
+
+    let customerWithCompanyInfo2 = await connection.selectFrom(customerWithCompanyInfoWith)
+        .select(customerWithCompanyInfoWith)
+        .executeSelectMany()
+    
+    assertEquals(customerWithCompanyInfo2, result)
+
+    let customerWithCompanyInfo2Type: {
+        id: number;
+        firstName: string;
+        lastName: string;
+        company: {
+            id: number;
+            name: string;
+            parentId?: number | undefined;
+        };
+    }[] = null as any
+
+    customerWithCompanyInfo2 = customerWithCompanyInfo2Type
+    customerWithCompanyInfo2Type = customerWithCompanyInfo2
+
 }
 
 main().then(() => {

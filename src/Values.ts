@@ -1,8 +1,8 @@
-import { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, __getValueSourceOfObject, __getValueSourcePrivate, UuidValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, ILocalDateValueSource, ILocalTimeValueSource, ILocalDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from "./expressions/values"
+import { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, __getValueSourcePrivate, UuidValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, ILocalDateValueSource, ILocalTimeValueSource, ILocalDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, isValueSource } from "./expressions/values"
 import { HasIsValue, IValues, IWithView, NoTableOrViewRequiredOfSameDB, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
 import type { TypeAdapter } from "./TypeAdapter"
 import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from "./utils/tableOrViewUtils"
-import { __getColumnOfObject, __getColumnPrivate } from "./utils/Column"
+import { __getColumnPrivate, isColumn } from "./utils/Column"
 import { DBColumnImpl } from "./internal/DBColumnImpl"
 import { connection, dontCallConstructor, isTableOrViewObject, source, type } from "./utils/symbols"
 import { IConnection } from "./utils/IConnection"
@@ -12,6 +12,8 @@ import { ValueSourceFromBuilder } from "./internal/ValueSourceImpl"
 import { FragmentQueryBuilder } from "./queryBuilders/FragmentQueryBuilder"
 import { MandatoryInsertSets } from "./expressions/insert"
 import { NDBWithType, NGetNameFrom, NNoTableOrViewRequiredFrom, NValues } from "./utils/sourceName"
+import { __setColumnsForLeftJoin } from './utils/leftJoinUtils'
+import { QueryColumns, isUsableValue } from './sqlBuilders/SqlBuilder'
 
 class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<SOURCE> {
     [isTableOrViewObject]: true = true;
@@ -42,7 +44,7 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
         const result = new ((this as any).constructor)(this.__name, this.__values) as ValuesOf<any>
         result.__as = as
         result.__source = this.__source || this
-        result.__setColumnsName()
+        result.__setColumnsName(this as any, '')
         return result as any
     }
     forUseInLeftJoin(): AsForUseInLeftJoin<this> {
@@ -53,16 +55,8 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
         result.__as = as
         result.__forUseInLeftJoin = true
         result.__source = this.__source || this
-        result.__setColumnsName()
-        for (const prop in result) {
-            const column = __getValueSourceOfObject(result, prop)
-            if (column) {
-                const columnPrivate = __getValueSourcePrivate(column)
-                if (columnPrivate.__optionalType === 'required') {
-                    columnPrivate.__optionalType = 'originallyRequired'
-                }
-            }
-        }
+        result.__setColumnsName(this as any, '')
+        __setColumnsForLeftJoin(result as any)
         return result as any
     }
 
@@ -242,14 +236,21 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
         return true
     }
 
-    private __setColumnsName(): void {
-        for (var columnName in this) {
-            const column = __getColumnOfObject(this, columnName)
-            if (!column) {
+    private __setColumnsName(columns: QueryColumns, prefix: string): void {
+        for (const prop in columns) {
+            const column = columns[prop]!
+            if (!isUsableValue(prop, column, columns)) {
                 continue
             }
-            const columnPrivate = __getColumnPrivate(column)
-            columnPrivate.__name = columnName
+            if (isColumn(column)) {
+                const columnPrivate = __getColumnPrivate(column)
+                columnPrivate.__name = prefix + prop
+            } else if (isValueSource(column)) {
+                continue // Computed value
+            } else {
+                prefix = prefix + prop + '.'
+                this.__setColumnsName(column, prefix)
+            }
         }
     }
 
@@ -269,7 +270,7 @@ export class Values</*in|out*/ CONNECTION extends IConnection<NDBWithType<'postg
             throw new Error('Values requires at least one element in the list')
         }
         const result = new type(name, values as any);
-        (result as any).__setColumnsName()
+        (result as any).__setColumnsName(result as any, '')
         return result
     }
 }

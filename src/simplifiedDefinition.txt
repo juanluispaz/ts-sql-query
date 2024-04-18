@@ -637,7 +637,9 @@ interface Connection {
     stringConcatDistinct(value: StringValueSource, separator?: string): StringValueSource
     /** Aggregate as object array */
     aggregateAsArray<T extends SelectValues>(columns: T): AggregatedArrayValueSourceProjectableAsNullable<T>
+    aggregateAsArrayDistinct<T extends SelectValues>(columns: T): AggregatedArrayValueSourceProjectableAsNullable<T>
     aggregateAsArrayOfOneColumn<T>(value: ValueSource<T>): AggregatedArrayValueSource<T>
+    aggregateAsArrayOfOneColumnDistinct<T>(value: ValueSource<T>): AggregatedArrayValueSource<T>
 
     // Methods that allows create SQL fragments
     fragmentWithType(type: 'boolean', required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression

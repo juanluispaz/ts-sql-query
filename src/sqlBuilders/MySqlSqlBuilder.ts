@@ -38,12 +38,13 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
         return 'bin_to_uuid(' + this._appendSql(valueSource, params) + ')'
     }
-    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
+    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
+        const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'binary') {
-                return 'json_arrayagg(bin_to_uuid(' + this._appendSql(aggregatedArrayColumns, params) + '))'
+                return 'json_arrayagg(' + distict + 'bin_to_uuid(' + this._appendSql(aggregatedArrayColumns, params) + '))'
             }
-            return 'json_arrayagg(' + this._appendSql(aggregatedArrayColumns, params) + ')'
+            return 'json_arrayagg(' + distict + this._appendSql(aggregatedArrayColumns, params) + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -62,7 +63,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
                 }
             }
 
-            return 'json_arrayagg(json_object(' + result + '))'
+            return 'json_arrayagg(' +  distict + 'json_object(' + result + '))'
         }
     }
     _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {

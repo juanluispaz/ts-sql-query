@@ -489,12 +489,13 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         }
         return 'uuid_str(' + this._appendSql(valueSource, params) + ')'
     }
-    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
+    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
+        const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'uuid-extension') {
-                return 'json_group_array(uuid_str(' + this._appendSql(aggregatedArrayColumns, params) + '))'
+                return 'json_group_array(' + distict + 'uuid_str(' + this._appendSql(aggregatedArrayColumns, params) + '))'
             }
-            return 'json_group_array(' + this._appendSql(aggregatedArrayColumns, params) + ')'
+            return 'json_group_array(' + distict + this._appendSql(aggregatedArrayColumns, params) + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -513,7 +514,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                 }
             }
 
-            return 'json_group_array(json_object(' + result + '))'
+            return 'json_group_array(' + distict + 'json_object(' + result + '))'
         }
     }
     _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {

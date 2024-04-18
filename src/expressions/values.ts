@@ -117,6 +117,7 @@ export interface __ValueSourcePrivate extends HasAddWiths {
     __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource
     __aggregatedArrayMode?: __AggregatedArrayMode
     __aggreagtedProjectingOptionalValuesAsNullable?: boolean
+    __aggregatedArrayDistinct?: boolean
     __uuidString?: boolean
 
     isConstValue(): boolean

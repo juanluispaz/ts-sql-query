@@ -18,7 +18,7 @@ jobs:
 
       # Validate branch
       - name: Checkout v1 branch
-        run: 'git checkout v1'
+        run: 'git checkout -b v1 origin/v1'
 
       # Install dependencies
       - name: Install dependencies

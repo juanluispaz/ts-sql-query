@@ -37,6 +37,13 @@
 
 - Remove long deprecated overload of functions in columns that allowed to send to the database null values in TypeScript when the type were optional.
 
+## v1.64.0 (18 Apr 2024)
+
+**Changes**:
+
+- Add support to `aggregateAsArrayDistinct` and `aggregateAsArrayOfOneColumnDistinct` to allow aggregate as array distinct values.
+- LoggingQueryRunner: Use performance.now() in non-Node environments.
+
 ## v1.63.0 (20 Mar 2024)
 
 **Bug fixes**:

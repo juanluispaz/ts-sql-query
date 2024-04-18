@@ -23,10 +23,6 @@ jobs:
       - name: Show package.json
         run: 'cat package.json'
 
-      # Validate branch
-      - name: Validate if in v1 branch
-        run: '[ "$GITHUB_REF_NAME" == "v1" ] || { echo "Not in v1: $GITHUB_REF_NAME"; exit 1; }'
-
       # Install dependencies
       - name: Install dependencies
         run: npm install

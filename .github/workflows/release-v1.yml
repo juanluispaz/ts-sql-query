@@ -16,7 +16,11 @@ jobs:
           node-version: '20.x'
           registry-url: 'https://registry.npmjs.org'
 
-      # Validate branch
+      # List branches
+      - name: List branches
+        run: 'git branch -a'
+
+      # Change branch
       - name: Checkout v1 branch
         run: 'git checkout -b v1 origin/v1'
 

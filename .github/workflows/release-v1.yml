@@ -10,19 +10,18 @@ jobs:
     steps:
       # Setup environment
       - uses: actions/checkout@v3
+        with:
+          ref: v1
+
       - name: Use Node.js 20.x
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
           registry-url: 'https://registry.npmjs.org'
 
-      # List branches
-      - name: List branches
-        run: 'git branch -a'
-
-      # Change branch
-      - name: Checkout v1 branch
-        run: 'git checkout -b v1 origin/v1'
+      # Validate branch
+      - name: Validate if in v1 branch
+        run: '[ "$GITHUB_REF_NAME" == "v1" ] || { echo "Not in v1: $GITHUB_REF_NAME"; exit 1; }'
 
       # Install dependencies
       - name: Install dependencies

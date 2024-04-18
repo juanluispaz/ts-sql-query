@@ -17,8 +17,8 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       # Validate branch
-      - name: Validate if in v1 branch
-        run: '[ "$GITHUB_REF_NAME" == "v1" ] || { echo "Not in v1: $GITHUB_REF_NAME"; exit 1; }'
+      - name: Checkout v1 branch
+        run: 'git checkout v1'
 
       # Install dependencies
       - name: Install dependencies

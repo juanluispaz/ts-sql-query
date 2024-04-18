@@ -1057,10 +1057,16 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
     }
 
     aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<TableOrViewOfAggregatedArray<COLUMNS>, Array<{ [P in keyof InnerResultObjectValuesForAggregatedArray<COLUMNS>]: InnerResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>]: InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>[P] }>, 'required'> {
-        return new AggregateValueAsArrayValueSource(columns, 'InnerResultObject', 'required')
+        return new AggregateValueAsArrayValueSource(columns, 'InnerResultObject', 'required', false)
     }
     aggregateAsArrayOfOneColumn<VALUE extends IValueSource<ITableOrViewRef<DB>, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof tableOrView], Array<VALUE[typeof valueType]>, 'required'> {
-        return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required')
+        return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required', false)
+    }
+    aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<TableOrViewOfAggregatedArray<COLUMNS>, Array<{ [P in keyof InnerResultObjectValuesForAggregatedArray<COLUMNS>]: InnerResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>]: InnerResultNullableObjectValuesForAggregatedArray<COLUMNS>[P] }>, 'required'> {
+        return new AggregateValueAsArrayValueSource(columns, 'InnerResultObject', 'required', true)
+    }
+    aggregateAsArrayOfOneColumnDistinct<VALUE extends IValueSource<ITableOrViewRef<DB>, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof tableOrView], Array<VALUE[typeof valueType]>, 'required'> {
+        return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required', true)
     }
 
     dynamicConditionFor<DEFINITION extends Filterable>(definition: DEFINITION): DynamicConditionExpression<DEFINITION, never>

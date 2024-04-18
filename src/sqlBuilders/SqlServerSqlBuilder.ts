@@ -882,9 +882,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return super._appendAggragateArrayWrapperEnd(query, params, aggregateId)
     }
-    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
+    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
+        const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
-            return "concat('[', string_agg(" + this._appendJsonValueForAggregate(aggregatedArrayColumns, params) + ", ','), ']')"
+            return "concat('[', string_agg(" + distict + this._appendJsonValueForAggregate(aggregatedArrayColumns, params) + ", ','), ']')"
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -898,7 +899,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                 }
             }
 
-            return `concat('[', string_agg(concat('{', ` + result + `, '}'), ','), ']')`
+            return `concat('[', string_agg(` + distict + `concat('{', ` + result + `, '}'), ','), ']')`
         }
     }
     _appendJsonValueForAggregate(valueSource: AnyValueSource, params: any[]): string {

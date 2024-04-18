@@ -852,7 +852,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             } else {
                 aggregatedArrayColumns = query.__columns
             }
-            selectQuery += this._appendAggragateArrayColumns(aggregatedArrayColumns, params, query)
+            selectQuery += this._appendAggragateArrayColumns(aggregatedArrayColumns, false, params, query)
         }
 
         if (tablesLength <= 0) {
@@ -2992,7 +2992,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _aggregateValueAsArray(valueSource: IAggregatedArrayValueSource<any, any, any>, params: any[]): string {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const aggregatedArrayColumns = valueSourcePrivate.__aggregatedArrayColumns!
-        return this._appendAggragateArrayColumns(aggregatedArrayColumns, params, undefined)
+        const aggregatedArrayDistinct = valueSourcePrivate.__aggregatedArrayDistinct!
+        return this._appendAggragateArrayColumns(aggregatedArrayColumns, aggregatedArrayDistinct, params, undefined)
     }
     _needAgggregateArrayColumnsTransformation(query: SelectData, _params: any[]): boolean {
         return !!query.__asInlineAggregatedArrayValue
@@ -3055,9 +3056,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         result += 'a_' + aggregateId + '_'
         return result
     }
-    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], _query: SelectData | undefined): string {
+    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
+        const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
-            return 'json_agg(' + this._appendSql(aggregatedArrayColumns, params) + ')'
+            return 'json_agg(' + distict + this._appendSql(aggregatedArrayColumns, params) + ')'
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -3070,7 +3072,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 result += "'" + prop + "', " + this._appendSql(columns[prop]!, params)
             }
 
-            return 'json_agg(json_build_object(' + result + '))'
+            return 'json_agg(' +  distict + 'json_build_object(' + result + '))'
         }
     }
     _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {

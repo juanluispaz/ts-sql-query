@@ -38,10 +38,11 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         this._setContainsInsertReturningClause(params, false)
         return ''
     }
-    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], query: SelectData | undefined): string {
+    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], query: SelectData | undefined): string {
+        const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         let result = ''
         if (isValueSource(aggregatedArrayColumns)) {
-            result += 'json_arrayagg(' + this._appendSql(aggregatedArrayColumns, params)
+            result += 'json_arrayagg(' + distict + this._appendSql(aggregatedArrayColumns, params)
         } else {
             const columns: FlatQueryColumns = {}
             flattenQueryColumns(aggregatedArrayColumns, columns, '')
@@ -53,7 +54,7 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
                 result += "'" + prop + "', " + this._appendSql(columns[prop]!, params)
             }
 
-            result = 'json_arrayagg(json_object(' + result + ')'
+            result = 'json_arrayagg(' +  distict + 'json_object(' + result + ')'
         }
 
         if (query && query.__asInlineAggregatedArrayValue && !this._isAggregateArrayWrapped(params)) {

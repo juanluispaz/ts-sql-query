@@ -48,7 +48,7 @@ When you use these methods, you must ensure the transaction begin before call co
 
 ## Defering execution till transaction ends
 
-You can defer the execution of a logic till the end of the transaction. This defered logic can be set calling the `executeAfterNextCommit` or `executeAfterNextRollback` of the ts-sql-query connection in any momment of the application execution; the only condition is there must be an active transaction. ts-sql-query offer as well defer the execution of a logic till just before the commit calling `executeBeforeNextCommit`.
+You can defer the execution of a logic till the end of the transaction. This defered logic can be set calling the `executeAfterNextCommit` or `executeAfterNextRollback` of the ts-sql-query connection at any moment of the application execution; the only condition is there must be an active transaction. ts-sql-query offer as well defer the execution of a logic till just before the commit calling `executeBeforeNextCommit`.
 
 ```ts
 connection.executeAfterNextCommit(async () => {
@@ -68,3 +68,17 @@ connection.executeBeforeNextCommit(async () => {
 ```
 
 **Note**: The provided function can be a sync function that returns void or an async function that returns a promise of void.
+
+## Transaction metadata
+
+You can set additional information to be consumed in other parts of the application during the same transaction. For this, you can call `getTransactionMetadata` of the ts-sql-query connection at any moment of the application execution; the only condition is there must be an active transaction. The `getTransactionMetadata` method will return a `Map<unknown, unknown>` where you can get or set values.
+
+```ts
+// Setting a value
+connection.getTransactionMetadata().set('my key', 'my value')
+```
+
+```ts
+// Getting a value
+const myKeyValue: unknown = connection.getTransactionMetadata().get('my key')
+```

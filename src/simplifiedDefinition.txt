@@ -425,6 +425,7 @@ interface Connection {
     executeAfterNextCommit(fn: ()=> Promise<void>): void
     executeAfterNextRollback(fn: ()=> void): void
     executeAfterNextRollback(fn: ()=> Promise<void>): void
+    getTransactionMetadata(): Map<unknown, unknown>
 
     // Querying
     insertInto(table: Table): InsertExpression

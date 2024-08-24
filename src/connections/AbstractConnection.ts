@@ -54,12 +54,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     private beforeCommit?: Array<() => void | Promise<void>> | null
     private onCommit?: Array<() => void | Promise<void>> | null
     private onRollback?: Array<() => void | Promise<void>> | null
+    private transactionMetadata?: Map<unknown, unknown>
     private beforeCommitStack?: Array<Array<() => void | Promise<void>> | undefined>
     private onCommitStack?: Array<Array<() => void | Promise<void>> | undefined>
     private onRollbackStack?: Array<Array<() => void | Promise<void>> | undefined>
+    private transactionMetadataStack?: Array<Map<unknown, unknown> | undefined>
 
     private pushTransactionStack() {
-        if (this.onCommit || this.onCommitStack || this.onRollback || this.onRollbackStack || this.beforeCommit || this.beforeCommitStack) {
+        if (this.onCommit || this.onCommitStack || this.onRollback || this.onRollbackStack || this.beforeCommit || this.beforeCommitStack || this.transactionMetadata || this.transactionMetadataStack) {
             if (!this.beforeCommitStack) {
                 this.beforeCommitStack = []
             }
@@ -77,6 +79,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             this.onRollbackStack.push(this.onRollback || undefined)
             this.onRollback = undefined
+
+            if (!this.transactionMetadataStack) {
+                this.transactionMetadataStack = []
+            }
+            this.transactionMetadataStack.push(this.transactionMetadata || undefined)
+            this.transactionMetadata = undefined
         }
     }
 
@@ -104,6 +112,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
         } else {
             this.onRollback = undefined
+        }
+        if (this.transactionMetadataStack) {
+            this.transactionMetadata = this.transactionMetadataStack.pop()
+            if (this.transactionMetadataStack.length <= 0) {
+                this.transactionMetadataStack = undefined
+            }
+        } else {
+            this.transactionMetadata = undefined
         }
     }
 
@@ -159,6 +175,16 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             this.onRollback = []
         }
         this.onRollback.push(fn)
+    }
+
+    getTransactionMetadata(): Map<unknown, unknown> {
+        if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
+            throw new Error('There is no open transaction')
+        }
+        if (!this.transactionMetadata) {
+            this.transactionMetadata = new Map()
+        }
+        return this.transactionMetadata
     }
 
     transaction<T>(fn: () => Promise<T>, isolationLevel?: TransactionIsolationLevel): Promise<T> {

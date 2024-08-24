@@ -37,6 +37,12 @@
 
 - Remove long deprecated overload of functions in columns that allowed to send to the database null values in TypeScript when the type were optional.
 
+## v1.65.0 (24 Aug 2024)
+
+**Changes**:
+
+- Add support to transaction metadata that allows sharing of information across the application within a transaction.
+
 ## v1.64.0 (18 Apr 2024)
 
 **Changes**:

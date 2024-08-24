@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.65.0 (24 Aug 2024)
+
+**Changes**:
+
+- Add support to transaction metadata that allows sharing of information across the application within a transaction.
+
 ## v1.64.0 (18 Apr 2024)
 
 **Changes**:

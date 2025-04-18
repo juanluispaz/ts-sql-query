@@ -13,9 +13,11 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
         queryRunner.useDatabase('oracle')
     }
 
-    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel {
-        if (accessMode) {
-            return [level, accessMode] as any
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable'): TransactionIsolationLevel
+    isolationLevel(accessMode: 'read write' | 'read only'): TransactionIsolationLevel
+    isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable' | 'read write' | 'read only'): TransactionIsolationLevel {
+        if (level === 'read write' || level === 'read only') {
+            return [undefined, level] as any
         }
         return [level] as any
     }

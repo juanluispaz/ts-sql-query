@@ -1,3 +1,7 @@
+---
+search:
+  boost: 2
+---
 # Transaction
 
 ## Hight-level transaction management
@@ -73,7 +77,9 @@ Available access modes:
 
 You can set the transaction's isolation level by providing an additional argument to the `transaction` or `beginTransaction` method with a value created calling the `connection.isolationLevel` method. This function receives the isolation level as the first argument and the access mode as an optional second argument. You can also provide the access mode as the only argument. 
 
-**Note**: The Oracle database doesn't support specifying the isolation level and the access mode simultaneously.
+!!! warning
+
+    The Oracle database doesn't support specifying the isolation level and the access mode simultaneously.
 
 ```ts
 const transactionResult = connection.transaction(async () => {
@@ -106,7 +112,9 @@ connection.executeBeforeNextCommit(async () => {
 })
 ```
 
-**Note**: The provided function can be a sync function that returns void or an async function that returns a promise of void.
+!!! note
+
+    The provided function can be a sync function that returns void or an async function that returns a promise of void.
 
 ## Transaction metadata
 

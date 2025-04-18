@@ -1,14 +1,37 @@
-# ts-sql-query
+---
+search:
+  boost: 0.15
+---
+<div style="display: flex; flex-direction: column; align-items: center; margin-top: 1.5em; margin-bottom: 2em; gap: 1em; text-align: center;">
 
-[![npm](https://img.shields.io/npm/v/ts-sql-query.svg)](https://npm.im/ts-sql-query)
+  <img src="logo.svg" width="100" alt="logo" />
+
+  <h1 style="margin: 0; font-size: 2.5em;">ts-sql-query</h1>
+
+  <p style="font-size: 1.1em; font-weight: 500; color: var(--md-primary-fg-color);">
+    Type-safe SQL query builder for TypeScript
+  </p>
+
+  <div style="display: flex; gap: 0.75em; flex-wrap: wrap; justify-content: center;">
+    <a href="https://www.npmjs.com/package/ts-sql-query" target="_blank">
+      <img src="https://img.shields.io/npm/v/ts-sql-query?label=npm&style=for-the-badge" alt="npm badge" />
+    </a>
+    <a href="https://github.com/sponsors/juanluispaz" target="_blank">
+      <img src="https://img.shields.io/badge/sponsor-GitHub-ff69b4?logo=githubsponsors&style=for-the-badge" alt="sponsor badge" />
+    </a>
+  </div>
+
+</div>
 
 ## What is ts-sql-query?
 
 ts-sql-query is a type-safe query builder that provides a way to build dynamic SQL queries in a type-safe way, that means, the TypeScript compiler verifies the queries. 
 
-Type-safe SQL means the mistakes writting a query will be detected during the compilation time. With ts-sql-query you don't need to be affraid of change the database, the problems caused by the change will be detected during compilation time.
+Type-safe SQL means the mistakes writing a query will be detected during the compilation time. With ts-sql-query you don't need to be affraid of change the database, the problems caused by the change will be detected during compilation time.
 
-ts-sql-query supports MariaDB, MySql, Oracle, PostgreSql, Sqlite and SqlServer. Note: this is not an ORM, and the most probably is you don't need one.
+!!! note ""
+
+    ts-sql-query is _not_ an **ORM** — it focuses on full SQL control with type safety.
 
 ![](demo.gif)
 
@@ -22,6 +45,17 @@ There are many libraries available in JavaScript/TypeScript that allows querying
 - Utilities not designed to write dynamic queries in an easy way.
 
 ts-sql-query addresses these inconveniences, providing you with a library that allows you to query the database in a type-safe way, with SQL in mind, and with many helpers to create dynamic queries.
+
+## Supoported databases
+
+- MariaDB
+- MySql
+- Oracle
+- PostgreSql
+- Sqlite 
+- SqlServer
+
+ts-sql-query uses a single dialect modeled after Sqlite and PostgreSql, adapting the naming to what is common in JavaScript, that generates the proper SQL for the target database.
 
 ## Install
 
@@ -44,41 +78,10 @@ ts-sql-query doesn't expose a global export; instead, you need import specific f
 
 Any reference to a file outside of the previous list can change at any moment.
 
-## Examples
-
-You can find a complete example using ts-sql-query with PostgreSQL in the file [PgExample.ts](https://github.com/juanluispaz/ts-sql-query/blob/master/src/examples/PgExample.ts). You can browse the [examples folder](https://github.com/juanluispaz/ts-sql-query/tree/master/src/examples) to see an example for each supported database using different ways to connect to it.
-
-**Running examples:**
-
-The first time You download the project:
-
-```sh
-npm install
-npm run generate-prisma
-```
-
-To execute all examples:
-
-```sh
-npm run all-examples
-```
-
-This command will compile the project and execute the script located at [scripts/run-all-examples.sh](https://github.com/juanluispaz/ts-sql-query/blob/master/scripts/run-all-examples.sh)
-
-**Be aware**: this command expects you to have docker running and Oracle instantclient-basic downloaded and configured the path in the script (see the script to get more details)
-
-If you want to execute a single example (like Sqlite):
-
-```sh
-npx ts-node ./src/examples/SqliteExample.ts
-```
-
-**Be aware**: all examples excepting Sqlite requires a specific docker image with the database running; see [scripts/run-all-examples.sh](https://github.com/juanluispaz/ts-sql-query/blob/master/scripts/run-all-examples.sh) for more details.
-
 ## Related projects
 
 - [ts-sql-codegen](https://github.com/lorefnon/ts-sql-codegen): Utility that generates table mapper classes for ts-sql-query by inspecting a database through [tbls](https://github.com/k1LoW/tbls).
 
 ## License
 
-MIT
+[MIT](https://opensource.org/licenses/MIT)

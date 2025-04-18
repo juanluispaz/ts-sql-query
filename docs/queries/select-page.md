@@ -1,3 +1,7 @@
+---
+search:
+  boost: 3
+---
 # Select page
 
 Select page execute the query twice, the first one to get the data from the database and the second one to get the count of all data without the limit and the offset.

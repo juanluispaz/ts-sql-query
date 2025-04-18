@@ -1,3 +1,7 @@
+---
+search:
+  boost: 3
+---
 # Basic query structure
 
 ## Select one row
@@ -75,9 +79,9 @@ const customerWithId: Promise<{
 }>
 ```
 
-**Note**:
+!!! note
 
-Projecting always-required properties that allow null values works in the same way with insert, update or deletes if you call `projectingOptionalValuesAsNullable()` immediately after `returning(...)`, Same, as well, with `connection.aggregateAsArray(...).projectingOptionalValuesAsNullable()`.
+    Projecting always-required properties that allow null values works in the same way with insert, update or deletes if you call `projectingOptionalValuesAsNullable()` immediately after `returning(...)`, Same, as well, with `connection.aggregateAsArray(...).projectingOptionalValuesAsNullable()`.
 
 ## Other options
 

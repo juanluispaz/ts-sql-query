@@ -1,3 +1,7 @@
+---
+search:
+  boost: 4
+---
 # Insert
 
 ## Insert one row
@@ -65,7 +69,9 @@ The result type is a promise with the id of the last inserted rows:
 const insertMultipleCustomers: Promise<number[]>
 ```
 
-**Note**: Return the last inserted id of an insert with multiple rows is only supported by **PostgreSql**, **SqlServer** and **Oracle**. If you try to use it with other database you will get a compilation error.
+!!! note
+
+    Return the last inserted id of an insert with multiple rows is only supported by **PostgreSql**, **SqlServer** and **Oracle**. If you try to use it with other database you will get a compilation error.
 
 ## Insert from select
 
@@ -578,11 +584,11 @@ const insertReturningCustomerData: Promise<{
 } | null>
 ```
 
-**Notes**
+!!! note
 
-- On `PostgreSql` and `Sqlite`, you can specify the columns that can create the conflict (including a `where` clause for that columns).
-- On `PostgreSql` you can specify the constraint name that raise the conflict.
-- You can combine this with other insert's features, e.g. return some columns.
+    - On `PostgreSql` and `Sqlite`, you can specify the columns that can create the conflict (including a `where` clause for that columns).
+    - On `PostgreSql` you can specify the constraint name that raise the conflict.
+    - You can combine this with other insert's features, e.g. return some columns.
 
 ## Insert on conflict do update ("upsert")
 
@@ -667,9 +673,9 @@ const insertReturningCustomerData: Promise<{
 }>
 ```
 
-**Notes**
+!!! note
 
-- On `PostgreSql` and `Sqlite`, you can specify `where` clause that idicates when the update must be permormed.
-- On `PostgreSql` and `Sqlite`, you can specify the columns that can create the conflict (including a `where` clause for that columns).
-- On `PostgreSql` you can specify the constraint name that raise the conflict.
-- You can combine this with other insert's features, e.g. return some columns.
+    - On `PostgreSql` and `Sqlite`, you can specify `where` clause that idicates when the update must be permormed.
+    - On `PostgreSql` and `Sqlite`, you can specify the columns that can create the conflict (including a `where` clause for that columns).
+    - On `PostgreSql` you can specify the constraint name that raise the conflict.
+    - You can combine this with other insert's features, e.g. return some columns.

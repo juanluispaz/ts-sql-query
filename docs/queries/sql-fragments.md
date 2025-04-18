@@ -1,3 +1,7 @@
+---
+search:
+  boost: 0.92
+---
 # SQL fragments
 
 ## Select with custom SQL fragment
@@ -170,7 +174,11 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; these arguments can be numbers or elements in the database that represent integer numbers. If you create the argument using the function `valueArg` instead of the `arg` function, the defined function will accept values only but not database elements. You can use the defined function as a regular database function in your query. The function will return an optional value if any of the provided arguments when invoked is optional; otherwise, the return type will be marked as required. **Note**: All arguments that can be optional must be marked as optional; the return fragment must be marked as optional.
+You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; these arguments can be numbers or elements in the database that represent integer numbers. If you create the argument using the function `valueArg` instead of the `arg` function, the defined function will accept values only but not database elements. You can use the defined function as a regular database function in your query. The function will return an optional value if any of the provided arguments when invoked is optional; otherwise, the return type will be marked as required.
+
+!!! warning
+
+    All arguments that can be optional must be marked as optional; the return fragment must be marked as optional.
 
 ```ts
 const bitwiseMovements = null;

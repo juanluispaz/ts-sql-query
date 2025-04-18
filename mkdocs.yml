@@ -1,30 +1,67 @@
 site_name: ts-sql-query
 site_description: Type-safe SQL query builder for TypeScript.
 repo_url: https://github.com/juanluispaz/ts-sql-query
+repo_name: juanluispaz/ts-sql-query
+copyright: >
+    Copyright &copy; Juan Luis Paz Rojas
+    <span style="color: var(--md-footer-fg-color--lighter);"> · Released under the </span><a href="https://opensource.org/licenses/MIT" target="_blank">MIT License</a>.
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://www.github.com/juanluispaz
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/juanluispaz/en
 plugins:
-  # https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/#+search.separator + ' (escaped as '') + \- moved at the end of group
+  # https://squidfunk.github.io/mkdocs-material/setup/setting-up-site-search/#+search.separator + ' (escaped as '') + \- moved at the end of group, added +*<>@{}
   - search:
-      separator: '[\s,:!=\[\]()"\''/\-]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
-  - exclude-search:
-      exclude:
-        - CHANGELOG.md
+      separator: '[\s,:!=\[\]()"\''/\-+*<>@{}]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
 theme: 
-  name: readthedocs
-  highlightjs: false
-extra_javascript:
-  # MkDocs includes an old version of highlight.js, but it doesn't recognize all modern JS syntax, import a newer version
-  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.8.0/build/highlight.min.js
-  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.8.0/build/languages/typescript.min.js
-  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.8.0/build/languages/pgsql.min.js
-  - custom.js
+  name: material
+  icon:
+    logo: material/shield-half-full
+    repo: fontawesome/brands/github
+  favicon: logo.svg
+  features:
+    - navigation.expand
+    - toc.integrate
+    - navigation.tabs
+    - navigation.footer
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      primary: teal
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
 extra_css: 
-  - https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.8.0/build/styles/default.min.css
-  - custom.css
+  - extra.css
+markdown_extensions:
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      pygments_lang_class: true
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
 nav:
-  - Introduction: index.md
+  - Home: index.md
   - Queries:
     - Basic query structure: queries/basic-query-structure.md
-    - Dynamic queries: queries/dynamic-queries.md
     - Select: queries/select.md
     - Select page: queries/select-page.md
     - Recursive select: queries/recursive-select.md
@@ -34,15 +71,74 @@ nav:
     - Update: queries/update.md
     - Delete: queries/delete.md
     - Transaction: queries/transaction.md
+    - Dynamic queries: queries/dynamic-queries.md
+    - Extreme dynamic queries: queries/extreme-dynamic-queries.md
     - SQL Fragments: queries/sql-fragments.md
-  - Connection, tables & views: connection-tables-views.md
-  - Column types: column-types.md
-  - Supported operations: supported-operations.md
-  - Supported databases: supported-databases.md
-  - Query runners:
-    - Recommended query runners: query-runners/recommended-query-runners.md
-    - Additional query runners: query-runners/additional-query-runners.md
-    - General purpose query runners: query-runners/general-purpose-query-runners.md
-  - Advanced usage: advanced-usage.md
-  - FAQs & Limitations: faqs-limimitations.md
-  - Change Log: CHANGELOG.md
+  - Configuration:
+    - Connection: configuration/connection.md
+    - Mapping: configuration/mapping.md
+    - Column types: configuration/column-types.md
+    - Supported databases:
+      - MariaDB: configuration/supported-databases/mariadb.md
+      - MySQL: configuration/supported-databases/mysql.md
+      - Oracle: configuration/supported-databases/oracle.md
+      - PostgreSQL: configuration/supported-databases/postgresql.md
+      - SQLite: configuration/supported-databases/sqlite.md
+      - SQL Server: configuration/supported-databases/sqlserver.md
+    - Query runners:
+      - Recommended query runners: 
+        - better-sqlite3: configuration/query-runners/recommended/better-sqlite3.md
+        - mariadb: configuration/query-runners/recommended/mariadb.md
+        - mssql: configuration/query-runners/recommended/mssql.md
+        - mysql2: configuration/query-runners/recommended/mysql2.md
+        - oracledb: configuration/query-runners/recommended/oracledb.md
+        - pg: configuration/query-runners/recommended/pg.md
+        - postgres: configuration/query-runners/recommended/postgres.md
+        - sqlite3: configuration/query-runners/recommended/sqlite3.md
+        - sqlite-wasm OO1: configuration/query-runners/recommended/sqlite-wasm-OO1.md
+      - General purpose query runners:
+        - InterceptorQueryRunner: configuration/query-runners/general-purpose/InterceptorQueryRunner.md
+        - LoggingQueryRunner: configuration/query-runners/general-purpose/LoggingQueryRunner.md
+        - MockQueryRunner: configuration/query-runners/general-purpose/MockQueryRunner.md
+        - Others:
+          - ConsoleLogNoopQueryRunner: configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md
+          - ConsoleLogQueryRunner: configuration/query-runners/general-purpose/ConsoleLogQueryRunner.md
+          - NoopQueryRunner: configuration/query-runners/general-purpose/NoopQueryRunner.md
+      - Additional query runners: 
+        - mysql: configuration/query-runners/additional/mysql.md
+        - prisma: configuration/query-runners/additional/prisma.md
+        - sqlite: configuration/query-runners/additional/sqlite.md
+  - API: 
+    - API Introduction: api/introduction.md
+    - Connection API: api/connection.md
+    - Table API: api/table.md
+    - View API: api/view.md
+    - Constant values view API: api/constant-values-view.md
+    - Value expressions API: api/value-expressions.md
+    - Select API: api/select.md
+    - Insert API: api/insert.md
+    - Update API: api/update.md
+    - Delete API: api/delete.md
+    - Type adpaters API: api/type-adpaters.md
+    - Dynamic conditions API: api/dynamic-conditions.md
+  - Advanced: 
+    - Custom booleans values: advanced/custom-booleans-values.md
+    - Synchronous query runners: advanced/synchronous-query-runners.md
+    - ID manipulation: advanced/id-manipulation.md
+    - Extract columns from an object: advanced/columns-from-object.md
+    - Utility types: advanced/utility-types.md
+    - Passing tables and views as parameter: advanced/tables-views-as-parameter.md
+    - Query execution metadata: advanced/query-execution-metadata.md
+  - Keywords:
+    - Select Keywords: keywords/select.md
+    - Insert Keywords: keywords/insert.md
+    - Update Keywords: keywords/update.md
+    - Delete Keywords: keywords/delete.md
+    - Function and Operator Keywords: keywords/functions-oprators.md
+    - Transaction Keywords: keywords/transaction.md
+  - About:
+    - Philosophy and Design Goals: about/philosophy.md
+    - FAQs: about/faqs.md
+    - Limitations: about/limimitations.md
+    - Examples: about/examples.md
+    - Change Log: CHANGELOG.md

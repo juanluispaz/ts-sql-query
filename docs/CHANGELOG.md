@@ -1,3 +1,7 @@
+---
+search:
+  exclude: true
+---
 # Change Log
 
 ## v2.0.0-alpha.2 (2 Mar 2024)
@@ -889,7 +893,7 @@
 
 First stable release!
 
-See [1.0.0-beta.1 release notes](#v1.0.0-beta.1)
+See [1.0.0-beta.1 release notes](#v100-beta1-29-dec-2020)
 
 **Bug fixes:**
 

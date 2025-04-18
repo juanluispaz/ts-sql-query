@@ -1,10 +1,16 @@
+---
+search:
+  boost: 2
+---
 # Complex projections
 
 ## Inner objects
 
 In ts-sql-query, the result of a query doesn't require to be a flat object; you can create a result that is an object that contains properties that are objects as well (multiple object nesting is supported).
 
-**IMPORTANT**: Only 5 nesting levels are supported.
+!!! warning
+
+    Only 5 nesting levels are supported.
 
 ```ts
 const companyId = 24;
@@ -76,11 +82,15 @@ const customersOfCompany: Promise<{
     - optional fields are marked as optional
     - inner objects remain as in their definition
 
-**Note**: When you indicate that a table will be used in a left join, all required columns are treated as optional in ts-sql-query because the left join is per se optional; the rule number 2 is the only one that can revert it implicitly.
+!!! note
+
+    When you indicate that a table will be used in a left join, all required columns are treated as optional in ts-sql-query because the left join is per se optional; the rule number 2 is the only one that can revert it implicitly.
 
 **Limitation**: You cannot use complex projections in queries that will be used as table in other query (created using `forUseInQueryAs` that corresponds to the with clause in SQL)
 
-**IMPORTANT**: Only 5 nesting levels are supported.
+!!! warning
+
+    Only 5 nesting levels are supported.
 
 ## Optional inner object with required properties
 
@@ -222,178 +232,3 @@ const companyMultiParent: Promise<{
     };
 }[]>
 ```
-
-## Select using a dynamic filter with complex projections
-
-```ts
-import { DynamicCondition } from "ts-sql-query/dynamicCondition"
-
-type QueryFilterType = DynamicCondition<{
-    id: 'int',
-    name: {
-        firstName: 'string',
-        lastName: 'string',
-    },
-    birthday: 'localDate',
-    company: {
-        id: 'int',
-        name: 'string'
-    }
-}>;
-
-const queryFilter: QueryFilterType = {
-    company: { name: {equals: 'ACME'} },
-    name: {
-        or: [
-            { firstName: { containsInsensitive: 'John' } },
-            { lastName: { containsInsensitive: 'Smi' } }
-        ]
-    }
-};
-
-const queryOrderBy = 'company.name asc insensitive, birthday desc';
-
-const querySelectFields = {
-    id: tCustomer.id,
-    name: {
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName,
-    },
-    birthday: tCustomer.birthday,
-    company: {
-        id: tCompany.id,
-        name: tCompany.name
-    }
-};
-
-const queryDynamicWhere = connection.dynamicConditionFor(querySelectFields).withValues(queryFilter);
-
-const customerWithCompanyObject = connection.selectFrom(tCustomer)
-    .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
-    .select(querySelectFields)
-    .where(queryDynamicWhere)
-    .orderByFromString(queryOrderBy)
-    .executeSelectOne();
-```
-
-The executed query is:
-```sql
-select customer.id as id, 
-    customer.first_name as "name.firstName", customer.last_name as "name.lastName", 
-    customer.birthday as birthday, 
-    company.id as "company.id", company.name as "company.name" 
-from customer inner join company on company.id = customer.company_id 
-where company.name = $1 
-    and (
-           customer.first_name ilike ('%' || $2 || '%') 
-        or customer.last_name ilike ('%' || $3 || '%')
-    ) 
-order by lower("company.name") asc, birthday desc
-```
-
-The parameters are: `[ "ACME", "John", "Smi" ]`
-
-The result type is:
-```tsx
-const customerWithCompanyObject: Promise<{
-    id: number;
-    name: {
-        firstName: string;
-        lastName: string;
-    };
-    company: {
-        id: number;
-        name: string;
-    };
-    birthday?: Date;
-}>
-```
-
-See [Select using a dynamic filter](dynamic-queries.md#select-using-a-dynamic-filter) and [Dynamic conditions](../supported-operations.md#dynamic-conditions) for more information.
-
-## Select dynamically picking columns with complex projections
-
-```ts
-import { dynamicPick } from "ts-sql-query/dynamicCondition"
-
-const availableFields = {
-    id: tCustomer.id,
-    name: {
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName,
-    },
-    birthday: tCustomer.birthday,
-    company: {
-        id: tCompany.id,
-        name: tCompany.name
-    }
-};
-
-const fieldsToPick = {
-    name: {
-        firstName: true,
-        lastName: true
-    }
-};
-
-// include allways id field as required
-const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id']);
-
-const customerWithOptionalCompany = await connection.selectFrom(tCustomer)
-    .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
-    .select(pickedFields)
-    .where(tCustomer.id.equals(12))
-    .executeSelectMany();
-```
-
-The executed query is:
-```sql
-select customer.id as id, 
-    customer.first_name as "name.firstName", customer.last_name as "name.lastName" 
-from customer 
-where customer.id = $1
-```
-
-The parameters are: `[ 12 ]`
-
-The result type is:
-```tsx
-const customersOfCompany: Promise<{
-    id: number;
-    name?: {
-        firstName?: string;
-        lastName?: string;
-    };
-    birthday?: Date;
-    company?: {
-        id?: number;
-        name?: string;
-    };
-}[]>
-```
-
-But in case of a column provided by the join is required, like when `fieldsToPick` is:
-```ts
-const fieldsToPick = {
-    name: {
-        firstName: true,
-        lastName: true,
-    },
-    company: {
-        name: true
-    }
-}
-```
-
-The executed query is:
-```sql
-select customer.id as id, 
-    customer.first_name as "name.firstName", customer.last_name as "name.lastName", 
-    company.id as "company.id", company.name as "company.name" 
-from customer inner join company on company.id = customer.company_id 
-where customer.id = $1
-```
-
-The parameters are: `[ 12 ]`
-
-See [Select dynamically picking columns](dynamic-queries.md#select-dynamically-picking-columns) and [Optional joins](dynamic-queries.md#optional-joins) for more information.

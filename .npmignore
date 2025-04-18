@@ -11,3 +11,5 @@ tsconfig.json
 generated
 .github
 .nyc_output
+.venv
+.vscode

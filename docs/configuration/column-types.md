@@ -1,3 +1,7 @@
+---
+search:
+  boost: 0.55
+---
 # Column types
 
 ## Typing
@@ -105,13 +109,15 @@ And you can define the column as:
 this.column<RgbColor>('ColumnName', 'custom', 'RgbColor', new RgbColorTypeAdapter())
 ```
 
-**Important**:
+!!! important
 
-- The type adapter handles all the values sending or coming from the database, including null/undefined values; you must handle it.
-- The `type` param tells you what the expected type is; you must verify it and only process the value if it is the one you are applying the rule.
-- The `next` gives you access to the default implementation; you must call if you cannot handle the type.
+    - The type adapter handles all the values sending or coming from the database, including null/undefined values; you must handle it.
+    - The `type` param tells you what the expected type is; you must verify it and only process the value if it is the one you are applying the rule.
+    - The `next` gives you access to the default implementation; you must call if you cannot handle the type.
 
-Type adapter is useful when you define a rule that only applies to that specific column, for example, the `CustomBooleanTypeAdapter` explained in the [Custom booleans values](advanced-usage.md#custom-booleans-values) section. For the `RgbColor` example, it is not specific for one field, them; it will be better to define the rule globally in the connection object as explained in the next section.
+!!! tip
+
+    Type adapter is useful when you define a rule that only applies to that specific column, for example, the `CustomBooleanTypeAdapter` explained in the [Custom booleans values](../advanced/custom-booleans-values.md) section. For the `RgbColor` example, it is not specific for one field, them; it will be better to define the rule globally in the connection object as explained in the next section.
 
 ## Globally type adapter
 

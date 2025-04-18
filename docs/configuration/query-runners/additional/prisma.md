@@ -1,76 +1,22 @@
-# Additional query runners
+---
+search:
+  boost: 0.573
+---
+# prisma
 
-**Important**: A ts-sql-query connection object and the queries runners objects received as constructor's arguments represent a dedicated connection; consequently, don't share connections between requests when you are handling HTTP requests; create one connection object per request with its own query runners. Even when the ts-sql-query connection object uses a query runner that receives a connection pool, the ts-sql-query connection sill represents a dedicated connection to the database extracted automatically from the pool and must not be shared.
+!!! warning "Do not share connections between requests"
 
-## mysql
+    A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
 
-### mysql (with a connection pool)
+    Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
 
-It allows to execute the queries using a [mysql](https://www.npmjs.com/package/mysql) connection pool.
+    Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-**Supported databases**: mariaDB, mySql
 
-```ts
-import { createPool } from "mysql";
-import { MySqlPoolQueryRunner } from "ts-sql-query/queryRunners/MySqlPoolQueryRunner";
-
-const pool  = createPool({
-  connectionLimit : 10,
-  host            : 'example.org',
-  user            : 'bob',
-  password        : 'secret',
-  database        : 'my_db'
-});
-
-async function main() {
-    const connection = new DBConnection(new MySqlPoolQueryRunner(pool));
-    // Do your queries here
-}
-```
-
-### mysql (with a connection)
-
-It allows to execute the queries using a [mysql](https://www.npmjs.com/package/mysql) connection.
-
-**Supported databases**: mariaDB, mySql
-
-```ts
-import { createPool } from "mysql";
-import { MySqlQueryRunner } from "ts-sql-query/queryRunners/MySqlQueryRunner";
-
-const pool  = createPool({
-  connectionLimit : 10,
-  host            : 'example.org',
-  user            : 'bob',
-  password        : 'secret',
-  database        : 'my_db'
-});
-
-function main() {
-    pool.getConnection((error, mysqlConnection) => {
-        if (error) {
-            throw error;
-        }
-        try {
-            const connection = new DBConnection(new MySqlQueryRunner(mysqlConnection));
-            doYourLogic(connection).finnaly(() => {
-                mysqlConnection.release();
-            });
-        } catch(e) {
-            mysqlConnection.release();
-            throw e;
-        }
-    });
-}
-
-async function doYourLogic(connection: DBConnection) {
-    // Do your queries here
-}
-```
-
-## prisma
-
-**EXPERIMENTAL**: This implementation emulates the behaviour of the promise-not-so-like object returned by Prisma; but this can be challenging.
+!!! danger "Experimental"
+    This query runner is experimental.
+    
+    This implementation emulates the behaviour of the promise-not-so-like object returned by Prisma; but this can be challenging.
 
 It allows to execute the queries using a [Prisma](https://www.prisma.io) client. It supports Prisma 5. It could work as well in Prima 3 and 4, but not tested, if you enable the interactive transactions it in your Prisma Schema (see the [documentation](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide#interactive-transactions-in-preview) to find how to do it).
 
@@ -88,7 +34,7 @@ async function main() {
 }
 ```
 
-### Transactions
+## Transactions
 
 Prisma distinguishes between short (sequential) and long-running (interactive) transactions. You must understand this concept in order to use Prisma's transactions properly. The [blog page](https://www.prisma.io/blog/how-prisma-supports-transactions-x45s1d5l0ww1) explaining it, the [transactions guide](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide/) and the [transaction page](https://www.prisma.io/docs/concepts/components/prisma-client/transactions) details the differences.
 
@@ -105,11 +51,11 @@ The consequence of this design is you cannot call the low-level transaction meth
 
 But, you can use `connection.transaction` method to perform a transaction in Prisma (under the hood, it calls `prismaClient.$transaction`). When you use `connection.transaction` method, you can combine ts-sql-query and Prisma operations.
 
-### Short-running transactions
+## Short-running transactions
 
 **NOT SUPPORTED**: Prisma's short-running transactions are not supported in ts-sql-query. Make sure to distinguish Prisma's short-running transactions from standard SQL transactions.
 
-### Long-running transactions
+## Long-running transactions
 
 It is called, as well, interactive transactions in Prisma's documentation.
 
@@ -119,7 +65,9 @@ You can pass as the second argument of the `PrismaQueryRunner` constructor a con
   - `maxWait` (number, optional, default `2000`): The maximum amount of time (milliseconds) the Prisma Client will wait to acquire a transaction from the database. The default is 2 seconds.
   - `timeout` (number, optional, default `5000`): The maximum amount of time (milliseconds) the interactive transaction can run before being cancelled and rolled back. The default value is 5 seconds.
 
-**Note** Prisma doesn't allow to specify an access mode in the isolation level when you initiate a transaction.
+!!! warning
+
+    Prisma doesn't allow to specify an access mode in the isolation level when you initiate a transaction.
 
 ```ts
 const connection = new DBConnection(new PrismaQueryRunner(prisma));
@@ -145,7 +93,7 @@ const transactionResult = prisma.$transaction(async (prismaTransaction) => {
 });
 ```
 
-### Accessing to the Prisma Client from the connection
+## Accessing to the Prisma Client from the connection
 
 If you want to access the underlying Prisma Cient from your connection object you can define an accesor method in your connection class like:
 
@@ -159,28 +107,5 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
             throw new Error('Unable to find the Prisma Client')
         }
     }
-}
-```
-
-## sqlite
-
-It allows to execute the queries using an [sqlite](https://www.npmjs.com/package/sqlite) connection.
-
-**Supported databases**: sqlite
-
-```ts
-import { Database } from 'sqlite3';
-import { open } from 'sqlite';
-import { SqliteQueryRunner } from "ts-sql-query/queryRunners/SqliteQueryRunner";
-
-const dbPromise = open({ 
-    filename: './database.sqlite',
-    driver: sqlite3.Database
-});
-
-async function main() {
-    const db = await dbPromise;
-    const connection = new DBConnection(new SqliteQueryRunner(db));
-    // Do your queries here
 }
 ```

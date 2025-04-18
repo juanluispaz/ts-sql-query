@@ -1,0 +1,829 @@
+---
+search:
+  boost: 0.91
+---
+# Extreme dynamic queries
+
+## Introduction
+
+This section covers more advanced patterns for dynamic query construction. These techniques are powerful, but should be used **only when necessary**.
+
+In most applications, simple constructs like `.equalsIfValue()` or `.containsIfValue()` are sufficient for building flexible conditions. However, in more complex scenarios — such as dynamically selecting which columns to return, or building filters from condition objects — additional mechanisms are available.
+
+!!! warning
+    These patterns exist to handle *rare but real* edge cases. They offer great flexibility, but at the cost of increased complexity and reduced readability.
+
+    Prefer the simpler declarative patterns unless your use case clearly requires this level of dynamic control.
+
+## Complex dynamic boolean expressions
+
+When the methods ended with `IfValue` are not enough to create dynamic complex boolean expressions, you can call the `dynamicBooleanExpresionUsing` method to create your complex boolean expressions. The `dynamicBooleanExpresionUsing` method is in the connection object. It allows you to create a dynamic expression with the initial value of the special neutral boolean. This method receives by argument the tables you expect to use while constructing the complex boolean expression.
+
+The previous example can be written in the following way:
+
+```ts
+const firstNameContains = 'ohn';
+const lastNameContains = null;
+const birthdayIs = null;
+const searchOrderBy = 'name insensitive, birthday asc nulls last';
+
+let searchedCustomersWhere = connection.dynamicBooleanExpressionUsing(tCustomer)
+if (firstNameContains) {
+    searchedCustomersWhere = searchedCustomersWhere.and(tCustomer.firstName.contains(firstNameContains))
+}
+if (lastNameContains) {
+    searchedCustomersWhere = searchedCustomersWhere.or(tCustomer.lastName.contains(lastNameContains))
+}
+if (birthdayIs) {
+    searchedCustomersWhere = searchedCustomersWhere.and(tCustomer.birthday.equals(birthdayIs))
+}
+
+const searchedCustomers = connection.selectFrom(tCustomer)
+    .where(searchedCustomersWhere)
+    .select({
+        id: tCustomer.id,
+        name: tCustomer.firstName.concat(' ').concat(tCustomer.lastName),
+        birthday: tCustomer.birthday
+    })
+    .orderByFromString(searchOrderBy)
+    .executeSelectMany();
+```
+
+The executed query is:
+```sql
+select id as id, first_name || $1 || last_name as name, birthday as birthday 
+from customer 
+where first_name like ('%' || $2 || '%') 
+order by lower(name), birthday asc nulls last
+```
+
+The parameters are: `[ ' ', 'ohn' ]`
+
+The result type is:
+```tsx
+const searchedCustomers: Promise<{
+    id: number;
+    name: string;
+    birthday?: Date;
+}[]>
+```
+
+## Select using a dynamic filter
+
+You can create a dynamic condition for use in a where (for example). In these dynamic conditions, the criteria are provided as an object. Another system, like the user interface, may fill the criteria object. The provided criteria object is translated to the corresponding SQL. To use this feature, you must call the method `dynamicConditionFor` from the connection; this method receives a map where the key is the name that the external system is going to use to refer to the field and the value is the corresponding value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the criteria provided to the external system.
+
+```ts
+import { DynamicCondition } from "ts-sql-query/dynamicCondition"
+
+const selectFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday,
+    companyName: tCompany.name
+}
+
+/*
+ * You can define as well using the fields object
+ * type FilterType = DynamicCondition<typeof selectFields>
+ */
+type FilterType = DynamicCondition<{
+    id: 'int',
+    firstName: 'string',
+    lastName: 'string',
+    birthday: 'localDate',
+    companyName: 'string'
+}>
+
+const filter: FilterType = {
+    or: [
+        { firstName: { startsWithInsensitive: 'John' } },
+        { lastName: { startsWithInsensitiveIfValue: 'Smi', endsWith: 'th' } }
+    ],
+    companyName: {equals: 'ACME'}
+}
+
+const dynamicWhere = connection.dynamicConditionFor(selectFields).withValues(filter)
+
+const customersWithDynamicCondition = connection.selectFrom(tCustomer)
+    .innerJoin(tCompany).on(tCustomer.companyId.equals(tCompany.id))
+    .where(dynamicWhere)
+    .select(selectFields)
+    .orderBy('firstName', 'insensitive')
+    .orderBy('lastName', 'asc insensitive')
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, company.name as companyName 
+from customer inner join company on customer.company_id = company.id 
+where 
+    (   
+        customer.first_name ilike ($1 || '%') 
+        or (
+                    customer.last_name ilike ($2 || '%') 
+                and customer.last_name like ('%' || $3)
+            )
+    ) and company.name = $4 
+order by lower(firstName), lower(lastName) asc
+```
+
+The parameters are: `[ 'John', 'Smi', 'th', 'ACME' ]`
+
+The result type is:
+```tsx
+const customersWithCompanyName: Promise<{
+    id: number;
+    firstName: string;
+    lastName: string;
+    companyName: string;
+    birthday?: Date;
+}[]>
+```
+
+The utility type `DynamicCondition` from `ts-sql-query/dynamicCondition` allows you to create a type definition for the dynamic criteria using type description or the object with the available fields.
+
+See [Dynamic conditions](../api/dynamic-conditions.md) for more information.
+
+Sometimes you need to extend the availables rules to use in dynamic conditions to provede more functionality to your dinamic conditions; to do this you will need to construct an object (it can contain inner objects), where the key is the name of the rule, and the value is a function that receives as an argument the configuration of the rule, and it must return a boolean value source. When you create the dynamic condition, you must provide the extension as the second argument. See [Full dynamic select](#full-dynamic-select) for a complete example.
+
+## Select dynamically picking columns
+
+!!! tip
+
+    This feature offers you the most extreme form of modification over the queries but the hardest one to figure out the consequences because the columns can disappear. Try to use first [Ignorable expression as null](dynamic-queries.md#ignorable-expression-as-null) instead of this feature where the structure of the columns is kept as is, and you will be able to reason over your queries more easily.
+
+You can create a select where the caller can conditionally pick the columns that want to be returned (like in GraphQL)
+
+```ts
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query/dynamicCondition"
+
+const availableFields = {
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday
+}
+
+// Alternative: const fieldsToPickList = ['firstName' as const, 'lastName' as const]
+const fieldsToPick = {
+    firstName: true,
+    lastName: true
+}
+
+// Alternative: const pickedFields = dynamicPickPaths(availableFields, fieldsToPickList)
+const pickedFields = dynamicPick(availableFields, fieldsToPick)
+
+const customersWithIdPeaking = connection.selectFrom(tCustomer)
+    .select({
+        ...pickedFields,
+        id: tCustomer.id // always include the id field in the result
+    })
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select id as id, first_name as firstName, last_name as lastName
+from customer
+```
+
+The parameters are: `[]`
+
+The result type is:
+```tsx
+const customersWithIdPeaking: Promise<{
+    id: number;
+    birthday?: Date;
+    firstName?: string;
+    lastName?: string;
+}[]>
+```
+
+The `fieldsToPick` object defines all the properties that will be included, and the value is a boolean that tells if that property must be included or not. Alternatively, you can define `fieldsToPickList` array with the list of property names that will be included.
+
+The utility function `dynamicPick` from `ts-sql-query/dynamicCondition` lets you pick the fields from an object. This function returns a copy of the object received as the first argument with the properties with the same name and value `true` in the object received as the second argument; if the property is an object constructed in a complex projection, the value can be an object representing the inner properties. Optionally, you can include a list of the properties path (or name) that will always be included as the third argument, but it is better if you include them directly in the select, as shown in the example.
+
+The type `DynamicPick<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define the type expected by the `dynamicPick` function (in the example, the variable `fieldsToPick`) where the first generic argument is the type of the avaliable fields to pick. Optionally you can provide a second generic argument with the path (or name) of the mandatories properties joined with `|`. Example: `DynamicPick<typeof availableFields, 'prop1' | 'prop2'>`.
+
+The utility function `dynamicPickPaths` from `ts-sql-query/dynamicCondition` allows you to pick the fields from an object or inner object in complex projections. This function returns a copy of the object received as the first argument with the properties path in the array received as the second argument. Optionally, you can include a list of the properties path (or name) that will always be included as the third argument, but it is better if you include them directly in the select, as shown in the example.
+
+The type `DynamicPickPaths<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define the type expected by the `dynamicPickPaths` function (in the example, the variable `fieldsToPickList`) where the first generic argument is the type of the avaliable fields to pick. Optionally you can provide a second generic argument with the path (or name) of the mandatories properties joined with `|`. Example: `DynamicPickPaths<typeof availableFields, 'prop1' | 'prop2'>`.
+
+The type `PickValuesPath<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define a type of each element in the result when the query is executed picking fields, that only include the picked fields, where the first generic argument is the of the available fields to pick. Additionally, you must provide a second generic argument with the path (or name) of the picked properties joined with `|`. Example: `PickValuesPath<typeof availableFields, 'prop1' | 'prop2'>`.
+
+The type `PickValuesPathWitAllProperties<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define a type of each element in the result when the query is executed picking fields, that includes the picked fields and the non-picked one as optional (in the same way the select query does), where the first generic argument is the of the available fields to pick. Additionally, you must provide a second generic argument with the path (or name) of the picked properties joined with `|`. Example: `PickValuesPathWitAllProperties<typeof availableFields, 'prop1' | 'prop2'>`.
+
+When you are dynamically picking columns, you will probably want to create a function that receives the list of columns in a generic way, allowing the output to be properly typed with the requested columns. To do this, you must rectify the query result type by calling the function `expandTypeFromDynamicPickPaths` from `ts-sql-query/dynamicCondition` to include the generic rules again in the projected output. The first argument corresponds to the available fields to pick, the second corresponds to the picked fields, and the third corresponds to the query execution result. Example:
+
+**Creating definition based in your business types**:
+
+```ts
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query/dynamicCondition"
+
+interface CustomerInformation {
+    id: number;
+    firstName: string;
+    lastName: string;
+    birthday?: Date;
+}
+
+async function getCustomersInformation<FIELDS extends keyof CustomerInformation>(connection: DBConnection, fields: FIELDS[]): Promise<Pick<CustomerInformation, FIELDS | 'id'>[]> {
+    const availableFields = {
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    }
+    
+    // always include id field as required
+    const pickedFields = dynamicPickPaths(availableFields, fields, ['id'])
+    
+    const customers = await connection.selectFrom(tCustomer)
+        .select(pickedFields)
+        .executeSelectMany()
+
+    return expandTypeFromDynamicPickPaths(availableFields, fields, customers);
+}
+```
+
+!!! note
+
+    - If you query project optional values in objects as always-required properties, use `expandTypeProjectedAsNullableFromDynamicPickPaths` instead of `expandTypeFromDynamicPickPaths`.
+    - If you query project optional values in objects as always-required properties, use `PickValuesPathProjectedAsNullable` instead of `PickValuesPath`.
+    - If you query project optional values in objects as always-required properties, use `PickValuesPathWitAllPropertiesProjectedAsNullable` instead of `PickValuesPathWitAllProperties`.
+
+**Creating definition based in your database types**:
+
+```ts
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query/dynamicCondition"
+
+const customerInformationFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday,
+}
+
+type CustomerInformationFields = DynamicPickPaths<typeof customerInformationFields>
+type CustomerInformation<FIELDS extends CustomerInformationFields> = PickValuesPath<typeof customerInformationFields, FIELDS | 'id'>
+
+async function getCustomersInformation<FIELDS extends CustomerInformationFields>(connection: DBConnection, fields: FIELDS[]): Promise<CustomerInformation<FIELDS>[]> {
+    
+    // always include id field as required
+    const pickedFields = dynamicPickPaths(customerInformationFields, fields, ['id'])
+    
+    const customers = await connection.selectFrom(tCustomer)
+        .select(pickedFields)
+        .executeSelectMany()
+
+    return expandTypeFromDynamicPickPaths(customerInformationFields, fields, customers, ['id'])
+}
+```
+
+## Optional joins dynamically picking columns
+
+!!! tip
+
+    This feature offers you the most extreme form of modification over the queries but the hardest one to figure out the consequences because the columns can disappear. Try to use first [Ignorable expression as null](../queries/dynamic-queries.md#ignorable-expression-as-null) instead of this feature where the structure of the columns is kept as is, and you will be able to reason over your queries more easily.
+
+```ts
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query/dynamicCondition"
+
+const availableFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday,
+    companyId: tCompany.id,
+    companyName: tCompany.name
+}
+
+// Alternative: const fieldsToPickList = ['firstName' as const, 'lastName' as const]
+const fieldsToPick = {
+    firstName: true,
+    lastName: true
+}
+
+// always include id field as required
+// Alternative: const pickedFields = dynamicPickPaths(availableFields, fieldsToPickList, ['id'])
+const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id'])
+
+const customerWithOptionalCompany = connection.selectFrom(tCustomer)
+    .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+    .select(pickedFields)
+    .where(tCustomer.id.equals(12))
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select customer.id as id, customer.first_name as firstName, customer.last_name as lastName
+from customer
+where customer.id = $1
+```
+
+The parameters are: `[ 12 ]`
+
+The result type is:
+```tsx
+const customerWithOptionalCompany: Promise<{
+    id: number;
+    birthday?: Date;
+    firstName?: string;
+    lastName?: string;
+    companyId?: number;
+    companyName?: string;
+}[]>
+```
+
+But in the case of a column provided by the join is required, like when `fieldsToPick` is:
+```ts
+const fieldsToPick = {
+    firstName: true,
+    lastName: true,
+    companyName: true
+}
+```
+
+The executed query is:
+```sql
+select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, company.name as companyName
+from customer inner join company on company.id = customer.company_id
+where customer.id = $1
+```
+
+The parameters are: `[ 12 ]`
+
+**Warning**: an omitted join can change the number of returned rows depending on your data structure. This behaviour doesn't happen when all rows of the initial table have one row in the joined table (or none if you use a left join), but not many rows.
+
+## Restrict access to values
+
+Sometimes you want to allow access to a value only under some circumstances, like when you want a column in a select picking column to be available only if the user has permissions. For this, you can call the function `allowWhen`, indicating as the first argument if it is allowed to use this value, and as the second argument, an error or text's error that will be thrown if the value is used in the generated query. Additionally, there is the `disallowWhen` that is analogous to `allowWhen`, but the boolean received as an argument indicates when the value is disallowed.
+
+```ts
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query/dynamicCondition"
+
+const birthdayVisible = false
+
+const availableFields = {
+    id: tCustomer.id,
+    firstName: tCustomer.firstName,
+    lastName: tCustomer.lastName,
+    birthday: tCustomer.birthday.allowWhen(birthdayVisible, "You don't have permission to see the birthday"),
+}
+
+// Alternative: const fieldsToPickList = ['firstName' as const, 'lastName' as const]
+const fieldsToPick = {
+    firstName: true,
+    lastName: true
+}
+
+// always include id field as required
+// Alternative: const pickedFields = dynamicPickPaths(availableFields, fieldsToPickList, ['id'])
+const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id'])
+
+const customerWithOptionalCompany = connection.selectFrom(tCustomer)
+    .select(pickedFields)
+    .where(tCustomer.id.equals(12))
+    .executeSelectMany()
+```
+
+The executed query is:
+```sql
+select customer.id as id, customer.first_name as firstName, customer.last_name as lastName
+from customer
+where customer.id = $1
+```
+
+The parameters are: `[ 12 ]`
+
+The result type is:
+```tsx
+const customerWithOptionalCompany: Promise<{
+    id: number;
+    birthday?: Date;
+    firstName?: string;
+    lastName?: string;
+}[]>
+```
+
+But in the case of the `birthday` column is requested, when `fieldsToPick` is:
+```ts
+const fieldsToPick = {
+    firstName: true,
+    lastName: true,
+    birthday: true
+}
+```
+
+An error will be thrown with the message "_You don't have permission to see the birthday_" because `birthdayVisible` is `false`
+
+## Select using a dynamic filter with complex projections
+
+```ts
+import { DynamicCondition } from "ts-sql-query/dynamicCondition"
+
+type QueryFilterType = DynamicCondition<{
+    id: 'int',
+    name: {
+        firstName: 'string',
+        lastName: 'string',
+    },
+    birthday: 'localDate',
+    company: {
+        id: 'int',
+        name: 'string'
+    }
+}>;
+
+const queryFilter: QueryFilterType = {
+    company: { name: {equals: 'ACME'} },
+    name: {
+        or: [
+            { firstName: { containsInsensitive: 'John' } },
+            { lastName: { containsInsensitive: 'Smi' } }
+        ]
+    }
+};
+
+const queryOrderBy = 'company.name asc insensitive, birthday desc';
+
+const querySelectFields = {
+    id: tCustomer.id,
+    name: {
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+    },
+    birthday: tCustomer.birthday,
+    company: {
+        id: tCompany.id,
+        name: tCompany.name
+    }
+};
+
+const queryDynamicWhere = connection.dynamicConditionFor(querySelectFields).withValues(queryFilter);
+
+const customerWithCompanyObject = connection.selectFrom(tCustomer)
+    .innerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+    .select(querySelectFields)
+    .where(queryDynamicWhere)
+    .orderByFromString(queryOrderBy)
+    .executeSelectOne();
+```
+
+The executed query is:
+```sql
+select customer.id as id, 
+    customer.first_name as "name.firstName", customer.last_name as "name.lastName", 
+    customer.birthday as birthday, 
+    company.id as "company.id", company.name as "company.name" 
+from customer inner join company on company.id = customer.company_id 
+where company.name = $1 
+    and (
+           customer.first_name ilike ('%' || $2 || '%') 
+        or customer.last_name ilike ('%' || $3 || '%')
+    ) 
+order by lower("company.name") asc, birthday desc
+```
+
+The parameters are: `[ "ACME", "John", "Smi" ]`
+
+The result type is:
+```tsx
+const customerWithCompanyObject: Promise<{
+    id: number;
+    name: {
+        firstName: string;
+        lastName: string;
+    };
+    company: {
+        id: number;
+        name: string;
+    };
+    birthday?: Date;
+}>
+```
+
+See [Select using a dynamic filter](#select-using-a-dynamic-filter) and [Dynamic conditions](../api/dynamic-conditions.md) for more information.
+
+## Select dynamically picking columns with complex projections
+
+```ts
+import { dynamicPick } from "ts-sql-query/dynamicCondition"
+
+const availableFields = {
+    id: tCustomer.id,
+    name: {
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+    },
+    birthday: tCustomer.birthday,
+    company: {
+        id: tCompany.id,
+        name: tCompany.name
+    }
+};
+
+const fieldsToPick = {
+    name: {
+        firstName: true,
+        lastName: true
+    }
+};
+
+// include allways id field as required
+const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id']);
+
+const customerWithOptionalCompany = await connection.selectFrom(tCustomer)
+    .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+    .select(pickedFields)
+    .where(tCustomer.id.equals(12))
+    .executeSelectMany();
+```
+
+The executed query is:
+```sql
+select customer.id as id, 
+    customer.first_name as "name.firstName", customer.last_name as "name.lastName" 
+from customer 
+where customer.id = $1
+```
+
+The parameters are: `[ 12 ]`
+
+The result type is:
+```tsx
+const customersOfCompany: Promise<{
+    id: number;
+    name?: {
+        firstName?: string;
+        lastName?: string;
+    };
+    birthday?: Date;
+    company?: {
+        id?: number;
+        name?: string;
+    };
+}[]>
+```
+
+But in case of a column provided by the join is required, like when `fieldsToPick` is:
+```ts
+const fieldsToPick = {
+    name: {
+        firstName: true,
+        lastName: true,
+    },
+    company: {
+        name: true
+    }
+}
+```
+
+The executed query is:
+```sql
+select customer.id as id, 
+    customer.first_name as "name.firstName", customer.last_name as "name.lastName", 
+    company.id as "company.id", company.name as "company.name" 
+from customer inner join company on company.id = customer.company_id 
+where customer.id = $1
+```
+
+The parameters are: `[ 12 ]`
+
+See [Select dynamically picking columns](#select-dynamically-picking-columns), [Optional joins](dynamic-queries.md#optional-joins) and [Optional joins dynamically picking columns](#optional-joins-dynamically-picking-columns) for more information.
+
+## Full dynamic select
+
+In this example, several functionalities are used together using dynamic conditions, optional joins and select-picking columns.
+
+Having this code:
+
+```ts
+function buildComanyAvailableFields<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCoustomer'>>(_connection: DBConnection, favouriteCoustomerRef: CUSTOMER) {
+    const favouriteCoustomer = fromRef(tCustomer, favouriteCoustomerRef);
+
+    return {
+        id: tCompany.id,
+        name: tCompany.name,
+        favouriteCustomer: {
+            id: favouriteCoustomer.id,
+            name: favouriteCoustomer.firstName.concat(' ').concat(favouriteCoustomer.lastName)
+        }
+    }
+}
+
+interface CustomerRules {
+    anyCustomerNameContains?: string
+    anyCustomerWithBirthdayOn?: Date
+}
+
+function buildCompanyConditionExtention<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCoustomer'>>(connection: DBConnection, favouriteCoustomerRef: CUSTOMER) {
+    const favouriteCoustomer = fromRef(tCustomer, favouriteCoustomerRef);
+
+    return {
+        customers: (rules: CustomerRules) => {
+            let result = connection.dynamicBooleanExpressionUsing(tCompany)
+
+            if (rules.anyCustomerNameContains) {
+                const query = connection.subSelectUsing(tCompany)
+                    .from(tCustomer)
+                    .where(tCustomer.firstName.concat(' ').concat(tCustomer.lastName).containsInsensitive(rules.anyCustomerNameContains))
+                    .selectOneColumn(tCustomer.id)
+                
+                result = result.and(connection.exists(query))
+            }
+
+            if (rules.anyCustomerWithBirthdayOn) {
+                const query = connection.subSelectUsing(tCompany)
+                    .from(tCustomer)
+                    .where(tCustomer.birthday.equals(rules.anyCustomerWithBirthdayOn))
+                    .selectOneColumn(tCustomer.id)
+                
+                result = result.and(connection.exists(query))
+            }
+
+            return result
+        },
+        favouriteCustomer: {
+            isInAnotherCompanyWithName: (name: string) => {
+                const query = connection.selectFrom(tCompany)
+                    .where(tCompany.name.containsInsensitive(name))
+                    .selectOneColumn(tCompany.favouriteCustomerId)
+
+                return favouriteCoustomer.id.in(query)
+            }
+        }
+    }
+}
+
+type CompanyFields = DynamicPickPaths<ReturnType<typeof buildComanyAvailableFields>, 'id'>
+type CompanyDynamicCondition = DynamicCondition<ReturnType<typeof buildComanyAvailableFields>, ReturnType<typeof buildCompanyConditionExtention>>
+type CompanyInformation<FIELDS extends CompanyFields> = PickValuesPath<ReturnType<typeof buildComanyAvailableFields>, FIELDS | 'id'>
+
+async function getSubcompanies<FIELDS extends CompanyFields>(connection: DBConnection, parentCompanyId: number, fields: FIELDS[], condition: CompanyDynamicCondition): Promise<CompanyInformation<FIELDS>[]> {
+    const favouriteCoustomer = tCustomer.forUseInLeftJoinAs('favouriteCoustomer')
+
+    const avaliableFields = buildComanyAvailableFields(connection, favouriteCoustomer)
+    const conditionExtention = buildCompanyConditionExtention(connection, favouriteCoustomer)
+
+    const dynamicCondition = connection.dynamicConditionFor(avaliableFields, conditionExtention).withValues(condition)
+    const selectedFields = dynamicPickPaths(avaliableFields, fields, ['id'])
+    
+    const companies = await connection
+        .selectFrom(tCompany)
+        .optionalLeftOuterJoin(favouriteCoustomer).on(tCompany.favouriteCustomerId.equals(favouriteCoustomer.id))
+        .where(dynamicCondition)
+        .and(tCompany.parentId.equals(parentCompanyId))
+        .select(selectedFields)
+        .executeSelectMany()
+
+    return expandTypeFromDynamicPickPaths(avaliableFields, fields, companies, ['id'])
+}
+```
+
+**If you call `getSubcompanies` as:**
+```ts
+const companyId = 23
+const result = getSubcompanies(connection, companyId, ['name'], {
+    name: { containsInsensitive: 'ACME' }
+})
+```
+
+The executed query is:
+```sql
+select 
+    id as id, 
+    name as name 
+from company 
+where 
+    name ilike ('%' || $1 || '%') 
+    and parent_id = $2
+```
+
+The parameters are: `[ "ACME", 23 ]`
+
+The result type is:
+```tsx
+const result: Promise<{
+    id: number;
+    name: string;
+}[]>
+```
+
+**If you call `getSubcompanies` as:**
+```ts
+const companyId = 23
+const result = await getSubcompanies(connection, companyId, ['name', 'favouriteCustomer.name'], { 
+    customers: { anyCustomerNameContains: 'smith'} 
+})
+```
+
+The executed query is:
+```sql
+select 
+    company.id as id, 
+    company.name as name, 
+    favouriteCoustomer.first_name || $1 || favouriteCoustomer.last_name as "favouriteCustomer.name" 
+from company 
+left outer join customer as favouriteCoustomer on company.parent_id = favouriteCoustomer.id 
+where 
+    exists(
+        select id as result 
+        from customer 
+        where (first_name || $2 || last_name) ilike ('%' || $3 || '%')
+    ) 
+    and company.parent_id = $4
+```
+
+The parameters are: `[ " ", " ", "smith", 23 ]`
+
+The result type is:
+```tsx
+const result: Promise<{
+    id: number;
+    name: string;
+    favouriteCustomer?: {
+        name: string;
+    };
+}[]>
+```
+
+**If you call `getSubcompanies` as:**
+```ts
+const companyId = 23
+const result = getSubcompanies(connection, companyId, ['name'], { 
+    favouriteCustomer: { isInAnotherCompanyWithName: 'ACME Inc.' } 
+})
+```
+
+The executed query is:
+```sql
+select 
+    company.id as id, 
+    company.name as name 
+from company 
+left outer join customer as favouriteCoustomer on company.parent_id = favouriteCoustomer.id 
+where 
+    favouriteCoustomer.id in (
+        select parent_id as result 
+        from company 
+        where name ilike ('%' || $1 || '%')
+    ) 
+    and company.parent_id = $2
+```
+
+The parameters are: `[ "ACME Inc.", 23 ]`
+
+The result type is:
+```tsx
+const result: Promise<{
+    id: number;
+    name: string;
+}[]>
+```
+
+**If you call `getSubcompanies` as:**
+```ts
+const companyId = 23
+const result = getSubcompanies(connection, companyId, ['name'], { 
+        or: [ 
+            { customers: { anyCustomerNameContains: 'John' }}, 
+            { customers: { anyCustomerWithBirthdayOn: new Date('2000-03-01')} } 
+        ] 
+    })
+```
+
+The executed query is:
+```sql
+select 
+    id as id, 
+    name as name 
+from company 
+where 
+    (
+        exists(
+            select id as result 
+            from customer 
+            where 
+                (
+                    first_name || $1 || last_name) ilike ('%' || $2 || '%')
+                ) or exists(
+                    select id as result 
+                    from customer 
+                    where birthday = $3
+                )
+    ) 
+    and parent_id = $4
+```
+
+The parameters are: `[ " ", "John", 2000-03-01T00:00:00.000Z, 23 ]`
+
+The result type is:
+```tsx
+const result: Promise<{
+    id: number;
+    name: string;
+}[]>
+```

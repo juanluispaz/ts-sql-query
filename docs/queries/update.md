@@ -1,3 +1,7 @@
+---
+search:
+  boost: 4
+---
 # Update
 
 ## General update
@@ -146,7 +150,7 @@ const addACMECompanyNameToLastName: Promise<number>
 
 ## Bulk update
 
-Sometimes you want to do serveral updates in a single query, where each one have their own data; for this cases you can [map the constant values as view](../connection-tables-views.md#mapping-constant-values-as-view) and perform the update. This is only supported by `PostgreSql`, `SqlServer` and `Sqlite`.
+Sometimes you want to do serveral updates in a single query, where each one have their own data; for this cases you can [map the constant values as view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the update. This is only supported by `PostgreSql`, `SqlServer` and `Sqlite`.
 
 ```ts
 class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {

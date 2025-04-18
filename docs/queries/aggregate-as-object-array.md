@@ -1,3 +1,7 @@
+---
+search:
+  boost: 2
+---
 # Aggregate as an object array
 
 ## Introduction
@@ -63,9 +67,9 @@ const acmeCompanyWithCustomers: Promise<{
 }>
 ```
 
-**Notes**:
+!!! note
 
-You can project optional values in objects as always-required properties that allow null calling `projectingOptionalValuesAsNullable()` immediately after `aggregateAsArray(...)`.
+    You can project optional values in objects as always-required properties that allow null calling `projectingOptionalValuesAsNullable()` immediately after `aggregateAsArray(...)`.
 
 ## Aggregate as an array of values
 
@@ -158,10 +162,10 @@ const acmeCompanyWithCustomers5: Promise<{
 }>
 ```
 
-**Notes**: 
+!!! note
 
-- You can project optional values in objects as always-required properties that allow null calling `projectingOptionalValuesAsNullable()` immediately after `select(...)`.
-- The `forUseAsInlineAggregatedArrayValue` method takes care of wrapping the inline query in another query (when it is required) to ensure clauses like `order by` works as expected.
+    - You can project optional values in objects as always-required properties that allow null calling `projectingOptionalValuesAsNullable()` immediately after `select(...)`.
+    - The `forUseAsInlineAggregatedArrayValue` method takes care of wrapping the inline query in another query (when it is required) to ensure clauses like `order by` works as expected.
 
 ## Queries as an inline array of values
 
@@ -209,7 +213,9 @@ const acmeCompanyWithCustomers7: Promise<{
 }>
 ```
 
-**Note**: The `forUseAsInlineAggregatedArrayValue` method takes care of wrapping the inline query in another query (when it is required) to ensure clauses like `order by` works as expected.
+!!! note
+    
+    The `forUseAsInlineAggregatedArrayValue` method takes care of wrapping the inline query in another query (when it is required) to ensure clauses like `order by` works as expected.
 
 ## Recursive query as an inline array of objects
 

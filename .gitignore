@@ -8,3 +8,4 @@ dist
 generated
 .github
 .nyc_output
+.venv

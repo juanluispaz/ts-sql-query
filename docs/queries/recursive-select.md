@@ -1,3 +1,7 @@
+---
+search:
+  boost: 3
+---
 # Recursive select
 
 ## Recursive select looking for parents

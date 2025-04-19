@@ -4,6 +4,8 @@ search:
 ---
 # Connection API
 
+This interface exposes all the methods required to interact with the database via ts-sql-query. It allows creating, executing and customizing SQL expressions, managing transactions, using constants, aggregates and sequences, and composing raw or typed SQL fragments.
+
 ```ts
 interface Connection {
     /** Query runner used to create the connection */
@@ -317,7 +319,9 @@ interface Connection {
      */
     escape(identifier: string, strict: boolean): string
 }
+```
 
+```ts
 interface FragmentExpression {
     /** 
      * This is a template, you can call as: .sql`sql text with ${valueSourceParam}` 
@@ -325,7 +329,9 @@ interface FragmentExpression {
      */
     sql(sql: TemplateStringsArray, ...p: AnyValueSource[]): AnyValueSource
 }
+```
 
+```ts
 interface FragmentBuilder {
     /*
      * The impl function will receive the proper ValueSource type according to the argument definition.
@@ -334,7 +340,9 @@ interface FragmentBuilder {
      */
     as(impl: (...args: AnyValueSource[]) => AnyValueSource): (...args: any) => AnyValueSource
 }
+```
 
+```ts
 interface FragmentBuilderIfValue {
     /*
      * The impl function will receive the proper ValueSource type according to the argument definition.
@@ -345,7 +353,9 @@ interface FragmentBuilderIfValue {
      */
     as(impl: (...args: AnyValueSource[]) => AnyValueSource): (...args: any) => BooleanValueSource
 }
+```
 
+```ts
 interface FragmentBuilderMaybeOptional {
     /*
      * The impl function will receive the proper ValueSource type according to the argument definition.
@@ -357,14 +367,17 @@ interface FragmentBuilderMaybeOptional {
      */
     as(impl: (...args: AnyValueSource[]) => AnyValueSource): (...args: any) => AnyValueSource
 }
+```
 
+```ts
 interface Sequence<T> {
     nextValue(): T
     currentValue(): T
 }
+```
 
+```ts
 interface DynamicConditionExpression {
     withValues(filter: DynamicFilter): BooleanValueSource
 }
-
 ```

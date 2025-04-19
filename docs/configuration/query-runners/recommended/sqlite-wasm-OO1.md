@@ -4,6 +4,16 @@ search:
 ---
 # sqlite-wasm OO1
 
+This runner provides integration with the WebAssembly-based [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md), allowing `ts-sql-query` to execute queries on SQLite databases. It wraps an instance of a connected SQLite database and must be used in combination with a `ts-sql-query` connection.
+
+!!! success "Supported databases"
+
+    - [SQLite](../../supported-databases/sqlite.md)
+
+!!! tip
+
+    better-sqlite3 supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -12,9 +22,9 @@ search:
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-It allows to execute the queries using an [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md) in Web Assembly.
+## Using a single connection
 
-**Supported databases**: sqlite
+Enables executing queries through a dedicated WebAssembly-based [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md) connection.
 
 ```ts
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
@@ -27,7 +37,3 @@ async function main() {
     // Do your queries here
 }
 ```
-
-!!! tip
-
-    better-sqlite3 supports synchronous query execution. See [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.

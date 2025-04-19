@@ -2,23 +2,29 @@
 search:
   boost: 2
 ---
-# Aggregate as an object array
+# Aggregate as an array of objects
+
+This guide describes how to use special aggregate functions to construct query properties that return arrays of values or objects. It explains how to transform your query results into structured arrays, enabling more flexible data handling in your applications.
 
 ## Introduction
 
-You can create a property in your query that contains a list of values, or a list of objects with values, using some special aggregate functions in the same way you can create a string concatenation using the aggregate function `stringConcat`; but, instead of returning a string an array with proper values will result of the query.
+In your query, you can return either a list of values or a list of objects by using special aggregate functions. Similar to the `stringConcat` function that produces a concatenated string, these functions return an array with the appropriate values.
 
 Aggregate functions:
 
 - `aggregateAsArray`: This is an aggregate function that returns an array of objects. It receives the object with the projections as an argument, in the same way that the select function.
 - `aggregateAsArrayOfOneColumn`: This is an aggregate function that returns an array of values. It receives as an argument the value source to project into the array.
 
-You can transform a whole query in an array to use an inline value in another query calling `forUseAsInlineAggregatedArrayValue()` at the end of the query to be inlined.
+!!! tip
 
-The resulting aggregate value source contains the following methods that help to define how to deal with no values:
+    You can transform a whole query into an array to use an inline value in another query calling `forUseAsInlineAggregatedArrayValue()` at the end of the query to be inlined.
 
-- `useEmptyArrayForNoValue()`: (default) If there is no value, an empty array is used.
-- `asOptionalNonEmptyArray()`: (used in an inline query that returns the aggregation, for consistency) If there is no value, `undefined` is used instead of an empty array.
+!!! quote "Avoiding empty array"
+
+    The resulting aggregate value source contains the following methods that help to define how to deal with no values:
+
+    - `useEmptyArrayForNoValue()`: **(default)** If there is no value, an empty array is used.
+    - `asOptionalNonEmptyArray()`: (used in an inline query that returns the aggregation, for consistency) If there is no value, `undefined` is used instead of an empty array.
 
 ## Aggregate as an array of objects
 
@@ -69,7 +75,7 @@ const acmeCompanyWithCustomers: Promise<{
 
 !!! note
 
-    You can project optional values in objects as always-required properties that allow null calling `projectingOptionalValuesAsNullable()` immediately after `aggregateAsArray(...)`.
+    You can treat optional properties as required values that allow `null` by calling `projectingOptionalValuesAsNullable()` immediately after `aggregateAsArray(...)`.
 
 ## Aggregate as an array of values
 
@@ -162,10 +168,10 @@ const acmeCompanyWithCustomers5: Promise<{
 }>
 ```
 
-!!! note
+!!! tip
 
-    - You can project optional values in objects as always-required properties that allow null calling `projectingOptionalValuesAsNullable()` immediately after `select(...)`.
-    - The `forUseAsInlineAggregatedArrayValue` method takes care of wrapping the inline query in another query (when it is required) to ensure clauses like `order by` works as expected.
+    - The `forUseAsInlineAggregatedArrayValue()` method ensures the query is correctly wrapped to preserve clauses like `ORDER BY`.
+    - You can treat optional values in objects as always-required properties that allow `null` by calling `projectingOptionalValuesAsNullable()` immediately after `select(...)`.
 
 ## Queries as an inline array of values
 
@@ -215,7 +221,9 @@ const acmeCompanyWithCustomers7: Promise<{
 
 !!! note
     
-    The `forUseAsInlineAggregatedArrayValue` method takes care of wrapping the inline query in another query (when it is required) to ensure clauses like `order by` works as expected.
+    The `forUseAsInlineAggregatedArrayValue()` method takes care of wrapping the inline query in another query (when it is required) to ensure clauses like order by works as expected.
+
+    The same technique can be used with recursive queries, as shown below.
 
 ## Recursive query as an inline array of objects
 
@@ -284,4 +292,6 @@ const lowCompany: Promise<{
 }>
 ```
 
-**Limitation**: SqlServer, Oracle, and MariaDB don't support recursive queries that reference outer tables (using `subSelectUsing`). If you try to use this query on any of these databases, you will get a compilation error. A workaround is to avoid the outer reference in the recursive query indicating the parent id in the `parentCompanies` query.
+!!! warning "Limitation"
+
+    SqlServer, Oracle, and MariaDB don't support recursive queries that reference outer tables (using `subSelectUsing`). If you try to use this query on any of these databases, you will get a compilation error. A workaround is to avoid the outer reference in the recursive query indicating the parent id in the `parentCompanies` query.

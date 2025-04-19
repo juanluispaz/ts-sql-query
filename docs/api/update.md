@@ -4,17 +4,19 @@ search:
 ---
 # Update API
 
+This API provides methods to build and execute SQL `UPDATE` statements using a fluent interface in `ts-sql-query`. It allows you to conditionally set columns, control update behavior dynamically, use joins, and optionally return affected data.
+
 ```ts
 interface UpdateExpression {
     /**
-     * Allow setting the shape of the values to update. This shape allows you to map
+     * Used to define the shape of the values to update. This shape allows you to map
      * each property in the values to update with the columns in the table, in that
      * way, the property in the value doesn't need to have the same name.
      * The only values to be updated are the ones included in the shape.
      */
     shapedAs(shape: UpdateShape): this
     /** 
-     * Allow you to extend the previous set shape.
+     * Allows you to extend the previously set shape.
      * The values set after extending the shape will allow you to include the new properties in the extended shape.
      */
     extendShape(shape: UpdateShape): this
@@ -42,21 +44,21 @@ interface UpdateExpression {
      * (only if the value was not previously set) 
      */
     setIfNotSetIfValue(columns: OptionalUpdateSets): this
-    /** Unset the listed columns previous set */
+    /** Unsets the previously set columns listed. */
     ignoreIfSet(...columns: string[]): this
-    /** Keep only the listed columns previous set */
+    /** Keeps only the previously set columns listed. */
     keepOnly(...columns: string[]): this
 
     /** 
-     * Set a value for the specified columns that was previously indicated a value for set.
+     * Sets a value for the specified columns that were previously assigned a value.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
     setIfHasValue(columns: UpdateSets): this
     /** 
-     * Set a value for the specified columns that was previously indicated a value for 
-     * set only if the provided value is not null, undefined, empty string 
+     * Sets a value for the specified columns that were previously assigned a value
+     *  only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
      * It is considered the column has value if it was set with a value that is not null, 
@@ -65,14 +67,14 @@ interface UpdateExpression {
      */
     setIfHasValueIfValue(columns: OptionalUpdateSets): this
     /** 
-     * Set a value for the specified columns that has not value to set.
+     * Sets a value for the specified columns that have no value to set.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
     setIfHasNoValue(columns: UpdateSets): this
     /** 
-     * Set a value for the specified columns that has no value to set 
+     * Sets a value for the specified columns that have no value to set 
      * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
@@ -82,21 +84,21 @@ interface UpdateExpression {
      */
     setIfHasNoValueIfValue(columns: OptionalUpdateSets): this
     /** 
-     * Unset the listed columns if them has value to set.
+     * Unsets the listed columns if they have a value set.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
     ignoreIfHasValue(...columns: string[]): this
     /** 
-     * Unset the listed columns if them has no value to set.
+     * Unsets the listed columns if they have no value set.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
     ignoreIfHasNoValue(...columns: string[]): this
     /** 
-     * Unset all columns that was set with no value.
+     * Unsets all columns that were set with no value.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -104,17 +106,17 @@ interface UpdateExpression {
     ignoreAnySetWithNoValue(): this
 
     /**
-     * Throw an error if the indicated properties are set
+     * Throws an error if the indicated properties are set
      */
     disallowIfSet(errorMessage: string, ...columns: string[]): this
     disallowIfSet(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the indicated properties are not set
+     * Throws an error if the indicated properties are not set
      */
     disallowIfNotSet(errorMessage: string, ...columns: string[]): this
     disallowIfNotSet(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the indicated properties was set with a value.
+     * Throws an error if the indicated properties were set with a value.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -122,7 +124,7 @@ interface UpdateExpression {
     disallowIfValue(errorMessage: string, ...columns: string[]): this
     disallowIfValue(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the indicated properties was set not set or has no value.
+     * Throws an error if the indicated properties were not set or have no value.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -130,7 +132,7 @@ interface UpdateExpression {
     disallowIfNoValue(errorMessage: string, ...columns: string[]): this
     disallowIfNoValue(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the any other set except the provided column list
+     * Throws an error if any column other than the listed ones is set.
      */
     disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSet(error: Error, ...columns: string[]): this
@@ -200,7 +202,10 @@ interface UpdateExpression {
      * and the value is the ValueSource where the value will be obtained.
      */
     returning(columns: UpdateReturningValues): this
-    /** Returns the optional values as null instead of optional undefined values, can only used immediately after returning(...) */
+    /** 
+     * Returns the optional values as null instead of optional undefined values, can only used 
+     * immediately after returning(...) 
+     * */
     projectingOptionalValuesAsNullable(): this
     /** 
      * Allows to specify the returning clause of a query that returns only one column.
@@ -254,7 +259,9 @@ interface UpdateExpression {
         queryExecutionMetadata?: any
     }): this
 }
+```
 
+```ts
 /** Columns required by the update */
 type UpdateSets = { [columnName: string]: any }
 /** Columns required by the update, but marked as optional */

@@ -1,6 +1,6 @@
 ---
 search:
-  boost: 0.7
+  boost: 0.1
 ---
 # ID manipulation
 
@@ -121,7 +121,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         if (type.startsWith('ID:')) {
             const id = super.transformValueFromDB(value, 'bigint');
             if (typeof id === 'bigint') {
-                const prefix = encrypted.substring(3) // 'ID:'.length
+                const prefix = type.substring(3) // 'ID:'.length
                 return this.encrypter.encrypt(id, prefix);
             } else {
                 // return the value as is, it could be null
@@ -136,7 +136,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
                 // In case of null or undefined send null to the database
                 return null;
             } else if (typeof value === 'string') {
-                const prefix = encrypted.substring(3) // 'ID:'.length
+                const prefix = type.substring(3) // 'ID:'.length
                 const id = this.encrypter.decrypt(value, prefix);
                 return super.transformValueToDB(id, 'bigint');
             } else {
@@ -199,5 +199,9 @@ let company = await connection
 ```
 
 The id used in the query will be sent to the database decrypted.
+
+!!! note
+
+    The custom type name must start with `ID:` for the conversion logic to recognize and apply the encryption/decryption rules correctly.
 
 See [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/extras/IDEncrypter.ts) for more information to know how the password is encrypted.

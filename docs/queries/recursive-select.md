@@ -4,6 +4,8 @@ search:
 ---
 # Recursive select
 
+This page explains how to build recursive SQL queries using the fluent API in `ts-sql-query`. It supports both standard recursive CTEs (`WITH RECURSIVE`) and Oracle's proprietary `CONNECT BY` syntax. These queries are useful for traversing hierarchical data structures such as organizational trees or category trees.
+
 ## Recursive select looking for parents
 
 ```ts
@@ -24,7 +26,7 @@ const recursiveParentCompany = connection.selectFrom(tCompany)
     }).executeSelectMany()
 ```
 
-If the union query have the same select and from that the external one you can specify only the join on clause:
+If the recursive query uses the same `SELECT` and `FROM` clauses as the outer query, you can simplify it by specifying only the `JOIN ON` condition:
 
 ```ts
 const recursiveParentCompany = connection.selectFrom(tCompany)
@@ -85,7 +87,7 @@ const recursiveChildrenCompany = connection.selectFrom(tCompany)
     }).executeSelectMany()
 ```
 
-If the union query have the same select and from that the external one you can specify only the join on clause:
+If the recursive query uses the same `SELECT` and `FROM` clauses as the outer query, you can simplify it by specifying only the `JOIN ON` condition:
 
 ```ts
 const recursiveChildrenCompany = connection.selectFrom(tCompany)
@@ -138,12 +140,12 @@ const recursiveChildrenCompany = await connection.selectFrom(tCompany)
         name: tCompany.name,
         parentId: tCompany.parentId
     })
-    .startWith(tCompany.id.equals(10)) // Optional
+    .startWith(tCompany.id.equals(10)) // Optional: restricts the starting node
     .connectBy((prior) => { // You can use connectByNoCycle instead
         return prior(tCompany.id).equals(tCompany.parentId)
     })
     .orderBy('name')
-    .orderingSiblingsOnly() // Optional
+    .orderingSiblingsOnly() // Optional: disables deep ordering
     .executeSelectMany()
 ```
 

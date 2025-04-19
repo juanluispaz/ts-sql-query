@@ -4,6 +4,21 @@ search:
 ---
 # MockQueryRunner
 
+This general-purpose query runner enables controlled mocking of query execution in a fully predictable environment. It is primarily used in tests and simulations, where you can inspect the queries being issued and manually specify the expected return values.
+
+!!! success "Supported databases"
+
+    - [MariaDB](../../supported-databases/mariadb.md)
+    - [MySQL](../../supported-databases/mysql.md)
+    - [Oracle](../../supported-databases/oracle.md)
+    - [PostgreSQL](../../supported-databases/postgresql.md)
+    - [SQLite](../../supported-databases/sqlite.md)
+    - [SQL Server](../../supported-databases/sqlserver.md)
+
+!!! tip
+
+    `MockQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -12,9 +27,7 @@ search:
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-Mock connection that allows you inspect the queries and return the desired value as result of the query execution.
-
-**Supported databases**: mariaDB, mySql, oracle, postgreSql, sqlite, sqlServer
+## Usage Example
 
 ```ts
 import { MockQueryRunner } from "ts-sql-query/queryRunners/MockQueryRunner";
@@ -30,11 +43,14 @@ async function main() {
 }
 ```
 
-The `MockQueryRunner` receives a function as argument to the constructor, this function returns the result of the query execution and receive as argument:
+## API Overview
+
+The `MockQueryRunner` receives a function as argument to the constructor, this function returns the result of the query execution and receives the following arguments:
 
 - **`type: QueryType | 'isTransactionActive'`**: type of the query to be executed. The `QueryType` is defined as:
 
 ```ts
+// Types of queries that can be intercepted and mocked
 type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | 'selectOneColumnManyRows' |
     'insert' | 'insertReturningLastInsertedId' | 'insertReturningMultipleLastInsertedId' |
     'insertReturningOneRow' | 'insertReturningManyRows' | 'insertReturningOneColumnOneRow' | 'insertReturningOneColumnManyRows' |
@@ -47,10 +63,6 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
 - **`query: string`**: query required to be executed
 - **`params: any[]`**: parameters received by the query
 - **`index: number`**: this is a counter of queries executed by the connection; that means, when the first query is executed the value is 0, when the second query is executed the value is 1, etc.
-
-!!! tip
-
-    `MockQueryRunner` supports synchronous query execution. See [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
 
 **Example of usage**
 

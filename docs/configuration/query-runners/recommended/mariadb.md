@@ -4,6 +4,13 @@ search:
 ---
 # mariadb
 
+This page explains how to use `ts-sql-query` with the [mariadb](https://www.npmjs.com/package/mariadb) driver. It covers two approaches: using a connection pool or using a single connection directly.
+
+!!! success "Supported databases"
+
+    - [MariaDB](../../supported-databases/mariadb.md)
+    - [MySQL](../../supported-databases/mysql.md)
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -12,11 +19,9 @@ search:
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-## mariadb (with a connection pool)
+## Using a connection pool
 
-It allows to execute the queries using a [mariadb](https://www.npmjs.com/package/mariadb) connection pool.
-
-**Supported databases**: mariaDB, mySql
+Enables executing queries through a [mariadb](https://www.npmjs.com/package/mariadb) connection obtained from a pool.
 
 ```ts
 import { createPool } from "mariadb";
@@ -36,11 +41,9 @@ async function main() {
 }
 ```
 
-## mariadb (with a connection)
+## Using a single connection
 
-It allows to execute the queries using a [mariadb](https://www.npmjs.com/package/mariadb) connection.
-
-**Supported databases**: mariaDB, mySql
+Enables executing queries through a dedicated [mariadb](https://www.npmjs.com/package/mariadb) connection.
 
 ```ts
 import { createPool } from "mariadb";

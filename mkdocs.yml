@@ -17,6 +17,7 @@ plugins:
       separator: '[\s,:!=\[\]()"\''/\-+*<>@{}]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
 theme: 
   name: material
+  language: en
   icon:
     logo: material/shield-half-full
     repo: fontawesome/brands/github
@@ -26,6 +27,7 @@ theme:
     - toc.integrate
     - navigation.tabs
     - navigation.footer
+    - search.highlight
   palette:
     # Palette toggle for automatic mode
     - media: "(prefers-color-scheme)"
@@ -85,29 +87,28 @@ nav:
       - PostgreSQL: configuration/supported-databases/postgresql.md
       - SQLite: configuration/supported-databases/sqlite.md
       - SQL Server: configuration/supported-databases/sqlserver.md
-    - Query runners:
-      - Recommended query runners: 
-        - better-sqlite3: configuration/query-runners/recommended/better-sqlite3.md
-        - mariadb: configuration/query-runners/recommended/mariadb.md
-        - mssql: configuration/query-runners/recommended/mssql.md
-        - mysql2: configuration/query-runners/recommended/mysql2.md
-        - oracledb: configuration/query-runners/recommended/oracledb.md
-        - pg: configuration/query-runners/recommended/pg.md
-        - postgres: configuration/query-runners/recommended/postgres.md
-        - sqlite3: configuration/query-runners/recommended/sqlite3.md
-        - sqlite-wasm OO1: configuration/query-runners/recommended/sqlite-wasm-OO1.md
-      - General purpose query runners:
-        - InterceptorQueryRunner: configuration/query-runners/general-purpose/InterceptorQueryRunner.md
-        - LoggingQueryRunner: configuration/query-runners/general-purpose/LoggingQueryRunner.md
-        - MockQueryRunner: configuration/query-runners/general-purpose/MockQueryRunner.md
-        - Others:
-          - ConsoleLogNoopQueryRunner: configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md
-          - ConsoleLogQueryRunner: configuration/query-runners/general-purpose/ConsoleLogQueryRunner.md
-          - NoopQueryRunner: configuration/query-runners/general-purpose/NoopQueryRunner.md
-      - Additional query runners: 
-        - mysql: configuration/query-runners/additional/mysql.md
-        - prisma: configuration/query-runners/additional/prisma.md
-        - sqlite: configuration/query-runners/additional/sqlite.md
+    - Recommended query runners: 
+      - better-sqlite3: configuration/query-runners/recommended/better-sqlite3.md
+      - mariadb: configuration/query-runners/recommended/mariadb.md
+      - mssql: configuration/query-runners/recommended/mssql.md
+      - mysql2: configuration/query-runners/recommended/mysql2.md
+      - oracledb: configuration/query-runners/recommended/oracledb.md
+      - pg: configuration/query-runners/recommended/pg.md
+      - postgres: configuration/query-runners/recommended/postgres.md
+      - sqlite3: configuration/query-runners/recommended/sqlite3.md
+      - sqlite-wasm OO1: configuration/query-runners/recommended/sqlite-wasm-OO1.md
+    - General purpose query runners:
+      - InterceptorQueryRunner: configuration/query-runners/general-purpose/InterceptorQueryRunner.md
+      - LoggingQueryRunner: configuration/query-runners/general-purpose/LoggingQueryRunner.md
+      - MockQueryRunner: configuration/query-runners/general-purpose/MockQueryRunner.md
+      - Others:
+        - ConsoleLogQueryRunner: configuration/query-runners/general-purpose/ConsoleLogQueryRunner.md
+        - ConsoleLogNoopQueryRunner: configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md
+        - NoopQueryRunner: configuration/query-runners/general-purpose/NoopQueryRunner.md
+    - Additional query runners: 
+      - mysql: configuration/query-runners/additional/mysql.md
+      - prisma: configuration/query-runners/additional/prisma.md
+      - sqlite: configuration/query-runners/additional/sqlite.md
   - API: 
     - API Introduction: api/introduction.md
     - Connection API: api/connection.md
@@ -127,6 +128,7 @@ nav:
     - ID manipulation: advanced/id-manipulation.md
     - Extract columns from an object: advanced/columns-from-object.md
     - Utility types: advanced/utility-types.md
+    - Utility for dynamic picks: advanced/utility-dynamic-picks.md
     - Passing tables and views as parameter: advanced/tables-views-as-parameter.md
     - Query execution metadata: advanced/query-execution-metadata.md
   - Keywords:

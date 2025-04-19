@@ -4,6 +4,8 @@ search:
 ---
 # Delete API
 
+This API provides methods to construct and execute SQL `DELETE` statements using a fluent interface in `ts-sql-query`. It allows for conditional deletion, joining with other tables, and optionally returning deleted data.
+
 ```ts
 interface DeleteExpression {
     /** Allows to create the where dynamically */
@@ -11,18 +13,16 @@ interface DeleteExpression {
     /** Allows to specify the where */
     where(condition: BooleanValueSource): this
 
-    /** Allows to extends the where or the on clause of a join using an and */
+    /** Allows extending the WHERE or ON clause of a join using AND */
     and(condition: BooleanValueSource): this
-    /** Allows to extends the where or the on clause of a join using an or */
+    /** Allows extending the WHERE or ON clause of a join using OR */
     or(condition: BooleanValueSource): this
 
     /**
     * Execute the delete returning the number of deleted rows
     * 
-    * @param min Indicate the minimum of rows that must be deleted, 
-    *           if the minimum is not reached an exception will be thrown
-    * @param max Indicate the maximum of rows that must be deleted, 
-    *           if the maximum is exceeded an exception will be thrown
+    * @param min Minimum number of rows that must be deleted. An exception is thrown if not reached
+    * @param max Maximum number of rows that can be deleted. An exception is thrown if exceeded
     */
     executeDelete(min?: number, max?: number): Promise<number>
     /** Returns the sql query to be executed in the database */
@@ -33,8 +33,7 @@ interface DeleteExpression {
     // Returning methods
     /** 
      * Allows to specify the returning clause.
-     * It must be an object where the name of the property is the name of the resulting property
-     * and the value is the ValueSource where the value will be obtained.
+     * The object keys define the names of the resulting properties, and the values specify the ValueSource to retrieve from.
      */
     returning(columns: DeleteReturningValues): this
     /** Returns the optional values as null instead of optional undefined values, can only used immediately after returning(...) */
@@ -44,7 +43,7 @@ interface DeleteExpression {
      * It receives as argument the ValueSource where the value will be obtained.
      */
     returningOneColumn(column: AnyValueSource): this
-    /** Execute the delete query that returns one o no result from the database */
+    /** Executes the delete query and returns one or no result */
     executeDeleteNoneOrOne(): Promise<RESULT | null>
     /** 
      * Execute the delete query that returns one result from the database.
@@ -70,12 +69,12 @@ interface DeleteExpression {
     innerJoin(table: Table | View): this
     /** 
      * Allows to add a left join to the delete query. 
-     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     * Note: You must call forUseInLeftJoin on a table or view before using it in a left join
      */
     leftJoin(source: OuterJoinSource): this
     /** 
      * Allows to add a left outer join to the delete query. 
-     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     * Note: You must call forUseInLeftJoin on a table or view before using it in a left join
      */
     leftOuterJoin(source: OuterJoinSource): this
 
@@ -91,9 +90,11 @@ interface DeleteExpression {
         queryExecutionMetadata?: any
     }): this
 }
+```
 
+```ts
 /**
- * Returning projection of the value that vill be retreived from the database.
+ * Returning projection of the values that will be retrieved from the database.
  * 
  * It must be an object where the name of the property is the name of the resulting property
  * and the value is the ValueSource where the value will be obtained.

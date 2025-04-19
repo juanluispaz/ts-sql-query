@@ -19,13 +19,13 @@ search:
 - Remove deprecated [LoopBack](https://loopback.io/) support and query runner.
 - Remove deprecated [msnodesqlv8](https://www.npmjs.com/package/msnodesqlv8) support and query runner.
 - Remove deprecated [tedious](https://www.npmjs.com/package/tedious) support and query runner. Tedious still available using [mssql](https://www.npmjs.com/package/mssql).
-- Remove deprecated [Prisma](https://www.prisma.io)'s short-running transactions support. Prisma's Long-running transactions continue supported.
+ - Remove deprecated [Prisma](https://www.prisma.io)'s short-running transactions support. Prisma's long-running transactions remain supported.
 - Remove deprecated connections with extended types: `TypeSafeMariaDBConnection`, `TypeSafeMySqlConnection`, `TypeSafeNoopDBConnection`, `TypeSafeOracleConnection`, `TypeSafePostgreSqlConnection`, `TypeSafeSqliteConnection`, `TypeSafeSqlServerConnection`.
 - Remove `ts-extended-types` dependency.
 - Remove deprecated `stringInt` and `stringDouble` column types in favour of `customInt` and `customDouble`.
-- Remove long deprecated functions:
+- Remove long-deprecated functions:
   
-    | Removed deprecated nam     | Current name       |
+    | Removed deprecated name    | Current name       |
     | -------------------------- | ------------------ |
     | `smaller`                  | `lessThan`         |
     | `smallAs`                  | `lessOrEquals`     |
@@ -39,19 +39,19 @@ search:
     | `replace`                  | `replaceAll`       |
     | `replaceIfValue`           | `replaceAllIfValue`|
 
-- Remove long deprecated overload of functions in columns that allowed to send to the database null values in TypeScript when the type were optional.
+- Remove long-deprecated overload of functions in columns that allowed to send to the database null values in TypeScript when the type were optional.
 
 ## v1.65.0 (24 Aug 2024)
 
 **Changes**:
 
-- Add support to transaction metadata that allows sharing of information across the application within a transaction.
+- Add support for transaction metadata that allows sharing of information across the application within a transaction.
 
 ## v1.64.0 (18 Apr 2024)
 
 **Changes**:
 
-- Add support to `aggregateAsArrayDistinct` and `aggregateAsArrayOfOneColumnDistinct` to allow aggregate as array distinct values.
+- Add support for `aggregateAsArrayDistinct` and `aggregateAsArrayOfOneColumnDistinct` to allow aggregate as array distinct values.
 - LoggingQueryRunner: Use performance.now() in non-Node environments.
 
 ## v1.63.0 (20 Mar 2024)
@@ -64,7 +64,7 @@ search:
 
 **Changes**:
 
-- Add support to custom reusable SQL fragments that the returning value can be optional or required depending on the provided arguments.
+- Add support for custom reusable SQL fragments that the returning value can be optional or required depending on the provided arguments.
 
 ## v1.61.0 (2 Mar 2024)
 
@@ -77,7 +77,7 @@ search:
 
 **Changes**:
 
-- Allow to use `notEqualsInsensitive` in dynamic filters previously not included in the white list of allowed functions.
+ - Allow using `notEqualsInsensitive` in dynamic filters previously not included in the white list of allowed functions.
 - Deprecate Tedious and MsNode query runners in favour of mssql. 
 - Deprecate Prisma's short-running transactions support.
 - Deprecate `stringInt` and `stringDouble` in favour of `customInt` and `customDouble`.
@@ -87,8 +87,8 @@ search:
 
 **Changes**:
 
-- Add support to more custom types: `customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`.
-- Add the possibility to get some metadata regarding the query execution in a query runner: the query execution stack, information about the function that requests to execute the query, knowing if the query is a select count in a select page, allowing to specify an execution name, allow to specify additional metadata for the execution.
+- Add support for more custom types: `customInt`, `customDouble`, `customUuid`, `customLocalDate`, `customLocalTime`, `customLocalDateTime`.
+- Add the possibility to get some metadata regarding the query execution in a query runner: The query execution stack, information about the function that initiated the query execution, whether the query is a count query in a paginated select, and the ability to specify both an execution name and additional execution metadata.
 
 **Documentation changes**:
 
@@ -98,7 +98,7 @@ search:
 
 **Changes**:
 
-- Add support to complex projections in compound select (`union`, `intersect`, etc.)
+- Add support for complex projections in compound select (`union`, `intersect`, etc.)
 
 **Bug fixes**:
 
@@ -108,8 +108,8 @@ search:
 
 **Changes**:
 
-- Allow to defer the execution of a logic till just before the transaction's commit.
-- Add support to execute the queries using an [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md) in Web Assembly.
+ - Allow deferring the execution of a logic till just before the transaction's commit.
+ - Add support for executing the queries using an [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md) in Web Assembly.
 
 ## v1.56.0 (28 Aug 2023)
 
@@ -122,7 +122,7 @@ search:
 
 **Changes**:
 
-- Add support to projecting optional values in an object as nullable in the output of select, insert, update, delete and aggregate array. This make the optional property required as nullable in the projected value.
+ - Add support for projecting optional values in an object as nullable in the output of select, insert, update, delete and aggregate array. This makes the optional property required, but nullable, in the projected value.
 
 **Documentation changes**:
 
@@ -144,7 +144,7 @@ search:
 - Deprecate AnyDB, LoopBack and tedious-connection-pool query runners due their respective projects are dead.
 - Implement `executeConnectionConfiguration` in the query runner, allowing you to execute raw queries that modify the connection configuration.
 - MariaDB and MySql don't support nested transactions, but instead of throwing an error, it silently finishes the previous one; when this circumstance is detected, an error with be thrown to avoid dangerous situations.
-- Add support to `beforeQuery` custom SQL fragment when queries are customized.
+- Add support for `beforeQuery` custom SQL fragment when queries are customized.
 
 **Documentation changes**:
 
@@ -171,21 +171,21 @@ search:
 
 - Add support `dynamicPickPaths` to work with a list of fields to pick, and implement `expandTypeFromDynamicPickPaths` utility function to rectify the query output when the list of fields to pick is a generic type (Previously experimental)
 - Implement insert/update shape that allows controlling the structure of the object to use to set the value (Previously experimental in update)
-- Add support to update multiple tables in a single update in MariaDB and MySql (Previously experimental)
-- Add support to Oracle recursive queries using `connect by` syntax
+- Add support for update multiple tables in a single update in MariaDB and MySql (Previously experimental)
+- Add support for Oracle recursive queries using `connect by` syntax
 - Extend utility types and functions to filter by the id columns
 - Add `PickValuesPath` utility function that allows getting the result of a select query given the fields to pick picked paths
 - Extend the `DynamicCondition`, allowing to use fields of the dynamic condition as an argument
 - Add `PickValuesPathWitAllProperties` utility type that allows getting the type of each element returned by a select picking columns
 - Extend `SelectedValues` and `SelectedRow`, allowing to use of complex projections
 - Implement `selectCountAll()` as a shortcut to `selectOneColumn(connection.countAll())` that doesn't return an optional value when the query is used as an inline value (removing in this way the current limitation)
-- Add support to order by a column not returned by the select (removing in this way the current limitation)
+- Add support for order by a column not returned by the select (removing in this way the current limitation)
 - Allow `ignoreIfSet` over a required property in an insert
 - Add `keepOnly` method that allows filtering the columns to be set in an insert or update
 - Allow the dynamic set to receive as an argument the initial values to set
-- Add support to dynamic set on an insert with multiple rows (removing in this way the current limitation)
-- Add support to throw an error if some columns are set or have value in an insert or update. New methods in insert and update: `disallowIfSet`, `disallowIfNotSet`, `disallowIfValue`, `disallowIfNotValue`, `disallowAnyOtherSet`
-- Add support to manipulate the data to insert or update conditionally
+- Add support for dynamic set on an insert with multiple rows (removing in this way the current limitation)
+- Add support for throw an error if some columns are set or have value in an insert or update. New methods in insert and update: `disallowIfSet`, `disallowIfNotSet`, `disallowIfValue`, `disallowIfNotValue`, `disallowAnyOtherSet`
+ - Add support for conditional data manipulation in insert and update operations
 - Allow the insert do `dynamicSet` or `dynamicValues` using an object where a required property is optional
 
 **Documentation changes**:
@@ -207,8 +207,8 @@ search:
 
 **Internal changes**:
 
-- Add support to run all the tests natively in Apple M1 except for loopback and oracle
-- Add support to run oracle tests in an x86 emulated docker and using node running under rosetta
+- Add support for run all the tests natively in Apple M1 except for loopback and oracle
+- Add support for run oracle tests in an x86 emulated docker and using node running under rosetta
 
 ## v1.50.0 (6 Mar 2023)
 
@@ -295,7 +295,7 @@ search:
 
 **Changes**:
 
-- Add support to [porsager/postgres](https://github.com/porsager/postgres) (aka postgres.js)
+- Add support for [porsager/postgres](https://github.com/porsager/postgres) (aka postgres.js)
 
 ## v1.42.0 (5 Dec 2022)
 
@@ -308,8 +308,8 @@ search:
 **Changes**:
 
 - Implement `nullIfValue` function that returns null when the provided value is the same otherwise return the initial value
-- Add support to values construction that allows to create a "view" for use in the query with a list of constant provided values
-- Add support to param placeholder customisation, allowing to include type cast in the generated sql query for the param
+- Add support for values construction that allows to create a "view" for use in the query with a list of constant provided values
+- Add support for param placeholder customisation, allowing to include type cast in the generated sql query for the param
 
 **Documentation changes**:
 
@@ -334,8 +334,8 @@ search:
 
 **Changes**:
 
-- Add support to the `returning` clause in MariaDB in `insert` and `delete` (`update` not supported yet by MariaDB)
-- Add support to Prisma 4
+- Add support for the `returning` clause in MariaDB in `insert` and `delete` (`update` not supported yet by MariaDB)
+- Add support for Prisma 4
 
 ## v1.38.0 (29 Sep 2022)
 
@@ -387,7 +387,7 @@ search:
 **Changes**:
 
 - Implement `onlyWhen` and `ignoreWhen` function that allows ignoring a boolean expression under a condition
-- Add support to virtual columns on tables and views
+- Add support for virtual columns on tables and views
 - Implement the types `InsertableValues`, `UpdatableValues` and `SelectedValues` that allows to get the types for an insert, update and select with the proper types defined in the table without the other sql objects
 
 ## v1.31.0 (8 Aug 2022)
@@ -420,7 +420,7 @@ search:
 **Changes**:
 
 - Add compatibility mode to MySql to avoid use the with clause not supported by MySql 5
-- Add support to reference current value and value to insert in an insert on conflict do update
+- Add support for reference current value and value to insert in an insert on conflict do update
 
 ## v1.27.0 (11 Apr 2022)
 
@@ -437,8 +437,8 @@ search:
 
 **Changes**:
 
-- Add support to "insert on conflict do nothing" and "insert on conflict do update" on PostgreSql, Sqlite, MariaDB and MySql
-- Add support to specify raw sql fragment in the order by; allowing complex order by in the select query
+- Add support for "insert on conflict do nothing" and "insert on conflict do update" on PostgreSql, Sqlite, MariaDB and MySql
+ - Add support for specifying raw SQL fragments in the ORDER BY clause, allowing complex ordering in select queries
 - Allow insert, update and delete in raw sql fragments
 
 **Documentation changes**:
@@ -455,11 +455,11 @@ search:
 
 - Implements `forUseAsInlineAggregatedArrayValue` function, that allows to transform a query in create an array value of a single column (if it is single-column query), or an object where the rows are represented as an object
 - Implements `aggregateAsArray` aggregation function, that allows to create an value that contains, per each row, an array of a single column, or an array with several columns represented as an object
-- Add support to the `uuid` type
-- Add support to `orderByFromStringIfValue`, `limitIfValue` and `offsetIfValue`
-- Add support to subqueries that contains with clause with external/contextual dependencies
-- Add support to compose over optional properties
-- Add support to `withOptionalMany` composing rule that allows to use undefined instead of an empty array when no value
+- Add support for the `uuid` type
+- Add support for `orderByFromStringIfValue`, `limitIfValue` and `offsetIfValue`
+- Add support for subqueries that contains with clause with external/contextual dependencies
+- Add support for compose over optional properties
+- Add support for `withOptionalMany` composing rule that allows to use undefined instead of an empty array when no value
 - Detect invalid queries in SqlServer, Oracle and MariaDB when an outer reference is used to create a query that is not supported by the database because no outer references are allowed in inner with, or, in MariaDB, no outer references are allowed in inner from
 - Combine multiple concat expressions in a single concat function call in MySql and MariaDB
 
@@ -483,16 +483,16 @@ search:
 - Manage complex projections in compound operations (union, intercept, etc.)
 - Ensure the dynamic conditions cannot create conditions when null/undefined values are provided to functions that doesn't expect it
 - Detect when null/undefined values are provided to an operation with a value coming from a left join where a not null/undefined value must be provided
-- Deprecate all value source methods overload that can produce unexpected falsy/null values because the provided value in JavaScript is null or undefined. Now all value source methods doesn't admit null or undefined values (except the `*IfValue`, `is`, `isNot` methods). In the odd case you need to use a nullable value from JavaScript, and you want to maintain the falsy/null output use an optional constant with the JavaScript value
-- Add the methods `trueWhenNoValue` and `falseWhenNoValue` to allows specify a boolean value when the `*IfValue` function produces no value. This can help to manage optional values coming from JavaScript in complex logic without need to use the deprecated methods that can produce unexpected falsy/null values
-- Allows to negate the result of a `*IfValue` function
+ - Deprecate all value source methods overload that can produce unexpected falsy/null values because the provided value in JavaScript is null or undefined. Now all value source methods doesn't admit null or undefined values (except the `*IfValue`, `is`, `isNot` methods). In the odd case you need to use a nullable value from JavaScript, and you want to maintain the falsy/null output use an optional constant with the JavaScript value
+ - Add support for the methods `trueWhenNoValue` and `falseWhenNoValue` to allow specifying a boolean value when the `*IfValue` function produces no value. This can help to manage optional values coming from JavaScript in complex logic without need to use the deprecated methods that can produce unexpected falsy/null values
+ - Allows negating the result of a `*IfValue` function
 - Improve boolean expression reduction when the negate method is used
 - Detect invalid columns to be returned in a select (non-string key)
 
 **Preview of upcoming changes**:
 
 - Implements `aggregateAsArray` aggregation function, that allows to create an value that contains, per each row, an array of a single column, or an array with several columns represented as an object
-- Add support to subqueries that contains with clause with external/contextual dependencies
+- Add support for subqueries that contains with clause with external/contextual dependencies
 
 **Documentation changes**:
 
@@ -508,7 +508,7 @@ search:
 
 **Changes**:
 
-- Add support to complex projections, that allows to create inner objects in the result of a query
+- Add support for complex projections, that allows to create inner objects in the result of a query
 - Detect invalid query when a table in the from of an update appears in the returning clause in sqlite. Now it verify the restriction 7 of the returning clause in Sqlite
 - Add support for Prisma 3
 - Add support for the interactive transactions in Prisma
@@ -527,7 +527,7 @@ search:
 
 - Deprecate `replace` method in favour of `replaceAll` in the string value source to align with JavaScript
 - Add the `substr` and `substrToEnd` to the string value source to align with JavaScript and respect the real available implementation in the databases
-- Add support to create complex dynamic boolean expression using the `dynamicBooleanExpresionUsing` method in the connection object. It allows to create programmatically dynamically complex boolean expressions instead of declarative dynamically conditions using the `IfValue` functions. It is recommend to use the `IfValue` functions when it is possible
+- Add support for create complex dynamic boolean expression using the `dynamicBooleanExpresionUsing` method in the connection object. It allows to create programmatically dynamically complex boolean expressions instead of declarative dynamically conditions using the `IfValue` functions. It is recommend to use the `IfValue` functions when it is possible
 - Add `mergeType` utility function to deal with advanced dynamic queries when a variable ended with type a union of several types of value source. This function allows to resolve the union type in a single value source type
 
 **Documentation changes**:
@@ -553,16 +553,16 @@ search:
 
 **Changes**:
 
-- Add support to scalar queries, that is an inline select query as value for another query
-- Add support to insert returning on databases that support it (PostgreSql, SqlServer, Oracle, modern Sqlite)
-- Add support to update returning on databases that support it (PostgreSql, SqlServer, Oracle, modern Sqlite)
-- Add support to update returning old values on databases that support it (SqlServer)
-- Add support to update returning old values on databases where it can be emulated in a single query (PostgreSql)
-- Add support to delete returning on databases that support it (PostgreSql, SqlServer, Oracle, modern Sqlite)
-- Add support to use more tables or views in an update (from clause) 
-- Add support to use more tables or views in a delete (using clause)
-- Add support to use more tables or views in an update returning old values on databases that support it (SqlServer)
-- Add support to use more tables or views in an update returning old values on databases where it can be emulated in a single query (PostgreSql)
+- Add support for scalar queries, that is an inline select query as value for another query
+- Add support for insert returning on databases that support it (PostgreSql, SqlServer, Oracle, modern Sqlite)
+- Add support for update returning on databases that support it (PostgreSql, SqlServer, Oracle, modern Sqlite)
+- Add support for update returning old values on databases that support it (SqlServer)
+- Add support for update returning old values on databases where it can be emulated in a single query (PostgreSql)
+- Add support for delete returning on databases that support it (PostgreSql, SqlServer, Oracle, modern Sqlite)
+- Add support for use more tables or views in an update (from clause) 
+- Add support for use more tables or views in a delete (using clause)
+- Add support for use more tables or views in an update returning old values on databases that support it (SqlServer)
+- Add support for use more tables or views in an update returning old values on databases where it can be emulated in a single query (PostgreSql)
 - Improve error detection to identify misuse of values that have different columns types with same TypeScript type (like date and time)
 - Improve min and max limit verification on insert
 
@@ -574,7 +574,7 @@ search:
 
 **Changes**:
 
-- Add support to numeric date/time in Sqlite that is expressed as bigint in JavaScript by the database connector (By example, using `defaultSafeIntegers` option in BetterSqlite3)
+- Add support for numeric date/time in Sqlite that is expressed as bigint in JavaScript by the database connector (By example, using `defaultSafeIntegers` option in BetterSqlite3)
 
 **Bug fixes**:
 
@@ -586,6 +586,7 @@ search:
 **Changes**:
 
 - Manage the errors coming from the deferred execution logic till the end of a transaction, after commit or rollback. Now all deferred logic will be executed even if one of them throw an error. All errors thrown by the deferred logic will be collected and combined in one single error that will be thrown after the commit or rollback is executed
+- Manage the errors coming from the deferred execution logic till the end of a transaction, after commit or rollback. Now all deferred logic will be executed even if one of them throws an error. All errors thrown by the deferred logic will be collected and combined in one single error that will be thrown after the commit or rollback is executed
 
 **Bug fixes**:
 
@@ -599,7 +600,7 @@ search:
 
 - Implements `Unix time milliseconds as integer` date/time strategy for sqlite that allows to store dates & times in UNIX time as milliseconds
 - MockQueryRunner create the output param for oracle in the same way this database expect it
-- Add support to deferring execution logic using async functions till the end of a transaction, after commit or rollback
+- Add support for deferring execution logic using async functions till the end of a transaction, after commit or rollback
 
 **New examples**:
 
@@ -617,7 +618,7 @@ search:
 
 **Changes**:
 
-- Add support to deferring execution logic till the end of a transaction, after commit or rollback
+- Add support for deferring execution logic till the end of a transaction, after commit or rollback
 
 **Internal changes**:
 
@@ -632,8 +633,8 @@ search:
 
 **Changes**:
 
-- Allows to use in split/compose previously created property using split/compose
-- Add support to Date and Time management in sqlite using different strategies to represent the value (sqlite doesn't have dedicate types to represent dates and time). The implemented strategies are aligned with the date time support in sqlite allowing to store the information as text (in the local timezone or UTC), as integer (in unix time seconds) or as a real value (in Julian days)
+ - Allows you to use previously created properties in split/compose
+- Add support for Date and Time management in sqlite using different strategies to represent the value (sqlite doesn't have dedicate types to represent dates and time). The implemented strategies are aligned with the date time support in sqlite allowing to store the information as text (in the local timezone or UTC), as integer (in unix time seconds) or as a real value (in Julian days)
 - Align method names with convention, where ts-sql-query tries to use well known method names, giving preferences to already existing names in JavaScript, o well known function names in SQL, avoiding abbreviations. Methods with new names (Previous names are still available as deprecated methods):
 
     | Previous name              | New name           |
@@ -654,7 +655,7 @@ search:
 - Now is possible create an insert from a select that returns the last inserted id if a compatible sqlite with the returning clause is used
 - Ensure the MockQueryRunner returns a number when the mock function return no value when an insert, update or delete is executed
 - Detect invalid results from the mock function returned to the MockQueryRunner
-- Add support to mock the call to the method `isTransactionActive`
+- Add support for mock the call to the method `isTransactionActive`
 
 **Documentation changes**:
 
@@ -685,7 +686,7 @@ search:
 **Changes**:
 
 - Add more options to organize the select clauses, making in this way easier to create functions that return queries partially constructed. The where clause can be postponed until the end of the query, before the query execution
-- Add support to queries that use orderBy, limit, offset inside of a compound operator (like union, intersect). With this change now it is possible to use a limit in the inner query, not only in the outer one with the compound operator
+- Add support for queries that use orderBy, limit, offset inside of a compound operator (like union, intersect). With this change now it is possible to use a limit in the inner query, not only in the outer one with the compound operator
 - Implement insert default values query customization on MySql/MariaDB
 - Increase the flexibility of a select from no table, allowing all the clauses supported by a select (outside the from definition)
 - Add utility function that allows extracting all columns from an object (like table or view) that enables to write a select all columns
@@ -700,7 +701,7 @@ search:
 
 **Changes**:
 
-- Add support to undefined elements in the and/or array of a dynamic condition
+- Add support for undefined elements in the and/or array of a dynamic condition
 
 **Bug fixes**:
 
@@ -755,7 +756,7 @@ search:
 **Changes**:
 
 - Implement `isTransactionActive` method at the connection object that allows to know if there is an active open transaction in ts-sql-query
-- Allows to use objects with the values in an insert or update that contains additional properties not precent in the table that will be ignored. This change makes the behaviour coherent with TypeScript compiler.
+ - Allows you to use objects with the values in an insert or update that contain additional properties not present in the table that will be ignored. This change makes the behavior coherent with the TypeScript compiler.
 
 **Bug fixes**:
 
@@ -771,12 +772,12 @@ search:
 - Handle splitting with select picking columns
 - The `split` method automatically determines if the created property is required or optional
 - Added `splitRequired` splitting method
-- Add support to optional joins in a select picking columns
-- Add support to table "from" customization, allowing to include raw sql to use features not supported yet by ts-sql-query
-- Add support to select query customizations
-- Add support to update query customizations
-- Add support to delete query customizations
-- Add support to insert query customizations
+- Add support for optional joins in a select picking columns
+- Add support for table "from" customization, allowing to include raw sql to use features not supported yet by ts-sql-query
+- Add support for select query customizations
+- Add support for update query customizations
+- Add support for delete query customizations
+- Add support for insert query customizations
 
 **Documentation changes**:
 
@@ -786,18 +787,18 @@ search:
 **Bug fixes**:
 
 - Ensure insert multiple can generate the with clause
-- Add support to with clause on insert queries on databases that doesn't support a global with on insert (oracle, mysql, mariadb)
+- Add support for with clause on insert queries on databases that doesn't support a global with on insert (oracle, mysql, mariadb)
 - Fix invalid insert default values query on oracle
 
 ## v1.5.0 (3 Jun 2021)
 
 **Changes**:
 
-- Add support to custom array types
-- Add support to globally encrypted id
+- Add support for custom array types
+- Add support for globally encrypted id
 - Big refactor to simplify the query runners implementation
-- Dropped support to very old better-sqlite3 versions (6 or before)
-- Allow to use returning clause on sqlite and mariadb in a sql text query executed directly with the query runner
+- Dropped support for very old better-sqlite3 versions (6 or before)
+ - Allow using returning clause on sqlite and mariadb in a sql text query executed directly with the query runner
 
 **Documentation changes**:
 
@@ -808,7 +809,7 @@ search:
 
 **Distribution changes**:
 
-- Source maps are not included any more
+ - Source maps are no longer included
 
 **Bug fixes**:
 
@@ -819,12 +820,12 @@ search:
 
 **Changes**:
 
-- Add support to create dynamic conditions where the criteria is defined at runtime. This allows to have a select with a where provided by an external system.
+- Add support for create dynamic conditions where the criteria is defined at runtime. This allows to have a select with a where provided by an external system.
 - Implements compound operator (`union`, `intersect`, `except`) on select expressions.
 - Allows `executeSelectPage` on select with `group by`
 - Allows insert from select returning last inserted id in PostgreSql and Sql Server
 - Extends the possibility of a select query to change the shape of the projected object allowing move some property to an internal object (split) or combine the result with a second query string the value as a property of the first one (compose)
-- Add support to recursive select queries
+- Add support for recursive select queries
 
 **Bug fixes**:
 
@@ -864,9 +865,9 @@ search:
 - Rework insensitive comparison to allow use collations instead of the lower function; allowing in that way make comparison case insensitive and accent insensitive.
 - Implements insensitive order by extension.
 - Rework boolean management to support databases that don't have boolean data type (Sql Server and Oracle).
-- Add support to custom boolean columns.
-- Add support to execute better-sqlite3 queries synchronously.
-- Add support to computed columns on tables.
+- Add support for custom boolean columns.
+- Add support for execute better-sqlite3 queries synchronously.
+- Add support for computed columns on tables.
 - Add ID encrypter utility.
 
 **Documentation changes:**
@@ -874,7 +875,7 @@ search:
 - Add documentation about how encrypt the IDs. 
 - Add warning to the readme about sharing the connection between HTTP requests.
 - Add warning about non-public files.
-- Add waring about table and views constructor arguments
+ - Add warning about table and views constructor arguments
 
 **New examples:**
 
@@ -905,14 +906,14 @@ See [1.0.0-beta.1 release notes](#v100-beta1-29-dec-2020)
 
 - Implements reusable fragments as functions using the `buildFragmentWithArgs` function with the `arg` and `valueArg` functions (all defined in the connection)
 - Implements reusable fragments as functions that allow creating `*IfValue` functions using the `buildFragmentWithArgsIfValue` function with the `arg` and `valueArg` functions (all defined in the connection)
-- Add support to the newest Better Sqlite 3 returning bingint
+- Add support for the newest Better Sqlite 3 returning bingint
 - Update all dependencies, and apply all required changes
-- Implements the method `execute` in the query runners to allows have direct access to the database using the raw objects used to establish the connection
+ - Implements the method `execute` in the query runners to allow direct access to the database using the raw objects used to establish the connection
 - Refactor how const values are handled. Now value source included two new methods:
     - `isConstValue(): boolean` that allows verify if it contains a const value
     - `getConstValue(): TYPE` that allows getting the value of a const value source (throw an error if it is not a const value source)
 - Update the readme to include explanations about dynamic queries
-- Add support to `bigint` column type
+- Add support for `bigint` column type
 - Add examples section to the readme
 
 **Braking changes:**
@@ -1054,7 +1055,7 @@ See [1.0.0-beta.1 release notes](#v100-beta1-29-dec-2020)
 
 **Changes:**
 
-- Allows to execute a selectOne over an optional column
+ - Allows executing a selectOne over an optional column
 - Don't allow to call "returningLastInsertedId" when an insert query is constructed for a table without autogenerated primary key
 
 **Bug fixes:**

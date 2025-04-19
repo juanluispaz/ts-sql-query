@@ -4,11 +4,15 @@ search:
 ---
 # Column types
 
+This page describes how to define and configure the types of columns used in your tables when building a schema with `ts-sql-query`. It covers the predefined types, how to use custom types, and how to adapt values when interacting with the database.
+
 ## Typing
+
+The following table lists the available column types you can assign, along with their corresponding TypeScript representation and general purpose.
 
 ts-sql-query allows you to define the columns with the following types:
 
-| Column type                     | Typescript Type      | Description                                                       |
+| Column type                     | TypeScript Type      | Description                                                       |
 |---------------------------------|----------------------|-------------------------------------------------------------------|
 | `boolean`                       | `boolean`            | Boolean value                                                     |
 | `int`                           | `number`             | Integer number                                                    |
@@ -54,7 +58,7 @@ this.column<MyCustomComparableType>('ColumnName', 'customComparable', 'MyCustomC
 
 ## Type adapters
 
-You can control how a value is sent and received from the database. For that purpose, you can add at the end of the column definition a type adapter.
+You can control how a value is sent and received from the database. For that purpose, you can add a type adapter at the end of the column definition.
 
 **Example**: Imagine you want to store an RGB colour as a single number in the database, but in your application, you want to handle it as an object with R, G & B properties as a number. You can define a type adapter as:
 
@@ -93,8 +97,8 @@ export class RgbColorTypeAdapter implements TypeAdapter {
 
     // Optional
     transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown, next: DefaultTypeAdapter): string {
-        // You can force a type cast in the query if you want. With this code the parameter in the sql will looks like %1::bytea
-        // By thefault, in PostgreSql only, a type cast is generated when forceTypeCast is true
+        // You can force a type cast in the query if you want. With this code, the parameter in the SQL will looks like %1::bytea
+        // By default, in PostgreSQL only, a type cast is generated when forceTypeCast is true
         if (type === 'RgbColor') {
             return placeholder + '::bytea'
         }
@@ -117,11 +121,17 @@ this.column<RgbColor>('ColumnName', 'custom', 'RgbColor', new RgbColorTypeAdapte
 
 !!! tip
 
-    Type adapter is useful when you define a rule that only applies to that specific column, for example, the `CustomBooleanTypeAdapter` explained in the [Custom booleans values](../advanced/custom-booleans-values.md) section. For the `RgbColor` example, it is not specific for one field, them; it will be better to define the rule globally in the connection object as explained in the next section.
+    Use a column-specific type adapter when the transformation logic only applies to a single field — for example, the `CustomBooleanTypeAdapter` used in the [Custom boolean values](../advanced/custom-booleans-values.md) section, where a specific column may store booleans as `'Y'`/`'N'`.
 
-## Globally type adapter
+    However, when the transformation is generic and applicable to many columns or tables — such as with the `RgbColor` example — it's better to define the adapter globally in the connection object. This improves consistency and avoids repeating the logic for every field.
 
-The connection object can host the logic of the type adapter when we want to be able to use the type in any place. If you create a custom type that applies to the whole database, the connection is the best place to define the transformation rule.
+## Global type adapter
+
+When a type adapter should apply globally across all uses of a type, the logic can be embedded in the connection object:
+
+!!! tip
+
+    This is the recommended approach when the same logic should apply across multiple columns or tables, ensuring consistency and avoiding duplication of logic in each column definition.
 
 ```ts
 interface RgbColor {r: number, g: number, b: number}
@@ -153,7 +163,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         return super.transformValueToDB(value, type);
     }   
     protected transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
-        // You can force a type cast in the query if you want. With this code the parameter in the sql will looks like %1::bytea
+        // You can force a type cast in the query if you want. With this code, the parameter in the SQL will looks like %1::bytea
         // By thefault, in PostgreSql only, a type cast is generated when forceTypeCast is true
         if (type === 'RgbColor') {
             return placeholder + '::bytea'

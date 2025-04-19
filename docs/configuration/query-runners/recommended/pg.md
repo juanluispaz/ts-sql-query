@@ -4,6 +4,12 @@ search:
 ---
 # pg
 
+This page explains how to use `ts-sql-query` with the [pg](https://www.npmjs.com/package/pg) driver. It covers two approaches: using a connection pool or using a single connection directly.
+
+!!! success "Supported databases"
+
+    - [PostgreSQL](../../supported-databases/postgresql.md)
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -12,11 +18,9 @@ search:
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-## pg (with a connection pool)
+## Using a connection pool
 
-It allows to execute the queries using a [pg](https://www.npmjs.com/package/pg) connection pool.
-
-**Supported databases**: postgreSql
+Executes queries through a [pg](https://www.npmjs.com/package/pg) connection obtained from a pool.
 
 ```ts
 import { Pool, PoolClient } from 'pg';
@@ -38,13 +42,11 @@ async function main() {
 
 !!! warning
 
-    If you want to allow to have nested transactions you must create ithe instance as `new PgPoolQueryRunner(pool, {allowNestedTransactions: true})` 
+    If you want to allow to have nested transactions you must create the instance as `new PgPoolQueryRunner(pool, {allowNestedTransactions: true})` 
 
-## pg (with a connection)
+## Using a single connection
 
-It allows to execute the queries using a [pg](https://www.npmjs.com/package/pg) connection.
-
-**Supported databases**: postgreSql
+Executes queries through a dedicated [pg](https://www.npmjs.com/package/pg) connection.
 
 ```ts
 import { Pool, PoolClient } from 'pg';
@@ -71,4 +73,4 @@ async function main() {
 
 !!! warning
 
-    If you want to allow to have nested transactions you must create ithe instance as `new PgQueryRunner(pgConnection, {allowNestedTransactions: true})` 
+    If you want to allow to have nested transactions you must create the instance as `new PgQueryRunner(pgConnection, {allowNestedTransactions: true})` 

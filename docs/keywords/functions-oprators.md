@@ -4,6 +4,8 @@ search:
 ---
 # Function and Operator Keywords
 
+This page provides a comprehensive mapping between SQL keywords and their corresponding methods in `ts-sql-query`. It helps identify which SQL functions, operators, and expressions are supported, and how to express them fluently in TypeScript using the library’s API.
+
 | SQL Keyword                         | ts-sql-query Equivalent                             | Notes                                                       | Link                                                 |
 |:------------------------------------|:----------------------------------------------------|:------------------------------------------------------------|:-----------------------------------------------------|
 | value + x (Addition)                | value `.add(x)`                                     | Arithmetic addition                                         | [Value expressions API](../api/value-expressions.md) |
@@ -41,6 +43,7 @@ search:
 | ATN2(y, x)                          | value `.atan2(x)`                                   | Arc tangent of y/x                                          | [Value expressions API](../api/value-expressions.md) |
 | AVG(x)                              | connection `.average(x)`                            | Aggregate: returns average                                  | [Connection API](../api/connection.md)               |
 | AVG(DISTINCT x)                     | connection `.averageDistinct(x)`                    | Aggregate: returns distinct average                         | [Connection API](../api/connection.md)               |
+| CASE ... WHEN ... THEN ... ELSE ... END | Not supported yet. Use a custom SQL fragment.   | SQL conditional expression using CASE statement             | [SQL Fragment](../queries/sql-fragments.md)          |
 | CBRT(value)                         | value `.cbrt()`                                     | Cube root                                                   | [Value expressions API](../api/value-expressions.md) |
 | CEIL(value)                         | value `.ceil()`                                     | Round up                                                    | [Value expressions API](../api/value-expressions.md) |
 | CEILING(value)                      | value `.ceil()`                                     | Round up                                                    | [Value expressions API](../api/value-expressions.md) |

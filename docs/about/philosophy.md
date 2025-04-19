@@ -77,5 +77,5 @@ Use `ts-sql-query` if:
 
 ## Final word
 
-`ts-sql-query` is not here to abstract SQL — it's here to make it safe, powerful, and expressive inside TypeScript.  
-It’s a tool for developers who want **clarity, not illusion — and safety, not scaffolding**.
+`ts-sql-query` doesn't aim to hide SQL — it aims to empower it. By embedding SQL semantics directly into TypeScript, it ensures your code is not only expressive and composable, but also safe by design.  
+It's a tool for developers who value **clarity over abstraction**, and **confidence over convention** — where every SQL expression remains visible, validated, and intentional.

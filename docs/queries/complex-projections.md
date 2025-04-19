@@ -4,13 +4,15 @@ search:
 ---
 # Complex projections
 
-## Inner objects
+This page explains how to use complex projections in `ts-sql-query` to map the result of a SQL query into deeply structured JavaScript/TypeScript objects. It covers how to define nested objects in the result, how to manage optionality rules based on joins and field presence, and how to handle advanced features like required fields inside optional objects.
 
-In ts-sql-query, the result of a query doesn't require to be a flat object; you can create a result that is an object that contains properties that are objects as well (multiple object nesting is supported).
+## Nested object projections
 
-!!! warning
+In ts-sql-query, the result of a query doesn't need to be a flat object. You can build results as nested objects, where properties themselves can be objects. Multiple levels of nesting are supported.
 
-    Only 5 nesting levels are supported.
+!!! warning "Limitation"
+
+    - Only 5 nesting levels are supported.
 
 ```ts
 const companyId = 24;
@@ -52,7 +54,9 @@ const customersOfCompany: Promise<{
 }[]>
 ```
 
-## Inner object's rules
+## Rules for nested object projections
+
+When projecting nested objects, it's important to determine when those objects and their fields should be required or optional. `ts-sql-query` applies a set of rules to infer these types based on the source tables and the way fields are selected or joined.
 
 **Rules (in priority order)**:
 
@@ -61,40 +65,43 @@ const customersOfCompany: Promise<{
 3. In the case there are required properties or required inner objects: all other non-required properties or non-required inner objects properties will be marked as optional; the object will be considered required.
 4. In any other case: all properties and inner objects will be marked as optional, the object will be considered optional.
 
-**Detailed rules (in priority order)**:
 
-1. There are `asRequiredInOptionalObject` fields:
-    - the resulting object is marked as optional
-    - `asRequiredInOptionalObject` fields are marked as required
-    - required objects remain as required but must not exist if the `asRequiredInOptionalObject` fields have no value (ignoring the inner objects)
-    - inner objects remain as in their definition but must not exist if the `asRequiredInOptionalObject` fields have no value (ignoring the inner objects)
-    - required fields coming from a left join & optional fields are marked as optional
-2. All fields (minimum one, ignoring inner objects) have the same identical outer (left) join dependency
-    - the fields that were required because the value is required in the original table used for the outer join will be treated as
-      `asRequiredInOptionalObject` in the same way described in the previous point.
-3. There are required fields or inner objects:
-    - the resulting object is marked as required
-    - required fields are marked as required
-    - optional fields are marked as optional
-    - inner objects remain as in their definition
-4. There are no required fields or inner objects:
-    - the resulting object is marked as optional
-    - optional fields are marked as optional
-    - inner objects remain as in their definition
+??? note "Detailed rules"
+
+    The following is a more detailed version of the rules explained above (in priority order):
+
+    1. There are `asRequiredInOptionalObject` fields:
+        - the resulting object is marked as optional
+        - `asRequiredInOptionalObject` fields are marked as required
+        - required objects remain as required but must not exist if the `asRequiredInOptionalObject` fields have no value (ignoring the inner objects)
+        - inner objects remain as in their definition but must not exist if the `asRequiredInOptionalObject` fields have no value (ignoring the inner objects)
+        - required fields coming from a left join & optional fields are marked as optional
+    2. All fields (minimum one, ignoring inner objects) have the same identical outer (left) join dependency
+        - the fields that were required because the value is required in the original table used for the outer join will be treated as
+        `asRequiredInOptionalObject` in the same way described in the previous point.
+    3. There are required fields or inner objects:
+        - the resulting object is marked as required
+        - required fields are marked as required
+        - optional fields are marked as optional
+        - inner objects remain as in their definition
+    4. There are no required fields or inner objects:
+        - the resulting object is marked as optional
+        - optional fields are marked as optional
+        - inner objects remain as in their definition
 
 !!! note
 
     When you indicate that a table will be used in a left join, all required columns are treated as optional in ts-sql-query because the left join is per se optional; the rule number 2 is the only one that can revert it implicitly.
 
-**Limitation**: You cannot use complex projections in queries that will be used as table in other query (created using `forUseInQueryAs` that corresponds to the with clause in SQL)
+!!! warning "Limitation"
 
-!!! warning
+    - You cannot use complex projections in queries that will be used as table in other query (created using `forUseInQueryAs` that corresponds to the with clause in SQL)
 
-    Only 5 nesting levels are supported.
+    - Only 5 nesting levels are supported.
 
-## Optional inner object with required properties
+## Optional nested objects with required fields
 
-You can take advantage of the optional type of an inner object to mark the inner properties as required. That means the inner properties are optional, but we know they will be required together if they have value; in the case they have no value, the whole object must not exist. To do this, we must call the `asRequiredInOptionalObject` method on the properties that must exist.
+You can take advantage of the optional type of an inner object to mark the inner properties as required. That means the inner properties are optional, but we know they will be required together if they have value; in the case they have no value, the whole object must not exist. To do this, we must call the `asRequiredInOptionalObject` method on the properties that must exist. This helps model business rules where a group of fields should either all be present or all be absent, and avoids having to manually check each field for null or undefined.
 
 ```ts
 const companies = connection.selectFrom(tCompany)
@@ -134,9 +141,11 @@ const customerWithCompanyInOneQuery: Promise<{
 }[]>
 ```
 
-**Bussiness rule**: Ubication information is optional, but, `ubicationLatitude` and `ubicationLongitude` must be null or have value at the same time; `ubicationComment` can have value (or not) only if `ubicationLatitude` and `ubicationLongitude` have value.
+!!! note "Business rule"
 
-## Inner objects and joins
+    Ubication is optional. If present, both `ubicationLatitude` and `ubicationLongitude` must contain a value. The `ubicationComment` field is optional and may contain a value only if the two coordinates are present.
+
+## Nested objects with inner joins
 
 ```ts
 const customerWithCompanyInOneQuery = connection.selectFrom(tCustomer)
@@ -179,9 +188,13 @@ const customerWithCompanyInOneQuery: Promise<{
 }>
 ```
 
-## Inner objects and left joins
+## Nested objects with left joins
 
-When all inner object's properties come from the same left join, the inner object is transformed in optional, and the inner properties reflect optionality in the original table. All inner inner objects will only exist if the inner object (coming from the left join) produces value.
+When all inner object's properties come from the same left join, the inner object is transformed in optional, and the inner properties reflect optionality in the original table. All nested inner objects will only exist if their immediate parent object has values and any its properties (coming from a left join) has value (not null).
+
+!!! note
+
+    Even if a field is required in the original table, a left join makes it optional in the result unless additional conditions apply (see rule #2 above).
 
 ```ts
 const parent = tCompany.forUseInLeftJoinAs('parent');

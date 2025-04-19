@@ -3971,15 +3971,15 @@ async function main() {
 
     /* *** Definition ****************************************************************/
 
-    function buildComanyAvailableFields<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCoustomer'>>(_connection: DBConnection, favouriteCoustomerRef: CUSTOMER) {
-        const favouriteCoustomer = fromRef(tCustomer, favouriteCoustomerRef);
+    function buildComanyAvailableFields<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCustomer'>>(_connection: DBConnection, favouriteCustomerRef: CUSTOMER) {
+        const favouriteCustomer = fromRef(tCustomer, favouriteCustomerRef);
 
         return {
             id: tCompany.id,
             name: tCompany.name,
             favouriteCustomer: {
-                id: favouriteCoustomer.id,
-                name: favouriteCoustomer.firstName.concat(' ').concat(favouriteCoustomer.lastName)
+                id: favouriteCustomer.id,
+                name: favouriteCustomer.firstName.concat(' ').concat(favouriteCustomer.lastName)
             }
         }
     }
@@ -3989,8 +3989,8 @@ async function main() {
         anyCustomerWithBirthdayOn?: Date
     }
 
-    function buildCompanyConditionExtention<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCoustomer'>>(connection: DBConnection, favouriteCoustomerRef: CUSTOMER) {
-        const favouriteCoustomer = fromRef(tCustomer, favouriteCoustomerRef);
+    function buildCompanyConditionExtention<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCustomer'>>(connection: DBConnection, favouriteCustomerRef: CUSTOMER) {
+        const favouriteCustomer = fromRef(tCustomer, favouriteCustomerRef);
 
         return {
             customers: (rules: CustomerRules) => {
@@ -4022,7 +4022,7 @@ async function main() {
                         .where(tCompany.name.containsInsensitive(name))
                         .selectOneColumn(tCompany.favouriteCustomerId)
     
-                    return favouriteCoustomer.id.in(query)
+                    return favouriteCustomer.id.in(query)
                 }
             }
         }
@@ -4033,17 +4033,17 @@ async function main() {
     type CompanyInformation<FIELDS extends CompanyFields> = PickValuesPath<ReturnType<typeof buildComanyAvailableFields>, FIELDS | 'id'>
     
     async function getSubcompanies<FIELDS extends CompanyFields>(connection: DBConnection, parentCompanyId: number, fields: FIELDS[], condition: CompanyDynamicCondition): Promise<CompanyInformation<FIELDS>[]> {
-        const favouriteCoustomer = tCustomer.forUseInLeftJoinAs('favouriteCoustomer')
+        const favouriteCustomer = tCustomer.forUseInLeftJoinAs('favouriteCustomer')
 
-        const avaliableFields = buildComanyAvailableFields(connection, favouriteCoustomer)
-        const conditionExtention = buildCompanyConditionExtention(connection, favouriteCoustomer)
+        const avaliableFields = buildComanyAvailableFields(connection, favouriteCustomer)
+        const conditionExtention = buildCompanyConditionExtention(connection, favouriteCustomer)
     
         const dynamicCondition = connection.dynamicConditionFor(avaliableFields, conditionExtention).withValues(condition)
         const selectedFields = dynamicPickPaths(avaliableFields, fields, ['id'])
         
         const companies = await connection
             .selectFrom(tCompany)
-            .optionalLeftOuterJoin(favouriteCoustomer).on(tCompany.favouriteCustomerId.equals(favouriteCoustomer.id))
+            .optionalLeftOuterJoin(favouriteCustomer).on(tCompany.favouriteCustomerId.equals(favouriteCustomer.id))
             .where(dynamicCondition)
             .and(tCompany.parentId.equals(parentCompanyId))
             .select(selectedFields)
@@ -4071,7 +4071,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as id, company.name as name, favouriteCoustomer.first_name || ? || favouriteCoustomer.last_name as "favouriteCustomer.name" from company left outer join customer as favouriteCoustomer on company.parent_id = favouriteCoustomer.id where exists(select id as result from customer where lower(first_name || ? || last_name) like lower('%' || ? || '%') escape '\\') and company.parent_id = ?`)
+    expectedQuery.push(`select company.id as id, company.name as name, favouriteCustomer.first_name || ? || favouriteCustomer.last_name as "favouriteCustomer.name" from company left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id where exists(select id as result from customer where lower(first_name || ? || last_name) like lower('%' || ? || '%') escape '\\') and company.parent_id = ?`)
     expectedParams.push(`[" "," ","smith",23]`)
     expectedType.push(`selectManyRows`)
 
@@ -4086,7 +4086,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as id, company.name as name from company left outer join customer as favouriteCoustomer on company.parent_id = favouriteCoustomer.id where favouriteCoustomer.id in (select parent_id as result from company where lower(name) like lower('%' || ? || '%') escape '\\') and company.parent_id = ?`)
+    expectedQuery.push(`select company.id as id, company.name as name from company left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id where favouriteCustomer.id in (select parent_id as result from company where lower(name) like lower('%' || ? || '%') escape '\\') and company.parent_id = ?`)
     expectedParams.push(`["ACME Inc.",23]`)
     expectedType.push(`selectManyRows`)
 

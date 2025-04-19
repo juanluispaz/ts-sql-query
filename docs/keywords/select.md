@@ -4,6 +4,8 @@ search:
 ---
 # Select Keywords
 
+This page lists the SQL keywords and clauses used in `SELECT` statements, along with their corresponding methods in `ts-sql-query`. It includes support for projections, filtering, joins, ordering, pagination, aggregation, recursive queries, and compound set operations.
+
 | SQL Keyword     | ts-sql-query Equivalent                                | Notes                                                  | Link                                                    |
 |:----------------|:-------------------------------------------------------|:-------------------------------------------------------|:--------------------------------------------------------|
 | AS (in select)  | Set the alias as the propery's name in the projection  | Alias for fields.                                      | [Basic query structure](../queries/basic-query-structure.md), [Complex projections](../queries/complex-projections.md) |

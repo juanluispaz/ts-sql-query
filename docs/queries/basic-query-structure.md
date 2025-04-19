@@ -4,6 +4,8 @@ search:
 ---
 # Basic query structure
 
+This section demonstrates how to construct and execute basic `SELECT` queries using `ts-sql-query`, providing examples of different selection methods and result-handling options.
+
 ## Select one row
 
 ```ts
@@ -43,7 +45,7 @@ The `executeSelectOne` returns one result, but if it is not found in the databas
 
 ## Projecting optional values
 
-By default, when an object is returned, optional values will be projected as optional properties in TypeScript, like `birthday?: Date`; when the value is absent, the property will not be set. But, you can change this behaviour to project always-required properties that allow null values like `birthday: Date | null` where, in case there is no value, the property will be set as null. To change the behaviour, immediately after indicating the columns you want to project, you must call `projectingOptionalValuesAsNullable()`.
+By default, when an object is returned, optional values will be projected as optional properties in TypeScript, like `birthday?: Date`; when the value is absent, the property will not be set. However, you can change this behaviour so that all properties are always present, even if they contain `null`, like `birthday: Date | null` where, in case there is no value, the property will be set as null. To change this behaviour, call `projectingOptionalValuesAsNullable()` immediately after defining the projected columns with `select({...})`.
 
 ```ts
 const customerId = 10;
@@ -81,16 +83,16 @@ const customerWithId: Promise<{
 
 !!! note
 
-    Projecting always-required properties that allow null values works in the same way with insert, update or deletes if you call `projectingOptionalValuesAsNullable()` immediately after `returning(...)`, Same, as well, with `connection.aggregateAsArray(...).projectingOptionalValuesAsNullable()`.
+    Projecting always-required properties that allow null values works in the same way with insert, update or deletes if you call `projectingOptionalValuesAsNullable()` immediately after `returning(...)`. This also applies to `connection.aggregateAsArray(...).projectingOptionalValuesAsNullable()`.
 
 ## Other options
 
 You can execute the query using:
 
-- `executeSelectNoneOrOne(): Promise<RESULT | null>`: Execute the select query that returns one or no result from the database. In case of more than one result found, it throws and error with message 'Too many rows, expected only zero or one row'.
-- `executeSelectOne(): Promise<RESULT>`: Execute the select query that returns one result from the database. If no result is returned by the database an exception will be thrown.
-- `executeSelectMany(): Promise<RESULT[]>`: Execute the select query that returns zero or many results from the database
-- `executeSelectPage(): Promise<{ data: RESULT[], count: number }>`: Execute the select query that returns zero or many results from the database. Select page execute the query twice, the first one to get the data from the database and the second one to get the count of all data without the limit and the offset.
-- `executeSelectPage<EXTRAS extends {}>(extras: EXTRAS): Promise<{ data: RESULT[], count: number } & EXTRAS>`: Execute the select query as a select page, but allows to include extra properties to will be resulting object. If the object provided by argument includes the property count, the query that count the data will be omitted and this value will be used. If the object provided by argument includes the property data, the query that extract the data will be omitted and this value will be used.
+- `executeSelectNoneOrOne(): Promise<RESULT | null>`: execute the select query that returns one or no result from the database. In case of more than one result found, it throws and error with message 'Too many rows, expected only zero or one row'.
+- `executeSelectOne(): Promise<RESULT>`: execute the select query that returns one result from the database. If no result is returned by the database an exception will be thrown.
+- `executeSelectMany(): Promise<RESULT[]>`: execute the select query that returns zero or many results from the database
+- `executeSelectPage(): Promise<{ data: RESULT[], count: number }>`: executes a `SELECT` query that returns zero or more results. When using `executeSelectPage`, two queries are executed: one to retrieve the data and another to count the total number of matching rows (ignoring any `LIMIT` or `OFFSET`).
+- `executeSelectPage<EXTRAS extends {}>(extras: EXTRAS): Promise<{ data: RESULT[], count: number } & EXTRAS>`: execute the select query as a select page, but allows the resulting object to include additional custom properties. If the object provided by argument includes the property count, the query that count the data will be omitted and this value will be used. If the object provided by argument includes the property data, the query that extract the data will be omitted and this value will be used.
 
 Additionally, if you want to return the value of a single column, you can use `selectOneColumn(column)` instead of `select({...})`; or if you want to return `count(*)` as a single column, you can use `selectCountAll()`.

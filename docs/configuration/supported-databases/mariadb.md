@@ -4,7 +4,11 @@ search:
 ---
 # MariaDB
 
-The way to define which database to use is by specifying it when defining the connection, by extending the appropriate database connection class. You must choose the correct database type to ensure that the generated SQL queries follow the dialect expected by that database.
+This page describes how `ts-sql-query` integrates with **[MariaDB](https://mariadb.org)**, including dialect-specific behavior, configuration options, and available features. It covers the proper setup of a MariaDB connection, guidelines for connection management, and advanced behaviors such as ID retrieval and UUID handling.
+
+!!! info
+
+    To configure the database dialect, extend the appropriate database connection class when defining your connection. You must choose the correct database type to ensure that the generated SQL queries follow the dialect expected by that database.
 
 !!! warning "Do not share connections between requests"
 
@@ -14,15 +18,17 @@ The way to define which database to use is by specifying it when defining the co
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
+## Usage Example
+
 ```ts
 import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
 
 class DBConnection extends MariaDBConnection<'DBConnection'> { }
 ```
 
-## Last inserted id strategies
+## Insert ID Retrieval Strategies
 
-MariaBD 10.5 added support to the returning clause when insert or delete. If you set this flag to true, the insert returning last inserted id will generate the returning clause instead of use the last inserted id provided by the connector after the execution of the query.
+Starting from MariaDB 10.5, the `RETURNING` clause is supported for `INSERT` and `DELETE` statements. If you set this flag to `true`, `ts-sql-query` will use the `RETURNING` clause to retrieve the last inserted ID, instead of relying on the ID returned by the underlying connector after the query execution.
 
 ```ts
 import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
@@ -34,12 +40,12 @@ class DBConnection extends MariaDBConnection<'DBConnection'> {
 
 ## UUID strategies
 
-ts-sql-query offers you different strategies to handle UUIDs in MariaDB:
+`ts-sql-query` provides different strategies to handle UUID values in MariaDB. These strategies control how UUID values are represented in JavaScript and stored in the database.
 
-- `uuid`: *(default strategy)* In this case, the UUID is represented as string and stored in a column with `uuid` data type. This requires MariaDB 10.7 or higher.
-- `string`: In this case, the UUID is represented as string and stored in a column with `char`/`varchar`/`text` data type and length 36 characters.
+- `'uuid'` *(default strategy)*: UUIDs are treated as strings and stored using the native `UUID` column type. This requires MariaDB version 10.7 or higher.
+- `'string'`: UUIDs are treated as strings and stored in character-based columns such as `CHAR(36)`, `VARCHAR(36)`, or `TEXT`. This option can be used with older MariaDB versions or when avoiding the `UUID` type.
 
-To change the UUID strategy, you must set the `uuidStrategy` field in the connection object:
+You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
 
 ```ts
 import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";

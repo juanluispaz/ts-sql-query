@@ -4,6 +4,12 @@ search:
 ---
 # sqlite
 
+This runner provides integration with the [sqlite](https://www.npmjs.com/package/sqlite) driver, allowing `ts-sql-query` to execute queries on SQLite databases. It wraps an instance of a connected SQLite database and must be used in combination with a `ts-sql-query` connection.
+
+!!! success "Supported databases"
+
+    - [SQLite](../../supported-databases/sqlite.md)
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -12,9 +18,9 @@ search:
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-It allows to execute the queries using an [sqlite](https://www.npmjs.com/package/sqlite) connection.
+## Using a single connection
 
-**Supported databases**: sqlite
+Enables executing queries through a dedicated [sqlite](https://www.npmjs.com/package/sqlite) connection.
 
 ```ts
 import { Database } from 'sqlite3';

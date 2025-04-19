@@ -4,9 +4,9 @@ search:
 ---
 # Limitations
 
-## How to order a query by a column not returned by the select?
+## How to order by a column not returned in the SELECT projection?
 
-In ts-sql-query it used to be a limitation, but starting with ts-sql-query 1.52.0 you can do the following:
+In ts-sql-query, this was previously a limitation. However, starting with ts-sql-query 1.52.0, you can now do the following:
 
 ```ts
 const customerId = 10;
@@ -24,7 +24,7 @@ const customerWithId = connection.selectFrom(tCustomer)
 
 !!! quote "Workaround not required any more"
 
-    The `orderBy` functions only supported columns returned by the query, but you can [customize the select](../queries/sql-fragments.md#customizing-a-select) to provide a custom `order by` to your query. Example:
+    The `orderBy` functions previously only supported columns that were returned by the query. Now, you can [customize the select](../queries/sql-fragments.md#customizing-a-select) to provide a custom `order by` for your query. For example:
 
     ```ts
     const customizedSelect = connection.selectFrom(tCustomer)
@@ -39,13 +39,13 @@ const customerWithId = connection.selectFrom(tCustomer)
         .executeSelectOne()
     ```
 
-## Does ts-sql-query support window constructions?
+## Does ts-sql-query support window functions?
 
-`window` is not supported right now by ts-sql-query; `window` is a very powerful and big feature that each database implements in a very different way. There is no plan right now to support `window` constructions in ts-sql-query. Said that one recommended solution is to create a view, but if you need to use `window` constructions in your query, you can use [SQL fragments](../queries/sql-fragments.md) to archive it. Be aware `customizeQuery` function allows you to provide a window clause to your select queries if you need it.
+Currently, `window` functions are not supported by ts-sql-query. This feature is powerful and complex, with each database implementing it in different ways. At this time, there are no plans to support `window` functions in ts-sql-query. A recommended solution is to create a view; however, if you need to use `window` functions in your query, you can utilize [SQL fragments](../queries/sql-fragments.md) to achieve it. Please note that the `customizeQuery` function allows you to provide a window clause for your select queries if needed.
 
 ## How to compare against a null or undefined value?
 
-SQL support three-valued logic that doesn't exists in the same way in TypeScript/JavaScript. In early versions of ts-sql-query this was fully supported, but in our internal use, we realize that it creates a lot of troubles due to its unexpected behaviour from the TypeScript/JavaScript point of view. Because of that, operations that produce a boolean value (like comparison) that uses values from TypeScript/JavaScript were deprecated. Usually, when you what to compare against a value that can be `null` or `undefined`, you need dynamic SQL. For this usage, you have the `*IfValue` methods available, which create the condition when the provided value is not `null` or `undefined`. Otherwise, the condition is omitted (You can read more [here](../queries/dynamic-queries.md#easy-dynamic-queries)). For most of the cases, the `*IfValue` behaviour is what you need; but in some cases, you don't want the condition to be omitted in case of no value; instead, you want to use `false` as value, to do this you can do `*IfValue(...).falseWhenNoValue()`. If you want to use the SQL three-valued logic, you will need to write your custom SQL fragment like this:
+SQL supports three-valued logic, which does not exist in the same manner in TypeScript/JavaScript. In earlier versions of ts-sql-query, this was fully supported, but through our internal use, we realized it caused many issues due to its unexpected behavior from the TypeScript/JavaScript perspective. As a result, operations that produce a boolean value (such as comparisons) using values from TypeScript/JavaScript were deprecated. Typically, when you want to compare against a value that can be `null` or `undefined`, you need dynamic SQL. For this purpose, you have the `*IfValue` methods available, which create the condition when the provided value is not `null` or `undefined`. Otherwise, the condition is omitted (You can read more [here](../queries/dynamic-queries.md#easy-dynamic-queries)). In most cases, the `*IfValue` behavior is sufficient; however, in some situations, you may not want the condition to be omitted when there is no value; instead, you may want to use `false` as the value. To achieve this, you can use `*IfValue(...).falseWhenNoValue()`. If you wish to utilize SQL's three-valued logic, you will need to write your custom SQL fragment like this:
 
 ```ts
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
@@ -60,9 +60,9 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-## Select count(*) inline subquery value returns an optional value
+## How to handle optional values returned by a SELECT COUNT(*) inline subquery?
 
-In ts-sql-query it used to be a limitation, but starting with ts-sql-query 1.52.0 you can do the following:
+In ts-sql-query, this was previously a limitation. However, starting with ts-sql-query 1.52.0, you can now do the following:
 
 ```ts
 const numberOfCustomers = connection
@@ -70,12 +70,12 @@ const numberOfCustomers = connection
     .from(tCustomer)
     .where(tCustomer.companyId.equals(tCompany.id))
     .selectCountAll()
-    .forUseAsInlineQueryValue();  // At this point is a value that you can use in other query
+    .forUseAsInlineQueryValue();  // At this point, this is a value that you can use in another query
 ```
 
 !!! quote "Workaround not required any more"
 
-    When you use an inline query value, the value may return `null` due to rows matching the conditions of the table being empty, but select count(*) is the exception, and ts-sql-query is unable to detect it. To deal with this limitation, you can set the value to zero when null. Example:
+    When using an inline query value, the result may return `null` if no rows match the conditions of the table. However, `SELECT COUNT(*)` is an exception, and ts-sql-query cannot detect it. To address this limitation, you can set the value to zero when it is null. For example:
 
     ```ts
     const numberOfCustomers = connection
@@ -83,10 +83,10 @@ const numberOfCustomers = connection
         .from(tCustomer)
         .where(tCustomer.companyId.equals(tCompany.id))
         .selectOneColumn(connection.countAll())
-        .forUseAsInlineQueryValue() // At this point is a value that you can use in other query
+        .forUseAsInlineQueryValue() // At this point, this is a value that you can use in another query
         .valueWhenNull(0);
     ```
 
-## Can I put an insert/update/delete in a with clause?
+## Is it possible to include INSERT, UPDATE, or DELETE statements in a WITH clause?
 
-Nowadays, PostgreSQL is the only database supported by ts-sql-query that allows doing this, but this construction is not yet supported in ts-sql-query.
+Currently, only PostgreSQL supports including these statements in a WITH clause, but this construction is not yet supported in ts-sql-query.

@@ -4,14 +4,14 @@ search:
 ---
 # Passing tables and views as parameter
 
-If you want to pass a table or view to a function as a parameter, you must provide its type. For this purpose ts-sql-query offers you the types:
+In ts-sql-query, it's possible to pass a table or view as a parameter to a function. To do this properly, you must specify its type. This is where the utility types `TableOrViewOf` and `TableOrViewLeftJoinOf` come into play:
 
 - `TableOrViewOf`: for use with regular tables or views that allows creating a reference to the table or view.
 - `TableOrViewLeftJoinOf`: for the case, the table or view is marked for use in a left join.
 
-These types receive as first generic argument the type of the referenced table or view, and optionally as second argument the alias in case it has one. These types are the base type of the generic argument the function receives that will represent the real type.
+These types accept the referenced table or view as the first generic argument, and optionally an alias as the second. They are used as the base type for parameters that refer to a specific table or view instance.
 
-To access the columns, you will need to transform the reference into a real instance of the table or view. To do it, you will need to call the `fromRef` function and provide, as the first argument, the table or view represented by the reference (or the class of it) and, as the second argument, the referenced object.
+To access the columns of the table or view, you need to convert the reference into an actual instance using the `fromRef` function. The first argument is the table or view (or its class), and the second is the reference object.
 
 ```ts
 import { fromRef, TableOrViewLeftJoinOf, TableOrViewOf } from 'ts-sql-query/extras/types';

@@ -4,9 +4,31 @@ search:
 ---
 # SQL fragments
 
-## Select with custom SQL fragment
+This page documents the use of SQL fragments in `ts-sql-query`.
 
-SQL fragments allows to include sql in your query, that give you the possibility to do some operations not included in ts-sql-query.
+Fragments allow injecting custom SQL expressions at specific points in a query, enabling support for operations that are not covered by the built-in API. They are intended for advanced use cases where database-specific features or unsupported syntax need to be expressed manually, while maintaining type safety.
+
+The following mechanisms are supported:
+
+- `fragmentWithType`: injects raw SQL expressions with declared type and nullability.
+- `buildFragmentWithArgs`: defines reusable fragments with arguments.
+- `buildFragmentWithArgsIfValue`: adds conditional logic to omit fragments based on null or undefined inputs.
+- `buildFragmentWithMaybeOptionalArgs`: infers nullability of the result based on the arguments provided.
+- `rawFragment`: inserts raw SQL without type guarantees.
+- `createTableOrViewCustomization`: defines alternative renderings for table or view references.
+- `customizeQuery`: customizes the generated SQL for `SELECT`, `INSERT`, `UPDATE`, and `DELETE` statements.
+
+Each feature is described in its own section with examples of usage, generated SQL, and type inference.
+
+## Defining custom SQL expressions
+
+This section describes how to define custom SQL expressions that can be used inside queries. These expressions are implemented as fragments and behave like inline SQL functions, enabling support for database-specific operators or operations not directly supported by `ts-sql-query`.
+
+Fragments can be defined with fixed arguments, conditional logic based on optional values, or inferred nullability depending on the input. All of them preserve type safety and integrate seamlessly with the rest of the query building process.
+
+### Inline fragments
+
+SQL fragments allow you to inject raw SQL into your queries, enabling operations not natively supported by `ts-sql-query`.
 
 ```ts
 const id = 10;
@@ -37,9 +59,9 @@ const customersUsingCustomFragment: Promise<{
 } | null>
 ```
 
-## Select with custom reusable SQL fragment
+### Reusable fragments
 
-You can define functions in your connection that create custom reusable SQL fragments, that give you the possibility to do some operations or functions not included in ts-sql-query.
+You can define functions in your connection that create custom reusable SQL fragments, that let you express operations or functions not available through the default API.
 
 If you define your connection like:
 
@@ -93,11 +115,11 @@ const companiesUsingCustomFunctionFragment: Promise<{
 }[]>
 ```
 
-## Select with custom reusable SQL fragment if value
+### Conditional fragments
 
-You can define functions in your connection that create custom reusable SQL fragments that have the same behaviour of the functions with name ended with `IfValue`, that give you the possibility to do some operations or functions not included in ts-sql-query.
+You can define functions in your connection that create custom reusable SQL fragments that behave like functions whose names end with `IfValue`, that let you express operations or functions not available through the default API.
 
-ts-sql-query offers many commodity methods with name ended with `IfValue` to build dynamic queries; these methods allow to be ignored when the values specified by argument are `null` or `undefined` or an empty string (only when the `allowEmptyString` flag in the connection is not set to true, that is the default behaviour). When these methods are used in operations that return booleans value, ts-sql-query is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
+`ts-sql-query` provides several helper methods whose names end in `IfValue` to build dynamic queries; these methods allow to be ignored when the values specified by argument are `null` or `undefined` or an empty string (only when the `allowEmptyString` flag in the connection is not set to true, that is the default behaviour). When these methods are used in operations that return booleans value, `ts-sql-query` is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
 
 The method `buildFragmentWithArgsIfValue` allows you to create a function, where if any optional value argument receives `null` or `undefined` or an empty string, the execution of the provided function is omitted.
 
@@ -119,7 +141,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
-You will define the function `bitwiseShiftLeft` that receives two `int` as argument and returns an `int`; these arguments can be numbers or elements in the database that represent integer numbers. If you create the argument using the function `valueArg` instead of the `arg` function, the defined function will accept values only but not database elements. You can use the defined function as a regular database function in your query.
+You will define the function `valuePlusOneEqualsIfValue` that receives one `int` and one optional `int`, and returns a boolean expression. These arguments can be numbers or database elements. The function is skipped automatically when the optional argument is null or undefined.
 
 ```ts
 const noValue = null
@@ -152,9 +174,9 @@ const companiesUsingCustomFunctionFragment: Promise<{
 }[]>
 ```
 
-## Select with custom reusable SQL fragment (maybe optional)
+### Nullable fragments
 
-You can define functions in your connection that create custom reusable SQL fragments that detect if the returned value is required or optional based on the provided arguments, that give you the possibility to do some operations or functions not included in ts-sql-query allowing to have overloaded version where the returned type can be required or optional.
+You can define functions in your connection that create custom reusable SQL fragments that detect if the returned value is required or optional based on the provided arguments, that give you the possibility to do some operations or functions not included in `ts-sql-query` allowing to have overloaded version where the returned type can be required or optional.
 
 If you define your connection like:
 
@@ -178,10 +200,15 @@ You will define the function `bitwiseShiftLeft` that receives two `int` as argum
 
 !!! warning
 
-    All arguments that can be optional must be marked as optional; the return fragment must be marked as optional.
+    When using `buildFragmentWithMaybeOptionalArgs`, you must ensure that:
+    
+    - All arguments that might be omitted are explicitly marked as `optional`.
+    - The return fragment must also be declared as `optional`.
+
+    Otherwise, type inference will not correctly reflect the presence of optional values in the resulting expression.
 
 ```ts
-const bitwiseMovements = null;
+const bitwiseMovements: number | null = null;
 const multiplier = 2;
 
 const companiesUsingCustomFunctionFragment = connection.selectFrom(tCompany)
@@ -210,9 +237,9 @@ const companiesUsingCustomFunctionFragment: Promise<{
 }[]>
 ```
 
-## Raw SQL
+### Raw fragments
 
-ts-sql-query offers you to write raw sql to extends and customize the generated queries in several places
+`ts-sql-query` allows you to write raw SQL to extend and customize the generated queries in several places.
 
 ```ts
 const from = this.const(new Date('2019-01-01'), 'localDateTime')
@@ -224,7 +251,7 @@ const fragment = connection.rawFragment`between ${from} and ${to}`
 
 Some databases offer additional features that require writing the table name in some way in the from clause. For example, Sql Server and MariaDB have temporal tables that track all the changes in a table, allowing you to query a row with its values at a specific moment in time. For use temporal tables, when you refer to the table in the from, you must indicate the moment in time that you want to query. Oracle offers something similar called "Oracle Flashback Technology", but with a different syntax.
 
-ts-sql-query allows you to customize the SQL required to use the table, allowing you to use features not already supported by ts-sql-query like the temporal tables. To do it, you must call the `createTableOrViewCustomization` in the connection to create a function that performs that task. This method receives as an argument a function that must return the raw fragment of the SQL; this function receives as arguments the table name and the alias; any other argument will be included in the generated function. The generated function receives as first argument the table or view, as second argument a name for the customization, and any other argument required by the previous function.
+`ts-sql-query` allows you to customize the SQL required to use the table, allowing you to use features not already supported by `ts-sql-query` like the temporal tables. To do it, you must call the `createTableOrViewCustomization` in the connection to create a function that performs that task. This method receives as an argument a function that must return the raw fragment of the SQL; this function receives as arguments the table name and the alias; any other argument will be included in the generated function. The generated function receives as first argument the table or view, as second argument a name for the customization, and any other argument required by the previous function.
 
 **Example**:
 
@@ -274,23 +301,32 @@ const customerInSystemTime: Promise<{
 }[]>
 ```
 
-## Customizing a select
+## Customizing queries with raw SQL
 
-The method `customizeQuery` offers you to inject raw fragments of SQL in the query, allowing you to extend its functionality when the required feature is not supported by ts-sql-query API.
+When you need to inject custom SQL that is not supported natively by `ts-sql-query`,
+you can use the method `customizeQuery`. This method allows you to insert raw fragments at well-defined points in the query, without breaking type safety or the fluent interface.
 
-The supported extension point offered by `customizeQuery` are:
+Each type of SQL operation (`select`, `insert`, `update`, `delete`) has its own set of supported customization points.
 
-- `afterSelectKeyword`: Place the fragment immediately after the `select` keyword.
-- `beforeColumns`: Place the fragment immediately before the column list and after the `distinct` keyword.
-- `customWindow`: Place the fragment as a `window` clause (the `window` keyboard will be added automatically).
-- `beforeOrderByItems`: Place the fragment before the `order by` items produced by the query (the `order by` keyboard and the required commas will be added automatically).
-- `afterOrderByItems`: Place the fragment after the `order by` items produced by the query (the `order by` keyboard and the required commas will be added automatically).
-- `beforeQuery`: Place the fragment at the beginning of the query.
-- `afterQuery`: Place the fragment at the end of the query.
-- `beforeWithQuery`: Place the fragment in the with clause (when the query is marked `forUseInQuery`) immediately after the `as` keyboard and before the open parenthesis that contains the query.
-- `afterWithQuery`: Place the fragment in the with clause (when the query is marked `forUseInQuery`) immediately after the close parenthesis that contains the query.
-- `queryExecutionName`: Informative name for the query execution.
-- `queryExecutionMetadata`: Additional metadata for the query execution.
+### Customizing a select
+
+The method `customizeQuery` offers you to inject raw fragments of SQL in the query, allowing you to extend its functionality when the required feature is not supported by `ts-sql-query` API.
+
+The extension points supported by the `customizeQuery` method for a `SELECT` query are:
+
+| Extension Point         | Description                                                                 |
+|-------------------------|-----------------------------------------------------------------------------|
+| `afterSelectKeyword`    | Place the fragment immediately after the `SELECT` keyword.                  |
+| `beforeColumns`         | Place the fragment before the column list, after `DISTINCT`.                |
+| `customWindow`          | Add a `WINDOW` clause (the keyword is added automatically).                 |
+| `beforeOrderByItems`    | Place the fragment before the `ORDER BY` items (with correct commas).       |
+| `afterOrderByItems`     | Place the fragment after the `ORDER BY` items (with correct commas).        |
+| `beforeQuery`           | Place the fragment at the beginning of the query.                           |
+| `afterQuery`            | Place the fragment at the end of the query.                                 |
+| `beforeWithQuery`       | Insert in `WITH` clause before the subquery’s opening parenthesis.          |
+| `afterWithQuery`        | Insert in `WITH` clause after the subquery’s closing parenthesis.           |
+| `queryExecutionName`    | Assign a human-readable name for query execution.                           |
+| `queryExecutionMetadata`| Attach metadata to the query execution.                                     |
 
 ```ts
 const customizedSelect = connection.selectFrom(tCustomer)
@@ -327,15 +363,17 @@ const customizedSelect: Promise<{
 }>
 ```
 
-## Customizing an insert
+### Customizing an insert
 
-The supported extension point offered by `customizeQuery` method for an insert are:
+The extension points supported by the `customizeQuery` method for an `INSERT` query are:
 
-- `afterInsertKeyword`: Place the fragment immediately after the `insert` keyword.
-- `beforeQuery`: Place the fragment at the beginning of the query.
-- `afterQuery`: Place the fragment at the end of the query.
-- `queryExecutionName`: Informative name for the query execution.
-- `queryExecutionMetadata`: Additional metadata for the query execution.
+| Extension Point         | Description                                                           |
+|-------------------------|-----------------------------------------------------------------------|
+| `afterInsertKeyword`    | Place the fragment immediately after the `INSERT` keyword.            |
+| `beforeQuery`           | Place the fragment at the beginning of the query.                     |
+| `afterQuery`            | Place the fragment at the end of the query.                           |
+| `queryExecutionName`    | Assign a human-readable name for query execution.                     |
+| `queryExecutionMetadata`| Attach metadata to the query execution.                               |
 
 ```ts
 const customizedInsert = connection.insertInto(tCustomer).set({
@@ -362,15 +400,17 @@ The result type is:
 const customizedInsert: Promise<number>
 ```
 
-## Customizing an update
+### Customizing an update
 
-The supported extension point offered by `customizeQuery` method for an update are:
-
-- `afterUpdateKeyword`: Place the fragment immediately after the `update` keyword.
-- `beforeQuery`: Place the fragment at the beginning of the query.
-- `afterQuery`: Place the fragment at the end of the query.
-- `queryExecutionName`: Informative name for the query execution.
-- `queryExecutionMetadata`: Additional metadata for the query execution.
+The extension points supported by the `customizeQuery` method for an `UPDATE` query are:
+ 
+| Extension Point         | Description                                                           |
+|-------------------------|-----------------------------------------------------------------------|
+| `afterUpdateKeyword`    | Place the fragment immediately after the `UPDATE` keyword.            |
+| `beforeQuery`           | Place the fragment at the beginning of the query.                     |
+| `afterQuery`            | Place the fragment at the end of the query.                           |
+| `queryExecutionName`    | Assign a human-readable name for query execution.                     |
+| `queryExecutionMetadata`| Attach metadata to the query execution.                               |
 
 ```ts
 const customizedUpdate = connection.update(tCustomer).set({
@@ -399,15 +439,17 @@ The result type is:
 const customizedUpdate: Promise<number>
 ```
 
-## Customizing a delete
+### Customizing a delete
 
-The supported extension point offered by `customizeQuery` method for a delete are:
+The extension points supported by the `customizeQuery` method for a `DELETE` query are:
 
-- `afterDeleteKeyword`: Place the fragment immediately after the `delete` keyword.
-- `beforeQuery`: Place the fragment at the beginning of the query.
-- `afterQuery`: Place the fragment at the end of the query.
-- `queryExecutionName`: Informative name for the query execution.
-- `queryExecutionMetadata`: Additional metadata for the query execution.
+| Extension Point         | Description                                                           |
+|-------------------------|-----------------------------------------------------------------------|
+| `afterDeleteKeyword`    | Place the fragment immediately after the `DELETE` keyword.            |
+| `beforeQuery`           | Place the fragment at the beginning of the query.                     |
+| `afterQuery`            | Place the fragment at the end of the query.                           |
+| `queryExecutionName`    | Assign a human-readable name for query execution.                     |
+| `queryExecutionMetadata`| Attach metadata to the query execution.                               |
 
 ```ts
 const customizedDelete = connection.deleteFrom(tCustomer)

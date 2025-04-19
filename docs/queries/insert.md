@@ -4,6 +4,8 @@ search:
 ---
 # Insert
 
+This page explains how to construct SQL `INSERT` statements using `ts-sql-query`. It covers single and multiple inserts, inserts from `SELECT`, column shape mapping, value manipulation methods, and how to handle conflicts using `onConflictDoNothing` or `onConflictDoUpdateSet` for upsert behavior.
+
 ## Insert one row
 
 ```ts
@@ -193,7 +195,7 @@ const insertCustomer: Promise<number>
 
 ## Insert multiple with value' shape
 
-You can specify the object's shape that contains the values to insert. This shape allows you to map each property in the values to insert with the columns in the table; in that way, the property in the value doesn't need to have the same name. The only values to be inserted are the ones included in the shape. Additionally, you can extend the shape later to allow set additional properties in future set over this query. Be aware the shape can be a subset of the required columns; in that case, you will get a compilation error (you will not be able to call the execute methods) if you don't extend the shape by adding the missing keys and setting the proper values.
+You can specify the object's shape that contains the values to insert. This shape allows you to map each property in the values to insert with the columns in the table; in that way, the property in the value doesn't need to have the same name. The only values to be inserted are the ones included in the shape. Additionally, you can extend the shape later to allow set additional properties in future set over this query. Be aware the shape can be a subset of the required columns. If any required column is missing, you will get a compilation error and the query execution methods (such as `executeInsert()`) will not be available if you don't extend the shape by adding the missing keys and setting the proper values.
 
 ```ts
 const customersToInsert = [
@@ -240,7 +242,7 @@ const insertMultipleCustomers: Promise<number[]>
 
 ## Manipulating values to insert
 
-ts-sql-qeury offers many commodity methods to manipulate the data to insert, allowing adding missing values, deleting undesired values, or throwing an error if a value is present.
+`ts-sql-query` offers many commodity methods to manipulate the data to insert, allowing adding missing values, deleting undesired values, or throwing an error if a value is present.
 
 When you write your insert query, you set the initial value calling:
 
@@ -283,7 +285,7 @@ interface InsertExpression {
      */
     setIfSetIfValue(columns: OptionalInsertSets): this
     /** 
-     * Set a unset value (only if the value was not previously set).
+     * Set a value only if it was not previously set.
      */
     setIfNotSet(columns: InsertSets): this
     /** 
@@ -339,7 +341,7 @@ interface InsertExpression {
      */
     keepOnly(...columns: string[]): this
     /** 
-     * Unset the listed columns if them has value to set.
+     * Unset the listed columns if they have a value to set.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
@@ -387,7 +389,7 @@ interface InsertExpression {
     disallowIfNoValue(errorMessage: string, ...columns: string[]): this
     disallowIfNoValue(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the any other set except the provided column list
+     * Throw an error if any column other than the ones listed is set
      */
     disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSet(error: Error, ...columns: string[]): this
@@ -490,7 +492,7 @@ interface InsertExpression {
      */
     keepOnly(...columns: string[]): this
     /** 
-     * Unset the listed columns if them has value to set.
+     * Unset the listed columns if they have a value to set.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
@@ -538,7 +540,7 @@ interface InsertExpression {
     disallowIfNoValue(errorMessage: string, ...columns: string[]): this
     disallowIfNoValue(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the any other set except the provided column list
+     * Throw an error if any column other than the ones listed is set
      */
     disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSet(error: Error, ...columns: string[]): this
@@ -675,7 +677,7 @@ const insertReturningCustomerData: Promise<{
 
 !!! note
 
-    - On `PostgreSql` and `Sqlite`, you can specify `where` clause that idicates when the update must be permormed.
+    - On `PostgreSql` and `Sqlite`, you can specify a `where` clause that idicates when the update must be permormed.
     - On `PostgreSql` and `Sqlite`, you can specify the columns that can create the conflict (including a `where` clause for that columns).
     - On `PostgreSql` you can specify the constraint name that raise the conflict.
     - You can combine this with other insert's features, e.g. return some columns.

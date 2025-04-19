@@ -2,9 +2,13 @@
 search:
   boost: 0.59
 ---
-# MySql
+# MySQL
 
-The way to define which database to use is by specifying it when defining the connection, by extending the appropriate database connection class. You must choose the correct database type to ensure that the generated SQL queries follow the dialect expected by that database.
+This page describes how `ts-sql-query` integrates with **[MySQL](https://www.mysql.com)**, including dialect-specific behavior, configuration options, and available features. It covers the proper setup of a MySQL connection, guidelines for connection management, and advanced behaviors such as UUID handling.
+
+!!! info
+
+    To configure the database dialect, extend the appropriate database connection class when defining your connection. You must choose the correct database type to ensure that the generated SQL queries follow the dialect expected by that database.
 
 !!! warning "Do not share connections between requests"
 
@@ -14,6 +18,8 @@ The way to define which database to use is by specifying it when defining the co
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
+## Usage Example
+
 ```ts
 import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
 
@@ -22,12 +28,12 @@ class DBConnection extends MySqlConnection<'DBConnection'> { }
 
 ## UUID strategies
 
-ts-sql-query offers you different strategies to handle UUIDs in MySql:
+`ts-sql-query` provides different strategies to handle UUID values in MariaDB. These strategies control how UUID values are represented in JavaScript and stored in the database.
 
-- `binary`: *(default strategy)* In this case, the UUID is represented and stored as `binary` data type of lenght 16. This requires MySql 8 as minimum.
-- `string`: In this case, the UUID is represented as string and stored in a column with `char`/`varchar`/`text` data type and length 36 characters.
+- `'uuid'` *(default strategy)*: UUIDs are treated as strings and stored using the native `BINARY` column type. This requires MySQL version 8 or higher.
+- `'string'`: UUIDs are treated as strings and stored in character-based columns such as `CHAR(36)`, `VARCHAR(36)`, or `TEXT`. This option can be used with older MySQL versions or when avoiding the `BINARY` type.
 
-To change the UUID strategy, you must set the `uuidStrategy` field in the connection object:
+You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
 
 ```ts
 import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
@@ -39,9 +45,9 @@ class DBConnection extends MySqlConnection<'DBConnection'> {
 
 ## Compatibility mode
 
-The compatibility mode avoid to use with clasue to increase the compatibility with MySql 5.
+The compatibility mode avoids using the `WITH` clause to increase the compatibility with MySql 5.
 
-By default the compatibility mode is disabled. To enable the compatibility mode you must set the `compatibilityMode` property of the connection to true.
+By default the compatibility mode is disabled. To enable the compatibility mode, you must set the `compatibilityMode` property of the connection to true.
 
 ```ts
 import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";

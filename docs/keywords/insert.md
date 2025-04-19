@@ -4,6 +4,8 @@ search:
 ---
 # Insert Keywords
 
+This page lists the SQL keywords and clauses used in `INSERT` statements, along with their corresponding methods in `ts-sql-query`. It covers single and multi-row inserts, inserts from `SELECT`, default values, conflict resolution strategies (like `ON CONFLICT` or `ON DUPLICATE KEY`), and returning inserted rows.
+
 | SQL Keyword                    | ts-sql-query Equivalent                               | Notes                                                                                    | Link                                                 |
 |:-------------------------------|:------------------------------------------------------|:-----------------------------------------------------------------------------------------|:-----------------------------------------------------|
 | EXCLUDED                       | table `.valuesForInsert()`                            | Refers to the value that was attempted to be inserted during an upsert conflict.         | [Insert on conflict do update ("upsert")](../queries/insert.md#insert-on-conflict-do-update-upsert), [Insert API](../api/insert.md) |

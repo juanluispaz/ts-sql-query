@@ -4,6 +4,8 @@ search:
 ---
 # Select API
 
+This API defines how to construct SQL `SELECT` statements using a fluent interface in `ts-sql-query`. It supports filtering, ordering, pagination, grouping, and joining tables. It also provides support for compound and recursive queries, as well as integration with advanced features like Oracle's `CONNECT BY` or database-specific query customizations.
+
 The select query definition must follow the logical order or the alternative order:
 
 - **Logical order**: from, join, **WHERE**, **group by**, **having**, **select**, order by, limit, offset, customizeQuery
@@ -193,7 +195,9 @@ interface SelectExpression {
         queryExecutionMetadata?: any
     }): this
 }
+```
 
+```ts
 /**
  * Modes of sorting in an order by.
  * If the database don't support one of then it will be emulated.
@@ -201,7 +205,9 @@ interface SelectExpression {
 type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc nulls first' | 'desc nulls last' | 'insensitive' |
                    'asc insensitive' | 'desc insensitive' | 'asc nulls first insensitive' | 'asc nulls last insensitive' | 
                    'desc nulls first insensitive' | 'desc nulls last insensitive'
+```
 
+```ts
 /**
  * Select projection of the value that vill be retreived from the database.
  * 

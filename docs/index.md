@@ -25,9 +25,9 @@ search:
 
 ## What is ts-sql-query?
 
-ts-sql-query is a type-safe query builder that provides a way to build dynamic SQL queries in a type-safe way, that means, the TypeScript compiler verifies the queries. 
+`ts-sql-query` is a type-safe SQL query builder for TypeScript. It allows you to write dynamic queries with full type safety — meaning that the TypeScript compiler can validate your queries at compile time.
 
-Type-safe SQL means the mistakes writing a query will be detected during the compilation time. With ts-sql-query you don't need to be affraid of change the database, the problems caused by the change will be detected during compilation time.
+Type-safe SQL means that mistakes in your queries are caught at compile time. With `ts-sql-query`, you can safely refactor your database schema: any issues will be surfaced immediately by the compiler.
 
 !!! note ""
 
@@ -39,14 +39,14 @@ Type-safe SQL means the mistakes writing a query will be detected during the com
 
 There are many libraries available in JavaScript/TypeScript that allows querying a SQL database, but they are typically:
 
-- ORM doesn't allow to take advantage of the full potential of the database.
-- String concatenation utilities in the way of query builders.
-- Utilities designed without have type-safe criteria.
-- Utilities not designed to write dynamic queries in an easy way.
+- ORMs often limit direct control over SQL and can obscure database capabilities.
+- Many query builders rely on fragile string concatenation.
+- Some libraries lack proper type-safety integration.
+- Most tools make it hard to write truly dynamic SQL in a safe and expressive way.
 
-ts-sql-query addresses these inconveniences, providing you with a library that allows you to query the database in a type-safe way, with SQL in mind, and with many helpers to create dynamic queries.
+`ts-sql-query` addresses these issues by providing a type-safe, SQL-centric API, with rich support for building dynamic queries in a declarative style.
 
-## Supoported databases
+## Supported Databases
 
 - MariaDB
 - MySql
@@ -55,7 +55,7 @@ ts-sql-query addresses these inconveniences, providing you with a library that a
 - Sqlite 
 - SqlServer
 
-ts-sql-query uses a single dialect modeled after Sqlite and PostgreSql, adapting the naming to what is common in JavaScript, that generates the proper SQL for the target database.
+`ts-sql-query` uses a unified dialect inspired by SQLite and PostgreSQL, with naming conventions adapted to JavaScript. It automatically generates the correct SQL for your target database.
 
 ## Install
 
@@ -65,7 +65,7 @@ Install with [npm](https://www.npmjs.com/):
 $ npm install --save ts-sql-query
 ```
 
-ts-sql-query doesn't expose a global export; instead, you need import specific files refered in this documentation according to the functionality you need. Only the files included in this documentation are considered public; then, don't reference explicitly files outside of the following:
+`ts-sql-query` does not expose a global export. Instead, you should import specific modules as described in the documentation, depending on the features you need. Only the modules listed below are considered part of the public API — avoid importing from any other internal paths, as they may change without prior notice:
 
 - `ts-sql-query/Connection`
 - `ts-sql-query/Table`

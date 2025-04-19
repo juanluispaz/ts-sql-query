@@ -4,6 +4,8 @@ search:
 ---
 # Constant values view API
 
+This API allows you to define and use constant values as if they were a virtual table or view in your queries. These values can be used to simulate joins with static data, define fragments, or structure expressions that act like inline tables. The API supports different types of fields, including nullable and non-nullable values, as well as custom and virtual columns.
+
 ```ts
 interface Values {
     /** Allows to define an alias for the view to be used in the selects queries */

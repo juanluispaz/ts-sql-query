@@ -4,8 +4,8 @@ search:
 ---
 # API Introduction
 
-The most common operations over the data are suported by ts-sql-query; in the case the database don't support it, an emulation is provided, if an emulation is not possible you will get an error during the compilation of your source code.
+The most common operations on data are supported by ts-sql-query. When a database does not support a specific feature, ts-sql-query attempts to emulate it within the generated SQL. If that is not possible, a compile-time error will be raised in your source code.
 
-Some API are fluent API, that means, every function you call returns an object that contains the functions that you can call in that step. 
+Some parts of the API follow a fluent interface design, meaning that each method returns an object exposing the next valid operations for that stage of the query.
 
-Here is shown a simplified version of the ts-sql-query APIs.
+Below is a simplified overview of the ts-sql-query APIs.

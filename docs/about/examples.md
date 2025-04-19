@@ -8,7 +8,7 @@ You can find a complete example using ts-sql-query with PostgreSQL in the file [
 
 **Running examples:**
 
-The first time You download the project:
+The first time you download the project:
 
 ```sh
 npm install
@@ -35,4 +35,4 @@ npx ts-node ./src/examples/SqliteExample.ts
 
 !!! note "Be aware"
 
-    All examples excepting Sqlite requires a specific docker image with the database running; see [scripts/run-all-examples.sh](https://github.com/juanluispaz/ts-sql-query/blob/master/scripts/run-all-examples.sh) for more details.
+    All examples excepting Sqlite require a specific docker image with the database running; see [scripts/run-all-examples.sh](https://github.com/juanluispaz/ts-sql-query/blob/master/scripts/run-all-examples.sh) for more details.

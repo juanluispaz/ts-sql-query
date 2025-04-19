@@ -4,6 +4,21 @@ search:
 ---
 # ConsoleLogNoopQueryRunner
 
+A query runner that simulates a database connection by logging all queries to the console using `console.log`, and always returns empty results.
+
+!!! success "Supported databases"
+
+    - [MariaDB](../../supported-databases/mariadb.md)
+    - [MySQL](../../supported-databases/mysql.md)
+    - [Oracle](../../supported-databases/oracle.md)
+    - [PostgreSQL](../../supported-databases/postgresql.md)
+    - [SQLite](../../supported-databases/sqlite.md)
+    - [SQL Server](../../supported-databases/sqlserver.md)
+
+!!! tip
+
+    `ConsoleLogNoopQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -12,9 +27,7 @@ search:
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-A fake connections that write all the queries to the standard output using `console.log` and returns an empty result.
-
-**Supported databases**: mariaDB, mySql, oracle, postgreSql, sqlite, sqlServer
+## Usage Example
 
 ```ts
 import { ConsoleLogNoopQueryRunner } from "ts-sql-query/queryRunners/ConsoleLogNoopQueryRunner";
@@ -24,7 +37,3 @@ async function main() {
     // Do your queries here
 }
 ```
-
-!!! tip
-
-    `ConsoleLogNoopQueryRunner` supports synchronous query execution. See [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.

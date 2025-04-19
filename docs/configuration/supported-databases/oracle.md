@@ -4,7 +4,11 @@ search:
 ---
 # Oracle
 
-The way to define which database to use is by specifying it when defining the connection, by extending the appropriate database connection class. You must choose the correct database type to ensure that the generated SQL queries follow the dialect expected by that database.
+This page describes how `ts-sql-query` integrates with **[Oracle](https://www.oracle.com/database/)**, including dialect-specific behavior, configuration options, and available features. It covers the proper setup of a Oracle connection, guidelines for connection management, and advanced behaviors such as UUID handling.
+
+!!! info
+
+    To configure the database dialect, extend the appropriate database connection class when defining your connection. You must choose the correct database type to ensure that the generated SQL queries follow the dialect expected by that database.
 
 !!! warning "Do not share connections between requests"
 
@@ -13,6 +17,8 @@ The way to define which database to use is by specifying it when defining the co
     Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
+
+## Usage Example
 
 ```ts
 import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
@@ -26,12 +32,12 @@ class DBConnection extends OracleConnection<'DBConnection'> { }
 
 ## UUID strategies
 
-ts-sql-query offers you different strategies to handle UUIDs in Sqlite:
+`ts-sql-query` provides different strategies to handle UUID values in Oracle. These strategies control how UUID values are represented in JavaScript and stored in the database.
 
-- `custom-functions`: *(default strategy)* In this case, the UUID is represented and stored as `raw` data type of lenght 16. This requires you must define in the database the functions `uuid_to_raw` and `raw_to_uuid` that allows to transform the uuid string to a raw value.
-- `string`: In this case, the UUID is represented as string and stored in a column with `char` data type and length 36 characters.
+- `'uuid'` *(default strategy)*: UUIDs are treated as strings and stored using the native `RAW(16)` column type. This requires that the database includes the functions `uuid_to_raw` and `raw_to_uuid`, which handle the conversion between UUID strings and RAW values.
+- `'string'`: UUIDs are treated as strings and stored in character-based columns such as `CHAR(36)`, `VARCHAR(36)`, or `TEXT`.
 
-To change the UUID strategy, you must set the `uuidStrategy` field in the connection object:
+You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
 
 ```ts
 import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
@@ -45,7 +51,7 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 
 The `custom-functions` required `uuid_to_raw` and `raw_to_uuid` functions exists in the database.
 
-An implemntation of these functions based on [binary-uuid](https://github.com/odo-network/binary-uuid) and optimized fo UUID v1 is:
+An implementation of these functions based on [binary-uuid](https://github.com/odo-network/binary-uuid) and optimized for UUID v1 is:
 
 ```sql
 CREATE FUNCTION uuid_to_raw(uuid IN char) RETURN raw IS

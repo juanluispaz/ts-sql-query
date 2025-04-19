@@ -4,7 +4,16 @@ search:
 ---
 # Select page
 
-Select page execute the query twice, the first one to get the data from the database and the second one to get the count of all data without the limit and the offset.
+This feature provides a convenient way to retrieve paginated data along with the total number of matching rows. Internally, it executes two SQL queries: one for fetching the page of data and another for counting all rows that match the same filter conditions. This is especially useful for implementing efficient and consistent pagination in user interfaces.
+
+!!! success "Executed queries"
+
+    The `executeSelectPage()` method runs the query **twice** behind the scenes:
+
+    - The first execution fetches the **current page** of data, applying the specified `LIMIT`, `OFFSET`, and `ORDER BY` clauses.
+    - The second execution runs the **same query without pagination**, in order to count the **total number of matching rows**.
+
+    This dual-query strategy ensures consistent pagination, which is particularly useful for displaying data in user interfaces with accurate page controls (e.g., “Showing 21–30 of 146 results”).
 
 ```ts
 const customerName = 'Smi'

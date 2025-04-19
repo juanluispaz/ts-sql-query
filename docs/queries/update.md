@@ -4,6 +4,8 @@ search:
 ---
 # Update
 
+This page explains how to construct SQL `UPDATE` statements using `ts-sql-query`. It covers conditional updates, shape-based value mappings, updating with data from other tables, returning updated or previous values, and manipulating sets of columns dynamically during the update process.
+
 ## General update
 
 ```ts
@@ -30,9 +32,9 @@ The result type is a promise with the number of updated rows:
 const updateCustomer: Promise<number>
 ```
 
-**Security constraint**:
+!!! danger "Security constraint"
 
-ts-sql-query will reject the execution of the update sentence if, for some reason ended without a where. If you want to allow an update without where, you must call `connection.updateAllowingNoWhere` instead of `connection.update` when you start writing the sentence.
+    `ts-sql-query` will reject the execution of the update sentence if, for some reason, ended without a `WHERE` clause. If you want to allow an update without where, you must call `connection.updateAllowingNoWhere(...)` instead of `connection.update(...)` when you start writing the sentence.
 
 ## Update returning
 
@@ -150,7 +152,7 @@ const addACMECompanyNameToLastName: Promise<number>
 
 ## Bulk update
 
-Sometimes you want to do serveral updates in a single query, where each one have their own data; for this cases you can [map the constant values as view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the update. This is only supported by `PostgreSql`, `SqlServer` and `Sqlite`.
+Sometimes you want to do several updates in a single query, where each one have their own data; for this cases you can [map the constant values as view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the update. This is only supported by `PostgreSql`, `SqlServer` and `Sqlite`.
 
 ```ts
 class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
@@ -219,7 +221,7 @@ const updateCustomer = connection.update(tCustomer)
     .set({
         newCompanyId: currentCompanyId
     })
-    // If you included the customerId in the data, the you should be able to do:
+    // If you included the customerId in the data, then you should be able to do:
     // .where(tCustomer.id.equals(customerData.customerId))
     .where(tCustomer.id.equals(customerId))
     .executeUpdate()
@@ -251,7 +253,7 @@ const shapedUpdateCustomerNameAndCompanyName = {
     companyName: 'ACME Inc.'
 }
 
-const shapedUpdateCustomerNameAndCompanyNameResult = await connection.update(tCustomer)
+const shapedUpdateCustomerNameAndCompanyNameResult = connection.update(tCustomer)
     .innerJoin(tCompany).on(tCustomer.companyId.equals(tCompany.id))
     .shapedAs({
         customerFirstName: tCustomer.firstName,
@@ -280,7 +282,7 @@ const shapedUpdateCustomerNameAndCompanyNameResult: Promise<number>
 
 ## Manipulating values to update
 
-ts-sql-qeury offers many commodity methods to manipulate the data to update, allowing adding missing values, deleting undesired values, or throwing an error if a value is present.
+`ts-sql-query` offers many commodity methods to manipulate the data to update, allowing adding missing values, deleting undesired values, or throwing an error if a value is present.
 
 When you write your update query, you set the initial value calling:
 
@@ -312,7 +314,7 @@ interface UpdateExpression {
      * that is the default behaviour) or an empty array
      */
     setIfSetIfValue(columns: OptionalUpdateSets): this
-    /** Set a unset value (only if the value was not previously set) */
+    /** Set a value only if it was not previously set. */
     setIfNotSet(columns: UpdateSets): this
     /** 
      * Set a unset value only if the provided value is not null, undefined, empty string 
@@ -362,7 +364,7 @@ interface UpdateExpression {
     /** Keep only the listed columns previous set */
     keepOnly(...columns: string[]): this
     /** 
-     * Unset the listed columns if them has value to set.
+     * Unset the listed columns if they have a value to set.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 

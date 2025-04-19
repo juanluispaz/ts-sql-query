@@ -4,6 +4,12 @@ search:
 ---
 # mssql
 
+This page explains how to use `ts-sql-query` with the [mssql](https://www.npmjs.com/package/mssql) driver. It covers two approaches: using a connection pool promise or using a connection pool.
+
+!!! success "Supported databases"
+
+    - [SQL Server](../../supported-databases/sqlserver.md)
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -12,11 +18,9 @@ search:
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-## mssql (with a connection pool promise)
+## Using a connection pool promise
 
-It allows to execute the queries using a [mssql](https://www.npmjs.com/package/mssql) connection pool promise.
-
-**Supported databases**: sqlServer
+Enables executing queries through a [mssql](https://www.npmjs.com/package/mssql) connection obtained from a pool promise.
 
 ```ts
 import { ConnectionPool } from 'mssql'
@@ -35,9 +39,9 @@ async function main() {
 }
 ```
 
-## mssql (with a connection pool)
+## Using a connection pool
 
-It allows to execute the queries using a [mssql](https://www.npmjs.com/package/mssql) connection pool.
+Enables executing queries through a [mssql](https://www.npmjs.com/package/mssql) connection obtained from a pool.
 
 **Supported databases**: sqlServer
 

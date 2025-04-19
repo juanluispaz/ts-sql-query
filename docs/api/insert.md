@@ -4,6 +4,8 @@ search:
 ---
 # Insert API
 
+This API provides methods to construct and execute SQL `INSERT` statements using a fluent interface in `ts-sql-query`. It supports inserting single or multiple rows, inserting from a SELECT statement, handling conflict resolution (e.g., upserts), and optionally returning inserted data.
+
 ```ts
 interface InsertExpression {
     /**
@@ -25,31 +27,31 @@ interface InsertExpression {
     values(columns: InsertSets[]): this
     /** 
      * Set the values for insert.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     set(columns: InsertSets): this
     /** 
      * Set a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfValue(columns: OptionalInsertSets): this
     /** 
      * Set a previous set value only.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfSet(columns: InsertSets): this
     /** 
      * Set a previous set value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfSetIfValue(columns: OptionalInsertSets): this
     /** 
      * Set a unset value (only if the value was not previously set).
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfNotSet(columns: InsertSets): this
     /** 
@@ -57,26 +59,26 @@ interface InsertExpression {
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array
      * (only if the value was not previously set).
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfNotSetIfValue(columns: OptionalInsertSets): this
     /** 
      * Unset the listed columns previous set.
-     * It can be use in an insert of multiple values.
+     * It can be used in an insert of multiple values.
      * */
     ignoreIfSet(...columns: string[]): this
     /** 
      * Keep only the listed columns previous set.
-     * It can be use in an insert of multiple values.
+     * It can be used in an insert of multiple values.
      */
     keepOnly(...columns: string[]): this
 
     /** 
      * Set a value for the specified columns that was previously indicated a value for set.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfHasValue(columns: InsertSets): this
     /** 
@@ -84,18 +86,18 @@ interface InsertExpression {
      * set only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfHasValueIfValue(columns: OptionalInsertSets): this
     /** 
      * Set a value for the specified columns that has not value to set.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfHasNoValue(columns: InsertSets): this
     /** 
@@ -103,34 +105,34 @@ interface InsertExpression {
      * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfHasNoValueIfValue(columns: OptionalInsertSets): this
     /** 
      * Unset the listed columns if them has value to set.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * It can be use in an insert of multiple values.
+     * It can be used in an insert of multiple values.
      */
     ignoreIfHasValue(...columns: string[]): this
     /** 
      * Unset the listed columns if them has no value to set.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * It can be use in an insert of multiple values.
+     * It can be used in an insert of multiple values.
      */
     ignoreIfHasNoValue(...columns: string[]): this
     /** 
      * Unset all columns that was set with no value.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * It can be use in an insert of multiple values.
+     * It can be used in an insert of multiple values.
      */
     ignoreAnySetWithNoValue(): this
 
@@ -175,7 +177,7 @@ interface InsertExpression {
     /** 
      * This only apply in an insert of multiple values.
      * Set a value for the specified columns that was previously indicated a value for set.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
@@ -186,7 +188,7 @@ interface InsertExpression {
      * set only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
@@ -194,7 +196,7 @@ interface InsertExpression {
     /** 
      * This only apply in an insert of multiple values.
      * Set a value for the specified columns that has not value to set.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
@@ -205,7 +207,7 @@ interface InsertExpression {
      * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
@@ -223,7 +225,7 @@ interface InsertExpression {
     disallowIfNotSet(error: Error, ...columns: string[]): this
     /**
      * Throw an error if the indicated properties was set with a value.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
@@ -231,7 +233,7 @@ interface InsertExpression {
     disallowIfValue(error: Error, ...columns: string[]): this
     /**
      * Throw an error if the indicated properties was set not set or has no value.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
@@ -319,13 +321,13 @@ interface InsertExpression {
      * that is the default behaviour) or an empty array 
      */
     onConflictDoUpdateSetIfValue(columns: UpdateSets): this
-    /**Allow to specify the "on conflit" clasue indicating the index column expected by this clause */
+    /**Allow to specify the "on conflict" clasue indicating the index column expected by this clause */
     onConflictOn(column: AnyValueSource, ...columns: AnyValueSource[]): this
-    /**Allow to specify the "on conflit on constraint" clasue indicating the index name expected by this clause */
+    /**Allow to specify the "on conflict on constraint" clasue indicating the index name expected by this clause */
     onConflictOnConstraint(constraint: string): this
-    /**Allow to specify the "on conflit on constraint" clasue indicating the index name expected by this clause */
+    /**Allow to specify the "on conflict on constraint" clasue indicating the index name expected by this clause */
     onConflictOnConstraint(constraint: StringValueSource): this
-    /**Allow to specify the "on conflit on constraint" clasue indicating the index name expected by this clause */
+    /**Allow to specify the "on conflict on constraint" clasue indicating the index name expected by this clause */
     onConflictOnConstraint(constraint: RawFragment): this
 
     // Methods available when previously is called onConflictOn or onConflictOnConstraint
@@ -406,13 +408,15 @@ interface InsertExpression {
         queryExecutionMetadata?: any
     }): this
 }
+```
 
+```ts
 /** Columns required by the insert */
 type InsertSets = { [columnName: string]: any }
 /** Columns required by the insert, but marked as optionals */
 type OptionalInsertSets = { [columnName: string]: any }
 /**
- * Returning projection of the value that vill be retreived from the database.
+ * Returning projection of the value that will be retrieved from the database.
  * 
  * It must be an object where the name of the property is the name of the resulting property
  * and the value is the ValueSource where the value will be obtained.

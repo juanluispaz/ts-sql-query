@@ -4,7 +4,7 @@ search:
 ---
 # Custom booleans values
 
-Sometimes, especially in Oracle databases, you need to represent a boolean with other values except true or false. For example, if your field in the database represents the true value with the char `Y` and the false value with the char `N`.
+Sometimes, especially when working with Oracle databases, booleans are stored using custom values rather than standard `true` and `false`. For instance, a field might use the character `'Y'` to represent `true` and `'N'` to represent `false`.
 
 For example:
 

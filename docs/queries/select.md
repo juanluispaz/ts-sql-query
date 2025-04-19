@@ -3,6 +3,8 @@ search:
   boost: 4
 ---
 # Select
+ 
+This page provides an in-depth explanation of how to construct and customize `SELECT` statements using `ts-sql-query`. It covers advanced projection strategies, optional value handling, dynamic ordering, inline subqueries, and compound queries. Each section includes examples, generated SQL, and the resulting TypeScript types to help understand the mapping and behavior.
 
 ## Select with joins and order by
 
@@ -56,9 +58,15 @@ type OrderByMode = 'asc' | 'desc' | 'asc nulls first' | 'asc nulls last' | 'desc
  'desc nulls first insensitive' | 'desc nulls last insensitive'
 ```
 
-For the databases that don't support `null first` or `null last`, a proper order by that emulates that behaviour is generated. The `insensitive` modifier makes the ordering key-insensitive according to the [insensitive strategy](../configuration/connection.md#insensitive-strategies) defined in your connection. In case the `insensitive` modifier is used in a not string column, the modifier will be just ignored.
+!!! note
 
-You can project optional values in objects as always-required properties that allow null calling `projectingOptionalValuesAsNullable()` immediately after `select(...)`.
+    For the databases that don't support `null first` or `null last`, a proper order by that emulates that behaviour is generated. The `insensitive` modifier makes the ordering key-insensitive according to the [insensitive strategy](../configuration/connection.md#insensitive-strategies) defined in your connection. 
+    
+    In case the `insensitive` modifier is used in a not string column, the modifier will be just ignored.
+
+!!! tip
+
+    You can project optional values in objects as always-required properties that allow `null` by calling `projectingOptionalValuesAsNullable()` immediately after `select(...)`. This transformation only affects the resulting TypeScript type — the generated SQL remains unchanged. Instead of using optional fields (`?`), all properties are treated as required but typed as potentially `null`, which can simplify downstream type checks when dealing with partial or outer-joined data.
 
 ## Select ordering by a not returned column
 
@@ -168,7 +176,7 @@ const customerCountPerCompany: Promise<{
 
 ## Select with left join
 
-To use a table or view on a left join, you must get a left join representation calling the method `forUseInLeftJoin` or `forUseInLeftJoinAs` previous to write the query.
+To use a table or view in a left join, you must create a left join representation first by calling the method `forUseInLeftJoin` or `forUseInLeftJoinAs`.
 
 ```ts
 const parent = tCompany.forUseInLeftJoinAs('parent');
@@ -200,6 +208,8 @@ const leftJoinCompany: Promise<{
     parentName?: string;
 }[]>
 ```
+
+## Select with left join and complex projections
 
 When you are doing a left join, you probably want to use [Complex projections](complex-projections.md):
 
@@ -279,13 +289,19 @@ const allDataWithName: Promise<{
 }[]>
 ```
 
+!!! warning
+
+    All combined queries in a compound operator must return the same number of columns with compatible types and matching column names.
+
 !!! note
 
     Depending on your database, the supported compound operators are: `union`, `unionAll`, `intersect`, `intersectAll`, `except`,  `exceptAll`, `minus` (alias for `except`), `minusAll` (alias for `exceptAll`)
 
 ## Using a select as a view in another select query (SQL with clause)
 
-You can define a select query and use it as it were a view in another select query. To allow ait you must call the `forUseInQueryAs` instead of executing the query; this will return a view representation of the query as it were a view, and the query will be included as a `with` clause in the final sql query with the name indicated by argument to the `forUseInQueryAs` method.
+You can define a select query and use it as if it were a view in another select query.
+
+To allow it, you must call the `forUseInQueryAs` method instead of executing the query. This returns a view-like representation that will be included as a `WITH` clause in the final SQL, using the name passed to `forUseInQueryAs`.
 
 ```ts
 const customerCountPerCompanyWith = connection.selectFrom(tCompany)
@@ -356,7 +372,7 @@ The result type is:
 const numberOfCustomers: Promise<number>
 ```
 
-## Inline select as value for another query
+## Inline subquery as value
 
 To use a select query that returns one column as an inline query value, you must get the value representation by calling the method `forUseAsInlineQueryValue` and then use the value representation as with any other value in a secondary query.
 
@@ -392,53 +408,9 @@ const acmeCustomers: Promise<{
 }[]>
 ```
 
-## Inline select as value for another query referencing the outer query
+## Inline subquery referencing outer query
 
 To use a select query that returns one column as an inline query value that references the outer query's tables, you must start the subquery calling `subSelectUsing` and providing by argument the external tables or views required to execute the subquery, and then get the value representation, in the end, by calling the method `forUseAsInlineQueryValue` and then use the value representation as with any other value in the outer query.
-
-```ts
-const numberOfCustomers = connection
-    .subSelectUsing(tCompany)
-    .from(tCustomer)
-    .where(tCustomer.companyId.equals(tCompany.id))
-    .selectOneColumn(connection.countAll())
-    .forUseAsInlineQueryValue()  // At this point is a value that you can use in other query
-    .valueWhenNull(0);
-
-const companiesWithNumberOfCustomers = await connection.selectFrom(tCompany)
-    .select({
-        id: tCompany.id,
-        name: tCompany.name,
-        numberOfCustomers: numberOfCustomers
-    })
-    .executeSelectMany();
-```
-
-The executed query is:
-```sql
-select 
-    id as id, 
-    name as name, 
-    coalesce((
-        select count(*) as result 
-        from customer 
-        where company_id = company.id
-    ), $1) as numberOfCustomers
-from company
-```
-
-The parameters are: `[ 0 ]`
-
-The result type is:
-```tsx
-const companiesWithNumberOfCustomers: Promise<{
-    id: number;
-    name: string;
-    numberOfCustomers: number;
-}[]>
-```
-
-In the previous example, it will be more convenient to use `.selectCountAll()` instead `.selectOneColumn(connection.countAll())` because the returned value will not be optional; then, you will not need to use `.valueWhenNull(0)`.
 
 ```ts
 const numberOfCustomers = connection
@@ -481,16 +453,24 @@ const companiesWithNumberOfCustomers: Promise<{
 }[]>
 ```
 
+!!! tip
+
+    In the previous example, it is more convenient to use `.selectCountAll()` instead of `.selectOneColumn(connection.countAll())` because the returned value will not be optional; if not, you will not need to use `.selectOneColumn(connection.countAll()).valueWhenNull(0)` to achive same optionality result.
+
 ## Select clauses order
 
-The select query clauses must follow one of the next orders:
+The order of clauses in a select query must follow one of the supported logical patterns:
+
+!!! warning
+
+    These orders are enforced by the library to ensure SQL correctness across databases. Below is a list of valid clause orders.
 
 - **Logical order**: from, join, **WHERE**, **group by**, **having**, **select**, order by, limit, offset, customizeQuery
 - **Alternative logical order 1**: from, join, **group by**, **having**, **WHERE**, **select**, order by, limit, offset, customizeQuery
-- **Arternative logical order 2**: from, join, **group by**, **having**, **select**, **WHERE**, order by, limit, offset, customizeQuery
-- **Arternative logical order 3**: from, join, **group by**, **having**, **select**, order by, **WHERE**, limit, offset, customizeQuery
-- **Arternative logical order 4**: from, join, **group by**, **having**, **select**, order by, limit, offset, **WHERE**, customizeQuery
-- **Arternative logical order 5**: from, join, **group by**, **having**, **select**, order by, limit, offset, customizeQuery, **WHERE**
+- **Alternative logical order 2**: from, join, **group by**, **having**, **select**, **WHERE**, order by, limit, offset, customizeQuery
+- **Alternative logical order 3**: from, join, **group by**, **having**, **select**, order by, **WHERE**, limit, offset, customizeQuery
+- **Alternative logical order 4**: from, join, **group by**, **having**, **select**, order by, limit, offset, **WHERE**, customizeQuery
+- **Alternative logical order 5**: from, join, **group by**, **having**, **select**, order by, limit, offset, customizeQuery, **WHERE**
   
 - **Alternative order 1**: from, join, **select**, **WHERE**, **group by**, **having**, order by, limit, offset, customizeQuery
 - **Alternative order 2**: from, join, **select**, **group by**, **having**, **WHERE**, order by, limit, offset, customizeQuery
@@ -505,10 +485,10 @@ The select query clauses must follow one of the next orders:
     - **Logical order**: from, join, _start with_, _connect by_, **WHERE**, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery
     - **Alternative logical order 0**: from, join, **WHERE**, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery
     - **Alternative logical order 1**: from, join, _start with_, _connect by_, **group by**, **having**, **WHERE**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery
-    - **Arternative logical order 2**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, **WHERE**, order by, _ordering siblings only_, limit, offset, customizeQuery
-    - **Arternative logical order 3**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, **WHERE**, limit, offset, customizeQuery
-    - **Arternative logical order 4**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, **WHERE**, customizeQuery
-    - **Arternative logical order 5**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery, **WHERE**
+    - **Alternative logical order 2**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, **WHERE**, order by, _ordering siblings only_, limit, offset, customizeQuery
+    - **Alternative logical order 3**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, **WHERE**, limit, offset, customizeQuery
+    - **Alternative logical order 4**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, **WHERE**, customizeQuery
+    - **Alternative logical order 5**: from, join, _start with_, _connect by_, **group by**, **having**, **select**, order by, _ordering siblings only_, limit, offset, customizeQuery, **WHERE**
 
     - **Alternative order 1**: from, join, _start with_, _connect by_, **select**, **WHERE**, **group by**, **having**, order by, _ordering siblings only_, limit, offset, customizeQuery
     - **Alternative order 2**: from, join, _start with_, _connect by_, **select**, **group by**, **having**, **WHERE**, order by, _ordering siblings only_, limit, offset, customizeQuery

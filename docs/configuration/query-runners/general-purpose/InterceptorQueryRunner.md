@@ -4,6 +4,21 @@ search:
 ---
 # InterceptorQueryRunner
 
+A query runner that intercept all the queries and delegate the execution of the queries to the query runner received as second argument in the constructor.
+
+!!! success "Supported databases"
+
+    - [MariaDB](../../supported-databases/mariadb.md)
+    - [MySQL](../../supported-databases/mysql.md)
+    - [Oracle](../../supported-databases/oracle.md)
+    - [PostgreSQL](../../supported-databases/postgresql.md)
+    - [SQLite](../../supported-databases/sqlite.md)
+    - [SQL Server](../../supported-databases/sqlserver.md)
+
+!!! tip
+
+    `InterceptorQueryRunner` supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -12,28 +27,26 @@ search:
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-A query runner that intercept all the queries and delegate the execution of the queries to the query runner received as second argument in the constructor.
-
-**Supported databases**: mariaDB, mySql, oracle, postgreSql, sqlite, sqlServer
+## Usage Example
 
 ```ts
 import { QueryType } from "ts-sql-query/queryRunners/QueryRunner";
 import { InterceptorQueryRunner } from "ts-sql-query/queryRunners/InterceptorQueryRunner";
 
-interface DurationPlayload {
+interface DurationPayload {
     startTime: number
 }
-class DurationLogginQueryRunner extends InterceptorQueryRunner<DurationPlayload> {
-    onQuery(queryType: QueryType, query: string, params: any[]): DurationPlayload {
+class DurationLogginQueryRunner extends InterceptorQueryRunner<DurationPayload> {
+    onQuery(queryType: QueryType, query: string, params: any[]): DurationPayload {
         console.log('onQuery', queryType, query, params)
         return { startTime: Date.now() }
     }
-    onQueryResult(queryType: QueryType, query: string, params: any[], result: any, playload: DurationPlayload): void {
-        const duration = Date.now() - playload.startTime
+    onQueryResult(queryType: QueryType, query: string, params: any[], result: any, payload: DurationPayload): void {
+        const duration = Date.now() - payload.startTime
         console.log('onQueryResult', queryType, query, params, result, duration)
     }
-    onQueryError(queryType: QueryType, query: string, params: any[], error: any, playload: DurationPlayload): void {
-        const duration = Date.now() - playload.startTime
+    onQueryError(queryType: QueryType, query: string, params: any[], error: any, payload: DurationPayload): void {
+        const duration = Date.now() - payload.startTime
         console.log('onQueryError', queryType, query, params, error, duration)
     }
 }
@@ -44,13 +57,15 @@ async function main() {
 }
 ```
 
+## API Overview
+
 The `InterceptorQueryRunner` is an abstract class where you must implement the following functions:
 
-- **`onQuery`**: Executed before the query. This function returns the playload data that will be recived by the next functions.
-- **`onQueryResult`**: Executed after the successful execution of the query. Receives as last argument the playload data created by the `onQuery` method.
-- **`onQueryError`**: Executed after the query in case of error. Receives as last argument the playload data created by the `onQuery` method.
+- **`onQuery`**: Executed before the query. This function returns the payload data that will be received by the next functions.
+- **`onQueryResult`**: Executed after the successful execution of the query. Receives as last argument the payload data created by the `onQuery` method.
+- **`onQueryError`**: Executed after the query in case of error. Receives as last argument the payload data created by the `onQuery` method.
 
-This class receives as the first generic type the playload type created when the query execution starts and receives when the query execution ends
+This class uses a generic type to define the payload returned by `onQuery` and later received by `onQueryResult` and `onQueryError`.
 
 All these functions receive as argument:
 
@@ -66,11 +81,11 @@ type QueryType = 'selectOneRow' | 'selectManyRows' | 'selectOneColumnOneRow' | '
     'executeDatabaseSchemaModification' | 'executeConnectionConfiguration'
 ```
 
-- **`query: string`**: query required to be executed, empty in the case of `beginTransaction`, `commit` or `rollback`
+- **`query: string`**: the SQL query to be executed. It will be empty for `beginTransaction`, `commit`, or `rollback`.
 - **`params: any[]`**: parameters received by the query.
 - **`result: any`**: (only in `onQueryResult`) result of the execution of the query.
 - **`error: any`**: (only in `onQueryError`) error that happens executiong the query.
-- **`playload: PLAYLOAD_TYPE`**:  (only in `onQueryResult` or `onQueryError`) playload data created by the `onQuery` function.
+- **`payload: PLAYLOAD_TYPE`**:  (only in `onQueryResult` or `onQueryError`) payload data created by the `onQuery` function.
 
 !!! info
 

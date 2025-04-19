@@ -4,6 +4,13 @@ search:
 ---
 # mysql2
 
+This page explains how to use `ts-sql-query` with the [mysql2](https://www.npmjs.com/package/mysql2) driver. It covers two approaches: using a connection pool or using a single connection directly.
+
+!!! success "Supported databases"
+
+    - [MariaDB](../../supported-databases/mariadb.md)
+    - [MySQL](../../supported-databases/mysql.md)
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -12,11 +19,9 @@ search:
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-## mysql2 (with a connection pool)
+## Using a connection pool
 
-It allows to execute the queries using a [mysql2](https://www.npmjs.com/package/mysql2) connection pool.
-
-**Supported databases**: mariaDB, mySql
+Executes queries through a [mysql2](https://www.npmjs.com/package/mysql2) connection obtained from a pool.
 
 ```ts
 import { createPool } from "mysql2";
@@ -38,11 +43,9 @@ async function main() {
 }
 ```
 
-## mysql2 (with a connection)
+## Using a single connection
 
-It allows to execute the queries using a [mysql2](https://www.npmjs.com/package/mysql2) connection.
-
-**Supported databases**: mariaDB, mySql
+Executes queries through a dedicated [mysql2](https://www.npmjs.com/package/mysql2) connection.
 
 ```ts
 import { createPool } from "mysql2";
@@ -65,7 +68,7 @@ function main() {
         }
         try {
             const connection = new DBConnection(new MySql2QueryRunner(mysql2Connection));
-            doYourLogic(connection).finnaly(() => {
+            doYourLogic(connection).finally(() => {
                 mysql2Connection.release();
             });
         } catch(e) {
@@ -75,7 +78,7 @@ function main() {
     });
 }
 
-async doYourLogic(connection: DBConnection) {
+async function doYourLogic(connection: DBConnection) {
     // Do your queries here
 }
 ```

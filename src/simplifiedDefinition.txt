@@ -34,7 +34,7 @@ interface EqualableValueSource<T> extends NullableValueSource<T> {
     notEqualsIfValue(value: T | null | undefined): BooleanValueSource
     notEquals(value: T | this): BooleanValueSource
     isIfValue(value: T | null | undefined): BooleanValueSource
-    /** 'is' is the same that equals, but returns true when booth are null */
+    /** 'is' is the same that equals, but returns true when both are null */
     is(value: T | this): BooleanValueSource
     isNotIfValue(value: T | null | undefined): BooleanValueSource
     isNot(value: T | this): BooleanValueSource
@@ -109,11 +109,11 @@ interface NumberValueSource extends ComparableValueSource<number> {
     logn(value: number | this): this
     roundn(value: number | this): this
     /**
-     * This function establish a minimum value for the current value, that means the biggest value must be returned
+     * This function establishes a minimum value for the current value, that means the biggest value must be returned
      */
     minValue(value: number | this): this
     /**
-     * This function establish a maximun value for the current value, that means the smallest value must be returned
+     * This function establishes a maximum value for the current value, that means the smallest value must be returned
      */
     maxValue(value: number | this): this
     add(value: number | this): this
@@ -134,11 +134,11 @@ interface BigintValueSource extends ComparableValueSource<bigint> {
     round(): this
     sign(): NumberValueSource
     /**
-     * This function establish a minimum value for the current value, that means the biggest value must be returned
+     * This function establishes a minimum value for the current value, that means the biggest value must be returned
      */
     minValue(value: bigint | this): this
     /**
-     * This function establish a maximun value for the current value, that means the smallest value must be returned
+     * This function establishes a maximum value for the current value, that means the smallest value must be returned
      */
     maxValue(value: bigint | this): this
     add(value: bigint | this): this
@@ -273,11 +273,11 @@ interface CustomIntValueSource<T> extends ComparableValueSource<T> {
     round(): this
     sign(): NumberValueSource
     /**
-     * This function establish a minimum value for the current value, that means the biggest value must be returned
+     * This function establishes a minimum value for the current value, that means the biggest value must be returned
      */
     minValue(value: T | this): this
     /**
-     * This function establish a maximun value for the current value, that means the smallest value must be returned
+     * This function establishes a maximum value for the current value, that means the smallest value must be returned
      */
     maxValue(value: T | this): this
     add(value: T | this): this
@@ -311,11 +311,11 @@ interface CustomDoubleValueSource<T> extends ComparableValueSource<T> {
     logn(value: T | this): this
     roundn(value: T | this): this
     /**
-     * This function establish a minimum value for the current value, that means the biggest value must be returned
+     * This function establishes a minimum value for the current value, that means the biggest value must be returned
      */
     minValue(value: T | this): this
     /**
-     * This function establish a maximun value for the current value, that means the smallest value must be returned
+     * This function establishes a maximum value for the current value, that means the smallest value must be returned
      */
     maxValue(value: T | this): this
     add(value: T | this): this
@@ -775,11 +775,11 @@ interface DynamicConditionExpression {
 
 
 interface Table {
-    /** Allows to define an alias for the table to be used in the selects queries */
+    /** Defines an alias for the table to be used in select queries */
     as(as: string): this
-    /** Allows  to use the table in a left join */
+    /** Enables the table to be used in a left join */
     forUseInLeftJoin(): this & OuterJoinSource
-    /** Allows  to use the table in a left join with an alias */
+    /** Enables the table to be used in a left join with an alias */
     forUseInLeftJoinAs(as: string): this & OuterJoinSource
 
     // Protected methods that allow to create a required column that doesn't admits null
@@ -858,9 +858,9 @@ interface Table {
     optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'customLocalDate', typeName: string, adapter?: TypeAdapter): CustomLocalDateValueSource<T>
     optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'customLocalTime', typeName: string, adapter?: TypeAdapter): CustomLocalTimeValueSource<T>
     optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'customLocalDateTime', typeName: string, adapter?: TypeAdapter): CustomLocalDateTimeValueSource<T>
-    optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'enum', typeNme: string, adapter?: TypeAdapter): EqualableValueSource<T>
-    optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'custom', typeNme: string, adapter?: TypeAdapter): EqualableValueSource<T>
-    optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeNme: string, adapter?: TypeAdapter): ComparableValueSource<T>
+    optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'enum', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'custom', typeName: string, adapter?: TypeAdapter): EqualableValueSource<T>
+    optionalColumnWithDefaultValue<T, TYPE_NAME = T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<T>
     
     // Protected methods that allow to create a primary key column autogenerated in the database
     // When you insert you don't need specify this column
@@ -1219,31 +1219,31 @@ interface InsertExpression {
     values(columns: InsertSets[]): this
     /** 
      * Set the values for insert.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     set(columns: InsertSets): this
     /** 
      * Set a value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfValue(columns: OptionalInsertSets): this
     /** 
      * Set a previous set value only.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfSet(columns: InsertSets): this
     /** 
      * Set a previous set value only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfSetIfValue(columns: OptionalInsertSets): this
     /** 
      * Set a unset value (only if the value was not previously set).
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfNotSet(columns: InsertSets): this
     /** 
@@ -1251,26 +1251,26 @@ interface InsertExpression {
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array
      * (only if the value was not previously set).
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfNotSetIfValue(columns: OptionalInsertSets): this
     /** 
      * Unset the listed columns previous set.
-     * It can be use in an insert of multiple values.
+     * It can be used in an insert of multiple values.
      * */
     ignoreIfSet(...columns: string[]): this
     /** 
      * Keep only the listed columns previous set.
-     * It can be use in an insert of multiple values.
+     * It can be used in an insert of multiple values.
      */
     keepOnly(...columns: string[]): this
 
     /** 
      * Set a value for the specified columns that was previously indicated a value for set.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfHasValue(columns: InsertSets): this
     /** 
@@ -1278,18 +1278,18 @@ interface InsertExpression {
      * set only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfHasValueIfValue(columns: OptionalInsertSets): this
     /** 
      * Set a value for the specified columns that has not value to set.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfHasNoValue(columns: InsertSets): this
     /** 
@@ -1297,34 +1297,34 @@ interface InsertExpression {
      * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * This doen't apply when you are setting the values for insert in an insert of multiple values.
+     * This doesn't apply when you are setting the values for insert in an insert of multiple values.
      */
     setIfHasNoValueIfValue(columns: OptionalInsertSets): this
     /** 
      * Unset the listed columns if them has value to set.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * It can be use in an insert of multiple values.
+     * It can be used in an insert of multiple values.
      */
     ignoreIfHasValue(...columns: string[]): this
     /** 
      * Unset the listed columns if them has no value to set.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * It can be use in an insert of multiple values.
+     * It can be used in an insert of multiple values.
      */
     ignoreIfHasNoValue(...columns: string[]): this
     /** 
      * Unset all columns that was set with no value.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array.
-     * It can be use in an insert of multiple values.
+     * It can be used in an insert of multiple values.
      */
     ignoreAnySetWithNoValue(): this
 
@@ -1369,7 +1369,7 @@ interface InsertExpression {
     /** 
      * This only apply in an insert of multiple values.
      * Set a value for the specified columns that was previously indicated a value for set.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
@@ -1380,7 +1380,7 @@ interface InsertExpression {
      * set only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
@@ -1388,7 +1388,7 @@ interface InsertExpression {
     /** 
      * This only apply in an insert of multiple values.
      * Set a value for the specified columns that has not value to set.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
@@ -1399,7 +1399,7 @@ interface InsertExpression {
      * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
@@ -1417,7 +1417,7 @@ interface InsertExpression {
     disallowIfNotSet(error: Error, ...columns: string[]): this
     /**
      * Throw an error if the indicated properties was set with a value.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
@@ -1425,7 +1425,7 @@ interface InsertExpression {
     disallowIfValue(error: Error, ...columns: string[]): this
     /**
      * Throw an error if the indicated properties was set not set or has no value.
-     * It is considered the column has value if it was set with a value that is not null, 
+     * It is considered that the column has a value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
@@ -1513,13 +1513,13 @@ interface InsertExpression {
      * that is the default behaviour) or an empty array 
      */
     onConflictDoUpdateSetIfValue(columns: UpdateSets): this
-    /**Allow to specify the "on conflit" clasue indicating the index column expected by this clause */
+    /**Allow to specify the "on conflict" clasue indicating the index column expected by this clause */
     onConflictOn(column: AnyValueSource, ...columns: AnyValueSource[]): this
-    /**Allow to specify the "on conflit on constraint" clasue indicating the index name expected by this clause */
+    /**Allow to specify the "on conflict on constraint" clasue indicating the index name expected by this clause */
     onConflictOnConstraint(constraint: string): this
-    /**Allow to specify the "on conflit on constraint" clasue indicating the index name expected by this clause */
+    /**Allow to specify the "on conflict on constraint" clasue indicating the index name expected by this clause */
     onConflictOnConstraint(constraint: StringValueSource): this
-    /**Allow to specify the "on conflit on constraint" clasue indicating the index name expected by this clause */
+    /**Allow to specify the "on conflict on constraint" clasue indicating the index name expected by this clause */
     onConflictOnConstraint(constraint: RawFragment): this
 
     // Methods available when previously is called onConflictOn or onConflictOnConstraint
@@ -1606,7 +1606,7 @@ type InsertSets = { [columnName: string]: any }
 /** Columns required by the insert, but marked as optionals */
 type OptionalInsertSets = { [columnName: string]: any }
 /**
- * Returning projection of the value that vill be retreived from the database.
+ * Returning projection of the value that will be retrieved from the database.
  * 
  * It must be an object where the name of the property is the name of the resulting property
  * and the value is the ValueSource where the value will be obtained.
@@ -1620,14 +1620,14 @@ type InsertShape = { [propertyNameInValues: string]: string /* column name in th
 
 interface UpdateExpression {
     /**
-     * Allow setting the shape of the values to update. This shape allows you to map
+     * Used to define the shape of the values to update. This shape allows you to map
      * each property in the values to update with the columns in the table, in that
      * way, the property in the value doesn't need to have the same name.
      * The only values to be updated are the ones included in the shape.
      */
     shapedAs(shape: UpdateShape): this
     /** 
-     * Allow you to extend the previous set shape.
+     * Allows you to extend the previously set shape.
      * The values set after extending the shape will allow you to include the new properties in the extended shape.
      */
     extendShape(shape: UpdateShape): this
@@ -1655,21 +1655,21 @@ interface UpdateExpression {
      * (only if the value was not previously set) 
      */
     setIfNotSetIfValue(columns: OptionalUpdateSets): this
-    /** Unset the listed columns previous set */
+    /** Unsets the previously set columns listed. */
     ignoreIfSet(...columns: string[]): this
-    /** Keep only the listed columns previous set */
+    /** Keeps only the previously set columns listed. */
     keepOnly(...columns: string[]): this
 
     /** 
-     * Set a value for the specified columns that was previously indicated a value for set.
+     * Sets a value for the specified columns that were previously assigned a value.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
     setIfHasValue(columns: UpdateSets): this
     /** 
-     * Set a value for the specified columns that was previously indicated a value for 
-     * set only if the provided value is not null, undefined, empty string 
+     * Sets a value for the specified columns that were previously assigned a value
+     *  only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
      * It is considered the column has value if it was set with a value that is not null, 
@@ -1678,14 +1678,14 @@ interface UpdateExpression {
      */
     setIfHasValueIfValue(columns: OptionalUpdateSets): this
     /** 
-     * Set a value for the specified columns that has not value to set.
+     * Sets a value for the specified columns that have no value to set.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
     setIfHasNoValue(columns: UpdateSets): this
     /** 
-     * Set a value for the specified columns that has no value to set 
+     * Sets a value for the specified columns that have no value to set 
      * only if the provided value is not null, undefined, empty string 
      * (only when the allowEmptyString flag in the connection is not set to true, 
      * that is the default behaviour) or an empty array.
@@ -1695,21 +1695,21 @@ interface UpdateExpression {
      */
     setIfHasNoValueIfValue(columns: OptionalUpdateSets): this
     /** 
-     * Unset the listed columns if them has value to set.
+     * Unsets the listed columns if they have a value set.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
     ignoreIfHasValue(...columns: string[]): this
     /** 
-     * Unset the listed columns if them has no value to set.
+     * Unsets the listed columns if they have no value set.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
      */
     ignoreIfHasNoValue(...columns: string[]): this
     /** 
-     * Unset all columns that was set with no value.
+     * Unsets all columns that were set with no value.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -1717,17 +1717,17 @@ interface UpdateExpression {
     ignoreAnySetWithNoValue(): this
 
     /**
-     * Throw an error if the indicated properties are set
+     * Throws an error if the indicated properties are set
      */
     disallowIfSet(errorMessage: string, ...columns: string[]): this
     disallowIfSet(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the indicated properties are not set
+     * Throws an error if the indicated properties are not set
      */
     disallowIfNotSet(errorMessage: string, ...columns: string[]): this
     disallowIfNotSet(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the indicated properties was set with a value.
+     * Throws an error if the indicated properties were set with a value.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -1735,7 +1735,7 @@ interface UpdateExpression {
     disallowIfValue(errorMessage: string, ...columns: string[]): this
     disallowIfValue(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the indicated properties was set not set or has no value.
+     * Throws an error if the indicated properties were not set or have no value.
      * It is considered the column has value if it was set with a value that is not null, 
      * undefined, empty string (only when the allowEmptyString flag in the connection is not 
      * set to true, that is the default behaviour) or an empty array 
@@ -1743,7 +1743,7 @@ interface UpdateExpression {
     disallowIfNoValue(errorMessage: string, ...columns: string[]): this
     disallowIfNoValue(error: Error, ...columns: string[]): this
     /**
-     * Throw an error if the any other set except the provided column list
+     * Throws an error if any column other than the listed ones is set.
      */
     disallowAnyOtherSet(errorMessage: string, ...columns: string[]): this
     disallowAnyOtherSet(error: Error, ...columns: string[]): this
@@ -1813,7 +1813,10 @@ interface UpdateExpression {
      * and the value is the ValueSource where the value will be obtained.
      */
     returning(columns: UpdateReturningValues): this
-    /** Returns the optional values as null instead of optional undefined values, can only used immediately after returning(...) */
+    /** 
+     * Returns the optional values as null instead of optional undefined values, can only used 
+     * immediately after returning(...) 
+     * */
     projectingOptionalValuesAsNullable(): this
     /** 
      * Allows to specify the returning clause of a query that returns only one column.
@@ -1890,18 +1893,16 @@ interface DeleteExpression {
     /** Allows to specify the where */
     where(condition: BooleanValueSource): this
 
-    /** Allows to extends the where or the on clause of a join using an and */
+    /** Allows extending the WHERE or ON clause of a join using AND */
     and(condition: BooleanValueSource): this
-    /** Allows to extends the where or the on clause of a join using an or */
+    /** Allows extending the WHERE or ON clause of a join using OR */
     or(condition: BooleanValueSource): this
 
     /**
     * Execute the delete returning the number of deleted rows
     * 
-    * @param min Indicate the minimum of rows that must be deleted, 
-    *           if the minimum is not reached an exception will be thrown
-    * @param max Indicate the maximum of rows that must be deleted, 
-    *           if the maximum is exceeded an exception will be thrown
+    * @param min Minimum number of rows that must be deleted. An exception is thrown if not reached
+    * @param max Maximum number of rows that can be deleted. An exception is thrown if exceeded
     */
     executeDelete(min?: number, max?: number): Promise<number>
     /** Returns the sql query to be executed in the database */
@@ -1912,8 +1913,7 @@ interface DeleteExpression {
     // Returning methods
     /** 
      * Allows to specify the returning clause.
-     * It must be an object where the name of the property is the name of the resulting property
-     * and the value is the ValueSource where the value will be obtained.
+     * The object keys define the names of the resulting properties, and the values specify the ValueSource to retrieve from.
      */
     returning(columns: DeleteReturningValues): this
     /** Returns the optional values as null instead of optional undefined values, can only used immediately after returning(...) */
@@ -1923,7 +1923,7 @@ interface DeleteExpression {
      * It receives as argument the ValueSource where the value will be obtained.
      */
     returningOneColumn(column: AnyValueSource): this
-    /** Execute the delete query that returns one o no result from the database */
+    /** Executes the delete query and returns one or no result */
     executeDeleteNoneOrOne(): Promise<RESULT | null>
     /** 
      * Execute the delete query that returns one result from the database.
@@ -1949,12 +1949,12 @@ interface DeleteExpression {
     innerJoin(table: Table | View): this
     /** 
      * Allows to add a left join to the delete query. 
-     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     * Note: You must call forUseInLeftJoin on a table or view before using it in a left join
      */
     leftJoin(source: OuterJoinSource): this
     /** 
      * Allows to add a left outer join to the delete query. 
-     * Note: to use a table or view here you must call first forUseInLeftJoin methods on it
+     * Note: You must call forUseInLeftJoin on a table or view before using it in a left join
      */
     leftOuterJoin(source: OuterJoinSource): this
 
@@ -1972,7 +1972,7 @@ interface DeleteExpression {
 }
 
 /**
- * Returning projection of the value that vill be retreived from the database.
+ * Returning projection of the values that will be retrieved from the database.
  * 
  * It must be an object where the name of the property is the name of the resulting property
  * and the value is the ValueSource where the value will be obtained.

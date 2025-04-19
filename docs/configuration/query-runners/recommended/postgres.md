@@ -4,6 +4,12 @@ search:
 ---
 # postgres
 
+This page explains how to use `ts-sql-query` with the [postgres](https://github.com/porsager/postgres) (aka Postgres.js) driver. It covers two approaches: using a connection pool or using a single connection directly.
+
+!!! success "Supported databases"
+
+    - [PostgreSQL](../../supported-databases/postgresql.md)
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -12,9 +18,9 @@ search:
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-It allows to execute the queries using a [postgres](https://github.com/porsager/postgres) (aka Postgres.js) connection.
+## Using a connection pool
 
-**Supported databases**: postgreSql
+Executes queries through a [postgres](https://github.com/porsager/postgres) (aka Postgres.js) connection obtained from a pool.
 
 ```ts
 import * as postgres from 'postgres';
@@ -37,7 +43,3 @@ async function main() {
 !!! warning "Limitation"
 
     Low-level transaction management functions (`connection.beginTransaction`, `connection.commit`, `connection.rollback`) are not supported; you must use `connection.transaction` instead.
-
-!!! info
-
-    Be aware postgres.js is pooled automatically; you don't need additional steps to use a connection pool.

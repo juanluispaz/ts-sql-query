@@ -4,11 +4,11 @@ search:
 ---
 # FAQs
 
-## How ts-sql-query modelate the queries?
+## How does ts-sql-query model queries?
 
-ts-sql-query try to modelate the queries keeping the essence of SQL; the queries are designed after SQLite and PostgreSQL but keeping in mind it needs to be understandable in a TypeScript/JavaScript context. So when TypeScript/JavaScript do things in a way, ts-sql-query tries to preserve it (it is a tricky balance). The consequence of this modelling philosophy is things in ts-sql-query are done in the same way that SQL, then you can always think how your query will be done in SQL, which will be close to the way to do it in ts-sql-query.
+ts-sql-query aims to model queries while preserving the essence of SQL. Its design is inspired by SQLite and PostgreSQL, while ensuring compatibility and clarity in a TypeScript/JavaScript context. When JavaScript or TypeScript have an idiomatic way to express something, ts-sql-query tries to reflect that — maintaining a delicate balance. As a result, writing queries in ts-sql-query closely mirrors SQL itself, allowing you to easily anticipate how a query would translate to raw SQL.
 
-ts-sql-query executes the query in a single call to the database; no intermedial data is processed in your backend server; everything is done in a single SQL query in the same way you write it in ts-sql-query. The exception is the select page, where a first query will be executed, returning the data contained in the page, and a second query will be executed to get the count.
+ts-sql-query executes the query in a single call to the database; no intermediate data is processed in your backend server; everything is done in a single SQL query in the same way you write it in ts-sql-query. The exception is the select page, where a first query will be executed, returning the data contained in the page, and a second query will be executed to get the count.
 
 ## Can I generate the Tables/Views models from my database?
 

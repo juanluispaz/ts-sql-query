@@ -6,7 +6,11 @@ search:
 
 When you are implementing your own query runner, there is some metadata available about the query that is trying to be executed.
 
-## Query execution stack
+!!! tip
+
+    These features are optional and are mainly intended for logging, debugging, or advanced monitoring purposes.
+
+## Get the query execution stack
 
 The `getQueryExecutionStack` will return a string with the stack trace where the query was requested to be executed and return `undefined` if the information is unavailable.
 
@@ -38,7 +42,7 @@ Error: Query executed at
     at ...
 ```
 
-## Function executing the query
+## Get the function that requested the query
 
 The `getFunctionExecutingQuery` will return an object with information related to the function that requests to execute the query and return `undefined` if the information is unavailable. Each property can be `undefined` if that information is unavailable.
 
@@ -77,7 +81,7 @@ class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
 - **lineNumber**: string with the line number in the file that requested the execution of the query, `undefined` if that information is unavailable.
 - **positionNumber**: string with the position in the line that requested the execution of the query, `undefined` if that information is unavailable.
 
-## Is select page count query
+## Detect if the query is for select page count
 
 The [Select page](../queries/select-page.md) is the only place where ts-sql-query executes a second query to return the count of elements. The function `isSelectPageCountQuery` allows you to identify if the requested query corresponds to the select count in a select page.
 
@@ -99,7 +103,7 @@ class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
 }
 ```
 
-## Query execution name
+## Retrieve the execution name of a query
 
 Before you execute a query, you can customize the query; in the customization possible, you can specify a property called `queryExecutionName` to put an informative name for that query execution. You can use the `getQueryExecutionName` to get that name (or `undefined` if it was not provided).
 
@@ -137,9 +141,9 @@ const customizedSelect = connection.selectFrom(tCustomer)
     .executeSelectOne()
 ```
 
-## Query execution metadata
+## Retrieve additional execution metadata
 
-Before you execute a query, you can customize the query; in the customization possible, you can specify a property called `queryExecutionMetadata` to put additional metadata for that query execution. You can use the `getQueryExecutionMetadata` to get that metadata (or `undefined` if it was not provided).
+Before executing a query, you can customize it by specifying options using `queryExecutionMetadata` to put additional metadata for that query execution. You can use the `getQueryExecutionMetadata` to get that metadata (or `undefined` if it was not provided).
 
 ```ts
 import { getQueryExecutionMetadata } from 'ts-sql-query/queryRunners/QueryRunner';
@@ -147,7 +151,7 @@ import { InterceptorQueryRunner, QueryType } from "ts-sql-query/queryRunners/Int
 
 class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
     onQuery(queryType: QueryType, query: string, params: any[]): DurationPlayload {
-        const metadata: unkown = getQueryExecutionMetadata(query, params)
+        const metadata: unknown = getQueryExecutionMetadata(query, params)
         console.log('query execution metadata', metadata)
     }
     onQueryResult(queryType: QueryType, query: string, params: any[], result: any, playload: void): void {

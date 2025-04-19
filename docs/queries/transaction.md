@@ -4,7 +4,11 @@ search:
 ---
 # Transaction
 
-## Hight-level transaction management
+A **transaction** is a sequence of one or more operations that are executed as a single logical unit of work. In databases, transactions provide **atomicity**, **consistency**, **isolation**, and **durability** (ACID properties), ensuring that changes either complete fully or not at all. This is essential for maintaining data integrity in concurrent and failure-prone environments.
+
+This page explains how to work with transactions in `ts-sql-query`, covering both high-level helpers for common workflows and low-level methods for fine-grained control. It also covers transaction isolation levels, read/write modes, deferring logic based on the transaction outcome, and storing temporary metadata during a transaction.
+
+## High-level transaction management
 
 For simple transaction management, you can use the `transaction` method in the connection object. This method:
 
@@ -23,7 +27,7 @@ const transactionResult = connection.transaction(async () => {
 
 ## Low-level transaction management
 
-Sometimes a fine-grain control over the transaction is required, in that situations ts-sql-query offer you the possibility to manually:
+Sometimes a fine-grained control over the transaction is required, In such situations, ts-sql-query offers you the possibility to manually:
 
 - begin the transaction
 
@@ -34,7 +38,7 @@ await connection.beginTransaction();
 - commit the transaction
 
 ```ts
-await connnection.commit();
+await connection.commit();
 ```
 
 - rollback the transaction
@@ -43,7 +47,7 @@ await connnection.commit();
 await connection.rollback();
 ```
 
-When you use these methods, you must ensure the transaction begin before call commit or rollback.
+When you use these methods, you must ensure the transaction has begun before calling `commit` or `rollback`.
 
 ## Transaction isolation
 
@@ -91,34 +95,43 @@ const transactionResult = connection.transaction(async () => {
 await connection.beginTransaction(connection.isolationLevel('serializable', 'read only'));
 ```
 
-## Defering execution till transaction ends
+## Deferring logic during a transaction
 
-You can defer the execution of a logic till the end of the transaction. This defered logic can be set calling the `executeAfterNextCommit` or `executeAfterNextRollback` of the ts-sql-query connection at any moment of the application execution; the only condition is there must be an active transaction. ts-sql-query offer as well defer the execution of a logic till just before the commit calling `executeBeforeNextCommit`.
+`ts-sql-query` allows you to register functions that will be executed **at specific points during the current transaction**. These hooks let you defer logic until:
+
+- **just before** the transaction is committed (`executeBeforeNextCommit`)
+- **immediately after** a successful commit (`executeAfterNextCommit`)
+- **immediately after** a rollback (`executeAfterNextRollback`)
+
+This feature is useful for tasks such as cleaning up temporary resources, logging, updating caches, notifying external systems, or triggering other side effects — while ensuring they only run if the transaction reaches a specific outcome (commit or rollback). This guarantees consistency between your database state and any external systems that rely on the success or failure of the transaction.
+
+Each of these methods accepts either a synchronous function (`() => void`) or an asynchronous one (`() => Promise<void>`).
 
 ```ts
-connection.executeAfterNextCommit(async () => {
-    // Logic defered till the commit is executed
-    console.log('After next commit')
-})
-
-connection.executeAfterNextRollback(async () => {
-    // Logic defered till the rollback is executed
-    console.log('After next rollback')
-})
-
 connection.executeBeforeNextCommit(async () => {
-    // Logic defered till just before the commit is executed
-    console.log('Before next commit')
-})
+    // Logic to run just before the commit
+    console.log('Before next commit');
+});
+
+connection.executeAfterNextCommit(() => {
+    // Logic to run after the transaction is successfully committed
+    console.log('After next commit');
+});
+
+connection.executeAfterNextRollback(() => {
+    // Logic to run if the transaction is rolled back
+    console.log('After next rollback');
+});
 ```
 
 !!! note
 
-    The provided function can be a sync function that returns void or an async function that returns a promise of void.
+    - These functions are registered only for the **next** transaction event, and are cleared after use.  
+    - They have no effect if called when there is no active transaction.
 
 ## Transaction metadata
 
-You can set additional information to be consumed in other parts of the application during the same transaction. For this, you can call `getTransactionMetadata` of the ts-sql-query connection at any moment of the application execution; the only condition is there must be an active transaction. The `getTransactionMetadata` method will return a `Map<unknown, unknown>` where you can get or set values.
+You can attach and retrieve metadata specific to the current transaction using `getTransactionMetadata`, which returns a `Map<unknown, unknown>` available throughout the transaction's duration.
 
 ```ts
 // Setting a value

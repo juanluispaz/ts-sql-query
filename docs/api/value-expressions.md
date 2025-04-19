@@ -4,13 +4,15 @@ search:
 ---
 # Value expressions API
 
+This page describes the API surface for all value expressions used in `ts-sql-query`. These expressions represent values from the database (such as strings, numbers, dates, booleans, etc.) and support fluent methods for comparisons, operations, transformations, and conditional expressions. The TypeScript methods map closely to SQL semantics while maintaining static typing and composability in code.
+
 All values managed by the database are represented as a subclass of `ValueSource`, almost all methods listed here support the TypeScript value and the database value (as overload).
 
-The methods which name ends with `IfValue` do the same that the one without `IfValue` but only if the provided value(s) are different to undefined, null, empty string (only when the `allowEmptyString` flag in the connection is not set to true, that is the default behaviour) or an empty array, otherwise it is ignored.
+Methods ending in `IfValue` behave like their counterparts without `IfValue`, but only apply the logic if the provided value is not `undefined`, `null`, an empty string (unless `allowEmptyString` is enabled in the connection), or an empty array, otherwise it is ignored.”
 
 Be aware, in the database, when null is part of an operation the result of the operation is null (It is not represented in the following definition but it is implemented)
 
-All the data manipulation operations are implemented as a methods inside the value, that means if you what to calculate the abolute, in sql is `abs(value)` but in ts-sql-query is reprecented as `value.abs()`.
+All data manipulation operations are implemented as methods on the value itself, that means if you what to calculate the absolute, in sql is `abs(value)` but in ts-sql-query is represented as `value.abs()`.
 
 ```ts
 interface ValueSource<T> {
@@ -31,7 +33,9 @@ interface ValueSource<T> {
     disallowWhen(when: boolean, errorMessage: string): this
     disallowWhen(when: boolean, error: Error): this
 }
+```
 
+```ts
 interface NullableValueSource<T> extends ValueSource<T> {
     isNull(): BooleanValueSource
     isNotNull(): BooleanValueSource
@@ -42,14 +46,16 @@ interface NullableValueSource<T> extends ValueSource<T> {
     onlyWhenOrNull(when: boolean): this
     ignoreWhenAsNull(when: boolean): this
 }
+```
 
+```ts
 interface EqualableValueSource<T> extends NullableValueSource<T> {
     equalsIfValue(value: T | null | undefined): BooleanValueSource
     equals(value: T | this): BooleanValueSource
     notEqualsIfValue(value: T | null | undefined): BooleanValueSource
     notEquals(value: T | this): BooleanValueSource
     isIfValue(value: T | null | undefined): BooleanValueSource
-    /** 'is' is the same that equals, but returns true when booth are null */
+    /** 'is' is the same that equals, but returns true when both are null */
     is(value: T | this): BooleanValueSource
     isNotIfValue(value: T | null | undefined): BooleanValueSource
     isNot(value: T | this): BooleanValueSource
@@ -63,7 +69,9 @@ interface EqualableValueSource<T> extends NullableValueSource<T> {
     inN(...value: T[] | this[]): BooleanValueSource
     notInN(...value: T[] | this[]): BooleanValueSource
 }
+```
 
+```ts
 interface ComparableValueSource<T> extends EqualableValueSource<T> {
     lessThanIfValue(value: T | null | undefined): BooleanValueSource
     lessThan(value: T | this): BooleanValueSource
@@ -76,7 +84,9 @@ interface ComparableValueSource<T> extends EqualableValueSource<T> {
     between(value: T | this, value2: T | this): BooleanValueSource
     notBetween(value: T | this, value2: T | this): BooleanValueSource
 }
+```
 
+```ts
 /**
  * Represents a boolean
  */
@@ -95,7 +105,9 @@ interface BooleanValueSource extends EqualableValueSource<boolean> {
     /** This function allows to return a value when null or undefined were provided to the *IfValue function */
     valueWhenNoValue(value: boolean | this): this
 }
+```
 
+```ts
 /**
  * Represents an int or a double
  */
@@ -124,11 +136,11 @@ interface NumberValueSource extends ComparableValueSource<number> {
     logn(value: number | this): this
     roundn(value: number | this): this
     /**
-     * This function establish a minimum value for the current value, that means the biggest value must be returned
+     * This function establishes a minimum value for the current value, that means the biggest value must be returned
      */
     minValue(value: number | this): this
     /**
-     * This function establish a maximun value for the current value, that means the smallest value must be returned
+     * This function establishes a maximum value for the current value, that means the smallest value must be returned
      */
     maxValue(value: number | this): this
     add(value: number | this): this
@@ -138,7 +150,9 @@ interface NumberValueSource extends ComparableValueSource<number> {
     modulo(value: number | this): this
     atan2(value: number | this): this
 }
+```
 
+```ts
 /**
  * Represents a bigint
  */
@@ -149,11 +163,11 @@ interface BigintValueSource extends ComparableValueSource<bigint> {
     round(): this
     sign(): NumberValueSource
     /**
-     * This function establish a minimum value for the current value, that means the biggest value must be returned
+     * This function establishes a minimum value for the current value, that means the biggest value must be returned
      */
     minValue(value: bigint | this): this
     /**
-     * This function establish a maximun value for the current value, that means the smallest value must be returned
+     * This function establishes a maximum value for the current value, that means the smallest value must be returned
      */
     maxValue(value: bigint | this): this
     add(value: bigint | this): this
@@ -161,7 +175,9 @@ interface BigintValueSource extends ComparableValueSource<bigint> {
     multiply(value: bigint | this): this
     modulo(value: bigint | this): this
 }
+```
 
+```ts
 /**
  * Represents a string
  */
@@ -218,14 +234,18 @@ interface StringValueSource extends ComparableValueSource<string> {
     replaceAllIfValue(findString: string | null | undefined, replaceWith: string | null | undefined): StringValueSource
     replaceAll(findString: string | this, replaceWith: string | this): StringValueSource
 }
+```
 
+```ts
 /**
  * Represents an UUID
  */
  interface UuidValueSource extends ComparableValueSource<string> {
     asString(): StringValueSource
  }
+```
 
+```ts
 /**
  * Represents a local date without time (using a Date object)
  */
@@ -239,7 +259,9 @@ interface LocalDateValueSource extends ComparableValueSource<Date> {
     /** Gets the day of the week (0 represents Sunday) */
     getDay(): NumberValueSource
 }
+```
 
+```ts
 /**
  * Represents a local time without date (using a Date object)
  */
@@ -253,7 +275,9 @@ interface LocalTimeValueSource extends ComparableValueSource<Date> {
     /** Gets the milliseconds */
     getMilliseconds(): NumberValueSource
 }
+```
 
+```ts
 /**
  * Represents a local date with time (using a Date object)
  */
@@ -277,7 +301,9 @@ interface LocalDateTimeValueSource extends ComparableValueSource<Date> {
     /** Gets the time value in milliseconds */
     getTime(): NumberValueSource
 }
+```
 
+```ts
 /**
  * Represents a custom int
  */
@@ -288,11 +314,11 @@ interface CustomIntValueSource<T> extends ComparableValueSource<T> {
     round(): this
     sign(): NumberValueSource
     /**
-     * This function establish a minimum value for the current value, that means the biggest value must be returned
+     * This function establishes a minimum value for the current value, that means the biggest value must be returned
      */
     minValue(value: T | this): this
     /**
-     * This function establish a maximun value for the current value, that means the smallest value must be returned
+     * This function establishes a maximum value for the current value, that means the smallest value must be returned
      */
     maxValue(value: T | this): this
     add(value: T | this): this
@@ -300,7 +326,9 @@ interface CustomIntValueSource<T> extends ComparableValueSource<T> {
     multiply(value: T | this): this
     modulo(value: T | this): this
 }
+```
 
+```ts
 /**
  * Represents a custom double
  */
@@ -326,11 +354,11 @@ interface CustomDoubleValueSource<T> extends ComparableValueSource<T> {
     logn(value: T | this): this
     roundn(value: T | this): this
     /**
-     * This function establish a minimum value for the current value, that means the biggest value must be returned
+     * This function establishes a minimum value for the current value, that means the biggest value must be returned
      */
     minValue(value: T | this): this
     /**
-     * This function establish a maximun value for the current value, that means the smallest value must be returned
+     * This function establishes a maximum value for the current value, that means the smallest value must be returned
      */
     maxValue(value: T | this): this
     add(value: T | this): this
@@ -340,14 +368,18 @@ interface CustomDoubleValueSource<T> extends ComparableValueSource<T> {
     modulo(value: T | this): this
     atan2(value: T | this): this
 }
+```
 
+```ts
 /**
  * Represents a custom UUID
  */
 interface CustomUuidValueSource<T> extends ComparableValueSource<T> {
     asString(): StringValueSource
  }
+```
 
+```ts
 /**
  * Represents a custom local date without time (using a Date object)
  */
@@ -361,7 +393,9 @@ interface CustomLocalDateValueSource<T> extends ComparableValueSource<T> {
     /** Gets the day of the week (0 represents Sunday) */
     getDay(): NumberValueSource
 }
+```
 
+```ts
 /**
  * Represents a custom local time without date (using a Date object)
  */
@@ -375,7 +409,9 @@ interface CustomLocalTimeValueSource<T> extends ComparableValueSource<T> {
     /** Gets the milliseconds */
     getMilliseconds(): NumberValueSource
 }
+```
 
+```ts
 /**
  * Represents a custom local date with time (using a Date object)
  */
@@ -399,7 +435,9 @@ interface CustomLocalDateTimeValueSource<T> extends ComparableValueSource<T> {
     /** Gets the time value in milliseconds */
     getTime(): NumberValueSource
 }
+```
 
+```ts
 /**
  * Represents the result of an aggregate as object array
  */
@@ -410,7 +448,9 @@ interface AggregatedArrayValueSource<T> extends ValueSource<T> {
     onlyWhenOrNull(when: boolean): AggregatedArrayValueSource<T>
     ignoreWhenAsNull(when: boolean): AggregatedArrayValueSource<T>
 }
+```
 
+```ts
 interface AggregatedArrayValueSourceProjectableAsNullable<T> extends AggregatedArrayValueSource<T> {
     /** Returns the optional values as null instead of optional undefined values */
     projectingOptionalValuesAsNullable(): AggregatedArrayValueSource<T>

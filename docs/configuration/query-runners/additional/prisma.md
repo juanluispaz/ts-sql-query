@@ -4,6 +4,22 @@ search:
 ---
 # prisma
 
+This query runner allows executing SQL queries using a [Prisma](https://www.prisma.io) client. It is compatible with Prisma 5. Although it may also work with Prisma 3 and 4, this has not been tested. To use it, you must enable interactive transactions in your Prisma schema. See the [documentation](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide#interactive-transactions-in-preview) for how to configure this.
+
+!!! success "Supported databases"
+
+    - [MariaDB](../../supported-databases/mariadb.md)
+    - [MySQL](../../supported-databases/mysql.md)
+    - [PostgreSQL](../../supported-databases/postgresql.md)
+    - [SQLite](../../supported-databases/sqlite.md)
+    - [SQL Server](../../supported-databases/sqlserver.md)
+
+!!! danger "Experimental"
+
+    This query runner is experimental.
+
+    This implementation emulates the behaviour of Prisma's unconventional promise-like object, which can be challenging.
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -12,16 +28,10 @@ search:
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
+## Using a connection pool
 
-!!! danger "Experimental"
-    This query runner is experimental.
+Enables executing queries through a [[Prisma](https://www.prisma.io) connection obtained from a pool.
     
-    This implementation emulates the behaviour of the promise-not-so-like object returned by Prisma; but this can be challenging.
-
-It allows to execute the queries using a [Prisma](https://www.prisma.io) client. It supports Prisma 5. It could work as well in Prima 3 and 4, but not tested, if you enable the interactive transactions it in your Prisma Schema (see the [documentation](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide#interactive-transactions-in-preview) to find how to do it).
-
-**Supported databases**: mariaDB, mySql, postgreSql, sqlite, sqlServer
-
 ```ts
 import { PrismaClient } from '@prisma/client'
 import { PrismaQueryRunner } from "ts-sql-query/queryRunners/PrismaQueryRunner";
@@ -49,19 +59,21 @@ The consequence of this design is you cannot call the low-level transaction meth
 - `commit`
 - `rollback`
 
-But, you can use `connection.transaction` method to perform a transaction in Prisma (under the hood, it calls `prismaClient.$transaction`). When you use `connection.transaction` method, you can combine ts-sql-query and Prisma operations.
+But, you can use `connection.transaction` method to perform a transaction in Prisma (under the hood, it calls `prismaClient.$transaction`). When you use `connection.transaction` method, you can combine `ts-sql-query` and Prisma operations.
 
 ## Short-running transactions
 
-**NOT SUPPORTED**: Prisma's short-running transactions are not supported in ts-sql-query. Make sure to distinguish Prisma's short-running transactions from standard SQL transactions.
+!!! failure "Not supported"
+
+    Prisma's short-running transactions are not supported in `ts-sql-query`. Make sure to distinguish Prisma's short-running transactions from standard SQL transactions.
 
 ## Long-running transactions
 
-It is called, as well, interactive transactions in Prisma's documentation.
+It is called, as well, interactive transactions in the Prisma documentation.
 
 You can pass as the second argument of the `PrismaQueryRunner` constructor a configuration for long-running transactions. The configuration object support the following properties:
 
-- `interactiveTransactionsOptions`(object, optional, default `undefined`): Object with the second parament of the `$transaction` method in the Prisma client object. It supports the following properties: 
+- `interactiveTransactionsOptions`(object, optional, default `undefined`): Object with the second parameter of the `$transaction` method in the Prisma client object. It supports the following properties: 
   - `maxWait` (number, optional, default `2000`): The maximum amount of time (milliseconds) the Prisma Client will wait to acquire a transaction from the database. The default is 2 seconds.
   - `timeout` (number, optional, default `5000`): The maximum amount of time (milliseconds) the interactive transaction can run before being cancelled and rolled back. The default value is 5 seconds.
 
@@ -95,12 +107,16 @@ const transactionResult = prisma.$transaction(async (prismaTransaction) => {
 
 ## Accessing to the Prisma Client from the connection
 
-If you want to access the underlying Prisma Cient from your connection object you can define an accesor method in your connection class like:
+If you want to access the underlying Prisma Client from your connection object, you can define an accessor method in your connection class like:
 
 ```ts
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     getPrismaClient(): PrismaClient {
         const prisma = this.queryRunner.getCurrentNativeTransaction() || this.queryRunner.getNativeRunner()
+        /*
+         * This code attempts to retrieve the current Prisma client being used in the transaction. 
+         * If there is no active transaction, it falls back to the default Prisma client instance.
+         */
         if (prisma instanceof PrismaClient) {
             return prisma
         } else {

@@ -4,6 +4,8 @@ search:
 ---
 # Transaction Keywords
 
+This page lists SQL keywords and clauses related to transactions, including how to begin, commit, and roll back transactions, as well as advanced features such as savepoints and isolation levels. It also describes the corresponding methods available in `ts-sql-query` to manage transactional behavior in a type-safe way.
+
 | SQL Keyword                            | ts-sql-query Equivalent                                   | Notes                                                            | Link                                                                             |
 |:---------------------------------------|:-----------------------------------------------------------------|:-----------------------------------------------------------------|:---------------------------------------------------------------------------------|
 | BEGIN                                  | connection `.beginTransaction()`, connection `.transaction(...)` | Begins a new transaction.                                        | [Transaction](../queries/transaction.md), [Connection API](../api/connection.md) |

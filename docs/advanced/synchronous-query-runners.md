@@ -4,17 +4,24 @@ search:
 ---
 # Synchronous query runners
 
-Some query runners support to execute the queries synchronously if you provide a Promise implementation that supports it, like [synchronous-promise](https://www.npmjs.com/package/synchronous-promise).
+Some query runners support executing queries synchronously if you provide a Promise implementation that supports it, like [synchronous-promise](https://www.npmjs.com/package/synchronous-promise).
 
-The query runners that support execute queries synchronously if you specify a synchronous Promise implementation are:
+!!! success "Supported query runners that connect to a database"
 
-- [BetterSqlite3QueryRunner](../configuration/query-runners/recommended/better-sqlite3.md)
-- [Sqlite3WasmOO1QueryRunner](../configuration/query-runners/recommended/sqlite-wasm-OO1.md)
-- [ConsoleLogNoopQueryRunner](../configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md)
-- [MockQueryRunner](../configuration/query-runners/general-purpose/MockQueryRunner.md)
-- [NoopQueryRunner](../configuration/query-runners/general-purpose/NoopQueryRunner.md)
+    - [BetterSqlite3QueryRunner](../configuration/query-runners/recommended/better-sqlite3.md)
+    - [Sqlite3WasmOO1QueryRunner](../configuration/query-runners/recommended/sqlite-wasm-OO1.md)
 
-For example:
+!!! success "Supported general purposes query runners"
+
+    - [InterceptorQueryRunner](../configuration/query-runners/general-purpose/InterceptorQueryRunner.md)
+    - [LoggingQueryRunner](../configuration/query-runners/general-purpose/LoggingQueryRunner.md)
+    - [MockQueryRunner](../configuration/query-runners/general-purpose/MockQueryRunner.md)
+    - Others
+        - [ConsoleLogQueryRunner](../configuration/query-runners/general-purpose/ConsoleLogQueryRunner.md)
+        - [ConsoleLogNoopQueryRunner](../configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md)
+        - [NoopQueryRunner](../configuration/query-runners/general-purpose/NoopQueryRunner.md)
+
+## Usage Example
 
 ```ts
 import { BetterSqlite3QueryRunner } from "ts-sql-query/queryRunners/BetterSqlite3QueryRunner";
@@ -26,12 +33,15 @@ const db = betterSqlite3('foobar.db', options);
 async function main() {
     const connection = new DBConnection(new BetterSqlite3QueryRunner(db, { promise: SynchronousPromise }));
     // Do your queries here,  surrounding it by the sync function. For example:
-    const selectCompanies = sync(connection.selectFrom(tCompany)
-    .where(tCustomCompany.isBig)
-    .select({
-        id: tCompany.id,
-        name: tCompany.name
-    }).executeSelectMany());
+    const selectCompanies = sync(
+        connection.selectFrom(tCompany)
+            .where(tCompany.isBig)
+            .select({
+                id: tCompany.id,
+                name: tCompany.name
+            })
+            .executeSelectMany()
+    );
 
     var result = sync(connection.insertInto...)
     result = sync(connection.update...)
@@ -39,7 +49,11 @@ async function main() {
 }
 ```
 
-In the case of [synchronous-promise](https://www.npmjs.com/package/synchronous-promise), you will need this utility function that transforms a promise in a synchronous output:
+## Unwrapping synchronous promises
+
+This utility function unwraps the result of a synchronous promise in a blocking manner, similar to how `await` unwraps regular promises. When using a promise implementation like [`synchronous-promise`](https://www.npmjs.com/package/synchronous-promise), which resolves synchronously and does not defer `.then` execution, this function allows interacting with `ts-sql-query` in a fully synchronous style.
+
+It is essential to ensure that the promise passed to `sync()` is truly synchronous — typically a database operation wrapped with `SynchronousPromise`. If the function detects that the operation was asynchronous (i.e. resolution was deferred), it throws an error, preventing misuse.
 
 ```ts
 /**
@@ -73,8 +87,8 @@ function sync<T>(promise: Promise<T>): T {
     // To ensure that we're indeed using a synchronous promise, ensure that the promise resolved
     // immediately.
     throw new Error(
-        'You performed a real async operation, not a database operation, ' +
-            'inside the function dedicated to calling the database',
+        'You performed a real async operation (not a synchronous database call) ' +
+            'inside a function meant to execute synchronous database queries.',
     );
 }
 ```

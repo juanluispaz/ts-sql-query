@@ -4,6 +4,12 @@ search:
 ---
 # oracledb
 
+This page explains how to use `ts-sql-query` with the [oracledb](https://www.npmjs.com/package/oracledb) driver. It covers three approaches: using a connection pool promise, using a connection pool or using a single connection directly.
+
+!!! success "Supported databases"
+
+    - [Oracle](../../supported-databases/oracle.md)
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -12,11 +18,9 @@ search:
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-## oracledb (with a connection pool promise)
+## Using a connection pool promise
 
-It allows to execute the queries using an [oracledb](https://www.npmjs.com/package/oracledb) connection pool promise.
-
-**Supported databases**: oracle
+Executes queries through a [oracledb](https://www.npmjs.com/package/oracledb) connection obtained from a pool promise.
 
 ```ts
 import { createPool } from 'oracledb';
@@ -49,9 +53,9 @@ async function main() {
 }
 ```
 
-## oracledb (with a connection pool)
+## Using a connection pool
 
-It allows to execute the queries using an [oracledb](https://www.npmjs.com/package/oracledb) connection pool.
+Executes queries through a [oracledb](https://www.npmjs.com/package/oracledb) connection obtained from a pool.
 
 **Supported databases**: oracle
 
@@ -87,11 +91,9 @@ async function main() {
 }
 ```
 
-## oracledb (with a connection)
+## Using a single connection
 
-It allows to execute the queries using an [oracledb](https://www.npmjs.com/package/oracledb) connection.
-
-**Supported databases**: oracle
+Executes queries through a dedicated [oracledb](https://www.npmjs.com/package/oracledb) connection.
 
 ```ts
 import { createPool } from 'oracledb';

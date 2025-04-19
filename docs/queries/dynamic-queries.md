@@ -4,9 +4,11 @@ search:
 ---
 # Dynamic queries
 
+This page explains how to write **dynamic SQL queries** using `ts-sql-query` while preserving **type safety**, **composability**, and the **declarative style** of SQL. Instead of using `if` statements or imperative logic to conditionally add filters, projections, or joins, `ts-sql-query` provides a rich set of methods — such as `.equalsIfValue()` and `.onlyWhen()` — that allow you to express **optional logic directly in the query definition**. You can also define **optional joins** that are included only if their columns are used, and safely handle `null` values in projections.
+
 ## Introduction
 
-ts-sql-query offers many commodity methods with name ended with `IfValue` to build dynamic queries; these methods allow to be ignored when the values specified by argument are `null` or `undefined` or an empty string (only when the `allowEmptyString` flag in the connection is not set to true, that is the default behaviour). When these methods are used in operations that return booleans value, ts-sql-query is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
+ts-sql-query provides several convenience methods ending in `IfValue` to help construct dynamic queries. These methods are automatically ignored when the provided values are `null`, `undefined`, or an empty string (unless the `allowEmptyString` flag in the connection is set to true — by default, it is false). When these methods are used in operations that return boolean values, ts-sql-query is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
 
 **When you realize an insert or update, you can**:
 
@@ -14,7 +16,7 @@ ts-sql-query offers many commodity methods with name ended with `IfValue` to bui
 - replace a previously set value during the construction of the query using  the method `setIfSet` or the method `setIfSetIfValue`
 - set a value if it was not previously set during the construction of the query using the method `setIfNotSet` or the method `setIfNotSetIfValue`
 - ignore a previously set value using the method `ignoreIfSet`
-- don't worry if you end with an update or delete with no where, you will get an error instead of update or delete all rows. You can allow explicitly having an update or delete with no where if you create it using the method `updateAllowingNoWhere` or `deleteAllowingNoWhereFrom` respectively
+- Don't worry if you end up with an `UPDATE` or `DELETE` without a `WHERE` clause — ts-sql-query will throw an error to prevent affecting all rows. You can allow explicitly having an update or delete with no where if you create it using the method `updateAllowingNoWhere` or `deleteAllowingNoWhereFrom` respectively
 
 **When you realize a select, you can**:
 
@@ -44,7 +46,7 @@ Instead, use the dynamic variants of comparison functions — those ending in `I
 
 ## Easy dynamic queries
 
-The methods ended with `IfValue` allows you to create dynamic queries in the easyest way; these methods works in the way when the values specified by argument are `null` or `undefined` or an empty string (only when the `allowEmptyString` flag in the connection is not set to true, that is the default behaviour) return a special neutral boolean (ignoring the expression) that is ignored when it is used in `and`s, `or`s, `on`s or `where`s.
+Methods ending in `IfValue` allow you to write dynamic queries in the easiest way; these methods work by ignoring the expression if the value provided is `null`, `undefined`, or an empty string (only when the `allowEmptyString` flag in the connection is not set to true, that is the default behaviour) return a special neutral boolean (ignoring the expression) that is ignored when it is used in `and`s, `or`s, `on`s or `where`s.
 
 ```ts
 const firstNameContains = 'ohn';
@@ -89,7 +91,7 @@ const customerWithId: Promise<{
 
 ## Ignorable boolean expression
 
-You can create a boolean expression that only applies if a certain condition is met, calling the `onlyWhen` method at the end of the boolean expression; in case the condition is false it returns a special neutral boolean (ignoring the expression) that is ignored when it is used in `and`s, `or`s, `on`s or `where`s. You an use also the `ignoreWhen` method at the end of the boolean expression to do the opposite; in case the condition is true it returns a special neutral boolean that is ignored. The `onlyWhen` and `ignoreWhen` methods can be useful to apply restictions in the query, by example, when the user have some roles.
+You can create a boolean expression that only applies if a certain condition is met, calling the `onlyWhen` method at the end of the boolean expression; in case the condition is false it returns a special neutral boolean (ignoring the expression) that is ignored when it is used in `and`s, `or`s, `on`s or `where`s. You can also use the `ignoreWhen` method at the end of the boolean expression to do the opposite; in case the condition is true it returns a special neutral boolean that is ignored. The `onlyWhen` and `ignoreWhen` methods can be useful to apply restrictions in the query, by example, when the user have some roles.
 
 ```ts
 const userCompanyId = 16
@@ -138,18 +140,18 @@ The parameters are: `[ ]`
 
 ## Ignorable expression as null
 
-You can create an expression that only applies if a certain condition is met, calling the `onlyWhenOrNull` method at the end of the expression; in case the condition is false it returns a null constant (ignoring the expression). You an use also the `ignoreWhenAsNull` method at the end of the boolean expression to do the opposite; in case the condition is true it returns a null constant. The `onlyWhenOrNull` and `ignoreWhenAsNull` methods can be useful to apply restictions in the query, by example, when the user have some roles.
+You can create an expression that only applies if a certain condition is met, calling the `onlyWhenOrNull` method at the end of the expression; in case the condition is false it returns a null constant (ignoring the expression). You can also use the `ignoreWhenAsNull` method at the end of the expression to do the opposite; in case the condition is true it returns a null constant. The `onlyWhenOrNull` and `ignoreWhenAsNull` methods can be useful to apply restrictions in the query, by example, when the user have some roles.
 
 ```ts
 const customerId = 10
-const diaplayNames = true
+const displayNames = true
 
 const customerWithIdWithRules = connection.selectFrom(tCustomer)
     .where(tCustomer.id.equals(customerId))
     .select({
         id: tCustomer.id,
-        firstName: tCustomer.firstName.onlyWhenOrNull(diaplayNames),
-        lastName: tCustomer.lastName.onlyWhenOrNull(diaplayNames),
+        firstName: tCustomer.firstName.onlyWhenOrNull(displayNames),
+        lastName: tCustomer.lastName.onlyWhenOrNull(displayNames),
         birthday: tCustomer.birthday
     })
     .executeSelectOne()
@@ -174,9 +176,9 @@ const customerWithIdWithRules: Promise<{
 }>
 ```
 
-But in the case of `diaplayNames` is false, the omitted expressions are replaced by null:
+But in the case of `displayNames` is false, the omitted expressions are replaced by null:
 ```ts
-const diaplayNames = false
+const displayNames = false
 ```
 
 The executed query is:
@@ -190,7 +192,7 @@ The parameters are: `[ 10 ]`
 
 ## Optional joins
 
-You can write selects where the columns are picked dynamically, but maybe a join is required depending on the picked columns. ts-sql-query offer you the possibility to indicate that join only must be included in the final query if the table involved in the join is used in the final query (by example, a column of that table was picked, or a column was used in a dynamic where). 
+You can write selects where the columns are picked dynamically, but maybe a join is required depending on the picked columns. ts-sql-query allows you to specify that a join should only be included in the final query if the table involved in the join is used in the final query (by example, a column from that table was selected or used in a dynamic `WHERE` clause). 
 
 To indicate the join can be optionally included in the query, you must create the join using one of the following methods:
 
@@ -244,7 +246,9 @@ from customer
 
 The parameters are: `[ ]`
 
-**Warning**: an omitted join can change the number of returned rows depending on your data structure. This behaviour doesn't happen when all rows of the initial table have one row in the joined table (or none if you use a left join), but not many rows.
+!!! warning
+
+    An omitted join can change the number of returned rows depending on your data structure. This behaviour doesn't happen when all rows of the initial table have one row in the joined table (or none if you use a left join), but not many rows.
 
 **You can also use optional joins with ignorable expression as null**
 
@@ -300,4 +304,6 @@ where customer.id = $1
 
 The parameters are: `[ 12 ]`
 
-**Warning**: an omitted join can change the number of returned rows depending on your data structure. This behaviour doesn't happen when all rows of the initial table have one row in the joined table (or none if you use a left join), but not many rows.
+!!! warning
+
+    An omitted join can change the number of returned rows depending on your data structure. This behaviour doesn't happen when all rows of the initial table have one row in the joined table (or none if you use a left join), but not many rows.

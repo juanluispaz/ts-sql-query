@@ -4,6 +4,8 @@ search:
 ---
 # Delete
 
+This page explains how to construct SQL `DELETE` statements using `ts-sql-query`. It covers conditional deletions, returning deleted values using `returning`, deleting with additional tables via `using`, and bulk deletions using mapped constant values. It also highlights safety mechanisms to avoid unintended full-table deletions.
+
 ## General delete
 
 ```ts
@@ -25,9 +27,9 @@ The result type is a promise with the number of deleted rows:
 const deleteCustomer: Promise<number>
 ```
 
-**Security constraint**:
+!!! danger "Security constraint"
 
-ts-sql-query will reject the execution of the delete sentence if, for some reason ended without a where. If you want to allow a delete without where, you must call `connection.deleteAllowingNoWhereFrom` instead of `connection.deleteFrom` when you start writing the sentence.
+    `ts-sql-query` will reject the execution of a delete statement if, for some reason, it ends without a `WHERE` clause. If you want to allow a delete without where, you must call `connection.deleteAllowingNoWhereFrom(...)` instead of `connection.deleteFrom(...)` when you start writing the sentence.
 
 ## Delete returning
 
@@ -66,7 +68,7 @@ You can project optional values in objects as always-required properties that al
 
 You can execute the query using:
 
-- `executeDeleteNoneOrOne(): Promise<RESULT | null>`: Execute the delete query that returns one or no result from the database. In case of more than one result found, it throws and error with message 'Too many rows, expected only zero or one row'.
+- `executeDeleteNoneOrOne(): Promise<RESULT | null>`: Execute the delete query that returns one or no result from the database. In case of more than one result found, it throws an error with message 'Too many rows, expected only zero or one row'.
 - `executeDeleteOne(): Promise<RESULT>`: Execute the delete query that returns one result from the database. If no result is returned by the database an exception will be thrown.
 - `executeDeleteMany(min?: number, max?: number): Promise<RESULT[]>`: Execute the delete query that returns zero or many results from the database.
 
@@ -74,7 +76,7 @@ Aditionally, if you want to return the value of a single column, you can use `re
 
 ## Delete using other tables or views
 
-Sometimes you want to include in the delete query other tables or views to process the delete instruction, you can add the `using` clause that is like a `from` clasue in a select. This is supported by `PostgreSql`, `SqlServer`, `MariaDB` or `MySql`.
+Sometimes you want to include in the delete query other tables or views to process the delete instruction, you can add the `using` clause that is like a `from` clause in a select statement. This is supported by `PostgreSql`, `SqlServer`, `MariaDB` or `MySql`.
 
 ```ts
 const deleteACMECustomers = connection.deleteFrom(tCustomer)
@@ -101,7 +103,7 @@ const deleteACMECustomers: Promise<number>
 
 ## Bulk delete
 
-Sometimes you want to do serveral delete in a single query, where each one have their own data to use in the where; for this cases you can [map the constant values as view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the update. This is only supported by `PostgreSql` and `SqlServer`.
+Sometimes you need to delete multiple rows in a single query, where each condition depends on different data. For these cases, you can [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the deletion. This is only supported by `PostgreSql` and `SqlServer`.
 
 ```ts
 class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {

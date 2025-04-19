@@ -4,16 +4,25 @@ search:
 ---
 # Extreme dynamic queries
 
+This page presents the most advanced patterns for building dynamic SQL queries with `ts-sql-query`. It explores techniques such as dynamically selecting columns, constructing complex filters from external input, controlling joins conditionally, and shaping the output type accordingly. These features provide maximum flexibility when building highly dynamic APIs or business logic layers, but they also require careful reasoning about query structure and behavior.
+
 ## Introduction
 
 This section covers more advanced patterns for dynamic query construction. These techniques are powerful, but should be used **only when necessary**.
 
 In most applications, simple constructs like `.equalsIfValue()` or `.containsIfValue()` are sufficient for building flexible conditions. However, in more complex scenarios — such as dynamically selecting which columns to return, or building filters from condition objects — additional mechanisms are available.
 
-!!! warning
+!!! warning "These patterns are rarely needed"
+
     These patterns exist to handle *rare but real* edge cases. They offer great flexibility, but at the cost of increased complexity and reduced readability.
 
     Prefer the simpler declarative patterns unless your use case clearly requires this level of dynamic control.
+
+!!! warning "About utility types used in this page"
+
+    The examples in this section use advanced utility types to preserve proper TypeScript inference when selecting columns dynamically.
+
+    For a full reference of the utility functions and types used to define and infer types for dynamic picks, see [Utility for dynamic picks](../advanced/utility-dynamic-picks.md).
 
 ## Complex dynamic boolean expressions
 
@@ -146,7 +155,7 @@ The utility type `DynamicCondition` from `ts-sql-query/dynamicCondition` allows 
 
 See [Dynamic conditions](../api/dynamic-conditions.md) for more information.
 
-Sometimes you need to extend the availables rules to use in dynamic conditions to provede more functionality to your dinamic conditions; to do this you will need to construct an object (it can contain inner objects), where the key is the name of the rule, and the value is a function that receives as an argument the configuration of the rule, and it must return a boolean value source. When you create the dynamic condition, you must provide the extension as the second argument. See [Full dynamic select](#full-dynamic-select) for a complete example.
+Sometimes you need to extend the available rules used in dynamic conditions to provide more functionality to your dynamic conditions.; to do this you will need to construct an object (it can contain inner objects), where the key is the name of the rule, and the value is a function that receives as an argument the configuration of the rule, and it must return a boolean value source. When you create the dynamic condition, you must provide the extension as the second argument. See [Full dynamic select](#full-dynamic-select) for a complete example.
 
 ## Select dynamically picking columns
 
@@ -174,7 +183,7 @@ const fieldsToPick = {
 // Alternative: const pickedFields = dynamicPickPaths(availableFields, fieldsToPickList)
 const pickedFields = dynamicPick(availableFields, fieldsToPick)
 
-const customersWithIdPeaking = connection.selectFrom(tCustomer)
+const customersWithIdPicking = connection.selectFrom(tCustomer)
     .select({
         ...pickedFields,
         id: tCustomer.id // always include the id field in the result
@@ -192,7 +201,7 @@ The parameters are: `[]`
 
 The result type is:
 ```tsx
-const customersWithIdPeaking: Promise<{
+const customersWithIdPicking: Promise<{
     id: number;
     birthday?: Date;
     firstName?: string;
@@ -201,85 +210,6 @@ const customersWithIdPeaking: Promise<{
 ```
 
 The `fieldsToPick` object defines all the properties that will be included, and the value is a boolean that tells if that property must be included or not. Alternatively, you can define `fieldsToPickList` array with the list of property names that will be included.
-
-The utility function `dynamicPick` from `ts-sql-query/dynamicCondition` lets you pick the fields from an object. This function returns a copy of the object received as the first argument with the properties with the same name and value `true` in the object received as the second argument; if the property is an object constructed in a complex projection, the value can be an object representing the inner properties. Optionally, you can include a list of the properties path (or name) that will always be included as the third argument, but it is better if you include them directly in the select, as shown in the example.
-
-The type `DynamicPick<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define the type expected by the `dynamicPick` function (in the example, the variable `fieldsToPick`) where the first generic argument is the type of the avaliable fields to pick. Optionally you can provide a second generic argument with the path (or name) of the mandatories properties joined with `|`. Example: `DynamicPick<typeof availableFields, 'prop1' | 'prop2'>`.
-
-The utility function `dynamicPickPaths` from `ts-sql-query/dynamicCondition` allows you to pick the fields from an object or inner object in complex projections. This function returns a copy of the object received as the first argument with the properties path in the array received as the second argument. Optionally, you can include a list of the properties path (or name) that will always be included as the third argument, but it is better if you include them directly in the select, as shown in the example.
-
-The type `DynamicPickPaths<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define the type expected by the `dynamicPickPaths` function (in the example, the variable `fieldsToPickList`) where the first generic argument is the type of the avaliable fields to pick. Optionally you can provide a second generic argument with the path (or name) of the mandatories properties joined with `|`. Example: `DynamicPickPaths<typeof availableFields, 'prop1' | 'prop2'>`.
-
-The type `PickValuesPath<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define a type of each element in the result when the query is executed picking fields, that only include the picked fields, where the first generic argument is the of the available fields to pick. Additionally, you must provide a second generic argument with the path (or name) of the picked properties joined with `|`. Example: `PickValuesPath<typeof availableFields, 'prop1' | 'prop2'>`.
-
-The type `PickValuesPathWitAllProperties<Type, Mandatory>` from `ts-sql-query/dynamicCondition` allows you to define a type of each element in the result when the query is executed picking fields, that includes the picked fields and the non-picked one as optional (in the same way the select query does), where the first generic argument is the of the available fields to pick. Additionally, you must provide a second generic argument with the path (or name) of the picked properties joined with `|`. Example: `PickValuesPathWitAllProperties<typeof availableFields, 'prop1' | 'prop2'>`.
-
-When you are dynamically picking columns, you will probably want to create a function that receives the list of columns in a generic way, allowing the output to be properly typed with the requested columns. To do this, you must rectify the query result type by calling the function `expandTypeFromDynamicPickPaths` from `ts-sql-query/dynamicCondition` to include the generic rules again in the projected output. The first argument corresponds to the available fields to pick, the second corresponds to the picked fields, and the third corresponds to the query execution result. Example:
-
-**Creating definition based in your business types**:
-
-```ts
-import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query/dynamicCondition"
-
-interface CustomerInformation {
-    id: number;
-    firstName: string;
-    lastName: string;
-    birthday?: Date;
-}
-
-async function getCustomersInformation<FIELDS extends keyof CustomerInformation>(connection: DBConnection, fields: FIELDS[]): Promise<Pick<CustomerInformation, FIELDS | 'id'>[]> {
-    const availableFields = {
-        id: tCustomer.id,
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName,
-        birthday: tCustomer.birthday
-    }
-    
-    // always include id field as required
-    const pickedFields = dynamicPickPaths(availableFields, fields, ['id'])
-    
-    const customers = await connection.selectFrom(tCustomer)
-        .select(pickedFields)
-        .executeSelectMany()
-
-    return expandTypeFromDynamicPickPaths(availableFields, fields, customers);
-}
-```
-
-!!! note
-
-    - If you query project optional values in objects as always-required properties, use `expandTypeProjectedAsNullableFromDynamicPickPaths` instead of `expandTypeFromDynamicPickPaths`.
-    - If you query project optional values in objects as always-required properties, use `PickValuesPathProjectedAsNullable` instead of `PickValuesPath`.
-    - If you query project optional values in objects as always-required properties, use `PickValuesPathWitAllPropertiesProjectedAsNullable` instead of `PickValuesPathWitAllProperties`.
-
-**Creating definition based in your database types**:
-
-```ts
-import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query/dynamicCondition"
-
-const customerInformationFields = {
-    id: tCustomer.id,
-    firstName: tCustomer.firstName,
-    lastName: tCustomer.lastName,
-    birthday: tCustomer.birthday,
-}
-
-type CustomerInformationFields = DynamicPickPaths<typeof customerInformationFields>
-type CustomerInformation<FIELDS extends CustomerInformationFields> = PickValuesPath<typeof customerInformationFields, FIELDS | 'id'>
-
-async function getCustomersInformation<FIELDS extends CustomerInformationFields>(connection: DBConnection, fields: FIELDS[]): Promise<CustomerInformation<FIELDS>[]> {
-    
-    // always include id field as required
-    const pickedFields = dynamicPickPaths(customerInformationFields, fields, ['id'])
-    
-    const customers = await connection.selectFrom(tCustomer)
-        .select(pickedFields)
-        .executeSelectMany()
-
-    return expandTypeFromDynamicPickPaths(customerInformationFields, fields, customers, ['id'])
-}
-```
 
 ## Optional joins dynamically picking columns
 
@@ -355,11 +285,13 @@ where customer.id = $1
 
 The parameters are: `[ 12 ]`
 
-**Warning**: an omitted join can change the number of returned rows depending on your data structure. This behaviour doesn't happen when all rows of the initial table have one row in the joined table (or none if you use a left join), but not many rows.
+!!! warning
+
+    An omitted join can change the number of returned rows depending on your data structure. This behaviour doesn't happen when all rows of the initial table have one row in the joined table (or none if you use a left join), but not many rows.
 
 ## Restrict access to values
 
-Sometimes you want to allow access to a value only under some circumstances, like when you want a column in a select picking column to be available only if the user has permissions. For this, you can call the function `allowWhen`, indicating as the first argument if it is allowed to use this value, and as the second argument, an error or text's error that will be thrown if the value is used in the generated query. Additionally, there is the `disallowWhen` that is analogous to `allowWhen`, but the boolean received as an argument indicates when the value is disallowed.
+Sometimes you want to allow access to a value only under some circumstances, such as when you want a column in a dynamic select to be available only if the user has permissions. For this, you can call the function `allowWhen`, indicating as the first argument if it is allowed to use this value, and as the second argument, an error or text's error that will be thrown if the value is used in the generated query. Additionally, there is the `disallowWhen` that is analogous to `allowWhen`, but the boolean received as an argument indicates when the value is disallowed.
 
 ```ts
 import { dynamicPick, dynamicPickPaths } from "ts-sql-query/dynamicCondition"
@@ -601,15 +533,15 @@ In this example, several functionalities are used together using dynamic conditi
 Having this code:
 
 ```ts
-function buildComanyAvailableFields<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCoustomer'>>(_connection: DBConnection, favouriteCoustomerRef: CUSTOMER) {
-    const favouriteCoustomer = fromRef(tCustomer, favouriteCoustomerRef);
+function buildComanyAvailableFields<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCustomer'>>(_connection: DBConnection, favouriteCustomerRef: CUSTOMER) {
+    const favouriteCustomer = fromRef(tCustomer, favouriteCustomerRef);
 
     return {
         id: tCompany.id,
         name: tCompany.name,
         favouriteCustomer: {
-            id: favouriteCoustomer.id,
-            name: favouriteCoustomer.firstName.concat(' ').concat(favouriteCoustomer.lastName)
+            id: favouriteCustomer.id,
+            name: favouriteCustomer.firstName.concat(' ').concat(favouriteCustomer.lastName)
         }
     }
 }
@@ -619,8 +551,8 @@ interface CustomerRules {
     anyCustomerWithBirthdayOn?: Date
 }
 
-function buildCompanyConditionExtention<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCoustomer'>>(connection: DBConnection, favouriteCoustomerRef: CUSTOMER) {
-    const favouriteCoustomer = fromRef(tCustomer, favouriteCoustomerRef);
+function buildCompanyConditionExtention<CUSTOMER extends TableOrViewLeftJoinOf<typeof tCustomer, 'favouriteCustomer'>>(connection: DBConnection, favouriteCustomerRef: CUSTOMER) {
+    const favouriteCustomer = fromRef(tCustomer, favouriteCustomerRef);
 
     return {
         customers: (rules: CustomerRules) => {
@@ -652,7 +584,7 @@ function buildCompanyConditionExtention<CUSTOMER extends TableOrViewLeftJoinOf<t
                     .where(tCompany.name.containsInsensitive(name))
                     .selectOneColumn(tCompany.favouriteCustomerId)
 
-                return favouriteCoustomer.id.in(query)
+                return favouriteCustomer.id.in(query)
             }
         }
     }
@@ -663,17 +595,17 @@ type CompanyDynamicCondition = DynamicCondition<ReturnType<typeof buildComanyAva
 type CompanyInformation<FIELDS extends CompanyFields> = PickValuesPath<ReturnType<typeof buildComanyAvailableFields>, FIELDS | 'id'>
 
 async function getSubcompanies<FIELDS extends CompanyFields>(connection: DBConnection, parentCompanyId: number, fields: FIELDS[], condition: CompanyDynamicCondition): Promise<CompanyInformation<FIELDS>[]> {
-    const favouriteCoustomer = tCustomer.forUseInLeftJoinAs('favouriteCoustomer')
+    const favouriteCustomer = tCustomer.forUseInLeftJoinAs('favouriteCustomer')
 
-    const avaliableFields = buildComanyAvailableFields(connection, favouriteCoustomer)
-    const conditionExtention = buildCompanyConditionExtention(connection, favouriteCoustomer)
+    const avaliableFields = buildComanyAvailableFields(connection, favouriteCustomer)
+    const conditionExtention = buildCompanyConditionExtention(connection, favouriteCustomer)
 
     const dynamicCondition = connection.dynamicConditionFor(avaliableFields, conditionExtention).withValues(condition)
     const selectedFields = dynamicPickPaths(avaliableFields, fields, ['id'])
     
     const companies = await connection
         .selectFrom(tCompany)
-        .optionalLeftOuterJoin(favouriteCoustomer).on(tCompany.favouriteCustomerId.equals(favouriteCoustomer.id))
+        .optionalLeftOuterJoin(favouriteCustomer).on(tCompany.favouriteCustomerId.equals(favouriteCustomer.id))
         .where(dynamicCondition)
         .and(tCompany.parentId.equals(parentCompanyId))
         .select(selectedFields)
@@ -725,9 +657,9 @@ The executed query is:
 select 
     company.id as id, 
     company.name as name, 
-    favouriteCoustomer.first_name || $1 || favouriteCoustomer.last_name as "favouriteCustomer.name" 
+    favouriteCustomer.first_name || $1 || favouriteCustomer.last_name as "favouriteCustomer.name" 
 from company 
-left outer join customer as favouriteCoustomer on company.parent_id = favouriteCoustomer.id 
+left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
 where 
     exists(
         select id as result 
@@ -764,9 +696,9 @@ select
     company.id as id, 
     company.name as name 
 from company 
-left outer join customer as favouriteCoustomer on company.parent_id = favouriteCoustomer.id 
+left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
 where 
-    favouriteCoustomer.id in (
+    favouriteCustomer.id in (
         select parent_id as result 
         from company 
         where name ilike ('%' || $1 || '%')
@@ -827,3 +759,9 @@ const result: Promise<{
     name: string;
 }[]>
 ```
+
+## Summary and when to use these patterns
+
+The techniques in this page should be considered advanced and used with care. They are useful in scenarios where the structure of the query — both in terms of selected columns and applied filters — must be determined at runtime.
+
+If you find yourself using these patterns often, consider whether a change in your API design might make your system easier to reason about. Simpler alternatives such as optional projections, or multiple well-defined query shapes, may offer better maintainability.

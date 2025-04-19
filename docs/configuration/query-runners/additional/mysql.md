@@ -4,6 +4,13 @@ search:
 ---
 # mysql
 
+This page explains how to use `ts-sql-query` with the [`mysql`](https://www.npmjs.com/package/mysql) driver. It covers two approaches: using a connection pool or using a single connection directly.
+
+!!! success "Supported databases"
+
+    - [MariaDB](../../supported-databases/mariadb.md)
+    - [MySQL](../../supported-databases/mysql.md)
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -12,11 +19,9 @@ search:
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
 
-## mysql (with a connection pool)
+## Using a connection pool
 
-It allows to execute the queries using a [mysql](https://www.npmjs.com/package/mysql) connection pool.
-
-**Supported databases**: mariaDB, mySql
+Enables executing queries through a [mysql](https://www.npmjs.com/package/mysql) connection obtained from a pool.
 
 ```ts
 import { createPool } from "mysql";
@@ -36,11 +41,9 @@ async function main() {
 }
 ```
 
-## mysql (with a connection)
+## Using a single connection
 
-It allows to execute the queries using a [mysql](https://www.npmjs.com/package/mysql) connection.
-
-**Supported databases**: mariaDB, mySql
+Enables executing queries through a dedicated [mysql](https://www.npmjs.com/package/mysql) connection.
 
 ```ts
 import { createPool } from "mysql";
@@ -61,7 +64,7 @@ function main() {
         }
         try {
             const connection = new DBConnection(new MySqlQueryRunner(mysqlConnection));
-            doYourLogic(connection).finnaly(() => {
+            doYourLogic(connection).finally(() => {
                 mysqlConnection.release();
             });
         } catch(e) {

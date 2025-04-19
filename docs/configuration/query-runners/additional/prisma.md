@@ -4,7 +4,7 @@ search:
 ---
 # prisma
 
-This query runner allows executing SQL queries using a [Prisma](https://www.prisma.io) client. It is compatible with Prisma 5. Although it may also work with Prisma 3 and 4, this has not been tested. To use it, you must enable interactive transactions in your Prisma schema. See the [documentation](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide#interactive-transactions-in-preview) for how to configure this.
+This query runner allows executing SQL queries using a [Prisma](https://www.prisma.io) client. It is compatible with Prisma 5 and 6. Although it may also work with Prisma 3 and 4, this has not been tested. To use it, you must enable interactive transactions in your Prisma schema. See the [documentation](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide#interactive-transactions-in-preview) for how to configure this.
 
 !!! success "Supported databases"
 

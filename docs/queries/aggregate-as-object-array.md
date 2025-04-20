@@ -294,4 +294,4 @@ const lowCompany: Promise<{
 
 !!! warning "Limitation"
 
-    SqlServer, Oracle, and MariaDB don't support recursive queries that reference outer tables (using `subSelectUsing`). If you try to use this query on any of these databases, you will get a compilation error. A workaround is to avoid the outer reference in the recursive query indicating the parent id in the `parentCompanies` query.
+    [SQL Server](../configuration/supported-databases/sqlserver.md), [Oracle](../configuration/supported-databases/oracle.md), and [MariaDB](../configuration/supported-databases/mariadb.md) don't support recursive queries that reference outer tables (using `subSelectUsing`). If you try to use this query on any of these databases, you will get a compilation error. A workaround is to avoid the outer reference in the recursive query indicating the parent id in the `parentCompanies` query.

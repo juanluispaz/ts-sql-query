@@ -82,8 +82,8 @@ async function yourBusinessLogic() {
     - Do not provide or implement a constructor
     - The Values class is similar to the View class, with the difference the functions that allows to create the columns doesn't receive the column name.
     - Always create it using `Values.create`
-    - This is only supported by `PostgreSql`, `SqlServer` and `Sqlite`
-    - In PostgreSql the values included in the query will be forced to generate the type cast; ensure your custom types have a valid type cast. See [Column types](column-types.md)
+    - This is only supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQL Server](../configuration/supported-databases/sqlserver.md) and [SQLite](../configuration/supported-databases/sqlite.md)
+    - In [PostgreSQL](../configuration/supported-databases/postgresql.md) the values included in the query will be forced to generate the type cast; ensure your custom types have a valid type cast. See [Column types](column-types.md)
 
 ## Virtual columns
 

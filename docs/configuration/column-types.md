@@ -10,7 +10,7 @@ This page describes how to define and configure the types of columns used in you
 
 The following table lists the available column types you can assign, along with their corresponding TypeScript representation and general purpose.
 
-ts-sql-query allows you to define the columns with the following types:
+`ts-sql-query` allows you to define the columns with the following types:
 
 | Column type                     | TypeScript Type      | Description                                                       |
 |---------------------------------|----------------------|-------------------------------------------------------------------|

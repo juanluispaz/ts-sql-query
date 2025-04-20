@@ -23,3 +23,7 @@
 .md-source__fact--forks {
     display: none;
 }
+
+.md-grid {
+    max-width: unset;
+}

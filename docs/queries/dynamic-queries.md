@@ -8,7 +8,7 @@ This page explains how to write **dynamic SQL queries** using `ts-sql-query` whi
 
 ## Introduction
 
-ts-sql-query provides several convenience methods ending in `IfValue` to help construct dynamic queries. These methods are automatically ignored when the provided values are `null`, `undefined`, or an empty string (unless the `allowEmptyString` flag in the connection is set to true — by default, it is false). When these methods are used in operations that return boolean values, ts-sql-query is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
+`ts-sql-query` provides several convenience methods ending in `IfValue` to help construct dynamic queries. These methods are automatically ignored when the provided values are `null`, `undefined`, or an empty string (unless the `allowEmptyString` flag in the connection is set to true — by default, it is false). When these methods are used in operations that return boolean values, `ts-sql-query` is smart enough to omit the operation when it is required, even when the operation is part of complex composition with `and`s and `or`s.
 
 **When you realize an insert or update, you can**:
 
@@ -16,7 +16,7 @@ ts-sql-query provides several convenience methods ending in `IfValue` to help co
 - replace a previously set value during the construction of the query using  the method `setIfSet` or the method `setIfSetIfValue`
 - set a value if it was not previously set during the construction of the query using the method `setIfNotSet` or the method `setIfNotSetIfValue`
 - ignore a previously set value using the method `ignoreIfSet`
-- Don't worry if you end up with an `UPDATE` or `DELETE` without a `WHERE` clause — ts-sql-query will throw an error to prevent affecting all rows. You can allow explicitly having an update or delete with no where if you create it using the method `updateAllowingNoWhere` or `deleteAllowingNoWhereFrom` respectively
+- Don't worry if you end up with an `UPDATE` or `DELETE` without a `WHERE` clause — `ts-sql-query` will throw an error to prevent affecting all rows. You can allow explicitly having an update or delete with no where if you create it using the method `updateAllowingNoWhere` or `deleteAllowingNoWhereFrom` respectively
 
 **When you realize a select, you can**:
 
@@ -42,7 +42,7 @@ Instead, use the dynamic variants of comparison functions — those ending in `I
 
     When building dynamic queries, it's common in many ORMs or query builders to rely on imperative control flow — using `if` statements, mutating arrays, or combining query parts conditionally.
 
-    However, **ts-sql-query embraces a declarative approach**, inspired by the spirit of SQL itself. Instead of relying on control structures (`if`, `for`, etc.), you should express dynamic logic using built-in methods like `equalsIfValue`, `onlyWhen`, and `ignoreWhen`, which make your intent explicit, type-safe, and composable.
+    However, **`ts-sql-query` embraces a declarative approach**, inspired by the spirit of SQL itself. Instead of relying on control structures (`if`, `for`, etc.), you should express dynamic logic using built-in methods like `equalsIfValue`, `onlyWhen`, and `ignoreWhen`, which make your intent explicit, type-safe, and composable.
 
 ## Easy dynamic queries
 
@@ -192,7 +192,7 @@ The parameters are: `[ 10 ]`
 
 ## Optional joins
 
-You can write selects where the columns are picked dynamically, but maybe a join is required depending on the picked columns. ts-sql-query allows you to specify that a join should only be included in the final query if the table involved in the join is used in the final query (by example, a column from that table was selected or used in a dynamic `WHERE` clause). 
+You can write selects where the columns are picked dynamically, but maybe a join is required depending on the picked columns. `ts-sql-query` allows you to specify that a join should only be included in the final query if the table involved in the join is used in the final query (by example, a column from that table was selected or used in a dynamic `WHERE` clause). 
 
 To indicate the join can be optionally included in the query, you must create the join using one of the following methods:
 

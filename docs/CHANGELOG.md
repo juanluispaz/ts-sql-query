@@ -9,7 +9,7 @@ search:
 **Removals**:
 
 - Remove deprecated `mergeType` additional utility type. Use `connection.dynamicBooleanExpressionUsing` instead.
-- Remove deprecated composing and splitting results functionality long warned to be removed in ts-sql-query. Use complex projections or aggregate as an object array instead.
+- Remove deprecated composing and splitting results functionality long warned to be removed in `ts-sql-query`. Use complex projections or aggregate as an object array instead.
 
 ## v2.0.0-alpha.1 (2 Mar 2024)
 
@@ -70,7 +70,7 @@ search:
 
 **Changes**:
 
-- Deprecate composing and splitting results functionality long warned to be removed in ts-sql-query. Use complex projections or aggregate as an object array instead.
+- Deprecate composing and splitting results functionality long warned to be removed in `ts-sql-query`. Use complex projections or aggregate as an object array instead.
 - Deprecate `mergeType` additional utility type. Use `connection.dynamicBooleanExpressionUsing` instead.
 
 ## v1.60.0 (25 Feb 2024)
@@ -155,7 +155,7 @@ search:
 
 **Changes**:
 
-- Allow extend the rules in a dynamic condition to provide own rules not included by ts-sql-query
+- Allow extend the rules in a dynamic condition to provide own rules not included by `ts-sql-query`
 - Ensure tall types returned by `dynamicCondition` are readable
 
 **Bug fixes**:
@@ -260,7 +260,7 @@ search:
 
 **Bug fixes**:
 
-- Fix error in type definition introduced in ts-sql-query 1.42.0 that make optional properties appears as required in the query result due an over relaxed validation
+- Fix error in type definition introduced in `ts-sql-query` 1.42.0 that make optional properties appears as required in the query result due an over relaxed validation
 
 ## v1.45.0 (14 Dec 2022)
 
@@ -413,7 +413,7 @@ search:
 **Bug fixes**:
 
 - Fix insert default values on TypeScript 3.5 or higher
-- Unable to compile ts-sql-query with TypeScript 4.7
+- Unable to compile `ts-sql-query` with TypeScript 4.7
 
 ## v1.28.0 (23 May 2022)
 
@@ -635,7 +635,7 @@ search:
 
  - Allows you to use previously created properties in split/compose
 - Add support for Date and Time management in sqlite using different strategies to represent the value (sqlite doesn't have dedicate types to represent dates and time). The implemented strategies are aligned with the date time support in sqlite allowing to store the information as text (in the local timezone or UTC), as integer (in unix time seconds) or as a real value (in Julian days)
-- Align method names with convention, where ts-sql-query tries to use well known method names, giving preferences to already existing names in JavaScript, o well known function names in SQL, avoiding abbreviations. Methods with new names (Previous names are still available as deprecated methods):
+- Align method names with convention, where `ts-sql-query` tries to use well known method names, giving preferences to already existing names in JavaScript, o well known function names in SQL, avoiding abbreviations. Methods with new names (Previous names are still available as deprecated methods):
 
     | Previous name              | New name           |
     | -------------------------- | ------------------ |
@@ -721,7 +721,7 @@ search:
 
 **Changes**:
 
-- Implement guided splitting to help handle the splitting situation originated by a left join when the optionality of the moved properties are not correct due to known null rules that are not able to be extracted by ts-sql-query from the query
+- Implement guided splitting to help handle the splitting situation originated by a left join when the optionality of the moved properties are not correct due to known null rules that are not able to be extracted by `ts-sql-query` from the query
 
 **Documentation changes**:
 
@@ -755,7 +755,7 @@ search:
 
 **Changes**:
 
-- Implement `isTransactionActive` method at the connection object that allows to know if there is an active open transaction in ts-sql-query
+- Implement `isTransactionActive` method at the connection object that allows to know if there is an active open transaction in `ts-sql-query`
  - Allows you to use objects with the values in an insert or update that contain additional properties not present in the table that will be ignored. This change makes the behavior coherent with the TypeScript compiler.
 
 **Bug fixes**:
@@ -773,7 +773,7 @@ search:
 - The `split` method automatically determines if the created property is required or optional
 - Added `splitRequired` splitting method
 - Add support for optional joins in a select picking columns
-- Add support for table "from" customization, allowing to include raw sql to use features not supported yet by ts-sql-query
+- Add support for table "from" customization, allowing to include raw sql to use features not supported yet by `ts-sql-query`
 - Add support for select query customizations
 - Add support for update query customizations
 - Add support for delete query customizations

@@ -4,7 +4,7 @@ search:
 ---
 # Dynamic conditions API
 
-This page describes the API for building dynamic conditions in ts-sql-query, enabling you to construct queries at runtime in a type-safe and declarative way. It covers how to define filter types, use logical combinations, and extend the filtering capabilities with custom rules.
+This page describes the API for building dynamic conditions in `ts-sql-query`, enabling you to construct queries at runtime in a type-safe and declarative way. It covers how to define filter types, use logical combinations, and extend the filtering capabilities with custom rules.
 
 !!! tip
 

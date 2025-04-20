@@ -6,29 +6,29 @@ search:
 
 ## How does ts-sql-query model queries?
 
-ts-sql-query aims to model queries while preserving the essence of SQL. Its design is inspired by SQLite and PostgreSQL, while ensuring compatibility and clarity in a TypeScript/JavaScript context. When JavaScript or TypeScript have an idiomatic way to express something, ts-sql-query tries to reflect that — maintaining a delicate balance. As a result, writing queries in ts-sql-query closely mirrors SQL itself, allowing you to easily anticipate how a query would translate to raw SQL.
+`ts-sql-query` aims to model queries while preserving the essence of SQL. Its design is inspired by [SQLite](../configuration/supported-databases/sqlite.md) and [PostgreSQL](../configuration/supported-databases/postgresql.md), while ensuring compatibility and clarity in a TypeScript/JavaScript context. When JavaScript or TypeScript have an idiomatic way to express something, `ts-sql-query` tries to reflect that — maintaining a delicate balance. As a result, writing queries in `ts-sql-query` closely mirrors SQL itself, allowing you to easily anticipate how a query would translate to raw SQL.
 
-ts-sql-query executes the query in a single call to the database; no intermediate data is processed in your backend server; everything is done in a single SQL query in the same way you write it in ts-sql-query. The exception is the select page, where a first query will be executed, returning the data contained in the page, and a second query will be executed to get the count.
+`ts-sql-query` executes the query in a single call to the database; no intermediate data is processed in your backend server; everything is done in a single SQL query in the same way you write it in `ts-sql-query`. The exception is the select page, where a first query will be executed, returning the data contained in the page, and a second query will be executed to get the count.
 
 ## Can I generate the Tables/Views models from my database?
 
-Yes, for this prupose you can use [ts-sql-codegen](https://github.com/lorefnon/ts-sql-codegen) that is a utility that generates table mapper classes for ts-sql-query by inspecting a database through [tbls](https://github.com/k1LoW/tbls).
+Yes, for this prupose you can use [ts-sql-codegen](https://github.com/lorefnon/ts-sql-codegen) that is a utility that generates table mapper classes for `ts-sql-query` by inspecting a database through [tbls](https://github.com/k1LoW/tbls).
 
 ## Does ts-sql-query support dynamic SQL?
 
-Yes, ts-sql-query offers a very rich set of functionality to manage dynamic SQL generation. But be aware ts-sql-query deals with it in a declarative way (keeping the spirit of SQL) instead of an imperative way like in most commons query builders. In consequence, if you see yourself writing `if` in your code, that is the wrong path in ts-sql-query. You can read more here: [Dynamic queries](../queries/dynamic-queries.md#dynamic-queries).
+Yes, `ts-sql-query` offers a very rich set of functionality to manage dynamic SQL generation. But be aware `ts-sql-query` deals with it in a declarative way (keeping the spirit of SQL) instead of an imperative way like in most commons query builders. In consequence, if you see yourself writing `if` in your code, that is the wrong path in `ts-sql-query`. You can read more here: [Dynamic queries](../queries/dynamic-queries.md#dynamic-queries).
 
 ## Does ts-sql-query support database-specific features?
 
-Yes, ts-sql-query already supports database-specific features validated at compile time; if you try to use one of them but your database doesn't support it, you will get a compilation error.
+Yes, `ts-sql-query` already supports database-specific features validated at compile time; if you try to use one of them but your database doesn't support it, you will get a compilation error.
 
 ## Will ts-sql-query will constrain you when you need to use a not supported feature?
 
-ts-sql-query offers many ways to deal with non-yet supported features using [SQL fragments](../queries/sql-fragments.md); This feature covers the biggest of the cases you will hit in your use cases.
+`ts-sql-query` offers many ways to deal with non-yet supported features using [SQL fragments](../queries/sql-fragments.md); This feature covers the biggest of the cases you will hit in your use cases.
 
 ## How can I implement select for update?
 
-`select ... for update` construction is not exposed by ts-sql-query; but if you really need (remember this is expensive), you can [customize the select](../queries/sql-fragments.md#customizing-a-select) to include the missing part in the generated SQL. Example:
+`select ... for update` construction is not exposed by `ts-sql-query`; but if you really need (remember this is expensive), you can [customize the select](../queries/sql-fragments.md#customizing-a-select) to include the missing part in the generated SQL. Example:
 
 ```ts
 const customizedSelect = connection.selectFrom(tCustomer)
@@ -74,7 +74,7 @@ You can see them here: [API](../api/introduction.md).
 
 ## How can I organize my code to reuse some queries in different places?
 
-You can create functions that return the prebuilt query you want to reuse; the only requirement is to omit the function's return type to allow TypeScript to infer it. Additionally, you can take advantage of [Select clauses order](../queries/select.md#select-clauses-order) that ts-sql-query offers. With this in mind, you will be able to postpone the where clause till the end of the query (in SQL it will be generated in the proper place). Example:
+You can create functions that return the prebuilt query you want to reuse; the only requirement is to omit the function's return type to allow TypeScript to infer it. Additionally, you can take advantage of [Select clauses order](../queries/select.md#select-clauses-order) that `ts-sql-query` offers. With this in mind, you will be able to postpone the where clause till the end of the query (in SQL it will be generated in the proper place). Example:
 
 ```ts
 function buildNumberOfCustomersSubquery(connection: DBConnection) {

@@ -73,7 +73,7 @@ const insertMultipleCustomers: Promise<number[]>
 
 !!! note
 
-    Return the last inserted id of an insert with multiple rows is only supported by **PostgreSql**, **SqlServer** and **Oracle**. If you try to use it with other database you will get a compilation error.
+    Return the last inserted id of an insert with multiple rows is only supported by **[PostgreSQL](../configuration/supported-databases/postgresql.md)**, **[SQL Server](../configuration/supported-databases/sqlserver.md)** and **[Oracle](../configuration/supported-databases/oracle.md)**. If you try to use it with other database you will get a compilation error.
 
 ## Insert from select
 
@@ -110,7 +110,7 @@ const insertCustomer: Promise<number>
 
 ## Insert returning
 
-If you are using `PostgreSql`, modern `Sqlite`, `SqlServer` or `Oracle` (except for an insert from select), you can return values of the inserted record in the same query using the `returning` or `returningOneColumn` methods.
+If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), modern [SQLite](../configuration/supported-databases/sqlite.md), [SQL Server](../configuration/supported-databases/sqlserver.md) or [Oracle](../configuration/supported-databases/oracle.md) (except for an insert from select), you can return values of the inserted record in the same query using the `returning` or `returningOneColumn` methods.
 
 ```ts
 const insertReturningCustomerData = connection.insertInto(tCustomer).set({
@@ -258,7 +258,7 @@ interface InsertExpression {
 }
 ```
 
-The `set` and `values` methods will require you to provide a value at least for the required fields. The `dynamicSet` and `dynamicValues` methods allow you to start the insert with optional values even when required in the insert; or even with no values at all. ts-sql-query will track all missing properties, and you will get a compilation error if one of them is missed (you will not be able to call the execute methods).
+The `set` and `values` methods will require you to provide a value at least for the required fields. The `dynamicSet` and `dynamicValues` methods allow you to start the insert with optional values even when required in the insert; or even with no values at all. `ts-sql-query` will track all missing properties, and you will get a compilation error if one of them is missed (you will not be able to call the execute methods).
 
 When you set the initial value, you can start manipulating them using the following methods:
 
@@ -410,7 +410,7 @@ interface InsertExpression {
 }
 ```
 
-The `values` method will require you to provide a value at least for the required fields. The `dynamicValues` method allows you to start the insert with optional values even when required in the insert; or even with no values at all. ts-sql-query will track all missing properties, and you will get a compilation error if one of them is missed (you will not be able to call the execute methods).
+The `values` method will require you to provide a value at least for the required fields. The `dynamicValues` method allows you to start the insert with optional values even when required in the insert; or even with no values at all. `ts-sql-query` will track all missing properties, and you will get a compilation error if one of them is missed (you will not be able to call the execute methods).
 
 When you set the initial value, you can start manipulating them (all at the same time, with same new values) using the following methods:
 
@@ -550,7 +550,7 @@ All these methods have a `When` variant that allows you to specify as the first 
 
 ## Insert on conflict do nothing
 
-If you are using `PostgreSql`, `Sqlite`, `MariaDB` or `MySql` you can specify the insert must do nothing in case of conflict.
+If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md), [MariaDB](../configuration/supported-databases/mariadb.md) or [MySQL](../configuration/supported-databases/mysql.md) you can specify the insert must do nothing in case of conflict.
 
 ```ts
 const insertReturningCustomerData = connection.insertInto(tCustomer).set({
@@ -588,13 +588,13 @@ const insertReturningCustomerData: Promise<{
 
 !!! note
 
-    - On `PostgreSql` and `Sqlite`, you can specify the columns that can create the conflict (including a `where` clause for that columns).
-    - On `PostgreSql` you can specify the constraint name that raise the conflict.
+    - On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md), you can specify the columns that can create the conflict (including a `where` clause for that columns).
+    - On [PostgreSQL](../configuration/supported-databases/postgresql.md) you can specify the constraint name that raise the conflict.
     - You can combine this with other insert's features, e.g. return some columns.
 
 ## Insert on conflict do update ("upsert")
 
-If you are using `PostgreSql`, `Sqlite`, `MariaDB` or `MySql` you can specify the insert must do an update in case of conflict. (This is also known as an "upsert".)
+If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md), [MariaDB](../configuration/supported-databases/mariadb.md) or [MySQL](../configuration/supported-databases/mysql.md) you can specify the insert must do an update in case of conflict. (This is also known as an "upsert".)
 
 ```ts
 const insertReturningCustomerData = connection.insertInto(tCustomer).set({
@@ -677,7 +677,7 @@ const insertReturningCustomerData: Promise<{
 
 !!! note
 
-    - On `PostgreSql` and `Sqlite`, you can specify a `where` clause that idicates when the update must be permormed.
-    - On `PostgreSql` and `Sqlite`, you can specify the columns that can create the conflict (including a `where` clause for that columns).
-    - On `PostgreSql` you can specify the constraint name that raise the conflict.
+    - On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md), you can specify a `where` clause that idicates when the update must be permormed.
+    - On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md), you can specify the columns that can create the conflict (including a `where` clause for that columns).
+    - On [PostgreSQL](../configuration/supported-databases/postgresql.md) you can specify the constraint name that raise the conflict.
     - You can combine this with other insert's features, e.g. return some columns.

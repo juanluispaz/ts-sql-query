@@ -32,7 +32,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> { }
 
 ## Working with Date and Time
 
-ts-sql-query provides multiple strategies to handle date and time that are compatible with [SQLite’s date and time functions](https://www.sqlite.org/lang_datefunc.html). To define the strategy to be used, you must overwrite the `getDateTimeFormat` function; this function receives as an argument the type of date to handle (`date`, `time`, `dateTime`) and returns the strategy to use for that specific case. In addition, there are three properties (`treatUnexpectedIntegerDateTimeAsJulian`, `treatUnexpectedStringDateTimeAsUTC`, and `unexpectedUnixDateTimeAreMilliseconds`) that allow controlling how unexpected formats are interpreted. Example:
+`ts-sql-query` provides multiple strategies to handle date and time that are compatible with [SQLite’s date and time functions](https://www.sqlite.org/lang_datefunc.html). To define the strategy to be used, you must overwrite the `getDateTimeFormat` function; this function receives as an argument the type of date to handle (`date`, `time`, `dateTime`) and returns the strategy to use for that specific case. In addition, there are three properties (`treatUnexpectedIntegerDateTimeAsJulian`, `treatUnexpectedStringDateTimeAsUTC`, and `unexpectedUnixDateTimeAreMilliseconds`) that allow controlling how unexpected formats are interpreted. Example:
 
 ```ts
 import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
@@ -115,7 +115,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 
 ## Dealing with different date and time formats coming from the database
 
-When a value is returned from the database that is different from the defined strategy, ts-sql-query tries to parse the value to respect the format returned from the database and respect the semantic of the expected datatype. You can configure the way how to interpret the value when the default behaviour doesn't match with the situation in the database using the following properties:
+When a value is returned from the database that is different from the defined strategy, `ts-sql-query` tries to parse the value to respect the format returned from the database and respect the semantic of the expected datatype. You can configure the way how to interpret the value when the default behaviour doesn't match with the situation in the database using the following properties:
 
 - `treatUnexpectedIntegerDateTimeAsJulian`: (default *false*)
     - When a string representation is expected, but a numeric value is received, if the value is an integer, it is treated as UNIX time; if it has decimals, it is treated as Julian day. 
@@ -132,7 +132,7 @@ When a value is returned from the database that is different from the defined st
 
 ## UUID strategies
 
-ts-sql-query offers you different strategies to handle UUIDs in Sqlite:
+`ts-sql-query` offers you different strategies to handle UUIDs in Sqlite:
 
 - `uuid-extension`: *(default strategy)* In this case, the UUID is represented and stored as `blob` data type of length 16. This requires the [UUID extension](https://sqlite.org/src/file?name=ext/misc/uuid.c) or another compatible implementation (if you use better-sqlite3 you can [provide your own one](../query-runners/recommended/better-sqlite3.md#better-sqlite3-and-uuids)).
 - `string`: In this case, the UUID is represented as string and stored in a column with `text` data type and length 36 characters.

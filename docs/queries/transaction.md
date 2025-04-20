@@ -27,7 +27,7 @@ const transactionResult = connection.transaction(async () => {
 
 ## Low-level transaction management
 
-Sometimes a fine-grained control over the transaction is required, In such situations, ts-sql-query offers you the possibility to manually:
+Sometimes a fine-grained control over the transaction is required, In such situations, `ts-sql-query` offers you the possibility to manually:
 
 - begin the transaction
 
@@ -51,7 +51,7 @@ When you use these methods, you must ensure the transaction has begun before cal
 
 ## Transaction isolation
 
-ts-sql-query allows you to indicate the transaction level when you start a new transaction.
+`ts-sql-query` allows you to indicate the transaction level when you start a new transaction.
 
 Avaliable isolation levels:
 
@@ -83,7 +83,7 @@ You can set the transaction's isolation level by providing an additional argumen
 
 !!! warning
 
-    The Oracle database doesn't support specifying the isolation level and the access mode simultaneously.
+    The [Oracle](../configuration/supported-databases/oracle.md) database doesn't support specifying the isolation level and the access mode simultaneously.
 
 ```ts
 const transactionResult = connection.transaction(async () => {

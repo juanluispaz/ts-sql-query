@@ -28,7 +28,7 @@ class DBConnection extends OracleConnection<'DBConnection'> { }
 
 !!! tip
 
-    Oracle doesn't have boolean data type; ts-sql-query assumes that the boolean is represented by a number where `0` is false, and `1` is true. All conversions are made automatically by ts-sql-query. In case you need a different way to represent a boolean, see [Custom booleans values](../../advanced/custom-booleans-values.md) for more information.
+    Oracle doesn't have boolean data type; `ts-sql-query` assumes that the boolean is represented by a number where `0` is false, and `1` is true. All conversions are made automatically by `ts-sql-query`. In case you need a different way to represent a boolean, see [Custom booleans values](../../advanced/custom-booleans-values.md) for more information.
 
 ## UUID strategies
 

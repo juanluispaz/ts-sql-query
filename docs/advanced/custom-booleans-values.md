@@ -4,7 +4,7 @@ search:
 ---
 # Custom booleans values
 
-Sometimes, especially when working with Oracle databases, booleans are stored using custom values rather than standard `true` and `false`. For instance, a field might use the character `'Y'` to represent `true` and `'N'` to represent `false`.
+Sometimes, especially when working with [Oracle](../configuration/supported-databases/oracle.md) databases, booleans are stored using custom values rather than standard `true` and `false`. For instance, a field might use the character `'Y'` to represent `true` and `'N'` to represent `false`.
 
 For example:
 
@@ -22,7 +22,7 @@ const tCustomCompany = new class TCustomCompany extends Table<DBConnection, 'TCu
 }();
 ```
 
-The table `custom_company` the field `is_big` accepts the values `Y` and `N`. This field represents a boolean type, and on the JavaScript side, it will be mapped as boolean. But, on the database side, the field will be treated with appropriated values. The conversion between values will be performed by ts-sql-query automatically; you don't need to be worried about the type mismatching even if you try to assign the value to another field with a different way of representing booleans.
+The table `custom_company` the field `is_big` accepts the values `Y` and `N`. This field represents a boolean type, and on the JavaScript side, it will be mapped as boolean. But, on the database side, the field will be treated with appropriated values. The conversion between values will be performed by `ts-sql-query` automatically; you don't need to be worried about the type mismatching even if you try to assign the value to another field with a different way of representing booleans.
 
 You can perform an insert in this way:
 

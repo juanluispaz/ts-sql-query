@@ -31,7 +31,7 @@ Type-safe SQL means that mistakes in your queries are caught at compile time. Wi
 
 !!! note ""
 
-    ts-sql-query is _not_ an **ORM** — it focuses on full SQL control with type safety.
+    `ts-sql-query` is _not_ an **ORM** — it focuses on full SQL control with type safety.
 
 ![](demo.gif)
 
@@ -46,16 +46,18 @@ There are many libraries available in JavaScript/TypeScript that allows querying
 
 `ts-sql-query` addresses these issues by providing a type-safe, SQL-centric API, with rich support for building dynamic queries in a declarative style.
 
+For more details on the principles behind the library, see [Philosophy and Design Goals](./about/philosophy.md).
+
 ## Supported Databases
 
-- MariaDB
-- MySql
-- Oracle
-- PostgreSql
-- Sqlite 
-- SqlServer
+- [MariaDB](./configuration/supported-databases/mariadb.md)
+- [MySQL](./configuration/supported-databases/mysql.md)
+- [Oracle](./configuration/supported-databases/oracle.md)
+- [PostgreSQL](./configuration/supported-databases/postgresql.md)
+- [SQLite](./configuration/supported-databases/sqlite.md)
+- [SQL Server](./configuration/supported-databases/sqlserver.md)
 
-`ts-sql-query` uses a unified dialect inspired by SQLite and PostgreSQL, with naming conventions adapted to JavaScript. It automatically generates the correct SQL for your target database.
+`ts-sql-query` uses a unified dialect inspired by [SQLite](./configuration/supported-databases/sqlite.md) and [PostgreSQL](./configuration/supported-databases/postgresql.md), with naming conventions adapted to JavaScript. It automatically generates the correct SQL for your target database.
 
 ## Install
 
@@ -80,7 +82,7 @@ Any reference to a file outside of the previous list can change at any moment.
 
 ## Related projects
 
-- [ts-sql-codegen](https://github.com/lorefnon/ts-sql-codegen): Utility that generates table mapper classes for ts-sql-query by inspecting a database through [tbls](https://github.com/k1LoW/tbls).
+- [ts-sql-codegen](https://github.com/lorefnon/ts-sql-codegen): Utility that generates table mapper classes for `ts-sql-query` by inspecting a database through [tbls](https://github.com/k1LoW/tbls).
 
 ## License
 

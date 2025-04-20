@@ -36,7 +36,7 @@ This transparency empowers you to write precise, understandable, and efficient q
 
 ## Unified SQL dialect and database-specific features
 
-`ts-sql-query` uses a **single declarative SQL dialect**, inspired primarily by PostgreSQL and SQLite, with naming conventions adapted to the JavaScript and TypeScript ecosystem.
+`ts-sql-query` uses a **single declarative SQL dialect**, inspired primarily by [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md), with naming conventions adapted to the JavaScript and TypeScript ecosystem.
 
 Instead of mimicking raw SQL keywords, the library exposes a clear, expressive API that maps directly to the intent behind the SQL — using methods like `equals`, `startsWith`, `containsIfValue`, and `orderByFromString`.
 
@@ -46,7 +46,7 @@ Instead of mimicking raw SQL keywords, the library exposes a clear, expressive A
 
 ### Cross-database compatibility
 
-The unified dialect allows the same code to run against different SQL engines — PostgreSQL, MySQL, MariaDB, SQLite, or SQL Server — while ensuring that the generated queries conform to the syntax and semantics of the target engine.
+The unified dialect allows the same code to run against different SQL engines — [PostgreSQL](../configuration/supported-databases/postgresql.md), [MySQL](../configuration/supported-databases/mysql.md), [MariaDB](../configuration/supported-databases/mariadb.md), [SQLite](../configuration/supported-databases/sqlite.md), or [SQL Server](../configuration/supported-databases/sqlserver.md) — while ensuring that the generated queries conform to the syntax and semantics of the target engine.
 
 You choose the database by extending the appropriate connection class. From that point on, all generated SQL is adapted to that database’s dialect, with full static validation.
 

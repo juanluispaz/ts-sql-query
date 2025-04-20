@@ -30,7 +30,7 @@ This query runner allows executing SQL queries using a [Prisma](https://www.pris
 
 ## Using a connection pool
 
-Enables executing queries through a [[Prisma](https://www.prisma.io) connection obtained from a pool.
+Enables executing queries through a [Prisma](https://www.prisma.io) connection obtained from a pool.
     
 ```ts
 import { PrismaClient } from '@prisma/client'
@@ -51,7 +51,7 @@ Prisma distinguishes between short (sequential) and long-running (interactive) t
 In a few words:
 
 - A **short-running transaction** (NOT SUPPORTED, also called sequential operations) allows you to execute multiple queries in a single call to the Prisma server; this allows Prisma to optimize the execution of all the queries in a single database call (if the database support it) or reduce the transaction's duration to the minimum possible. The limitation is you cannot depend on the result of one query as input for the next one.
-- A **long-running transaction** (also called interactive transactions in the documentation) allows you to obtain a dedicated connection to the database that will allow you to execute all the queries within a transaction. This dedicated connection allows you to query the database while the transaction is open, and the queries can be performed at different times. This model corresponds to the transaction model supported by the other libraries used in ts-sql-query to connect with the database.
+- A **long-running transaction** (also called interactive transactions in the documentation) allows you to obtain a dedicated connection to the database that will allow you to execute all the queries within a transaction. This dedicated connection allows you to query the database while the transaction is open, and the queries can be performed at different times. This model corresponds to the transaction model supported by the other libraries used in `ts-sql-query` to connect with the database.
 
 The consequence of this design is you cannot call the low-level transaction methods:
 

@@ -33,7 +33,7 @@ const deleteCustomer: Promise<number>
 
 ## Delete returning
 
-If you are using `PostgreSql`, modern `Sqlite`, `SqlServer` or `Oracle`, you can return values of the deleted record in the same query using the `returning` or `returningOneColumn` methods.
+If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), modern [SQLite](../configuration/supported-databases/sqlite.md), [SQL Server](../configuration/supported-databases/sqlserver.md) or [Oracle](../configuration/supported-databases/oracle.md), you can return values of the deleted record in the same query using the `returning` or `returningOneColumn` methods.
 
 ```ts
 const deletedAcmeCompany = connection.deleteFrom(tCompany)
@@ -76,7 +76,7 @@ Aditionally, if you want to return the value of a single column, you can use `re
 
 ## Delete using other tables or views
 
-Sometimes you want to include in the delete query other tables or views to process the delete instruction, you can add the `using` clause that is like a `from` clause in a select statement. This is supported by `PostgreSql`, `SqlServer`, `MariaDB` or `MySql`.
+Sometimes you want to include in the delete query other tables or views to process the delete instruction, you can add the `using` clause that is like a `from` clause in a select statement. This is supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQL Server](../configuration/supported-databases/sqlserver.md), [MariaDB](../configuration/supported-databases/mariadb.md) or [MySQL](../configuration/supported-databases/mysql.md).
 
 ```ts
 const deleteACMECustomers = connection.deleteFrom(tCustomer)
@@ -103,7 +103,7 @@ const deleteACMECustomers: Promise<number>
 
 ## Bulk delete
 
-Sometimes you need to delete multiple rows in a single query, where each condition depends on different data. For these cases, you can [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the deletion. This is only supported by `PostgreSql` and `SqlServer`.
+Sometimes you need to delete multiple rows in a single query, where each condition depends on different data. For these cases, you can [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the deletion. This is only supported by [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQL Server](../configuration/supported-databases/sqlserver.md).
 
 ```ts
 class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {

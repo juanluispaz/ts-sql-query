@@ -43,8 +43,6 @@ async function main() {
 
 Enables executing queries through a [mssql](https://www.npmjs.com/package/mssql) connection obtained from a pool.
 
-**Supported databases**: sqlServer
-
 ```ts
 import { ConnectionPool } from 'mssql'
 import { MssqlPoolQueryRunner } from "./queryRunners/MssqlPoolQueryRunner";

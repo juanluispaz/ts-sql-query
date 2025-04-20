@@ -4,7 +4,7 @@ search:
 ---
 # Passing tables and views as parameter
 
-In ts-sql-query, it's possible to pass a table or view as a parameter to a function. To do this properly, you must specify its type. This is where the utility types `TableOrViewOf` and `TableOrViewLeftJoinOf` come into play:
+In `ts-sql-query`, it's possible to pass a table or view as a parameter to a function. To do this properly, you must specify its type. This is where the utility types `TableOrViewOf` and `TableOrViewLeftJoinOf` come into play:
 
 - `TableOrViewOf`: for use with regular tables or views that allows creating a reference to the table or view.
 - `TableOrViewLeftJoinOf`: for the case, the table or view is marked for use in a left join.

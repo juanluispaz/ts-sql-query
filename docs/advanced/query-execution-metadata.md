@@ -83,7 +83,7 @@ class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
 
 ## Detect if the query is for select page count
 
-The [Select page](../queries/select-page.md) is the only place where ts-sql-query executes a second query to return the count of elements. The function `isSelectPageCountQuery` allows you to identify if the requested query corresponds to the select count in a select page.
+The [Select page](../queries/select-page.md) is the only place where `ts-sql-query` executes a second query to return the count of elements. The function `isSelectPageCountQuery` allows you to identify if the requested query corresponds to the select count in a select page.
 
 ```ts
 import { isSelectPageCountQuery } from 'ts-sql-query/queryRunners/QueryRunner';

@@ -8,7 +8,7 @@ This page explains how to use complex projections in `ts-sql-query` to map the r
 
 ## Nested object projections
 
-In ts-sql-query, the result of a query doesn't need to be a flat object. You can build results as nested objects, where properties themselves can be objects. Multiple levels of nesting are supported.
+In `ts-sql-query`, the result of a query doesn't need to be a flat object. You can build results as nested objects, where properties themselves can be objects. Multiple levels of nesting are supported.
 
 !!! warning "Limitation"
 
@@ -91,7 +91,7 @@ When projecting nested objects, it's important to determine when those objects a
 
 !!! note
 
-    When you indicate that a table will be used in a left join, all required columns are treated as optional in ts-sql-query because the left join is per se optional; the rule number 2 is the only one that can revert it implicitly.
+    When you indicate that a table will be used in a left join, all required columns are treated as optional in `ts-sql-query` because the left join is per se optional; the rule number 2 is the only one that can revert it implicitly.
 
 !!! warning "Limitation"
 

@@ -57,8 +57,6 @@ async function main() {
 
 Executes queries through a [oracledb](https://www.npmjs.com/package/oracledb) connection obtained from a pool.
 
-**Supported databases**: oracle
-
 ```ts
 import { createPool } from 'oracledb';
 import { OracleDBPoolQueryRunner } from "ts-sql-query/queryRunners/OracleDBPoolQueryRunner";

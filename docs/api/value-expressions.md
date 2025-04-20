@@ -12,7 +12,7 @@ Methods ending in `IfValue` behave like their counterparts without `IfValue`, bu
 
 Be aware, in the database, when null is part of an operation the result of the operation is null (It is not represented in the following definition but it is implemented)
 
-All data manipulation operations are implemented as methods on the value itself, that means if you what to calculate the absolute, in sql is `abs(value)` but in ts-sql-query is represented as `value.abs()`.
+All data manipulation operations are implemented as methods on the value itself, that means if you what to calculate the absolute, in sql is `abs(value)` but in `ts-sql-query` is represented as `value.abs()`.
 
 ```ts
 interface ValueSource<T> {

@@ -6,7 +6,7 @@ search:
 
 ## Encrypted ID
 
-Sometimes you want to encrypt the ID handled by the database. To do it, you can create a custom data type and define the type conversion using a type adapter or extending the default type adapter. During the type conversion, you can encrypt and decrypt with the strategy you like; for the next example, [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/extras/IDEncrypter.ts) will be used (included in ts-sql-query).
+Sometimes you want to encrypt the ID handled by the database. To do it, you can create a custom data type and define the type conversion using a type adapter or extending the default type adapter. During the type conversion, you can encrypt and decrypt with the strategy you like; for the next example, [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/extras/IDEncrypter.ts) will be used (included in `ts-sql-query`).
 
 You can create the connection and define the rules to handle a type called `encryptedID`:
 
@@ -104,7 +104,7 @@ See [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/ex
 
 ## Globally Encrypted ID
 
-Sometimes you want to encrypt the ID handled by the database and ensure is globally unique. To do it, you can create a custom data type and define the type conversion using a type adapter or extending the default type adapter. During the type conversion, you can encrypt and decrypt with the strategy you like; for the next example, [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/extras/IDEncrypter.ts) will be used (included in ts-sql-query). You will need to define a prefix per table. In the example the custom data type name follows the pattern **ID:**_prefix_
+Sometimes you want to encrypt the ID handled by the database and ensure is globally unique. To do it, you can create a custom data type and define the type conversion using a type adapter or extending the default type adapter. During the type conversion, you can encrypt and decrypt with the strategy you like; for the next example, [IDEncrypter](https://github.com/juanluispaz/ts-sql-query/blob/master/src/extras/IDEncrypter.ts) will be used (included in `ts-sql-query`). You will need to define a prefix per table. In the example the custom data type name follows the pattern **ID:**_prefix_
 
 You can create the connection and define the rules to handle the ID type:
 

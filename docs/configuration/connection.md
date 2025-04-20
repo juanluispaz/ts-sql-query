@@ -46,7 +46,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 The following collations are case insensitive and accent insensitive:
 
-- **PostgreSQL**: Starting from PostgreSQL 12 you can create custom non-deterministic collates from ICU database (previously it was OS dependant) with specific rules.
+- **[PostgreSQL](../configuration/supported-databases/postgresql.md)**: Starting from PostgreSQL 12 you can create custom non-deterministic collates from ICU database (previously it was OS dependant) with specific rules.
     - For a general collation case insensitive and accent insensitive, you can create the collation with:
 
 ```sql
@@ -71,16 +71,16 @@ CREATE COLLATION es_insensitive (
 - 
     - For more information, visit [this blog post](https://postgresql.verite.pro/blog/2019/10/14/nondeterministic-collations.html)
     - Execute `SELECT * FROM pg_collation` to list the already created collations
-- **MySql**/**MariaDB**: 
+- **[MySQL](../configuration/supported-databases/mysql.md)**/**[MariaDB](../configuration/supported-databases/mariadb.md)**: 
     - `utf8_general_ci` for utf8 charset
     - `utf16_unicode_ci` for utf16 charset
     - `utf8_spanish_ci` for utf8 charset with spanish rules
     - Execute `SHOW COLLATION` to list the supported collations in your database; all locations ended with `_ci` are case insensitive and accent insensitive.
-- **SqlServer**:
+- **[SQL Server](../configuration/supported-databases/sqlserver.md)**:
     - `Latin1_General_CI_AI` for a general case insensitive and accent insensitive for Latin alphabet-based languages
     - `Modern_Spanish_CI_AI` for a specific case insensitive and accent insensitive for the Spanish language only
     - Execute `SELECT * FROM sys.fn_helpcollations()` to list the supported collations in your database 
-- **Oracle**:
+- **[Oracle](../configuration/supported-databases/oracle.md)**:
     - `binary_ai` for a general case insensitive and accent insensitive for Latin alphabet-based languages
     - `spanish_m_ai` for a specific case insensitive and accent insensitive extended with the Spanish language rules
     - To see the collations list visit the [Oracle 11g](https://docs.oracle.com/cd/B28359_01/server.111/b28298/applocaledata.htm#i637232) or [Oracle 19](https://docs.oracle.com/en/database/oracle/oracle-database/19/nlspg/appendix-A-locale-data.html#GUID-CC85A33C-81FC-4E93-BAAB-1B3DB9036060) documentation webpage

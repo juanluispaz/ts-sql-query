@@ -4,7 +4,7 @@ search:
 ---
 # Connection API
 
-This interface exposes all the methods required to interact with the database via ts-sql-query. It allows creating, executing and customizing SQL expressions, managing transactions, using constants, aggregates and sequences, and composing raw or typed SQL fragments.
+This interface exposes all the methods required to interact with the database via `ts-sql-query`. It allows creating, executing and customizing SQL expressions, managing transactions, using constants, aggregates and sequences, and composing raw or typed SQL fragments.
 
 ```ts
 interface Connection {

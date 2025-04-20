@@ -4,7 +4,7 @@ search:
 ---
 # Recursive select
 
-This page explains how to build recursive SQL queries using the fluent API in `ts-sql-query`. It supports both standard recursive CTEs (`WITH RECURSIVE`) and Oracle's proprietary `CONNECT BY` syntax. These queries are useful for traversing hierarchical data structures such as organizational trees or category trees.
+This page explains how to build recursive SQL queries using the fluent API in `ts-sql-query`. It supports both standard recursive CTEs (`WITH RECURSIVE`) and [Oracle](../configuration/supported-databases/oracle.md)'s proprietary `CONNECT BY` syntax. These queries are useful for traversing hierarchical data structures such as organizational trees or category trees.
 
 ## Recursive select looking for parents
 
@@ -131,7 +131,7 @@ const recursiveChildrenCompany: Promise<{
 
 ## Recursive connect by
 
-`Oracle` database supports an alternative syntax (additional to the previously mentioned) that can be more performant in some situations using the `start with` and `connect by` (or `connect by nocycle`) clauses.
+[Oracle](../configuration/supported-databases/oracle.md) database supports an alternative syntax (additional to the previously mentioned) that can be more performant in some situations using the `start with` and `connect by` (or `connect by nocycle`) clauses.
 
 ```ts
 const recursiveChildrenCompany = await connection.selectFrom(tCompany)

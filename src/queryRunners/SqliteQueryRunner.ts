@@ -2,6 +2,9 @@ import type { DatabaseType } from "./QueryRunner"
 import type { Database } from 'sqlite'
 import { PromiseBasedWithSqlTransactionQueryRunner } from "./PromiseBasedWithSqlTransactionQueryRunner"
 
+/**
+ * @deprecated https://www.npmjs.com/package/sqlite is not maintained anymore. Use another QueryRunner for Sqlite instead.
+ */
 export class SqliteQueryRunner extends PromiseBasedWithSqlTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Database

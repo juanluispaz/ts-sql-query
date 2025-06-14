@@ -376,6 +376,8 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 ## sqlite
 
+**DEPRECATED**: [sqlite](https://www.npmjs.com/package/sqlite) is not maintained any more.
+
 It allows to execute the queries using an [sqlite](https://www.npmjs.com/package/sqlite) connection.
 
 **Supported databases**: sqlite

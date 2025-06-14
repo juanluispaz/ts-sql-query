@@ -4,12 +4,96 @@ search:
 ---
 # Change Log
 
+## v2.0.0-alpha.3 (14 Jun 2025)
+
+**Changes**:
+
+- The generated SQL in a `beforeOrderByItems` or `afterOrderByItems` query customization will always include the table name to avoid conflicts with column aliases.
+- Refactor how complex projections are managed to avoid the usage of recursive types:
+    - This improves TypeScript error messages.
+    - Allows the use of recent TypeScript versions stricter with recursive types.
+    - Only 5 nesting levels are supported (previously, nesting levels had several limitations, but without a clear, easily identifiable limit).
+
+**TypeScript error messages**:
+
+- Refactor how the source of data (table, view, etc.) identity is represented, simplifying it and improving the understandability of TypeScript's error messages.
+- Improve TypeScript error messages managing boolean value sources.
+- Restructure how columns are represented to simplify the types displayed by TypeScript.
+
+**New features**:
+
+- Add support for transaction isolation level and access mode.
+- Query metadata available on begin transaction, commit, and rollback.
+- Allow returning all columns of a table by providing the table as the object to select.
+- Add support for complex projections in queries marked as `forUseInQueryAs` (queries to be used as `with`).
+
+**New documentation page**:
+
+- Migrated to use Material for MkDocs.
+- Restructured the content distribution in the menu.
+- Split dynamic queries documentation to extract the "extreme dynamic queries."
+- Add a SQL keyword mapping section.
+- Split several pages to avoid excessively long content.
+- Add a page explaining the philosophy principles.
+- Improve search capabilities.
+- All pages have been reviewed and improved.
+- Plenty of additional explanations added.
+- Several pages have been restructured to improve readability.
+- A dedicated "Utility for dynamic picks" page was created to make the "Extreme dynamic queries" page more readable, with more detailed information.
+- Include the generated SQL for every supported database.
+
+**Documentation changes**:
+
+- Add references to the query customization options `queryExecutionName` and `queryExecutionMetadata` in the supported operations documentation page.
+
+**Breaking changes**:
+
+- Values mapped as double are now sent to SQL Server as `float` (instead of `real`) to better match JS precision with the database.
+- Simplify the `connection.transaction` function signature, removing the array overload due to the removal of short-running transaction support for Prisma.
+- Remove short-running (sequential operations) transaction support in Prisma (regular transactions continue to be supported).
+- Nested transactions on PostgreSQL are disabled by default; you can re-enable them when creating a query runner with Pg. Other connectors do not support this feature.
+
+**Internal changes**:
+
+- Update database connector dependencies.
+- Update to TypeScript 5.
+- Update to Prisma 6.
+- Update pipeline to remove End-of-Life Node versions; ts-sql-query is no longer tested on Node 14 and Node 16.
+- Align internal object names that represent `localDate`, `localTime`, and `localDateTime` to match these names.
+- Simplify internal type names after the removal of the connections with extended types.
+- Simplify internal type names after the removal of the deprecated composing and splitting results functionality.
+- Clean up the query runners: the type `QueryType` is defined only once and the `PromiseProvider` is not in an internal file; both are now defined at `ts-sql-query/queryRunners/QueryRunner`.
+- Removed unnecessary abstract class `AbstractMySqlMariaDBConnection`.
+- Simplify promise management in query runners.
+- Implement GitHub actions for releasing.
+
+**Removals**:
+
+- Remove deprecated [sqlite](https://www.npmjs.com/package/sqlite) support and query runner.
+- Remove deprecated [mysql](https://www.npmjs.com/package/mysql) support and query runner.
+
+**v1 changes**:
+
+The following releases in v1 are included:
+
+- v1.66.0 (14 Jun 2025)
+- v1.65.0 (24 Aug 2024)
+- v1.64.0 (18 Apr 2024)
+- v1.63.0 (20 Mar 2024)
+- v1.62.0 (10 Mar 2024)
+
 ## v2.0.0-alpha.2 (2 Mar 2024)
 
 **Removals**:
 
 - Remove deprecated `mergeType` additional utility type. Use `connection.dynamicBooleanExpressionUsing` instead.
 - Remove deprecated composing and splitting results functionality long warned to be removed in `ts-sql-query`. Use complex projections or aggregate as an object array instead.
+
+**v1 changes**:
+
+The folowing releases in the v1 are included:
+
+- v1.61.0 (2 Mar 2024)
 
 ## v2.0.0-alpha.1 (2 Mar 2024)
 
@@ -40,6 +124,19 @@ search:
     | `replaceIfValue`           | `replaceAllIfValue`|
 
 - Remove long-deprecated overload of functions in columns that allowed to send to the database null values in TypeScript when the type were optional.
+
+**Base point**: v1.60.0 (25 Feb 2024)
+
+## v1.66.0 (14 Jun 2025)
+
+**Changes**:
+
+- Deprecate `SqliteQueryRunner` due [sqlite](https://www.npmjs.com/package/sqlite) project is dead.
+- Deprecate `MySqlQueryRunner` & `MySqlPoolQueryRunner` due [mysql](https://www.npmjs.com/package/mysql) project is dead.
+
+**Documentation changes**:
+
+- The upcoming version 2 of ts-sql-query is cooking! A completely new documentation portal is already available for preview: [Take a look](https://ts-sql-query.readthedocs.io/en/latest/).
 
 ## v1.65.0 (24 Aug 2024)
 

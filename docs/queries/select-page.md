@@ -36,25 +36,156 @@ const customerPageWithName = connection.selectFrom(tCustomer)
 ```
 
 The executed query to get the data is:
-```sql
-select id as id, first_name as firstName, last_name as lastName 
-from customer 
-where first_name ilike ($1 || '%') 
-    or last_name ilike ($2 || '%') 
-order by firstName, lastName 
-limit $3 
-offset $4
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where 
+           lower(first_name) like concat(lower(?), '%') 
+        or lower(last_name) like concat(lower(?), '%') 
+    order by 
+        firstName, 
+        lastName 
+    limit ? 
+    offset ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where 
+           lower(first_name) like concat(lower(?), '%') 
+        or lower(last_name) like concat(lower(?), '%') 
+    order by 
+        firstName, 
+        lastName 
+    limit ? 
+    offset ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where 
+           lower(first_name) like lower(:0 || '%') escape '\\' 
+        or lower(last_name) like lower(:1 || '%') escape '\\' 
+    order by 
+        "firstName", 
+        "lastName" 
+    offset :2 rows 
+    fetch next :3 rows only
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where 
+           first_name ilike ($1 || '%') 
+        or last_name ilike ($2 || '%') 
+    order by 
+        "firstName", 
+        "lastName" 
+    limit $3 
+    offset $4
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where 
+           lower(first_name) like lower(? || '%') escape '\\' 
+        or lower(last_name) like lower(? || '%') escape '\\' 
+    order by 
+        firstName, 
+        lastName 
+    limit ? 
+    offset ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where 
+           lower(first_name) like lower(@0 + '%') 
+        or lower(last_name) like lower(@1 + '%') 
+    order by 
+        firstName, 
+        lastName 
+    offset @2 rows 
+    fetch next @3 rows only
+    ```
 
 And its parameters are: `[ 'Smi', 'Smi', 10, 20 ]`
 
 The executed query to get the count is:
-```sql
-select count(*) 
-from customer 
-where first_name ilike ($1 || '%') 
-    or last_name ilike ($2 || '%')
-```
+
+=== "MariaDB"
+    ```mariadb
+    select count(*) 
+    from customer 
+    where 
+           lower(first_name) like concat(lower(?), '%') 
+        or lower(last_name) like concat(lower(?), '%')
+    ```
+=== "MySQL"
+    ```mysql
+    select count(*) 
+    from customer 
+    where 
+           lower(first_name) like concat(lower(?), '%') 
+        or lower(last_name) like concat(lower(?), '%')
+    ```
+=== "Oracle"
+    ```oracle
+    select count(*) 
+    from customer 
+    where 
+           lower(first_name) like lower(:0 || '%') escape '\\' 
+        or lower(last_name) like lower(:1 || '%') escape '\\'
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select count(*) 
+    from customer 
+    where 
+           first_name ilike ($1 || '%') 
+        or last_name ilike ($2 || '%')
+    ```
+=== "SQLite"
+    ```sqlite
+    select count(*) 
+    from customer 
+    where 
+           lower(first_name) like lower(? || '%') escape '\\' 
+        or lower(last_name) like lower(? || '%') escape '\\'
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select count(*) 
+    from customer 
+    where 
+           lower(first_name) like lower(@0 + '%') 
+        or lower(last_name) like lower(@1 + '%')
+    ```
 
 And its parameters are: `[ 'Smi', 'Smi' ]`
 

@@ -53,7 +53,7 @@ The `custom-functions` required `uuid_to_raw` and `raw_to_uuid` functions exists
 
 An implementation of these functions based on [binary-uuid](https://github.com/odo-network/binary-uuid) and optimized for UUID v1 is:
 
-```sql
+```oracle
 CREATE FUNCTION uuid_to_raw(uuid IN char) RETURN raw IS
 	hex_text nvarchar2(36);
 BEGIN 
@@ -79,7 +79,7 @@ END raw_to_uuid;
 
 The simplest implementation of these functions that doesn't reorder the bytes is:
 
-```sql
+```oracle
 CREATE FUNCTION uuid_to_raw(uuid IN char) RETURN raw AS
 BEGIN 
     RETURN HEXTORAW(REPLACE(uuid, '-'));

@@ -19,11 +19,55 @@ const updateCustomer = connection.update(tCustomer).set({
 ```
 
 The executed query is:
-```sql
-update customer 
-set first_name = $1, last_name = $2 
-where id = $3
-```
+
+=== "MariaDB"
+    ```mariadb
+    update customer 
+    set 
+        first_name = ?, 
+        last_name = ? 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    update customer 
+    set 
+        first_name = ?, 
+        last_name = ? 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    update customer 
+    set 
+        first_name = :0, 
+        last_name = :1 
+    where id = :2
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    update customer 
+    set 
+        first_name = $1, 
+        last_name = $2 
+    where id = $3
+    ```
+=== "SQLite"
+    ```sqlite
+    update customer 
+    set 
+        first_name = ?, 
+        last_name = ? 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    update customer 
+    set 
+        first_name = @0, 
+        last_name = @1 
+    where id = @2
+    ```
 
 The parameters are: `[ 'John', 'Smith', 10 ]`
 
@@ -51,14 +95,52 @@ const updatedSmithFirstName = connection.update(tCustomer)
 ```
 
 The executed query is:
-```sql
-update customer 
-set first_name = $1 
-where id = $2 
-returning first_name as result
-```
 
-The parameters are: `[ 'Ron', 1 ]`
+=== "MariaDB"
+    ```mariadb
+    --
+    --
+    -- MariaDB doesn't support update returning values
+    --
+    ```
+=== "MySQL"
+    ```mysql
+    --
+    --
+    -- MySQL doesn't support update returning values
+    --
+    ```
+=== "Oracle"
+    ```oracle
+    update customer 
+    set first_name = :0 
+    where id = :1 
+    returning first_name 
+    into :2
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    update customer 
+    set first_name = $1 
+    where id = $2 
+    returning first_name as result
+    ```
+=== "SQLite"
+    ```sqlite
+    update customer 
+    set first_name = ? 
+    where id = ? 
+    returning first_name as result
+    ```
+=== "SQL Server"
+    ```sqlserver
+    update customer 
+    set first_name = @0 
+    output inserted.first_name as [result] 
+    where id = @1
+    ```
+
+The parameters are: `[ 'Ron', 1 ]` (On [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
 
 The result type is a promise with the information of the updated rows:
 ```tsx
@@ -96,18 +178,67 @@ const updatedLastNames = connection.update(tCustomer)
 ```
 
 The executed query is:
-```sql
-update customer as _new_ 
-set last_name = $1 
-from (
-    select _old_.* 
-    from customer as _old_ 
-    where _old_.id = $2 
-    for no key update of _old_
-) as _old_ 
-where _new_.id = _old_.id 
-returning _old_.last_name as oldLastName, _new_.last_name as newLastName
-```
+
+=== "MariaDB"
+    ```mariadb
+    --
+    --
+    --
+    -- MariaDB doesn't support update returning values
+    --
+    --
+    ```
+=== "MySQL"
+    ```mysql
+    --
+    --
+    --
+    -- MySQL doesn't support update returning values
+    --
+    --
+    ```
+=== "Oracle"
+    ```oracle
+    --
+    --
+    --
+    -- Oracle doesn't support update returning old values
+    --
+    --
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    update customer as _new_ 
+    set last_name = $1 
+    from (
+        select _old_.* 
+        from customer as _old_ 
+        where _old_.id = $2 
+        for no key update of _old_
+    ) as _old_ 
+    where _new_.id = _old_.id 
+    returning 
+        _old_.last_name as "oldLastName", 
+        _new_.last_name as "newLastName"
+    ```
+=== "SQLite"
+    ```sqlite
+    --
+    --
+    --
+    -- SQLite doesn't support update returning old values
+    --
+    --
+    ```
+=== "SQL Server"
+    ```sqlserver
+    update customer 
+    set last_name = @0 
+    output 
+        deleted.last_name as oldLastName, 
+        inserted.last_name as newLastName 
+    where id = @1
+    ```
 
 The parameters are: `[ 'Thomson', 2 ]`
 
@@ -135,13 +266,61 @@ const addACMECompanyNameToLastName = connection.update(tCustomer)
 ```
 
 The executed query is:
-```sql
-update customer 
-set last_name = customer.last_name || $1 || company.name 
-from company 
-where customer.company_id = company.id 
-    and company.name ilike ('%' || $2 || '%')
-```
+
+=== "MariaDB"
+    ```mariadb
+    update customer, 
+           company 
+    set customer.last_name = concat(customer.last_name, ?, company.name) 
+    where 
+            customer.company_id = company.id 
+        and lower(company.name) like concat('%', lower(?), '%')
+    ```
+=== "MySQL"
+    ```mysql
+    update customer, 
+           company 
+    set customer.last_name = concat(customer.last_name, ?, company.`name`) 
+    where 
+            customer.company_id = company.id 
+        and lower(company.`name`) like concat('%', lower(?), '%')
+    ```
+=== "Oracle"
+    ```oracle
+    update customer 
+    set last_name = customer.last_name || $1 || company.name 
+    from company 
+    where 
+            customer.company_id = company.id 
+        and company.name ilike ('%' || $2 || '%')
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    update customer 
+    set last_name = customer.last_name || $1 || company.name 
+    from company 
+    where 
+            customer.company_id = company.id 
+        and company.name ilike ('%' || $2 || '%')
+    ```
+=== "SQLite"
+    ```sqlite
+    update customer 
+    set last_name = customer.last_name || ? || company.name 
+    from company 
+    where 
+            customer.company_id = company.id 
+        and lower(company.name) like lower('%' || ? || '%') escape '\\'
+    ```
+=== "SQL Server"
+    ```sqlserver
+    update customer 
+    set last_name = customer.last_name + @0 + company.name 
+    from company 
+    where 
+            customer.company_id = company.id 
+        and lower(company.name) like lower('%' + @1 + '%')
+    ```
 
 The parameters are: `[ ' - ', 'ACME' ]`
 
@@ -177,16 +356,88 @@ const updateCustomer = connection.update(tCustomer)
 ```
 
 The executed query is:
-```sql
-with 
-    customerForUpdate(id, firstName, lastName) as (
-        values ($1::int4, $2, $3)
-    ) 
-update customer
-set first_name = customerForUpdate.firstName, last_name = customerForUpdate.lastName
-from customerForUpdate 
-where customer.id = customerForUpdate.id
-```
+
+=== "MariaDB"
+    ```mariadb
+    --
+    --
+    --
+    --
+    --
+    -- MariaDB doesn't support bulk update
+    --
+    --
+    --
+    --
+    ```
+=== "MySQL"
+    ```mysql
+    --
+    --
+    --
+    --
+    --
+    -- MySQL doesn't support bulk update
+    --
+    --
+    --
+    --
+    ```
+=== "Oracle"
+    ```oracle
+    --
+    --
+    --
+    --
+    --
+    -- Oracle doesn't support bulk update
+    --
+    --
+    --
+    --
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with 
+        customerForUpdate(id, firstName, lastName) as (
+            values ($1::int4, $2::text, $3::text)
+        ) 
+    update customer 
+    set 
+        first_name = customerForUpdate.firstName, 
+        last_name = customerForUpdate.lastName 
+    from customerForUpdate 
+    where customer.id = customerForUpdate.id
+    ```
+=== "SQLite"
+    ```sqlite
+    with 
+        customerForUpdate(id, firstName, lastName) as (
+            values (?, ?, ?)
+        ) 
+    update customer 
+    set 
+        first_name = customerForUpdate.firstName, 
+        last_name = customerForUpdate.lastName 
+    from customerForUpdate 
+    where customer.id = customerForUpdate.id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        customerForUpdate as (
+            select * 
+            from (
+                values (@0, @1, @2)
+            ) as customerForUpdate(id, firstName, lastName)
+        ) 
+    update customer 
+    set 
+        first_name = customerForUpdate.firstName, 
+        last_name = customerForUpdate.lastName 
+    from customerForUpdate 
+    where customer.id = customerForUpdate.id
+    ```
 
 The parameters are: `[ 1, 'First Name', 'Last Name' ]`
 
@@ -228,11 +479,61 @@ const updateCustomer = connection.update(tCustomer)
 ```
 
 The executed query is:
-```sql
-update customer 
-set first_name = $1, last_name = $2, company_id = $3 
-where id = $4
-```
+
+=== "MariaDB"
+    ```mariadb
+    update customer 
+    set 
+        first_name = ?, 
+        last_name = ?, 
+        company_id = ? 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    update customer 
+    set 
+        first_name = ?, 
+        last_name = ?, 
+        company_id = ? 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    update customer 
+    set 
+        first_name = :0, 
+        last_name = :1, 
+        company_id = :2 
+    where id = :3
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    update customer 
+    set 
+        first_name = $1, 
+        last_name = $2, 
+        company_id = $3 
+    where id = $4
+    ```
+=== "SQLite"
+    ```sqlite
+    update customer 
+    set 
+        first_name = ?, 
+        last_name = ?, 
+        company_id = ? 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    update customer 
+    set 
+        first_name = @0, 
+        last_name = @1, 
+        company_id = @2 
+    where id = @3
+    ```
 
 The parameters are: `[ "John", "Smith", 23, 10 ]`
 
@@ -266,12 +567,67 @@ const shapedUpdateCustomerNameAndCompanyNameResult = connection.update(tCustomer
 ```
 
 The executed query is:
-```sql
-update customer 
-inner join company on customer.company_id = company.id 
-set customer.first_name = ?, customer.last_name = ?, company.name = ? 
-where customer.id = ?
-```
+
+=== "MariaDB"
+    ```mariadb
+    update customer 
+    inner join company on customer.company_id = company.id 
+    set 
+        customer.first_name = ?, 
+        customer.last_name = ?, 
+        company.name = ? 
+    where customer.id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    update customer 
+    inner join company on customer.company_id = company.id 
+    set 
+        customer.first_name = ?, 
+        customer.last_name = ?, 
+        company.`name` = ? 
+    where customer.id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    --
+    --
+    --
+    -- Oracle doesn't support update multiple tables in a single query
+    --
+    --
+    --
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    --
+    --
+    --
+    -- PostgreSQL doesn't support update multiple tables in a single query
+    --
+    --
+    --
+    ```
+=== "SQLite"
+    ```sqlite
+    --
+    --
+    --
+    -- SQLite doesn't support update multiple tables in a single query
+    --
+    --
+    --
+    ```
+=== "SQL Server"
+    ```sqlserver
+    --
+    --
+    --
+    -- SQL Server doesn't support update multiple tables in a single query
+    --
+    --
+    --
+    ```
 
 The parameters are: `[ "John", "Smith", "ACME Inc.", 12 ]`
 

@@ -130,10 +130,55 @@ const customersWithAge = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select id as id, first_name || $1 || last_name as name, calculateAge(birthday) as age 
-from customer
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as name, 
+        calculateAge(birthday) as age 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as `name`, 
+        calculateAge(birthday) as age 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name || :0 || last_name as "name", 
+        calculateAge(birthday) as "age" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name || $1 || last_name as name, 
+        calculateAge(birthday) as age 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name || ? || last_name as name, 
+        calculateAge(birthday) as age 
+    from customer
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name + @0 + last_name as name, 
+        calculateAge(birthday) as age 
+    from customer
+    ```
 
 The parameters are: `[ " " ]`
 
@@ -152,7 +197,7 @@ const customersWithAge: Promise<{
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
-    myOwnprocedure(param1: number) {
+    myOwnProcedure(param1: number) {
         return this.executeProcedure('myOwnprocedure', [this.const(param1, 'int')]);
     }
 }
@@ -160,13 +205,35 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 Executing the procedure:
 ```ts
-const result = connection.myOwnprocedure(10);
+const result = connection.myOwnProcedure(10);
 ```
 
 The executed query is:
-```sql
-call myOwnprocedure($1)
-```
+
+=== "MariaDB"
+    ```mariadb
+    call myOwnprocedure(?)
+    ```
+=== "MySQL"
+    ```mysql
+    call myOwnprocedure(?)
+    ```
+=== "Oracle"
+    ```oracle
+    begin myOwnprocedure(:0); end;
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    call myOwnprocedure($1)
+    ```
+=== "SQLite"
+    ```sqlite
+    call myOwnprocedure(?)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    exec myOwnprocedure @0
+    ```
 
 The parameters are: `[ 10 ]`
 
@@ -193,9 +260,31 @@ const result = connection.myOwnFunction(10);
 ```
 
 The executed query is:
-```sql
-select myOwnFunction($1)
-```
+
+=== "MariaDB"
+    ```mariadb
+    select myOwnFunction(?)
+    ```
+=== "MySQL"
+    ```mysql
+    select myOwnFunction(?)
+    ```
+=== "Oracle"
+    ```oracle
+    select myOwnFunction(:0) from dual
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select myOwnFunction($1)
+    ```
+=== "SQLite"
+    ```sqlite
+    select myOwnFunction(?)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select myOwnFunction(@0)
+    ```
 
 The parameters are: `[ 10 ]`
 

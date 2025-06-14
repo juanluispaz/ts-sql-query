@@ -43,7 +43,15 @@ class DBConnection extends OracleConnection<'DBConnection'> {
         const from = this.const(fromDate, 'localDateTime')
         const to = this.const(toDate, 'localDateTime')
         return this.rawFragment`${table} for system_time between ${from} and ${to} ${alias}`
-    })
+    }) 
+
+    myOwnProcedure(param1: number) {
+        return this.executeProcedure('myOwnprocedure', [this.const(param1, 'int')]);
+    }
+     
+    myOwnFunction(param1: number) {
+        return this.executeFunction('myOwnFunction', [this.const(param1, 'int')], 'int', 'required');
+    }
 }
 
 const tCompany = new class TCompany extends Table<DBConnection, 'TCompany'> {
@@ -1307,6 +1315,45 @@ async function main() {
         .executeSelectMany()
     
     assertEquals(recursiveChildrenCompany2, result)
+
+    /* *** Preparation ************************************************************/
+    
+    result = [{
+        id: 18,
+        name: 'name'
+    }, {
+        id: 19,
+        name: 'name2',
+        parentId: 18,
+        parentName: 'name'
+    }]
+    expectedResult.push([{
+        id: 18,
+        name: 'name'
+    }, {
+        id: 19,
+        name: 'name2',
+        'parentId': 18,
+        'parentName': 'name'
+    }])
+    expectedQuery.push(`select company.id as "id", company.name as "name", parent.id as "parentId", parent.name as "parentName" from company left join company parent on company.parent_id = parent.id`)
+    expectedParams.push(`[]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const parent = tCompany.forUseInLeftJoinAs('parent')
+    
+    const leftJoinCompany = await connection.selectFrom(tCompany)
+        .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
+        .select({
+            id: tCompany.id,
+            name: tCompany.name,
+            parentId: parent.id,
+            parentName: parent.name
+        }).executeSelectMany()
+    
+    assertEquals(leftJoinCompany, result)
     
     /* *** Preparation ************************************************************/
 
@@ -1336,7 +1383,7 @@ async function main() {
     
     /* *** Example ****************************************************************/
 
-    const parent = tCompany.forUseInLeftJoinAs('parent')
+    // const parent = tCompany.forUseInLeftJoinAs('parent')
     
     const leftJoinCompany2 = await connection.selectFrom(tCompany)
         .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
@@ -1385,6 +1432,54 @@ async function main() {
         .executeSelectOne()
     
     assertEquals(customerWithIdPeaking, result)
+            
+    /* *** Preparation ************************************************************/
+
+    result = [{
+        id: 1,
+        firstName: 'First Name',
+        lastName: 'Last Name'
+    }]
+    expectedResult.push(result)
+    expectedQuery.push(`select first_name as "firstName", last_name as "lastName", id as "id" from customer`)
+    expectedParams.push(`[]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const availableFields1 = {
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday
+    }
+
+    // Alternative: const fieldsToPickList = ['firstName' as const, 'lastName' as const]
+    const fieldsToPick1 = {
+        firstName: true,
+        lastName: true
+    }
+
+    // Alternative: const pickedFields = dynamicPickPaths(availableFields, fieldsToPickList)
+    const pickedFields1 = dynamicPick(availableFields1, fieldsToPick1)
+
+    let customersWithIdPicking = await connection.selectFrom(tCustomer)
+        .select({
+            ...pickedFields1,
+            id: tCustomer.id // always include the id field in the result
+        })
+        .executeSelectMany()
+    
+    assertEquals(customersWithIdPicking, result)
+
+    let customersWithIdPickingType: {
+        id: number;
+        birthday?: Date;
+        firstName?: string;
+        lastName?: string;
+    }[] = null as any
+
+    customersWithIdPicking = customersWithIdPickingType
+    customersWithIdPickingType = customersWithIdPicking
     
     /* *** Preparation ************************************************************/
 
@@ -1864,13 +1959,35 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
+    expectedQuery.push(`update /*+ some hints */ customer set first_name = :0, last_name = :1 where id = :2 keep plan`)
+    expectedParams.push(`["John","Smith",10]`)
+    expectedType.push(`update`)
+    
+    /* *** Example ****************************************************************/
+
+    let customizedUpdate = await connection.update(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith'
+        }).where(tCustomer.id.equals(10))
+        .customizeQuery({
+            afterUpdateKeyword: connection.rawFragment`/*+ some hints */`,
+            afterQuery: connection.rawFragment`keep plan`,
+        })
+        .executeUpdate()
+    
+    assertEquals(customizedUpdate, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
     expectedQuery.push(`BEFORE update /*+ some hints */ customer set first_name = :0, last_name = :1 where id = :2 keep plan`)
     expectedParams.push(`["John","Smith",10]`)
     expectedType.push(`update`)
     
     /* *** Example ****************************************************************/
 
-    const customizedUpdate = await connection.update(tCustomer).set({
+    customizedUpdate = await connection.update(tCustomer).set({
             firstName: 'John',
             lastName: 'Smith'
         }).where(tCustomer.id.equals(10))
@@ -1887,13 +2004,33 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
+    expectedQuery.push(`delete /*+ some hints */ from customer where id = :0 keep plan`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`delete`)
+    
+    /* *** Example ****************************************************************/
+
+    let customizedDelete = await connection.deleteFrom(tCustomer)
+        .where(tCustomer.id.equals(10))
+        .customizeQuery({
+            afterDeleteKeyword: connection.rawFragment`/*+ some hints */`,
+            afterQuery: connection.rawFragment`keep plan`,
+        })
+        .executeDelete()
+    
+    assertEquals(customizedDelete, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
     expectedQuery.push(`BEFORE delete /*+ some hints */ from customer where id = :0 keep plan`)
     expectedParams.push(`[10]`)
     expectedType.push(`delete`)
     
     /* *** Example ****************************************************************/
 
-    const customizedDelete = await connection.deleteFrom(tCustomer)
+    customizedDelete = await connection.deleteFrom(tCustomer)
         .where(tCustomer.id.equals(10))
         .customizeQuery({
             beforeQuery: connection.rawFragment`BEFORE`,
@@ -1908,13 +2045,34 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
+    expectedQuery.push(`insert /*+ some hints */ into customer (first_name, last_name, company_id) values (:0, :1, :2) log errors reject limit unlimited`)
+    expectedParams.push(`["John","Smith",1]`)
+    expectedType.push(`insert`)
+    
+    /* *** Example ****************************************************************/
+
+    let customizedInsert = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        }).customizeQuery({
+            afterInsertKeyword: connection.rawFragment`/*+ some hints */`,
+            afterQuery: connection.rawFragment`log errors reject limit unlimited`
+        }).executeInsert()
+
+    assertEquals(customizedInsert, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
     expectedQuery.push(`BEFORE insert /*+ some hints */ into customer (first_name, last_name, company_id) values (:0, :1, :2) log errors reject limit unlimited`)
     expectedParams.push(`["John","Smith",1]`)
     expectedType.push(`insert`)
     
     /* *** Example ****************************************************************/
 
-    const customizedInsert = await connection.insertInto(tCustomer).set({
+    customizedInsert = await connection.insertInto(tCustomer).set({
             firstName: 'John',
             lastName: 'Smith',
             companyId: 1
@@ -2115,7 +2273,7 @@ async function main() {
 
     const parentParent = tCompany.forUseInLeftJoinAs('parentParent')
     
-    const companyMultiSplit2 = await connection.selectFrom(tCompany)
+    const companyMultiParent = await connection.selectFrom(tCompany)
         .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
         .leftJoin(parentParent).on(parent.parentId.equals(parentParent.id))
         .select({
@@ -2133,7 +2291,7 @@ async function main() {
         })
         .executeSelectMany()
 
-    assertEquals(companyMultiSplit2, result)
+    assertEquals(companyMultiParent, result)
 
     /* *** Preparation ************************************************************/
 
@@ -2182,6 +2340,53 @@ async function main() {
         .executeDeleteOne()
 
     assertEquals(deletedAcmeCompany, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = 'Ron'
+    expectedResult.push(result)
+    expectedQuery.push(`update customer set first_name = :0 where id = :1 returning first_name into :2`)
+    expectedParams.push(`["Ron",1,{"dir":3003,"as":"result"}]`)
+    expectedType.push(`updateReturningOneColumnOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const updatedSmithFirstName = await connection.update(tCustomer)
+        .set({
+            firstName: 'Ron'
+        })
+        .where(tCustomer.id.equals(1))
+        .returningOneColumn(tCustomer.firstName)
+        .executeUpdateOne()
+
+    assertEquals(updatedSmithFirstName, result)
+
+    // /* *** Preparation ************************************************************/
+
+    // result = {
+    //     oldLastName: 'Shith', 
+    //     newLastName: 'Thomson'
+    // }
+    // expectedResult.push(result)
+    // expectedQuery.push(`update customer as _new_ set last_name = $1 from (select _old_.* from customer as _old_ where _old_.id = $2 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"`)
+    // expectedParams.push(`["Thomson",2]`)
+    // expectedType.push(`updateReturningOneRow`)
+
+    // /* *** Example ****************************************************************/
+
+    // const oldCustomerValues = tCustomer.oldValues()
+    // const updatedLastNames = await connection.update(tCustomer)
+    //     .set({
+    //         lastName: 'Thomson'
+    //     })
+    //     .where(tCustomer.id.equals(2))
+    //     .returning({
+    //         oldLastName: oldCustomerValues.lastName,
+    //         newLastName: tCustomer.lastName
+    //     })
+    //     .executeUpdateOne()
+    
+    // assertEquals(updatedLastNames, result)
 
     /* *** Preparation ************************************************************/
 
@@ -3010,6 +3215,52 @@ async function main() {
         .select(extractWritableColumnsFrom(tCustomer))
         .executeSelectMany()
     assertEquals(customers, result)
+    
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select customer.first_name as "firstName", customer.last_name as "lastName", customer.birthday as "birthday" from customer join company on company.id = customer.company_id where company.name = :0`)
+    expectedParams.push(`["My company name"]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    companyName = 'My company name'
+
+    const customersWitOptionalCompany = await connection.selectFrom(tCustomer)
+        .optionalJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .where(tCompany.name.equalsIfValue(companyName))
+        .select({
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        })
+        .executeSelectMany()
+    assertEquals(customersWitOptionalCompany, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select first_name as "firstName", last_name as "lastName", birthday as "birthday" from customer`)
+    expectedParams.push(`[]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const companyName2 = null
+
+    const customersWitOptionalCompany2 = await connection.selectFrom(tCustomer)
+        .optionalJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .where(tCompany.name.equalsIfValue(companyName2))
+        .select({
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            birthday: tCustomer.birthday
+        })
+        .executeSelectMany()
+    assertEquals(customersWitOptionalCompany2, result)
 
     /* *** Preparation ************************************************************/
 
@@ -4282,6 +4533,69 @@ async function main() {
 
     customerWithCompanyInfo2 = customerWithCompanyInfo2Type
     customerWithCompanyInfo2Type = customerWithCompanyInfo2
+
+    /* *** Preparation ************************************************************/
+
+    result = undefined
+    expectedResult.push(result)
+    expectedQuery.push(`begin myOwnprocedure(:0); end;`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`executeProcedure`)
+
+    /* *** Example ****************************************************************/
+
+    const procedureResult = await connection.myOwnProcedure(10)
+
+    assertEquals(procedureResult, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = 20
+    expectedResult.push(result)
+    expectedQuery.push(`select myOwnFunction(:0) from dual`)
+    expectedParams.push(`[10]`)
+    expectedType.push(`executeFunction`)
+
+    /* *** Example ****************************************************************/
+
+    const functionResult = await connection.myOwnFunction(10)
+
+    assertEquals(functionResult, result)
+        
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select id as "id", first_name as "firstName", last_name as "lastName" from customer where id = :0`)
+    expectedParams.push(`[12]`)
+    expectedType.push(`selectManyRows`)
+    
+    /* *** Example ****************************************************************/
+
+    const birthdayVisible9 = false
+
+    const availableFields9 = {
+        id: tCustomer.id,
+        firstName: tCustomer.firstName,
+        lastName: tCustomer.lastName,
+        birthday: tCustomer.birthday.allowWhen(birthdayVisible9, "You don't have permission to see the birthday")
+    }
+    
+    const fieldsToPick9 = {
+        firstName: true,
+        lastName: true
+    }
+    
+    // include allways id field as required
+    const pickedFields9 = dynamicPick(availableFields9, fieldsToPick9, ['id'])
+    
+    const customerWithOptionalCompany9 = await connection.selectFrom(tCustomer)
+        .optionalInnerJoin(tCompany).on(tCompany.id.equals(tCustomer.companyId))
+        .select(pickedFields9)
+        .where(tCustomer.id.equals(12))
+        .executeSelectMany()
+    
+    assertEquals(customerWithOptionalCompany9, result)
 
 }
 

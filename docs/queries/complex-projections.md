@@ -33,12 +33,85 @@ const customersOfCompany = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select id as id, first_name as "name.firstName", last_name as "name.lastName", birthday as birthday 
-from customer 
-where company_id = $1 
-order by "name.firstName", "name.lastName"
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as `name.firstName`, 
+        last_name as `name.lastName`, 
+        birthday as birthday 
+    from customer 
+    where company_id = ? 
+    order by 
+        `name.firstName`, 
+        `name.lastName`
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as `name.firstName`, 
+        last_name as `name.lastName`, 
+        birthday as birthday 
+    from customer 
+    where company_id = ? 
+    order by 
+        `name.firstName`, 
+        `name.lastName`
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "name.firstName", 
+        last_name as "name.lastName", 
+        birthday as "birthday" 
+    from customer 
+    where company_id = :0 
+    order by 
+        "name.firstName", 
+        "name.lastName"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "name.firstName", 
+        last_name as "name.lastName", 
+        birthday as birthday 
+    from customer 
+    where company_id = $1 
+    order by 
+        "name.firstName", 
+        "name.lastName"
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as "name.firstName", 
+        last_name as "name.lastName", 
+        birthday as birthday 
+    from customer 
+    where company_id = ? 
+    order by 
+        "name.firstName", 
+        "name.lastName"
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as [name.firstName], 
+        last_name as [name.lastName], 
+        birthday as birthday 
+    from customer 
+    where company_id = @0 
+    order by 
+        [name.firstName], 
+        [name.lastName]
+    ```
 
 The parameters are: `[ 24 ]`
 
@@ -119,17 +192,79 @@ const companies = connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-select id as id, name as name, parent_id as "parentId", 
-    ubication_latitude as "ubication.latitude", ubication_longitude as "ubication.longitude", ubication_comment as "ubication.comment" 
-from company
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name, 
+        parent_id as parentId, 
+        ubication_latitude as `ubication.latitude`, 
+        ubication_longitude as `ubication.longitude`, 
+        ubication_comment as `ubication.comment` 
+    from company
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name`, 
+        parent_id as parentId, 
+        ubication_latitude as `ubication.latitude`, 
+        ubication_longitude as `ubication.longitude`, 
+        ubication_comment as `ubication.comment` 
+    from company
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name", 
+        parent_id as "parentId", 
+        ubication_latitude as "ubication.latitude", 
+        ubication_longitude as "ubication.longitude", 
+        ubication_comment as "ubication.comment" 
+    from company
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name, 
+        parent_id as "parentId", 
+        ubication_latitude as "ubication.latitude",
+        ubication_longitude as "ubication.longitude", 
+        ubication_comment as "ubication.comment" 
+    from company
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name, 
+        parent_id as parentId, 
+        ubication_latitude as "ubication.latitude", 
+        ubication_longitude as "ubication.longitude", 
+        ubication_comment as "ubication.comment" 
+    from company
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name, 
+        parent_id as parentId, 
+        ubication_latitude as [ubication.latitude], 
+        ubication_longitude as [ubication.longitude], 
+        ubication_comment as [ubication.comment] 
+    from company
+    ```
 
 The parameters are: `[ ]`
 
 The result type is:
 ```tsx
-const customerWithCompanyInOneQuery: Promise<{
+const companies: Promise<{
     id: number;
     name: string;
     parentId?: number;
@@ -165,12 +300,85 @@ const customerWithCompanyInOneQuery = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, 
-    company.id as "company.id", company.name as "company.name" 
-from customer inner join company on company.id = customer.company_id 
-where customer.id = $1
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        customer.birthday as birthday, 
+        company.id as `company.id`, 
+        company.name as `company.name` 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        customer.birthday as birthday, 
+        company.id as `company.id`, 
+        company.`name` as `company.name` 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.id as "id", 
+        customer.first_name as "firstName", 
+        customer.last_name as "lastName", 
+        customer.birthday as "birthday", 
+        company.id as "company.id", 
+        company.name as "company.name" 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.id as id, 
+        customer.first_name as "firstName", 
+        customer.last_name as "lastName", 
+        customer.birthday as birthday, 
+        company.id as "company.id", 
+        company.name as "company.name" 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        customer.birthday as birthday, 
+        company.id as "company.id", 
+        company.name as "company.name" 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        customer.birthday as birthday, 
+        company.id as [company.id], 
+        company.name as [company.name] 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = @0
+    ```
 
 The parameters are: `[ 12 ]`
 
@@ -220,12 +428,91 @@ const companyMultiParent = connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-select company.id as id, company.name as name, 
-       parent.id as "parent.id", parent.name as "parent.name", 
-       parentParent.id as "parent.parent.id", parentParent.name as "parent.parent.name", parentParent.parent_id as "parent.parent.parentId" 
-from company left join company as parent on company.parent_id = parent.id left join company as parentParent on parent.parent_id = parentParent.id
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as id, 
+        company.name as name, 
+        parent.id as `parent.id`, 
+        parent.name as `parent.name`, 
+        parentParent.id as `parent.parent.id`, 
+        parentParent.name as `parent.parent.name`, 
+        parentParent.parent_id as `parent.parent.parentId` 
+    from company 
+    left join company as parent on company.parent_id = parent.id 
+    left join company as parentParent on parent.parent_id = parentParent.id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as id, 
+        company.`name` as `name`, 
+        parent.id as `parent.id`, 
+        parent.`name` as `parent.name`, 
+        parentParent.id as `parent.parent.id`, 
+        parentParent.`name` as `parent.parent.name`, 
+        parentParent.parent_id as `parent.parent.parentId` 
+    from company 
+    left join company as parent on company.parent_id = parent.id 
+    left join company as parentParent on parent.parent_id = parentParent.id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "id", 
+        company.name as "name", 
+        parent.id as "parent.id", 
+        parent.name as "parent.name", 
+        parentParent.id as "parent.parent.id", 
+        parentParent.name as "parent.parent.name", 
+        parentParent.parent_id as "parent.parent.parentId" 
+    from company 
+    left join company parent on company.parent_id = parent.id 
+    left join company parentParent on parent.parent_id = parentParent.id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as id, 
+        company.name as name, 
+        parent.id as "parent.id", 
+        parent.name as "parent.name", 
+        parentParent.id as "parent.parent.id", 
+        parentParent.name as "parent.parent.name", 
+        parentParent.parent_id as "parent.parent.parentId" 
+    from company 
+    left join company as parent on company.parent_id = parent.id 
+    left join company as parentParent on parent.parent_id = parentParent.id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as id, 
+        company.name as name, 
+        parent.id as "parent.id", 
+        parent.name as "parent.name", 
+        parentParent.id as "parent.parent.id", 
+        parentParent.name as "parent.parent.name", 
+        parentParent.parent_id as "parent.parent.parentId" 
+    from company 
+    left join company as parent on company.parent_id = parent.id 
+    left join company as parentParent on parent.parent_id = parentParent.id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as id, 
+        company.name as name, 
+        parent.id as [parent.id], 
+        parent.name as [parent.name], 
+        parentParent.id as [parent.parent.id], 
+        parentParent.name as [parent.parent.name], 
+        parentParent.parent_id as [parent.parent.parentId] 
+    from company 
+    left join company as parent on company.parent_id = parent.id 
+    left join company as parentParent on parent.parent_id = parentParent.id
+    ```
 
 The parameters are: `[ ]`
 

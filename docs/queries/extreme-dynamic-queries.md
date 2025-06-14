@@ -59,12 +59,82 @@ const searchedCustomers = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select id as id, first_name || $1 || last_name as name, birthday as birthday 
-from customer 
-where first_name like ('%' || $2 || '%') 
-order by lower(name), birthday asc nulls last
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as name, 
+        birthday as birthday 
+    from customer 
+    where first_name like concat('%', ?, '%') 
+    order by 
+        lower(name), 
+        birthday is null, 
+        birthday asc
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as `name`, 
+        birthday as birthday 
+    from customer 
+    where first_name like concat('%', ?, '%') 
+    order by 
+        lower(`name`), 
+        birthday is null, 
+        birthday asc
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name || :0 || last_name as "name", 
+        birthday as "birthday" 
+    from customer 
+    where first_name like ('%' || :1 || '%') escape '\\' 
+    order by 
+        lower("name"), 
+        "birthday" asc nulls last
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name || $1 || last_name as name, 
+        birthday as birthday 
+    from customer 
+    where first_name like ('%' || $2 || '%') 
+    order by 
+        lower(name), 
+        birthday asc nulls last
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name || ? || last_name as name, 
+        birthday as birthday 
+    from customer 
+    where first_name like ('%' || ? || '%') escape '\\' 
+    order by 
+        lower(name), 
+        birthday asc nulls last
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name + @0 + last_name as name, 
+        birthday as birthday 
+    from customer 
+    where first_name like ('%' + @1 + '%') 
+    order by 
+        lower(name), 
+        iif(birthday is null, 1, 0), 
+        birthday asc
+    ```
 
 The parameters are: `[ ' ', 'ohn' ]`
 
@@ -124,19 +194,139 @@ const customersWithDynamicCondition = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, company.name as companyName 
-from customer inner join company on customer.company_id = company.id 
-where 
-    (   
-        customer.first_name ilike ($1 || '%') 
-        or (
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        customer.birthday as birthday, 
+        company.name as companyName 
+    from customer 
+    inner join company on customer.company_id = company.id 
+    where 
+        (
+               lower(customer.first_name) like concat(lower(?), '%') 
+            or (
+                    lower(customer.last_name) like concat(lower(?), '%') 
+                and customer.last_name like concat('%', ?)
+            )
+        ) and company.name = ? 
+    order by 
+        lower(firstName), 
+        lower(lastName) asc
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        customer.birthday as birthday, 
+        company.`name` as companyName 
+    from customer 
+    inner join company on customer.company_id = company.id 
+    where 
+        (
+               lower(customer.first_name) like concat(lower(?), '%') 
+            or (
+                    lower(customer.last_name) like concat(lower(?), '%') 
+                and customer.last_name like concat('%', ?)
+            )
+        ) and company.`name` = ? 
+    order by 
+        lower(firstName), 
+        lower(lastName) asc
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.id as "id", 
+        customer.first_name as "firstName", 
+        customer.last_name as "lastName", 
+        customer.birthday as "birthday", 
+        company.name as "companyName" 
+    from customer 
+    inner join company on customer.company_id = company.id 
+    where 
+        (
+               lower(customer.first_name) like lower(:0 || '%') escape '\\' 
+            or (
+                    lower(customer.last_name) like lower(:1 || '%') escape '\\' 
+                and customer.last_name like ('%' || :2) escape '\\'
+            )
+        ) and company.name = :3 
+    order by 
+        lower("firstName"), 
+        lower("lastName") asc
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.id as id, 
+        customer.first_name as "firstName", 
+        customer.last_name as "lastName", 
+        customer.birthday as birthday, 
+        company.name as "companyName" 
+    from customer 
+    inner join company on customer.company_id = company.id 
+    where 
+        (
+               customer.first_name ilike ($1 || '%') 
+            or (
                     customer.last_name ilike ($2 || '%') 
                 and customer.last_name like ('%' || $3)
             )
-    ) and company.name = $4 
-order by lower(firstName), lower(lastName) asc
-```
+        ) and company.name = $4 
+    order by 
+        lower("firstName"), 
+        lower("lastName") asc
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        customer.birthday as birthday, 
+        company.name as companyName 
+    from customer 
+    inner join company on customer.company_id = company.id 
+    where 
+        (
+               lower(customer.first_name) like lower(? || '%') escape '\\' 
+            or (
+                    lower(customer.last_name) like lower(? || '%') escape '\\' 
+                and customer.last_name like ('%' || ?) escape '\\'
+            )
+        ) and company.name = ? 
+    order by 
+        lower(firstName), 
+        lower(lastName) asc
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        customer.birthday as birthday, 
+        company.name as companyName 
+    from customer 
+    inner join company on customer.company_id = company.id 
+    where 
+        (
+               lower(customer.first_name) like lower(@0 + '%') 
+            or (
+                    lower(customer.last_name) like lower(@1 + '%') 
+                and customer.last_name like ('%' + @2)
+            )
+        ) and company.name = @3 
+    order by 
+        lower(firstName), 
+        lower(lastName) asc
+    ```
 
 The parameters are: `[ 'John', 'Smi', 'th', 'ACME' ]`
 
@@ -192,10 +382,57 @@ const customersWithIdPicking = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select id as id, first_name as firstName, last_name as lastName
-from customer
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        first_name as firstName, 
+        last_name as lastName, 
+        id as id 
+    from customer
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        first_name as firstName, 
+        last_name as lastName, 
+        id as id 
+    from customer
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        id as "id" 
+    from customer
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        id as id 
+    from customer
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        first_name as firstName, 
+        last_name as lastName, 
+        id as id 
+    from customer
+    ```
 
 The parameters are: `[]`
 
@@ -247,11 +484,61 @@ const customerWithOptionalCompany = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select customer.id as id, customer.first_name as firstName, customer.last_name as lastName
-from customer
-where customer.id = $1
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = @0
+    ```
 
 The parameters are: `[ 12 ]`
 
@@ -277,11 +564,73 @@ const fieldsToPick = {
 ```
 
 The executed query is:
-```sql
-select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, company.name as companyName
-from customer inner join company on company.id = customer.company_id
-where customer.id = $1
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        company.name as companyName 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        company.`name` as companyName 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.id as "id", 
+        customer.first_name as "firstName", 
+        customer.last_name as "lastName", 
+        company.name as "companyName" 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.id as id, 
+        customer.first_name as "firstName", 
+        customer.last_name as "lastName", 
+        company.name as "companyName" 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        company.name as companyName 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        company.name as companyName 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = @0
+    ```
 
 The parameters are: `[ 12 ]`
 
@@ -322,11 +671,61 @@ const customerWithOptionalCompany = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select customer.id as id, customer.first_name as firstName, customer.last_name as lastName
-from customer
-where customer.id = $1
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = @0
+    ```
 
 The parameters are: `[ 12 ]`
 
@@ -405,19 +804,133 @@ const customerWithCompanyObject = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select customer.id as id, 
-    customer.first_name as "name.firstName", customer.last_name as "name.lastName", 
-    customer.birthday as birthday, 
-    company.id as "company.id", company.name as "company.name" 
-from customer inner join company on company.id = customer.company_id 
-where company.name = $1 
-    and (
-           customer.first_name ilike ('%' || $2 || '%') 
-        or customer.last_name ilike ('%' || $3 || '%')
-    ) 
-order by lower("company.name") asc, birthday desc
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        customer.id as id, 
+        customer.first_name as `name.firstName`, 
+        customer.last_name as `name.lastName`, 
+        customer.birthday as birthday, 
+        company.id as `company.id`, 
+        company.name as `company.name` 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where 
+            company.name = ? 
+        and (
+               lower(customer.first_name) like concat('%', lower(?), '%') 
+            or lower(customer.last_name) like concat('%', lower(?), '%')
+        ) 
+    order by 
+        lower(`company.name`) asc, 
+        birthday desc
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.id as id, 
+        customer.first_name as `name.firstName`, 
+        customer.last_name as `name.lastName`, 
+        customer.birthday as birthday, 
+        company.id as `company.id`, 
+        company.`name` as `company.name` 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where 
+            company.`name` = ? 
+        and (
+               lower(customer.first_name) like concat('%', lower(?), '%') 
+            or lower(customer.last_name) like concat('%', lower(?), '%')
+        ) 
+    order by 
+        lower(`company.name`) asc, 
+        birthday desc
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.id as "id", 
+        customer.first_name as "name.firstName", 
+        customer.last_name as "name.lastName", 
+        customer.birthday as "birthday", 
+        company.id as "company.id", 
+        company.name as "company.name" 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where 
+            company.name = :0 
+        and (
+               lower(customer.first_name) like lower('%' || :1 || '%') escape '\\' 
+            or lower(customer.last_name) like lower('%' || :2 || '%') escape '\\'
+        ) 
+    order by 
+        lower("company.name") asc, 
+        "birthday" desc
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.id as id, 
+        customer.first_name as "name.firstName", 
+        customer.last_name as "name.lastName", 
+        customer.birthday as birthday, 
+        company.id as "company.id", 
+        company.name as "company.name" 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where 
+            company.name = $1 
+        and (
+               customer.first_name ilike ('%' || $2 || '%') 
+            or customer.last_name ilike ('%' || $3 || '%')
+        ) 
+    order by 
+        lower("company.name") asc, 
+        birthday desc
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.id as id, 
+        customer.first_name as "name.firstName", 
+        customer.last_name as "name.lastName", 
+        customer.birthday as birthday, 
+        company.id as "company.id", 
+        company.name as "company.name" 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where 
+            company.name = ? 
+        and (
+               lower(customer.first_name) like lower('%' || ? || '%') escape '\\' 
+            or lower(customer.last_name) like lower('%' || ? || '%') escape '\\'
+        ) 
+    order by 
+        lower("company.name") asc, 
+        birthday desc
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        customer.id as id, 
+        customer.first_name as [name.firstName], 
+        customer.last_name as [name.lastName], 
+        customer.birthday as birthday, 
+        company.id as [company.id], 
+        company.name as [company.name] 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where 
+            company.name = @0 
+        and (
+               lower(customer.first_name) like lower('%' + @1 + '%') 
+            or lower(customer.last_name) like lower('%' + @2 + '%')
+        ) 
+    order by 
+        lower([company.name]) asc, 
+        birthday desc
+    ```
 
 The parameters are: `[ "ACME", "John", "Smi" ]`
 
@@ -475,12 +988,61 @@ const customerWithOptionalCompany = await connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select customer.id as id, 
-    customer.first_name as "name.firstName", customer.last_name as "name.lastName" 
-from customer 
-where customer.id = $1
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as `name.firstName`, 
+        last_name as `name.lastName` 
+    from customer 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as `name.firstName`, 
+        last_name as `name.lastName` 
+    from customer 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "name.firstName", 
+        last_name as "name.lastName" 
+    from customer 
+    where id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "name.firstName", 
+        last_name as "name.lastName" 
+    from customer 
+    where id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as "name.firstName", 
+        last_name as "name.lastName" 
+    from customer 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as [name.firstName], 
+        last_name as [name.lastName] 
+    from customer 
+    where id = @0
+    ```
 
 The parameters are: `[ 12 ]`
 
@@ -514,13 +1076,73 @@ const fieldsToPick = {
 ```
 
 The executed query is:
-```sql
-select customer.id as id, 
-    customer.first_name as "name.firstName", customer.last_name as "name.lastName", 
-    company.id as "company.id", company.name as "company.name" 
-from customer inner join company on company.id = customer.company_id 
-where customer.id = $1
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        customer.id as id, 
+        customer.first_name as `name.firstName`, 
+        customer.last_name as `name.lastName`, 
+        company.name as `company.name` 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.id as id, 
+        customer.first_name as `name.firstName`, 
+        customer.last_name as `name.lastName`, 
+        company.`name` as `company.name` 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.id as "id", 
+        customer.first_name as "name.firstName", 
+        customer.last_name as "name.lastName", 
+        company.name as "company.name" 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.id as id, 
+        customer.first_name as "name.firstName", 
+        customer.last_name as "name.lastName", 
+        company.name as "company.name" 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.id as id, 
+        customer.first_name as "name.firstName", 
+        customer.last_name as "name.lastName", 
+        company.name as "company.name" 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        customer.id as id, 
+        customer.first_name as [name.firstName], 
+        customer.last_name as [name.lastName], 
+        company.name as [company.name] 
+    from customer 
+    inner join company on company.id = customer.company_id 
+    where customer.id = @0
+    ```
 
 The parameters are: `[ 12 ]`
 
@@ -624,15 +1246,67 @@ const result = getSubcompanies(connection, companyId, ['name'], {
 ```
 
 The executed query is:
-```sql
-select 
-    id as id, 
-    name as name 
-from company 
-where 
-    name ilike ('%' || $1 || '%') 
-    and parent_id = $2
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where 
+            lower(name) like concat('%', lower(?), '%') 
+        and parent_id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name` 
+    from company 
+    where 
+            lower(`name`) like concat('%', lower(?), '%') 
+        and parent_id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name" 
+    from company 
+    where 
+            lower(name) like lower('%' || :0 || '%') escape '\\' 
+        and parent_id = :1
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where 
+            name ilike ('%' || $1 || '%') 
+        and parent_id = $2
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where 
+            lower(name) like lower('%' || ? || '%') escape '\\' 
+        and parent_id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where 
+            lower(name) like lower('%' + @0 + '%') 
+        and parent_id = @1
+    ```
 
 The parameters are: `[ "ACME", 23 ]`
 
@@ -653,21 +1327,97 @@ const result = await getSubcompanies(connection, companyId, ['name', 'favouriteC
 ```
 
 The executed query is:
-```sql
-select 
-    company.id as id, 
-    company.name as name, 
-    favouriteCustomer.first_name || $1 || favouriteCustomer.last_name as "favouriteCustomer.name" 
-from company 
-left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
-where 
-    exists(
-        select id as result 
-        from customer 
-        where (first_name || $2 || last_name) ilike ('%' || $3 || '%')
-    ) 
-    and company.parent_id = $4
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as id, 
+        company.name as name, 
+        concat(favouriteCustomer.first_name, ?, favouriteCustomer.last_name) as `favouriteCustomer.name` 
+    from company 
+    left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
+    where 
+        exists(
+            select id as result 
+            from customer 
+            where lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%')
+        ) and company.parent_id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as id, 
+        company.`name` as `name`, 
+        concat(favouriteCustomer.first_name, ?, favouriteCustomer.last_name) as `favouriteCustomer.name` 
+    from company 
+    left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
+    where 
+        exists(
+            select id as result 
+            from customer 
+            where lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%')
+        ) and company.parent_id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "id", 
+        company.name as "name", 
+        favouriteCustomer.first_name || :0 || favouriteCustomer.last_name as "favouriteCustomer.name" 
+    from company 
+    left outer join customer favouriteCustomer on company.parent_id = favouriteCustomer.id 
+    where 
+        (exists(
+            select id as "result" 
+            from customer 
+            where lower(first_name || :1 || last_name) like lower('%' || :2 || '%') escape '\\'
+        ) = 1) and company.parent_id = :3
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as id, 
+        company.name as name, 
+        favouriteCustomer.first_name || $1 || favouriteCustomer.last_name as "favouriteCustomer.name" 
+    from company 
+    left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
+    where 
+        exists(
+            select id as result 
+            from customer 
+            where (first_name || $2 || last_name) ilike ('%' || $3 || '%')
+        ) and company.parent_id = $4
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as id, 
+        company.name as name, 
+        favouriteCustomer.first_name || ? || favouriteCustomer.last_name as "favouriteCustomer.name" 
+    from company 
+    left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
+    where 
+        exists(
+            select id as result 
+            from customer 
+            where lower(first_name || ? || last_name) like lower('%' || ? || '%') escape '\\'
+        ) and company.parent_id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as id, 
+        company.name as name, 
+        favouriteCustomer.first_name + @0 + favouriteCustomer.last_name as [favouriteCustomer.name] 
+    from company 
+    left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
+    where 
+        (exists(
+            select id as [result] 
+            from customer 
+            where lower(first_name + @1 + last_name) like lower('%' + @2 + '%')
+        ) = 1) and company.parent_id = @3
+    ```
 
 The parameters are: `[ " ", " ", "smith", 23 ]`
 
@@ -691,20 +1441,91 @@ const result = getSubcompanies(connection, companyId, ['name'], {
 ```
 
 The executed query is:
-```sql
-select 
-    company.id as id, 
-    company.name as name 
-from company 
-left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
-where 
-    favouriteCustomer.id in (
-        select parent_id as result 
-        from company 
-        where name ilike ('%' || $1 || '%')
-    ) 
-    and company.parent_id = $2
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as id, 
+        company.name as name 
+    from company 
+    left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
+    where 
+        favouriteCustomer.id in (
+            select parent_id as result 
+            from company 
+            where lower(name) like concat('%', lower(?), '%')
+        ) and company.parent_id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as id, 
+        company.`name` as `name` 
+    from company 
+    left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
+    where 
+        favouriteCustomer.id in (
+            select parent_id as result 
+            from company 
+            where lower(`name`) like concat('%', lower(?), '%')
+        ) and company.parent_id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "id", 
+        company.name as "name" 
+    from company 
+    left outer join customer favouriteCustomer on company.parent_id = favouriteCustomer.id 
+    where 
+        favouriteCustomer.id in (
+            select parent_id as "result" 
+            from company 
+            where lower(name) like lower('%' || :0 || '%') escape '\\'
+        ) and company.parent_id = :1
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as id, 
+        company.name as name 
+    from company 
+    left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
+    where 
+        favouriteCustomer.id in (
+            select parent_id as result 
+            from company 
+            where name ilike ('%' || $1 || '%')
+        ) and company.parent_id = $2
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as id, 
+        company.name as name 
+    from company 
+    left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
+    where 
+        favouriteCustomer.id in (
+            select parent_id as result 
+            from company 
+            where lower(name) like lower('%' || ? || '%') escape '\\'
+        ) and company.parent_id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as id, 
+        company.name as name 
+    from company 
+    left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id 
+    where 
+        favouriteCustomer.id in (
+            select parent_id as [result] 
+            from company 
+            where lower(name) like lower('%' + @0 + '%')
+        ) and company.parent_id = @1
+    ```
 
 The parameters are: `[ "ACME Inc.", 23 ]`
 
@@ -728,27 +1549,121 @@ const result = getSubcompanies(connection, companyId, ['name'], {
 ```
 
 The executed query is:
-```sql
-select 
-    id as id, 
-    name as name 
-from company 
-where 
-    (
-        exists(
-            select id as result 
-            from customer 
-            where 
-                (
-                    first_name || $1 || last_name) ilike ('%' || $2 || '%')
-                ) or exists(
-                    select id as result 
-                    from customer 
-                    where birthday = $3
-                )
-    ) 
-    and parent_id = $4
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where 
+        (
+            exists(
+                select id as result 
+                from customer 
+                where lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%')
+            ) or exists(
+                select id as result 
+                from customer 
+                where birthday = ?
+            )
+        ) and parent_id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name` 
+    from company 
+    where 
+        (
+            exists(
+                select id as result 
+                from customer 
+                where lower(concat(first_name, ?, last_name)) like concat('%', lower(?), '%')
+            ) or exists(
+                select id as result 
+                from customer 
+                where birthday = ?
+            )
+        ) and parent_id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name" 
+    from company 
+    where 
+        (
+            (exists(
+                select id as "result" 
+                from customer 
+                where lower(first_name || :0 || last_name) like lower('%' || :1 || '%') escape '\\'
+            ) = 1) or (exists(
+                select id as "result" 
+                from customer 
+                where birthday = :2
+            ) = 1)
+        ) and parent_id = :3
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where 
+        (
+            exists(
+                select id as result 
+                from customer 
+                where (first_name || $1 || last_name) ilike ('%' || $2 || '%')
+            ) or exists(
+                select id as result 
+                from customer 
+                where birthday = $3
+            )
+        ) and parent_id = $4
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where 
+        (
+            exists(
+                select id as result 
+                from customer 
+                where lower(first_name || ? || last_name) like lower('%' || ? || '%') escape '\\'
+            ) or exists(
+                select id as result 
+                from customer 
+                where birthday = ?
+            )
+        ) and parent_id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where 
+        (
+            (exists(
+                select id as [result] 
+                from customer 
+                where lower(first_name + @0 + last_name) like lower('%' + @1 + '%')
+            ) = 1) or (exists(
+                select id as [result] 
+                from customer 
+                where birthday = @2
+            ) = 1)
+        ) and parent_id = @3
+    ```
 
 The parameters are: `[ " ", "John", 2000-03-01T00:00:00.000Z, 23 ]`
 

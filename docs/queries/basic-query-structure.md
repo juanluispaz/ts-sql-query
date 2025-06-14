@@ -23,11 +23,67 @@ const customerWithId = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select id as id, first_name as firstName, last_name as lastName, birthday as birthday 
-from customer 
-where id = $1
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as "birthday" 
+    from customer 
+    where id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as birthday 
+    from customer 
+    where id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as [lastName], 
+        birthday as birthday 
+    from customer 
+    where id = @0
+    ```
 
 The parameters are: `[ 10 ]`
 
@@ -63,11 +119,67 @@ const customerWithId = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select id as id, first_name as firstName, last_name as lastName, birthday as birthday 
-from customer 
-where id = $1
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as "birthday" 
+    from customer 
+    where id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as birthday 
+    from customer 
+    where id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as [lastName], 
+        birthday as birthday 
+    from customer 
+    where id = @0
+    ```
 
 The parameters are: `[ 10 ]`
 

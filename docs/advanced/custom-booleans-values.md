@@ -36,13 +36,45 @@ const insertCustomCompany = connection.insertInto(tCustomCompany).set({
 
 The executed query is:
 
-```sql
-insert into custom_company (name, is_big) 
-values ($1, case when $2 then 'Y' else 'N' end) 
-returning id
-```
+=== "MariaDB"
+    ```mariadb
+    insert into custom_company (name, is_big) 
+    values (?, case when ? then 'Y' else 'N' end) 
+    returning id
+    ```
+=== "MySQL"
+    ```mysql
+    insert into custom_company (`name`, is_big) 
+    values (?, case when ? then 'Y' else 'N' end)
+    -- Last inserted ID returned by the database got from the connection
+    ```
+=== "Oracle"
+    ```oracle
+    insert into custom_company (name, is_big) 
+    values (:0, case when (:1 = 1) then 'Y' else 'N' end) 
+    returning id 
+    into :2
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into custom_company (name, is_big) 
+    values ($1, case when $2::bool then 'Y' else 'N' end) 
+    returning id
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into custom_company (name, is_big) 
+    values (?, case when ? then 'Y' else 'N' end) 
+    returning id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    insert into custom_company (name, is_big) 
+    output inserted.id 
+    values (@0, case when (@1 = 1) then 'Y' else 'N' end)
+    ```
 
-The parameters are: `[ 'My Big Company', true ]`
+The parameters are: `[ 'My Big Company', true ]` (On [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
 
 The result type is:
 
@@ -64,11 +96,60 @@ const selectAllBigCompanies = connection.selectFrom(tCustomCompany)
 
 The executed query is:
 
-```sql
-select id as id, name as name, (is_big = 'Y') as isBig 
-from custom_company 
-where (is_big = 'Y')
-```
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name, 
+        (is_big = 'Y') as isBig 
+    from custom_company 
+    where is_big = 'Y'
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name`, 
+        (is_big = 'Y') as isBig 
+    from custom_company 
+    where is_big = 'Y'
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name", 
+        case when is_big = 'Y' then 1 else 0 end as "isBig" 
+    from custom_company 
+    where (is_big = 'Y')
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name, 
+        (is_big = 'Y') as "isBig" 
+    from custom_company 
+    where is_big = 'Y'
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name, 
+        (is_big = 'Y') as isBig 
+    from custom_company 
+    where is_big = 'Y'
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name, 
+        cast(case when is_big = 'Y' then 1 else 0 end as bit) as isBig 
+    from custom_company 
+    where (is_big = 'Y')
+    ```
 
 The parameters are: `[]`
 

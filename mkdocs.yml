@@ -28,6 +28,7 @@ theme:
     - navigation.tabs
     - navigation.footer
     - search.highlight
+    - content.tabs.link
   palette:
     # Palette toggle for automatic mode
     - media: "(prefers-color-scheme)"
@@ -57,9 +58,24 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
       pygments_lang_class: true
+      extend_pygments_lang:
+        - name: mariadb
+          lang: mysql
+        - name: mysql
+          lang: mysql
+        - name: oracle
+          lang: plpgsql
+        - name: postgresql
+          lang: plpgsql
+        - name: sqlite
+          lang: plpgsql
+        - name: sqlserver
+          lang: tsql
   - admonition
   - pymdownx.details
   - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
 nav:
   - Home: index.md
   - Queries:

@@ -20,11 +20,85 @@ const selectAll = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select id as id, first_name as firstName, last_name as lastName, birthday as birthday, company_id as companyId, first_name || $1 || last_name as name, calculateAge(birthday) as age 
-from customer 
-where id = $2
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday, 
+        company_id as companyId, 
+        concat(first_name, ?, last_name) as name, 
+        calculateAge(birthday) as age 
+    from customer 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday, 
+        company_id as companyId, 
+        concat(first_name, ?, last_name) as `name`, 
+        calculateAge(birthday) as age 
+    from customer 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as "birthday", 
+        company_id as "companyId", 
+        first_name || :0 || last_name as "name", 
+        calculateAge(birthday) as "age" 
+    from customer 
+    where id = :1
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as birthday, 
+        company_id as "companyId", 
+        first_name || $1 || last_name as name, 
+        calculateAge(birthday) as age 
+    from customer 
+    where id = $2
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday, 
+        company_id as companyId, 
+        first_name || ? || last_name as name, 
+        calculateAge(birthday) as age 
+    from customer 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday, 
+        company_id as companyId, 
+        first_name + @0 + last_name as name, 
+        calculateAge(birthday) as age 
+    from customer 
+    where id = @1
+    ```
 
 The parameters are: `[ " ", 9 ]`
 
@@ -63,11 +137,73 @@ const selectAll = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select id as id, first_name as firstName, last_name as lastName, birthday as birthday, company_id as companyId 
-from customer 
-where id = $1
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday, 
+        company_id as companyId 
+    from customer 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday, 
+        company_id as companyId 
+    from customer 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as "birthday", 
+        company_id as "companyId" 
+    from customer 
+    where id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as birthday, 
+        company_id as "companyId" 
+    from customer 
+    where id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday, 
+        company_id as companyId 
+    from customer 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday, 
+        company_id as companyId 
+    from customer 
+    where id = @0
+    ```
 
 The parameters are: `[ 9 ]`
 

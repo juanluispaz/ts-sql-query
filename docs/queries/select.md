@@ -30,12 +30,97 @@ const customersWithCompanyName = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select customer.id as id, customer.first_name as firstName, customer.last_name as lastName, customer.birthday as birthday, comp.name as companyName
-from customer inner join company as comp on customer.company_id = comp.id 
-where customer.first_name ilike ($1 || '%') 
-order by lower(firstName), lower(lastName) asc
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        customer.birthday as birthday, 
+        comp.name as companyName 
+    from customer 
+    inner join company as comp on customer.company_id = comp.id 
+    where lower(customer.first_name) like concat(lower(?), '%') 
+    order by 
+        lower(firstName), 
+        lower(lastName) asc
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        customer.birthday as birthday, 
+        comp.`name` as companyName 
+    from customer 
+    inner join company as comp on customer.company_id = comp.id 
+    where lower(customer.first_name) like concat(lower(?), '%') 
+    order by 
+        lower(firstName), 
+        lower(lastName) asc
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        customer.id as "id", 
+        customer.first_name as "firstName", 
+        customer.last_name as "lastName", 
+        customer.birthday as "birthday", 
+        comp.name as "companyName" 
+    from customer 
+    inner join company comp on customer.company_id = comp.id 
+    where lower(customer.first_name) like lower(:0 || '%') escape '\\' 
+    order by 
+        lower("firstName"), 
+        lower("lastName") asc
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        customer.id as id, 
+        customer.first_name as "firstName", 
+        customer.last_name as "lastName", 
+        customer.birthday as birthday, 
+        comp.name as "companyName" 
+    from customer 
+    inner join company as comp on customer.company_id = comp.id 
+    where customer.first_name ilike ($1 || '%') 
+    order by 
+        lower("firstName"), 
+        lower("lastName") asc
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        customer.birthday as birthday, 
+        comp.name as companyName 
+    from customer 
+    inner join company as comp on customer.company_id = comp.id 
+    where lower(customer.first_name) like lower(? || '%') escape '\\' 
+    order by 
+        lower(firstName), 
+        lower(lastName) asc
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        customer.id as id, 
+        customer.first_name as firstName, 
+        customer.last_name as lastName, 
+        customer.birthday as birthday, 
+        comp.name as companyName 
+    from customer 
+    inner join company as comp on customer.company_id = comp.id 
+    where lower(customer.first_name) like lower(@0 + '%') 
+    order by 
+        lower(firstName), 
+        lower(lastName) asc
+    ```
 
 The parameters are: `[ 'John' ]`
 
@@ -85,12 +170,67 @@ const customerWithId = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select id as id, first_name as firstName, last_name as lastName
-from customer
-where id = $1
-order by customer.birthday desc nulls last
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ? 
+    order by customer.birthday desc
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ? 
+    order by customer.birthday desc
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where id = :0 
+    order by customer.birthday desc nulls last
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName" 
+    from customer 
+    where id = $1 
+    order by customer.birthday desc nulls last
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = ? 
+    order by customer.birthday desc nulls last
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName 
+    from customer 
+    where id = @0 
+    order by customer.birthday desc
+    ```
 
 The parameters are: `[ 10 ]`
 
@@ -122,14 +262,103 @@ const customerWithSelectedCompanies = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select id as customerId, first_name as customerFirstName, last_name as customerLastName 
-from customer 
-where company_id in (
-    select id as result from company where name like ('%' || $1 || '%')
-) 
-order by customerFirstName asc nulls first, customerLastName
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as customerId, 
+        first_name as customerFirstName, 
+        last_name as customerLastName 
+    from customer 
+    where company_id in (
+        select id as result 
+        from company 
+        where name like concat('%', ?, '%')
+    ) 
+    order by 
+        customerFirstName asc, 
+        customerLastName
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as customerId, 
+        first_name as customerFirstName, 
+        last_name as customerLastName 
+    from customer 
+    where company_id in (
+        select id as result 
+        from company 
+        where `name` like concat('%', ?, '%')
+    ) 
+    order by 
+        customerFirstName asc, 
+        customerLastName
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "customerId", 
+        first_name as "customerFirstName", 
+        last_name as "customerLastName" 
+    from customer 
+    where company_id in (
+        select id as "result" 
+        from company 
+        where name like ('%' || :0 || '%') escape '\\'
+    ) 
+    order by 
+        "customerFirstName" asc nulls first, 
+        "customerLastName"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as "customerId", 
+        first_name as "customerFirstName", 
+        last_name as "customerLastName" 
+    from customer 
+    where company_id in (
+        select id as result 
+        from company 
+        where name like ('%' || $1 || '%')
+    ) 
+    order by 
+        "customerFirstName" asc nulls first, 
+        "customerLastName"
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as customerId, 
+        first_name as customerFirstName, 
+        last_name as customerLastName 
+    from customer 
+    where company_id in (
+        select id as result 
+        from company 
+        where name like ('%' || ? || '%') escape '\\'
+    ) 
+    order by 
+        customerFirstName asc nulls first, 
+        customerLastName
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as customerId, 
+        first_name as customerFirstName, 
+        last_name as customerLastName 
+    from customer 
+    where company_id in (
+        select id as [result] 
+        from company 
+        where name like ('%' + @0 + '%')
+    ) 
+    order by 
+        customerFirstName asc, 
+        customerLastName
+    ```
 
 The parameters are: `[ 'Cia.' ]`
 
@@ -157,11 +386,79 @@ const customerCountPerCompany = connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-select company.id as companyId, company.name as companyName, count(customer.id) as customerCount 
-from company inner join customer on customer.company_id = company.id 
-group by company.id, company.name
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as companyId, 
+        company.name as companyName, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as companyId, 
+        company.`name` as companyName, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.`name`
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "companyId", 
+        company.name as "companyName", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as "companyId", 
+        company.name as "companyName", 
+        count(customer.id) as "customerCount" 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as companyId, 
+        company.name as companyName, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as companyId, 
+        company.name as companyName, 
+        count(customer.id) as customerCount 
+    from company 
+    inner join customer on customer.company_id = company.id 
+    group by 
+        company.id, 
+        company.name
+    ```
 
 The parameters are: `[]`
 
@@ -192,10 +489,67 @@ const leftJoinCompany = connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-select company.id as id, company.name as name, parent.id as parentId, parent.name as parentName 
-from company left join company as parent on company.parent_id = parent.id
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as id, 
+        company.name as name, 
+        parent.id as parentId, 
+        parent.name as parentName 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as id, 
+        company.`name` as `name`, 
+        parent.id as parentId, 
+        parent.`name` as parentName 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "id", 
+        company.name as "name", 
+        parent.id as "parentId", 
+        parent.name as "parentName" 
+    from company 
+    left join company parent on company.parent_id = parent.id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as id, 
+        company.name as name, 
+        parent.id as "parentId", 
+        parent.name as "parentName" 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as id, 
+        company.name as name, 
+        parent.id as parentId, 
+        parent.name as parentName 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as id, 
+        company.name as name, 
+        parent.id as parentId, 
+        parent.name as parentName 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
 
 The parameters are: `[]`
 
@@ -229,11 +583,67 @@ const leftJoinCompany = await connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-select company.id as id, company.name as name, 
-    parent.id as "parent.id", parent.name as "parent.name" 
-from company left join company as parent on company.parent_id = parent.id
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as id, 
+        company.name as name, 
+        parent.id as `parent.id`, 
+        parent.name as `parent.name` 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as id, 
+        company.`name` as `name`, 
+        parent.id as `parent.id`, 
+        parent.`name` as `parent.name` 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "id", 
+        company.name as "name", 
+        parent.id as "parent.id", 
+        parent.name as "parent.name" 
+    from company 
+    left join company parent on company.parent_id = parent.id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as id, 
+        company.name as name, 
+        parent.id as "parent.id", 
+        parent.name as "parent.name" 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as id, 
+        company.name as name, 
+        parent.id as "parent.id", 
+        parent.name as "parent.name" 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as id, 
+        company.name as name, 
+        parent.id as [parent.id], 
+        parent.name as [parent.name] 
+    from company 
+    left join company as parent on company.parent_id = parent.id
+    ```
 
 The parameters are: `[]`
 
@@ -268,15 +678,103 @@ const allDataWithName = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select id as id, first_name || $1 || last_name as name, $2 as type 
-from customer 
 
-union all 
-
-select id as id, name as name, $3 as type 
-from company
-```
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as name, 
+        ? as type 
+    from customer 
+    
+    union all 
+    
+    select 
+        id as id, 
+        name as name, 
+        ? as type 
+    from company
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as `name`, 
+        ? as `type` 
+    from customer 
+    
+    union all 
+    
+    select 
+        id as id, 
+        `name` as `name`, 
+        ? as `type` 
+    from company
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name || :0 || last_name as "name", 
+        :1 as "type" 
+    from customer 
+    
+    union all 
+    
+    select 
+        id as "id", 
+        name as "name", 
+        :2 as "type" 
+    from company
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name || $1 || last_name as name, 
+        $2 as type 
+    from customer 
+    
+    union all 
+    
+    select 
+        id as id, 
+        name as name, 
+        $3 as type 
+    from company
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name || ? || last_name as name, 
+        ? as type 
+    from customer 
+    
+    union all 
+    
+    select 
+        id as id, 
+        name as name, 
+        ? as type 
+    from company
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name + @0 + last_name as name, 
+        @1 as type 
+    from customer 
+    
+    union all 
+    
+    select 
+        id as id, 
+        name as name, 
+        @2 as type 
+    from company
+    ```
 
 The parameters are: `[ ' ', 'customer', 'company' ]`
 
@@ -324,17 +822,133 @@ const customerCountPerAcmeCompanies = connection.selectFrom(customerCountPerComp
 ```
 
 The executed query is:
-```sql
-with
-    customerCountPerCompany as (
-        select company.id as companyId, company.name as companyName, count(customer.id) as customerCount
-        from company inner join customer on customer.company_id = company.id
-        group by company.id, company.name
-    )
-select companyId as "acmeCompanyId", companyName as "acmeCompanyName", customerCount as "acmeCustomerCount"
-from customerCountPerCompany
-where companyName ilike ('%' || $1 || '%')
-```
+
+=== "MariaDB"
+    ```mariadb
+    with 
+        customerCountPerCompany as (
+            select 
+                company.id as companyId, 
+                company.name as companyName, 
+                count(customer.id) as customerCount 
+            from company 
+            inner join customer on customer.company_id = company.id 
+            group by 
+                company.id, 
+                company.name
+        ) 
+    select 
+        companyId as acmeCompanyId, 
+        companyName as acmeCompanyName, 
+        customerCount as acmeCustomerCount 
+    from customerCountPerCompany 
+    where lower(companyName) like concat('%', lower(?), '%')
+    ```
+=== "MySQL"
+    ```mysql
+    with 
+        customerCountPerCompany as (
+            select 
+                company.id as companyId, 
+                company.`name` as companyName, 
+                count(customer.id) as customerCount 
+            from company 
+            inner join customer on customer.company_id = company.id 
+            group by 
+                company.id, 
+                company.`name`
+        ) 
+    select 
+        companyId as acmeCompanyId, 
+        companyName as acmeCompanyName, 
+        customerCount as acmeCustomerCount 
+    from customerCountPerCompany 
+    where lower(companyName) like concat('%', lower(?), '%')
+    ```
+=== "Oracle"
+    ```oracle
+    with 
+        customerCountPerCompany as (
+            select 
+                company.id as companyId, 
+                company.name as companyName, 
+                count(customer.id) as customerCount 
+            from company 
+            inner join customer on customer.company_id = company.id 
+            group by 
+                company.id, 
+                company.name
+        ) 
+    select 
+        companyId as "acmeCompanyId", 
+        companyName as "acmeCompanyName", 
+        customerCount as "acmeCustomerCount" 
+    from customerCountPerCompany 
+    where lower(companyName) like lower('%' || :0 || '%') escape '\\'
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with 
+        customerCountPerCompany as (
+            select 
+                company.id as companyId, 
+                company.name as companyName, 
+                count(customer.id) as customerCount 
+            from company 
+            inner join customer on customer.company_id = company.id 
+            group by 
+                company.id, 
+                company.name
+        ) 
+    select 
+        companyId as "acmeCompanyId", 
+        companyName as "acmeCompanyName", 
+        customerCount as "acmeCustomerCount" 
+    from customerCountPerCompany 
+    where companyName ilike ('%' || $1 || '%')
+    ```
+=== "SQLite"
+    ```sqlite
+    with 
+        customerCountPerCompany as (
+            select 
+                company.id as companyId, 
+                company.name as companyName, 
+                count(customer.id) as customerCount 
+            from company 
+            inner join customer on customer.company_id = company.id 
+            group by 
+                company.id, 
+                company.name
+        ) 
+    select 
+        companyId as acmeCompanyId, 
+        companyName as acmeCompanyName, 
+        customerCount as acmeCustomerCount 
+    from customerCountPerCompany 
+    where lower(companyName) like lower('%' || ? || '%') escape '\\'
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        customerCountPerCompany as (
+            select 
+                company.id as companyId, 
+                company.name as companyName, 
+                count(customer.id) as customerCount 
+            from company 
+            inner join customer on customer.company_id = company.id 
+            group by 
+                company.id, 
+                company.name
+        ) 
+    select 
+        companyId as acmeCompanyId, 
+        companyName as acmeCompanyName, 
+        customerCount as acmeCustomerCount 
+    from customerCountPerCompany 
+    where lower(companyName) like lower('%' + @0 + '%')
+    ```
 
 The parameters are: `[ 'ACME' ]`
 
@@ -359,11 +973,43 @@ const numberOfCustomers = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select count(*) as result 
-from customer 
-where company_id = $1
-```
+
+=== "MariaDB"
+    ```mariadb
+    select count(*) as result 
+    from customer 
+    where company_id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select count(*) as result 
+    from customer 
+    where company_id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select count(*) as "result" 
+    from customer 
+    where company_id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select count(*) as result 
+    from customer 
+    where company_id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select count(*) as result 
+    from customer 
+    where company_id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select count(*) as [result] 
+    from customer 
+    where company_id = @0
+    ```
 
 The parameters are: `[ 10 ]`
 
@@ -392,11 +1038,79 @@ const acmeCustomers = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select id as id, first_name || $1 || last_name as name 
-from customer 
-where company_id = (select id as result from company where name = $2)
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as name 
+    from customer 
+    where company_id = (
+        select id as result 
+        from company 
+        where name = ?
+    )
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        concat(first_name, ?, last_name) as `name` 
+    from customer 
+    where company_id = (
+        select id as result 
+        from company 
+        where `name` = ?
+    )
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name || :0 || last_name as "name" 
+    from customer 
+    where company_id = (
+        select id as "result" 
+        from company 
+        where name = :1
+    )
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name || $1 || last_name as name 
+    from customer 
+    where company_id = (
+        select id as result 
+        from company 
+        where name = $2
+    )
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name || ? || last_name as name 
+    from customer 
+    where company_id = (
+        select id as result 
+        from company 
+        where name = ?
+    )
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name + @0 + last_name as name 
+    from customer 
+    where company_id = (
+        select id as [result] 
+        from company 
+        where name = @1
+    )
+    ```
 
 The parameters are: `[ ' ', 'ACME' ]`
 
@@ -430,17 +1144,79 @@ const companiesWithNumberOfCustomers = connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-select 
-    id as id, 
-    name as name, 
-    (
-        select count(*) as result 
-        from customer 
-        where company_id = company.id
-    ) as numberOfCustomers
-from company
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name, 
+        (
+            select count(*) as result 
+            from customer 
+            where company_id = company.id
+        ) as numberOfCustomers 
+    from company
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name`, 
+        (
+            select count(*) as result 
+            from customer 
+            where company_id = company.id
+        ) as numberOfCustomers 
+    from company
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name", 
+        (
+            select count(*) as "result" 
+            from customer 
+            where company_id = company.id
+        ) as "numberOfCustomers" 
+    from company
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name, 
+        (
+            select count(*) as result 
+            from customer 
+            where company_id = company.id
+        ) as "numberOfCustomers" 
+    from company
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name, 
+        (
+            select count(*) as result 
+            from customer 
+            where company_id = company.id
+        ) as numberOfCustomers 
+    from company
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name, 
+        (
+            select count(*) as [result] 
+            from customer 
+            where company_id = company.id
+        ) as numberOfCustomers 
+    from company
+    ```
 
 The parameters are: `[ ]`
 

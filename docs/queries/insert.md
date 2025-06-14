@@ -20,13 +20,46 @@ const insertCustomer = connection.insertInto(tCustomer).set({
 ```
 
 The executed query is:
-```sql
-insert into customer (first_name, last_name, company_id, birthday) 
-values ($1, $2, $3, $4) 
-returning id
-```
 
-The parameters are: `[ 'John', 'Smith', 1, 2019-08-16T15:02:32.849Z ]`
+=== "MariaDB"
+    ```mariadb
+    insert into customer (first_name, last_name, company_id, birthday) 
+    values (?, ?, ?, ?) 
+    returning id
+    ```
+=== "MySQL"
+    ```mysql
+    insert into customer (first_name, last_name, company_id, birthday) 
+    values (?, ?, ?, ?)
+    -- Last inserted ID returned by the database got from the connection
+    ```
+=== "Oracle"
+    ```oracle
+    insert into customer (first_name, last_name, company_id, birthday) 
+    values (:0, :1, :2, :3) 
+    returning id 
+    into :4
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id, birthday) 
+    values ($1, $2, $3, $4) 
+    returning id
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id, birthday) 
+    values (?, ?, ?, ?) 
+    returning id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    insert into customer (first_name, last_name, company_id, birthday) 
+    output inserted.id 
+    values (@0, @1, @2, @3)
+    ```
+
+The parameters are: `[ 'John', 'Smith', 1, 2019-08-16T15:02:32.849Z ]` (On [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`) 
 
 The result type is a promise with the id of the last inserted row:
 ```tsx
@@ -56,15 +89,65 @@ const insertMultipleCustomers = connection.insertInto(tCustomer)
 ```
 
 The executed query is:
-```sql
-insert into customer (first_name, last_name, company_id)
-values 
-    ($1, $2, $3),
-    ($4, $5, $6) 
-returning id
-```
 
-The parameters are: `[ 'John', 'Smith', 1, 'Other', 'Person', 1 ]`
+=== "MariaDB"
+    ```mariadb
+    insert into customer (first_name, last_name, company_id) 
+    values 
+        (?, ?, ?), 
+        (?, ?, ?) 
+    returning id
+    ```
+=== "MySQL"
+    ```mysql
+    --
+    --
+    -- MySQL doesn't support inserting multiple values returning last inserted ID
+    --
+    --
+    ```
+=== "Oracle"
+    ```oracle
+    begin 
+
+    insert into customer (first_name, last_name, company_id) 
+    values (:0, :1, :2) 
+    returning id 
+    into :3; 
+
+    insert into customer (first_name, last_name, company_id) 
+    values (:4, :5, :6) 
+    returning id 
+    into :7; 
+
+    end;
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id) 
+    values 
+        ($1, $2, $3), 
+        ($4, $5, $6) 
+    returning id
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id) 
+    values 
+        (?, ?, ?), 
+        (?, ?, ?) 
+    returning id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    insert into customer (first_name, last_name, company_id) 
+    output inserted.id 
+    values 
+        (@0, @1, @2), 
+        (@3, @4, @5)
+    ```
+
+The parameters are: `[ 'John', 'Smith', 1, 'Other', 'Person', 1 ]` (On [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
 
 The result type is a promise with the id of the last inserted rows:
 ```tsx
@@ -94,23 +177,78 @@ const insertCustomersFromSelect = connection.insertInto(tCustomer)
 ```
 
 The executed query is:
-```sql
-insert into customer (first_name, last_name, company_id) 
-select first_name as firstName, last_name as lastName, company_id as companyId 
-from customer 
-where company_id = $1 
-```
+
+=== "MariaDB"
+    ```mariadb
+    insert into customer (first_name, last_name, company_id) 
+    select 
+        first_name as firstName, 
+        last_name as lastName, 
+        company_id as companyId 
+    from customer 
+    where company_id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    insert into customer (first_name, last_name, company_id) 
+    select 
+        first_name as firstName, 
+        last_name as lastName, 
+        company_id as companyId 
+    from customer 
+    where company_id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    insert into customer (first_name, last_name, company_id) 
+    select 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        company_id as "companyId" 
+    from customer 
+    where company_id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id) 
+    select 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        company_id as "companyId" 
+    from customer 
+    where company_id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id) 
+    select 
+        first_name as firstName, 
+        last_name as lastName, 
+        company_id as companyId 
+    from customer 
+    where company_id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    insert into customer (first_name, last_name, company_id) 
+    select 
+        first_name as firstName, 
+        last_name as lastName, 
+        company_id as companyId 
+    from customer 
+    where company_id = @0
+    ```
 
 The parameters are: `[ 1 ]`
 
 The result type is a promise with the number of inserted rows:
 ```tsx
-const insertCustomer: Promise<number>
+const insertCustomersFromSelect: Promise<number>
 ```
 
 ## Insert returning
 
-If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), modern [SQLite](../configuration/supported-databases/sqlite.md), [SQL Server](../configuration/supported-databases/sqlserver.md) or [Oracle](../configuration/supported-databases/oracle.md) (except for an insert from select), you can return values of the inserted record in the same query using the `returning` or `returningOneColumn` methods.
+If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), modern [SQLite](../configuration/supported-databases/sqlite.md), [SQL Server](../configuration/supported-databases/sqlserver.md), modern [MariaDB](../configuration/supported-databases/mariadb.md) or [Oracle](../configuration/supported-databases/oracle.md) (except for an insert from select), you can return values of the inserted record in the same query using the `returning` or `returningOneColumn` methods.
 
 ```ts
 const insertReturningCustomerData = connection.insertInto(tCustomer).set({
@@ -126,13 +264,64 @@ const insertReturningCustomerData = connection.insertInto(tCustomer).set({
 ```
 
 The executed query is:
-```sql
-insert into customer (first_name, last_name, company_id) 
-values ($1, $2, $3) 
-returning id as id, first_name as firstName, last_name as lastName
-```
 
-The parameters are: `[ 'John', 'Smith', 1 ]`
+=== "MariaDB"
+    ```mariadb
+    insert into customer (first_name, last_name, company_id) 
+    values (?, ?, ?) 
+    returning 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName
+    ```
+=== "MySQL"
+    ```mysql
+    --
+    --
+    -- MySQL doesn't support inserting returning values
+    --
+    --
+    --
+    ```
+=== "Oracle"
+    ```oracle
+    insert into customer (first_name, last_name, company_id) 
+    values (:0, :1, :2) 
+    returning 
+        id, 
+        first_name, 
+        last_name 
+    into :3, :4, :5
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id) 
+    values ($1, $2, $3) 
+    returning 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName"
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id) 
+    values (?, ?, ?) 
+    returning 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName
+    ```
+=== "SQL Server"
+    ```sqlserver
+    insert into customer (first_name, last_name, company_id) 
+    output 
+        inserted.id as id, 
+        inserted.first_name as firstName, 
+        inserted.last_name as lastName 
+    values (@0, @1, @2)
+    ```
+
+The parameters are: `[ 'John', 'Smith', 1 ]` (On [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
 
 The result type is a promise with the information of the inserted rows:
 ```tsx
@@ -180,13 +369,46 @@ const insertCustomer = connection.insertInto(tCustomer)
 ```
 
 The executed query is:
-```sql
-insert into customer (first_name, last_name, company_id) 
-values ($1, $2, $3) 
-returning id
-```
 
-The parameters are: `[ "John", "Smith", 23 ]`
+=== "MariaDB"
+    ```mariadb
+    insert into customer (first_name, last_name, company_id) 
+    values (?, ?, ?) 
+    returning id
+    ```
+=== "MySQL"
+    ```mysql
+    insert into customer (first_name, last_name, company_id) 
+    values (?, ?, ?)
+    -- Last inserted ID returned by the database got from the connection
+    ```
+=== "Oracle"
+    ```oracle
+    insert into customer (first_name, last_name, company_id) 
+    values (:0, :1, :2) 
+    returning id 
+    into :3
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id) 
+    values ($1, $2, $3) 
+    returning id
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id) 
+    values (?, ?, ?) 
+    returning id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    insert into customer (first_name, last_name, company_id) 
+    output inserted.id 
+    values (@0, @1, @2)
+    ```
+
+The parameters are: `[ "John", "Smith", 23 ]` (On [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`) 
 
 The result type is a promise with the id of the last inserted row:
 ```tsx
@@ -225,15 +447,64 @@ const insertMultipleCustomers = await connection.insertInto(tCustomer)
 ```
 
 The executed query is:
-```sql
-insert into customer (first_name, last_name, company_id) 
-values 
-    ($1, $2, $3), 
-    ($4, $5, $6) 
-returning id
-```
 
-The parameters are: `[ "John", "Smith", 23, "Other", "Person", 23 ]`
+=== "MariaDB"
+    ```mariadb
+    insert into customer (first_name, last_name, company_id) 
+    values 
+        (?, ?, ?), 
+        (?, ?, ?) 
+    returning id
+    ```
+=== "MySQL"
+    ```mysql
+    --
+    --
+    -- MySQL doesn't support inserting multiple values returning last inserted ID
+    --
+    --
+    ```
+=== "Oracle"
+    ```oracle
+    begin 
+
+    insert into customer (first_name, last_name, company_id) values (:0, :1, :2) 
+    returning id 
+    into :3; 
+    
+    insert into customer (first_name, last_name, company_id) 
+    values (:4, :5, :6) 
+    returning id 
+    into :7; 
+    
+    end;
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id) 
+    values 
+        ($1, $2, $3), 
+        ($4, $5, $6) 
+    returning id
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id) 
+    values 
+        (?, ?, ?), 
+        (?, ?, ?) 
+    returning id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    insert into customer (first_name, last_name, company_id) 
+    output inserted.id 
+    values 
+        (@0, @1, @2), 
+        (@3, @4, @5)
+    ```
+
+The parameters are: `[ "John", "Smith", 23, "Other", "Person", 23 ]` (On [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`) 
 
 The result type is a promise with the id of the last inserted rows:
 ```tsx
@@ -568,12 +839,67 @@ const insertReturningCustomerData = connection.insertInto(tCustomer).set({
 ```
 
 The executed query is:
-```sql
-insert into customer (first_name, last_name, company_id) 
-values ($1, $2, $3) 
-on conflict do nothing 
-returning id as id, first_name as firstName, last_name as lastName
-```
+
+=== "MariaDB"
+    ```mariadb
+    -- Pay attention to the `ignore` keyword after `insert`
+    insert ignore into customer (first_name, last_name, company_id) 
+    values (?, ?, ?) 
+    returning 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName
+    ```
+=== "MySQL"
+    ```mysql
+    --
+    --
+    --
+    -- MySQL doesn't support inserting returning values
+    --
+    --
+    --
+    ```
+=== "Oracle"
+    ```oracle
+    --
+    --
+    --
+    -- Oracle doesn't support insert on conflict do nothing
+    --
+    --
+    --
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id) 
+    values ($1, $2, $3) 
+    on conflict do nothing 
+    returning 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName"
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id) 
+    values (?, ?, ?) 
+    on conflict do nothing 
+    returning 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName
+    ```
+=== "SQL Server"
+    ```sqlserver
+    --
+    --
+    --
+    -- SQL Server doesn't support insert on conflict do nothing
+    --
+    --
+    --
+    ```
 
 The parameters are: `[ 'John', 'Smith', 1 ]`
 
@@ -614,13 +940,67 @@ const insertReturningCustomerData = connection.insertInto(tCustomer).set({
 ```
 
 The executed query is:
-```sql
-insert into customer (first_name, last_name, company_id) 
-values ($1, $2, $3) 
-on conflict do update set 
-    company_id = $4 
-returning id as id, first_name as firstName, last_name as lastName
-```
+
+=== "MariaDB"
+    ```mariadb
+    insert into customer (first_name, last_name, company_id) 
+    values (?, ?, ?) 
+    on duplicate key update company_id = ? 
+    returning 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName
+    ```
+=== "MySQL"
+    ```mysql
+    --
+    --
+    --
+    -- MySQL doesn't support inserting returning values
+    --
+    --
+    --
+    ```
+=== "Oracle"
+    ```oracle
+    --
+    --
+    --
+    -- Oracle doesn't support insert on conflict do update
+    --
+    --
+    --
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id) 
+    values ($1, $2, $3) 
+    on conflict do update set company_id = $4 
+    returning 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName"
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id) 
+    values (?, ?, ?) 
+    on conflict do update set company_id = ? 
+    returning 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName
+    ```
+=== "SQL Server"
+    ```sqlserver
+    --
+    --
+    --
+    -- SQL Server doesn't support insert on conflict do update
+    --
+    --
+    --
+    ```
 
 The parameters are: `[ 'John', 'Smith', 1, 1 ]`
 
@@ -655,14 +1035,79 @@ const insertReturningCustomerData = await connection.insertInto(tCustomer).set({
 ```
 
 The executed query is:
-```sql
-insert into customer (first_name, last_name, company_id) 
-values ($1, $2, $3) 
-on conflict do update set 
-    first_name = customer.first_name || $4 || excluded.first_name, 
-    last_name = customer.last_name || $5 || excluded.last_name 
-returning id as id, first_name as firstName, last_name as lastName
-```
+
+=== "MariaDB"
+    ```mariadb
+    insert into customer (first_name, last_name, company_id) 
+    values (?, ?, ?) 
+    on duplicate key update 
+        first_name = concat(first_name, ?, values(first_name)), 
+        last_name = concat(last_name, ?, values(last_name)) 
+    returning 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName
+    ```
+=== "MySQL"
+    ```mysql
+    --
+    --
+    --
+    --
+    -- MySQL doesn't support inserting returning values
+    --
+    --
+    --
+    --
+    ```
+=== "Oracle"
+    ```oracle
+    --
+    --
+    --
+    --
+    -- Oracle doesn't support insert on conflict do update
+    --
+    --
+    --
+    --
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert into customer (first_name, last_name, company_id) 
+    values ($1, $2, $3) 
+    on conflict do update set 
+        first_name = customer.first_name || $4 || excluded.first_name, 
+        last_name = customer.last_name || $5 || excluded.last_name 
+    returning 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName"
+    ```
+=== "SQLite"
+    ```sqlite
+    insert into customer (first_name, last_name, company_id) 
+    values (?, ?, ?) 
+    on conflict do update set 
+        first_name = customer.first_name || ? || excluded.first_name, 
+        last_name = customer.last_name || ? || excluded.last_name 
+    returning 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName
+    ```
+=== "SQL Server"
+    ```sqlserver
+    --
+    --
+    --
+    --
+    -- SQL Server doesn't support insert on conflict do update
+    --
+    --
+    --
+    --
+    ```
 
 The parameters are: `[ 'John', 'Smith', 1, ' - ', ' - ' ]`
 

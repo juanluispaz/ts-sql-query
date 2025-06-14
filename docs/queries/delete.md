@@ -15,10 +15,37 @@ const deleteCustomer = connection.deleteFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-delete from customer 
-where id = $1
-```
+
+=== "MariaDB"
+    ```mariadb
+    delete from customer 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    delete from customer 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    delete from customer 
+    where id = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    delete from customer 
+    where id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    delete from customer 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    delete from customer 
+    where id = @0
+    ```
 
 The parameters are: `[ 10 ]`
 
@@ -33,7 +60,7 @@ const deleteCustomer: Promise<number>
 
 ## Delete returning
 
-If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), modern [SQLite](../configuration/supported-databases/sqlite.md), [SQL Server](../configuration/supported-databases/sqlserver.md) or [Oracle](../configuration/supported-databases/oracle.md), you can return values of the deleted record in the same query using the `returning` or `returningOneColumn` methods.
+If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), modern [SQLite](../configuration/supported-databases/sqlite.md), [SQL Server](../configuration/supported-databases/sqlserver.md), modern [MariaDB](../configuration/supported-databases/mariadb.md) or [Oracle](../configuration/supported-databases/oracle.md), you can return values of the deleted record in the same query using the `returning` or `returningOneColumn` methods.
 
 ```ts
 const deletedAcmeCompany = connection.deleteFrom(tCompany)
@@ -46,13 +73,58 @@ const deletedAcmeCompany = connection.deleteFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-delete from company 
-where name = $1 
-returning id as id, name as name
-```
 
-The parameters are: `[ 'ACME' ]`
+=== "MariaDB"
+    ```mariadb
+    delete from company 
+    where name = ? 
+    returning 
+        id as id, 
+        name as name
+    ```
+=== "MySQL"
+    ```mysql
+    --
+    --
+    -- MySQL doesn't support delete returning values
+    --
+    --
+    ```
+=== "Oracle"
+    ```oracle
+    delete from company 
+    where name = :0 
+    returning 
+        id, 
+        name 
+    into :1, :2
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    delete from company 
+    where name = $1 
+    returning 
+        id as id, 
+        name as name
+    ```
+=== "SQLite"
+    ```sqlite
+    delete from company 
+    where name = ? 
+    returning 
+        id as id, 
+        name as name
+    ```
+=== "SQL Server"
+    ```sqlserver
+    delete from company 
+    output 
+        deleted.id as id, 
+        deleted.name as name 
+    where name = @0
+    ```
+
+The parameters are: `[ 'ACME' ]` (On [Oracle](../configuration/supported-databases/oracle.md), output parameters are added at the corresponding position with the structure `{dir:3003}`)
 
 The result type is a promise with the information of the deleted rows:
 ```tsx
@@ -87,12 +159,57 @@ const deleteACMECustomers = connection.deleteFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-delete from customer 
-using company 
-where customer.company_id = company.id 
-    and company.name ilike ('%' || $1 || '%')
-```
+
+=== "MariaDB"
+    ```mariadb
+    delete from customer 
+    using customer, 
+          company 
+    where 
+            customer.company_id = company.id 
+        and lower(company.name) like concat('%', lower(?), '%')
+    ```
+=== "MySQL"
+    ```mysql
+    delete from customer 
+    using customer, 
+          company 
+    where 
+            customer.company_id = company.id 
+        and lower(company.`name`) like concat('%', lower(?), '%')
+    ```
+=== "Oracle"
+    ```oracle
+    --
+    --
+    -- Oracle doesn't support delete using other tables or views
+    --
+    --
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    delete from customer 
+    using company 
+    where 
+            customer.company_id = company.id 
+        and company.name ilike ('%' || $1 || '%')
+    ```
+=== "SQLite"
+    ```sqlite
+    --
+    --
+    -- SQLite doesn't support delete using other tables or views
+    --
+    --
+    ```
+=== "SQL Server"
+    ```sqlserver
+    delete from customer 
+    from company 
+    where 
+            customer.company_id = company.id 
+        and lower(company.name) like lower('%' + @0 + '%')
+    ```
 
 The parameters are: `[ 'ACME' ]`
 
@@ -123,16 +240,82 @@ const deleteCustomer = connection.deleteFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-with 
-    customerForDelete(firstName, lastName) as (
-        values ($1, $2)
-    )
-delete from customer
-using customerForDelete
-where customer.first_name = customerForDelete.firstName 
-    and customer.last_name = customerForDelete.lastName
-```
+
+=== "MariaDB"
+    ```mariadb
+    --
+    --
+    --
+    --
+    -- MariaDB doesn't support bulk update
+    --
+    --
+    --
+    --
+    ```
+=== "MySQL"
+    ```mysql
+    --
+    --
+    --
+    --
+    -- MySQL doesn't support bulk update
+    --
+    --
+    --
+    --
+    ```
+=== "Oracle"
+    ```oracle
+    --
+    --
+    --
+    --
+    -- Oracle doesn't support bulk update
+    --
+    --
+    --
+    --
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with 
+        customerForDelete(firstName, lastName) as (
+            values ($1::text, $2::text)
+        ) 
+    delete from customer 
+    using customerForDelete 
+    where 
+            customer.first_name = customerForDelete.firstName 
+        and customer.last_name = customerForDelete.lastName
+    ```
+=== "SQLite"
+    ```sqlite
+    --
+    --
+    --
+    --
+    -- SQLite doesn't support bulk update
+    --
+    --
+    --
+    --
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        customerForDelete as (
+            select * 
+            from (
+                values (@0, @1)
+            ) as customerForDelete(firstName, lastName)
+        ) 
+    delete from customer 
+    from customerForDelete 
+    where 
+            customer.first_name = customerForDelete.firstName 
+        and customer.last_name = customerForDelete.lastName
+    ```
 
 The parameters are: `[ 'First Name', 'Last Name' ]`
 

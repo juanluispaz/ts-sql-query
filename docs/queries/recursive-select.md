@@ -41,20 +41,163 @@ const recursiveParentCompany = connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-with recursive 
-    recursive_select_1 as (
-        select id as id, name as name, parent_id as parentId 
-        from company where id = $1 
-        
-        union 
-        
-        select company.id as id, company.name as name, company.parent_id as parentId 
-        from company join recursive_select_1 on recursive_select_1.parentId = company.id
-    )
-select id as id, name as name, parentId as parentId
-from recursive_select_1
-```
+
+=== "MariaDB"
+    ```mariadb
+    with recursive 
+        recursive_select_1 as (
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = ? 
+            
+            union 
+            
+            select 
+                company.id as id, 
+                company.name as name,
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.parentId = company.id
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+=== "MySQL"
+    ```mysql
+    with recursive 
+        recursive_select_1 as (
+            select 
+                id as id, 
+                `name` as `name`, 
+                parent_id as parentId 
+            from company 
+            where id = ? 
+            
+            union 
+            
+            select 
+                company.id as id, 
+                company.`name` as `name`, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.parentId = company.id
+        ) 
+    select 
+        id as id, 
+        `name` as `name`, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+=== "Oracle"
+    ```oracle
+    with 
+        recursive_select_1(id, name, parentId) as (
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = :0 
+            
+            union 
+            
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.parentId = company.id
+        ) 
+    select 
+        id as "id", 
+        name as "name", 
+        parentId as "parentId" 
+    from recursive_select_1
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with recursive 
+        recursive_select_1 as (
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = $1 
+            
+            union 
+            
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.parentId = company.id
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as "parentId" 
+    from recursive_select_1
+    ```
+=== "SQLite"
+    ```sqlite
+    with recursive 
+        recursive_select_1 as (
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = ? 
+            
+            union 
+            
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.parentId = company.id
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        recursive_select_1 as (
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = @0 
+            
+            union 
+            
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.parentId = company.id
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
 
 The parameters are: `[ 10 ]`
 
@@ -102,21 +245,163 @@ const recursiveChildrenCompany = connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-with recursive 
-    recursive_select_1 as (
-        select id as id, name as name, parent_id as parentId 
-        from company 
-        where id = $1 
-        
-        union all 
-        
-        select company.id as id, company.name as name, company.parent_id as parentId 
-        from company join recursive_select_1 on recursive_select_1.id = company.parent_id
-    ) 
-select id as id, name as name, parentId as parentId
-from recursive_select_1
-```
+
+=== "MariaDB"
+    ```mariadb
+    with recursive 
+        recursive_select_1 as (
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = ? 
+            
+            union all 
+            
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+=== "MySQL"
+    ```mysql
+    with recursive 
+        recursive_select_1 as (
+            select 
+                id as id, 
+                `name` as `name`, 
+                parent_id as parentId 
+            from company 
+            where id = ? 
+            
+            union all 
+            
+            select 
+                company.id as id, 
+                company.`name` as `name`, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id
+        ) 
+    select 
+        id as id, 
+        `name` as `name`, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+=== "Oracle"
+    ```oracle
+    with 
+        recursive_select_1(id, name, parentId) as (
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = :0 
+            
+            union all 
+            
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id
+        ) 
+    select 
+        id as "id", 
+        name as "name", 
+        parentId as "parentId" 
+    from recursive_select_1
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    with recursive 
+        recursive_select_1 as (
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = $1 
+            
+            union all 
+            
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as "parentId" 
+    from recursive_select_1
+    ```
+=== "SQLite"
+    ```sqlite
+    with recursive 
+        recursive_select_1 as (
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = ? 
+            
+            union all 
+            
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
+=== "SQL Server"
+    ```sqlserver
+    with 
+        recursive_select_1 as (
+            select 
+                id as id, 
+                name as name, 
+                parent_id as parentId 
+            from company 
+            where id = @0 
+            
+            union all 
+            
+            select 
+                company.id as id, 
+                company.name as name, 
+                company.parent_id as parentId 
+            from company 
+            join recursive_select_1 on recursive_select_1.id = company.parent_id
+        ) 
+    select 
+        id as id, 
+        name as name, 
+        parentId as parentId 
+    from recursive_select_1
+    ```
 
 The parameters are: `[ 10 ]`
 
@@ -150,13 +435,73 @@ const recursiveChildrenCompany = await connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-select id as "id", name as "name", parent_id as "parentId" 
-from company 
-start with id = :0 
-connect by prior id = parent_id 
-order siblings by "name"
-```
+
+=== "MariaDB"
+    ```mariadb
+    --
+    --
+    -- 
+    -- 
+    -- Only available in Oracle databases.
+    --
+    --
+    --
+    ```
+=== "MySQL"
+    ```mysql
+    --
+    --
+    -- 
+    -- 
+    -- Only available in Oracle databases.
+    --
+    --
+    --
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name", 
+        parent_id as "parentId" 
+    from company 
+    start with id = :0 
+    connect by prior id = parent_id 
+    order siblings by "name"
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    --
+    --
+    -- 
+    -- 
+    -- Only available in Oracle databases.
+    --
+    --
+    --
+    ```
+=== "SQLite"
+    ```sqlite
+    --
+    --
+    -- 
+    -- 
+    -- Only available in Oracle databases.
+    --
+    --
+    --
+    ```
+=== "SQL Server"
+    ```sqlserver
+    --
+    --
+    -- 
+    -- 
+    -- Only available in Oracle databases.
+    --
+    --
+    --
+    ```
 
 The parameters are: `[ 10 ]`
 

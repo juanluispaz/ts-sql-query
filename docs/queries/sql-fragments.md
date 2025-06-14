@@ -43,11 +43,55 @@ const customersUsingCustomFragment = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select id::varchar as idAsString, first_name || $1 || last_name as name 
-from customer 
-where !!id = !!$2
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id::varchar as idAsString, 
+        concat(first_name, ?, last_name) as name 
+    from customer 
+    where !!id = !!?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id::varchar as idAsString, 
+        concat(first_name, ?, last_name) as `name` 
+    from customer 
+    where !!id = !!?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id::varchar as "idAsString", 
+        first_name || :0 || last_name as "name" 
+    from customer 
+    where !!id = !!:1
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id::varchar as "idAsString", 
+        first_name || $1 || last_name as name 
+    from customer 
+    where !!id = !!$2
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id::varchar as idAsString, 
+        first_name || ? || last_name as name 
+    from customer 
+    where !!id = !!?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id::varchar as idAsString, 
+        first_name + @0 + last_name as name 
+    from customer 
+    where !!id = !!@1
+    ```
 
 The parameters are: `[ ' ', 10 ]`
 
@@ -98,11 +142,61 @@ const companiesUsingCustomFunctionFragment = connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-select id as id, name as name, id << $1 as idMultiplyBy2 
-from company 
-where (id * $2) = (id << $3)
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name, 
+        id << ? as idMultiplyBy2 
+    from company 
+    where (id * ?) = (id << ?)
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name`, 
+        id << ? as idMultiplyBy2 
+    from company 
+    where (id * ?) = (id << ?)
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name", 
+        id << :0 as "idMultiplyBy2" 
+    from company 
+    where (id * :1) = (id << :2)
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name, 
+        id << $1 as "idMultiplyBy2" 
+    from company 
+    where (id * $2) = (id << $3)
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name, 
+        id << ? as idMultiplyBy2 
+    from company 
+    where (id * ?) = (id << ?)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name, 
+        id << @0 as idMultiplyBy2 
+    from company 
+    where (id * @1) = (id << @2)
+    ```
 
 The parameters are: `[ 1, 2, 1 ]`
 
@@ -158,11 +252,55 @@ const companiesUsingCustomFunctionFragmentIfValue = connection.selectFrom(tCompa
 ```
 
 The executed query is:
-```sql
-select id as id, name as name 
-from company 
-where id + 1 = $1
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where id + 1 = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name` 
+    from company 
+    where id + 1 = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name" 
+    from company 
+    where id + 1 = :0
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where id + 1 = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where id + 1 = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name 
+    from company 
+    where id + 1 = @0
+    ```
 
 The parameters are: `[ 2 ]`
 
@@ -212,6 +350,7 @@ const bitwiseMovements: number | null = null;
 const multiplier = 2;
 
 const companiesUsingCustomFunctionFragment = connection.selectFrom(tCompany)
+    .where(tCompany.id.multiply(multiplier).equals(connection.bitwiseShiftLeft(tCompany.id, bitwiseMovements)))
     .select({
         id: tCompany.id,
         name: tCompany.name,
@@ -221,12 +360,63 @@ const companiesUsingCustomFunctionFragment = connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-select id as id, name as name, id << $1 as idMultiplyBy2 
-from company
-```
 
-The parameters are: `[ null, 2 ]`
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name, 
+        id << ? as idMultiplyBy2 
+    from company 
+    where (id * ?) = (id << ?)
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name`, 
+        id << ? as idMultiplyBy2 
+    from company 
+    where (id * ?) = (id << ?)
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name", 
+        id << :0 as "idMultiplyBy2" 
+    from company 
+    where (id * :1) = (id << :2)
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name, 
+        id << $1 as "idMultiplyBy2" 
+    from company 
+    where (id * $2) = (id << $3)
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name, 
+        id << ? as idMultiplyBy2 
+    from company 
+    where (id * ?) = (id << ?)
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name, 
+        id << @0 as idMultiplyBy2 
+    from company 
+    where (id * @1) = (id << @2)
+    ```
+
+The parameters are: `[ null, 2, null ]`
 
 The result type is:
 ```tsx
@@ -283,11 +473,67 @@ const customerInSystemTime = connection.selectFrom(customerIn2019)
 ```
 
 The executed query is:
-```sql
-select id as id, first_name as firstName, last_name as lastName, birthday as birthday 
-from customer for system_time between $1 and $2  
-where id = $3
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer for system_time between ? and ?  
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer for system_time between ? and ?  
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as "birthday" 
+    from customer for system_time between :0 and :1  
+    where id = :2
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as birthday 
+    from customer for system_time between $1 and $2  
+    where id = $3
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer for system_time between ? and ?  
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer for system_time between @0 and @1  
+    where id = @2
+    ```
 
 The parameters are: `[ 2019-01-01T00:00:00.000Z, 2020-01-01T00:00:00.000Z, 10 ]`
 
@@ -344,12 +590,67 @@ const customizedSelect = connection.selectFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-select /*+ some hints */ id as id, first_name as firstName, last_name as lastName, birthday as birthday 
-from customer 
-where id = $1 
-for update
-```
+
+=== "MariaDB"
+    ```mariadb
+    select /*+ some hints */ 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = ? for update
+    ```
+=== "MySQL"
+    ```mysql
+    select /*+ some hints */ 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = ? for update
+    ```
+=== "Oracle"
+    ```oracle
+    select /*+ some hints */ 
+        id as "id", 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as "birthday" 
+    from customer 
+    where id = :0 for update
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select /*+ some hints */ 
+        id as id, 
+        first_name as "firstName", 
+        last_name as "lastName", 
+        birthday as birthday 
+    from customer 
+    where id = $1 for update
+    ```
+=== "SQLite"
+    ```sqlite
+    select /*+ some hints */ 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = ? for update
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select /*+ some hints */ 
+        id as id, 
+        first_name as firstName, 
+        last_name as lastName, 
+        birthday as birthday 
+    from customer 
+    where id = @0 for update
+    ```
 
 The parameters are: `[ 10 ]`
 
@@ -387,11 +688,49 @@ const customizedInsert = connection.insertInto(tCustomer).set({
 ```
 
 The executed query is:
-```sql
-insert /*+ some hints */ into customer (first_name, last_name, company_id) 
-values ($1, $2, $3) 
-log errors reject limit unlimited
-```
+
+=== "MariaDB"
+    ```mariadb
+    insert /*+ some hints */ 
+    into customer (first_name, last_name, company_id) 
+    values (?, ?, ?) 
+    log errors reject limit unlimited
+    ```
+=== "MySQL"
+    ```mysql
+    insert /*+ some hints */ 
+    into customer (first_name, last_name, company_id) 
+    values (?, ?, ?) 
+    log errors reject limit unlimited
+    ```
+=== "Oracle"
+    ```oracle
+    insert /*+ some hints */ 
+    into customer (first_name, last_name, company_id) 
+    values (:0, :1, :2) 
+    log errors reject limit unlimited
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    insert /*+ some hints */ 
+    into customer (first_name, last_name, company_id) 
+    values ($1, $2, $3) 
+    log errors reject limit unlimited
+    ```
+=== "SQLite"
+    ```sqlite
+    insert /*+ some hints */ 
+    into customer (first_name, last_name, company_id) 
+    values (?, ?, ?) 
+    log errors reject limit unlimited
+    ```
+=== "SQL Server"
+    ```sqlserver
+    insert /*+ some hints */ 
+    into customer (first_name, last_name, company_id) 
+    values (@0, @1, @2) 
+    log errors reject limit unlimited
+    ```
 
 The parameters are: `[ 10 ]`
 
@@ -425,12 +764,61 @@ const customizedUpdate = connection.update(tCustomer).set({
 ```
 
 The executed query is:
-```sql
-update /*+ some hints */ customer 
-set first_name = $1, last_name = $2 
-where id = $3 
-keep plan
-```
+
+=== "MariaDB"
+    ```mariadb
+    update /*+ some hints */ customer 
+    set 
+        first_name = ?, 
+        last_name = ? 
+    where id = ? 
+    keep plan
+    ```
+=== "MySQL"
+    ```mysql
+    update /*+ some hints */ customer 
+    set 
+        first_name = ?, 
+        last_name = ? 
+    where id = ? 
+    keep plan
+    ```
+=== "Oracle"
+    ```oracle
+    update /*+ some hints */ customer 
+    set 
+        first_name = :0, 
+        last_name = :1 
+    where id = :2 
+    keep plan
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    update /*+ some hints */ customer 
+    set 
+        first_name = $1, 
+        last_name = $2 
+    where id = $3 
+    keep plan
+    ```
+=== "SQLite"
+    ```sqlite
+    update /*+ some hints */ customer 
+    set 
+        first_name = ?, 
+        last_name = ? 
+    where id = ? 
+    keep plan
+    ```
+=== "SQL Server"
+    ```sqlserver
+    update /*+ some hints */ customer 
+    set 
+        first_name = @0, 
+        last_name = @1 
+    where id = @2 
+    keep plan
+    ```
 
 The parameters are: `[ 'John', 'Smith', 10 ]`
 
@@ -462,12 +850,49 @@ const customizedDelete = connection.deleteFrom(tCustomer)
 ```
 
 The executed query is:
-```sql
-delete /*+ some hints */ 
-from customer 
-where id = $1 
-keep plan
-```
+
+=== "MariaDB"
+    ```mariadb
+    delete /*+ some hints */ 
+    from customer 
+    where id = ? 
+    keep plan
+    ```
+=== "MySQL"
+    ```mysql
+    delete /*+ some hints */ 
+    from customer 
+    where id = ? 
+    keep plan
+    ```
+=== "Oracle"
+    ```oracle
+    delete /*+ some hints */ 
+    from customer 
+    where id = :0 
+    keep plan
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    delete /*+ some hints */ 
+    from customer 
+    where id = $1 
+    keep plan
+    ```
+=== "SQLite"
+    ```sqlite
+    delete /*+ some hints */ 
+    from customer 
+    where id = ? 
+    keep plan
+    ```
+=== "SQL Server"
+    ```sqlserver
+    delete /*+ some hints */ 
+    from customer 
+    where id = @0 
+    keep plan
+    ```
 
 The parameters are: `[ 10 ]`
 

@@ -49,7 +49,7 @@ The following collations are case insensitive and accent insensitive:
 - **[PostgreSQL](../configuration/supported-databases/postgresql.md)**: Starting from PostgreSQL 12 you can create custom non-deterministic collates from ICU database (previously it was OS dependant) with specific rules.
     - For a general collation case insensitive and accent insensitive, you can create the collation with:
 
-```sql
+```postgresql
 CREATE COLLATION insensitive (
     provider = 'icu',
     locale = 'und@colStrength=primary', -- or 'und-u-ks-level1'
@@ -60,7 +60,7 @@ CREATE COLLATION insensitive (
 - 
     - For a collation specific for one language (in this example: Spanish) case insensitive and accent insensitive, you create the collation using:
 
-```sql
+```postgresql
 CREATE COLLATION es_insensitive (
     provider = 'icu',
     locale = 'es@colStrength=primary', -- or 'es-u-ks-level1'

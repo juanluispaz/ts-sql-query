@@ -48,15 +48,97 @@ const acmeCompanyWithCustomers = connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-select 
-    company.id as id, 
-    company.name as name, 
-    json_agg(json_build_object('id', customer.id, 'firstName', customer.first_name, 'lastName', customer.last_name)) as customers 
-from company left join customer on customer.company_id = company.id 
-where company.id = $1 
-group by company.id
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as id, 
+        company.name as name, 
+        json_arrayagg(json_object(
+            'id', customer.id, 
+            'firstName', customer.first_name, 
+            'lastName', customer.last_name
+        )) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = ? 
+    group by company.id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as id, 
+        company.`name` as `name`, 
+        json_arrayagg(json_object(
+            'id', customer.id, 
+            'firstName', customer.first_name, 
+            'lastName', customer.last_name
+        )) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = ? 
+    group by company.id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "id", 
+        company.name as "name", 
+        json_arrayagg(json_object(
+            'id' value customer.id, 
+            'firstName' value customer.first_name, 
+            'lastName' value customer.last_name
+        )) as "customers" 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = :0 
+    group by company.id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as id, 
+        company.name as name, 
+        json_agg(json_build_object(
+            'id', customer.id, 
+            'firstName', customer.first_name, 
+            'lastName', customer.last_name
+        )) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = $1 
+    group by company.id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as id, 
+        company.name as name, 
+        json_group_array(json_object(
+            'id', customer.id, 'firstName', 
+            customer.first_name, 'lastName', 
+            customer.last_name
+        )) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = ? 
+    group by company.id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as id, 
+        company.name as name, 
+        concat('[', string_agg(concat('{', 
+            '"id": ', isnull(convert(nvarchar, customer.id), 'null'), ', 
+            "firstName": ', isnull('"' + string_escape(convert(nvarchar, customer.first_name), 'json') + '"', 'null'), ', 
+            "lastName": ', isnull('"' + string_escape(convert(nvarchar, customer.last_name), 'json') + '"', 'null'), 
+        '}'), ','), ']') as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = @0 
+    group by company.id
+    ```
 
 The parameters are: `[ 1 ]`
 
@@ -94,15 +176,73 @@ const acmeCompanyWithCustomers = connection.selectFrom(tCompany).leftJoin(tCusto
 ```
 
 The executed query is:
-```sql
-select 
-    company.id as id, 
-    company.name as name, 
-    json_agg(customer.first_name || $1 || customer.last_name) as customers 
-from company left join customer on customer.company_id = company.id 
-where company.id = $2 
-group by company.id
-```
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        company.id as id, 
+        company.name as name, 
+        json_arrayagg(concat(customer.first_name, ?, customer.last_name)) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = ? 
+    group by company.id
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        company.id as id, 
+        company.`name` as `name`, 
+        json_arrayagg(concat(customer.first_name, ?, customer.last_name)) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = ? 
+    group by company.id
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        company.id as "id", 
+        company.name as "name", 
+        json_arrayagg(customer.first_name || :0 || customer.last_name) as "customers" 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = :1 
+    group by company.id
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        company.id as id, 
+        company.name as name, 
+        json_agg(customer.first_name || $1 || customer.last_name) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = $2 
+    group by company.id
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        company.id as id, 
+        company.name as name, 
+        json_group_array(customer.first_name || ? || customer.last_name) as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = ? 
+    group by company.id
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        company.id as id, 
+        company.name as name, 
+        concat('[', string_agg(isnull('"' + string_escape(convert(nvarchar, customer.first_name + @0 + customer.last_name), 'json') + '"', 'null'), ','), ']') as customers 
+    from company 
+    left join customer on customer.company_id = company.id 
+    where company.id = @1 
+    group by company.id
+    ```
 
 The parameters are: `[ " ", 1 ]`
 
@@ -139,25 +279,146 @@ const acmeCompanyWithCustomers = await connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-select 
-    id as id, 
-    name as name, 
-    (   select json_agg(json_build_object('id', a_1_.id, 'firstName', a_1_.firstName, 'lastName', a_1_.lastName)) 
-        from (  select id as id, first_name as firstName, last_name as lastName 
-                from customer where company_id = company.id 
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name, 
+        (
+            select json_arrayagg(json_object(
+                'id', id, 
+                'firstName', first_name, 
+                'lastName', last_name
+            ) order by id) 
+            from customer 
+            where company_id = company.id
+        ) as customers 
+        from company 
+        where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name`, 
+        (
+            select json_arrayagg(json_object(
+                'id', a_1_.id, 
+                'firstName', a_1_.firstName, 
+                'lastName', a_1_.lastName
+            )) 
+            from (
+                select 
+                    id as id, 
+                    first_name as firstName, 
+                    last_name as lastName 
+                from customer 
+                where company_id = company.id 
+                order by id 
+                limit 2147483647
+            ) as a_1_
+        ) as customers 
+    from company 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name", 
+        (
+            select json_arrayagg(json_object(
+                'id' value a_1_.id, 
+                'firstName' value a_1_.firstName, 
+                'lastName' value a_1_.lastName
+            )) 
+            from (
+                select 
+                    id as id, 
+                    first_name as firstName, 
+                    last_name as lastName 
+                from customer 
+                where company_id = company.id 
+                order by id 
+                offset 0 rows
+            ) a_1_
+        ) as "customers" 
+        from company 
+        where id = :0`
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name, 
+        (
+            select json_agg(json_build_object(
+                'id', a_1_.id, 'firstName', 
+                a_1_.firstName, 'lastName', a_1_.lastName
+            )) 
+            from (
+                select 
+                    id as id, 
+                    first_name as firstName, 
+                    last_name as lastName 
+                from customer 
+                where company_id = company.id 
                 order by id
             ) as a_1_
-    ) as customers 
-from company 
-where id = $1
-```
+        ) as customers 
+    from company 
+    where id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name, 
+        (
+            select json_group_array(json_object(
+                'id', a_1_.id, 
+                'firstName', a_1_.firstName, 
+                'lastName', a_1_.lastName
+            )) 
+            from (
+                select 
+                    id as id, 
+                    first_name as firstName, 
+                    last_name as lastName 
+                from customer 
+                where company_id = company.id 
+                order by id
+            ) as a_1_
+        ) as customers 
+    from company 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name, 
+        (
+            select 
+                id as id, 
+                first_name as firstName, 
+                last_name as lastName 
+            from customer 
+            where company_id = company.id 
+            order by id 
+            offset 0 rows 
+            for json path
+        ) as customers 
+    from company 
+    where id = @0
+    ```
 
 The parameters are: `[ 1 ]`
 
 The result type is:
 ```tsx
-const acmeCompanyWithCustomers5: Promise<{
+const acmeCompanyWithCustomers: Promise<{
     id: number;
     name: string;
     customers: {
@@ -193,26 +454,113 @@ const acmeCompanyWithCustomers = connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-select 
-    id as id, 
-    name as name, 
-    (   select json_agg(a_1_.result) 
-        from (  select first_name || $1 || last_name as result 
+
+=== "MariaDB"
+    ```mariadb
+    select 
+        id as id, 
+        name as name, 
+        (
+            select json_arrayagg(concat(first_name, ?, last_name) order by concat(first_name, ?, last_name)) 
+            from customer 
+            where company_id = company.id
+        ) as customers 
+    from company 
+    where id = ?
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name`, 
+        (
+            select json_arrayagg(a_1_.result) 
+            from (
+                select concat(first_name, ?, last_name) as result 
+                from customer 
+                where company_id = company.id 
+                order by result 
+                limit 2147483647
+            ) as a_1_
+        ) as customers 
+        from company 
+        where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    select 
+        id as "id", 
+        name as "name", 
+        (
+            select json_arrayagg(a_1_.result) 
+            from (
+                select first_name || :0 || last_name as result 
+                from customer 
+                where company_id = company.id 
+                order by result offset 0 rows
+            ) a_1_
+        ) as "customers" 
+    from company 
+    where id = :1
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name, 
+        (
+            select json_agg(a_1_.result) 
+            from (
+                select first_name || $1 || last_name as result 
                 from customer 
                 where company_id = company.id 
                 order by result
             ) as a_1_
-    ) as customers 
-from company 
-where id = $2
-```
+        ) as customers 
+        from company 
+        where id = $2
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name, 
+        (
+            select json_group_array(a_1_.result) 
+            from (
+                select first_name || ? || last_name as result 
+                from customer 
+                where company_id = company.id 
+                order by result
+            ) as a_1_
+        ) as customers 
+    from company 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    select 
+        id as id, 
+        name as name, 
+        (
+            select concat('[', string_agg('"' + string_escape(convert(nvarchar, a_1_.[result]), 'json') + '"', ','), ']') 
+            from (
+                select first_name + @0 + last_name as [result] 
+                from customer 
+                where company_id = company.id 
+                order by [result] 
+                offset 0 rows
+            ) as a_1_
+        ) as customers 
+        from company 
+        where id = @1
+    ```
 
-The parameters are: `[ " ", 1 ]`
+The parameters are: `[ " ", 1 ]` (On [MariaDB](../configuration/supported-databases/mariadb.md): `[" ", " ", 1]`)
 
 The result type is:
 ```tsx
-const acmeCompanyWithCustomers7: Promise<{
+const acmeCompanyWithCustomers: Promise<{
     id: number;
     name: string;
     customers: string[];
@@ -243,7 +591,7 @@ const parentCompanies = connection.subSelectUsing(tCompany)
     })
     .forUseAsInlineAggregatedArrayValue();
 
-const myCompany = await connection.selectFrom(tCompany)
+const lowCompany = await connection.selectFrom(tCompany)
     .select({
         id: tCompany.id,
         name: tCompany.name,
@@ -255,26 +603,142 @@ const myCompany = await connection.selectFrom(tCompany)
 ```
 
 The executed query is:
-```sql
-select 
-    id as id, 
-    name as name, 
-    parent_id as parentId, 
-    (   with recursive recursive_select_1 as (
-            select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId 
-            from company as parentCompany 
-            where parentCompany.id = company.parent_id 
-            union all 
-            select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId 
-            from company as parentCompany 
-            join recursive_select_1 on recursive_select_1.parentId = parentCompany.id
-        ) 
-        select json_agg(json_build_object('id', id, 'name', name, 'parentId', parentId)) 
-        from recursive_select_1
-    ) as parents 
-from company 
-where id = $1
-```
+
+=== "MariaDB"
+    ```mariadb
+    --
+    --
+    --
+    -- MariaDB doesn't support referencing an outer table (using `subSelectUsing`) on the recursive query
+    --
+    --
+    --
+    ```
+=== "MySQL"
+    ```mysql
+    select 
+        id as id, 
+        `name` as `name`, 
+        parent_id as parentId, 
+        (
+            with recursive 
+                recursive_select_1 as (
+                    select 
+                        parentCompany.id as id, 
+                        parentCompany.`name` as `name`, 
+                        parentCompany.parent_id as parentId 
+                    from company as parentCompany 
+                    where parentCompany.id = company.parent_id 
+                    
+                    union all 
+                    
+                    select 
+                        parentCompany.id as id, 
+                        parentCompany.`name` as `name`, 
+                        parentCompany.parent_id as parentId 
+                    from company as parentCompany 
+                    join recursive_select_1 on recursive_select_1.parentId = parentCompany.id
+                ) 
+            select json_arrayagg(json_object(
+                'id', id, 
+                'name', `name`, 
+                'parentId', parentId
+            )) 
+            from recursive_select_1
+        ) as parents 
+    from company 
+    where id = ?
+    ```
+=== "Oracle"
+    ```oracle
+    --
+    --
+    --
+    -- Oracle doesn't support referencing an outer table (using `subSelectUsing`) on the recursive query
+    --
+    --
+    --
+    ```
+===+ "PostgreSQL"
+    ```postgresql
+    select 
+        id as id, 
+        name as name, 
+        parent_id as "parentId", 
+        (
+            with recursive 
+                recursive_select_1 as (
+                    select 
+                        parentCompany.id as id, 
+                        parentCompany.name as name, 
+                        parentCompany.parent_id as parentId 
+                    from company as parentCompany 
+                    where parentCompany.id = company.parent_id 
+                    
+                    union all 
+                    
+                    select 
+                        parentCompany.id as id, 
+                        parentCompany.name as name, 
+                        parentCompany.parent_id as parentId 
+                    from company as parentCompany 
+                    join recursive_select_1 on recursive_select_1.parentId = parentCompany.id
+                ) 
+            select json_agg(json_build_object(
+                'id', id, 
+                'name', name, 
+                'parentId', parentId
+            )) 
+            from recursive_select_1
+        ) as parents 
+    from company 
+    where id = $1
+    ```
+=== "SQLite"
+    ```sqlite
+    select 
+        id as id, 
+        name as name, 
+        parent_id as parentId, 
+        (
+            with recursive 
+                recursive_select_1 as (
+                    select 
+                        parentCompany.id as id, 
+                        parentCompany.name as name, 
+                        parentCompany.parent_id as parentId 
+                    from company as parentCompany 
+                    where parentCompany.id = company.parent_id 
+                    
+                    union all 
+                    
+                    select 
+                        parentCompany.id as id, 
+                        parentCompany.name as name, 
+                        parentCompany.parent_id as parentId 
+                    from company as parentCompany 
+                    join recursive_select_1 on recursive_select_1.parentId = parentCompany.id
+                ) 
+            select json_group_array(json_object(
+                'id', id, 
+                'name', name, 
+                'parentId', parentId
+            )) 
+            from recursive_select_1
+        ) as parents 
+    from company 
+    where id = ?
+    ```
+=== "SQL Server"
+    ```sqlserver
+    --
+    --
+    --
+    -- SQL Server doesn't support referencing an outer table (using `subSelectUsing`) on the recursive query
+    --
+    --
+    --
+    ```
 
 The parameters are: `[ 10 ]`
 

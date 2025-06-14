@@ -231,4 +231,4 @@ export interface DynamicConditionExpression<DEFINITION extends Filterable, EXTEN
     withValues(filter: DynamicFilter<DEFINITION>): BooleanValueSource<SourceOf<DEFINITION> | SourceOf<EXTENSION>, 'optional'>
 }
 
-type SourceOf<TYPE> = GetDataToProjectSource<TYPE>
+type SourceOf<TYPE> = [TYPE] extends [never] ? never : GetDataToProjectSource<TYPE>

@@ -15,10 +15,12 @@ export type Expand<T> = T extends object
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
- * Dircard any key that is not a string or the value is a function
+ * Discard any key that is not a string or the value is a function
  */
 
-export type UsableKeyOf<T> = { [K in (keyof T) & string]: T[K] extends Function ? never : K}[(keyof T) & string]
+export type UsableKeyOf<T> = keyof {
+    [K in keyof T as T[K] extends Function ? never : K extends string ? K : never]: T[K]
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -2,7 +2,7 @@ import type { IBooleanValueSource, INumberValueSource, IAnyBooleanValueSource, I
 import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, NoTableOrViewRequiredOfSameDB, OfDB, OfSameDB } from "../utils/ITableOrView"
 import type { WithView } from "../utils/tableOrViewUtils"
 import type { resultType, compoundableColumns, valueType, from, using, source, selectColumnsType } from "../utils/symbols"
-import type { NAnyNoTableOrViewRequired, NCompoundableFrom, NDbType, NNoTableOrViewRequiredFrom, NRecursiveFrom, NSource, NWithFrom } from "../utils/sourceName"
+import type { NAnyNoTableOrViewRequired, NDbType, NNoTableOrViewRequiredFrom, NRecursiveFrom, NSource, NWithFrom } from "../utils/sourceName"
 import type { DataToProject, RequiredColumnNames } from "../complexProjections/dataToProject"
 import type { ResultObjectValuesProjectedAsNullable } from "../complexProjections/resultWithOptionalsAsNull"
 import type { ResultObjectValues } from "../complexProjections/resultWithOptionalsAsUndefined"
@@ -46,7 +46,7 @@ export interface SelectExpressionBase</*in|out*/ FROM extends HasSource<any>, /*
 }
 
 export interface ICompoundableSelect</*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT> extends IExecutableSelectQuery<REQUIRED[typeof source], ExecutableSelectColumns<COLUMNS>, RESULT> {
-    [compoundableColumns]: (input: ColumnsForCompound<NCompoundableFrom<REQUIRED[typeof source]>, COLUMNS>) => ColumnsForCompound<NCompoundableFrom<REQUIRED[typeof source]>, COLUMNS>
+    [compoundableColumns]: (input: ColumnsForCompound<any, COLUMNS>) => ColumnsForCompound<any, COLUMNS>
     [using]: REQUIRED
 }
 
@@ -117,8 +117,8 @@ export interface CompoundedOrderedExecutableSelectExpression</*in|out*/ FROM ext
 }
 
 export interface CompoundableExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WithableExecutableSelect<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    union<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    unionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    union<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    unionAll<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     intersect: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     intersectAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     except: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
@@ -126,15 +126,15 @@ export interface CompoundableExecutableSelectExpression</*in|out*/ FROM extends 
     minus: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
 
-    recursiveUnion<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
-    recursiveUnionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnion<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionAll<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
     recursiveUnionOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
     recursiveUnionAllOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
 }
 
 export interface CompoundableExecutableSelectExpressionWithoutWhere</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends WithableExecutableSelectWithoutWhere<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    union<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    unionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    union<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    unionAll<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     intersect: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     intersectAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     except: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
@@ -142,8 +142,8 @@ export interface CompoundableExecutableSelectExpressionWithoutWhere</*in|out*/ F
     minus: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
 
-    recursiveUnion<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
-    recursiveUnionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnion<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionAll<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
     recursiveUnionOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
     recursiveUnionAllOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
 }
@@ -192,8 +192,8 @@ export interface OrderedExecutableSelectExpression</*in|out*/ FROM extends HasSo
 }
 
 export interface CompoundedExecutableSelectExpression</*in|out*/ FROM extends HasSource<any>, /*in|out*/ REQUIRED extends HasSource<any>, /*in|out*/ COLUMNS, /*in|out*/ RESULT, /*in|out*/ FEATURES> extends CompoundedOrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES> {
-    union<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
-    unionAll<SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    union<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
+    unionAll<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT): CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     intersect: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     intersectAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     except: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
@@ -491,7 +491,7 @@ type ForUseAsInlineAggregatedArrayValueFn<_FROM extends HasSource<any>, REQUIRED
 
 type CompoundFunction<SUPPORTED_DB extends NDbType, FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, RESULT, FEATURES> = 
     [REQUIRED] extends [OfDB<SUPPORTED_DB>]
-    ? <SELECT extends ICompoundableSelect<FROM, COLUMNS, RESULT>>(select: SELECT) => CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
+    ? <SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT) => CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     : never
 
 type StartWithFnType<FROM extends HasSource<any>, REQUIRED extends HasSource<any>, NEXT> =

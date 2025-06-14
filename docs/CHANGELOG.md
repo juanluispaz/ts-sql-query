@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.66.0 (14 Jun 2025)
+
+**Documentation changes**:
+
+- The upcoming version 2 of ts-sql-query is cooking! A completely new documentation portal is already available for preview: [Take a look](https://ts-sql-query.readthedocs.io/en/latest/).
+
 ## v1.65.0 (24 Aug 2024)
 
 **Changes**:

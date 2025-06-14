@@ -44,3 +44,10 @@ hljs.highlightAll();
         searchInResult.parentElement.appendChild(openGoogleSearch);
     }
 })();
+
+document.addEventListener("DOMContentLoaded", function () {
+  var banner = document.createElement("div");
+  banner.style.cssText = "background-color: #fffae6; padding: 10px; text-align: center; border-bottom: 1px solid #ddd; font-weight: bold;";
+  banner.innerHTML = '🚀 The upcoming version 2 of ts-sql-query is cooking! A completely new documentation portal is already available for preview: <a href="https://ts-sql-query.readthedocs.io/en/latest/" target="_blank" rel="noopener">Take a look</a>.';
+  document.body.insertBefore(banner, document.body.firstChild);
+});

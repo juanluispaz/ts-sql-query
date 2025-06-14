@@ -119,7 +119,7 @@ export class AbstractQueryBuilder {
         }
 
         const columns = valueSourcePrivate.__aggregatedArrayColumns!
-        const result = []
+        const result: any[] = []
 
         if (isValueSource(columns)) {
             const columnPrivate = __getValueSourcePrivate(columns)

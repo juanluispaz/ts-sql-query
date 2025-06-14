@@ -82,7 +82,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             return []
         }
 
-        const out = []
+        const out: any[] = []
         for (let i = 0, length = params.length; i < length; i++) {
             const param = params[i]
             if (param && typeof param === 'object' && param.dir === BIND_OUT ) {

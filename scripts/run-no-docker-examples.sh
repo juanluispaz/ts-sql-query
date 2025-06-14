@@ -12,7 +12,6 @@ ts-node ./src/examples/documentation/MariaDB-modern.ts || exit 1
 ts-node ./src/examples/documentation/SqlServer.ts || exit 1
 ts-node ./src/examples/documentation/Oracle.ts || exit 1
 
-ts-node ./src/examples/SqliteExample.ts || exit 1
 ts-node ./src/examples/Sqlite3Example.ts || exit 1
 ts-node ./src/examples/BetterSqlite3Example.ts || exit 1
 ts-node ./src/examples/BetterSqlite3SynchronousExample.ts || exit 1

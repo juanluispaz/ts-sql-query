@@ -30,7 +30,7 @@ This command will compile the project and execute the script located at [scripts
 If you want to execute a single example (like [SQLite](../configuration/supported-databases/sqlite.md)):
 
 ```sh
-npx ts-node ./src/examples/SqliteExample.ts
+npx ts-node ./src/examples/Sqlite3Example.ts
 ```
 
 !!! note "Be aware"

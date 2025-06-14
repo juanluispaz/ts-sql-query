@@ -122,9 +122,7 @@ nav:
         - ConsoleLogNoopQueryRunner: configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md
         - NoopQueryRunner: configuration/query-runners/general-purpose/NoopQueryRunner.md
     - Additional query runners: 
-      - mysql: configuration/query-runners/additional/mysql.md
       - prisma: configuration/query-runners/additional/prisma.md
-      - sqlite: configuration/query-runners/additional/sqlite.md
   - API: 
     - API Introduction: api/introduction.md
     - Connection API: api/connection.md

@@ -2,6 +2,9 @@ import type { DatabaseType } from "./QueryRunner"
 import type { Connection } from "mysql"
 import { PromiseBasedQueryRunner } from "./PromiseBasedQueryRunner"
 
+/**
+ * @deprecated https://www.npmjs.com/package/mysql is not maintained anymore. Use another QueryRunner for MySql instead.
+ */
 export class MySqlQueryRunner extends PromiseBasedQueryRunner {
     readonly database: DatabaseType
     readonly connection: Connection

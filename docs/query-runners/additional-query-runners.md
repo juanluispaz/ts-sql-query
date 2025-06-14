@@ -174,7 +174,11 @@ async function doYourLogic(connection: DBConnection) {
 
 ## mysql
 
+**DEPRECATED**: [mysql](https://www.npmjs.com/package/mysql) is not maintained any more.
+
 ### mysql (with a connection pool)
+
+**DEPRECATED**: [mysql](https://www.npmjs.com/package/mysql) is not maintained any more.
 
 It allows to execute the queries using a [mysql](https://www.npmjs.com/package/mysql) connection pool.
 
@@ -199,6 +203,8 @@ async function main() {
 ```
 
 ### mysql (with a connection)
+
+**DEPRECATED**: [mysql](https://www.npmjs.com/package/mysql) is not maintained any more.
 
 It allows to execute the queries using a [mysql](https://www.npmjs.com/package/mysql) connection.
 

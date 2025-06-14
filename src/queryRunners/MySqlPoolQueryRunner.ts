@@ -3,6 +3,9 @@ import type { Pool, PoolConnection } from "mysql"
 import { PromiseBasedPoolQueryRunner } from "./PromiseBasedPoolQueryRunner"
 import { MySqlQueryRunner } from "./MySqlQueryRunner"
 
+/**
+ * @deprecated https://www.npmjs.com/package/mysql is not maintained anymore. Use another QueryRunner for MySql instead.
+ */
 export class MySqlPoolQueryRunner extends PromiseBasedPoolQueryRunner {
     readonly database: DatabaseType
     readonly pool: Pool

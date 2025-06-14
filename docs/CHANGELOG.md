@@ -4,7 +4,8 @@
 
 **Changes**:
 
-- Deprecate `SqliteQueryRunner` due [Sqlite](https://www.npmjs.com/package/sqlite) project is dead.
+- Deprecate `SqliteQueryRunner` due [sqlite](https://www.npmjs.com/package/sqlite) project is dead.
+- Deprecate `MySqlQueryRunner` & `MySqlPoolQueryRunner` due [mysql](https://www.npmjs.com/package/mysql) project is dead.
 
 **Documentation changes**:
 

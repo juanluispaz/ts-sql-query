@@ -1,5 +1,11 @@
 # Change Log
 
+## v1.67.0 (18 Jun 2025)
+
+**Changes**:
+
+- Allow manipulating the values to update in all update cases.
+
 ## v1.66.0 (14 Jun 2025)
 
 **Changes**:

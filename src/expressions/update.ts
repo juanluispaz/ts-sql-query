@@ -112,6 +112,45 @@ export interface ShapedExecutableUpdateExpression</*in|out*/ TABLE extends HasSo
     ignoreIfHasNoValue(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
     ignoreAnySetWithNoValue(): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
 
+    disallowIfSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNotSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNotSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNoValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNoValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+
+    setWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfSetWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfSetIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfNotSetWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfNotSetIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreIfSetWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    keepOnlyWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+
+    setIfHasValueWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfHasValueIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfHasNoValueWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfHasNoValueIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreIfHasValueWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreAnySetWithNoValueWhen(when: boolean): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNoValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNoValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedExecutableUpdateExpression<TABLE, USING, SHAPE>
+
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE, USING>
     where(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
 }
@@ -133,6 +172,45 @@ export interface NotExecutableUpdateExpression</*in|out*/ TABLE extends HasSourc
     ignoreIfHasValue(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
     ignoreIfHasNoValue(...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
     ignoreAnySetWithNoValue(): NotExecutableUpdateExpression<TABLE, USING>
+
+    disallowIfSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfNotSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfNotSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfNoValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfNoValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+
+    setWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfSetWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfSetIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfNotSetWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfNotSetIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
+    ignoreIfSetWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    keepOnlyWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+
+    setIfHasValueWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfHasValueIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfHasNoValueWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
+    setIfHasNoValueIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): NotExecutableUpdateExpression<TABLE, USING>
+    ignoreIfHasValueWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    ignoreAnySetWithNoValueWhen(when: boolean): NotExecutableUpdateExpression<TABLE, USING>
+
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfNoValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowIfNoValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): NotExecutableUpdateExpression<TABLE, USING>
 
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE, USING>
     where(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>
@@ -156,6 +234,45 @@ export interface ShapedNotExecutableUpdateExpression</*in|out*/ TABLE extends Ha
     ignoreIfHasValue(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
     ignoreIfHasNoValue(...columns: ColumnsForSetOfWithShape<TABLE, SHAPE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
     ignoreAnySetWithNoValue(): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+
+    disallowIfSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNotSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNotSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNoValue(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNoValue(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowAnyOtherSet(errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowAnyOtherSet(error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+
+    setWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfSetWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfSetIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfNotSetWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfNotSetIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreIfSetWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    keepOnlyWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+
+    setIfHasValueWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfHasValueIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfHasNoValueWhen(when: boolean, columns: UpdateSets<TABLE, USING, undefined>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    setIfHasNoValueIfValueWhen(when: boolean, columns: OptionalUpdateSets<TABLE, USING, undefined>): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreIfHasValueWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreIfHasNoValueWhen(when: boolean, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    ignoreAnySetWithNoValueWhen(when: boolean): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+
+    disallowIfSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNotSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNotSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNoValueWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowIfNoValueWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowAnyOtherSetWhen(when: boolean, errorMessage: string, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
+    disallowAnyOtherSetWhen(when: boolean, error: Error, ...columns: ColumnsForSetOf<TABLE>[]): ShapedNotExecutableUpdateExpression<TABLE, USING, SHAPE>
 
     dynamicWhere() : DynamicExecutableUpdateExpression<TABLE, USING>
     where(condition: IAnyBooleanValueSource<USING[typeof source], any>): DynamicExecutableUpdateExpression<TABLE, USING>

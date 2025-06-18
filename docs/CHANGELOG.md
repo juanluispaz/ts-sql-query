@@ -127,6 +127,12 @@ The folowing releases in the v1 are included:
 
 **Base point**: v1.60.0 (25 Feb 2024)
 
+## v1.67.0 (18 Jun 2025)
+
+**Changes**:
+
+- Allow manipulating the values to update in all update cases.
+
 ## v1.66.0 (14 Jun 2025)
 
 **Changes**:

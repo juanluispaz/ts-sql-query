@@ -59,28 +59,25 @@
         "@prisma/client": "^6.9.0",
         "@sqlite.org/sqlite-wasm": "^3.50.1-build1",
         "@types/better-sqlite3": "^7.6.13",
-        "@types/mssql":"^9.1.7",
+        "@types/mssql":"^9.1.8",
         "@types/pg": "^8.15.4",
-        "@types/oracledb":"^6.6.0",
+        "@types/oracledb":"^6.10.0",
         "@types/sqlite3": "^3.1.11",
-        "better-sqlite3": "^11.10.0",
+        "better-sqlite3": "^12.5.0",
         "binary-uuid": "^2.0.3",
-        "mariadb": "^3.4.2",
-        "mssql": "^11.0.1",
-        "mysql2": "^3.14.1",
+        "mariadb": "^3.4.5",
+        "mssql": "^12.2.0",
+        "mysql2": "^3.15.3",
         "nyc": "^17.1.0",
-        "oracledb": "^6.8.0",
-        "pg": "^8.16.0",
+        "oracledb": "^6.10.0",
+        "pg": "^8.16.3",
         "postgres": "^3.4.7",
         "prisma": "^6.9.0",
         "sqlite3": "^5.1.7",
         "synchronous-promise": "^2.0.17",
         "ts-node": "^10.9.2",
-        "typescript": "^5.8.3",
-        "uuid": "^11.1.0"
-    },
-    "devDependenciesToDisableOnRosetta": {
-        "better-sqlite3": "^7.1.1"
+        "typescript": "^5.9.3",
+        "uuid": "^13.0.0"
     },
     "dependencies": {
         "chained-error": "^1.0.0"

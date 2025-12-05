@@ -1,6 +1,6 @@
-import { ConsoleLogQueryRunner } from "./ConsoleLogQueryRunner"
-import { NoopQueryRunner } from "./NoopQueryRunner"
-import type { DatabaseType, PromiseProvider } from "./QueryRunner"
+import { ConsoleLogQueryRunner } from './ConsoleLogQueryRunner.js'
+import { NoopQueryRunner } from './NoopQueryRunner.js'
+import type { DatabaseType, PromiseProvider } from './QueryRunner.js'
 
 export interface ConsoleLogNoopQueryRunnerConfig {
     database?: DatabaseType

@@ -3,13 +3,13 @@
  * docker run --name ts-sql-query-mariadb -p 3306:3306 -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mariadb
  */
 
-import { Table } from "../Table";
-import { assertEquals } from "./assertEquals";
-import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
-import { createPool } from "mariadb"
-import { MariaDBPoolQueryRunner } from "../queryRunners/MariaDBPoolQueryRunner";
-import { MariaDBConnection } from "../connections/MariaDBConnection";
-import { CustomBooleanTypeAdapter } from "../TypeAdapter";
+import { Table } from '../Table.js'
+import { assertEquals } from './assertEquals.js'
+import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
+import { createPool } from 'mariadb'
+import { MariaDBPoolQueryRunner } from '../queryRunners/MariaDBPoolQueryRunner.js'
+import { MariaDBConnection } from '../connections/MariaDBConnection.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends MariaDBConnection<'DBConnection'> {
     protected alwaysUseReturningClauseWhenInsert = true

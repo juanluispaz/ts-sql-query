@@ -61,7 +61,7 @@
  * string even longer.
  */
 
- import * as crypto from "crypto";
+ import * as crypto from 'crypto'
 
  const algorithm = 'aes-128-ctr'
  

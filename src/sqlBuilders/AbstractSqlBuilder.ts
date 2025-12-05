@@ -1,17 +1,22 @@
-import { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, flattenQueryColumns, getQueryColumn, WithSelectData, WithValuesData, OrderByEntry } from "./SqlBuilder"
-import { AnyTableOrView, __ITableOrViewPrivate, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, isValueSource, __AggregatedArrayColumns, __getValueSourceOfObject, __ValueSourcePrivate, __isStringValueSource, __isBooleanValueSource, ValueType } from "../expressions/values"
-import { isColumn, __ColumnPrivate, DBColumn } from "../utils/Column"
-import { CustomBooleanTypeAdapter, DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
-import { SequenceValueSource } from "../internal/ValueSourceImpl"
-import { hasToSql, operationOf } from "./SqlBuilder"
-import { __getTableOrViewPrivate } from "../utils/ITableOrView"
-import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
-import { QueryRunner } from "../queryRunners/QueryRunner"
-import { getWithData } from "./SqlBuilder"
-import { __getValueSourcePrivate } from "../expressions/values"
-import type { RawFragment } from "../utils/RawFragment"
+import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry } from './SqlBuilder.js'
+import { flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
+import type { AnyTableOrView, __ITableOrViewPrivate } from '../utils/ITableOrView.js'
+import { __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import type { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns, __ValueSourcePrivate, ValueType } from '../expressions/values.js'
+import { isValueSource, __getValueSourceOfObject, __isStringValueSource, __isBooleanValueSource } from '../expressions/values.js'
+import type { __ColumnPrivate, DBColumn } from '../utils/Column.js'
+import { isColumn } from '../utils/Column.js'
+import type { DefaultTypeAdapter, TypeAdapter } from '../TypeAdapter.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
+import type { ConnectionConfiguration } from '../utils/ConnectionConfiguration.js'
+import { SequenceValueSource } from '../internal/ValueSourceImpl.js'
+import { hasToSql, operationOf } from './SqlBuilder.js'
+import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
+import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import type { QueryRunner } from '../queryRunners/QueryRunner.js'
+import { getWithData } from './SqlBuilder.js'
+import { __getValueSourcePrivate } from '../expressions/values.js'
+import type { RawFragment } from '../utils/RawFragment.js'
 
 export class AbstractSqlBuilder implements SqlBuilder {
     // @ts-ignore

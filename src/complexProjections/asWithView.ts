@@ -1,6 +1,6 @@
-import type { AnyValueSource, IValueSource, RemapValueSourceTypeWithOptionalType } from "../expressions/values"
-import type { Expand, UsableKeyOf } from '../utils/objectUtils'
-import type { NSource } from "../utils/sourceName"
+import type { AnyValueSource, IValueSource, RemapValueSourceTypeWithOptionalType } from '../expressions/values.js'
+import type { Expand, UsableKeyOf } from '../utils/objectUtils.js'
+import type { NSource } from '../utils/sourceName.js'
 
 /*
  * Reasign all columns to in a with view

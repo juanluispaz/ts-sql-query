@@ -1,6 +1,6 @@
-import type { AnyValueSource, IValueSource, OptionalTypeRequiredOrAny, RemapIValueSourceTypeWithOptionalType } from "../expressions/values"
-import type { UsableKeyOf } from '../utils/objectUtils'
-import type { NSource } from "../utils/sourceName"
+import type { AnyValueSource, IValueSource, OptionalTypeRequiredOrAny, RemapIValueSourceTypeWithOptionalType } from '../expressions/values.js'
+import type { UsableKeyOf } from '../utils/objectUtils.js'
+import type { NSource } from '../utils/sourceName.js'
 
 /*
  * Used as type mark in compoundable select, for union, union all, intersect, intersect all, except, except all, minus, minus all;

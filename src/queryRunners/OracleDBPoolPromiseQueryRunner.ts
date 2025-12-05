@@ -1,8 +1,8 @@
-import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, Connection } from 'oracledb'
 import { BIND_OUT } from 'oracledb'
-import { OracleDBQueryRunner } from "./OracleDBQueryRunner"
-import { ManagedTransactionPoolQueryRunner } from "./ManagedTransactionPoolQueryRunner"
+import { OracleDBQueryRunner } from './OracleDBQueryRunner.js'
+import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 
 export class OracleDBPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType

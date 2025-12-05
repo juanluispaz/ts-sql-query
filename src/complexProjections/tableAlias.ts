@@ -1,6 +1,6 @@
-import type { AnyValueSource, RemapValueSourceType } from "../expressions/values"
-import type { UsableKeyOf } from '../utils/objectUtils'
-import type { NSource } from "../utils/sourceName"
+import type { AnyValueSource, RemapValueSourceType } from '../expressions/values.js'
+import type { UsableKeyOf } from '../utils/objectUtils.js'
+import type { NSource } from '../utils/sourceName.js'
 
 /*
  * Reasign all columns to a new table/view alias

@@ -3,13 +3,13 @@
  * docker run --name ts-sql-query-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mysql:5.7.29
  */
 
-import { Table } from "../Table";
-import { assertEquals } from "./assertEquals";
-import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
-import { MySqlConnection } from '../connections/MySqlConnection';
-import { createPool } from "mysql2"
-import { MySql2PoolQueryRunner } from "../queryRunners/MySql2PoolQueryRunner";
-import { CustomBooleanTypeAdapter } from "../TypeAdapter";
+import { Table } from '../Table.js'
+import { assertEquals } from './assertEquals.js'
+import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
+import { MySqlConnection } from '../connections/MySqlConnection.js'
+import { createPool } from 'mysql2'
+import { MySql2PoolQueryRunner } from '../queryRunners/MySql2PoolQueryRunner.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends MySqlConnection<'DBConnection'> {
     increment(i: number) {

@@ -1,13 +1,16 @@
-import { MariaDBConnection } from "../../connections/MariaDBConnection"
-import { DynamicCondition, dynamicPick, DynamicPickPaths, dynamicPickPaths, expandTypeFromDynamicPickPaths, PickValuesPath } from "../../dynamicCondition"
-import { TableOrViewLeftJoinOf, fromRef } from "../../extras/types"
-import { extractColumnNamesFrom, extractColumnsFrom, extractWritableColumnNamesFrom, extractWritableColumnsFrom } from "../../extras/utils"
-import { ConsoleLogQueryRunner } from "../../queryRunners/ConsoleLogQueryRunner"
-import { MockQueryRunner } from "../../queryRunners/MockQueryRunner"
-import { Table } from "../../Table"
-import { CustomBooleanTypeAdapter } from "../../TypeAdapter"
-import { View } from "../../View"
-import { assertEquals } from "../assertEquals"
+import { MariaDBConnection } from '../../connections/MariaDBConnection.js'
+import type { DynamicPickPaths, PickValuesPath } from '../../dynamicCondition.js'
+import type { DynamicCondition } from '../../dynamicCondition.js'
+import { dynamicPick, dynamicPickPaths, expandTypeFromDynamicPickPaths } from '../../dynamicCondition.js'
+import type { TableOrViewLeftJoinOf } from '../../extras/types.js'
+import { fromRef } from '../../extras/types.js'
+import { extractColumnNamesFrom, extractColumnsFrom, extractWritableColumnNamesFrom, extractWritableColumnsFrom } from '../../extras/utils.js'
+import { ConsoleLogQueryRunner } from '../../queryRunners/ConsoleLogQueryRunner.js'
+import { MockQueryRunner } from '../../queryRunners/MockQueryRunner.js'
+import { Table } from '../../Table.js'
+import { CustomBooleanTypeAdapter } from '../../TypeAdapter.js'
+import { View } from '../../View.js'
+import { assertEquals } from '../assertEquals.js'
 
 class DBConnection extends MariaDBConnection<'DBConnection'> { 
     // insesitiveCollation = 'acs'

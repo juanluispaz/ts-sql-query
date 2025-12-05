@@ -1,6 +1,6 @@
-import type { DatabaseType } from "./QueryRunner"
+import type { DatabaseType } from './QueryRunner.js'
 import type { Database } from 'sqlite3'
-import { SqlTransactionQueryRunner } from "./SqlTransactionQueryRunner"
+import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 
 export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType

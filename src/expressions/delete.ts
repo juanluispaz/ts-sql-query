@@ -1,10 +1,10 @@
-import type { AnyValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, ValueSourceOf, ValueSourceValueTypeForResult } from "./values"
-import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, OfDB, OfSameDB } from "../utils/ITableOrView"
-import type { NNoTableOrViewRequiredFrom, NSource } from "../utils/sourceName"
-import type { source, from, using } from "../utils/symbols"
-import type { DataToProject } from "../complexProjections/dataToProject"
-import type { ResultObjectValuesProjectedAsNullable } from "../complexProjections/resultWithOptionalsAsNull"
-import type { ResultObjectValues } from "../complexProjections/resultWithOptionalsAsUndefined"
+import type { AnyValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, ValueSourceOf, ValueSourceValueTypeForResult } from './values.js'
+import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, OfDB, OfSameDB } from '../utils/ITableOrView.js'
+import type { NNoTableOrViewRequiredFrom, NSource } from '../utils/sourceName.js'
+import type { source, from, using } from '../utils/symbols.js'
+import type { DataToProject } from '../complexProjections/dataToProject.js'
+import type { ResultObjectValuesProjectedAsNullable } from '../complexProjections/resultWithOptionalsAsNull.js'
+import type { ResultObjectValues } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 
 export interface DeleteCustomization</*in|out*/ _TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> {
     afterDeleteKeyword?: IRawFragment<USING[typeof source]>

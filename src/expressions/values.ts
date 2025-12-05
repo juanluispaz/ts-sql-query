@@ -1,8 +1,8 @@
-import type { HasAddWiths, HasSource, AnyTableOrView } from "../utils/ITableOrView"
-import type { TypeAdapter } from "../TypeAdapter"
-import type { aggregatedArrayValueSource, anyBooleanValueSource, bigintValueSource, booleanValueSource, columnsType, comparableValueSource, customDoubleValueSource, customIntValueSource, customLocalDateTimeValueSource, customLocalDateValueSource, customLocalTimeValueSource, customUuidValueSource, localDateTimeValueSource, localDateValueSource, equalableValueSource, ifValueSource, nullableValueSource, numberValueSource, optionalType, resultType, stringValueSource, localTimeValueSource, type, uuidValueSource, source } from "../utils/symbols"
-import { valueType, typeName, typeName as typeName_, isValueSourceObject } from "../utils/symbols"
-import type { NSource } from "../utils/sourceName"
+import type { HasAddWiths, HasSource, AnyTableOrView } from '../utils/ITableOrView.js'
+import type { TypeAdapter } from '../TypeAdapter.js'
+import type { aggregatedArrayValueSource, anyBooleanValueSource, bigintValueSource, booleanValueSource, columnsType, comparableValueSource, customDoubleValueSource, customIntValueSource, customLocalDateTimeValueSource, customLocalDateValueSource, customLocalTimeValueSource, customUuidValueSource, localDateTimeValueSource, localDateValueSource, equalableValueSource, ifValueSource, nullableValueSource, numberValueSource, optionalType, resultType, stringValueSource, localTimeValueSource, type, uuidValueSource, source } from '../utils/symbols.js'
+import { valueType, typeName, typeName as typeName_, isValueSourceObject } from '../utils/symbols.js'
+import type { NSource } from '../utils/sourceName.js'
 
 export type OptionalType = 'required' | 'requiredInOptionalObject'  | 'originallyRequired' | 'optional' // sorted from the more strict to less strict
 

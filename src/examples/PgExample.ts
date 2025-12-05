@@ -4,13 +4,13 @@
  */
 
 import { Pool } from 'pg'
-import { PgPoolQueryRunner } from "../queryRunners/PgPoolQueryRunner";
-import { PostgreSqlConnection } from "../connections/PostgreSqlConnection";
-import { Table } from "../Table";
-import { assertEquals } from "./assertEquals";
-import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
-import { Values } from '../Values';
-import { CustomBooleanTypeAdapter } from "../TypeAdapter";
+import { PgPoolQueryRunner } from '../queryRunners/PgPoolQueryRunner.js'
+import { PostgreSqlConnection } from '../connections/PostgreSqlConnection.js'
+import { Table } from '../Table.js'
+import { assertEquals } from './assertEquals.js'
+import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
+import { Values } from '../Values.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     increment(i: number) {

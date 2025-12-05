@@ -2,15 +2,15 @@
  * npm install sqlite3
  */
 
-import { Table } from "../Table";
-import { assertEquals } from "./assertEquals";
-import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
-import { Database } from 'sqlite3';
-import { Sqlite3QueryRunner } from "../queryRunners/Sqlite3QueryRunner";
-import { SqliteConnection } from "../connections/SqliteConnection";
-import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration";
-import { Values } from "../Values";
-import { CustomBooleanTypeAdapter } from "../TypeAdapter";
+import { Table } from '../Table.js'
+import { assertEquals } from './assertEquals.js'
+import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
+import { Database } from 'sqlite3'
+import { Sqlite3QueryRunner } from '../queryRunners/Sqlite3QueryRunner.js'
+import { SqliteConnection } from '../connections/SqliteConnection.js'
+import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
+import { Values } from '../Values.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected uuidStrategy = 'string' as const

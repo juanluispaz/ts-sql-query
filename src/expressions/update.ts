@@ -1,13 +1,13 @@
-import type { AnyValueSource, IExecutableUpdateQuery, IAnyBooleanValueSource, RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from "./values"
-import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, OfDB, OfSameDB, ResolvedShape } from "../utils/ITableOrView"
-import type { from, source, using } from "../utils/symbols"
-import type { ColumnsForSetOf, ColumnsForSetOfWithShape, ColumnsKeyOf, OptionalColumnsForSetOf, RequiredColumnsForSetOf, ResolveShape } from "../utils/tableOrViewUtils"
-import type { WritableDBColumn, WritableDBColumnWithDefaultValue } from "../utils/Column"
-import type { Default } from "./Default"
-import type { NNoTableOrViewRequiredFrom, NOldValuesFrom, NSource } from "../utils/sourceName"
-import type { DataToProject } from "../complexProjections/dataToProject"
-import type { ResultObjectValuesProjectedAsNullable } from "../complexProjections/resultWithOptionalsAsNull"
-import type { ResultObjectValues } from "../complexProjections/resultWithOptionalsAsUndefined"
+import type { AnyValueSource, IExecutableUpdateQuery, IAnyBooleanValueSource, RemapIValueSourceType, RemapIValueSourceTypeWithOptionalType, ValueSourceOf, ValueSourceValueType, ValueSourceValueTypeForResult } from './values.js'
+import type { ForUseInLeftJoin, HasSource, IRawFragment, ITableOrView, OfDB, OfSameDB, ResolvedShape } from '../utils/ITableOrView.js'
+import type { from, source, using } from '../utils/symbols.js'
+import type { ColumnsForSetOf, ColumnsForSetOfWithShape, ColumnsKeyOf, OptionalColumnsForSetOf, RequiredColumnsForSetOf, ResolveShape } from '../utils/tableOrViewUtils.js'
+import type { WritableDBColumn, WritableDBColumnWithDefaultValue } from '../utils/Column.js'
+import type { Default } from './Default.js'
+import type { NNoTableOrViewRequiredFrom, NOldValuesFrom, NSource } from '../utils/sourceName.js'
+import type { DataToProject } from '../complexProjections/dataToProject.js'
+import type { ResultObjectValuesProjectedAsNullable } from '../complexProjections/resultWithOptionalsAsNull.js'
+import type { ResultObjectValues } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 
 export interface UpdateCustomization</*in|out*/ _TABLE extends HasSource<any>, /*in|out*/ USING extends HasSource<any>> {
     afterUpdateKeyword?: IRawFragment<USING[typeof source]>

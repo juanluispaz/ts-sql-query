@@ -1,5 +1,5 @@
-import type { BeginTransactionOpts, CommitOpts, QueryRunner, QueryType, RollbackOpts } from "./QueryRunner"
-import { ChainedQueryRunner } from "./ChainedQueryRunner"
+import type { BeginTransactionOpts, CommitOpts, QueryRunner, QueryType, RollbackOpts } from './QueryRunner.js'
+import { ChainedQueryRunner } from './ChainedQueryRunner.js'
 
 export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunner = QueryRunner> extends ChainedQueryRunner<T> {
     constructor(queryRunner: T) {

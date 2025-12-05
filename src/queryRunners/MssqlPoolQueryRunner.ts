@@ -1,8 +1,8 @@
-import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from "./QueryRunner"
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
 import type { ConnectionPool, ISqlTypeFactory, Transaction, Request } from 'mssql'
 import { TYPES, ISOLATION_LEVEL } from 'mssql'
-import type { NativeValueType } from "../expressions/values"
-import { ManagedTransactionQueryRunner } from "./ManagedTransactionQueryRunner"
+import type { NativeValueType } from '../expressions/values.js'
+import { ManagedTransactionQueryRunner } from './ManagedTransactionQueryRunner.js'
 
 export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     readonly database: DatabaseType

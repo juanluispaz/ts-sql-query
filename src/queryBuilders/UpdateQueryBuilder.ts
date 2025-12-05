@@ -1,15 +1,19 @@
-import { isAllowedQueryColumns, JoinData, QueryColumns, SqlBuilder, ToSql, UpdateData } from "../sqlBuilders/SqlBuilder"
-import { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
-import { AlwaysIfValueSource, AnyValueSource, IAnyBooleanValueSource, isValueSource } from "../expressions/values"
-import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, CustomizableExecutableUpdateReturning, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateReturningColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, CustomizableExecutableUpdateProjectableAsNullable } from "../expressions/update"
-import ChainedError from "chained-error"
-import { attachSource } from "../utils/attachSource"
-import { from, resultType, source, type, using } from "../utils/symbols"
-import { asAlwaysIfValueSource } from "../expressions/values"
-import { __addWiths } from "../utils/ITableOrView"
-import { __getValueSourcePrivate } from "../expressions/values"
-import { __setQueryMetadata, AbstractQueryBuilder } from "./AbstractQueryBuilder"
-import { DBColumn, isColumn } from "../utils/Column"
+import type { JoinData, QueryColumns, SqlBuilder, ToSql, UpdateData } from '../sqlBuilders/SqlBuilder.js'
+import { isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
+import type { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
+import { __getTableOrViewPrivate, __isAllowed } from '../utils/ITableOrView.js'
+import type { AlwaysIfValueSource, AnyValueSource, IAnyBooleanValueSource } from '../expressions/values.js'
+import { isValueSource } from '../expressions/values.js'
+import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, CustomizableExecutableUpdateReturning, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateReturningColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, CustomizableExecutableUpdateProjectableAsNullable } from '../expressions/update.js'
+import ChainedError from 'chained-error'
+import { attachSource } from '../utils/attachSource.js'
+import { from, resultType, source, type, using } from '../utils/symbols.js'
+import { asAlwaysIfValueSource } from '../expressions/values.js'
+import { __addWiths } from '../utils/ITableOrView.js'
+import { __getValueSourcePrivate } from '../expressions/values.js'
+import { __setQueryMetadata, AbstractQueryBuilder } from './AbstractQueryBuilder.js'
+import type { DBColumn } from '../utils/Column.js'
+import { isColumn } from '../utils/Column.js'
 
 export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWiths, ToSql, UpdateExpression<any, any>, UpdateExpressionAllowingNoWhere<any, any>, ExecutableUpdate<any, any>, CustomizableExecutableUpdate<any, any>, ExecutableUpdateExpression<any, any>, ShapedExecutableUpdateExpression<any, any, any>, NotExecutableUpdateExpression<any, any>, ShapedNotExecutableUpdateExpression<any, any, any>, DynamicExecutableUpdateExpression<any, any>, UpdateData, CustomizableExecutableUpdateReturning<any, any, any, any>, ReturnableExecutableUpdate<any, any>, ExecutableUpdateReturning<any, any, any, any>, UpdateSetExpression<any, any>, ShapedUpdateSetExpression<any, any, any>, UpdateSetExpressionAllowingNoWhere<any, any>, ShapedUpdateSetExpressionAllowingNoWhere<any, any, any>, UpdateSetJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, UpdateExpressionWithoutJoin<any, any>, UpdateFromExpression<any, any>, UpdateSetJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, UpdateExpressionWithoutJoinAllowingNoWhere<any, any>, UpdateFromExpressionAllowingNoWhere<any, any>, CustomizableExecutableUpdateProjectableAsNullable<any, any, any> {
     [source]: any
@@ -55,7 +59,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
 
             let result = this.__sqlBuilder._queryRunner.executeUpdate(this.__query, this.__params).catch((e) => {
-                throw attachSource(new ChainedError(e), source)
+                throw attachSource(new ChainedError.default(e), source)
             })
             
             if (min !== undefined) {
@@ -71,7 +75,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     executeUpdateNoneOrOne(): Promise<any> {
@@ -97,7 +101,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneRow(this.__query, this.__params).then((row) => {
@@ -107,12 +111,12 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return null
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     executeUpdateOne(): Promise<any> {
@@ -139,7 +143,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneRow(this.__query, this.__params).then((row) => {
@@ -149,12 +153,12 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         throw new Error('No result returned by the database')
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     executeUpdateMany(min?: number, max?: number): Promise<any> {
@@ -183,7 +187,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return this.__transformValueFromDB(valueSource, value)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningManyRows(this.__query, this.__params).then((rows) => {
@@ -191,7 +195,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return this.__transformRow(row, index)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             }
 
@@ -209,7 +213,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     query(): string {
@@ -219,7 +223,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         try {
             this.__query = this.__sqlBuilder._buildUpdate(this, this.__params)
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
         return this.__query
     }

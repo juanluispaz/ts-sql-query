@@ -1,19 +1,22 @@
-import { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData, QueryColumns, isAllowedQueryColumns, OrderByEntry } from "../sqlBuilders/SqlBuilder"
-import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, /*SelectExpressionFromNoTable,*/ SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderableExecutableSelectExpressionWithoutWhere, OrderByExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereLimitExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, WhereableCompoundableExecutableSelectExpressionWithoutWhere, RecursivelyConnectedExecutableSelectExpression, RecursivelyConnectedExpressionWithoutSelect, RecursivelyConnectedExecutableSelectExpressionWithoutWhere, CompoundedLimitExecutableSelectExpression, CompoundedOrderedExecutableSelectExpression, LimitExecutableSelectExpression, OrderedExecutableSelectExpression, LimitExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, RecursivelyConnectedSelectWhereExpression, ConnectByExpression, OrderByExecutableSelectExpressionProjectableAsNullable, GroupByOrderByExecutableSelectExpressionProjectableAsNullable, WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable } from "../expressions/select"
-import { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, IWithView, __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import { IAnyBooleanValueSource, IBooleanValueSource, INumberValueSource, IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
-import { __addWiths, __getTableOrViewPrivate } from "../utils/ITableOrView"
-import { __getValueSourcePrivate } from "../expressions/values"
-import ChainedError from "chained-error"
-import { AggregateFunctions0ValueSource, AggregateSelectValueSource, InlineSelectValueSource, ValueSourceImpl } from "../internal/ValueSourceImpl"
-import { attachSource } from "../utils/attachSource"
-import { columnsType, resultType, type, compoundableColumns, isSelectQueryObject, source, from, using, selectColumnsType } from "../utils/symbols"
-import { asAlwaysIfValueSource } from "../expressions/values"
-import { WithViewImpl } from "../internal/WithViewImpl"
-import { createColumnsFrom } from "../internal/DBColumnImpl"
-import { View } from "../View"
-import { AbstractQueryBuilder, __setQueryMetadata } from "./AbstractQueryBuilder"
-import type { DBColumn } from "../utils/Column"
+import type { SqlBuilder, JoinData, ToSql, SelectData, CompoundOperator, CompoundSelectData, PlainSelectData, QueryColumns, OrderByEntry } from '../sqlBuilders/SqlBuilder.js'
+import { isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
+import type { SelectExpression, SelectColumns, OrderByMode, SelectExpressionSubquery, ExecutableSelectExpressionWithoutWhere, DynamicWhereExecutableSelectExpression, GroupByOrderByExecutableSelectExpression, OffsetExecutableSelectExpression, DynamicWhereExpressionWithoutSelect, /*SelectExpressionFromNoTable,*/ SelectWhereJoinExpression, DynamicOnExpression, OnExpression, SelectExpressionWithoutJoin, SelectWhereExpression, OrderByExecutableSelectExpression, GroupByOrderByHavingExecutableSelectExpression, DynamicHavingExecutableSelectExpression, GroupByOrderHavingByExpressionWithoutSelect, DynamicHavingExpressionWithoutSelect, ICompoundableSelect, CompoundableCustomizableExecutableSelectExpression, CompoundedExecutableSelectExpression, ExecutableSelect, WithableExecutableSelect, SelectCustomization, WhereableExecutableSelectExpressionWithGroupBy, DynamicWhereExecutableSelectExpressionWithGroupBy, GroupByOrderByHavingExecutableSelectExpressionWithoutWhere, DynamicHavingExecutableSelectExpressionWithoutWhere, DynamicWhereSelectExpressionWithoutSelect, CompoundableExecutableSelectExpression, CompoundedOrderByExecutableSelectExpression, CompoundedOffsetExecutableSelectExpression, CompoundedCustomizableExecutableSelect, OrderableExecutableSelectExpressionWithoutWhere, OrderByExecutableSelectExpressionWithoutWhere, OffsetExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExpressionWithoutWhere, DynamicWhereLimitExecutableSelectExpression, DynamicWhereCompoundableCustomizableExecutableSelectExpression, WithableExecutableSelectWithoutWhere, CompoundableExecutableSelectExpressionWithoutWhere, CompoundableCustomizableExecutableSelectExpressionWitoutWhere, WhereableCompoundableExecutableSelectExpressionWithoutWhere, RecursivelyConnectedExecutableSelectExpression, RecursivelyConnectedExpressionWithoutSelect, RecursivelyConnectedExecutableSelectExpressionWithoutWhere, CompoundedLimitExecutableSelectExpression, CompoundedOrderedExecutableSelectExpression, LimitExecutableSelectExpression, OrderedExecutableSelectExpression, LimitExecutableSelectExpressionWithoutWhere, OrderedExecutableSelectExpressionWithoutWhere, RecursivelyConnectedSelectWhereExpression, ConnectByExpression, OrderByExecutableSelectExpressionProjectableAsNullable, GroupByOrderByExecutableSelectExpressionProjectableAsNullable, WhereableExecutableSelectExpressionWithGroupByProjectableAsNullable } from '../expressions/select.js'
+import type { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, IWithView } from '../utils/ITableOrView.js'
+import { __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import type { IAnyBooleanValueSource, IBooleanValueSource, INumberValueSource, IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource } from '../expressions/values.js'
+import { isValueSource } from '../expressions/values.js'
+import { __addWiths, __getTableOrViewPrivate } from '../utils/ITableOrView.js'
+import { __getValueSourcePrivate } from '../expressions/values.js'
+import ChainedError from 'chained-error'
+import { AggregateFunctions0ValueSource, AggregateSelectValueSource, InlineSelectValueSource, ValueSourceImpl } from '../internal/ValueSourceImpl.js'
+import { attachSource } from '../utils/attachSource.js'
+import { columnsType, resultType, type, compoundableColumns, isSelectQueryObject, source, from, using, selectColumnsType } from '../utils/symbols.js'
+import { asAlwaysIfValueSource } from '../expressions/values.js'
+import { WithViewImpl } from '../internal/WithViewImpl.js'
+import { createColumnsFrom } from '../internal/DBColumnImpl.js'
+import { View } from '../View.js'
+import { AbstractQueryBuilder, __setQueryMetadata } from './AbstractQueryBuilder.js'
+import type { DBColumn } from '../utils/Column.js'
 
 abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, HasAddWiths, IExecutableSelectQuery<any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundedExecutableSelectExpression<any, any, any, any, any>, WithableExecutableSelect<any, any, any, any, any>, ExecutableSelect<any, any, any, any>, LimitExecutableSelectExpression<any,any,any,any, any>, OrderByExecutableSelectExpression<any,any,any,any, any>, OrderedExecutableSelectExpression<any,any,any,any, any>, OffsetExecutableSelectExpression<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpression<any, any, any, any, any>, CompoundableExecutableSelectExpression<any, any, any, any, any>, CompoundedLimitExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderByExecutableSelectExpression<any, any, any, any, any>, CompoundedOrderedExecutableSelectExpression<any, any, any, any, any>, CompoundedOffsetExecutableSelectExpression<any, any, any, any, any>, CompoundedCustomizableExecutableSelect<any, any, any, any, any>, OrderableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, WithableExecutableSelectWithoutWhere<any, any, any, any, any>, CompoundableExecutableSelectExpressionWithoutWhere<any, any, any, any, any>, CompoundableCustomizableExecutableSelectExpressionWitoutWhere<any, any, any, any, any> {
     [source]: any
@@ -63,7 +66,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
         try {
             this.__query = this.__sqlBuilder._buildSelect(this.__asSelectData(), this.__params)
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
         return this.__query
     }
@@ -93,7 +96,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeSelectOneRow(this.__query, this.__params).then((row) => {
@@ -103,12 +106,12 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
                         return null
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     executeSelectOne(): Promise<any> {
@@ -129,7 +132,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeSelectOneRow(this.__query, this.__params).then((row) => {
@@ -139,12 +142,12 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
                         throw new Error('No result returned by the database')
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     __executeSelectMany(source: Error): Promise<any> {
@@ -167,7 +170,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
                         return this.__transformValueFromDB(valueSource, value)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeSelectManyRows(this.__query, this.__params).then((rows) => {
@@ -175,12 +178,12 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
                         return this.__transformRow(row, index)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     executeSelectMany(): Promise<any> {
@@ -198,10 +201,10 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
             return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(query, params).then((value) => {
                 return this.__transformValueFromDB(countAll, value, undefined, undefined, true)
             }).catch((e) => {
-                throw attachSource(new ChainedError(e), source)
+                throw attachSource(new ChainedError.default(e), source)
             })
         } catch (e) {
-            throw attachSource(new ChainedError(e), source)
+            throw attachSource(new ChainedError.default(e), source)
         }
     }
     executeSelectPage(extras?: any) {

@@ -1,4 +1,4 @@
-import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts } from "./QueryRunner"
+import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts } from './QueryRunner.js'
 
 export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     readonly queryRunner: T

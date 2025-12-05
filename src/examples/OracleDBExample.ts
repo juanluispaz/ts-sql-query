@@ -11,12 +11,12 @@
   */
 
 import * as oracledb from 'oracledb'
-import { Table } from "../Table";
-import { assertEquals } from "./assertEquals";
-import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
-import { OracleConnection } from '../connections/OracleConnection';
-import { OracleDBQueryRunner } from '../queryRunners/OracleDBQueryRunner';
-import { CustomBooleanTypeAdapter } from "../TypeAdapter";
+import { Table } from '../Table.js'
+import { assertEquals } from './assertEquals.js'
+import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
+import { OracleConnection } from '../connections/OracleConnection.js'
+import { OracleDBQueryRunner } from '../queryRunners/OracleDBQueryRunner.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends OracleConnection<'DBConnection'> {
     increment(i: number) {

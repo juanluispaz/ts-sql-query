@@ -2,14 +2,14 @@
  * docker run --name ts-sql-query-sqlserver -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=yourStrong(!)Password' -e 'MSSQL_PID=Express' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2017-latest-ubuntu
  */
 
-import { Table } from "../Table"
-import { assertEquals } from "./assertEquals"
-import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner"
-import { SqlServerConnection } from "../connections/SqlServerConnection"
-import { PrismaClient } from './prisma/generated/sqlserver'
-import { PrismaQueryRunner } from "../queryRunners/PrismaQueryRunner"
-import { Values } from "../Values"
-import { CustomBooleanTypeAdapter } from "../TypeAdapter";
+import { Table } from '../Table.js'
+import { assertEquals } from './assertEquals.js'
+import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
+import { SqlServerConnection } from '../connections/SqlServerConnection.js'
+import { PrismaClient } from './prisma/generated/sqlserver/client.js'
+import { PrismaQueryRunner } from '../queryRunners/PrismaQueryRunner.js'
+import { Values } from '../Values.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends SqlServerConnection<'DBConnection'> {
 

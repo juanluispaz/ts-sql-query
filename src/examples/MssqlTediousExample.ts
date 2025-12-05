@@ -4,13 +4,13 @@
  */
 
 
-import { Table } from "../Table";
-import { assertEquals } from "./assertEquals";
-import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
-import { SqlServerConnection } from "../connections/SqlServerConnection";
-import { MssqlPoolPromiseQueryRunner } from '../queryRunners/MssqlPoolPromiseQueryRunner';
+import { Table } from '../Table.js'
+import { assertEquals } from './assertEquals.js'
+import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
+import { SqlServerConnection } from '../connections/SqlServerConnection.js'
+import { MssqlPoolPromiseQueryRunner } from '../queryRunners/MssqlPoolPromiseQueryRunner.js'
 import { ConnectionPool } from 'mssql'
-import { CustomBooleanTypeAdapter } from "../TypeAdapter";
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends SqlServerConnection<'DBConnection'> {
     increment(i: number) {

@@ -1,14 +1,14 @@
-import type { InsertShapeContent, MandatoryInsertSetsContent, MandatoryInsertValues, OnConflictUpdateSetsContent, OnConflictUpdateValues } from "../expressions/insert"
-import type { UpdateValues, UpdateShape, UpdateSetsContent } from "../expressions/update"
-import type { ForUseInLeftJoin, HasSource, ITable, ITableOrView } from "../utils/ITableOrView"
-import type { WritableDBColumn, WritableDBColumnWithDefaultValue, WritableDBPrimaryKeyColumn, WritableDBPrimaryKeyColumnWithoutDefaultValue } from "../utils/Column"
-import type { AnyValueSource } from "../expressions/values"
-import type { FromRef, ResolveShape } from "../utils/tableOrViewUtils"
-import type { source } from "../utils/symbols"
-import type { NAlias, NAsLeftJoin, NMaybyAliased, NNoTableOrViewRequiredFrom, NSource } from "../utils/sourceName"
-import type { DataToProjectOfAny } from "../complexProjections/dataToProject"
-import type { ResultObjectValues } from "../complexProjections/resultWithOptionalsAsUndefined"
-import type { ResultObjectValuesProjectedAsNullable } from "../complexProjections/resultWithOptionalsAsNull"
+import type { InsertShapeContent, MandatoryInsertSetsContent, MandatoryInsertValues, OnConflictUpdateSetsContent, OnConflictUpdateValues } from '../expressions/insert.js'
+import type { UpdateValues, UpdateShape, UpdateSetsContent } from '../expressions/update.js'
+import type { ForUseInLeftJoin, HasSource, ITable, ITableOrView } from '../utils/ITableOrView.js'
+import type { WritableDBColumn, WritableDBColumnWithDefaultValue, WritableDBPrimaryKeyColumn, WritableDBPrimaryKeyColumnWithoutDefaultValue } from '../utils/Column.js'
+import type { AnyValueSource } from '../expressions/values.js'
+import type { FromRef, ResolveShape } from '../utils/tableOrViewUtils.js'
+import type { source } from '../utils/symbols.js'
+import type { NAlias, NAsLeftJoin, NMaybyAliased, NNoTableOrViewRequiredFrom, NSource } from '../utils/sourceName.js'
+import type { DataToProjectOfAny } from '../complexProjections/dataToProject.js'
+import type { ResultObjectValues } from '../complexProjections/resultWithOptionalsAsUndefined.js'
+import type { ResultObjectValuesProjectedAsNullable } from '../complexProjections/resultWithOptionalsAsNull.js'
 
 type Selectable = DataToProjectOfAny
 

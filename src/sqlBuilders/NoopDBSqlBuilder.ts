@@ -1,6 +1,6 @@
-import type { TypeAdapter } from "../TypeAdapter"
-import { ValueType } from "../expressions/values"
-import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
+import type { TypeAdapter } from '../TypeAdapter.js'
+import type { ValueType } from '../expressions/values.js'
+import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
 
 export class NoopDBSqlBuilder extends AbstractSqlBuilder {
     noopDB: true = true

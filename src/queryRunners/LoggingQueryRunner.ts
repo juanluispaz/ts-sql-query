@@ -1,5 +1,5 @@
-import type { BeginTransactionOpts, CommitOpts, QueryRunner, QueryType, RollbackOpts } from "./QueryRunner"
-import { ChainedQueryRunner } from "./ChainedQueryRunner"
+import type { BeginTransactionOpts, CommitOpts, QueryRunner, QueryType, RollbackOpts } from './QueryRunner.js'
+import { ChainedQueryRunner } from './ChainedQueryRunner.js'
 
 export interface QueryLogger {
     onQuery?: (queryType: QueryType, query: string, params: any[], timestamps: { startedAt: bigint }) => void;

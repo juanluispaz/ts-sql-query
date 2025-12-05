@@ -1,7 +1,8 @@
-import type { TypeAdapter } from "../TypeAdapter"
-import { Argument, AnyValueSource, OptionalType, isValueSource, ValueType, __getValueSourcePrivate, __mergeOptional } from "../expressions/values"
-import { FragmentValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop } from "../internal/ValueSourceImpl"
-import { SqlBuilder } from "../sqlBuilders/SqlBuilder"
+import type { TypeAdapter } from '../TypeAdapter.js'
+import type { AnyValueSource, OptionalType, ValueType } from '../expressions/values.js'
+import { Argument, isValueSource, __getValueSourcePrivate, __mergeOptional } from '../expressions/values.js'
+import { FragmentValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop } from '../internal/ValueSourceImpl.js'
+import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 
 export class FragmentQueryBuilder {
     __type: ValueType

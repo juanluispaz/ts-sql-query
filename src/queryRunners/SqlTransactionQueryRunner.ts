@@ -1,5 +1,5 @@
-import { ManagedTransactionQueryRunner } from "./ManagedTransactionQueryRunner"
-import { BeginTransactionOpts, CommitOpts, RollbackOpts } from "./QueryRunner"
+import { ManagedTransactionQueryRunner } from './ManagedTransactionQueryRunner.js'
+import type { BeginTransactionOpts, CommitOpts, RollbackOpts } from './QueryRunner.js'
 
 export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryRunner {
     private transactionLevel = 0

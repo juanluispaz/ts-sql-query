@@ -1,9 +1,10 @@
-import { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from "../expressions/values"
-import { SqlBuilder, ToSql } from "../sqlBuilders/SqlBuilder"
-import { DBColumn } from "../utils/Column"
-import { AnyTableOrView, HasAddWiths, HasIsValue, IWithView, __addWiths, __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from "../utils/ITableOrView"
-import type { RawFragment } from "../utils/RawFragment"
-import { source, type } from "../utils/symbols"
+import type { AnyValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery } from '../expressions/values.js'
+import type { SqlBuilder, ToSql } from '../sqlBuilders/SqlBuilder.js'
+import type { DBColumn } from '../utils/Column.js'
+import type { AnyTableOrView, HasAddWiths, HasIsValue, IWithView } from '../utils/ITableOrView.js'
+import { __addWiths, __getOldValues, __getValuesForInsert, __isAllowed, __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
+import type { RawFragment } from '../utils/RawFragment.js'
+import { source, type } from '../utils/symbols.js'
 
 export class RawFragmentImpl implements RawFragment<any>, HasAddWiths, ToSql {
     [type]!: "rawFragment"

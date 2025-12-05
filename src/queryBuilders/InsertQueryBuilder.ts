@@ -1,15 +1,19 @@
-import { SqlBuilder, InsertData, SelectData, ToSql, isAllowedQueryColumns, QueryColumns } from "../sqlBuilders/SqlBuilder"
-import{ AnyTableOrView, HasAddWiths, HasIsValue, ITable, IWithView, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
-import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression, ShapedMissingKeysInsertExpression, MissingKeysMultipleInsertExpression, ShapedMissingKeysMultipleInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertReturningColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional, ExecutableMultipleInsertExpression, ShapedExecutableInsertExpression, ShapedExecutableMultipleInsertExpression, ShapedInsertExpression, ShapedInsertOnConflictSetsExpression, ComposableCustomizableExecutableInsertProjectableAsNullable, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable } from "../expressions/insert"
-import { DBColumn, isColumn } from "../utils/Column"
-import { __getColumnOfObject, __getColumnPrivate } from "../utils/Column"
-import ChainedError from "chained-error"
-import { attachSource } from "../utils/attachSource"
-import { from, resultType, source, type, using } from "../utils/symbols"
-import { AlwaysIfValueSource, AnyValueSource, asAlwaysIfValueSource, IExecutableSelectQuery, IAnyBooleanValueSource, IStringValueSource, isValueSource, __getValueSourcePrivate } from "../expressions/values"
-import { __addWiths } from "../utils/ITableOrView"
-import { AbstractQueryBuilder, __setQueryMetadata } from "./AbstractQueryBuilder"
-import type { RawFragment } from "../utils/RawFragment"
+import type { SqlBuilder, InsertData, SelectData, ToSql, QueryColumns } from '../sqlBuilders/SqlBuilder.js'
+import { isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
+import type { AnyTableOrView, HasAddWiths, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
+import { __getTableOrViewPrivate, __isAllowed } from '../utils/ITableOrView.js'
+import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, ExecutableInsertReturning, CustomizableExecutableMultipleInsert, CustomizableExecutableInsertFromSelect,/*MissingKeysInsertExpression, ShapedMissingKeysInsertExpression, MissingKeysMultipleInsertExpression, ShapedMissingKeysMultipleInsertExpression*/ InsertCustomization, CustomizableExecutableInsertReturningLastInsertedId, CustomizableExecutableSimpleInsert, ComposableCustomizableExecutableInsert, ExecutableInsertReturningLastInsertedId, InsertReturningColumns, CustomizableExecutableInsert, OnConflictDoMultipleInsert, InsertOnConflictSetsExpression, DynamicOnConflictWhereExpression, OnConflictOnColumnWhere, CustomizableExecutableInsertFromSelectOnConflict, CustomizableExecutableSimpleInsertOnConflict, OnConflictDoSimpleInsert, CustomizableExecutableMultipleInsertOnConfict, CustomizableExecutableInsertFromSelectOnConflictOptional, CustomizableExecutableSimpleInsertOnConflictOptional, CustomizableExecutableMultipleInsertOnConfictOptional, ExecutableMultipleInsertExpression, ShapedExecutableInsertExpression, ShapedExecutableMultipleInsertExpression, ShapedInsertExpression, ShapedInsertOnConflictSetsExpression, ComposableCustomizableExecutableInsertProjectableAsNullable, ComposableCustomizableExecutableInsertOptionalProjectableAsNullable } from '../expressions/insert.js'
+import type { DBColumn } from '../utils/Column.js'
+import { isColumn } from '../utils/Column.js'
+import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import ChainedError from 'chained-error'
+import { attachSource } from '../utils/attachSource.js'
+import { from, resultType, source, type, using } from '../utils/symbols.js'
+import type { AlwaysIfValueSource, AnyValueSource, IExecutableSelectQuery, IAnyBooleanValueSource, IStringValueSource } from '../expressions/values.js'
+import { asAlwaysIfValueSource, isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
+import { __addWiths } from '../utils/ITableOrView.js'
+import { AbstractQueryBuilder, __setQueryMetadata } from './AbstractQueryBuilder.js'
+import type { RawFragment } from '../utils/RawFragment.js'
 
 // one implement ommited intentionally to don't confuse TypeScript
 
@@ -69,7 +73,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 }
             } else if (!idColumn) {
                 result = this.__sqlBuilder._queryRunner.executeInsert(this.__query, this.__params).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else if (!multiple && !this.__from) {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningLastInsertedId(this.__query, this.__params).then((value) => {
@@ -93,7 +97,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return result
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningMultipleLastInsertedId(this.__query, this.__params).then((rows) => {
@@ -119,7 +123,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         })
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             }
             if (min !== undefined) {
@@ -147,7 +151,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     executeInsertNoneOrOne(): Promise<any> {
@@ -168,7 +172,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneRow(this.__query, this.__params).then((row) => {
@@ -178,12 +182,12 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return null
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     executeInsertOne(): Promise<any> {
@@ -204,7 +208,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneRow(this.__query, this.__params).then((row) => {
@@ -214,12 +218,12 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         throw new Error('No result returned by the database')
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     executeInsertMany(min?: number, max?: number): Promise<any> {
@@ -243,7 +247,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return this.__transformValueFromDB(valueSource, value)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningManyRows(this.__query, this.__params).then((rows) => {
@@ -251,7 +255,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return this.__transformRow(row, index)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             }
             if (min !== undefined) {
@@ -268,7 +272,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     query(): string {
@@ -287,7 +291,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 this.__query = this.__sqlBuilder._buildInsert(this, this.__params)
             }
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
         return this.__query
     }

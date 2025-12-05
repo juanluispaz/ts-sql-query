@@ -1,7 +1,7 @@
-import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { ConnectionPool, Transaction } from 'mssql'
-import { MssqlPoolQueryRunner } from "./MssqlPoolQueryRunner"
-import { ManagedTransactionPoolQueryRunner } from "./ManagedTransactionPoolQueryRunner"
+import { MssqlPoolQueryRunner } from './MssqlPoolQueryRunner.js'
+import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 
 export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType

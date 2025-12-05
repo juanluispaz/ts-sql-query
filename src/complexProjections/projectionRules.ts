@@ -1,6 +1,6 @@
-import type { IValueSource, OptionalType, ValueSourceOf } from "../expressions/values"
-import type { RequiredKeys } from "../utils/objectUtils"
-import type { NAnyLeftJoin, NNoTableOrViewRequiredFrom } from "../utils/sourceName"
+import type { IValueSource, OptionalType, ValueSourceOf } from '../expressions/values.js'
+import type { RequiredKeys } from '../utils/objectUtils.js'
+import type { NAnyLeftJoin, NNoTableOrViewRequiredFrom } from '../utils/sourceName.js'
 
 /*
  * NOTE:

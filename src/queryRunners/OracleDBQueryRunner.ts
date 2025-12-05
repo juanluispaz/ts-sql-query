@@ -1,7 +1,7 @@
-import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from "./QueryRunner"
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
 import type { Connection } from 'oracledb'
 import { OUT_FORMAT_OBJECT, BIND_OUT } from 'oracledb'
-import { DelegatedSetTransactionQueryRunner } from "./DelegatedSetTransactionQueryRunner"
+import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 
 export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType

@@ -1,11 +1,14 @@
-import { ToSql, SelectData, InsertData, UpdateData, FlatQueryColumns, flattenQueryColumns } from "./SqlBuilder"
-import type { TypeAdapter } from "../TypeAdapter"
-import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __isUuidValueSource, __isLocalDateValueSource, __isLocalTimeValueSource, __isLocalDateTimeValueSource, ValueType, __isUuidValueType } from "../expressions/values"
-import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { __getValueSourcePrivate } from "../expressions/values"
-import { DBColumn, isColumn } from "../utils/Column"
-import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration"
-import { AnyTableOrView } from "../utils/ITableOrView"
+import type { ToSql, SelectData, InsertData, UpdateData, FlatQueryColumns } from './SqlBuilder.js'
+import { flattenQueryColumns } from './SqlBuilder.js'
+import type { TypeAdapter } from '../TypeAdapter.js'
+import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
+import { isValueSource, __isUuidValueSource, __isLocalDateValueSource, __isLocalTimeValueSource, __isLocalDateTimeValueSource, __isUuidValueType } from '../expressions/values.js'
+import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
+import { __getValueSourcePrivate } from '../expressions/values.js'
+import type { DBColumn } from '../utils/Column.js'
+import { isColumn } from '../utils/Column.js'
+import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
+import type { AnyTableOrView } from '../utils/ITableOrView.js'
 
 export class SqliteSqlBuilder extends AbstractSqlBuilder {
     sqlite: true = true

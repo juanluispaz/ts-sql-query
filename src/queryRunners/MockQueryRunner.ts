@@ -1,4 +1,4 @@
-import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, QueryType, RollbackOpts } from "./QueryRunner"
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, QueryType, RollbackOpts } from './QueryRunner.js'
 
 export type MockQueryExecutor = (type: QueryType | 'isTransactionActive', query: string, params: any[], index: number) => any
 

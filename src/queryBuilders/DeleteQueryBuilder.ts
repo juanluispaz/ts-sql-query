@@ -1,14 +1,17 @@
-import { SqlBuilder, DeleteData, JoinData, ToSql, isAllowedQueryColumns, QueryColumns } from "../sqlBuilders/SqlBuilder"
-import { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView, __addWiths, __getTableOrViewPrivate, __isAllowed } from "../utils/ITableOrView"
-import { IAnyBooleanValueSource, AnyValueSource, AlwaysIfValueSource, isValueSource } from "../expressions/values"
-import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteReturningColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, CustomizableExecutableDeleteProjectableAsNullable } from "../expressions/delete"
-import ChainedError from "chained-error"
-import { attachSource } from "../utils/attachSource"
-import { from, resultType, source, type, using } from "../utils/symbols"
-import { asAlwaysIfValueSource } from "../expressions/values"
-import { __getValueSourcePrivate } from "../expressions/values"
-import { AbstractQueryBuilder, __setQueryMetadata } from "./AbstractQueryBuilder"
-import type { DBColumn } from "../utils/Column"
+import type { SqlBuilder, DeleteData, JoinData, ToSql, QueryColumns } from '../sqlBuilders/SqlBuilder.js'
+import { isAllowedQueryColumns } from '../sqlBuilders/SqlBuilder.js'
+import type { AnyTableOrView, ForUseInLeftJoin, HasAddWiths, HasIsValue, ITable, IWithView } from '../utils/ITableOrView.js'
+import { __addWiths, __getTableOrViewPrivate, __isAllowed } from '../utils/ITableOrView.js'
+import type { IAnyBooleanValueSource, AnyValueSource, AlwaysIfValueSource } from '../expressions/values.js'
+import { isValueSource } from '../expressions/values.js'
+import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteReturningColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, CustomizableExecutableDeleteProjectableAsNullable } from '../expressions/delete.js'
+import ChainedError from 'chained-error'
+import { attachSource } from '../utils/attachSource.js'
+import { from, resultType, source, type, using } from '../utils/symbols.js'
+import { asAlwaysIfValueSource } from '../expressions/values.js'
+import { __getValueSourcePrivate } from '../expressions/values.js'
+import { AbstractQueryBuilder, __setQueryMetadata } from './AbstractQueryBuilder.js'
+import type { DBColumn } from '../utils/Column.js'
 
 export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWiths, ToSql, DeleteExpression<any, any>, DeleteExpressionAllowingNoWhere<any, any>, CustomizableExecutableDelete<any, any>, ExecutableDelete<any, any>, DynamicExecutableDeleteExpression<any, any>, DeleteData, ComposableCustomizableExecutableDelete<any, any, any, any>, ReturnableExecutableDelete<any, any>, ExecutableDeleteReturning<any, any, any, any>, DeleteWhereExpression<any, any>, DeleteWhereExpressionAllowingNoWhere<any, any>, DeleteWhereJoinExpression<any, any>, DynamicOnExpression<any, any>, OnExpression<any, any>, DeleteExpressionWithoutJoin<any, any>, DeleteUsingExpression<any, any>, DeleteWhereJoinExpressionAllowingNoWhere<any, any>, DynamicOnExpressionAllowingNoWhere<any, any>, OnExpressionAllowingNoWhere<any, any>, DeleteExpressionWithoutJoinAllowingNoWhere<any, any>, DeleteUsingExpressionAllowingNoWhere<any, any>, CustomizableExecutableDeleteProjectableAsNullable<any, any, any> {
     [source]: any
@@ -46,7 +49,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             let result = this.__sqlBuilder._queryRunner.executeDelete(this.__query, this.__params).catch((e) => {
-                throw attachSource(new ChainedError(e), source)
+                throw attachSource(new ChainedError.default(e), source)
             })
             if (min !== undefined) {
                 result = result.then((count) => {
@@ -61,7 +64,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     executeDeleteNoneOrOne(): Promise<any> {
@@ -82,7 +85,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneRow(this.__query, this.__params).then((row) => {
@@ -92,12 +95,12 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return null
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     executeDeleteOne(): Promise<any> {
@@ -118,7 +121,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneRow(this.__query, this.__params).then((row) => {
@@ -128,12 +131,12 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         throw new Error('No result returned by the database')
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     executeDeleteMany(min?: number, max?: number): Promise<any> {
@@ -157,7 +160,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return this.__transformValueFromDB(valueSource, value)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningManyRows(this.__query, this.__params).then((rows) => {
@@ -165,7 +168,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return this.__transformRow(row, index)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError(e), source)
+                    throw attachSource(new ChainedError.default(e), source)
                 })
             }
             if (min !== undefined) {
@@ -182,7 +185,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             return result
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     query(): string {
@@ -193,7 +196,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         try {
             this.__query = this.__sqlBuilder._buildDelete(this, this.__params)
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
         return this.__query
     }

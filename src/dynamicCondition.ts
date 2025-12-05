@@ -1,11 +1,11 @@
-import { isValueSource } from './expressions/values'
-import type { DataToProjectOfAny } from './complexProjections/dataToProject'
-import type { PickablePaths, PickWitOthersAsOptionals, PickingAsBooleanObjectMap, PickMandatoryOnly } from './complexProjections/picking'
-import type { ResultObjectValues } from './complexProjections/resultWithOptionalsAsUndefined'
-import type { ResultObjectValuesProjectedAsNullable } from './complexProjections/resultWithOptionalsAsNull'
-import type { Expand } from './utils/objectUtils'
+import { isValueSource } from './expressions/values.js'
+import type { DataToProjectOfAny } from './complexProjections/dataToProject.js'
+import type { PickablePaths, PickWitOthersAsOptionals, PickingAsBooleanObjectMap, PickMandatoryOnly } from './complexProjections/picking.js'
+import type { ResultObjectValues } from './complexProjections/resultWithOptionalsAsUndefined.js'
+import type { ResultObjectValuesProjectedAsNullable } from './complexProjections/resultWithOptionalsAsNull.js'
+import type { Expand } from './utils/objectUtils.js'
 
-export type { DynamicCondition } from './expressions/dynamicConditionUsingFilters'
+export type { DynamicCondition } from './expressions/dynamicConditionUsingFilters.js'
 
 export type Pickable = DataToProjectOfAny
 export type DynamicPick<TYPE extends Pickable, MANDATORY extends PickablePaths<TYPE> = never> = Expand<PickingAsBooleanObjectMap<TYPE, MANDATORY>>

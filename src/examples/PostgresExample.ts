@@ -3,14 +3,14 @@
  * docker run --name ts-sql-query-postgres -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
  */
 
-import postgres from 'postgres';
-import { PostgreSqlConnection } from "../connections/PostgreSqlConnection";
-import { Table } from "../Table";
-import { assertEquals } from "./assertEquals";
-import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
-import { Values } from '../Values';
-import { PostgresQueryRunner } from '../queryRunners/PostgresQueryRunner';
-import { CustomBooleanTypeAdapter } from "../TypeAdapter";
+import postgres from 'postgres'
+import { PostgreSqlConnection } from '../connections/PostgreSqlConnection.js'
+import { Table } from '../Table.js'
+import { assertEquals } from './assertEquals.js'
+import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
+import { Values } from '../Values.js'
+import { PostgresQueryRunner } from '../queryRunners/PostgresQueryRunner.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     increment(i: number) {

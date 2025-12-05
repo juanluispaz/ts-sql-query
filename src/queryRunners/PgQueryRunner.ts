@@ -1,6 +1,6 @@
-import type { DatabaseType } from "./QueryRunner"
+import type { DatabaseType } from './QueryRunner.js'
 import type { ClientBase } from 'pg'
-import { SqlTransactionQueryRunner } from "./SqlTransactionQueryRunner"
+import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 
 export interface PgQueryRunnerConfig {
     allowNestedTransactions?: boolean

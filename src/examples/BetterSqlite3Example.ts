@@ -3,17 +3,17 @@
  * npm install better-sqlite3
  */
 
-import { Table } from "../Table";
-import { assertEquals } from "./assertEquals";
-import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
-import { SqliteConnection } from "../connections/SqliteConnection";
-import { BetterSqlite3QueryRunner } from "../queryRunners/BetterSqlite3QueryRunner";
+import { Table } from '../Table.js'
+import { assertEquals } from './assertEquals.js'
+import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
+import { SqliteConnection } from '../connections/SqliteConnection.js'
+import { BetterSqlite3QueryRunner } from '../queryRunners/BetterSqlite3QueryRunner.js'
 import Database from 'better-sqlite3'
-import { fromBinaryUUID, toBinaryUUID } from "binary-uuid";
-import { v4 as uuidv4 } from "uuid";
-import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration";
-import { Values } from "../Values";
-import { CustomBooleanTypeAdapter } from "../TypeAdapter";
+import { fromBinaryUUID, toBinaryUUID } from 'binary-uuid'
+import { v4 as uuidv4 } from 'uuid'
+import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
+import { Values } from '../Values.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected compatibilityMode = false

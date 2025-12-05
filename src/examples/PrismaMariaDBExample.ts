@@ -3,13 +3,13 @@
  * 'test' databade must exists
  */
 
-import { Table } from "../Table"
-import { assertEquals } from "./assertEquals"
-import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner"
-import { MariaDBConnection } from "../connections/MariaDBConnection"
-import { PrismaClient } from './prisma/generated/mariadb'
-import { PrismaQueryRunner } from "../queryRunners/PrismaQueryRunner"
-import { CustomBooleanTypeAdapter } from "../TypeAdapter";
+import { Table } from '../Table.js'
+import { assertEquals } from './assertEquals.js'
+import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
+import { MariaDBConnection } from '../connections/MariaDBConnection.js'
+import { PrismaClient } from './prisma/generated/mariadb/client.js'
+import { PrismaQueryRunner } from '../queryRunners/PrismaQueryRunner.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends MariaDBConnection<'DBConnection'> {
     protected uuidStrategy = 'string' as const

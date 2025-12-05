@@ -2,13 +2,13 @@
  * docker run --name ts-sql-query-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=my-secret-pw -d mysql
  */
 
-import { Table } from "../Table";
-import { assertEquals } from "./assertEquals";
-import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
-import { MySqlConnection } from '../connections/MySqlConnection';
-import { PrismaClient } from './prisma/generated/mysql'
-import { PrismaQueryRunner } from "../queryRunners/PrismaQueryRunner"
-import { CustomBooleanTypeAdapter } from "../TypeAdapter";
+import { Table } from '../Table.js'
+import { assertEquals } from './assertEquals.js'
+import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
+import { MySqlConnection } from '../connections/MySqlConnection.js'
+import { PrismaClient } from './prisma/generated/mysql/client.js'
+import { PrismaQueryRunner } from '../queryRunners/PrismaQueryRunner.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends MySqlConnection<'DBConnection'> {
     // increment(i: number) {

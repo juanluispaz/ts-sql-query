@@ -1,8 +1,8 @@
-import type { NConnection } from "../utils/sourceName"
-import type { QueryRunner } from "../queryRunners/QueryRunner"
-import { OracleSqlBuilder } from "../sqlBuilders/OracleSqlBuilder"
-import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
-import { TransactionIsolationLevel } from "./AbstractConnection"
+import type { NConnection } from '../utils/sourceName.js'
+import type { QueryRunner } from '../queryRunners/QueryRunner.js'
+import { OracleSqlBuilder } from '../sqlBuilders/OracleSqlBuilder.js'
+import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
+import type { TransactionIsolationLevel } from './AbstractConnection.js'
 
 export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'oracle', NAME>> {
 

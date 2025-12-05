@@ -1,7 +1,7 @@
-import type { Sequence } from "../expressions/sequence"
-import type { TypeAdapter } from "../TypeAdapter"
-import { SequenceValueSource } from "../internal/ValueSourceImpl"
-import { ValueType } from "../expressions/values"
+import type { Sequence } from '../expressions/sequence.js'
+import type { TypeAdapter } from '../TypeAdapter.js'
+import { SequenceValueSource } from '../internal/ValueSourceImpl.js'
+import type { ValueType } from '../expressions/values.js'
 
 export class SequenceQueryBuilder implements Sequence<any> {
     __sequenceName: string

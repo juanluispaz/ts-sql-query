@@ -5,6 +5,7 @@
     "license": "MIT",
     "author": "juanluispaz",
     "readmeFilename": "README.md",
+    "type": "module",
     "keywords": [
         "jooq",
         "querydsl",

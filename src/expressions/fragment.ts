@@ -1,6 +1,6 @@
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, RemapValueSourceType, TypeOfArgument, MapArgumentToValueSource, ArgForFn, IfValueSource, ArgForBuilderIfValue, IAnyBooleanValueSource, BigintValueSource, OptionalType, ValueSourceOf, UuidValueSource, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, IValueSource, RemapValueSourceTypeWithOptionalType, OptionalTypeOfValue, ArgBaseTypeForFn, MergeOptionalUnion } from "../expressions/values"
-import type { optionalType, source } from "../utils/symbols"
-import type { NSource } from "../utils/sourceName"
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, RemapValueSourceType, TypeOfArgument, MapArgumentToValueSource, ArgForFn, IfValueSource, ArgForBuilderIfValue, IAnyBooleanValueSource, BigintValueSource, OptionalType, ValueSourceOf, UuidValueSource, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, IValueSource, RemapValueSourceTypeWithOptionalType, OptionalTypeOfValue, ArgBaseTypeForFn, MergeOptionalUnion } from '../expressions/values.js'
+import type { optionalType, source } from '../utils/symbols.js'
+import type { NSource } from '../utils/sourceName.js'
 
 export interface BooleanFragmentExpression</*in|out*/ NO_SOURCE extends NSource, /*in|out*/ OPTIONAL_TYPE extends OptionalType> {
     sql(sql: TemplateStringsArray):  BooleanValueSource<NO_SOURCE, OPTIONAL_TYPE>

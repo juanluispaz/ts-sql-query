@@ -1,4 +1,4 @@
-import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, RollbackOpts } from "./QueryRunner"
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, RollbackOpts } from './QueryRunner.js'
 
 export interface NoopQueryRunnerConfig {
     database?: DatabaseType

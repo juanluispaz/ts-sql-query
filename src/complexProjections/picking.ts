@@ -1,5 +1,5 @@
-import type { AnyValueSource } from "../expressions/values"
-import type { Expand, RequiredKeys, UsableKeyOf } from "../utils/objectUtils"
+import type { AnyValueSource } from '../expressions/values.js'
+import type { Expand, RequiredKeys, UsableKeyOf } from '../utils/objectUtils.js'
 
 type ExtractFirstPropertyInPath<PATH extends string> = PATH extends `${infer FIRST}.${any}` ? FIRST : never
 type UnprefixPath<NAME extends string, PREFIX extends string> = NAME extends `${PREFIX}.${infer R}` ? R : never

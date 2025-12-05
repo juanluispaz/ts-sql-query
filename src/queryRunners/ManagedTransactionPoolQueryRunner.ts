@@ -1,5 +1,5 @@
-import { AbstractPoolQueryRunner } from "./AbstractPoolQueryRunner";
-import type { BeginTransactionOpts, QueryRunner } from "./QueryRunner";
+import { AbstractPoolQueryRunner } from './AbstractPoolQueryRunner.js'
+import type { BeginTransactionOpts, QueryRunner } from './QueryRunner.js'
 
 export abstract class ManagedTransactionPoolQueryRunner extends AbstractPoolQueryRunner {
     executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {

@@ -1,8 +1,8 @@
-import type { AnyValueSource, ValueSourceOf } from "../expressions/values"
-import { AnyForUseInLeftJoin, AnyTableOrView, ForUseInLeftJoin, ITableOrView } from '../utils/ITableOrView'
-import type { UsableKeyOf } from '../utils/objectUtils'
-import type { NSource } from "../utils/sourceName"
-import type { source } from "../utils/symbols"
+import type { AnyValueSource, ValueSourceOf } from '../expressions/values.js'
+import type { AnyForUseInLeftJoin, AnyTableOrView, ForUseInLeftJoin, ITableOrView } from '../utils/ITableOrView.js'
+import type { UsableKeyOf } from '../utils/objectUtils.js'
+import type { NSource } from '../utils/sourceName.js'
+import type { source } from '../utils/symbols.js'
 
 /*
  * This contains the types needed a base for the functions that receves a

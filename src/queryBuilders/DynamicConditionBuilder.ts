@@ -1,7 +1,8 @@
-import type { DynamicConditionExpression, DynamicFilter, Filterable } from "../expressions/dynamicConditionUsingFilters";
-import { BooleanValueSource, isValueSource, __getValueSourcePrivate, __isUuidValueSource, __isBooleanValueSource } from "../expressions/values";
-import { SqlOperationValueSourceIfValueAlwaysNoop } from "../internal/ValueSourceImpl";
-import type { QueryColumns, SqlBuilder } from "../sqlBuilders/SqlBuilder";
+import type { DynamicConditionExpression, DynamicFilter, Filterable } from '../expressions/dynamicConditionUsingFilters.js'
+import type { BooleanValueSource } from '../expressions/values.js'
+import { isValueSource, __getValueSourcePrivate, __isUuidValueSource, __isBooleanValueSource } from '../expressions/values.js'
+import { SqlOperationValueSourceIfValueAlwaysNoop } from '../internal/ValueSourceImpl.js'
+import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
 
 export class DynamicConditionBuilder implements DynamicConditionExpression<any, any> {
     sqlBuilder: SqlBuilder

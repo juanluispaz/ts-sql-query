@@ -1,7 +1,7 @@
-import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, PoolClient } from 'pg'
-import { PgQueryRunner } from "./PgQueryRunner"
-import { ManagedTransactionPoolQueryRunner } from "./ManagedTransactionPoolQueryRunner"
+import { PgQueryRunner } from './PgQueryRunner.js'
+import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 
 export interface PgPoolQueryRunnerConfig {
     allowNestedTransactions?: boolean

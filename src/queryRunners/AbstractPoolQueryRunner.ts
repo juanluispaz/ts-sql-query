@@ -1,4 +1,4 @@
-import { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from "./QueryRunner"
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from './QueryRunner.js'
 
 export abstract class AbstractPoolQueryRunner implements QueryRunner {
     abstract readonly database: DatabaseType

@@ -1,8 +1,8 @@
-import type { NConnection } from "../utils/sourceName"
-import type { QueryRunner } from "../queryRunners/QueryRunner"
-import { SqliteSqlBuilder } from "../sqlBuilders/SqliteSqlBuilder"
-import { AbstractConnection } from "./AbstractConnection"
-import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "./SqliteConfiguration"
+import type { NConnection } from '../utils/sourceName.js'
+import type { QueryRunner } from '../queryRunners/QueryRunner.js'
+import { SqliteSqlBuilder } from '../sqlBuilders/SqliteSqlBuilder.js'
+import { AbstractConnection } from './AbstractConnection.js'
+import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from './SqliteConfiguration.js'
 
 export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<NConnection<'sqlite', NAME>> {
 

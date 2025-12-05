@@ -1,6 +1,6 @@
-import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from "./QueryRunner"
-import type { Connection, QueryError, ResultSetHeader, RowDataPacket } from "mysql2"
-import { DelegatedSetTransactionQueryRunner } from "./DelegatedSetTransactionQueryRunner"
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
+import type { Connection, QueryError, ResultSetHeader, RowDataPacket } from 'mysql2'
+import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 
 export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType

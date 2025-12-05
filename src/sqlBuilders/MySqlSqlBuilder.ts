@@ -1,8 +1,10 @@
-import { AnyValueSource, isValueSource, __AggregatedArrayColumns, __getValueSourcePrivate, __isUuidValueSource, ValueType, __isUuidValueType } from "../expressions/values"
-import type { TypeAdapter } from "../TypeAdapter"
-import { AnyTableOrView } from "../utils/ITableOrView"
-import { AbstractMySqlMariaDBSqlBuilder } from "./AbstractMySqlMariaBDSqlBuilder"
-import { FlatQueryColumns, flattenQueryColumns, hasWithData, InsertData, SelectData, ToSql, WithQueryData } from "./SqlBuilder"
+import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
+import { isValueSource, __getValueSourcePrivate, __isUuidValueSource, __isUuidValueType } from '../expressions/values.js'
+import type { TypeAdapter } from '../TypeAdapter.js'
+import type { AnyTableOrView } from '../utils/ITableOrView.js'
+import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
+import type { FlatQueryColumns, InsertData, SelectData, ToSql, WithQueryData } from './SqlBuilder.js'
+import { flattenQueryColumns, hasWithData } from './SqlBuilder.js'
 
 export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mySql: true = true

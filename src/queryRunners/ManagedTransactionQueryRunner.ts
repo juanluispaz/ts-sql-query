@@ -1,5 +1,5 @@
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
-import type { BeginTransactionOpts, QueryRunner } from "./QueryRunner"
+import { AbstractQueryRunner } from './AbstractQueryRunner.js'
+import type { BeginTransactionOpts, QueryRunner } from './QueryRunner.js'
 
 export abstract class ManagedTransactionQueryRunner extends AbstractQueryRunner {
     executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {

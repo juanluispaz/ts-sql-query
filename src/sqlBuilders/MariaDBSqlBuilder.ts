@@ -1,6 +1,8 @@
-import { AnyValueSource, isValueSource, __AggregatedArrayColumns } from "../expressions/values"
-import { AbstractMySqlMariaDBSqlBuilder } from "./AbstractMySqlMariaBDSqlBuilder"
-import { CompoundOperator, FlatQueryColumns, flattenQueryColumns, InsertData, SelectData } from "./SqlBuilder"
+import type { AnyValueSource, __AggregatedArrayColumns } from '../expressions/values.js'
+import { isValueSource } from '../expressions/values.js'
+import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
+import type { CompoundOperator, FlatQueryColumns, InsertData, SelectData } from './SqlBuilder.js'
+import { flattenQueryColumns } from './SqlBuilder.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mariaDB: true = true

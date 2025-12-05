@@ -1,11 +1,11 @@
-import type { SqlBuilder } from "../sqlBuilders/SqlBuilder"
-import type { TypeAdapter } from "../TypeAdapter"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from "../expressions/values"
-import type { QueryRunner } from "../queryRunners/QueryRunner"
-import type { Sequence } from "../expressions/sequence";
-import { AbstractConnection } from "./AbstractConnection"
-import { SequenceQueryBuilder } from "../queryBuilders/SequenceQueryBuilder"
-import type { NDB, NNoTableOrViewRequired } from "../utils/sourceName"
+import type { SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
+import type { TypeAdapter } from '../TypeAdapter.js'
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource } from '../expressions/values.js'
+import type { QueryRunner } from '../queryRunners/QueryRunner.js'
+import type { Sequence } from '../expressions/sequence.js'
+import { AbstractConnection } from './AbstractConnection.js'
+import { SequenceQueryBuilder } from '../queryBuilders/SequenceQueryBuilder.js'
+import type { NDB, NNoTableOrViewRequired } from '../utils/sourceName.js'
 
 export abstract class AbstractAdvancedConnection</*in|out*/ DB extends NDB> extends AbstractConnection<DB> {
 

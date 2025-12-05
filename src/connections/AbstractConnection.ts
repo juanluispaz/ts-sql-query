@@ -1,37 +1,38 @@
-import type { QueryColumns, SqlBuilder } from "../sqlBuilders/SqlBuilder"
-import type { InsertExpression } from "../expressions/insert"
-import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from "../expressions/update"
-import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from "../expressions/delete"
-import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, ValueSourceOf, RemapValueSourceTypeWithOptionalType, IValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, AnyValueSource } from "../expressions/values"
-import type { Default } from "../expressions/Default"
-import { NoTableOrViewRequired, ITableOrView, __getTableOrViewPrivate, ITable, SameDB, HasSource, ForUseInLeftJoin } from "../utils/ITableOrView"
-import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from "../expressions/select"
-import type { TypeAdapter, DefaultTypeAdapter } from "../TypeAdapter"
-import type { QueryRunner } from "../queryRunners/QueryRunner"
-import type { IConnection } from "../utils/IConnection"
-import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, CustomIntFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from "../expressions/fragment"
-import { InsertQueryBuilder } from "../queryBuilders/InsertQueryBuilder"
-import { UpdateQueryBuilder } from "../queryBuilders/UpdateQueryBuilder"
-import { DeleteQueryBuilder } from "../queryBuilders/DeleteQueryBuilder"
-import { __getValueSourcePrivate, Argument } from "../expressions/values"
-import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop, SqlOperationStaticBooleanValueSource, TableOrViewRawFragmentValueSource, AggregateValueAsArrayValueSource } from "../internal/ValueSourceImpl"
-import { DefaultImpl } from "../expressions/Default"
-import { SelectQueryBuilder } from "../queryBuilders/SelectQueryBuilder"
-import ChainedError from "chained-error"
-import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue, FragmentFunctionBuilderMaybeOptional } from "../queryBuilders/FragmentQueryBuilder"
-import { attachSource, attachTransactionSource } from "../utils/attachSource"
-import { connection, source, transactionIsolationLevel, typeName, valueType } from "../utils/symbols"
-import { callDeferredFunctions, callDeferredFunctionsStoppingOnError, isPromise } from "../utils/PromiseUtils"
-import type { DinamicConditionExtension, DynamicConditionExpression, Filterable } from "../expressions/dynamicConditionUsingFilters"
-import { DynamicConditionBuilder } from "../queryBuilders/DynamicConditionBuilder"
-import type { RawFragment } from "../utils/RawFragment"
-import { RawFragmentImpl } from "../internal/RawFragmentImpl"
-import type { CustomizedTableOrView } from "../utils/tableOrViewUtils"
-import { __setQueryMetadata } from "../queryBuilders/AbstractQueryBuilder"
-import type { NDB, NNoTableOrViewRequired, NSource, NWithDB } from "../utils/sourceName"
-import type { DataToProject, GetDataToProjectSource } from "../complexProjections/dataToProject"
-import type { ResultObjectValuesForAggregatedArray } from "../complexProjections/resultWithOptionalsAsUndefined"
-import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from "../complexProjections/resultWithOptionalsAsNull"
+import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
+import type { InsertExpression } from '../expressions/insert.js'
+import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expressions/update.js'
+import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, ValueSourceOf, RemapValueSourceTypeWithOptionalType, IValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, AnyValueSource } from '../expressions/values.js'
+import type { Default } from '../expressions/Default.js'
+import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin } from '../utils/ITableOrView.js'
+import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
+import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
+import type { TypeAdapter, DefaultTypeAdapter } from '../TypeAdapter.js'
+import type { QueryRunner } from '../queryRunners/QueryRunner.js'
+import type { IConnection } from '../utils/IConnection.js'
+import type { BooleanFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalDateFragmentExpression, LocalTimeFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, ComparableFragmentExpression, FragmentBuilder0, FragmentBuilder1, FragmentBuilder2, FragmentBuilder3, FragmentBuilder4, FragmentBuilder5, FragmentBuilder0IfValue, FragmentBuilder1IfValue, FragmentBuilder2IfValue, FragmentBuilder3IfValue, FragmentBuilder4IfValue, FragmentBuilder5IfValue, BigintFragmentExpression, UuidFragmentExpression, CustomIntFragmentExpression, CustomDoubleFragmentExpression, CustomUuidFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalTimeFragmentExpression, CustomLocalDateTimeFragmentExpression, FragmentBuilderMaybeOptional0, FragmentBuilderMaybeOptional1, FragmentBuilderMaybeOptional2, FragmentBuilderMaybeOptional3, FragmentBuilderMaybeOptional4, FragmentBuilderMaybeOptional5 } from '../expressions/fragment.js'
+import { InsertQueryBuilder } from '../queryBuilders/InsertQueryBuilder.js'
+import { UpdateQueryBuilder } from '../queryBuilders/UpdateQueryBuilder.js'
+import { DeleteQueryBuilder } from '../queryBuilders/DeleteQueryBuilder.js'
+import { __getValueSourcePrivate, Argument } from '../expressions/values.js'
+import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop, SqlOperationStaticBooleanValueSource, TableOrViewRawFragmentValueSource, AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
+import { DefaultImpl } from '../expressions/Default.js'
+import { SelectQueryBuilder } from '../queryBuilders/SelectQueryBuilder.js'
+import ChainedError from 'chained-error'
+import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue, FragmentFunctionBuilderMaybeOptional } from '../queryBuilders/FragmentQueryBuilder.js'
+import { attachSource, attachTransactionSource } from '../utils/attachSource.js'
+import { connection, source, transactionIsolationLevel, typeName, valueType } from '../utils/symbols.js'
+import { callDeferredFunctions, callDeferredFunctionsStoppingOnError, isPromise } from '../utils/PromiseUtils.js'
+import type { DinamicConditionExtension, DynamicConditionExpression, Filterable } from '../expressions/dynamicConditionUsingFilters.js'
+import { DynamicConditionBuilder } from '../queryBuilders/DynamicConditionBuilder.js'
+import type { RawFragment } from '../utils/RawFragment.js'
+import { RawFragmentImpl } from '../internal/RawFragmentImpl.js'
+import type { CustomizedTableOrView } from '../utils/tableOrViewUtils.js'
+import { __setQueryMetadata } from '../queryBuilders/AbstractQueryBuilder.js'
+import type { NDB, NNoTableOrViewRequired, NSource, NWithDB } from '../utils/sourceName.js'
+import type { DataToProject, GetDataToProjectSource } from '../complexProjections/dataToProject.js'
+import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
+import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 
 export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements IConnection<DB> {
     [connection]!: DB
@@ -213,7 +214,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 this.onCommit = null
                 return callDeferredFunctions<T>('after next commit', onCommit, result, source)
             }, (e) => {
-                const throwError = attachTransactionSource(new ChainedError(e), source)
+                const throwError = attachTransactionSource(new ChainedError.default(e), source)
                 const onRollback = this.onRollback
                 this.onRollback = null
                 return callDeferredFunctions<any>('after next rollback', onRollback, undefined, source, e, throwError)
@@ -221,7 +222,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 this.popTransactionStack()
             })
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
 
@@ -237,10 +238,10 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 this.pushTransactionStack()
                 return result
             }, (e) => {
-                throw attachSource(new ChainedError(e), source)
+                throw attachSource(new ChainedError.default(e), source)
             })
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     commit(): Promise<void> {
@@ -264,10 +265,10 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                         }, (e) => {
                             // Transaction only closed when commit successful, in case of error there is still an open transaction
                             // No rollback yet, then no executeAfterNextRollback will be executed
-                            throw attachSource(new ChainedError(e), source)
+                            throw attachSource(new ChainedError.default(e), source)
                         })
                     } catch (e) {
-                        throw new ChainedError(e)
+                        throw new ChainedError.default(e)
                     }
                 }).then(() => {
                     this.popTransactionStack()
@@ -282,12 +283,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }, (e) => {
                 // Transaction only closed when commit successful, in case of error there is still an open transaction
                 // No rollback yet, then no executeAfterNextRollback will be executed
-                throw attachSource(new ChainedError(e), source)
+                throw attachSource(new ChainedError.default(e), source)
             }).then(() => {
                 this.popTransactionStack()
             })
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     rollback(): Promise<void> {
@@ -303,7 +304,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 this.onRollback = null
                 return callDeferredFunctions('after next rollback', onRollback, undefined, source)
             }, (e) => {
-                const throwError = attachSource(new ChainedError(e), source)
+                const throwError = attachSource(new ChainedError.default(e), source)
                 const onRollback = this.onRollback
                 this.onRollback = null
                 return callDeferredFunctions('after next rollback', onRollback, undefined, source, e, throwError)
@@ -311,7 +312,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 this.popTransactionStack()
             })
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
     isTransactionActive(): boolean {
@@ -479,12 +480,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             const source = new Error('Query executed at')
             __setQueryMetadata(source, params)
             return this.__sqlBuilder._queryRunner.executeProcedure(query, queryParams).catch((e) => {
-                throw new ChainedError(e)
+                throw new ChainedError.default(e)
             }).catch((e) => {
-                throw attachSource(new ChainedError(e), source)
+                throw attachSource(new ChainedError.default(e), source)
             })
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
 
@@ -568,12 +569,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 }
                 return result
             }).catch((e) => {
-                throw new ChainedError(e)
+                throw new ChainedError.default(e)
             }).catch((e) => {
-                throw attachSource(new ChainedError(e), source)
+                throw attachSource(new ChainedError.default(e), source)
             })
         } catch (e) {
-            throw new ChainedError(e)
+            throw new ChainedError.default(e)
         }
     }
 

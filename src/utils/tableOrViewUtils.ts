@@ -1,10 +1,10 @@
-import type { ITable, ITableOrView, IView, IWithView, IValues, ResolvedShape, OldValues, ValuesForInsert, ForUseInLeftJoin, HasSource, ITableOrViewAlias } from "./ITableOrView"
-import type { AnyValueSource, IValueSource, RemapValueSourceType, ValueSourceValueType } from "../expressions/values"
-import type { source } from "./symbols"
-import type { WritableDBColumn, WritableDBColumnWithDefaultValue, WritableDBColumnWithoutDefaultValue, WritableDBPrimaryKeyColumnWithDefaultValue } from "./Column"
-import type { NAlias, NAsLeftJoin, NCustomizeAs, NGetDBFrom, NGetNameFrom, NOldValues, NSource, NValuesForInsert } from "./sourceName"
-import type { ColumnsForAlias } from '../complexProjections/tableAlias'
-import type { ColumnsForLeftJoin } from '../complexProjections/asLeftJoin'
+import type { ITable, ITableOrView, IView, IWithView, IValues, ResolvedShape, OldValues, ValuesForInsert, ForUseInLeftJoin, HasSource, ITableOrViewAlias } from './ITableOrView.js'
+import type { AnyValueSource, IValueSource, RemapValueSourceType, ValueSourceValueType } from '../expressions/values.js'
+import type { source } from './symbols.js'
+import type { WritableDBColumn, WritableDBColumnWithDefaultValue, WritableDBColumnWithoutDefaultValue, WritableDBPrimaryKeyColumnWithDefaultValue } from './Column.js'
+import type { NAlias, NAsLeftJoin, NCustomizeAs, NGetDBFrom, NGetNameFrom, NOldValues, NSource, NValuesForInsert } from './sourceName.js'
+import type { ColumnsForAlias } from '../complexProjections/tableAlias.js'
+import type { ColumnsForLeftJoin } from '../complexProjections/asLeftJoin.js'
 
 export type ColumnsKeyOf<T> = ({ [K in keyof T]-?: T[K] extends WritableDBColumn ? K : never })[keyof T]
 type ValueSourcesKeyOf<T> = ({ [K in keyof T]-?: T[K] extends AnyValueSource ? K : never })[keyof T]

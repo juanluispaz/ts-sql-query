@@ -1,6 +1,6 @@
-import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from "./QueryRunner"
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
 import type { Connection, UpsertResult } from 'mariadb'
-import { DelegatedSetTransactionQueryRunner } from "./DelegatedSetTransactionQueryRunner"
+import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 
 export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType

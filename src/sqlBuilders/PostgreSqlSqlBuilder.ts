@@ -1,8 +1,11 @@
-import type { ToSql, SelectData, WithValuesData } from "./SqlBuilder"
-import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { isColumn, __getColumnOfObject, __getColumnPrivate, DBColumn } from "../utils/Column"
-import { ValueType, __isBooleanValueSource, isValueSource } from "../expressions/values"
+import type { ToSql, SelectData, WithValuesData } from './SqlBuilder.js'
+import type { TypeAdapter } from '../TypeAdapter.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
+import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
+import type { DBColumn } from '../utils/Column.js'
+import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import type { ValueType } from '../expressions/values.js'
+import { __isBooleanValueSource, isValueSource } from '../expressions/values.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true

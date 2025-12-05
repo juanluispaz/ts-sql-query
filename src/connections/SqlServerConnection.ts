@@ -1,8 +1,8 @@
-import type { NConnection } from "../utils/sourceName"
-import type { QueryRunner } from "../queryRunners/QueryRunner"
-import { SqlServerSqlBuilder } from "../sqlBuilders/SqlServerSqlBuilder"
-import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
-import type { TransactionIsolationLevel } from "./AbstractConnection"
+import type { NConnection } from '../utils/sourceName.js'
+import type { QueryRunner } from '../queryRunners/QueryRunner.js'
+import { SqlServerSqlBuilder } from '../sqlBuilders/SqlServerSqlBuilder.js'
+import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
+import type { TransactionIsolationLevel } from './AbstractConnection.js'
 
 export abstract class SqlServerConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'sqlServer', NAME>> {
 

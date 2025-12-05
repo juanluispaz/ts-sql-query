@@ -1,5 +1,5 @@
-import type { ToSql, SqlBuilder } from "../sqlBuilders/SqlBuilder"
-import { type } from "../utils/symbols"
+import type { ToSql, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
+import { type } from '../utils/symbols.js'
 
 export interface Default {
     [type]: 'default'

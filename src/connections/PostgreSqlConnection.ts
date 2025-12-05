@@ -1,8 +1,8 @@
-import type { NConnection } from "../utils/sourceName"
-import type { QueryRunner } from "../queryRunners/QueryRunner"
-import { PostgreSqlSqlBuilder } from "../sqlBuilders/PostgreSqlSqlBuilder"
-import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
-import { TransactionIsolationLevel } from "./AbstractConnection"
+import type { NConnection } from '../utils/sourceName.js'
+import type { QueryRunner } from '../queryRunners/QueryRunner.js'
+import { PostgreSqlSqlBuilder } from '../sqlBuilders/PostgreSqlSqlBuilder.js'
+import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
+import type { TransactionIsolationLevel } from './AbstractConnection.js'
 
 export abstract class PostgreSqlConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'postgreSql', NAME>> {
 

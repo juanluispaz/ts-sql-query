@@ -1,5 +1,5 @@
-import type { QueryRunner } from "./QueryRunner"
-import { LoggingQueryRunner } from "./LoggingQueryRunner"
+import type { QueryRunner } from './QueryRunner.js'
+import { LoggingQueryRunner } from './LoggingQueryRunner.js'
 
 export type TimeGranularity = 'ms' | 'us' | 'ns'
 

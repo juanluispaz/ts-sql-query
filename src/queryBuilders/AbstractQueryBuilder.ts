@@ -1,7 +1,10 @@
-import { AnyValueSource, isValueSource, __getValueSourcePrivate } from "../expressions/values"
-import { getQueryColumn, isUsableValue, QueryColumns, SqlBuilder } from "../sqlBuilders/SqlBuilder"
-import type { DBColumn } from "../utils/Column"
-import { AnyTableOrView, IWithView, __getTableOrViewPrivate, __registerRequiredColumn } from "../utils/ITableOrView"
+import type { AnyValueSource } from '../expressions/values.js'
+import { isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
+import type { QueryColumns, SqlBuilder } from '../sqlBuilders/SqlBuilder.js'
+import { getQueryColumn, isUsableValue } from '../sqlBuilders/SqlBuilder.js'
+import type { DBColumn } from '../utils/Column.js'
+import type { AnyTableOrView, IWithView } from '../utils/ITableOrView.js'
+import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder

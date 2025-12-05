@@ -1,7 +1,8 @@
-import type { NConnection } from "../utils/sourceName"
-import type { QueryRunner } from "../queryRunners/QueryRunner"
-import { MariaDBSqlBuilder } from "../sqlBuilders/MariaDBSqlBuilder"
-import { AbstractConnection, TransactionIsolationLevel } from "./AbstractConnection"
+import type { NConnection } from '../utils/sourceName.js'
+import type { QueryRunner } from '../queryRunners/QueryRunner.js'
+import { MariaDBSqlBuilder } from '../sqlBuilders/MariaDBSqlBuilder.js'
+import type { TransactionIsolationLevel } from './AbstractConnection.js'
+import { AbstractConnection } from './AbstractConnection.js'
 
 export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends AbstractConnection<NConnection<'mariaDB', NAME>> {
  

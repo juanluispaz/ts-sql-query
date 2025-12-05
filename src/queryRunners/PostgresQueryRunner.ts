@@ -1,5 +1,5 @@
-import { AbstractQueryRunner } from "./AbstractQueryRunner"
-import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from "./QueryRunner"
+import { AbstractQueryRunner } from './AbstractQueryRunner.js'
+import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from './QueryRunner.js'
 import type { Sql, TransactionSql } from 'postgres'
 
 export class PostgresQueryRunner extends AbstractQueryRunner {

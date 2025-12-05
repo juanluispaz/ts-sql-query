@@ -1,7 +1,7 @@
-import type { DatabaseType, QueryRunner } from "./QueryRunner"
+import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, PoolConnection } from 'mariadb'
-import { MariaDBQueryRunner } from "./MariaDBQueryRunner"
-import { ManagedTransactionPoolQueryRunner } from "./ManagedTransactionPoolQueryRunner"
+import { MariaDBQueryRunner } from './MariaDBQueryRunner.js'
+import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 
 export class MariaDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType

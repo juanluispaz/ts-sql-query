@@ -1,15 +1,16 @@
-import type { ITable, IWithView, HasIsValue, AnyTableOrView } from "../utils/ITableOrView"
-import { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, isValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, IStringValueSource, __getValueSourcePrivate, ValueType } from "../expressions/values"
-import type { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import type { OrderByMode, SelectCustomization } from "../expressions/select"
-import type { DBColumn } from "../utils/Column"
-import type { QueryRunner } from "../queryRunners/QueryRunner"
-import type { ConnectionConfiguration } from "../utils/ConnectionConfiguration"
-import type { UpdateCustomization } from "../expressions/update"
-import type { DeleteCustomization } from "../expressions/delete"
-import type { InsertCustomization } from "../expressions/insert"
-import { isSelectQueryObject, isTableOrViewObject, isValueSourceObject } from "../utils/symbols"
-import type { RawFragment } from "../utils/RawFragment"
+import type { ITable, IWithView, HasIsValue, AnyTableOrView } from '../utils/ITableOrView.js'
+import type { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, IStringValueSource, ValueType } from '../expressions/values.js'
+import { isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
+import type { DefaultTypeAdapter, TypeAdapter } from '../TypeAdapter.js'
+import type { OrderByMode, SelectCustomization } from '../expressions/select.js'
+import type { DBColumn } from '../utils/Column.js'
+import type { QueryRunner } from '../queryRunners/QueryRunner.js'
+import type { ConnectionConfiguration } from '../utils/ConnectionConfiguration.js'
+import type { UpdateCustomization } from '../expressions/update.js'
+import type { DeleteCustomization } from '../expressions/delete.js'
+import type { InsertCustomization } from '../expressions/insert.js'
+import { isSelectQueryObject, isTableOrViewObject, isValueSourceObject } from '../utils/symbols.js'
+import type { RawFragment } from '../utils/RawFragment.js'
 
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
 export type FlatQueryColumns = { [property: string]: AnyValueSource }

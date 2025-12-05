@@ -1,10 +1,10 @@
-import type { BeginTransactionOpts, CommitOpts, QueryRunner, RollbackOpts } from "../queryRunners/QueryRunner"
-import { NoopDBSqlBuilder } from "../sqlBuilders/NoopDBSqlBuilder"
-import { NoopQueryRunner } from "../queryRunners/NoopQueryRunner"
-import { AbstractAdvancedConnection } from "./AbstractAdvancedConnection"
-import { ChainedQueryRunner } from "../queryRunners/ChainedQueryRunner"
-import { TransactionIsolationLevel } from "./AbstractConnection"
-import type { NConnection } from "../utils/sourceName"
+import type { BeginTransactionOpts, CommitOpts, QueryRunner, RollbackOpts } from '../queryRunners/QueryRunner.js'
+import { NoopDBSqlBuilder } from '../sqlBuilders/NoopDBSqlBuilder.js'
+import { NoopQueryRunner } from '../queryRunners/NoopQueryRunner.js'
+import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
+import { ChainedQueryRunner } from '../queryRunners/ChainedQueryRunner.js'
+import type { TransactionIsolationLevel } from './AbstractConnection.js'
+import type { NConnection } from '../utils/sourceName.js'
 
 export abstract class NoopDBConnection</*in|out*/ NAME extends string> extends AbstractAdvancedConnection<NConnection<'noopDB', NAME>> {
 

@@ -1,7 +1,7 @@
-import type { DatabaseType, QueryRunner } from "./QueryRunner"
-import type { Pool, PoolConnection } from "mysql2"
-import { MySql2QueryRunner } from "./MySql2QueryRunner"
-import { ManagedTransactionPoolQueryRunner } from "./ManagedTransactionPoolQueryRunner"
+import type { DatabaseType, QueryRunner } from './QueryRunner.js'
+import type { Pool, PoolConnection } from 'mysql2'
+import { MySql2QueryRunner } from './MySql2QueryRunner.js'
+import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 
 export class MySql2PoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType

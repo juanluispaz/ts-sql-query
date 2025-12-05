@@ -1,10 +1,15 @@
-import { ToSql, SelectData, InsertData, hasToSql, DeleteData, UpdateData, flattenQueryColumns, FlatQueryColumns, QueryColumns, WithValuesData } from "./SqlBuilder"
-import { CustomBooleanTypeAdapter, TypeAdapter } from "../TypeAdapter"
-import { AnyValueSource, IExecutableSelectQuery, isValueSource, __AggregatedArrayColumns, __isUuidValueSource, __isBooleanValueSource, ValueType, __isBooleanValueType, NativeValueType } from "../expressions/values"
-import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { isColumn, __getColumnOfObject, __getColumnPrivate, DBColumn } from "../utils/Column"
-import { __getValueSourcePrivate } from "../expressions/values"
-import { ITable, __getTableOrViewPrivate } from "../utils/ITableOrView"
+import type { ToSql, SelectData, InsertData, DeleteData, UpdateData, FlatQueryColumns, QueryColumns, WithValuesData } from './SqlBuilder.js'
+import { hasToSql, flattenQueryColumns } from './SqlBuilder.js'
+import type { TypeAdapter } from '../TypeAdapter.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
+import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns, ValueType, NativeValueType } from '../expressions/values.js'
+import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isBooleanValueType } from '../expressions/values.js'
+import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
+import type { DBColumn } from '../utils/Column.js'
+import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import { __getValueSourcePrivate } from '../expressions/values.js'
+import type { ITable } from '../utils/ITableOrView.js'
+import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true

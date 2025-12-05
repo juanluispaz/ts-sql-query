@@ -1,12 +1,12 @@
-import { Table } from "../Table";
-import { assertEquals } from "./assertEquals";
-import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
-import { SqliteConnection } from "../connections/SqliteConnection";
-import { PrismaClient } from './prisma/generated/sqlite'
-import { PrismaQueryRunner } from "../queryRunners/PrismaQueryRunner"
-import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration";
-import { Values } from "../Values";
-import { CustomBooleanTypeAdapter } from "../TypeAdapter";
+import { Table } from '../Table.js'
+import { assertEquals } from './assertEquals.js'
+import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
+import { SqliteConnection } from '../connections/SqliteConnection.js'
+import { PrismaClient } from './prisma/generated/sqlite/client.js'
+import { PrismaQueryRunner } from '../queryRunners/PrismaQueryRunner.js'
+import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
+import { Values } from '../Values.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected uuidStrategy = 'string' as const

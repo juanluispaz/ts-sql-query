@@ -1,5 +1,5 @@
-import ChainedError from "chained-error"
-import { attachAdditionalError, attachTransactionError, attachTransactionSource } from "./attachSource"
+import ChainedError from 'chained-error'
+import { attachAdditionalError, attachTransactionError, attachTransactionSource } from './attachSource.js'
 
 export function isPromise(value: any): value is Promise<unknown> {
     return value && (typeof value === 'object') && (typeof value.then === 'function')
@@ -40,7 +40,7 @@ function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: string
                 if (errorContainer.error) {
                     attachAdditionalError(errorContainer.error, e, name)
                 } else {
-                    errorContainer.error = attachTransactionSource(new ChainedError('Error executing ' + name + ' functions', e), source)
+                    errorContainer.error = attachTransactionSource(new ChainedError.default('Error executing ' + name + ' functions', e), source)
                     if (transactionError) {
                         attachTransactionError(errorContainer.error, transactionError)
                     }
@@ -61,7 +61,7 @@ function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: string
             if (errorContainer.error) {
                 attachAdditionalError(errorContainer.error, e, errorContainer.name)
             } else {
-                errorContainer.error = attachTransactionSource(new ChainedError('Error executing ' + errorContainer.name + ' functions', e), errorContainer.source)
+                errorContainer.error = attachTransactionSource(new ChainedError.default('Error executing ' + errorContainer.name + ' functions', e), errorContainer.source)
                 if (errorContainer.transactionError) {
                     attachTransactionError(errorContainer.error, errorContainer.transactionError)
                 }
@@ -80,7 +80,7 @@ function callDeferredFunctionAsThen(fn: () => void | Promise<void>, errorContain
         if (errorContainer.error) {
             attachAdditionalError(errorContainer.error, executionError, errorContainer.name)
         } else {
-            errorContainer.error = attachTransactionSource(new ChainedError('Error executing ' + errorContainer.name + ' functions', executionError), errorContainer.source)
+            errorContainer.error = attachTransactionSource(new ChainedError.default('Error executing ' + errorContainer.name + ' functions', executionError), errorContainer.source)
             if (errorContainer.transactionError) {
                 attachTransactionError(errorContainer.error, errorContainer.transactionError)
             }
@@ -95,7 +95,7 @@ function callDeferredFunctionAsThen(fn: () => void | Promise<void>, errorContain
         if (errorContainer.error) {
             attachAdditionalError(errorContainer.error, e, errorContainer.name)
         } else {
-            errorContainer.error = attachTransactionSource(new ChainedError('Error executing ' + errorContainer.name + ' functions', e), errorContainer.source)
+            errorContainer.error = attachTransactionSource(new ChainedError.default('Error executing ' + errorContainer.name + ' functions', e), errorContainer.source)
             if (errorContainer.transactionError) {
                 attachTransactionError(errorContainer.error, errorContainer.transactionError)
             }

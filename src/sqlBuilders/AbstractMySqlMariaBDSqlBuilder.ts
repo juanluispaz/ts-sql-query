@@ -1,11 +1,14 @@
-import { ToSql, SelectData, InsertData, UpdateData, DeleteData, getQueryColumn, FlatQueryColumns, flattenQueryColumns, OrderByEntry } from "./SqlBuilder"
-import type { TypeAdapter } from "../TypeAdapter"
-import { AnyValueSource, isValueSource, __AggregatedArrayColumns, ValueType } from "../expressions/values"
-import { AbstractSqlBuilder } from "./AbstractSqlBuilder"
-import { __getValueSourcePrivate } from "../expressions/values"
-import { isColumn, __getColumnOfObject, __getColumnPrivate, DBColumn } from "../utils/Column"
-import { AnyTableOrView } from "../utils/ITableOrView"
-import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from "../internal/ValueSourceImpl"
+import type { ToSql, SelectData, InsertData, UpdateData, DeleteData, FlatQueryColumns, OrderByEntry } from './SqlBuilder.js'
+import { getQueryColumn, flattenQueryColumns } from './SqlBuilder.js'
+import type { TypeAdapter } from '../TypeAdapter.js'
+import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
+import { isValueSource } from '../expressions/values.js'
+import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
+import { __getValueSourcePrivate } from '../expressions/values.js'
+import type { DBColumn } from '../utils/Column.js'
+import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import type { AnyTableOrView } from '../utils/ITableOrView.js'
+import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     constructor() {

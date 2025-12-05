@@ -2,18 +2,17 @@
  * npm install @sqlite.org/sqlite-wasm
  */
 
-import { Table } from "../Table";
-import { assertEquals } from "./assertEquals";
-import { ConsoleLogQueryRunner } from "../queryRunners/ConsoleLogQueryRunner";
-import { SqliteConnection } from "../connections/SqliteConnection";
-// @ts-ignore // TODO: remove when mjs conversion
-import type { Database } from '@sqlite.org/sqlite-wasm';
-// import { fromBinaryUUID, toBinaryUUID } from "binary-uuid";
-// import { v4 as uuidv4 } from "uuid";
-import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "../connections/SqliteConfiguration";
-import { Values } from "../Values";
-import { CustomBooleanTypeAdapter } from "../TypeAdapter";
-import { Sqlite3WasmOO1QueryRunner } from "../queryRunners/Sqlite3WasmOO1QueryRunner";
+import { Table } from '../Table.js'
+import { assertEquals } from './assertEquals.js'
+import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
+import { SqliteConnection } from '../connections/SqliteConnection.js'
+import type { Database } from '@sqlite.org/sqlite-wasm'
+// import { fromBinaryUUID, toBinaryUUID } from 'binary-uuid'
+// import { v4 as uuidv4 } from 'uuid'
+import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
+import { Values } from '../Values.js'
+import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
+import { Sqlite3WasmOO1QueryRunner } from '../queryRunners/Sqlite3WasmOO1QueryRunner.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected compatibilityMode = false

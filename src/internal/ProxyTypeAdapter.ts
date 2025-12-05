@@ -1,4 +1,4 @@
-import { DefaultTypeAdapter, TypeAdapter } from "../TypeAdapter"
+import type { DefaultTypeAdapter, TypeAdapter } from '../TypeAdapter.js'
 
 export class ProxyTypeAdapter implements TypeAdapter {
     typeAdapter: TypeAdapter

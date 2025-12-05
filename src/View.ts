@@ -1,16 +1,17 @@
-import { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, __getValueSourcePrivate, UuidValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, ILocalDateValueSource, ILocalTimeValueSource, ILocalDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from "./expressions/values"
-import { HasIsValue, IView, IWithView, __addWiths, __registerRequiredColumn, __registerTableOrView } from "./utils/ITableOrView"
-import type { TypeAdapter } from "./TypeAdapter"
-import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from "./utils/tableOrViewUtils"
-import { DBColumnImpl } from "./internal/DBColumnImpl"
-import { connection, isTableOrViewObject, source, type } from "./utils/symbols"
-import { IConnection } from "./utils/IConnection"
-import type { RawFragment } from "./utils/RawFragment"
-import type { BigintFragmentExpression, BooleanFragmentExpression, ComparableFragmentExpression, CustomDoubleFragmentExpression, CustomIntFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalDateTimeFragmentExpression, CustomLocalTimeFragmentExpression, CustomUuidFragmentExpression, LocalDateFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalTimeFragmentExpression, UuidFragmentExpression } from "./expressions/fragment"
-import { ValueSourceFromBuilder } from "./internal/ValueSourceImpl"
-import { FragmentQueryBuilder } from "./queryBuilders/FragmentQueryBuilder"
-import { NNoTableOrViewRequiredFrom, NView } from "./utils/sourceName"
-import { __setColumnsForLeftJoin } from './utils/leftJoinUtils'
+import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, BigintValueSource, UuidValueSource, IBooleanValueSource, INumberValueSource, IBigintValueSource, IStringValueSource, IUuidValueSource, ILocalDateValueSource, ILocalTimeValueSource, ILocalDateTimeValueSource, IEqualableValueSource, IComparableValueSource, AnyValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, ICustomUuidValueSource, ICustomLocalDateValueSource, ICustomLocalTimeValueSource, ICustomLocalDateTimeValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource } from './expressions/values.js'
+import type { HasIsValue, IView, IWithView } from './utils/ITableOrView.js'
+import { __addWiths, __registerRequiredColumn, __registerTableOrView } from './utils/ITableOrView.js'
+import type { TypeAdapter } from './TypeAdapter.js'
+import type { AliasedTableOrView, AsAliasedForUseInLeftJoin, AsForUseInLeftJoin } from './utils/tableOrViewUtils.js'
+import { DBColumnImpl } from './internal/DBColumnImpl.js'
+import { connection, isTableOrViewObject, source, type } from './utils/symbols.js'
+import type { IConnection } from './utils/IConnection.js'
+import type { RawFragment } from './utils/RawFragment.js'
+import type { BigintFragmentExpression, BooleanFragmentExpression, ComparableFragmentExpression, CustomDoubleFragmentExpression, CustomIntFragmentExpression, CustomLocalDateFragmentExpression, CustomLocalDateTimeFragmentExpression, CustomLocalTimeFragmentExpression, CustomUuidFragmentExpression, LocalDateFragmentExpression, LocalDateTimeFragmentExpression, EqualableFragmentExpression, NumberFragmentExpression, StringFragmentExpression, LocalTimeFragmentExpression, UuidFragmentExpression } from './expressions/fragment.js'
+import { ValueSourceFromBuilder } from './internal/ValueSourceImpl.js'
+import { FragmentQueryBuilder } from './queryBuilders/FragmentQueryBuilder.js'
+import type { NNoTableOrViewRequiredFrom, NView } from './utils/sourceName.js'
+import { __setColumnsForLeftJoin } from './utils/leftJoinUtils.js'
 
 class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE> {
     [isTableOrViewObject]: true = true;

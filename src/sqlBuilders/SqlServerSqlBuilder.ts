@@ -10,6 +10,7 @@ import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Colu
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import type { ITable } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     sqlServer: true = true
@@ -299,7 +300,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += 'iif(' + this._appendOrderByColumnAlias(entry, query, params) + ' is not null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
                     break
                 default:
-                    throw new Error('Invalid order by: ' + order)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, params), ordering: order }, 'Invalid order by: ' + order)
             }
         }
 

@@ -1,19 +1,18 @@
-import ChainedError from 'chained-error'
-import { attachAdditionalError, attachTransactionError, attachTransactionSource } from './attachSource.js'
+import { TsSqlQueryExecutionError, QueryExecutionSource } from '../TsSqlError.js'
 
 export function isPromise(value: any): value is Promise<unknown> {
     return value && (typeof value === 'object') && (typeof value.then === 'function')
 }
 
-export function callDeferredFunctions<T>(name: string, fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: Error, transactionError?: Error, throwError?: Error) : T | Promise<T> {
+export function callDeferredFunctions<T>(name: 'before next commit' | 'after next commit' | 'after next rollback', fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: QueryExecutionSource, transactionError?: Error, throwError?: TsSqlQueryExecutionError) : T | Promise<T> {
     return internalCallDeferredFunctions(false, name, fns, result, source, transactionError, throwError)
 }
 
-export function callDeferredFunctionsStoppingOnError<T>(name: string, fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: Error, transactionError?: Error, throwError?: Error) : T | Promise<T> {
+export function callDeferredFunctionsStoppingOnError<T>(name: 'before next commit' | 'after next commit' | 'after next rollback', fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: QueryExecutionSource, transactionError?: Error, throwError?: TsSqlQueryExecutionError) : T | Promise<T> {
     return internalCallDeferredFunctions(true, name, fns, result, source, transactionError, throwError)
 }
 
-function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: string, fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: Error, transactionError?: Error, throwError?: Error) : T | Promise<T> {
+function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: 'before next commit' | 'after next commit' | 'after next rollback', fns: Array<() => void | Promise<void>> | null | undefined, result: T, source: QueryExecutionSource, transactionError?: Error, throwError?: TsSqlQueryExecutionError) : T | Promise<T> {
     if (!fns) {
         if (throwError) {
             throw throwError
@@ -30,25 +29,38 @@ function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: string
         transactionError
     }
     for (let i = 0, length = fns.length; i < length; i++) {
+        const fn = fns[i]!
         if (!promise) {
             try {
-                const fnResult = fns[i]!()
+                const fnResult = fn()
                 if (isPromise(fnResult)) {
                     promise = fnResult
+                    promise.catch( (e) => {
+                        if (e instanceof TsSqlQueryExecutionError && e.errorReason.reason === 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION') {
+                            throw e
+                        } else {
+                            const err = new TsSqlQueryExecutionError(source, { reason: 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION', fn: fn, index: i, deferredType: name }, e).attachTransactionSource(source)
+                            if (transactionError) {
+                                err.attachTransactionError(transactionError)
+                            }
+                            throw err
+                        }
+                    })
                 }
             } catch (e) {
+                const err = new TsSqlQueryExecutionError(source, { reason: 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION', fn: fns[i]!, index: i, deferredType: name }, e).attachTransactionSource(source)
+                if (transactionError) {
+                    err.attachTransactionError(transactionError)
+                }
                 if (errorContainer.error) {
-                    attachAdditionalError(errorContainer.error, e, name)
+                    errorContainer.error.attachAdditionalError(err, name)
                 } else {
-                    errorContainer.error = attachTransactionSource(new ChainedError.default('Error executing ' + name + ' functions', e), source)
-                    if (transactionError) {
-                        attachTransactionError(errorContainer.error, transactionError)
-                    }
+                    errorContainer.error = err
                 }
             }
         } else {
             const fn = fns[i]!
-            promise = promise.then(callDeferredFunctionAsThen.bind(undefined, fn, errorContainer, true), stopOnFistError ? undefined : callDeferredFunctionAsThen.bind(undefined, fn, errorContainer, false))
+            promise = promise.then(callDeferredFunctionAsThen.bind(undefined, fn, i, errorContainer, true), stopOnFistError ? undefined : callDeferredFunctionAsThen.bind(undefined, fn, i, errorContainer, false))
         }
     }
     if (promise) {
@@ -58,13 +70,19 @@ function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: string
             }
             return result
         }, (e) => {
-            if (errorContainer.error) {
-                attachAdditionalError(errorContainer.error, e, errorContainer.name)
-            } else {
-                errorContainer.error = attachTransactionSource(new ChainedError.default('Error executing ' + errorContainer.name + ' functions', e), errorContainer.source)
-                if (errorContainer.transactionError) {
-                    attachTransactionError(errorContainer.error, errorContainer.transactionError)
+            if (!(e instanceof TsSqlQueryExecutionError && e.errorReason.reason === 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')) {
+                // This should not happen, the promise already transformed the error
+                const err = new TsSqlQueryExecutionError(source, { reason: 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION', fn: () => undefined, index: -1, deferredType: errorContainer.name }, e).attachTransactionSource(source)
+                if (transactionError) {
+                    err.attachTransactionError(transactionError)
                 }
+                e = err
+            }
+
+            if (errorContainer.error) {
+                errorContainer.error.attachAdditionalError(e, name)
+            } else {
+                errorContainer.error = e
             }
             throw errorContainer.error
         })
@@ -75,37 +93,57 @@ function internalCallDeferredFunctions<T>(stopOnFistError: boolean, name: string
     return result
 }
 
-function callDeferredFunctionAsThen(fn: () => void | Promise<void>, errorContainer: ErrorContainer, isThen: boolean, executionError: void | Error): void | Promise<void> {
+function callDeferredFunctionAsThen(fn: () => void | Promise<void>, index: number, errorContainer: ErrorContainer, isThen: boolean, executionError: void | Error): void | Promise<void> {
     if (!isThen && executionError) {
-        if (errorContainer.error) {
-            attachAdditionalError(errorContainer.error, executionError, errorContainer.name)
-        } else {
-            errorContainer.error = attachTransactionSource(new ChainedError.default('Error executing ' + errorContainer.name + ' functions', executionError), errorContainer.source)
+        let err: TsSqlQueryExecutionError
+        if (!(executionError instanceof TsSqlQueryExecutionError && executionError.errorReason.reason === 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION')) {
+            // This should not happen, the promise already transformed the error
+            err = new TsSqlQueryExecutionError(errorContainer.source, { reason: 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION', fn: () => undefined, index: -1, deferredType: errorContainer.name }, executionError).attachTransactionSource(errorContainer.source)
             if (errorContainer.transactionError) {
-                attachTransactionError(errorContainer.error, errorContainer.transactionError)
+                err.attachTransactionError(errorContainer.transactionError)
             }
+        } else {
+            err = executionError
+        }
+
+        if (errorContainer.error) {
+            errorContainer.error.attachAdditionalError(err, errorContainer.name)
+        } else {
+            errorContainer.error = err
         }
     }
+    
     try {
         const fnResult = fn()
         if (isPromise(fnResult)) {
-            return fnResult
+            fnResult.catch( (e) => {
+                if (e instanceof TsSqlQueryExecutionError && e.errorReason.reason === 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION') {
+                    throw e
+                } else {
+                    const err = new TsSqlQueryExecutionError(errorContainer.source, { reason: 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION', fn, index, deferredType: errorContainer.name }, e).attachTransactionSource(errorContainer.source)
+                    if (errorContainer.transactionError) {
+                        err.attachTransactionError(errorContainer.transactionError)
+                    }
+                    throw err
+                }
+            })
         }
     } catch (e) {
+        const err = new TsSqlQueryExecutionError(errorContainer.source, { reason: 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION', fn, index, deferredType: errorContainer.name }, e).attachTransactionSource(errorContainer.source)
+        if (errorContainer.transactionError) {
+            err.attachTransactionError(errorContainer.transactionError)
+        }
         if (errorContainer.error) {
-            attachAdditionalError(errorContainer.error, e, errorContainer.name)
+            errorContainer.error.attachAdditionalError(err, errorContainer.name)
         } else {
-            errorContainer.error = attachTransactionSource(new ChainedError.default('Error executing ' + errorContainer.name + ' functions', e), errorContainer.source)
-            if (errorContainer.transactionError) {
-                attachTransactionError(errorContainer.error, errorContainer.transactionError)
-            }
+            errorContainer.error = err
         }
     }
 }
 
 interface ErrorContainer {
-    error: Error | undefined
-    readonly name: string
-    readonly source: Error
+    error: TsSqlQueryExecutionError | undefined
+    readonly name: 'before next commit' | 'after next commit' | 'after next rollback'
+    readonly source: QueryExecutionSource
     readonly transactionError?: Error
 }

@@ -11,6 +11,7 @@ import type { DeleteCustomization } from '../expressions/delete.js'
 import type { InsertCustomization } from '../expressions/insert.js'
 import { isSelectQueryObject, isTableOrViewObject, isValueSourceObject } from '../utils/symbols.js'
 import type { RawFragment } from '../utils/RawFragment.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export type QueryColumns = { [property: string]: AnyValueSource | QueryColumns }
 export type FlatQueryColumns = { [property: string]: AnyValueSource }
@@ -51,7 +52,7 @@ export function flattenQueryColumns(columns: QueryColumns, target: FlatQueryColu
         if (isValueSource(column)) {
             const name = prefix + prop
             if (target[name]) {
-                throw new Error("You are trying to use the same column name '" + name + "' several times in the same query")
+                throw new TsSqlProcessingError({ reason: 'INTERNAL_REPEATED_COLUMN', columnPath: name }, "You are trying to use the same column name '" + name + "' several times in the same query")
             }
             target[name] = column
         } else {

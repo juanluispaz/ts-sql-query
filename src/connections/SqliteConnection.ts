@@ -3,6 +3,7 @@ import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { SqliteSqlBuilder } from '../sqlBuilders/SqliteSqlBuilder.js'
 import { AbstractConnection } from './AbstractConnection.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from './SqliteConfiguration.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<NConnection<'sqlite', NAME>> {
 
@@ -82,7 +83,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                             result = new Date(value + 'Z')
                             break
                         default:
-                            throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
+                            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
                     }
                 } else if (typeof value === 'number' || typeof value === 'bigint') {
                     let number: number = (typeof value === 'bigint') ? Number(value) : value;
@@ -106,10 +107,10 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                     }
                     result.setUTCHours(0, 0, 0, 0)
                 } else {
-                    throw new Error(`Invalid localDate value received from the db: ${value} (type ${typeof value})`)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, `Invalid localDate value received from the db: ${value} (type ${typeof value})`)
                 }
                 if (isNaN(result.getTime())) {
-                    throw new Error(`Invalid localDate value received from the db: ${value} (.getTime() returns NaN)`)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, `Invalid localDate value received from the db: ${value} (.getTime() returns NaN)`)
                 }
                 (result as any).___type___ = 'localDate'
                 // This time fix works in almost every timezone (from -10 to +13, but not +14, -11, -12, almost uninhabited)
@@ -171,7 +172,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                             }
                             break
                         default:
-                            throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
+                            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
                     }
                 } else if (typeof value === 'number' || typeof value === 'bigint') {
                     let number: number = (typeof value === 'bigint') ? Number(value) : value;
@@ -198,10 +199,10 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                         }
                     }
                 } else {
-                    throw new Error(`Invalid localTime value received from the db: ${value} (type ${typeof value})`)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, `Invalid localTime value received from the db: ${value} (type ${typeof value})`)
                 }
                 if (isNaN(result.getTime())) {
-                    throw new Error(`Invalid localTime value received from the db: ${value} (.getTime() returns NaN)`)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, `Invalid localTime value received from the db: ${value} (.getTime() returns NaN)`)
                 }
                 (result as any).___type___ = 'localTime'
                 result.setFullYear(1970, 0, 1)
@@ -241,7 +242,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                             result = new Date(value + 'Z')
                             break
                         default:
-                            throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
+                            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
                     }
                 } else if (typeof value === 'number' || typeof value === 'bigint') {
                     let number: number = (typeof value === 'bigint') ? Number(value) : value;
@@ -264,10 +265,10 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                         }
                     }
                 } else {
-                    throw new Error(`Invalid localDateTime value received from the db: ${value} (type ${typeof value})`)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, `Invalid localDateTime value received from the db: ${value} (type ${typeof value})`)
                 }
                 if (isNaN(result.getTime())) {
-                    throw new Error(`Invalid localDateTime value received from the db: ${value} (.getTime() returns NaN)`)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, `Invalid localDateTime value received from the db: ${value} (.getTime() returns NaN)`)
                 }
                 (result as any).___type___ = 'LocalDateTime'
                 return result
@@ -298,10 +299,10 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                         case 'Unix time milliseconds as integer':
                             return Date.UTC(value.getFullYear(), value.getMonth(), value.getDate())
                         default:
-                            throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
+                            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
                     }
                 }
-                throw new Error(`Invalid localDate value to send to the db: ${value} (type ${typeof value})`)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, `Invalid localDate value to send to the db: ${value} (type ${typeof value})`)
             case 'localTime':
                 if (value instanceof Date && !isNaN(value.getTime())) {
                     const dateTimeFormat = this.getDateTimeFormat('time')
@@ -322,10 +323,10 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                         case 'Unix time milliseconds as integer':
                             return Date.UTC(1970, 0, 1, value.getUTCHours(), value.getUTCMinutes(), value.getUTCSeconds(), value.getUTCMilliseconds())
                         default:
-                            throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
+                            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
                     }
                 }
-                throw new Error(`Invalid localTime value to send to the db: ${value} (type ${typeof value})`)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, `Invalid localTime value to send to the db: ${value} (type ${typeof value})`)
             case 'localDateTime':
                 if (value instanceof Date && !isNaN(value.getTime())) {
                     const dateTimeFormat = this.getDateTimeFormat('dateTime')
@@ -355,10 +356,10 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
                         case 'Unix time milliseconds as integer':
                             return value.getTime()
                         default:
-                            throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
+                            throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
                     }
                 }
-                throw new Error(`Invalid localDateTime value to send to the db: ${value} (type ${typeof value})`)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, `Invalid localDateTime value to send to the db: ${value} (type ${typeof value})`)
         }
         return super.transformValueToDB(value, type)
     }

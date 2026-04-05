@@ -18,9 +18,8 @@ import { __getValueSourcePrivate, Argument } from '../expressions/values.js'
 import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop, SqlOperationStaticBooleanValueSource, TableOrViewRawFragmentValueSource, AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
 import { DefaultImpl } from '../expressions/Default.js'
 import { SelectQueryBuilder } from '../queryBuilders/SelectQueryBuilder.js'
-import ChainedError from 'chained-error'
+import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, QueryExecutionSource } from '../TsSqlError.js'
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue, FragmentFunctionBuilderMaybeOptional } from '../queryBuilders/FragmentQueryBuilder.js'
-import { attachSource, attachTransactionSource } from '../utils/attachSource.js'
 import { connection, source, transactionIsolationLevel, typeName, valueType } from '../utils/symbols.js'
 import { callDeferredFunctions, callDeferredFunctionsStoppingOnError, isPromise } from '../utils/PromiseUtils.js'
 import type { DinamicConditionExtension, DynamicConditionExpression, Filterable } from '../expressions/dynamicConditionUsingFilters.js'
@@ -128,16 +127,16 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     executeBeforeNextCommit(fn: ()=> Promise<void>): void
     executeBeforeNextCommit(fn: ()=> void | Promise<void>): void {
         if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
-            throw new Error('There is no open transaction')
+            throw new TsSqlProcessingError( { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
         }
         if (this.onRollback === null) {
-            throw new Error('You cannot call executeBeforeNextCommit inside an executeAfterNextRollback')
+            throw new TsSqlProcessingError( { reason: 'NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED' }, 'You cannot call executeBeforeNextCommit inside an executeAfterNextRollback')
         }
         if (this.onCommit === null) {
-            throw new Error('You cannot call executeBeforeNextCommit inside an executeAfterNextCommit')
+            throw new TsSqlProcessingError( { reason: 'NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED' }, 'You cannot call executeBeforeNextCommit inside an executeAfterNextCommit')
         }
         if (this.beforeCommit === null) {
-            throw new Error('You cannot call executeBeforeNextCommit inside an executeBeforeNextCommit')
+            throw new TsSqlProcessingError( { reason: 'NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED' }, 'You cannot call executeBeforeNextCommit inside an executeBeforeNextCommit')
         }
         if (!this.beforeCommit) {
             this.beforeCommit = []
@@ -149,13 +148,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     executeAfterNextCommit(fn: ()=> Promise<void>): void
     executeAfterNextCommit(fn: ()=> void | Promise<void>): void {
         if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
-            throw new Error('There is no open transaction')
+            throw new TsSqlProcessingError( { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
         }
         if (this.onRollback === null) {
-            throw new Error('You cannot call executeAfterNextCommit inside an executeAfterNextRollback')
+            throw new TsSqlProcessingError( { reason: 'NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED' }, 'You cannot call executeAfterNextCommit inside an executeAfterNextRollback')
         }
         if (this.onCommit === null) {
-            throw new Error('You cannot call executeAfterNextCommit inside an executeAfterNextCommit')
+            throw new TsSqlProcessingError( { reason: 'NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED' }, 'You cannot call executeAfterNextCommit inside an executeAfterNextCommit')
         }
         if (!this.onCommit) {
             this.onCommit = []
@@ -167,10 +166,10 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     executeAfterNextRollback(fn: ()=> Promise<void>): void
     executeAfterNextRollback(fn: ()=> void | Promise<void>): void {
         if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
-            throw new Error('There is no open transaction')
+            throw new TsSqlProcessingError( { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
         }
         if (this.onRollback === null) {
-            throw new Error('You cannot call executeAfterNextRollback inside an executeAfterNextRollback')
+            throw new TsSqlProcessingError( { reason: 'NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED' }, 'You cannot call executeAfterNextRollback inside an executeAfterNextRollback')
         }
         if (!this.onRollback) {
             this.onRollback = []
@@ -180,7 +179,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     getTransactionMetadata(): Map<unknown, unknown> {
         if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
-            throw new Error('There is no open transaction')
+            throw new TsSqlProcessingError( { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
         }
         if (!this.transactionMetadata) {
             this.transactionMetadata = new Map()
@@ -189,11 +188,11 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
 
     transaction<T>(fn: () => Promise<T>, isolationLevel?: TransactionIsolationLevel): Promise<T> {
+        const source = new QueryExecutionSource('Transaction executed at')
         if (!this.queryRunner.isMocked() && this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
-            throw new Error('Nested transactions not supported')
+            throw new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported')
         }
         const opts: any = isolationLevel || []
-        const source = new Error('Transaction executed at')
         __setQueryMetadata(source, opts)
         try {
             return this.queryRunner.executeInTransaction<T>(() => {
@@ -204,17 +203,38 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                         const beforeCommit = this.beforeCommit
                         this.beforeCommit = null
                         return callDeferredFunctionsStoppingOnError('before next commit', beforeCommit, fnResult, source)
+                    }).catch( (e) => {
+                        if (e instanceof TsSqlQueryExecutionError) {
+                            throw e.attachTransactionSource(e)
+                        } else if (this.queryRunner.isSqlError(e)) {
+                            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
+                        } else {
+                            throw e
+                        }
                     })
                 } catch (e) {
                     this.popTransactionStack()
-                    throw e
+                    if (e instanceof TsSqlQueryExecutionError) {
+                        throw e.attachTransactionSource(e)
+                    } else if (this.queryRunner.isSqlError(e)) {
+                        throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
+                    } else {
+                        throw e
+                    }
                 }
             }, this.queryRunner, opts).then((result) => {
                 const onCommit = this.onCommit
                 this.onCommit = null
                 return callDeferredFunctions<T>('after next commit', onCommit, result, source)
             }, (e) => {
-                const throwError = attachTransactionSource(new ChainedError.default(e), source)
+                let throwError
+                if (e instanceof TsSqlQueryExecutionError) {
+                    throwError = e.attachTransactionSource(e)
+                } else if (this.queryRunner.isSqlError(e)) {
+                    throwError = new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
+                } else {
+                    throwError = e
+                }
                 const onRollback = this.onRollback
                 this.onRollback = null
                 return callDeferredFunctions<any>('after next rollback', onRollback, undefined, source, e, throwError)
@@ -222,34 +242,52 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 this.popTransactionStack()
             })
         } catch (e) {
-            throw new ChainedError.default(e)
+            if (e instanceof TsSqlQueryExecutionError) {
+                throw e.attachTransactionSource(e)
+            } else if (this.queryRunner.isSqlError(e)) {
+                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
+            } else {
+                throw e
+            }
         }
     }
 
     beginTransaction(isolationLevel?: TransactionIsolationLevel): Promise<void> {
+        const source = new QueryExecutionSource('Query executed at')
         if (!this.queryRunner.isMocked() && this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
-            throw new Error('Nested transactions not supported')
+            throw new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported')
         }
         const opts: any = isolationLevel || []
-        const source = new Error('Query executed at')
         __setQueryMetadata(source, opts)
         try {
             return this.queryRunner.executeBeginTransaction(opts).then((result) => {
                 this.pushTransactionStack()
                 return result
             }, (e) => {
-                throw attachSource(new ChainedError.default(e), source)
+                if (e instanceof TsSqlQueryExecutionError) {
+                    throw e.attachTransactionSource(e)
+                } else if (this.queryRunner.isSqlError(e)) {
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
+                } else {
+                    throw e
+                }
             })
         } catch (e) {
-            throw new ChainedError.default(e)
+            if (e instanceof TsSqlQueryExecutionError) {
+                throw e.attachTransactionSource(e)
+            } else if (this.queryRunner.isSqlError(e)) {
+                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e).attachTransactionSource(source)
+            } else {
+                throw e
+            }
         }
     }
     commit(): Promise<void> {
+        const source = new QueryExecutionSource('Query executed at')
         if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
-            throw new Error('There is no open transaction')
+            throw new TsSqlQueryExecutionError(source, { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
         }
         const opts: any = []
-        const source = new Error('Query executed at')
         __setQueryMetadata(source, opts)
         const beforeCommit = this.beforeCommit
         if (beforeCommit) {
@@ -265,10 +303,22 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                         }, (e) => {
                             // Transaction only closed when commit successful, in case of error there is still an open transaction
                             // No rollback yet, then no executeAfterNextRollback will be executed
-                            throw attachSource(new ChainedError.default(e), source)
+                            if (e instanceof TsSqlQueryExecutionError) {
+                                throw e
+                            } else if (this.queryRunner.isSqlError(e)) {
+                                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+                            } else {
+                                throw e
+                            }
                         })
                     } catch (e) {
-                        throw new ChainedError.default(e)
+                        if (e instanceof TsSqlQueryExecutionError) {
+                            throw e
+                        } else if (this.queryRunner.isSqlError(e)) {
+                            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+                        } else {
+                            throw e
+                        }
                     }
                 }).then(() => {
                     this.popTransactionStack()
@@ -283,20 +333,32 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }, (e) => {
                 // Transaction only closed when commit successful, in case of error there is still an open transaction
                 // No rollback yet, then no executeAfterNextRollback will be executed
-                throw attachSource(new ChainedError.default(e), source)
+                if (e instanceof TsSqlQueryExecutionError) {
+                    throw e
+                } else if (this.queryRunner.isSqlError(e)) {
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+                } else {
+                    throw e
+                }
             }).then(() => {
                 this.popTransactionStack()
             })
         } catch (e) {
-            throw new ChainedError.default(e)
+            if (e instanceof TsSqlQueryExecutionError) {
+                throw e
+            } else if (this.queryRunner.isSqlError(e)) {
+                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            } else {
+                throw e
+            }
         }
     }
     rollback(): Promise<void> {
+        const source = new QueryExecutionSource('Query executed at')
         if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
-            throw new Error('There is no open transaction')
+            throw new TsSqlQueryExecutionError(source, { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
         }
         const opts: any = []
-        const source = new Error('Query executed at')
         __setQueryMetadata(source, opts)
         try {
             return this.queryRunner.executeRollback(opts).then(() => {
@@ -304,7 +366,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 this.onRollback = null
                 return callDeferredFunctions('after next rollback', onRollback, undefined, source)
             }, (e) => {
-                const throwError = attachSource(new ChainedError.default(e), source)
+                let throwError
+                if (e instanceof TsSqlQueryExecutionError) {
+                    throwError = e
+                } else if (this.queryRunner.isSqlError(e)) {
+                    throwError = new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+                } else {
+                    throwError = e
+                }
                 const onRollback = this.onRollback
                 this.onRollback = null
                 return callDeferredFunctions('after next rollback', onRollback, undefined, source, e, throwError)
@@ -312,7 +381,13 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 this.popTransactionStack()
             })
         } catch (e) {
-            throw new ChainedError.default(e)
+            if (e instanceof TsSqlQueryExecutionError) {
+                throw e
+            } else if (this.queryRunner.isSqlError(e)) {
+                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
+            } else {
+                throw e
+            }
         }
     }
     isTransactionActive(): boolean {
@@ -474,18 +549,16 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
 
     protected executeProcedure(procedureName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[]): Promise<void> {
+        const source = new QueryExecutionSource('Query executed at')
         try {
             const queryParams: any[] = []
             const query = this.__sqlBuilder._buildCallProcedure(queryParams, procedureName, params)
-            const source = new Error('Query executed at')
             __setQueryMetadata(source, params)
             return this.__sqlBuilder._queryRunner.executeProcedure(query, queryParams).catch((e) => {
-                throw new ChainedError.default(e)
-            }).catch((e) => {
-                throw attachSource(new ChainedError.default(e), source)
+                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
 
@@ -544,6 +617,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: string, required: 'required', adapter?: TypeAdapter): Promise<T>
     protected executeFunction<T>(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: 'customComparable', typeName: string, required: 'optional', adapter?: TypeAdapter): Promise<T | null>
     protected executeFunction(functionName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[], returnType: string, required: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): Promise<any> {
+        const source = new QueryExecutionSource('Query executed at')
         try {
             if (typeof adapter === 'string') {
                 returnType = required
@@ -553,28 +627,34 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
             }
             const queryParams: any[] = []
             const query = this.__sqlBuilder._buildCallFunction(queryParams, functionName, params)
-            const source = new Error('Query executed at')
             __setQueryMetadata(source, params)
             return this.__sqlBuilder._queryRunner.executeFunction(query, queryParams).then((value) => {
                 let result
-                if (adapter2) {
-                    result = adapter2.transformValueFromDB(value, returnType, this.__sqlBuilder._defaultTypeAdapter)
-                } else {
-                    result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, returnType)
-                }
-                if (result === null || result === undefined) {
-                    if (required !== 'optional') {
-                        throw new Error('Expected a value as result of the function `' + functionName + '`, but null or undefined value was found')
+                try {
+                    if (adapter2) {
+                        result = adapter2.transformValueFromDB(value, returnType, this.__sqlBuilder._defaultTypeAdapter)
+                    } else {
+                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, returnType)
                     }
+                } catch(e) {
+                    if (e instanceof TsSqlError) {
+                        throw e
+                    } else {
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: result, typeName: returnType }, e)
+                    }
+                }
+                if (value === undefined) {
+                    throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
+                }
+                if (result === null && required !== 'optional') {
+                    throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: returnType }, 'Expected a value as result of the function `' + functionName + '`, but null or undefined value was found')
                 }
                 return result
             }).catch((e) => {
-                throw new ChainedError.default(e)
-            }).catch((e) => {
-                throw attachSource(new ChainedError.default(e), source)
+                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
 
@@ -945,42 +1025,42 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 if (typeof value === 'bigint') {
                     return !!value
                 }
-                throw new Error('Invalid boolean value received from the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid boolean value received from the db: ' + value)
             case 'int':
                 if (typeof value === 'number') {
                     if (!Number.isInteger(value)) {
-                        throw new Error('Invalid int value received from the db: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
                     }
                     return value
                 }
                 if (typeof value === 'string') {
                     if (!/^(-?\d+)$/g.test(value)) {
-                        throw new Error('Invalid int value received from the db: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
                     }
                     const result = +value
                     if (!Number.isSafeInteger(result)) {
-                        throw new Error('Unnoticed precition lost transforming a string to int number. Value: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Unnoticed precition lost transforming a string to int number. Value: ' + value)
                     }
                     return result
                 }
                 if (typeof value === 'bigint') {
                     const result = Number(value)
                     if (!Number.isSafeInteger(result)) {
-                        throw new Error('Unnoticed precition lost transforming a bigint to int number. Value: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Unnoticed precition lost transforming a bigint to int number. Value: ' + value)
                     }
                     return result
                 }
-                throw new Error('Invalid int value received from the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
             case 'stringInt':
                 if (typeof value === 'number') {
                     if (!Number.isInteger(value)) {
-                        throw new Error('Invalid stringInt value received from the db: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid stringInt value received from the db: ' + value)
                     }
                     return value
                 }
                 if (typeof value === 'string') {
                     if (!/^-?\d+$/g.test(value)) {
-                        throw new Error('Invalid stringInt value received from the db: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid stringInt value received from the db: ' + value)
                     }
                     return value
                 }
@@ -991,11 +1071,11 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     }
                     return result
                 }
-                throw new Error('Invalid stringInt value received from the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid stringInt value received from the db: ' + value)
             case 'bigint':
                 if (typeof value === 'number') {
                     if (!Number.isInteger(value)) {
-                        throw new Error('Invalid bigint value received from the db: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid bigint value received from the db: ' + value)
                     }
                     return BigInt(value)
                 }
@@ -1003,20 +1083,20 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     try {
                         return BigInt(value)
                     } catch {
-                        throw new Error('Invalid bigint value received from the db: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid bigint value received from the db: ' + value)
                     }
                 }
                 if (typeof value === 'bigint') {
                     return value
                 }
-                throw new Error('Invalid int value received from the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid int value received from the db: ' + value)
             case 'double':
                 if (typeof value === 'number') {
                     return value
                 }
                 if (typeof value === 'string') {
                     if (!/^(-?\d+(\.\d+)?|NaN|-?Infinity)$/g.test(value)) {
-                        throw new Error('Invalid double value received from the db: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid double value received from the db: ' + value)
                     }
                     const result = +value
                     return result
@@ -1024,14 +1104,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 if (typeof value === 'bigint') {
                     return Number(value)
                 }
-                throw new Error('Invalid double value received from the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid double value received from the db: ' + value)
             case 'stringDouble':
                 if (typeof value === 'number') {
                     return value
                 }
                 if (typeof value === 'string') {
                     if (!/^(-?\d+(\.\d+)?|NaN|-?Infinity)$/g.test(value)) {
-                        throw new Error('Invalid stringDouble value received from the db: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid stringDouble value received from the db: ' + value)
                     }
                     return value
                 }
@@ -1042,17 +1122,17 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     }
                     return result
                 }
-                throw new Error('Invalid stringDouble value received from the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid stringDouble value received from the db: ' + value)
             case 'string':
                 if (typeof value === 'string') {
                     return value
                 }
-                throw new Error('Invalid string value received from the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid string value received from the db: ' + value)
             case 'uuid':
                 if (typeof value === 'string') {
                     return value
                 }
-                throw new Error('Invalid uuid value received from the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid uuid value received from the db: ' + value)
             case 'localDate': {
                 let result: Date
                 if (value instanceof Date) {
@@ -1065,10 +1145,10 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     result = new Date(Date.UTC(result.getFullYear(), result.getMonth(), result.getDate()))
                     result.setUTCMinutes(600)
                 } else {
-                    throw new Error('Invalid localDate value received from the db: ' + value)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localDate value received from the db: ' + value)
                 }
                 if (isNaN(result.getTime())) {
-                    throw new Error('Invalid localDate value received from the db: ' + value)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localDate value received from the db: ' + value)
                 }
                 (result as any).___type___ = 'localDate'
                 return result
@@ -1080,10 +1160,10 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 } else if (typeof value === 'string') {
                     result = new Date('1970-01-01 ' + value)
                 } else {
-                    throw new Error('Invalid localTime value received from the db: ' + value)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localTime value received from the db: ' + value)
                 }
                 if (isNaN(result.getTime())) {
-                    throw new Error('Invalid localTime value received from the db: ' + value)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localTime value received from the db: ' + value)
                 }
                 (result as any).___type___ = 'localTime'
                 return result
@@ -1095,16 +1175,16 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 } else if (typeof value === 'string') {
                     result = new Date(value)
                 } else {
-                    throw new Error('Invalid localDateTime value received from the db: ' + value)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localDateTime value received from the db: ' + value)
                 }
                 if (isNaN(result.getTime())) {
-                    throw new Error('Invalid localDateTime value received from the db: ' + value)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'Invalid localDateTime value received from the db: ' + value)
                 }
                 (result as any).___type___ = 'LocalDateTime'
                 return result
             }
             case 'aggregatedArray': {
-                throw new Error('This would not happened, something went wrong handling aggregate arrays coming from the database')
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: type }, 'This would not happened, something went wrong handling aggregate arrays coming from the database')
             }
             default:
                 return value
@@ -1125,65 +1205,65 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                 if (typeof value === 'boolean') {
                     return value
                 }
-                throw new Error('Invalid boolean value to send to the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid boolean value to send to the db: ' + value)
             case 'int':
                 if (typeof value === 'number') {
                     if (!Number.isInteger(value)) {
-                        throw new Error('Invalid int value to send to the db: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid int value to send to the db: ' + value)
                     }
                     return value
                 }
-                throw new Error('Invalid int value to send to the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid int value to send to the db: ' + value)
             case 'bigint':
                 if (typeof value === 'bigint') {
                     return value
                 }
-                throw new Error('Invalid int value to send to the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid int value to send to the db: ' + value)
             case 'stringInt':
                 if (typeof value === 'number') {
                     if (!Number.isInteger(value)) {
-                        throw new Error('Invalid stringInt value to send to the db: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid stringInt value to send to the db: ' + value)
                     }
                     return value
                 }
                 if (typeof value === 'string') {
                     if (!/^-?\d+$/g.test(value)) {
-                        throw new Error('Invalid stringInt value to send to the db: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid stringInt value to send to the db: ' + value)
                     }
                     return value
                 }
-                throw new Error('Invalid stringInt value to send to the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid stringInt value to send to the db: ' + value)
             case 'double':
                 if (typeof value === 'number') {
                     return value
                 }
-                throw new Error('Invalid double value to send to the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid double value to send to the db: ' + value)
             case 'stringDouble':
                 if (typeof value === 'number') {
                     return value
                 }
                 if (typeof value === 'string') {
                     if (!/^(-?\d+(\.\d+)?|NaN|-?Infinity)$/g.test(value)) {
-                        throw new Error('Invalid stringDouble value to send to the db: ' + value)
+                        throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid stringDouble value to send to the db: ' + value)
                     }
                     return value
                 }
-                throw new Error('Invalid stringDouble value to send to the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid stringDouble value to send to the db: ' + value)
             case 'string':
                 if (typeof value === 'string') {
                     return value
                 }
-                throw new Error('Invalid string value to send to the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid string value to send to the db: ' + value)
             case 'uuid':
                 if (typeof value === 'string') {
                     return value
                 }
-                throw new Error('Invalid uuid value to send to the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid uuid value to send to the db: ' + value)
             case 'localDate':
                 if (value instanceof Date && !isNaN(value.getTime())) {
                     return value
                 }
-                throw new Error('Invalid localDate value to send to the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localDate value to send to the db: ' + value)
             case 'localTime':
                 if (value instanceof Date && !isNaN(value.getTime())) {
                     let result = ''
@@ -1216,14 +1296,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
                     }
                     return result
                 }
-                throw new Error('Invalid localTime value to send to the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localTime value to send to the db: ' + value)
             case 'localDateTime':
                 if (value instanceof Date && !isNaN(value.getTime())) {
                     return value
                 }
-                throw new Error('Invalid localDateTime value to send to the db: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid localDateTime value to send to the db: ' + value)
             case 'aggregatedArray': {
-                throw new Error('This would not happened, something went wrong handling aggregate arrays, aggregated arrays cannot be sent to the database')
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'This would not happened, something went wrong handling aggregate arrays, aggregated arrays cannot be sent to the database')
             }
             default:
                 return value

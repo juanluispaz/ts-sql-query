@@ -1,6 +1,7 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
 import type { Connection, QueryError, ResultSetHeader, RowDataPacket } from 'mysql2'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
@@ -14,7 +15,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
 
     useDatabase(database: DatabaseType): void {
         if (database !== 'mariaDB' && database !== 'mySql') {
-            throw new Error('Unsupported database: ' + database + '. MySql2QueryRunner only supports mySql or mariaDB databases')
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. MySql2QueryRunner only supports mySql or mariaDB databases')
         } else {
             // @ts-ignore
             this.database = database

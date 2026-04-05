@@ -2,6 +2,7 @@ import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, PoolConnection } from 'mysql2'
 import { MySql2QueryRunner } from './MySql2QueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class MySql2PoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
@@ -15,7 +16,7 @@ export class MySql2PoolQueryRunner extends ManagedTransactionPoolQueryRunner {
 
     useDatabase(database: DatabaseType): void {
         if (database !== 'mariaDB' && database !== 'mySql') {
-            throw new Error('Unsupported database: ' + database + '. MySql2PoolQueryRunner only supports mySql or mariaDB databases')
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. MySql2PoolQueryRunner only supports mySql or mariaDB databases')
         } else {
             // @ts-ignore
             this.database = database

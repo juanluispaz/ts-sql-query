@@ -12,6 +12,7 @@ import { __getValueSourcePrivate } from '../expressions/values.js'
 import { ProxyTypeAdapter } from './ProxyTypeAdapter.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { FragmentQueryBuilder } from '../queryBuilders/FragmentQueryBuilder.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export abstract class ValueSourceImpl implements IValueSource<any, any, any, any>, NullableValueSource<any, any, any, any>, BooleanValueSource<any, any>, NumberValueSource<any, any>, BigintValueSource<any, any>, CustomIntValueSource<any, any, any, any>, CustomDoubleValueSource<any, any, any, any>, StringValueSource<any, any>, LocalDateValueSource<any, any>, LocalTimeValueSource<any, any>, LocalDateTimeValueSource<any, any>, CustomLocalDateValueSource<any, any, any, any>, CustomLocalTimeValueSource<any, any, any, any>, CustomLocalDateTimeValueSource<any, any, any, any>, IfValueSource<any, any>, AlwaysIfValueSource<any, any>, IAnyBooleanValueSource<any, any>, IAggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSource<any, any, any>, AggregatedArrayValueSourceProjectableAsNullable<any, any, any, any>, UuidValueSource<any, any>, CustomUuidValueSource<any, any, any, any>, ToSql, __ValueSourcePrivate {
     [nullableValueSource]!: 'NullableValueSource'
@@ -89,12 +90,12 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
         return false
     }
     getConstValue(): any {
-        throw new Error('You are trying to access to the const value when the expression is not const')
+        throw new TsSqlProcessingError({ reason: 'EXPRESSION_IS_NOT_CONST' }, 'You are trying to access to the const value when the expression is not const')
     }
     allowWhen(when: boolean, error: string | Error): any {
         let result
         if (typeof error === 'string') {
-            result = new AllowWhenValueSource(when, new Error(error), this)
+            result = new AllowWhenValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this)
         } else {
             result = new AllowWhenValueSource(when, error, this)
         }
@@ -106,7 +107,7 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     disallowWhen(when: boolean, error: string | Error): any {
         let result
         if (typeof error === 'string') {
-            result = new AllowWhenValueSource(!when, new Error(error), this)
+            result = new AllowWhenValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this)
         } else {
             result = new AllowWhenValueSource(!when, error, this)
         }
@@ -1650,7 +1651,7 @@ export class ValueSourceFromBuilder extends ValueSourceImpl {
     __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
         const builderOutput = this.__getBuilderOutput()
         if (!hasToSql(builderOutput)) {
-            throw new Error('The result of value from fragment functions is no a valid sql element')
+            throw new TsSqlProcessingError({ reason: 'INVALID_SQL_FRAGMENT_RETURN_TYPE', typeName: this.__valueTypeName }, 'The result of value from fragment functions is no a valid sql element')
         }
         return builderOutput.__toSql(sqlBuilder, params)
     }
@@ -1922,18 +1923,18 @@ export class TableOrViewRawFragmentValueSource implements ValueSource<any, any, 
         return false
     }
     getConstValue(): any {
-        throw new Error('You are trying to access to the const value when the expression is not const')
+        throw new TsSqlProcessingError({ reason: 'EXPRESSION_IS_NOT_CONST' }, 'You are trying to access to the const value when the expression is not const')
     }
     allowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new AllowWhenTableOrViewRawFragmentValueSource(when, new Error(error), this.__tableOrView, this.__operation)
+            return new AllowWhenTableOrViewRawFragmentValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this.__tableOrView, this.__operation)
         } else {
             return new AllowWhenTableOrViewRawFragmentValueSource(when, error, this.__tableOrView, this.__operation)
         }
     }
     disallowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new AllowWhenTableOrViewRawFragmentValueSource(!when, new Error(error), this.__tableOrView, this.__operation)
+            return new AllowWhenTableOrViewRawFragmentValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this.__tableOrView, this.__operation)
         } else {
             return new AllowWhenTableOrViewRawFragmentValueSource(!when, error, this.__tableOrView, this.__operation)
         }
@@ -2050,18 +2051,18 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
         return false
     }
     getConstValue(): any {
-        throw new Error('You are trying to access to the const value when the expression is not const')
+        throw new TsSqlProcessingError({ reason: 'EXPRESSION_IS_NOT_CONST' }, 'You are trying to access to the const value when the expression is not const')
     }
     allowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new AllowWhenAggregateSelectValueSource(when, new Error(error), this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+            return new AllowWhenAggregateSelectValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
         } else {
             return new AllowWhenAggregateSelectValueSource(when, error, this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
         }
     }
     disallowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new AllowWhenAggregateSelectValueSource(!when, new Error(error), this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+            return new AllowWhenAggregateSelectValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
         } else {
             return new AllowWhenAggregateSelectValueSource(!when, error, this.__selectData, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
         }
@@ -2170,18 +2171,18 @@ export class NullAggregateSelectValueSource implements ValueSource<any, any, any
         return false
     }
     getConstValue(): any {
-        throw new Error('You are trying to access to the const value when the expression is not const')
+        throw new TsSqlProcessingError({ reason: 'EXPRESSION_IS_NOT_CONST' }, 'You are trying to access to the const value when the expression is not const')
     }
     allowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new NullAllowWhenAggregateSelectValueSource(this.__selectData, when, new Error(error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+            return new NullAllowWhenAggregateSelectValueSource(this.__selectData, when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
         } else {
             return new NullAllowWhenAggregateSelectValueSource(this.__selectData, when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
         }
     }
     disallowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new NullAllowWhenAggregateSelectValueSource(this.__selectData, !when, new Error(error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
+            return new NullAllowWhenAggregateSelectValueSource(this.__selectData, !when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
         } else {
             return new NullAllowWhenAggregateSelectValueSource(this.__selectData, !when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType)
         }
@@ -2291,11 +2292,11 @@ function isSelectQuery(value: any): value is InlineSelectData {
 
 function valueSourceInitializationForInlineSelect(selectData: SelectData, required: boolean) {
     if (selectData.__asInlineAggregatedArrayValue) {
-        throw new Error('Ilegal state: unexpected inline aggregated array vaule')
+        throw new TsSqlProcessingError({ reason: 'INTERNAL_UNEXPECTED_VALUE' }, 'Unexpected inline aggregated array vaule')
     } else if (selectData.__oneColumn) {
         const result = selectData.__columns['result']
         if (!isValueSource(result)) {
-            throw new Error('Illegal state: result column for a select one column not found')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'Result column for a select one column not found')
         }
         const valueSourcePrivate = __getValueSourcePrivate(result)
         let typeAdapter = valueSourcePrivate.__typeAdapter
@@ -2305,7 +2306,7 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData, requir
         }
         return [valueSourcePrivate.__valueType, valueSourcePrivate.__valueTypeName, required ? 'required' : 'optional', typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__uuidString] as const
     } else {
-        throw new Error('Illega state: unexpected inline select')
+        throw new TsSqlProcessingError({ reason: 'INTERNAL_UNEXPECTED_VALUE' }, 'Unexpected inline select')
     }
 }
 
@@ -2337,18 +2338,18 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
         return false
     }
     getConstValue(): any {
-        throw new Error('You are trying to access to the const value when the expression is not const')
+        throw new TsSqlProcessingError({ reason: 'EXPRESSION_IS_NOT_CONST' }, 'You are trying to access to the const value when the expression is not const')
     }
     allowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new AllowWhenAggregateValueAsArrayValueSource(when, new Error(error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
+            return new AllowWhenAggregateValueAsArrayValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
         } else {
             return new AllowWhenAggregateValueAsArrayValueSource(when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
         }
     }
     disallowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new AllowWhenAggregateValueAsArrayValueSource(!when, new Error(error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
+            return new AllowWhenAggregateValueAsArrayValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
         } else {
             return new AllowWhenAggregateValueAsArrayValueSource(!when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
         }
@@ -2540,18 +2541,18 @@ export class NullAggregateValueAsArrayValueSource implements ValueSource<any, an
         return false
     }
     getConstValue(): any {
-        throw new Error('You are trying to access to the const value when the expression is not const')
+        throw new TsSqlProcessingError({ reason: 'EXPRESSION_IS_NOT_CONST' }, 'You are trying to access to the const value when the expression is not const')
     }
     allowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new NullAllowWhenAggregateValueAsArrayValueSource(when, new Error(error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
+            return new NullAllowWhenAggregateValueAsArrayValueSource(when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'allowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
         } else {
             return new NullAllowWhenAggregateValueAsArrayValueSource(when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
         }
     }
     disallowWhen(when: boolean, error: string | Error): any {
         if (typeof error === 'string') {
-            return new NullAllowWhenAggregateValueAsArrayValueSource(!when, new Error(error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
+            return new NullAllowWhenAggregateValueAsArrayValueSource(!when, new TsSqlProcessingError({ reason: 'DISALLOWED', message: error, functionName: 'disallowWhen' }, error), this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
         } else {
             return new NullAllowWhenAggregateValueAsArrayValueSource(!when, error, this.__aggregatedArrayColumns, this.__aggregatedArrayMode, this.__optionalType, this.__aggregatedArrayDistinct)
         }

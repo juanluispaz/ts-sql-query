@@ -3,6 +3,7 @@ import type { Pool, Connection } from 'oracledb'
 import { BIND_OUT } from 'oracledb'
 import { OracleDBQueryRunner } from './OracleDBQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
@@ -16,7 +17,7 @@ export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
 
     useDatabase(database: DatabaseType): void {
         if (database !== 'oracle') {
-            throw new Error('Unsupported database: ' + database + '. OracleDBPoolQueryRunner only supports oracle databases')
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. OracleDBPoolQueryRunner only supports oracle databases')
         }
     }
     getNativeRunner(): Pool {

@@ -5,6 +5,7 @@ import { getQueryColumn, isUsableValue } from '../sqlBuilders/SqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import type { AnyTableOrView, IWithView } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate, __registerRequiredColumn } from '../utils/ITableOrView.js'
+import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
@@ -23,10 +24,22 @@ export class AbstractQueryBuilder {
         const valueSourcePrivate = __getValueSourcePrivate(valueSource)
         const typeAdapter = valueSourcePrivate.__typeAdapter
         let result
-        if (typeAdapter) {
-            result = typeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueTypeName, this.__sqlBuilder._defaultTypeAdapter)
-        } else {
-            result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueTypeName)
+        try {
+            if (typeAdapter) {
+                result = typeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueTypeName, this.__sqlBuilder._defaultTypeAdapter)
+            } else {
+                result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, valueSourcePrivate.__valueTypeName)
+            }
+        } catch(e) {
+            if (e instanceof TsSqlError) {
+                if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE') {
+                    e.errorReason.rowIndex = index
+                    e.errorReason.columnPath = column
+                }
+                throw e
+            } else {
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: result, typeName: valueSourcePrivate.__valueTypeName, rowIndex: index, columnPath: column }, e)
+            }
         }
         if (result !== null && result !== undefined) {
             return result
@@ -43,7 +56,7 @@ export class AbstractQueryBuilder {
                 errorMessage += ' of the count number of rows query'
             }
             errorMessage += ', but null or undefined value was found'
-            throw new Error(errorMessage)
+            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: valueSourcePrivate.__valueTypeName, rowIndex: index, columnPath: column }, errorMessage)
         }
         return result
     }
@@ -101,7 +114,7 @@ export class AbstractQueryBuilder {
                     errorMessage += ' at index `' + index + '`'
                 }
                 errorMessage += '. ' + e + '. JSON: ' + value
-                throw new Error(errorMessage)
+                throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: valueSourcePrivate.__valueTypeName, rowIndex: index, columnPath: errorPrefix }, errorMessage)
             }
         }
 
@@ -118,7 +131,7 @@ export class AbstractQueryBuilder {
                 errorMessage += ' at index `' + index + '`'
             }
             errorMessage += '. An array were expected'
-            throw new Error(errorMessage)
+            throw new TsSqlProcessingError({ reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: value, typeName: valueSourcePrivate.__valueTypeName, rowIndex: index, columnPath: errorPrefix }, errorMessage)
         }
 
         const columns = valueSourcePrivate.__aggregatedArrayColumns!

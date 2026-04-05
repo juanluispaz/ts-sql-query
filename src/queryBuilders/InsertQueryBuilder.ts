@@ -6,8 +6,7 @@ import type { InsertExpression, ExecutableInsertExpression, ExecutableInsert, Ex
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn } from '../utils/Column.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
-import ChainedError from 'chained-error'
-import { attachSource } from '../utils/attachSource.js'
+import { TsSqlError, TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { from, resultType, source, type, using } from '../utils/symbols.js'
 import type { AlwaysIfValueSource, AnyValueSource, IExecutableSelectQuery, IAnyBooleanValueSource, IStringValueSource } from '../expressions/values.js'
 import { asAlwaysIfValueSource, isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
@@ -58,7 +57,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
 
     executeInsert(min?: number, max?: number): Promise<any> {
         this.query()
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             const idColumn = this.__idColumn
@@ -73,7 +72,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 }
             } else if (!idColumn) {
                 result = this.__sqlBuilder._queryRunner.executeInsert(this.__query, this.__params).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else if (!multiple && !this.__from) {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningLastInsertedId(this.__query, this.__params).then((value) => {
@@ -83,13 +82,25 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                     const idColumnPrivate = __getColumnPrivate(idColumn)
                     const typeAdapter = idColumnPrivate.__typeAdapter
                     let result
-                    if (typeAdapter) {
-                        result = typeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName, this.__sqlBuilder._defaultTypeAdapter)
-                    } else {
-                        result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName)
+                    try {
+                        if (typeAdapter) {
+                            result = typeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName, this.__sqlBuilder._defaultTypeAdapter)
+                        } else {
+                            result = this.__sqlBuilder._defaultTypeAdapter.transformValueFromDB(value, idColumnPrivate.__valueTypeName)
+                        }
+                    } catch(e) {
+                        if (e instanceof TsSqlError) {
+                            throw e
+                        } else {
+                            throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value, typeName: idColumnPrivate.__valueTypeName }, e)
+                        }
                     }
-                    if (!this.onConflictDoNothing && (result === null || result === undefined)) {
-                        throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
+                    if (!this.onConflictDoNothing) {
+                        if (result === undefined) {
+                            throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
+                        } else if (result === null) {
+                            throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__valueTypeName }, 'Expected a value as result of the insert returning last inserted id, but null value was found')
+                        }
                     }
                     if (this.__isMultiple) {
                         return [result]
@@ -97,7 +108,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return result
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningMultipleLastInsertedId(this.__query, this.__params).then((rows) => {
@@ -107,23 +118,47 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                     const defaultTypeAdapter = this.__sqlBuilder._defaultTypeAdapter
                     if (typeAdapter) {
                         return rows.map((row, index) => {
-                            const result = typeAdapter.transformValueFromDB(row, columnTypeName, defaultTypeAdapter)
+                            let result
+                            try {
+                                result = typeAdapter.transformValueFromDB(row, columnTypeName, defaultTypeAdapter)
+                            } catch(e) {
+                                if (e instanceof TsSqlError) {
+                                    if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE') {
+                                        e.errorReason.rowIndex = index
+                                    }
+                                    throw e
+                                } else {
+                                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: result, typeName: columnTypeName, rowIndex: index }, e)
+                                }
+                            }
                             if (result === null || result === undefined) {
-                                throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found at index ' + index)
+                                throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__valueTypeName, rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
                             }
                             return result
                         })
                     } else {
                         return rows.map((row, index) => {
-                            const result = defaultTypeAdapter.transformValueFromDB(row, columnTypeName)
+                            let result 
+                            try {
+                                result = defaultTypeAdapter.transformValueFromDB(row, columnTypeName)
+                            } catch(e) {
+                                if (e instanceof TsSqlError) {
+                                    if (e.errorReason.reason === 'INVALID_VALUE_RECEIVED_FROM_DATABASE' || e.errorReason.reason === 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE') {
+                                        e.errorReason.rowIndex = index
+                                    }
+                                    throw e
+                                } else {
+                                    throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: result, typeName: columnTypeName, rowIndex: index }, e)
+                                }
+                            }
                             if (result === null || result === undefined) {
-                                throw new Error('Expected a value as result of the insert returning last inserted id, but null or undefined value was found at index ' + index)
+                                throw new TsSqlProcessingError({ reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: result, typeName: idColumnPrivate.__valueTypeName, rowIndex: index }, 'Expected a value as result of the insert returning last inserted id, but null or undefined value was found')
                             }
                             return result
                         })
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
             if (min !== undefined) {
@@ -141,22 +176,22 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         count = result
                     }
                     if (count < min) {
-                        throw attachSource(new Error("The insert operation didn't insert the minimum of " + min + " row(s)"), source)
+                        throw new TsSqlQueryExecutionError(source, {reason: 'MINIMUM_ROWS_NOT_REACHED', count, min }, "The insert operation didn't insert the minimum of " + min + " row(s)")
                     }
                     if (max !== undefined && count > max) {
-                        throw attachSource(new Error("The insert operation insert more that the maximum of " + max + " row(s)"), source)
+                        throw new TsSqlQueryExecutionError(source, {reason: 'MAXIMUM_ROWS_EXCEEDED', count, max }, "The insert operation insert more that the maximum of " + max + " row(s)")
                     }
                     return result
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     executeInsertNoneOrOne(): Promise<any> {
         this.query()
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
@@ -165,14 +200,14 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new Error('The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
                     }
                     if (value === undefined) {
                         return null
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneRow(this.__query, this.__params).then((row) => {
@@ -182,17 +217,17 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return null
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     executeInsertOne(): Promise<any> {
         this.query()
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
@@ -201,33 +236,33 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new Error('The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
                     }
                     if (value === undefined) {
-                        throw new Error('No result returned by the database')
+                        throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneRow(this.__query, this.__params).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
-                        throw new Error('No result returned by the database')
+                        throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     executeInsertMany(min?: number, max?: number): Promise<any> {
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         this.query()
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
@@ -237,7 +272,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new Error('The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
                     }
 
                     return values.map((value) => {
@@ -247,7 +282,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return this.__transformValueFromDB(valueSource, value)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningManyRows(this.__query, this.__params).then((rows) => {
@@ -255,24 +290,24 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return this.__transformRow(row, index)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
             if (min !== undefined) {
                 result = result.then((rows) => {
                     const count = rows.length
                     if (count < min) {
-                        throw attachSource(new Error("The insert operation didn't insert the minimum of " + min + " row(s)"), source)
+                        throw new TsSqlQueryExecutionError(source, {reason: 'MINIMUM_ROWS_NOT_REACHED', count, min }, "The insert operation didn't insert the minimum of " + min + " row(s)")
                     }
                     if (max !== undefined && count > max) {
-                        throw attachSource(new Error("The insert operation insert more that the maximum of " + max + " row(s)"), source)
+                        throw new TsSqlQueryExecutionError(source, {reason: 'MAXIMUM_ROWS_EXCEEDED', count, max }, "The insert operation insert more that the maximum of " + max + " row(s)")
                     }
                     return rows
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     query(): string {
@@ -280,18 +315,14 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             return this.__query
         }
 
-        try {
-            if (this.__from) {
-                this.__query = this.__sqlBuilder._buildInsertFromSelect(this, this.__params)
-            } else if (this.__multiple) {
-                this.__query = this.__sqlBuilder._buildInsertMultiple(this, this.__params)
-            } else if (this.__sets === DEFAULT_VALUES) {
-                this.__query = this.__sqlBuilder._buildInsertDefaultValues(this, this.__params)
-            } else {
-                this.__query = this.__sqlBuilder._buildInsert(this, this.__params)
-            }
-        } catch (e) {
-            throw new ChainedError.default(e)
+        if (this.__from) {
+            this.__query = this.__sqlBuilder._buildInsertFromSelect(this, this.__params)
+        } else if (this.__multiple) {
+            this.__query = this.__sqlBuilder._buildInsertMultiple(this, this.__params)
+        } else if (this.__sets === DEFAULT_VALUES) {
+            this.__query = this.__sqlBuilder._buildInsertDefaultValues(this, this.__params)
+        } else {
+            this.__query = this.__sqlBuilder._buildInsert(this, this.__params)
         }
         return this.__query
     }
@@ -345,7 +376,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             if (typeof value === 'string' || isColumn(value)) {
                 const currentShapeValue = shape[property]
                 if (typeof currentShapeValue === 'string' || isColumn(value)) {
-                    throw new Error('You cannot override the previously defined shape property with name ' + property)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_SHAPE_OVERRIDE', property }, 'You cannot override the previously defined shape property with name ' + property)
                 }
             }
         }
@@ -1152,9 +1183,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                     let column = columns[i]
                     if (column in item) {
                         if (typeof error === 'string') {
-                            error = new Error(error)
+                            error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: column, disallowedRowIndex: j }, error)
                         }
-                        (error as any)['disallowedPropery'] = column;
+                        (error as any)['disallowedProperty'] = column;
                         (error as any)['disallowedIndex'] = j
                         throw error
                     }
@@ -1169,9 +1200,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             let column = columns[i]
             if (column in sets) {
                 if (typeof error === 'string') {
-                    error = new Error(error)
+                    error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: column }, error)
                 }
-                (error as any)['disallowedPropery'] = column
+                (error as any)['disallowedProperty'] = column
                 throw error
             }
         }
@@ -1191,9 +1222,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                     let column = columns[i]
                     if (!(column in item)) {
                         if (typeof error === 'string') {
-                            error = new Error(error)
+                            error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: column, disallowedRowIndex: j }, error)
                         }
-                        (error as any)['disallowedPropery'] = column;
+                        (error as any)['disallowedProperty'] = column;
                         (error as any)['disallowedIndex'] = j
                         throw error
                     }
@@ -1208,9 +1239,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             let column = columns[i]
             if (!(column in sets)) {
                 if (typeof error === 'string') {
-                    error = new Error(error)
+                    error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: column }, error)
                 }
-                (error as any)['disallowedPropery'] = column
+                (error as any)['disallowedProperty'] = column
                 throw error
             }
         }
@@ -1230,9 +1261,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                     let column = columns[i]
                     if (this.__sqlBuilder._isValue(item[column])) {
                         if (typeof error === 'string') {
-                            error = new Error(error)
+                            error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: column, disallowedRowIndex: j }, error)
                         }
-                        (error as any)['disallowedPropery'] = column;
+                        (error as any)['disallowedProperty'] = column;
                         (error as any)['disallowedIndex'] = j
                         throw error
                     }
@@ -1247,9 +1278,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             let column = columns[i]
             if (this.__sqlBuilder._isValue(sets[column])) {
                 if (typeof error === 'string') {
-                    error = new Error(error)
+                    error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: column }, error)
                 }
-                (error as any)['disallowedPropery'] = column
+                (error as any)['disallowedProperty'] = column
                 throw error
             }
         }
@@ -1269,9 +1300,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                     let column = columns[i]
                     if (!this.__sqlBuilder._isValue(item[column])) {
                         if (typeof error === 'string') {
-                            error = new Error(error)
+                            error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: column, disallowedRowIndex: j }, error)
                         }
-                        (error as any)['disallowedPropery'] = column;
+                        (error as any)['disallowedProperty'] = column;
                         (error as any)['disallowedIndex'] = j
                         throw error
                     }
@@ -1286,9 +1317,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             let column = columns[i]
             if (!this.__sqlBuilder._isValue(sets[column])) {
                 if (typeof error === 'string') {
-                    error = new Error(error)
+                    error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: column }, error)
                 }
-                (error as any)['disallowedPropery'] = column
+                (error as any)['disallowedProperty'] = column
                 throw error
             }
         }
@@ -1323,9 +1354,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                     
                     if (!allowed[property]) {
                         if (typeof error === 'string') {
-                            error = new Error(error)
+                            error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: property, disallowedRowIndex: j }, error)
                         }
-                        (error as any)['disallowedPropery'] = property;
+                        (error as any)['disallowedProperty'] = property;
                         (error as any)['disallowedIndex'] = j
                         throw error
                     } else {
@@ -1350,9 +1381,9 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
 
             if (!allowed[property]) {
                 if (typeof error === 'string') {
-                    error = new Error(error)
+                    error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: property }, error)
                 }
-                (error as any)['disallowedPropery'] = property
+                (error as any)['disallowedProperty'] = property
                 throw error
             }
         }
@@ -1594,12 +1625,12 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 continue
             }
             if (this.__idColumn) {
-                throw new Error('In order to call executeInsertReturningLastInsertedId method the table must have defined only one autogenerated primary key column')
+                throw new TsSqlProcessingError({ reason: 'NO_AUTOGENERATED_ID_COLUMN_FOUND' }, 'In order to call executeInsertReturningLastInsertedId method the table must have defined only one autogenerated primary key column')
             }
             this.__idColumn = column
         }
         if (!this.__idColumn) {
-            throw new Error('In order to call executeInsertReturningLastInsertedId method the table must have defined one autogenerated primary key column')
+            throw new TsSqlProcessingError({ reason: 'NO_AUTOGENERATED_ID_COLUMN_FOUND' }, 'In order to call executeInsertReturningLastInsertedId method the table must have defined one autogenerated primary key column')
         }
         return this
     }
@@ -1634,7 +1665,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
         this.__query = ''
         if (this.__onConflictUpdateSets) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__onConflictUpdateSets = {}
         if (this.__shape) {
@@ -1649,7 +1680,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
 
         if (this.__onConflictUpdateSets) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
 
         this.__onConflictUpdateSets = {}
@@ -1678,7 +1709,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
 
         if (this.__onConflictUpdateSets) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
 
         this.__onConflictUpdateSets = {}
@@ -1706,7 +1737,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     onConflictOn(...columns: AnyValueSource[]): this {
         this.__query = ''
         if (this.__onConflictOnColumns) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__onConflictOnColumns = columns
         for (let i = 0, length = columns.length; i < length; i++) {
@@ -1717,7 +1748,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     onConflictOnConstraint(constraint: string | IStringValueSource<any, any> | RawFragment<any>): this {
         this.__query = ''
         if (this.__onConflictOnConstraint) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__onConflictOnConstraint = constraint
         __addWiths(constraint, this.__sqlBuilder, this.__withs)
@@ -1735,7 +1766,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
         this.__query = ''
         if (this.__onConflictUpdateSets) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__onConflictUpdateSets = {}
         if (this.__shape) {
@@ -1750,7 +1781,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
 
         if (this.__onConflictUpdateSets) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
 
         this.__onConflictUpdateSets = {}
@@ -1779,7 +1810,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
 
         if (this.__onConflictUpdateSets) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
 
         this.__onConflictUpdateSets = {}
@@ -1815,7 +1846,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
 
         if (this.__onConflictUpdateSets) {
             if (this.__onConflictUpdateWhere) {
-                throw new Error('Illegal state')
+                throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
             }
             this.__onConflictUpdateWhere = asAlwaysIfValueSource(condition)
             const conditionPrivate = __getValueSourcePrivate(condition)
@@ -1823,12 +1854,12 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert(this.__sqlBuilder)
         } else if (this.__onConflictOnColumns) {
             if (this.__onConflictOnColumnsWhere) {
-                throw new Error('Illegal state')
+                throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
             }
             this.__onConflictOnColumnsWhere = asAlwaysIfValueSource(condition)
             __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         } else {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         return this
     }
@@ -1851,7 +1882,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         } else {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         return this
     }
@@ -1874,7 +1905,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         } else {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         return this
     }

@@ -1,3 +1,4 @@
+import { TsSqlProcessingError } from '../TsSqlError.js'
 import { AbstractQueryRunner } from './AbstractQueryRunner.js'
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from './QueryRunner.js'
 
@@ -22,7 +23,8 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         super()
         this.config = config
         this.connection = connection
-        switch ((connection as any)._activeProvider) {
+        let activeProvider = (connection as any)._activeProvider
+        switch (activeProvider) {
             case 'postgresql':
                 this.database = 'postgreSql';
                 break
@@ -36,7 +38,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
                 this.database = 'sqlServer'
                 break
             default:
-                throw new Error('Unknown Prisma provider of name ' + (connection as any)._activeProvider)
+                throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'activeProvider', value: activeProvider }, 'Unknown Prisma provider of name ' + activeProvider)
         }
         if (config?.forUseInTransaction) {
             this.transaction = connection
@@ -51,9 +53,9 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
                 // @ts-ignore
                 this.database = database
             } else if (this.database === 'mySql' || this.database === 'mariaDB') {
-                throw new Error('Unsupported database: ' + database + '. The current connection used in PrismaQueryRunner only supports mySql or mariaDB databases')
+                throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. The current connection used in PrismaQueryRunner only supports mySql or mariaDB databases')
             } else {
-                throw new Error('Unsupported database: ' + database + '. The current connection used in PrismaQueryRunner only supports ' + this.database + ' databases')
+                throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. The current connection used in PrismaQueryRunner only supports ' + this.database + ' databases')
             }
         }
     }
@@ -101,29 +103,29 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         return super.executeInsertReturningLastInsertedId(query, params)
     }
     executeBeginTransaction(_opts: BeginTransactionOpts = []): Promise<void> {
-        return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
+        return Promise.reject(new TsSqlProcessingError({ reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }, 'Low level transaction management is not supported by Prisma.'))
     }
     executeCommit(_opts: CommitOpts = []): Promise<void> {
-        return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
+        return Promise.reject(new TsSqlProcessingError({ reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }, 'Low level transaction management is not supported by Prisma.'))
     }
     executeRollback(_opts: RollbackOpts = []): Promise<void> {
-        return Promise.reject(new Error('Low level transaction management is not supported by Prisma.'))
+        return Promise.reject(new TsSqlProcessingError({ reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }, 'Low level transaction management is not supported by Prisma.'))
     }
     isTransactionActive(): boolean {
         return !!this.transaction
     }
     executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         if (this.transaction) {
-            return Promise.reject(new Error(this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
+            return Promise.reject(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
         }
 
         const level = opts?.[0]
         const accessMode = opts?.[1]
         if (accessMode) {
-            return Promise.reject(new Error(this.database + " doesn't support the transactions access mode: " + accessMode + " (using " + this.constructor.name + ")"))
+            return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode + " (using " + this.constructor.name + ")"))
         }
         if (this.database === 'sqlite' && level && level !== 'serializable') {
-            return Promise.reject(new Error(this.database + " doesn't support the transactions level: " + level))
+            return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level))
         }
         
         let isolationLevel
@@ -136,18 +138,18 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
             isolationLevel = 'RepeatableRead'
         } else if (level === 'snapshot') {
             if (this.database !== 'sqlServer') {
-                return Promise.reject(new Error(this.database + " doesn't support the transactions level: " + level))
+                return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level))
             }
             isolationLevel = 'Snapshot'
         } else if (level === 'serializable') {
             isolationLevel = 'Serializable'
         } else {
-            return Promise.reject(new Error(this.database + " doesn't support the transactions level: " + level))
+            return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level))
         }
 
         return this.connection.$transaction((interactiveTransactions: RawPrismaClient) => {
             if (this.transaction) {
-                throw new Error('Forbidden concurrent usage of the query runner was detected when it tried to start a transaction.')
+                throw new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to start a transaction.')
             }
             this.transaction = interactiveTransactions
             return fn().finally(() => {
@@ -181,7 +183,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
                 result = '@P' + (index  + 1)
                 break
             default:
-                throw new Error('Unknown database ' + this.database)
+                throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database: this.database }, 'Unknown database ' + this.database)
         }
         params.push(value)
         return result

@@ -9,6 +9,7 @@ import type { DBColumn } from '../utils/Column.js'
 import { isColumn } from '../utils/Column.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class SqliteSqlBuilder extends AbstractSqlBuilder {
     sqlite: true = true
@@ -33,10 +34,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             } else if (__isLocalDateTimeValueSource(valueSourcePrivate)) {
                 return this._getDateTimeFormat('dateTime')
             } else {
-                throw new Error('Unknown date type: ' + valueSourcePrivate.__valueType + ' ' + valueSourcePrivate.__valueTypeName)
+                throw new TsSqlProcessingError({ reason: 'UNKNOWN_DATA_TYPE', typeName: valueSourcePrivate.__valueTypeName }, 'Unknown date type: ' + valueSourcePrivate.__valueType + ' ' + valueSourcePrivate.__valueTypeName)
             }
         }
-        throw new Error('Unable to determine the value source type')
+        throw new TsSqlProcessingError({ reason: 'UNKNOWN_DATA_TYPE' }, 'Unable to determine the value source type')
     }
     _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
@@ -121,7 +122,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is not null, ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
                     break
                 default:
-                    throw new Error('Invalid order by: ' + order)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, params), ordering: order }, 'Invalid order by: ' + order)
             }
         }
 
@@ -202,7 +203,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             case 'Unix time milliseconds as integer':
                 return "(cast(strftime('%s', date('now')) as integer) * 1000)"
             default:
-                throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
+                throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
         }
     }
     _currentTime(_params: any): string {
@@ -224,7 +225,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             case 'Unix time milliseconds as integer':
                 return "cast((julianday(strftime('1970-01-01 %H:%M:%f', 'now')) - 2440587.5) * 86400000.0 as integer)"
             default:
-                throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
+                throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
         }
     }
     _currentTimestamp(_params: any): string {
@@ -249,7 +250,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             case 'Unix time milliseconds as integer':
                 return "cast((julianday('now') - 2440587.5) * 86400000.0 as integer)"
             default:
-                throw new Error('Invalid sqlite date time format: ' + dateTimeFormat)
+                throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
         }
     }
     _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {

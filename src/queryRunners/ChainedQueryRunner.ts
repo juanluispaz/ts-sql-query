@@ -1,3 +1,4 @@
+import type { TsSqlErrorReason } from '../TsSqlError.js'
 import type { QueryRunner, DatabaseType, BeginTransactionOpts, CommitOpts, RollbackOpts } from './QueryRunner.js'
 
 export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
@@ -139,5 +140,11 @@ export class ChainedQueryRunner<T extends QueryRunner> implements QueryRunner {
     }
     nestedTransactionsSupported(): boolean {
         return this.queryRunner.nestedTransactionsSupported()
+    }
+    getErrorReason(error: unknown): TsSqlErrorReason {
+        return this.queryRunner.getErrorReason(error)
+    }
+    isSqlError(error: unknown): boolean {
+        return this.queryRunner.isSqlError(error)
     }
 }

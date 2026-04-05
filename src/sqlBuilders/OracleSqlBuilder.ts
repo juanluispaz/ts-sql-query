@@ -8,6 +8,7 @@ import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class OracleSqlBuilder extends AbstractSqlBuilder {
     oracle: true = true
@@ -262,7 +263,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             case 'minusAll':
                 return ' except all '
             default:
-                throw new Error('Invalid compound operator: ' + compoundOperator)
+                throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_COMPOUND_OPERATOR', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
         }   
     }
     _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
@@ -345,7 +346,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                     break
                 }
                 default:
-                    throw new Error('Invalid order by: ' + order)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, params), ordering: order }, 'Invalid order by: ' + order)
             }
         }
 
@@ -372,7 +373,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (typeof expression === 'string') {
             const column = getQueryColumn(columns, expression)
             if (!column) {
-                throw new Error('Column ' + expression + ' included in the order by not found in the select clause')
+                throw new TsSqlProcessingError({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column: expression }, 'Column ' + expression + ' included in the order by not found in the select clause')
             }
             return (columnNames.indexOf(expression) + 1) + ''
         } else if (isValueSource(expression)) {
@@ -414,7 +415,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _buildInsertMultiple(query: InsertData, params: any[]): string {
         const multiple = query.__multiple
         if (!multiple) {
-            throw new Error('Exepected a multiple insert')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_EXPECTING_INSERT_OF_MULTIPLE_VALUES' }, 'Exepected a multiple insert')
         }
         if (multiple.length <= 0) {
             return ''

@@ -11,6 +11,7 @@ import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
 import { IDEncrypter } from '../extras/IDEncrypter.js'
 import { Values } from '../Values.js'
+import { TsSqlProcessingError } from '../TsSqlError.js';
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     increment(i: number) {
@@ -44,7 +45,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
                 const id = this.encrypter.decrypt(value)
                 return super.transformValueToDB(id, 'bigint')
             } else {
-                throw new Error('Invalid id: ' + value)
+                throw new TsSqlProcessingError({ reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value, typeName: type }, 'Invalid id: ' + value)
             }
         }
         return super.transformValueToDB(value, type)

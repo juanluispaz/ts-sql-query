@@ -5,8 +5,7 @@ import { __getTableOrViewPrivate, __isAllowed } from '../utils/ITableOrView.js'
 import type { AlwaysIfValueSource, AnyValueSource, IAnyBooleanValueSource } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
 import type { UpdateExpression, ExecutableUpdate, ExecutableUpdateExpression, DynamicExecutableUpdateExpression, UpdateExpressionAllowingNoWhere, NotExecutableUpdateExpression, CustomizableExecutableUpdate, UpdateCustomization, CustomizableExecutableUpdateReturning, ReturnableExecutableUpdate, ExecutableUpdateReturning, UpdateReturningColumns, UpdateSetExpression, UpdateSetExpressionAllowingNoWhere, UpdateSetJoinExpression, DynamicOnExpression, OnExpression, UpdateExpressionWithoutJoin, UpdateFromExpression, UpdateSetJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, UpdateExpressionWithoutJoinAllowingNoWhere, UpdateFromExpressionAllowingNoWhere, ShapedUpdateSetExpression, ShapedUpdateSetExpressionAllowingNoWhere, ShapedExecutableUpdateExpression, ShapedNotExecutableUpdateExpression, CustomizableExecutableUpdateProjectableAsNullable } from '../expressions/update.js'
-import ChainedError from 'chained-error'
-import { attachSource } from '../utils/attachSource.js'
+import { TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { from, resultType, source, type, using } from '../utils/symbols.js'
 import { asAlwaysIfValueSource } from '../expressions/values.js'
 import { __addWiths } from '../utils/ITableOrView.js'
@@ -50,7 +49,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
 
     executeUpdate(min?: number, max?: number): Promise<number> {
         this.query()
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
@@ -59,28 +58,28 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
 
             let result = this.__sqlBuilder._queryRunner.executeUpdate(this.__query, this.__params).catch((e) => {
-                throw attachSource(new ChainedError.default(e), source)
+                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
             
             if (min !== undefined) {
                 result = result.then((count) => {
                     if (count < min) {
-                        throw attachSource(new Error("The update operation didn't update the minimum of " + min + " row(s)"), source)
+                        throw new TsSqlQueryExecutionError(source, {reason: 'MINIMUM_ROWS_NOT_REACHED', count, min }, "The update operation didn't update the minimum of " + min + " row(s)")
                     }
                     if (max !== undefined && count > max) {
-                        throw attachSource(new Error("The update operation updated more that the maximum of " + max + " row(s)"), source)
+                        throw new TsSqlQueryExecutionError(source, {reason: 'MAXIMUM_ROWS_EXCEEDED', count, max }, "The update operation updated more that the maximum of " + max + " row(s)")
                     }
                     return count
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     executeUpdateNoneOrOne(): Promise<any> {
         this.query()
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
@@ -94,14 +93,14 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new Error('The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
                     }
                     if (value === undefined) {
                         return null
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneRow(this.__query, this.__params).then((row) => {
@@ -111,23 +110,23 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return null
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     executeUpdateOne(): Promise<any> {
         this.query()
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             if (Object.getOwnPropertyNames(this.__sets).length <= 0) {
                 // Nothing to update, nothing to set
                 return this.__sqlBuilder._queryRunner.createResolvedPromise(null).then(() => {
-                    throw attachSource(new Error('No values to update due no sets'), source)
+                    throw new TsSqlQueryExecutionError(source, {reason: 'NO_COLUMN_SETS' }, 'No values to update due no sets')
                 })
             }
             this.__sqlBuilder._resetUnique()
@@ -136,33 +135,33 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new Error('The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
                     }
                     if (value === undefined) {
-                        throw new Error('No result returned by the database')
+                        throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneRow(this.__query, this.__params).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
-                        throw new Error('No result returned by the database')
+                        throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     executeUpdateMany(min?: number, max?: number): Promise<any> {
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         this.query()
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
@@ -177,7 +176,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new Error('The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
                     }
 
                     return values.map((value) => {
@@ -187,7 +186,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return this.__transformValueFromDB(valueSource, value)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeUpdateReturningManyRows(this.__query, this.__params).then((rows) => {
@@ -195,7 +194,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return this.__transformRow(row, index)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
 
@@ -203,28 +202,24 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = result.then((rows) => {
                     const count = rows.length
                     if (count < min) {
-                        throw attachSource(new Error("The update operation didn't update the minimum of " + min + " row(s)"), source)
+                        throw new TsSqlQueryExecutionError(source, {reason: 'MINIMUM_ROWS_NOT_REACHED', count, min }, "The update operation didn't update the minimum of " + min + " row(s)")
                     }
                     if (max !== undefined && count > max) {
-                        throw attachSource(new Error("The update operation updated more that the maximum of " + max + " row(s)"), source)
+                        throw new TsSqlQueryExecutionError(source, {reason: 'MAXIMUM_ROWS_EXCEEDED', count, max }, "The update operation updated more that the maximum of " + max + " row(s)")
                     }
                     return rows
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     query(): string {
         if (this.__query) {
             return this.__query
         }
-        try {
-            this.__query = this.__sqlBuilder._buildUpdate(this, this.__params)
-        } catch (e) {
-            throw new ChainedError.default(e)
-        }
+        this.__query = this.__sqlBuilder._buildUpdate(this, this.__params)
         return this.__query
     }
     params(): any[] {
@@ -262,7 +257,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             if (typeof value === 'string' || isColumn(value)) {
                 const currentShapeValue = this.__shape[property]
                 if (typeof currentShapeValue === 'string' || isColumn(value)) {
-                    throw new Error('You cannot override the previously defined shape property with name ' + property)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_SHAPE_OVERRIDE', property }, 'You cannot override the previously defined shape property with name ' + property)
                 }
             }
         }
@@ -592,9 +587,9 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             let column = columns[i]
             if (column in sets) {
                 if (typeof error === 'string') {
-                    error = new Error(error)
+                    error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: column }, error)
                 }
-                (error as any)['disallowedPropery'] = column
+                (error as any)['disallowedProperty'] = column
                 throw error
             }
         }
@@ -607,9 +602,9 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             let column = columns[i]
             if (!(column in sets)) {
                 if (typeof error === 'string') {
-                    error = new Error(error)
+                    error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: column }, error)
                 }
-                (error as any)['disallowedPropery'] = column
+                (error as any)['disallowedProperty'] = column
                 throw error
             }
         }
@@ -622,9 +617,9 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             let column = columns[i]
             if (this.__sqlBuilder._isValue(sets[column])) {
                 if (typeof error === 'string') {
-                    error = new Error(error)
+                    error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: column }, error)
                 }
-                (error as any)['disallowedPropery'] = column
+                (error as any)['disallowedProperty'] = column
                 throw error
             }
         }
@@ -637,9 +632,9 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             let column = columns[i]
             if (!this.__sqlBuilder._isValue(sets[column])) {
                 if (typeof error === 'string') {
-                    error = new Error(error)
+                    error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: column }, error)
                 }
-                (error as any)['disallowedPropery'] = column
+                (error as any)['disallowedProperty'] = column
                 throw error
             }
         }
@@ -665,9 +660,9 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             
             if (!allowed[property]) {
                 if (typeof error === 'string') {
-                    error = new Error(error)
+                    error = new TsSqlProcessingError({ reason: 'DISALLOWED_BY_QUERY_RULE', message: error, disallowedProperty: property }, error)
                 }
-                (error as any)['disallowedPropery'] = property
+                (error as any)['disallowedProperty'] = property
                 throw error
             }
         }
@@ -804,7 +799,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     where(condition: IAnyBooleanValueSource<any, any>): this {
         this.__query = ''
         if (this.__where) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__where = asAlwaysIfValueSource(condition)
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
@@ -863,7 +858,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'join',
@@ -876,7 +871,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'innerJoin',
@@ -889,7 +884,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'leftJoin',
@@ -902,7 +897,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'leftOuterJoin',
@@ -918,7 +913,7 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     on(condition: IAnyBooleanValueSource<any, any>): any {
         this.__query = ''
         if (!this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin.__on = asAlwaysIfValueSource(condition)
         if (!this.__joins) {

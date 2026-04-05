@@ -1,3 +1,5 @@
+import type { TsSqlErrorReason, QueryExecutionSource } from "../TsSqlError.js"
+
 export interface QueryRunner {
     readonly database: DatabaseType
     useDatabase(database: DatabaseType): void
@@ -42,6 +44,8 @@ export interface QueryRunner {
     isMocked(): boolean
     lowLevelTransactionManagementSupported(): boolean
     nestedTransactionsSupported(): boolean
+    getErrorReason(error: unknown): TsSqlErrorReason
+    isSqlError(error: unknown): boolean
 }
 
 export type DatabaseType = 'mariaDB' | 'mySql' | 'noopDB' | 'oracle' | 'postgreSql' | 'sqlite' | 'sqlServer'
@@ -84,7 +88,12 @@ export function getQueryExecutionMetadata(query: string, params: any[]): unknown
     query
     return (params as any).$metadata?.queryExecutionMetadata
 }
-export function getQueryExecutionStack(query: string, params: any[]): string| undefined {
+export function getQueryExecutionSource(query: string, params: any[]): QueryExecutionSource | undefined {
+    query
+    const source : QueryExecutionSource | undefined = (params as any).$source
+    return source
+}
+export function getQueryExecutionStack(query: string, params: any[]): string | undefined {
     query
     const source : Error | undefined = (params as any).$source
     return source?.stack

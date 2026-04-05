@@ -3,6 +3,7 @@ import { isValueSource } from '../expressions/values.js'
 import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
 import type { CompoundOperator, FlatQueryColumns, InsertData, SelectData } from './SqlBuilder.js'
 import { flattenQueryColumns } from './SqlBuilder.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mariaDB: true = true
@@ -28,7 +29,7 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
             case 'minusAll':
                 return ' minus all '
             default:
-                throw new Error('Invalid compound operator: ' + compoundOperator)
+                throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_COMPOUND_OPERATOR', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
         }   
     }
     _supportOrderByWhenAggregateArray = true

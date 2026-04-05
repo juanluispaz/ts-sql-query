@@ -80,9 +80,6 @@
         "typescript": "^5.9.3",
         "uuid": "^13.0.0"
     },
-    "dependencies": {
-        "chained-error": "^1.0.0"
-    },
     "nyc": {
         "exclude": [
             "src/examples/**"

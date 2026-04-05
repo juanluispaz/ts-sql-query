@@ -7,9 +7,8 @@ import type { IAnyBooleanValueSource, IBooleanValueSource, INumberValueSource, I
 import { isValueSource } from '../expressions/values.js'
 import { __addWiths, __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
-import ChainedError from 'chained-error'
+import { TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { AggregateFunctions0ValueSource, AggregateSelectValueSource, InlineSelectValueSource, ValueSourceImpl } from '../internal/ValueSourceImpl.js'
-import { attachSource } from '../utils/attachSource.js'
 import { columnsType, resultType, type, compoundableColumns, isSelectQueryObject, source, from, using, selectColumnsType } from '../utils/symbols.js'
 import { asAlwaysIfValueSource } from '../expressions/values.js'
 import { WithViewImpl } from '../internal/WithViewImpl.js'
@@ -63,11 +62,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
         if (this.__query) {
             return this.__query
         }
-        try {
-            this.__query = this.__sqlBuilder._buildSelect(this.__asSelectData(), this.__params)
-        } catch (e) {
-            throw new ChainedError.default(e)
-        }
+        this.__query = this.__sqlBuilder._buildSelect(this.__asSelectData(), this.__params)
         return this.__query
     }
     params(): any[] {
@@ -80,7 +75,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
 
     executeSelectNoneOrOne(): Promise<any> {
         this.query()
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
@@ -89,14 +84,14 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
                 result = this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new Error('The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
                     }
                     if (value === undefined) {
                         return null
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeSelectOneRow(this.__query, this.__params).then((row) => {
@@ -106,17 +101,17 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
                         return null
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     executeSelectOne(): Promise<any> {
         this.query()
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
@@ -125,32 +120,32 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
                 result = this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new Error('The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
                     }
                     if (value === undefined) {
-                        throw new Error('No result returned by the database')
+                        throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeSelectOneRow(this.__query, this.__params).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
-                        throw new Error('No result returned by the database')
+                        throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
-    __executeSelectMany(source: Error): Promise<any> {
+    __executeSelectMany(source: QueryExecutionSource): Promise<any> {
         this.query()
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
@@ -160,7 +155,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
                 result = this.__sqlBuilder._queryRunner.executeSelectOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new Error('The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
                     }
 
                     return values.map((value) => {
@@ -170,7 +165,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
                         return this.__transformValueFromDB(valueSource, value)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeSelectManyRows(this.__query, this.__params).then((rows) => {
@@ -178,20 +173,20 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
                         return this.__transformRow(row, index)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     executeSelectMany(): Promise<any> {
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         return this.__executeSelectMany(source)
     }
     abstract __buildSelectCount(countAll: AggregateFunctions0ValueSource, params: any[]): string
-    __executeSelectCount(source: Error): Promise<any> {
+    __executeSelectCount(source: QueryExecutionSource): Promise<any> {
         try {
             this.__sqlBuilder._resetUnique()
             const countAll = new AggregateFunctions0ValueSource('_countAll', 'int', 'int', 'required', undefined)
@@ -201,14 +196,14 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
             return this.__sqlBuilder._queryRunner.executeSelectOneColumnOneRow(query, params).then((value) => {
                 return this.__transformValueFromDB(countAll, value, undefined, undefined, true)
             }).catch((e) => {
-                throw attachSource(new ChainedError.default(e), source)
+                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
         } catch (e) {
-            throw attachSource(new ChainedError.default(e), source)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     executeSelectPage(extras?: any) {
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
 
         if (extras && (extras.count !== undefined && extras.count !== null)) {
             if (extras.data) {
@@ -247,7 +242,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
         this.__finishJoinHaving()
         this.__query = ''
         if (typeof column === 'string' && !this.__getColumnFromColumnsObject(column)) {
-            throw new Error('The column "' + column + '" is not part of the select clause')
+            throw new TsSqlProcessingError({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column }, 'The column "' + column + '" is not part of the select clause')
         }
         this.__addOrderBy(column, mode)
         return this
@@ -277,7 +272,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
             }
             const realColumnName = this.__getColumnNameFromColumnsObjectLowerCase(column)
             if (!realColumnName) {
-                throw new Error('The column "' + column + '" is not part of the select clause')
+                throw new TsSqlProcessingError({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column }, 'The column "' + column + '" is not part of the select clause')
             }
             if (ordering === 'asc') {
                 this.__addOrderBy(realColumnName, 'asc')
@@ -308,7 +303,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
             } else if (!ordering) {
                 this.__addOrderBy(realColumnName)
             } else {
-                throw new Error('Unknow ordering clause "' + ordering + '" in the order by related to the column "' + column + '"')
+                throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column, ordering }, 'Unknow ordering clause "' + ordering + '" in the order by related to the column "' + column + '"')
             }
         }
         return this
@@ -753,7 +748,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'join',
@@ -766,7 +761,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'innerJoin',
@@ -779,7 +774,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'leftJoin',
@@ -792,7 +787,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'leftOuterJoin',
@@ -805,7 +800,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'join',
@@ -820,7 +815,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'innerJoin',
@@ -835,7 +830,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'leftJoin',
@@ -850,7 +845,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'leftOuterJoin',
@@ -868,7 +863,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     on(condition: IAnyBooleanValueSource<any, any>): any {
         this.__query = ''
         if (!this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin.__on = asAlwaysIfValueSource(condition)
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
@@ -890,7 +885,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__where) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__where = asAlwaysIfValueSource(condition)
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
@@ -959,7 +954,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__query = ''
         this.__inHaving = true
         if (this.__having) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__having = asAlwaysIfValueSource(condition)
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
@@ -976,7 +971,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
             } else {
                 const valueSource = this.__getColumnFromColumnsObject(column)
                 if (!valueSource) {
-                    throw new Error('The column "' + (column as string) + '" is not part of the select clause')
+                    throw new TsSqlProcessingError({ reason: 'GROUP_BY_COLUMN_NOT_IN_SELECT', column }, 'The column "' + column + '" is not part of the select clause')
                 }
                 this.__groupBy.push(valueSource)
             }
@@ -987,7 +982,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__startWith) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__startWith = asAlwaysIfValueSource(condition)
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
@@ -997,7 +992,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__connectBy) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         function prior(column: AnyValueSource): AnyValueSource {
             return (column as ValueSourceImpl).__prior()
@@ -1011,7 +1006,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         this.__finishJoinHaving()
         this.__query = ''
         if (this.__connectBy) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         function prior(column: AnyValueSource): AnyValueSource {
             return (column as ValueSourceImpl).__prior()
@@ -1078,7 +1073,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         let whileItearionCount = 0
         do {
             if (whileItearionCount > 1000) {
-                throw new Error('Unable to discover all optional joins')
+                throw new TsSqlProcessingError({ reason: 'INTERNAL_UNABLE_TO_DISCOVER_OPTIONAL_JOINS' }, 'Unable to discover all optional joins, it is taking so much iterations')
             }
             registeredCount = updatedCount
             for (let i = 0, lenght = joins.length; i < lenght; i++) {

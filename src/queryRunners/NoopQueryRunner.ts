@@ -1,4 +1,5 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, RollbackOpts } from './QueryRunner.js'
+import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js';
 
 export interface NoopQueryRunnerConfig {
     database?: DatabaseType
@@ -154,7 +155,7 @@ export class NoopQueryRunner implements QueryRunner {
                 result = '@' + index
                 break
             default:
-                throw new Error('Unknown database ' + this.database)
+                throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database: this.database }, 'Unknown database ' + this.database)
         }
         params.push(value)
         return result
@@ -202,5 +203,14 @@ export class NoopQueryRunner implements QueryRunner {
     }
     nestedTransactionsSupported(): boolean {
         return this.allowNestedTransactions
+    }
+    getErrorReason(error: unknown): TsSqlErrorReason {
+        if (error instanceof TsSqlError) {
+            return error.errorReason
+        }
+        return { reason: 'UNKNOWN'}
+    }
+    isSqlError(_error: unknown): boolean {
+        return true
     }
 }

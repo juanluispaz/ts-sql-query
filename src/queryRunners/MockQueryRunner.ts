@@ -1,4 +1,5 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, QueryType, RollbackOpts } from './QueryRunner.js'
+import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 
 export type MockQueryExecutor = (type: QueryType | 'isTransactionActive', query: string, params: any[], index: number) => any
 
@@ -44,7 +45,7 @@ export class MockQueryRunner implements QueryRunner {
             const index = this.count++
             const result = this.queryExecutor('selectOneRow', query, params, index)
             if (!isPlainObjectOrNoValue(result)) {
-                throw new Error('Invalid test case result for a selectOneRow with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a plain object')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'selectOneRow' }, 'Invalid test case result for a selectOneRow with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a plain object')
             }
             return this.promise.resolve(result)
         } catch (e) {
@@ -59,11 +60,11 @@ export class MockQueryRunner implements QueryRunner {
                 result = []
             }
             if (!Array.isArray(result)) {
-                throw new Error('Invalid test case result for a selectManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array of plain object')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'selectManyRows' }, 'Invalid test case result for a selectManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array of plain object')
             }
             for (let i = 0; i < result.length; i++) {
                 if (!isPlainObject(result[i])) {
-                    throw new Error('Invalid test case result for a selectManyRows with index ' + index + '. The returned array by the mock function provided to the MockQueryRunner contains a no plain object at position ' + i)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'selectManyRows' }, 'Invalid test case result for a selectManyRows with index ' + index + '. The returned array by the mock function provided to the MockQueryRunner contains a no plain object at position ' + i)
                 }
             }
             return this.promise.resolve(result)
@@ -87,7 +88,7 @@ export class MockQueryRunner implements QueryRunner {
                 result = []
             }
             if (!Array.isArray(result)) {
-                throw new Error('Invalid test case result for a selectOneColumnManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'selectOneColumnManyRows' }, 'Invalid test case result for a selectOneColumnManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
             }
             return this.promise.resolve(result)
         } catch (e) {
@@ -102,7 +103,7 @@ export class MockQueryRunner implements QueryRunner {
                 result = 1
             }
             if (typeof result !== 'number') {
-                throw new Error('Invalid test case result for an insert with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a number')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'insert' }, 'Invalid test case result for an insert with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a number')
             }
             return this.promise.resolve(result)
         } catch (e) {
@@ -124,7 +125,7 @@ export class MockQueryRunner implements QueryRunner {
                 result = []
             }
             if (!Array.isArray(result)) {
-                throw new Error('Invalid test case result for an insertReturningMultipleLastInsertedId with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'insertReturningMultipleLastInsertedId' }, 'Invalid test case result for an insertReturningMultipleLastInsertedId with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
             }
             return this.promise.resolve(result)
         } catch (e) {
@@ -136,7 +137,7 @@ export class MockQueryRunner implements QueryRunner {
             const index = this.count++
             const result = this.queryExecutor('insertReturningOneRow', query, params, index)
             if (!isPlainObjectOrNoValue(result)) {
-                throw new Error('Invalid test case result for a insertReturningOneRow with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a plain object')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'insertReturningOneRow' }, 'Invalid test case result for a insertReturningOneRow with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a plain object')
             }
             return this.promise.resolve(result)
         } catch (e) {
@@ -151,11 +152,11 @@ export class MockQueryRunner implements QueryRunner {
                 result = []
             }
             if (!Array.isArray(result)) {
-                throw new Error('Invalid test case result for a insertReturningManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array of plain object')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'insertReturningManyRows' }, 'Invalid test case result for a insertReturningManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array of plain object')
             }
             for (let i = 0; i < result.length; i++) {
                 if (!isPlainObject(result[i])) {
-                    throw new Error('Invalid test case result for a insertReturningManyRows with index ' + index + '. The returned array by the mock function provided to the MockQueryRunner contains a no plain object at position ' + i)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'insertReturningManyRows' }, 'Invalid test case result for a insertReturningManyRows with index ' + index + '. The returned array by the mock function provided to the MockQueryRunner contains a no plain object at position ' + i)
                 }
             }
             return this.promise.resolve(result)
@@ -179,7 +180,7 @@ export class MockQueryRunner implements QueryRunner {
                 result = []
             }
             if (!Array.isArray(result)) {
-                throw new Error('Invalid test case result for a insertReturningOneColumnManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'insertReturningOneColumnManyRows' }, 'Invalid test case result for a insertReturningOneColumnManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
             }
             return this.promise.resolve(result)
         } catch (e) {
@@ -194,7 +195,7 @@ export class MockQueryRunner implements QueryRunner {
                 result = 0
             }
             if (typeof result !== 'number') {
-                throw new Error('Invalid test case result for an update with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a number')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'update' }, 'Invalid test case result for an update with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a number')
             }
             return this.promise.resolve(result)
         } catch (e) {
@@ -206,7 +207,7 @@ export class MockQueryRunner implements QueryRunner {
             const index = this.count++
             const result = this.queryExecutor('updateReturningOneRow', query, params, index)
             if (!isPlainObjectOrNoValue(result)) {
-                throw new Error('Invalid test case result for a updateReturningOneRow with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a plain object')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'updateReturningOneRow' }, 'Invalid test case result for a updateReturningOneRow with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a plain object')
             }
             return this.promise.resolve(result)
         } catch (e) {
@@ -221,11 +222,11 @@ export class MockQueryRunner implements QueryRunner {
                 result = []
             }
             if (!Array.isArray(result)) {
-                throw new Error('Invalid test case result for a updateReturningManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array of plain object')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'updateReturningManyRows' }, 'Invalid test case result for a updateReturningManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array of plain object')
             }
             for (let i = 0; i < result.length; i++) {
                 if (!isPlainObject(result[i])) {
-                    throw new Error('Invalid test case result for a updateReturningManyRows with index ' + index + '. The returned array by the mock function provided to the MockQueryRunner contains a no plain object at position ' + i)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'updateReturningManyRows' }, 'Invalid test case result for a updateReturningManyRows with index ' + index + '. The returned array by the mock function provided to the MockQueryRunner contains a no plain object at position ' + i)
                 }
             }
             return this.promise.resolve(result)
@@ -249,7 +250,7 @@ export class MockQueryRunner implements QueryRunner {
                 result = []
             }
             if (!Array.isArray(result)) {
-                throw new Error('Invalid test case result for a updateReturningOneColumnManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'updateReturningOneColumnManyRows' }, 'Invalid test case result for a updateReturningOneColumnManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
             }
             return this.promise.resolve(result)
         } catch (e) {
@@ -264,7 +265,7 @@ export class MockQueryRunner implements QueryRunner {
                 result = 0
             }
             if (typeof result !== 'number') {
-                throw new Error('Invalid test case result for a delete with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a number')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'delete' }, 'Invalid test case result for a delete with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a number')
             }
             return this.promise.resolve(result)
         } catch (e) {
@@ -276,7 +277,7 @@ export class MockQueryRunner implements QueryRunner {
             const index = this.count++
             const result = this.queryExecutor('deleteReturningOneRow', query, params, index)
             if (!isPlainObjectOrNoValue(result)) {
-                throw new Error('Invalid test case result for a deleteReturningOneRow with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a plain object')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'deleteReturningOneRow' }, 'Invalid test case result for a deleteReturningOneRow with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or a plain object')
             }
             return this.promise.resolve(result)
         } catch (e) {
@@ -291,11 +292,11 @@ export class MockQueryRunner implements QueryRunner {
                 result = []
             }
             if (!Array.isArray(result)) {
-                throw new Error('Invalid test case result for a deleteReturningManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array of plain object')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'deleteReturningManyRows' }, 'Invalid test case result for a deleteReturningManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array of plain object')
             }
             for (let i = 0; i < result.length; i++) {
                 if (!isPlainObject(result[i])) {
-                    throw new Error('Invalid test case result for a deleteReturningManyRows with index ' + index + '. The returned array by the mock function provided to the MockQueryRunner contains a no plain object at position ' + i)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'deleteReturningManyRows' }, 'Invalid test case result for a deleteReturningManyRows with index ' + index + '. The returned array by the mock function provided to the MockQueryRunner contains a no plain object at position ' + i)
                 }
             }
             return this.promise.resolve(result)
@@ -319,7 +320,7 @@ export class MockQueryRunner implements QueryRunner {
                 result = []
             }
             if (!Array.isArray(result)) {
-                throw new Error('Invalid test case result for a deleteReturningOneColumnManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'deleteReturningOneColumnManyRows' }, 'Invalid test case result for a deleteReturningOneColumnManyRows with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined or an Array')
             }
             return this.promise.resolve(result)
         } catch (e) {
@@ -331,7 +332,7 @@ export class MockQueryRunner implements QueryRunner {
             const index = this.count++
             const result = this.queryExecutor('executeProcedure', query, params, index)
             if (result !== undefined && result !== null) {
-                throw new Error('Invalid test case result for an executeProcedure with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'executeProcedure' }, 'Invalid test case result for an executeProcedure with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
             return this.promise.resolve(undefined)
         } catch (e) {
@@ -350,7 +351,7 @@ export class MockQueryRunner implements QueryRunner {
             const index = this.count++
             const result = this.queryExecutor('beginTransaction', 'begin transaction', opts, index)
             if (result !== undefined && result !== null) {
-                throw new Error('Invalid test case result for a beginTransaction with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'beginTransaction' }, 'Invalid test case result for a beginTransaction with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
             return this.promise.resolve(undefined)
         } catch (e) {
@@ -362,7 +363,7 @@ export class MockQueryRunner implements QueryRunner {
             const index = this.count++
             const result = this.queryExecutor('commit', 'commit', opts, index)
             if (result !== undefined && result !== null) {
-                throw new Error('Invalid test case result for a commit with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'commit' }, 'Invalid test case result for a commit with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
             return this.promise.resolve(undefined)
         } catch (e) {
@@ -374,7 +375,7 @@ export class MockQueryRunner implements QueryRunner {
             const index = this.count++
             const result = this.queryExecutor('rollback', 'rollback', opts || [], index)
             if (result !== undefined && result !== null) {
-                throw new Error('Invalid test case result for a commit with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'rollback' }, 'Invalid test case result for a commit with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
             return this.promise.resolve(undefined)
         } catch (e) {
@@ -388,7 +389,7 @@ export class MockQueryRunner implements QueryRunner {
             result = false
         }
         if (typeof result !== 'boolean') {
-            throw new Error('Invalid test case result for an isTransactionActive with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined, or a boolean')
+            throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'isTransactionActive' }, 'Invalid test case result for an isTransactionActive with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined, or a boolean')
         }
         return result
     }
@@ -397,7 +398,7 @@ export class MockQueryRunner implements QueryRunner {
             const index = this.count++
             const result = this.queryExecutor('executeDatabaseSchemaModification', query, params, index)
             if (result !== undefined && result !== null) {
-                throw new Error('Invalid test case result for a executeDatabaseSchemaModification with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'executeDatabaseSchemaModification' }, 'Invalid test case result for a executeDatabaseSchemaModification with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
             return this.promise.resolve(undefined)
         } catch (e) {
@@ -409,7 +410,7 @@ export class MockQueryRunner implements QueryRunner {
             const index = this.count++
             const result = this.queryExecutor('executeConnectionConfiguration', query, params, index)
             if (result !== undefined && result !== null) {
-                throw new Error('Invalid test case result for a executeConnectionConfiguration with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
+                throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'executeConnectionConfiguration' }, 'Invalid test case result for a executeConnectionConfiguration with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
             return this.promise.resolve(undefined)
         } catch (e) {
@@ -442,14 +443,14 @@ export class MockQueryRunner implements QueryRunner {
                 result = '@' + index
                 break
             default:
-                throw new Error('Unknown database ' + this.database)
+                throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database: this.database }, 'Unknown database ' + this.database)
         }
         params.push(value)
         return result
     }
     addOutParam(params: any[], name: string): string {
         if (this.database !== 'oracle') {
-            throw new Error('Unsupported output parameters')
+            throw new TsSqlProcessingError({ reason: 'OUT_PARAMS_NOT_SUPPORTED' }, 'Unsupported output parameters')
         }
         const index = params.length
         if (name) {
@@ -499,6 +500,15 @@ export class MockQueryRunner implements QueryRunner {
         return true
     }
     nestedTransactionsSupported(): boolean {
+        return true
+    }
+    getErrorReason(error: unknown): TsSqlErrorReason {
+        if (error instanceof TsSqlError) {
+            return error.errorReason
+        }
+        return { reason: 'UNKNOWN'}
+    }
+    isSqlError(_error: unknown): boolean {
         return true
     }
 }

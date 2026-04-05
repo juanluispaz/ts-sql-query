@@ -3,6 +3,7 @@ import type { ConnectionPool, ISqlTypeFactory, Transaction, Request } from 'mssq
 import { TYPES, ISOLATION_LEVEL } from 'mssql'
 import type { NativeValueType } from '../expressions/values.js'
 import { ManagedTransactionQueryRunner } from './ManagedTransactionQueryRunner.js'
+import { TsSqlProcessingError } from "../TsSqlError.js"
 
 export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     readonly database: DatabaseType
@@ -17,7 +18,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
 
     useDatabase(database: DatabaseType): void {
         if (database !== 'sqlServer') {
-            throw new Error('Unsupported database: ' + database + '. MssqlPoolQueryRunner only supports sqlServer databases')
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. MssqlPoolQueryRunner only supports sqlServer databases')
         }
     }
 
@@ -56,12 +57,12 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     }
     executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         if (this.transaction) {
-            return Promise.reject(new Error(this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
+            return Promise.reject(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
         }
         const level = opts[0]
         const accessMode = opts[1]
         if (accessMode) {
-            return Promise.reject(new Error(this.database + " doesn't support the transactions access mode: " + accessMode))
+            return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode))
         }
          
         if (!level) {
@@ -83,12 +84,12 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
             this.transaction = this.pool.transaction()
             return this.transaction.begin(ISOLATION_LEVEL.SERIALIZABLE).then(() => undefined)
         } else {
-            return Promise.reject(new Error(this.database + " doesn't support the transactions level: " + level))
+            return Promise.reject(new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level))
         }
     }
     executeCommit(_opts: CommitOpts = []): Promise<void> {
         if (!this.transaction) {
-            return Promise.reject(new Error('Not in an transaction, you cannot commit the transaction'))
+            return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot commit the transaction'))
         }
         return this.transaction.commit().then(() => {
             // Transaction count only modified when commit successful, in case of error there is still an open transaction 
@@ -97,7 +98,7 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     }
     executeRollback(_opts: RollbackOpts = []): Promise<void> {
         if (!this.transaction) {
-            return Promise.reject(new Error('Not in an transaction, you cannot rollback the transaction'))
+            return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot rollback the transaction'))
         }
         return this.transaction.rollback().finally(() => {
             this.transaction = undefined

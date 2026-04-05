@@ -1,6 +1,7 @@
 import type { DatabaseType } from './QueryRunner.js'
 import type { ClientBase } from 'pg'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export interface PgQueryRunnerConfig {
     allowNestedTransactions?: boolean
@@ -20,7 +21,7 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
 
     useDatabase(database: DatabaseType): void {
         if (database !== 'postgreSql') {
-            throw new Error('Unsupported database: ' + database + '. PgQueryRunner only supports postgreSql databases')
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. PgQueryRunner only supports postgreSql databases')
         }
     }
 

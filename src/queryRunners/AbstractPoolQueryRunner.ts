@@ -1,4 +1,6 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from './QueryRunner.js'
+import type { TsSqlErrorReason } from "../TsSqlError.js"
+import { TsSqlError, TsSqlProcessingError } from "../TsSqlError.js"
 
 export abstract class AbstractPoolQueryRunner implements QueryRunner {
     abstract readonly database: DatabaseType
@@ -80,7 +82,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     }
     executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         if (!this.nestedTransactionsSupported() && this.transactionLevel >= 1) {
-            return this.createRejectedPromise(new Error(this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
         }
         if (this.transactionLevel <= 0) {
             this.transactionLevel = 1
@@ -94,7 +96,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     }
     executeCommit(opts: CommitOpts = []): Promise<void> {
         if (this.transactionLevel <= 0) {
-            return Promise.reject(new Error('Not in an transaction, you cannot commit the transaction'))
+            return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a transaction, you cannot commit the transaction'))
         }
         
         if (this.currentQueryRunner) {
@@ -118,7 +120,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     }
     executeRollback(opts: RollbackOpts = []): Promise<void> {
         if (this.transactionLevel <= 0) {
-            return Promise.reject(new Error('Not in an transaction, you cannot rollback the transaction'))
+            return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a transaction, you cannot rollback the transaction'))
         }
 
         if (this.currentQueryRunner) {
@@ -147,7 +149,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     }
     executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
         if (!this.isTransactionActive()) {
-            this.createRejectedPromise(new Error("You are trying to configure a connection when you didn't request a dedicated connection. Begin a transaction to get a dedicated connection"))
+            this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, "You are trying to configure a connection when you didn't request a dedicated connection. Begin a transaction to get a dedicated connection"))
         }
         return this.getQueryRunner().then(queryRunner => queryRunner.executeConnectionConfiguration(query, params)).finally(() => this.releaseIfNeeded())
     }
@@ -164,7 +166,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
     }
     abstract addParam(params: any[], value: any): string
     addOutParam(_params: any[], _name: string): string {
-        throw new Error('Unsupported output parameters')
+        throw new TsSqlProcessingError({ reason: 'OUT_PARAMS_NOT_SUPPORTED' }, 'Unsupported output parameters')
     }
 
     private getQueryRunner(): Promise<QueryRunner> {
@@ -172,7 +174,7 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
             return this.createQueryRunner().then(queryRunner => {
                 if (this.currentQueryRunner) {
                     this.releaseQueryRunner(queryRunner)
-                    throw new Error('Forbidden concurrent usage of the query runner was detected when it tried to get a database connection from the pool')
+                    throw new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to get a database connection from the pool')
                 }
                 this.currentQueryRunner = queryRunner
                 if (this.transactionLevel > 0) {
@@ -218,5 +220,15 @@ export abstract class AbstractPoolQueryRunner implements QueryRunner {
                 return [r1, r2]
             })
         })
+    }
+
+    getErrorReason(error: unknown): TsSqlErrorReason {
+        if (error instanceof TsSqlError) {
+            return error.errorReason
+        }
+        return { reason: 'UNKNOWN'}
+    }
+    isSqlError(_error: unknown): boolean {
+        return true
     }
 }

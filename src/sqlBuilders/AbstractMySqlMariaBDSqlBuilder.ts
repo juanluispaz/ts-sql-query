@@ -9,6 +9,7 @@ import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { SqlOperation1ValueSource, SqlOperation1ValueSourceIfValueOrIgnore } from '../internal/ValueSourceImpl.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     constructor() {
@@ -93,7 +94,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' is not null, ' + this._appendOrderByColumnAlias(entry, query, params) + ' desc'
                     break
                 default:
-                    throw new Error('Invalid order by: ' + order)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, params), ordering: order }, 'Invalid order by: ' + order)
             }
         }
 
@@ -144,7 +145,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                 orderByColumns += ', '
             }
             const order = entry.order
-            if (!entry.order) {
+            if (!order) {
                 orderByColumns += this._appendOrderByColumnExpression(entry, query, params)
             } else switch (order) {
                 case 'asc':
@@ -179,7 +180,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += this._appendOrderByColumnExpression(entry, query, params) + ' is not null, ' + this._appendOrderByColumnExpressionInsensitive(entry, query, params) + ' desc'
                     break
                 default:
-                    throw new Error('Invalid order by: ' + order)
+                    throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, params), ordering: order }, 'Invalid order by: ' + order)
             }
         }
 
@@ -207,7 +208,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             if (typeof expression === 'string') {
                 const column = getQueryColumn(query.__columns, expression)
                 if (!column) {
-                    throw new Error('Column ' + expression + ' included in the order by not found in the select clause')
+                    throw new TsSqlProcessingError({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column: expression }, 'Column ' + expression + ' included in the order by not found in the select clause')
                 }
                 return this._appendSqlParenthesis(column, params) + ' collate ' + collation
             } else if (isValueSource(expression)) {
@@ -221,7 +222,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         if (typeof expression === 'string') {
             const column = getQueryColumn(query.__columns, expression)
             if (!column) {
-                throw new Error('Column ' + expression + ' included in the order by not found in the select clause')
+                throw new TsSqlProcessingError({ reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column: expression }, 'Column ' + expression + ' included in the order by not found in the select clause')
             }
             return this._appendSql(column, params)
         } else if (isValueSource(expression)) {

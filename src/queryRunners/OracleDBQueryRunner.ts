@@ -2,6 +2,7 @@ import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } fro
 import type { Connection } from 'oracledb'
 import { OUT_FORMAT_OBJECT, BIND_OUT } from 'oracledb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
@@ -15,7 +16,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
 
     useDatabase(database: DatabaseType): void {
         if (database !== 'oracle') {
-            throw new Error('Unsupported database: ' + database + '. OracleDBQueryRunner only supports oracle databases')
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. OracleDBQueryRunner only supports oracle databases')
         }
     }
 
@@ -75,7 +76,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             return []
         }
         if (!Array.isArray(outBinds)) {
-            throw new Error('Invalid outBinds returned by the database')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_OUT_BINDS_RETURNED', value: outBinds }, 'Invalid outBinds returned by the database')
         } 
 
         if (outBinds.length <= 0) {

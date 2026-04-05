@@ -1,6 +1,7 @@
 import type { DatabaseType, PromiseProvider } from './QueryRunner.js'
 import type { Database } from 'better-sqlite3'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
+import { TsSqlProcessingError } from "../TsSqlError.js"
 
 export interface BetterSqlite3QueryRunnerConfig {
     promise?: PromiseProvider
@@ -20,7 +21,7 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
 
     useDatabase(database: DatabaseType): void {
         if (database !== 'sqlite') {
-            throw new Error('Unsupported database: ' + database + '. BetterSqlite3QueryRunner only supports sqlite databases')
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. BetterSqlite3QueryRunner only supports sqlite databases')
         }
     }
 

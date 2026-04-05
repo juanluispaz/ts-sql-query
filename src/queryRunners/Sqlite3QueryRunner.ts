@@ -1,6 +1,7 @@
 import type { DatabaseType } from './QueryRunner.js'
 import type { Database } from 'sqlite3'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
@@ -14,7 +15,7 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
 
     useDatabase(database: DatabaseType): void {
         if (database !== 'sqlite') {
-            throw new Error('Unsupported database: ' + database + '. Sqlite3QueryRunner only supports sqlite databases')
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. Sqlite3QueryRunner only supports sqlite databases')
         }
     }
 
@@ -71,7 +72,7 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningMultipleLastInsertedId(query, params)
         }
-        throw new Error("Unsupported executeInsertReturningMultipleLastInsertedId on queries thar doesn't include the returning clause")
+        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, "Unsupported executeInsertReturningMultipleLastInsertedId on queries thar doesn't include the returning clause")
     }
     addParam(params: any[], value: any): string {
         params.push(value)

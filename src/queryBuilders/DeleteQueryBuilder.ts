@@ -5,8 +5,7 @@ import { __addWiths, __getTableOrViewPrivate, __isAllowed } from '../utils/ITabl
 import type { IAnyBooleanValueSource, AnyValueSource, AlwaysIfValueSource } from '../expressions/values.js'
 import { isValueSource } from '../expressions/values.js'
 import type { DeleteExpression, ExecutableDelete, DynamicExecutableDeleteExpression, DeleteExpressionAllowingNoWhere, DeleteCustomization, CustomizableExecutableDelete, ComposableCustomizableExecutableDelete, ReturnableExecutableDelete, ExecutableDeleteReturning, DeleteReturningColumns, DeleteWhereExpression, DeleteWhereExpressionAllowingNoWhere, DeleteWhereJoinExpression, DynamicOnExpression, OnExpression, DeleteExpressionWithoutJoin, DeleteUsingExpression, DeleteWhereJoinExpressionAllowingNoWhere, DynamicOnExpressionAllowingNoWhere, OnExpressionAllowingNoWhere, DeleteExpressionWithoutJoinAllowingNoWhere, DeleteUsingExpressionAllowingNoWhere, CustomizableExecutableDeleteProjectableAsNullable } from '../expressions/delete.js'
-import ChainedError from 'chained-error'
-import { attachSource } from '../utils/attachSource.js'
+import { TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { from, resultType, source, type, using } from '../utils/symbols.js'
 import { asAlwaysIfValueSource } from '../expressions/values.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
@@ -45,31 +44,31 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
 
     executeDelete(min?: number, max?: number): Promise<number> {
         this.query()
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             let result = this.__sqlBuilder._queryRunner.executeDelete(this.__query, this.__params).catch((e) => {
-                throw attachSource(new ChainedError.default(e), source)
+                throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
             })
             if (min !== undefined) {
                 result = result.then((count) => {
                     if (count < min) {
-                        throw attachSource(new Error("The delete operation didn't delete the minimum of " + min + " row(s)"), source)
+                        throw new TsSqlQueryExecutionError(source, {reason: 'MINIMUM_ROWS_NOT_REACHED', count, min }, "The delete operation didn't delete the minimum of " + min + " row(s)")
                     }
                     if (max !== undefined && count > max) {
-                        throw attachSource(new Error("The delete operation deleted more that the maximum of " + max + " row(s)"), source)
+                        throw new TsSqlQueryExecutionError(source, {reason: 'MAXIMUM_ROWS_EXCEEDED', count, max }, "The delete operation deleted more that the maximum of " + max + " row(s)")
                     }
                     return count
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     executeDeleteNoneOrOne(): Promise<any> {
         this.query()
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
@@ -78,14 +77,14 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new Error('The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
                     }
                     if (value === undefined) {
                         return null
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneRow(this.__query, this.__params).then((row) => {
@@ -95,17 +94,17 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return null
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     executeDeleteOne(): Promise<any> {
         this.query()
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
             this.__sqlBuilder._resetUnique()
@@ -114,33 +113,33 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new Error('The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
                     }
                     if (value === undefined) {
-                        throw new Error('No result returned by the database')
+                        throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                     }
                     return this.__transformValueFromDB(valueSource, value)
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneRow(this.__query, this.__params).then((row) => {
                     if (row) {
                         return this.__transformRow(row)
                     } else {
-                        throw new Error('No result returned by the database')
+                        throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
                     }
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     executeDeleteMany(min?: number, max?: number): Promise<any> {
-        const source = new Error('Query executed at')
+        const source = new QueryExecutionSource('Query executed at')
         this.query()
         __setQueryMetadata(source, this.__params, this.__customization)
         try {
@@ -150,7 +149,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new Error('The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
                     }
 
                     return values.map((value) => {
@@ -160,7 +159,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return this.__transformValueFromDB(valueSource, value)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             } else {
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningManyRows(this.__query, this.__params).then((rows) => {
@@ -168,24 +167,24 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         return this.__transformRow(row, index)
                     })
                 }).catch((e) => {
-                    throw attachSource(new ChainedError.default(e), source)
+                    throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
                 })
             }
             if (min !== undefined) {
                 result = result.then((rows) => {
                     const count = rows.length
                     if (count < min) {
-                        throw attachSource(new Error("The delete operation didn't delete the minimum of " + min + " row(s)"), source)
+                        throw new TsSqlQueryExecutionError(source, { reason: 'MINIMUM_ROWS_NOT_REACHED', count, min }, "The delete operation didn't delete the minimum of " + min + " row(s)")
                     }
                     if (max !== undefined && count > max) {
-                        throw attachSource(new Error("The delete operation deleted more that the maximum of " + max + " row(s)"), source)
+                        throw new TsSqlQueryExecutionError(source, { reason: 'MAXIMUM_ROWS_EXCEEDED', count, max }, "The delete operation deleted more that the maximum of " + max + " row(s)")
                     }
                     return rows
                 })
             }
             return result
         } catch (e) {
-            throw new ChainedError.default(e)
+            throw new TsSqlQueryExecutionError(source, this.__sqlBuilder._queryRunner.getErrorReason(e), e)
         }
     }
     query(): string {
@@ -193,11 +192,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         if (this.__query) {
             return this.__query
         }
-        try {
-            this.__query = this.__sqlBuilder._buildDelete(this, this.__params)
-        } catch (e) {
-            throw new ChainedError.default(e)
-        }
+        this.__query = this.__sqlBuilder._buildDelete(this, this.__params)
         return this.__query
     }
     params(): any[] {
@@ -224,7 +219,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__where) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__where = asAlwaysIfValueSource(condition)
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
@@ -283,7 +278,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'join',
@@ -296,7 +291,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'innerJoin',
@@ -309,7 +304,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'leftJoin',
@@ -322,7 +317,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'leftOuterJoin',
@@ -338,7 +333,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     on(condition: IAnyBooleanValueSource<any, any>): any {
         this.__query = ''
         if (!this.__lastJoin) {
-            throw new Error('Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
         }
         this.__lastJoin.__on = asAlwaysIfValueSource(condition)
         if (!this.__joins) {

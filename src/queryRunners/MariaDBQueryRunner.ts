@@ -1,6 +1,7 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
 import type { Connection, UpsertResult } from 'mariadb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType
@@ -14,7 +15,7 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
 
     useDatabase(database: DatabaseType): void {
         if (database !== 'mariaDB' && database !== 'mySql') {
-            throw new Error('Unsupported database: ' + database + '. MariaDBQueryRunner only supports mariaDB or mySql databases')
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. MariaDBQueryRunner only supports mariaDB or mySql databases')
         } else {
             // @ts-ignore
             this.database = database

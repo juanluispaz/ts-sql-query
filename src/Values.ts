@@ -17,6 +17,7 @@ import type { NDBWithType, NGetNameFrom, NNoTableOrViewRequiredFrom, NValues } f
 import { __setColumnsForLeftJoin } from './utils/leftJoinUtils.js'
 import type { QueryColumns } from './sqlBuilders/SqlBuilder.js'
 import { isUsableValue } from './sqlBuilders/SqlBuilder.js'
+import { TsSqlProcessingError } from './TsSqlError.js'
 
 class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<SOURCE> {
     [isTableOrViewObject]: true = true;
@@ -270,7 +271,7 @@ export class Values</*in|out*/ CONNECTION extends IConnection<NDBWithType<'postg
 
     static create<T extends IValues<any>>(type: new (name: NGetNameFrom<T[typeof source]>, values: OpaqueValues) => T, name: NGetNameFrom<T[typeof source]>, values: Array<MandatoryInsertSets<T, NoTableOrViewRequiredOfSameDB<T> | T, undefined>>): T {
         if (values.length <= 0) {
-            throw new Error('Values requires at least one element in the list')
+            throw new TsSqlProcessingError({ reason: 'CONSTANT_VALUES_VIEW_CANNOT_BE_EMPTY' }, 'Values requires at least one element in the list')
         }
         const result = new type(name, values as any);
         (result as any).__setColumnsName(result as any, '')

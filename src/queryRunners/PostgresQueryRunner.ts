@@ -1,3 +1,4 @@
+import { TsSqlProcessingError } from '../TsSqlError.js'
 import { AbstractQueryRunner } from './AbstractQueryRunner.js'
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from './QueryRunner.js'
 import type { Sql, TransactionSql } from 'postgres'
@@ -14,7 +15,7 @@ export class PostgresQueryRunner extends AbstractQueryRunner {
     }
     useDatabase(database: DatabaseType): void {
         if (database !== 'postgreSql') {
-            throw new Error('Unsupported database: ' + database + '. PostgresQueryRunner only supports postgreSql databases')
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. PostgresQueryRunner only supports postgreSql databases')
         }
     }
     getNativeRunner(): Sql {
@@ -39,13 +40,13 @@ export class PostgresQueryRunner extends AbstractQueryRunner {
         })
     }
     executeBeginTransaction(_opts: BeginTransactionOpts = []): Promise<void> {
-        return Promise.reject(new Error('Low level transaction management is not supported by PostgresQueryRunner'))
+        return Promise.reject(new TsSqlProcessingError({ reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }, 'Low level transaction management is not supported by PostgresQueryRunner'))
     }
     executeCommit(_opts: CommitOpts = []): Promise<void> {
-        return Promise.reject(new Error('Low level transaction management is not supported by PostgresQueryRunner'))
+        return Promise.reject(new TsSqlProcessingError({ reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }, 'Low level transaction management is not supported by PostgresQueryRunner'))
     }
     executeRollback(_opts: RollbackOpts = []): Promise<void> {
-        return Promise.reject(new Error('Low level transaction management is not supported by PostgresQueryRunner'))
+        return Promise.reject(new TsSqlProcessingError({ reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }, 'Low level transaction management is not supported by PostgresQueryRunner'))
     }
     isTransactionActive(): boolean {
         return !!this.transaction
@@ -56,7 +57,7 @@ export class PostgresQueryRunner extends AbstractQueryRunner {
     }
     executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         if (this.transaction) {
-            throw new Error('Nested transactions is not supported by PostgresQueryRunner')
+            throw new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions is not supported by PostgresQueryRunner')
         }
         let options
         try {
@@ -66,7 +67,7 @@ export class PostgresQueryRunner extends AbstractQueryRunner {
         }
         const callback = (transaction: TransactionSql) => {
             if (this.transaction) {
-                throw new Error('Forbidden concurrent usage of the query runner was detected when it tried to start a transaction')
+                throw new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to start a transaction')
             }
             this.transaction = transaction
             let result = fn()
@@ -88,14 +89,14 @@ export class PostgresQueryRunner extends AbstractQueryRunner {
         if (!level || level === 'read uncommitted' || level === 'read committed' || level === 'repeatable read' || level === 'serializable') {
             return level
         }
-        throw new Error(this.database + " doesn't support the transactions level: " + level)
+        throw new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level)
     }
     getTransactionAccessMode(opts: BeginTransactionOpts): string | undefined {
         const accessMode = opts?.[1]
         if (!accessMode || accessMode === 'read write' || accessMode === 'read only') {
             return accessMode
         }
-        throw new Error(this.database + " doesn't support the transactions access mode: " + accessMode)
+        throw new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode)
     }
     createBeginTransactionOptions(opts: BeginTransactionOpts): string | undefined {
         let sql

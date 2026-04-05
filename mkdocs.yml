@@ -136,6 +136,7 @@ nav:
     - Delete API: api/delete.md
     - Type adpaters API: api/type-adpaters.md
     - Dynamic conditions API: api/dynamic-conditions.md
+    - Error Management: api/error-management.md
   - Advanced: 
     - Custom booleans values: advanced/custom-booleans-values.md
     - Synchronous query runners: advanced/synchronous-query-runners.md

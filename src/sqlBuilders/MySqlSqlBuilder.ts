@@ -5,6 +5,7 @@ import type { AnyTableOrView } from '../utils/ITableOrView.js'
 import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
 import type { FlatQueryColumns, InsertData, SelectData, ToSql, WithQueryData } from './SqlBuilder.js'
 import { flattenQueryColumns, hasWithData } from './SqlBuilder.js'
+import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mySql: true = true
@@ -109,11 +110,11 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
             if (hasWithData(table)) {
                 if (table.__type === 'with') {
                     if (table.__recursive) {
-                        throw new Error('Recursive queries are not supported in MySql compatibility mode')
+                        throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'Recursive queries are not supported in MySql compatibility mode')
                     }
                     return '(' + this._buildSelect(table.__selectData, params) + ')'
                 } else {
-                    throw new Error('Values are not supported in MySql compatibility mode')
+                    throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_QUERY' }, 'Values are not supported in MySql compatibility mode')
                 }
             }
         }

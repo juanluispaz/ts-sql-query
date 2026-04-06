@@ -262,28 +262,26 @@ function getMssqlTransactionErrorReason(error: TransactionError): TsSqlErrorReas
 }
 
 function getMssqlConnectionErrorReason(error: ConnectionError): TsSqlErrorReason {
+    const code = error.code as string
     switch (error.code) {
         case 'ELOGIN':
-            return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode: error.code, databaseErrorMessage: error.message }
+            return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message }
         case 'ETIMEOUT':
-            return { reason: 'SQL_TIMEOUT', databaseErrorCode: error.code, databaseErrorMessage: error.message, timeoutType: 'connection' }
+            return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'connection' }
         case 'EINSTLOOKUP':
-        case 'ETDS':
-            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: error.code, databaseErrorMessage: error.message, errorType: 'invalid connection configuration' }
+            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'invalid connection configuration' }
         case 'ENOTOPEN':
         case 'ECONNCLOSED':
         case 'ESOCKET':
-            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: error.code, databaseErrorMessage: error.message, errorType: 'connection lost' }
-        case 'EINTERFACENOTSUPP':
-            return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode: error.code, databaseErrorMessage: error.message }
+            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
         default:
-            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: error.code, databaseErrorMessage: error.message }
+            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message }
     }
 }
 
 function getMssqlRequestErrorReason(error: RequestError): TsSqlErrorReason {
     const number = error.number
-    const code = error.code || ''
+    const code: string = error.code || ''
     const message = error.message || ''
 
     switch (number) {
@@ -427,7 +425,8 @@ function isMssqlError(error: unknown): error is MssqlError {
     if (!(error instanceof RequestError)) {
         return false
     }
-    switch (error.code) {
+    const code = error.code as string
+    switch (code) {
         case 'EARGS':
         case 'EDUPEPARAM':
         case 'EPARAM':

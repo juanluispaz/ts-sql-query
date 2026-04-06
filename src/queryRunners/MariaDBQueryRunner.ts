@@ -1,7 +1,19 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
-import type { Connection, SqlError, UpsertResult } from 'mariadb'
+import type { Connection } from 'mariadb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
+
+type UpsertResult = {
+    affectedRows: number
+    insertId: number | bigint
+}
+
+type SqlError = Error & {
+    errno?: number
+    code?: string
+    sqlState?: string
+    sqlMessage?: string
+}
 
 export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     readonly database: DatabaseType

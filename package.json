@@ -76,7 +76,7 @@
         "prisma": "^6.9.0",
         "sqlite3": "^5.1.7",
         "synchronous-promise": "^2.0.17",
-        "ts-node": "^10.9.2",
+        "tsx": "^4.21.0",
         "typescript": "^5.9.3",
         "uuid": "^13.0.0"
     },

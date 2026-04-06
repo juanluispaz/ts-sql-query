@@ -45,10 +45,10 @@ echo waiting 5 min of 6 min
 sleep 60
 echo waiting 6 min of 6 min
 sleep 60
-ts-node ./src/examples/OracleDBExample.ts
+tsx ./src/examples/OracleDBExample.ts
 echo waiting 7 min of 6 min
 sleep 60
-ts-node ./src/examples/OracleDBExample.ts || { docker stop ts-sql-query-oracle; docker rm ts-sql-query-oracle; colima stop; exit 1; }
+tsx ./src/examples/OracleDBExample.ts || { docker stop ts-sql-query-oracle; docker rm ts-sql-query-oracle; colima stop; exit 1; }
 docker stop ts-sql-query-oracle
 docker rm ts-sql-query-oracle
 colima stop

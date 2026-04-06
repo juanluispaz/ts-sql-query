@@ -2,7 +2,7 @@ import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { ConnectionPool, Transaction } from 'mssql'
 import { MssqlPoolQueryRunner } from './MssqlPoolQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
-import { TsSqlProcessingError } from '../TsSqlError.js'
+import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 
 export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
@@ -35,6 +35,20 @@ export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunn
     }
     protected releaseQueryRunner(_queryRunner: QueryRunner): void {
         // Do nothing
+    }
+    
+    getErrorReason(error: unknown): TsSqlErrorReason {
+        return MssqlPoolQueryRunner.getErrorReason(error)
+    }
+    isSqlError(error: unknown): boolean {
+        return MssqlPoolQueryRunner.isSqlError(error)
+    }
+    
+    static getErrorReason(error: unknown): TsSqlErrorReason {
+        return MssqlPoolQueryRunner.getErrorReason(error)
+    }
+    static isSqlError(error: unknown): boolean {
+        return MssqlPoolQueryRunner.isSqlError(error)
     }
 
 }

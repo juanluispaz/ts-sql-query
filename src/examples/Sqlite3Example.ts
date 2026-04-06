@@ -5,7 +5,7 @@
 import { Table } from '../Table.js'
 import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
-import { Database } from 'sqlite3'
+import sqlite from 'sqlite3'
 import { Sqlite3QueryRunner } from '../queryRunners/Sqlite3QueryRunner.js'
 import { SqliteConnection } from '../connections/SqliteConnection.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
@@ -83,7 +83,7 @@ const tBoolean = new class TBoolean extends Table<DBConnection, 'TBoolean'> {
     }
 }()
 
-const db = new Database(':memory:')
+const db = new sqlite.Database(':memory:')
 
 async function main() {
     const connection = new DBConnection(new ConsoleLogQueryRunner(new Sqlite3QueryRunner(db)))

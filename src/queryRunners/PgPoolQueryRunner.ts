@@ -2,7 +2,7 @@ import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, PoolClient } from 'pg'
 import { PgQueryRunner } from './PgQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
-import { TsSqlProcessingError } from '../TsSqlError.js'
+import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 
 export interface PgPoolQueryRunnerConfig {
     allowNestedTransactions?: boolean
@@ -40,6 +40,20 @@ export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     }
     nestedTransactionsSupported(): boolean {
         return !!this.config?.allowNestedTransactions
+    }
+
+    getErrorReason(error: unknown): TsSqlErrorReason {
+        return PgQueryRunner.getErrorReason(error)
+    }
+    isSqlError(error: unknown): boolean {
+        return PgQueryRunner.isSqlError(error)
+    }
+    
+    static getErrorReason(error: unknown): TsSqlErrorReason {
+        return PgQueryRunner.getErrorReason(error)
+    }
+    static isSqlError(error: unknown): boolean {
+        return PgQueryRunner.isSqlError(error)
     }
 
 }

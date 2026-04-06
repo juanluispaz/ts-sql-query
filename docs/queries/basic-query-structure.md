@@ -201,7 +201,7 @@ const customerWithId: Promise<{
 
 You can execute the query using:
 
-- `executeSelectNoneOrOne(): Promise<RESULT | null>`: execute the select query that returns one or no result from the database. In case of more than one result found, it throws and error with message 'Too many rows, expected only zero or one row'.
+- `executeSelectNoneOrOne(): Promise<RESULT | null>`: execute the select query that returns one or no result from the database. In case of more than one result found an exception will be thrown.
 - `executeSelectOne(): Promise<RESULT>`: execute the select query that returns one result from the database. If no result is returned by the database an exception will be thrown.
 - `executeSelectMany(): Promise<RESULT[]>`: execute the select query that returns zero or many results from the database
 - `executeSelectPage(): Promise<{ data: RESULT[], count: number }>`: executes a `SELECT` query that returns zero or more results. When using `executeSelectPage`, two queries are executed: one to retrieve the data and another to count the total number of matching rows (ignoring any `LIMIT` or `OFFSET`).

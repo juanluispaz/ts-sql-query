@@ -140,7 +140,7 @@ You can project optional values in objects as always-required properties that al
 
 You can execute the query using:
 
-- `executeDeleteNoneOrOne(): Promise<RESULT | null>`: Execute the delete query that returns one or no result from the database. In case of more than one result found, it throws an error with message 'Too many rows, expected only zero or one row'.
+- `executeDeleteNoneOrOne(): Promise<RESULT | null>`: Execute the delete query that returns one or no result from the database. In case of more than one result found an exception will be thrown.
 - `executeDeleteOne(): Promise<RESULT>`: Execute the delete query that returns one result from the database. If no result is returned by the database an exception will be thrown.
 - `executeDeleteMany(min?: number, max?: number): Promise<RESULT[]>`: Execute the delete query that returns zero or many results from the database.
 

@@ -4,7 +4,7 @@ search:
 ---
 # sqlite-wasm OO1
 
-This runner provides integration with the WebAssembly-based [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md), allowing `ts-sql-query` to execute queries on SQLite databases. It wraps an instance of a connected SQLite database and must be used in combination with a `ts-sql-query` connection.
+This runner provides integration with the WebAssembly-based [sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md), allowing `ts-sql-query` to execute queries on SQLite databases. It wraps an instance of a connected SQLite database and must be used in combination with a `ts-sql-query` connection.
 
 !!! success "Supported databases"
 
@@ -12,7 +12,7 @@ This runner provides integration with the WebAssembly-based [@sqlite.org/sqlite-
 
 !!! tip
 
-    better-sqlite3 supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
+    [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.
 
 !!! warning "Do not share connections between requests"
 
@@ -24,7 +24,7 @@ This runner provides integration with the WebAssembly-based [@sqlite.org/sqlite-
 
 ## Using a single connection
 
-Enables executing queries through a dedicated WebAssembly-based [@sqlite.org/sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md) connection.
+Enables executing queries through a dedicated WebAssembly-based [sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) [Object Oriented API 1](https://sqlite.org/wasm/doc/trunk/api-oo1.md) connection.
 
 ```ts
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';

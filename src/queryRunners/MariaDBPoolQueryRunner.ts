@@ -2,7 +2,7 @@ import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, PoolConnection } from 'mariadb'
 import { MariaDBQueryRunner } from './MariaDBQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
-import { TsSqlProcessingError } from '../TsSqlError.js'
+import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 
 export class MariaDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
@@ -34,6 +34,20 @@ export class MariaDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
         (queryRunner.getNativeRunner() as PoolConnection).release()
+    }
+
+    getErrorReason(error: unknown): TsSqlErrorReason {
+        return MariaDBQueryRunner.getErrorReason(error)
+    }
+    isSqlError(error: unknown): boolean {
+        return MariaDBQueryRunner.isSqlError(error)
+    }
+
+    static getErrorReason(error: unknown): TsSqlErrorReason {
+        return MariaDBQueryRunner.getErrorReason(error)
+    }
+    static isSqlError(error: unknown): boolean {
+        return MariaDBQueryRunner.isSqlError(error)
     }
 
 }

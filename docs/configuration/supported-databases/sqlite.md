@@ -28,7 +28,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> { }
 
 !!! tip
 
-    If you use [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) or [sqlite-wasm OO1](https://sqlite.org/wasm/doc/trunk/api-oo1.md) to connect to the database you can run your queries synchronously. See [BetterSqlite3QueryRunner](../query-runners/recommended/better-sqlite3.md), [Sqlite3WasmOO1QueryRunner](../query-runners/recommended/sqlite-wasm-OO1.md) and [Synchronous query runners](../../advanced/synchronous-query-runners.md) for more information.
+    If you use [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) or [sqlite-wasm](https://www.npmjs.com/package/@sqlite.org/sqlite-wasm) to connect to the database you can run your queries synchronously. See [BetterSqlite3QueryRunner](../query-runners/recommended/better-sqlite3.md), [Sqlite3WasmOO1QueryRunner](../query-runners/recommended/sqlite-wasm-OO1.md) and [Synchronous query runners](../../advanced/synchronous-query-runners.md) for more information.
 
 ## Working with Date and Time
 

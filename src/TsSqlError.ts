@@ -1,15 +1,20 @@
 /**
  * Reason of the errors thrown by ts-sql-query
  */
+export type TsSqlDatabaseErrorCode = string | number
+
 export type TsSqlErrorReason = 
 
     /* ********************************************************************************************
      * Query validations specified when the query is built
      */
 
-    | /** Thrown when a disallow rule is used (like in an insert) and an error string is provided when the criteria is not met */
-      { reason: 'DISALLOWED_BY_QUERY_RULE', message: string, disallowedProperty: string, disallowedRowIndex?: number }
-    | /** The name of a column was specified in the order of a query, but that column is not part of the select (like in a select's orderByFromString) */
+    | /** Thrown when a disallow rule is used (like in an insert) and 
+          an error string is provided when the criteria is not met */
+      { reason: 'DISALLOWED_BY_QUERY_RULE', message: string, 
+        disallowedProperty: string, disallowedRowIndex?: number }
+    | /** The name of a column was specified in the order of a query, but that column 
+          is not part of the select (like in a select's orderByFromString) */
       { reason: 'ORDER_BY_COLUMN_NOT_IN_SELECT', column: string }
     | /** Invalid ordering in an order by (like in select's orderByFromString) */
       { reason: 'INVALID_ORDER_BY_ORDERING', column: string, ordering: string }
@@ -20,13 +25,17 @@ export type TsSqlErrorReason =
      * Query result validations specified when the query's execution is requested
      */
 
-    | /** In the query execution a minimum number of rows was specified, but it was not returned by the database (like in executeDeleteMany) */
+    | /** In the query execution a minimum number of rows was specified, but it was 
+          not returned by the database (like in executeDeleteMany) */
       { reason: 'MINIMUM_ROWS_NOT_REACHED', count: number, min: number }
-    | /** In the query execution a maximum number of rows was specified, but it was not returned by the database (like in executeDeleteMany) */
+    | /** In the query execution a maximum number of rows was specified, but it was 
+          not returned by the database (like in executeDeleteMany) */
       { reason: 'MAXIMUM_ROWS_EXCEEDED', count: number, max: number }
-    | /** The query should return one row, but more rows were returned by the database (like in executeSelectOne) */
+    | /** The query should return one row, but more rows were returned by the database 
+         (like in executeSelectOne, executeInsertNoneOrOne, executeDeleteOne, etc.) */
       { reason: 'MORE_THAN_ONE_ROW', count: number }
-    | /** The query should return a value, but no value was returned (like in executeSelectOne) */
+    | /** The query should return a value, but no value was returned 
+          (like in executeSelectOne, executeUpdateOne, etc.) */
       { reason: 'NO_RESULT' }
 
     /* ********************************************************************************************
@@ -34,13 +43,17 @@ export type TsSqlErrorReason =
      */
 
     | /** Detected invalid value to send to the database that doesn't match with the expected type */
-      { reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: unknown, typeName: string, rowIndex?: number, columnPath?: string }
+      { reason: 'INVALID_VALUE_TO_SEND_TO_DATABASE', value: unknown, typeName: string, 
+        rowIndex?: number, columnPath?: string }
     | /** Detected invalid value received from the database that doesn't match with the expected type */
-      { reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: unknown, typeName: string, rowIndex?: number, columnPath?: string }
+      { reason: 'INVALID_VALUE_RECEIVED_FROM_DATABASE', value: unknown, typeName: string, 
+        rowIndex?: number, columnPath?: string }
     | /** Detected a mandatory value received from the database but it is absent (sql null) */
-      { reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: unknown, typeName: string, rowIndex?: number, columnPath?: string }
+      { reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE', value: unknown, typeName: string, 
+        rowIndex?: number, columnPath?: string }
     | /** Invalid JSON received from the database */
-      { reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: unknown, typeName: string, rowIndex?: number, columnPath?: string }
+      { reason: 'INVALID_JSON_RECEIVED_FROM_DATABASE', value: unknown, typeName: string, 
+        rowIndex?: number, columnPath?: string }
 
     /* ********************************************************************************************
      * Allow & disallow errors when only a reason is provided
@@ -53,13 +66,19 @@ export type TsSqlErrorReason =
      */
 
     | /** You are trying to start a transaction when there is a transaction already opened */
-      { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }
-    | /** You are trying to perform an action that required to be in a transaction (like commit), but there is no open transaction */
-      { reason: 'NOT_IN_TRANSACTION' }
+      { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** You are trying to perform an action that required to be in a transaction (like commit), 
+          but there is no open transaction */
+      { reason: 'NOT_IN_TRANSACTION', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
     | /** You are trying to call a defer in transaction inside another defer in transaction */
       { reason: 'NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED' }
-    | /** Error executing a defer in transaction. Note: all errors thrown in a defer in transaction will always be wrapped in a TsSqlQueryExecutionError */
-      { reason: 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION', fn: () => void | Promise<void>, index: number, deferredType: 'before next commit' | 'after next commit' | 'after next rollback' }
+    | /** Error executing a defer in transaction. 
+          Note: all errors thrown in a defer in transaction will always be wrapped in a TsSqlQueryExecutionError */
+      { reason: 'ERROR_EXECUTING_DEFERRED_IN_TRANSACTION', 
+        fn: () => void | Promise<void>, index: number, 
+        deferredType: 'before next commit' | 'after next commit' | 'after next rollback' }
     | /** Low-level transaction not supported by the provided query runner */ 
       { reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }
     | /** Specified transaction level not supported in the current database (like using a low-level query runner) */ 
@@ -86,12 +105,118 @@ export type TsSqlErrorReason =
       { reason: 'ONLY_ONE_COLUMN_EXPECTED' }
     | /** An out param is being created in a database that doesn't support out params */ 
       { reason: 'OUT_PARAMS_NOT_SUPPORTED' }
-    | /** Concurrent usage of the connection was detected; SQL connections must be dedicated and cannot process queries in parallel */
-      { reason: 'FORBIDDEN_CONCURRENT_USAGE' }
+    | /** Concurrent usage of the connection was detected. 
+          SQL connections must be dedicated and cannot process queries in parallel */
+      { reason: 'FORBIDDEN_CONCURRENT_USAGE', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
     | /** You are trying to use a database connection with other piece (like a query runner) that doesn't support it */ 
       { reason: 'UNSUPPORTED_DATABASE', database: string }
     | /** You are trying to execute a query that is not supported by the database */ 
       { reason: 'UNSUPPORTED_QUERY' }
+
+    /* ********************************************************************************************
+     * SQL exceution: Expected SQL errors useful to report as API/backend business errors
+     */
+    
+    | /** SQL constraint violation reported by the database. 
+          Note: primary key violations are reported as unique. */
+      { reason: 'SQL_CONSTRAINT_VIOLATED', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
+        constraintType?: 'unique' | 'not null' | 'foreign key' | 'check' | 'exclusion', 
+        constraintName?: string, tableName?: string, columnName?: string }
+    | /** The value sent to the database is not valid for the target SQL type or column */
+      { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
+        errorType?: 'out of range' | 'too long' | 'invalid value', 
+        tableName?: string, columnName?: string, typeName?: string }
+
+    /* ********************************************************************************************
+     * SQL execution: Environment or deployment problems caused by discrepancies with the database model
+     */
+
+    | /** SQL object referenced by the query was not found */
+      { reason: 'SQL_OBJECT_NOT_FOUND', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
+        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database', 
+        schemaName?: string, tableName?: string, columnName?: string, objectName?: string }
+    | /** SQL object already exists */
+      { reason: 'SQL_OBJECT_ALREADY_EXISTS', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
+        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database', 
+        schemaName?: string, tableName?: string, columnName?: string, objectName?: string }
+
+    /* ********************************************************************************************
+     * SQL execution: Errors caused by the provided input or by the operation being executed
+     */
+    
+    | /** Division by zero reported by the database */
+      { reason: 'SQL_DIVISION_BY_ZERO', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** The SQL operation expected a different number of rows or matches, like a scalar subquery returning multiple rows */
+      { reason: 'SQL_CARDINALITY_VIOLATION', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** Invalid SQL parameter binding or parameter reference reported by the database */
+      { reason: 'SQL_INVALID_PARAMETER', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** Invalid on conflict or merge conflict target reported by the database */
+      { reason: 'SQL_INVALID_CONFLICT_TARGET', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** The query references an ambiguous column or object name */
+      { reason: 'SQL_AMBIGUOUS_IDENTIFIER', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
+        identifier?: string }
+
+    /* ********************************************************************************************
+     * SQL execution: Errors caused by misuse, transactions, connections, or runtime concurrency conditions
+     */
+
+    | /** SQL syntax error reported by the database */
+      { reason: 'SQL_SYNTAX_ERROR', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** Permission denied while executing the SQL statement */
+      { reason: 'SQL_PERMISSION_DENIED', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** Deadlock detected by the database */
+      { reason: 'SQL_DEADLOCK_DETECTED', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** SQL operation timed out or was cancelled; use timeoutType when the specific kind is known */
+      { reason: 'SQL_TIMEOUT', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
+        timeoutType?: 'connection' | 'database file busy' | 'lock' | 'statement' | 'transaction' | 'idle transaction' | 'cancelled' }
+    | /** Transaction serialization failure */
+      { reason: 'SQL_SERIALIZATION_FAILURE', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** The current transaction is aborted and no further SQL statements can be executed until it ends */
+      { reason: 'SQL_TRANSACTION_ABORTED', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** The SQL operation is not allowed because the connection, session, transaction, or database is read-only */
+      { reason: 'SQL_READ_ONLY_VIOLATION', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** Connection or pool infrastructure error while acquiring or using a database connection, excluding resource exhaustion cases */
+      { reason: 'SQL_CONNECTION_ERROR', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
+        errorType?: 'connection lost' | 'temporarily unavailable' | 'invalid connection configuration' | 'pool error' }
+    | /** Authentication failed while connecting to the database */
+      { reason: 'SQL_AUTHENTICATION_ERROR', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** Authorization failed while accessing the database, schema, or other SQL resources */
+      { reason: 'SQL_AUTHORIZATION_ERROR', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** A database or connection/pool capacity limit was reached while executing the SQL statement */
+      { reason: 'SQL_RESOURCE_LIMIT_REACHED', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
+        resourceType?: 'disk' | 'memory' | 'temp space' | 'connections' | 'pool' | 'cpu' }
+    | /** The database reported that the requested SQL feature is not supported */
+      { reason: 'SQL_FEATURE_NOT_SUPPORTED', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+
+    /* ********************************************************************************************
+     * SQL execution: Unknown or uncategorized SQL error
+     */
+    
+    | /** Unknown SQL error reported by the database */
+      { reason: 'SQL_UNKNOWN', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
 
     /* ********************************************************************************************
      * Dynamic condition generation 
@@ -100,7 +225,9 @@ export type TsSqlErrorReason =
     | /** The provided dynamic condition doesn't match the expected type */
       { reason: 'DYNAMIC_CONDITION_INVALID_FILTER', value: unknown, path: string }
     | /** The extension to the dynamic condition didn't return the expected type */
-      { reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', processedValue: unknown, returnedValue: unknown, returnedTypeName?: string, path: string, extensionName: string }
+      { reason: 'DYNAMIC_CONDITION_INVALID_EXTENSION_RETURN_TYPE', 
+        processedValue: unknown, returnedValue: unknown, returnedTypeName?: string, 
+        path: string, extensionName: string }
     | /** The provided dynamic condition contains an unknown column */
       { reason: 'DYNAMIC_CONDITION_UNKNOWN_COLUMN', path: string }
     | /** The provided dynamic condition contains an unknown operation */
@@ -148,7 +275,8 @@ export type TsSqlErrorReason =
       { reason: 'INTERNAL_INVALID_VALUE_SOURCE' }
     | /** Unable to create the old value emulation query */
       { reason: 'INTERNAL_INCOMPLETE_OLD_VALUE_QUERY' }
-    | /** The same column name appears several times where it is not expected to be repeated, like the returned select columns alias */
+    | /** The same column name appears several times where it is not expected to be repeated, 
+          like the returned select columns alias */
       { reason: 'INTERNAL_REPEATED_COLUMN', columnPath: string }
     | /** A value was found where it is not expected */
       { reason: 'INTERNAL_UNEXPECTED_VALUE' }
@@ -171,7 +299,8 @@ export type TsSqlErrorReason =
 
     | /** Trying to access to the value of a non const expression */
       { reason: 'EXPRESSION_IS_NOT_CONST' }
-    | /** You performed a real async operation (not a synchronous database call) inside a function meant to execute synchronous database queries. */
+    | /** You performed a real async operation (not a synchronous database call) 
+          inside a function meant to execute synchronous database queries. */
       { reason: 'SYNCHRONOUS_PROSIME_EXPECTED' }
 
     /* ********************************************************************************************

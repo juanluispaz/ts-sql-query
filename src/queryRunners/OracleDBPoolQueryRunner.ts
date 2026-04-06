@@ -3,7 +3,7 @@ import type { Pool, Connection } from 'oracledb'
 import { BIND_OUT } from 'oracledb'
 import { OracleDBQueryRunner } from './OracleDBQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
-import { TsSqlProcessingError } from '../TsSqlError.js'
+import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 
 export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
@@ -42,6 +42,20 @@ export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     }
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
         (queryRunner.getNativeRunner() as Connection).close()
+    }
+        
+    getErrorReason(error: unknown): TsSqlErrorReason {
+        return OracleDBQueryRunner.getErrorReason(error)
+    }
+    isSqlError(error: unknown): boolean {
+        return OracleDBQueryRunner.isSqlError(error)
+    }
+        
+    static getErrorReason(error: unknown): TsSqlErrorReason {
+        return OracleDBQueryRunner.getErrorReason(error)
+    }
+    static isSqlError(error: unknown): boolean {
+        return OracleDBQueryRunner.isSqlError(error)
     }
 
 }

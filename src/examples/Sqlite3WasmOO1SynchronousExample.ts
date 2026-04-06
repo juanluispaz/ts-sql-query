@@ -8,6 +8,7 @@ import { Table } from '../Table.js'
 import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
 import { SqliteConnection } from '../connections/SqliteConnection.js'
+import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import type { Database } from '@sqlite.org/sqlite-wasm'
 import { SynchronousPromise } from 'synchronous-promise'
 // import { fromBinaryUUID, toBinaryUUID } from 'binary-uuid'
@@ -846,8 +847,6 @@ function main(db: Database) {
 }
 
 async function run() {
-    // @ts-ignore // TODO: find a better way to impòrt node version
-    const {default: sqlite3InitModule} = await import('../../node_modules/@sqlite.org/sqlite-wasm/sqlite-wasm/jswasm/sqlite3-node.mjs')
     try {
         const sqlite3 = await sqlite3InitModule();
         const db: Database = new sqlite3.oo1.DB();

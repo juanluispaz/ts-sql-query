@@ -95,7 +95,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     }
     doRollback(_opts: RollbackOpts): Promise<void> {
         return new Promise((resolve, reject) => {
-            this.connection.beginTransaction((error: QueryError | null) => {
+            this.connection.rollback((error: QueryError | null) => {
                 if (error) {
                     reject(error)
                 } else {

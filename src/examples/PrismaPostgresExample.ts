@@ -3,6 +3,7 @@
  */
 
 import { Table } from '../Table.js'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
 import { PostgreSqlConnection } from '../connections/PostgreSqlConnection.js'
@@ -76,7 +77,9 @@ const tBoolean = new class TBoolean extends Table<DBConnection, 'TBoolean'> {
     }
 }()
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient({
+    adapter: new PrismaPg('postgresql://postgres:mysecretpassword@localhost:5432/postgres')
+})
 
 async function main() {
     const connection = new DBConnection(new ConsoleLogQueryRunner(new PrismaQueryRunner(prisma)))
@@ -2048,4 +2051,3 @@ main().finally(async () => {
     console.error(e)
     process.exit(1)
 })
-

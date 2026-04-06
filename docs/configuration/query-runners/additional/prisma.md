@@ -4,7 +4,7 @@ search:
 ---
 # prisma
 
-This query runner allows executing SQL queries using a [Prisma](https://www.prisma.io) client. It is compatible with Prisma 5 and 6. Although it may also work with Prisma 3 and 4, this has not been tested. To use it, you must enable interactive transactions in your Prisma schema. See the [documentation](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide#interactive-transactions-in-preview) for how to configure this.
+This query runner allows executing SQL queries using a [Prisma](https://www.prisma.io) client. It requires Prisma 7.
 
 !!! success "Supported databases"
 
@@ -30,27 +30,115 @@ This query runner allows executing SQL queries using a [Prisma](https://www.pris
 
 ## Using a connection pool
 
-Enables executing queries through a [Prisma](https://www.prisma.io) connection obtained from a pool.
-    
-```ts
-import { PrismaClient } from '@prisma/client'
-import { PrismaQueryRunner } from "ts-sql-query/queryRunners/PrismaQueryRunner";
+Enables executing queries through a [Prisma](https://www.prisma.io) client.
 
-const prisma = new PrismaClient()
+Prisma 7 requires a driver adapter to connect to the database. Therefore, you must instantiate the Prisma client using the generated client and the adapter corresponding to your database.
 
-async function main() {
-    const connection = new DBConnection(new PrismaQueryRunner(prisma));
-    // Do your queries here
-}
-```
+The generated Prisma client and the adapter must correspond to the same database.
+
+=== "MariaDB"
+    ```ts
+    import { PrismaMariaDb } from '@prisma/adapter-mariadb'
+    import { PrismaClient } from './prisma/generated/mariadb/client.js'
+    import { PrismaQueryRunner } from 'ts-sql-query/queryRunners/PrismaQueryRunner'
+
+    const prisma = new PrismaClient({
+        adapter: new PrismaMariaDb({
+            host: 'localhost',
+            user: 'root',
+            password: 'my-secret-pw',
+            database: 'test',
+        })
+    })
+
+    async function main() {
+        const connection = new DBConnection(new PrismaQueryRunner(prisma))
+        // Do your queries here
+    }
+    ```
+=== "MySQL"
+    ```ts
+    import { PrismaMariaDb } from '@prisma/adapter-mariadb'
+    import { PrismaClient } from './prisma/generated/mysql/client.js'
+    import { PrismaQueryRunner } from 'ts-sql-query/queryRunners/PrismaQueryRunner'
+
+    const prisma = new PrismaClient({
+        adapter: new PrismaMariaDb({
+            host: 'localhost',
+            user: 'root',
+            password: 'my-secret-pw',
+            database: 'sys',
+        })
+    })
+
+    async function main() {
+        const connection = new DBConnection(new PrismaQueryRunner(prisma))
+        // Do your queries here
+    }
+    ```
+===+ "PostgreSQL"
+    ```ts
+    import { PrismaPg } from '@prisma/adapter-pg'
+    import { PrismaClient } from './prisma/generated/postgresql/client.js'
+    import { PrismaQueryRunner } from 'ts-sql-query/queryRunners/PrismaQueryRunner'
+
+    const prisma = new PrismaClient({
+        adapter: new PrismaPg('postgresql://postgres:mysecretpassword@localhost:5432/postgres')
+    })
+
+    async function main() {
+        const connection = new DBConnection(new PrismaQueryRunner(prisma))
+        // Do your queries here
+    }
+    ```
+=== "SQLite"
+    ```ts
+    import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+    import { PrismaClient } from './prisma/generated/sqlite/client.js'
+    import { PrismaQueryRunner } from 'ts-sql-query/queryRunners/PrismaQueryRunner'
+
+    const prisma = new PrismaClient({
+        adapter: new PrismaBetterSqlite3({
+            url: 'src/examples/prisma/generated/prismasqlitetest.db'
+        })
+    })
+
+    async function main() {
+        const connection = new DBConnection(new PrismaQueryRunner(prisma))
+        // Do your queries here
+    }
+    ```
+=== "SQL Server"
+    ```ts
+    import { PrismaMssql } from '@prisma/adapter-mssql'
+    import { PrismaClient } from './prisma/generated/sqlserver/client.js'
+    import { PrismaQueryRunner } from 'ts-sql-query/queryRunners/PrismaQueryRunner'
+
+    const prisma = new PrismaClient({
+        adapter: new PrismaMssql({
+            server: 'localhost',
+            port: 1433,
+            user: 'sa',
+            password: 'yourStrong(!)Password',
+            options: {
+                trustServerCertificate: true,
+            },
+        })
+    })
+
+    async function main() {
+        const connection = new DBConnection(new PrismaQueryRunner(prisma))
+        // Do your queries here
+    }
+    ```
 
 ## Transactions
 
-Prisma distinguishes between short (sequential) and long-running (interactive) transactions. You must understand this concept in order to use Prisma's transactions properly. The [blog page](https://www.prisma.io/blog/how-prisma-supports-transactions-x45s1d5l0ww1) explaining it, the [transactions guide](https://www.prisma.io/docs/guides/performance-and-optimization/prisma-client-transactions-guide/) and the [transaction page](https://www.prisma.io/docs/concepts/components/prisma-client/transactions) details the differences.
+Prisma distinguishes between short (sequential) and long-running (interactive) transactions. You must understand this concept in order to use Prisma's transactions properly. The [blog page](https://www.prisma.io/blog/how-prisma-supports-transactions-x45s1d5l0ww1) explaining it and the [transaction page](https://www.prisma.io/docs/orm/prisma-client/queries/transactions) detail the differences.
 
 In a few words:
 
-- A **short-running transaction** (NOT SUPPORTED, also called sequential operations) allows you to execute multiple queries in a single call to the Prisma server; this allows Prisma to optimize the execution of all the queries in a single database call (if the database support it) or reduce the transaction's duration to the minimum possible. The limitation is you cannot depend on the result of one query as input for the next one.
+- A **short-running transaction** (NOT SUPPORTED, also called sequential operations) allows you to execute multiple Prisma operations together; this allows Prisma to optimize the execution of all the queries and reduce the transaction's duration to the minimum possible. The limitation is you cannot depend on the result of one query as input for the next one.
 - A **long-running transaction** (also called interactive transactions in the documentation) allows you to obtain a dedicated connection to the database that will allow you to execute all the queries within a transaction. This dedicated connection allows you to query the database while the transaction is open, and the queries can be performed at different times. This model corresponds to the transaction model supported by the other libraries used in `ts-sql-query` to connect with the database.
 
 The consequence of this design is you cannot call the low-level transaction methods:
@@ -71,7 +159,7 @@ But, you can use `connection.transaction` method to perform a transaction in Pri
 
 It is called, as well, interactive transactions in the Prisma documentation.
 
-You can pass as the second argument of the `PrismaQueryRunner` constructor a configuration for long-running transactions. The configuration object support the following properties:
+You can pass as the second argument of the `PrismaQueryRunner` constructor a configuration for long-running transactions. The configuration object supports the following properties:
 
 - `interactiveTransactionsOptions`(object, optional, default `undefined`): Object with the second parameter of the `$transaction` method in the Prisma client object. It supports the following properties: 
   - `maxWait` (number, optional, default `2000`): The maximum amount of time (milliseconds) the Prisma Client will wait to acquire a transaction from the database. The default is 2 seconds.
@@ -105,9 +193,11 @@ const transactionResult = prisma.$transaction(async (prismaTransaction) => {
 });
 ```
 
-## Accessing to the Prisma Client from the connection
+## Accessing the Prisma Client from the connection
 
 If you want to access the underlying Prisma Client from your connection object, you can define an accessor method in your connection class like:
+
+In the following example, `PrismaClient` refers to the generated Prisma client for your database.
 
 ```ts
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {

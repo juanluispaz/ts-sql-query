@@ -1,6 +1,5 @@
 datasource db {
     provider = "sqlserver"
-    url      = "sqlserver://localhost:1433;user=sa;password=yourStrong(!)Password;TrustServerCertificate=true"
 }
 
 generator client {

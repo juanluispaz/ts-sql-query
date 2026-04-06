@@ -1,6 +1,5 @@
 datasource db {
     provider = "mysql"
-    url      = "mysql://root:my-secret-pw@localhost/sys"
 }
 
 generator client {

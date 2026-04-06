@@ -4,6 +4,7 @@
  */
 
 import { Table } from '../Table.js'
+import { PrismaMariaDb } from '@prisma/adapter-mariadb'
 import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
 import { MariaDBConnection } from '../connections/MariaDBConnection.js'
@@ -63,7 +64,14 @@ const tBoolean = new class TBoolean extends Table<DBConnection, 'TBoolean'> {
     }
 }()
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient({
+    adapter: new PrismaMariaDb({
+        host: 'localhost',
+        user: 'root',
+        password: 'my-secret-pw',
+        database: 'test',
+    })
+})
 
 async function main() {
     const connection = new DBConnection(new ConsoleLogQueryRunner(new PrismaQueryRunner(prisma)))
@@ -1947,4 +1955,3 @@ main().finally(async () => {
     console.error(e)
     process.exit(1)
 })
-

@@ -3,6 +3,7 @@
  */
 
 import { Table } from '../Table.js'
+import { PrismaMssql } from '@prisma/adapter-mssql'
 import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
 import { SqlServerConnection } from '../connections/SqlServerConnection.js'
@@ -73,7 +74,17 @@ const tBoolean = new class TBoolean extends Table<DBConnection, 'TBoolean'> {
     }
 }()
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient({
+    adapter: new PrismaMssql({
+        server: 'localhost',
+        port: 1433,
+        user: 'sa',
+        password: 'yourStrong(!)Password',
+        options: {
+            trustServerCertificate: true,
+        },
+    })
+})
 
 async function main() {
     const connection = new DBConnection(new ConsoleLogQueryRunner(new PrismaQueryRunner(prisma)))

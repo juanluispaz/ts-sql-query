@@ -111,6 +111,7 @@ nav:
       - oracledb: configuration/query-runners/recommended/oracledb.md
       - pg: configuration/query-runners/recommended/pg.md
       - postgres: configuration/query-runners/recommended/postgres.md
+      - pglite: configuration/query-runners/recommended/pglite.md
       - sqlite3: configuration/query-runners/recommended/sqlite3.md
       - sqlite-wasm OO1: configuration/query-runners/recommended/sqlite-wasm-OO1.md
     - General purpose query runners:

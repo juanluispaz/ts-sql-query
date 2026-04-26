@@ -28,6 +28,8 @@ tsx ./src/examples/Sqlite3WasmOO1Example.ts || exit 1
 tsx ./src/examples/Sqlite3WasmOO1SynchronousExample.ts || exit 1
 tsx ./src/examples/PrismaSqliteExample.ts || exit 1
 
+tsx ./src/examples/PgLiteExample.ts || exit 1
+
 docker run --name ts-sql-query-postgres -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
 sleep 20
 tsx ./src/examples/PgExample.ts || { docker stop ts-sql-query-postgres; docker rm ts-sql-query-postgres; exit 1; }

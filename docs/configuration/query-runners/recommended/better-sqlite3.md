@@ -38,7 +38,7 @@ async function main() {
 }
 ```
 
-!!! note "safeIntegers"
+!!! note "Safe Integers"
 
     If your queries may return integers larger than JavaScript's safe integer range, consider enabling `safeIntegers` in the database configuration.
 

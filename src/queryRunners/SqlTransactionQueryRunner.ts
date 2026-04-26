@@ -6,7 +6,7 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
     private transactionLevel = 0
     executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         const transactionLevel = this.transactionLevel
-        if (!this.nestedTransactionsSupported() && transactionLevel >= 1) {
+        if (!this.nestedTransactionsSupported() && this.isTransactionActive()) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, this.database + " doesn't support nested transactions (using " + this.constructor.name + ")"))
         }
 
@@ -16,7 +16,7 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
         } catch (error) {
             return this.createRejectedPromise(error)
         }
-        return this.executeMutation(sql, []).then(() => {
+        return this.executeBeginTransactionQuery(sql, []).then(() => {
             this.transactionLevel++
             if (this.transactionLevel !== transactionLevel + 1) {
                 throw new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to start a transaction.')
@@ -24,12 +24,15 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
             return undefined
         })
     }
+    executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
+        return this.executeMutation(query, params);
+    }
     executeCommit(_opts: CommitOpts = []): Promise<void> {
-        if (this.transactionLevel <= 0) {
+        if (!this.isTransactionActive()) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot commit the transaction'))
         }
 
-        return this.executeMutation('commit', []).then(() => {
+        return this.executeCommitQuery('commit', []).then(() => {
             // Transaction count only modified when commit successful, in case of error there is still an open transaction 
             this.transactionLevel--
             if (this.transactionLevel < 0) {
@@ -38,12 +41,15 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
             return undefined
         })
     }
+    executeCommitQuery(query: string, params: any[]): Promise<number> {
+        return this.executeMutation(query, params);
+    }
     executeRollback(_opts: RollbackOpts = []): Promise<void> {
-        if (this.transactionLevel <= 0) {
+        if (!this.isTransactionActive()) {
             return Promise.reject(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in an transaction, you cannot rollback the transaction'))
         }
 
-        return this.executeMutation('rollback', []).then(() => {
+        return this.executeRollbackQuery('rollback', []).then(() => {
             this.transactionLevel--
             if (this.transactionLevel < 0) {
                 this.transactionLevel = 0
@@ -56,6 +62,9 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
             }
             throw error
         })
+    }
+    executeRollbackQuery(query: string, params: any[]): Promise<number> {
+        return this.executeMutation(query, params);
     }
     isTransactionActive(): boolean {
         return this.transactionLevel > 0
@@ -85,6 +94,21 @@ export abstract class SqlTransactionQueryRunner extends ManagedTransactionQueryR
         const level = this.getTransactionLevel(opts)
         if (level) {
             sql += ' isolation level ' + level
+        }
+        const accessMode = this.getTransactionAccessMode(opts)
+        if (accessMode) {
+            if (sql) {
+                sql += ', '
+            }
+            sql += accessMode
+        }
+        return sql
+    }
+    createBeginTransactionOptions(opts: BeginTransactionOpts): string | undefined {
+        let sql
+        let level = this.getTransactionLevel(opts)
+        if (level) {
+            sql = 'isolation level ' + level
         }
         const accessMode = this.getTransactionAccessMode(opts)
         if (accessMode) {

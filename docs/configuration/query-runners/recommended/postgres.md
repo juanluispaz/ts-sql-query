@@ -39,7 +39,3 @@ async function main() {
     // Do your queries here
 }
 ```
-
-!!! warning "Limitation"
-
-    Low-level transaction management functions (`connection.beginTransaction`, `connection.commit`, `connection.rollback`) are not supported; you must use `connection.transaction` instead.

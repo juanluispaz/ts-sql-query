@@ -1,7 +1,7 @@
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
-import { AbstractQueryRunner } from './AbstractQueryRunner.js'
-import type { BeginTransactionOpts, CommitOpts, DatabaseType, QueryRunner, RollbackOpts } from './QueryRunner.js'
-import type { Sql, TransactionSql } from 'postgres'
+import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
+import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
+import type { Sql, TransactionSql, ReservedSql } from 'postgres'
 
 type PostgresJsConnectionError = Error & {
     code?: string
@@ -9,10 +9,11 @@ type PostgresJsConnectionError = Error & {
 type PostgresJsDatabaseError = InstanceType<Sql['PostgresError']>
 type PostgresJsError = PostgresJsDatabaseError | PostgresJsConnectionError
 
-export class PostgresQueryRunner extends AbstractQueryRunner {
+export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     database: DatabaseType
     readonly connection: Sql
     transaction?: TransactionSql
+    lowLevelTransaction?: ReservedSql
 
     constructor(connection: Sql) {
         super()
@@ -27,43 +28,101 @@ export class PostgresQueryRunner extends AbstractQueryRunner {
     getNativeRunner(): Sql {
         return this.connection
     }
-    getCurrentNativeTransaction(): TransactionSql | undefined {
-        return this.transaction
+    getCurrentNativeTransaction(): TransactionSql | ReservedSql | undefined {
+        return this.transaction || this.lowLevelTransaction
+    }
+    private getSql(): Sql | TransactionSql | ReservedSql {
+        return this.transaction || this.lowLevelTransaction || this.connection
     }
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
-        return fn(this.connection, this.transaction)
+        return fn(this.connection, this.transaction || this.lowLevelTransaction)
     }
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
-        return (this.transaction || this.connection).unsafe(query, params).then((result) => {
+        return this.getSql().unsafe(query, params).then((result) => {
             // then is called to ensure the query is executed
             return result
         })
     }
     protected executeMutation(query: string, params: any[]): Promise<number> {
-        return (this.transaction || this.connection).unsafe(query, params).then((result) => {
+        return this.getSql().unsafe(query, params).then((result) => {
             // then is called to ensure the query is executed
             return result.count
         })
     }
-    executeBeginTransaction(_opts: BeginTransactionOpts = []): Promise<void> {
-        return Promise.reject(new TsSqlProcessingError({ reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }, 'Low level transaction management is not supported by PostgresQueryRunner'))
+    executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
+        return this.connection.reserve().then((reserved) => {
+            return reserved.unsafe(query, params).then(
+                (result) => {
+                    if (this.transaction || this.lowLevelTransaction) {
+                        const error = new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to start a transaction')
+                        return reserved.unsafe('rollback', []).then(
+                            () => {
+                                reserved.release()
+                                return this.createRejectedPromise(error)
+                            },
+                            () => {
+                                reserved.release()
+                                return this.createRejectedPromise(error)
+                            }
+                        )
+                    }
+                    this.lowLevelTransaction = reserved
+                    return result.count
+                },
+                (error) => {
+                    reserved.release()
+                    return this.createRejectedPromise(error)
+                }
+            )
+        })
+
     }
-    executeCommit(_opts: CommitOpts = []): Promise<void> {
-        return Promise.reject(new TsSqlProcessingError({ reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }, 'Low level transaction management is not supported by PostgresQueryRunner'))
+    executeCommitQuery(query: string, params: any[]): Promise<number> {
+        const transaction = this.lowLevelTransaction
+        if (!transaction) {
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a low level transaction, you cannot commit the transaction'))
+        }
+
+        return transaction.unsafe(query, params).then(
+            (result) => {
+                this.lowLevelTransaction = undefined
+                transaction.release()
+                return result.count
+            },
+            (error) => {
+                return this.createRejectedPromise(error)
+            }
+        )
     }
-    executeRollback(_opts: RollbackOpts = []): Promise<void> {
-        return Promise.reject(new TsSqlProcessingError({ reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }, 'Low level transaction management is not supported by PostgresQueryRunner'))
+    executeRollbackQuery(query: string, params: any[]): Promise<number> {
+        const transaction = this.lowLevelTransaction
+        if (!transaction) {
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a low level transaction, you cannot rollback the transaction'))
+        }
+
+        return transaction.unsafe(query, params).then(
+            (result) => {
+                this.lowLevelTransaction = undefined
+                transaction.release()
+                return result.count
+            },
+            (error) => {
+                this.lowLevelTransaction = undefined
+                transaction.release()
+                return this.createRejectedPromise(error)
+            }
+        )
     }
     isTransactionActive(): boolean {
-        return !!this.transaction
+        return !!this.transaction || !!this.lowLevelTransaction || super.isTransactionActive()
     }
     addParam(params: any[], value: any): string {
         params.push(value)
         return '$' + params.length
     }
     executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
-        if (this.transaction) {
-            throw new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions is not supported by PostgresQueryRunner')
+        if (this.transaction || this.lowLevelTransaction) {
+            return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions are not supported by PostgresQueryRunner'))
         }
         let options
         try {
@@ -72,8 +131,8 @@ export class PostgresQueryRunner extends AbstractQueryRunner {
             return this.createRejectedPromise(error)
         }
         const callback = (transaction: TransactionSql) => {
-            if (this.transaction) {
-                throw new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to start a transaction')
+            if (this.transaction || this.lowLevelTransaction) {
+                return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to start a transaction'))
             }
             this.transaction = transaction
             let result = fn()
@@ -86,38 +145,6 @@ export class PostgresQueryRunner extends AbstractQueryRunner {
         } else {
             return this.connection.begin(callback) as Promise<T>
         }
-    }
-    lowLevelTransactionManagementSupported(): boolean {
-        return false
-    }
-    getTransactionLevel(opts: BeginTransactionOpts): string | undefined {
-        const level = opts?.[0]
-        if (!level || level === 'read uncommitted' || level === 'read committed' || level === 'repeatable read' || level === 'serializable') {
-            return level
-        }
-        throw new TsSqlProcessingError({ reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: level }, this.database + " doesn't support the transactions level: " + level)
-    }
-    getTransactionAccessMode(opts: BeginTransactionOpts): string | undefined {
-        const accessMode = opts?.[1]
-        if (!accessMode || accessMode === 'read write' || accessMode === 'read only') {
-            return accessMode
-        }
-        throw new TsSqlProcessingError({ reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode }, this.database + " doesn't support the transactions access mode: " + accessMode)
-    }
-    createBeginTransactionOptions(opts: BeginTransactionOpts): string | undefined {
-        let sql
-        let level = this.getTransactionLevel(opts)
-        if (level) {
-            sql = 'isolation level ' + level
-        }
-        const accessMode = this.getTransactionAccessMode(opts)
-        if (accessMode) {
-            if (sql) {
-                sql += ', '
-            }
-            sql += accessMode
-        }
-        return sql
     }
     getErrorReason(error: unknown): TsSqlErrorReason {
         return PostgresQueryRunner.getErrorReason(error)

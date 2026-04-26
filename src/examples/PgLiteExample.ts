@@ -865,7 +865,7 @@ async function main() {
         assertEquals(record, { id: '89bf68fc-7002-11ec-90d6-0242ac120003', title: 'My voice memo' })
 
         const date = new Date('2022-11-21T19:33:56.123Z')
-        const dateValue = connection.const(date, 'localDateTime')
+        // const dateValue = connection.const(date, 'localDateTime')
         // PostgreSql fail to call date part function with a constant date is provided
         const dateValueCasted = connection.fragmentWithType('localDateTime', 'required').sql`TIMESTAMP '2022-11-21 19:33:56.123'`
         const dateValidation = await connection

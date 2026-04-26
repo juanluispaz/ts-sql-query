@@ -8,6 +8,8 @@ Type-safe SQL means the mistakes writting a query will be detected during the co
 
 ts-sql-query supports MariaDB, MySql, Oracle, PostgreSql, Sqlite and SqlServer. Note: this is not an ORM, and the most probably is you don't need one.
 
+ts-sql-query supports [Node.js](https://nodejs.org/) and [Bun](https://bun.com).
+
 ![](docs/demo.gif)
 
 # Summary <!-- omit in toc -->
@@ -26,10 +28,16 @@ ts-sql-query supports MariaDB, MySql, Oracle, PostgreSql, Sqlite and SqlServer. 
 
 ## Install
 
-Install with [npm](https://www.npmjs.com/):
+Install with [npm](https://www.npmjs.com/) in [Node.js](https://nodejs.org/):
 
 ```sh
 $ npm install --save ts-sql-query
+```
+
+Install in [Bun](https://bun.com):
+
+```sh
+$ bun install ts-sql-query
 ```
 
 ts-sql-query doesn't expose a global export; instead, you need import specific files refered in this documentation according to the functionality you need. Only the files included in this documentation are considered public; then, don't reference explicitly files outside of the following:

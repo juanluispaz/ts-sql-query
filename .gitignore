@@ -9,3 +9,4 @@ generated
 .github
 .nyc_output
 .venv
+bun.lock

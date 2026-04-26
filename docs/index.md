@@ -48,6 +48,10 @@ There are many libraries available in JavaScript/TypeScript that allows querying
 
 For more details on the principles behind the library, see [Philosophy and Design Goals](./about/philosophy.md).
 
+## Supported runtimes
+
+`ts-sql-query` supports [Node.js](https://nodejs.org/) and [Bun](https://bun.com).
+
 ## Supported Databases
 
 - [MariaDB](./configuration/supported-databases/mariadb.md)
@@ -61,10 +65,16 @@ For more details on the principles behind the library, see [Philosophy and Desig
 
 ## Install
 
-Install with [npm](https://www.npmjs.com/):
+Install with [npm](https://www.npmjs.com/) in [Node.js](https://nodejs.org/):
 
 ```sh
 $ npm install --save ts-sql-query
+```
+
+Install in [Bun](https://bun.com):
+
+```sh
+$ bun install ts-sql-query
 ```
 
 `ts-sql-query` does not expose a global export. Instead, you should import specific modules as described in the documentation, depending on the features you need. Only the modules listed below are considered part of the public API — avoid importing from any other internal paths, as they may change without prior notice:

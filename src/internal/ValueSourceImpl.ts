@@ -234,17 +234,17 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     greaterThan(value: any): any {
         return condition(new SqlOperation1ValueSource('_greaterThan', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
-    lessOrEqualsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+    lessOrEqualIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessOrEqual', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
-    lessOrEquals(value: any): any {
-        return condition(new SqlOperation1ValueSource('_lessOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+    lessOrEqual(value: any): any {
+        return condition(new SqlOperation1ValueSource('_lessOrEqual', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
-    greaterOrEqualsIfValue(value: any): any {
-        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+    greaterOrEqualIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterOrEqual', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
-    greaterOrEquals(value: any): any {
-        return condition(new SqlOperation1ValueSource('_greaterOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+    greaterOrEqual(value: any): any {
+        return condition(new SqlOperation1ValueSource('_greaterOrEqual', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
     inIfValue(value: any): any {
         return condition(new SqlOperationInValueSourceIfValueOrNoop('_in', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))

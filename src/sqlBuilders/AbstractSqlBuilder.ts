@@ -38,8 +38,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
             _notEqualsInsensitive: true,
             _lessThan: true,
             _greaterThan: true,
-            _lessOrEquals: true,
-            _greaterOrEquals: true,
+            _lessOrEqual: true,
+            _greaterOrEqual: true,
             _and: true,
             _or: true,
             _concat: true,
@@ -2373,10 +2373,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _greaterThan(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + ' > ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter)
     }
-    _lessOrEquals(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _lessOrEqual(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + ' <= ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter)
     }
-    _greaterOrEquals(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    _greaterOrEqual(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params) + ' >= ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter)
     }
     _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {

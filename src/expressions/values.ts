@@ -283,12 +283,12 @@ export interface ComparableValueSource</*in|out*/ SOURCE extends NSource, /*in|o
     greaterThanIfValue(value: TYPE | null | undefined): IfValueSource<SOURCE, OPTIONAL_TYPE>
     greaterThan(value: TYPE): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     greaterThan<VALUE extends IEqualableValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    lessOrEqualsIfValue(value: TYPE | null | undefined): IfValueSource<SOURCE, OPTIONAL_TYPE>
-    lessOrEquals(value: TYPE): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
-    lessOrEquals<VALUE extends IEqualableValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    greaterOrEqualsIfValue(value: TYPE | null | undefined): IfValueSource<SOURCE, OPTIONAL_TYPE>
-    greaterOrEquals(value: TYPE): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
-    greaterOrEquals<VALUE extends IEqualableValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    lessOrEqualIfValue(value: TYPE | null | undefined): IfValueSource<SOURCE, OPTIONAL_TYPE>
+    lessOrEqual(value: TYPE): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
+    lessOrEqual<VALUE extends IEqualableValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    greaterOrEqualIfValue(value: TYPE | null | undefined): IfValueSource<SOURCE, OPTIONAL_TYPE>
+    greaterOrEqual(value: TYPE): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
+    greaterOrEqual<VALUE extends IEqualableValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     between(value: TYPE, value2: TYPE): BooleanValueSource<SOURCE, OPTIONAL_TYPE>
     between<VALUE2 extends IEqualableValueSource<any, TYPE, TYPE_NAME, any>>(value: TYPE, value2: VALUE2): BooleanValueSource<SOURCE | VALUE2[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE2[typeof optionalType]>>
     between<VALUE extends IEqualableValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE, value2: TYPE): BooleanValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>

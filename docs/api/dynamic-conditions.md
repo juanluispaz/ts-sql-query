@@ -91,10 +91,10 @@ interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
     lessThan?: TYPE
     greaterThanIfValue?: TYPE | null | undefined
     greaterThan?: TYPE
-    lessOrEqualsIfValue?: TYPE | null | undefined
-    lessOrEquals?: TYPE
-    greaterOrEqualsIfValue?: TYPE | null | undefined
-    greaterOrEquals?: TYPE
+    lessOrEqualIfValue?: TYPE | null | undefined
+    lessOrEqual?: TYPE
+    greaterOrEqualIfValue?: TYPE | null | undefined
+    greaterOrEqual?: TYPE
 }
 ```
 

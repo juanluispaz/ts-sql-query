@@ -54,10 +54,10 @@ interface ComparableValueSource<T> extends EqualableValueSource<T> {
     lessThan(value: T | this): BooleanValueSource
     greaterThanIfValue(value: T | null | undefined): BooleanValueSource
     greaterThan(value: T | this): BooleanValueSource
-    lessOrEqualsIfValue(value: T | null | undefined): BooleanValueSource
-    lessOrEquals(value: T | this): BooleanValueSource
-    greaterOrEqualsIfValue(value: T | null | undefined): BooleanValueSource
-    greaterOrEquals(value: T | this): BooleanValueSource
+    lessOrEqualIfValue(value: T | null | undefined): BooleanValueSource
+    lessOrEqual(value: T | this): BooleanValueSource
+    greaterOrEqualIfValue(value: T | null | undefined): BooleanValueSource
+    greaterOrEqual(value: T | this): BooleanValueSource
     between(value: T | this, value2: T | this): BooleanValueSource
     notBetween(value: T | this, value2: T | this): BooleanValueSource
 }

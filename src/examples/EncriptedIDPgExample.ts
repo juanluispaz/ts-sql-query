@@ -704,7 +704,7 @@ async function main() {
         assertEquals(updatedLastNames, {oldLastName: 'Person', newLastName: 'Customer'})
 
         const deletedCustomers = await connection.deleteFrom(tCustomer)
-            .where(tCustomer.id.greaterOrEquals('dmY1mZ8zdxsw0210'))
+            .where(tCustomer.id.greaterOrEqual('dmY1mZ8zdxsw0210'))
             .returning({
                 id: tCustomer.id,
                 firstName: tCustomer.firstName,

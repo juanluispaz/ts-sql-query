@@ -670,7 +670,7 @@ All these methods have a `When` variant that allows you to specify as the first 
 
 ## Manipulating values to insert (multiple)
 
-ts-sql-qeury offers many commodity methods to manipulate the data to insert, allowing adding missing values, deleting undesired values, or throwing an error if a value is present.
+ts-sql-query offers many commodity methods to manipulate the data to insert, allowing adding missing values, deleting undesired values, or throwing an error if a value is present.
 
 When you write your insert query, you set the initial value calling:
 

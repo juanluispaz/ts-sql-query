@@ -35,7 +35,7 @@ class DurationLogginQueryRunner extends InterceptorQueryRunner<void> {
 **The stack strace will looks like**:
 
 ```
-Error: Query executed at
+Query executed at
     at CompoundSelectQueryBuilder.executeSelectMany (ts-sql-query/src/queryBuilders/SelectQueryBuilder.ts:187:24)
     at myFunction (myFolder/myFile.ts:112:10)
     at myOuterFunction (myFolder/myFile.ts:147:23)

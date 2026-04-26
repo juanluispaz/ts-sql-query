@@ -24,7 +24,7 @@ Executes queries through a [postgres.js](https://github.com/porsager/postgres) c
 
 ```ts
 import * as postgres from 'postgres';
-import { PostgresQueryRunner } from '../queryRunners/PostgresQueryRunner';
+import { PostgresQueryRunner } from 'ts-sql-query/queryRunners/PostgresQueryRunner';
 
 const sql = postgres({
     user: 'dbuser',

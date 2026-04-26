@@ -24,7 +24,7 @@ Enables executing queries through a [mssql](https://www.npmjs.com/package/mssql)
 
 ```ts
 import { ConnectionPool } from 'mssql'
-import { MssqlPoolPromiseQueryRunner } from "./queryRunners/MssqlPoolPromiseQueryRunner";
+import { MssqlPoolPromiseQueryRunner } from "ts-sql-query/queryRunners/MssqlPoolPromiseQueryRunner";
 
 const poolPromise = new ConnectionPool({
     user: '...',
@@ -45,7 +45,7 @@ Enables executing queries through a [mssql](https://www.npmjs.com/package/mssql)
 
 ```ts
 import { ConnectionPool } from 'mssql'
-import { MssqlPoolQueryRunner } from "./queryRunners/MssqlPoolQueryRunner";
+import { MssqlPoolQueryRunner } from "ts-sql-query/queryRunners/MssqlPoolQueryRunner";
 
 const poolPromise = new ConnectionPool({
     user: '...',

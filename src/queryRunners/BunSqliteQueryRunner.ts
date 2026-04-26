@@ -90,35 +90,34 @@ export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {
         if (error instanceof TsSqlError) {
             return error.errorReason
         }
-        if (!isBunSqliteError(error)) {
-            return { reason: 'UNKNOWN' }
+        if (isBunSqliteError(error)) {
+            return getBunSqliteErrorReason(error)
         }
-        return getBunSqliteErrorReason(error)
+        if (isBunSqliteDriverError(error)) {
+            return getBunSqliteDriverErrorReason(error)
+        }
+        return { reason: 'UNKNOWN' }
     }
 
     static isSqlError(error: unknown): boolean {
-        return error instanceof TsSqlError || isBunSqliteError(error)
+        return error instanceof TsSqlError || isBunSqliteError(error) || isBunSqliteDriverError(error)
     }
 }
 
-type BunSqliteSqliteError = InstanceType<typeof SQLiteError>
-type BunSqliteDriverError = TypeError
-type BunSqliteError = BunSqliteSqliteError | BunSqliteDriverError
-
-function getBunSqliteErrorReason(error: BunSqliteError): TsSqlErrorReason {
-    if (error instanceof SQLiteError) {
-        return getBunSqliteSqliteErrorReason(error)
-    }
-    return getBunSqliteDriverErrorReason(error)
+function getBunSqliteErrorReason(error: SQLiteError): TsSqlErrorReason {
+    return getBunSqliteSqliteErrorReason(error)
 }
 
-function getBunSqliteSqliteErrorReason(error: BunSqliteSqliteError): TsSqlErrorReason {
+function getBunSqliteSqliteErrorReason(error: SQLiteError): TsSqlErrorReason {
     const databaseErrorCode = getBunSqliteDatabaseErrorCode(error)
     const databaseErrorMessage = error.message || undefined
     const code = error.code || ''
     const message = error.message || ''
     const upper = message.toUpperCase()
 
+    if (code === 'SQLITE_CONSTRAINT_DATATYPE') {
+        return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'invalid value', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
+    }
     if (code.startsWith('SQLITE_CONSTRAINT')) {
         return getSqliteConstraintReason(message, databaseErrorCode, databaseErrorMessage)
     }
@@ -134,13 +133,22 @@ function getBunSqliteSqliteErrorReason(error: BunSqliteSqliteError): TsSqlErrorR
     if (code.startsWith('SQLITE_ABORT')) {
         return { reason: 'SQL_TIMEOUT', timeoutType: 'cancelled', databaseErrorCode, databaseErrorMessage }
     }
+    if (code.startsWith('SQLITE_BUSY')) {
+        return { reason: 'SQL_TIMEOUT', timeoutType: 'database file busy', databaseErrorCode, databaseErrorMessage }
+    }
+    if (code.startsWith('SQLITE_LOCKED')) {
+        return { reason: 'SQL_TIMEOUT', timeoutType: 'lock', databaseErrorCode, databaseErrorMessage }
+    }
+    if (code.startsWith('SQLITE_CORRUPT')) {
+        return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
+    }
 
     switch (code) {
         case 'SQLITE_CONSTRAINT':
             return getSqliteConstraintReason(message, databaseErrorCode, databaseErrorMessage)
-        case 'SQLITE_TOOBIG':
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'too long', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_MISMATCH':
+            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'invalid value', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_CONSTRAINT_DATATYPE':
             return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'invalid value', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_RANGE':
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
@@ -152,9 +160,11 @@ function getBunSqliteSqliteErrorReason(error: BunSqliteSqliteError): TsSqlErrorR
         case 'SQLITE_BUSY':
         case 'SQLITE_BUSY_RECOVERY':
         case 'SQLITE_BUSY_SNAPSHOT':
+        case 'SQLITE_BUSY_TIMEOUT':
             return { reason: 'SQL_TIMEOUT', timeoutType: 'database file busy', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_LOCKED':
         case 'SQLITE_LOCKED_SHAREDCACHE':
+        case 'SQLITE_LOCKED_VTAB':
             return { reason: 'SQL_TIMEOUT', timeoutType: 'lock', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_READONLY':
             return { reason: 'SQL_READ_ONLY_VIOLATION', databaseErrorCode, databaseErrorMessage }
@@ -175,6 +185,10 @@ function getBunSqliteSqliteErrorReason(error: BunSqliteSqliteError): TsSqlErrorR
             return { reason: 'SQL_AUTHORIZATION_ERROR', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_PERM':
             return { reason: 'SQL_PERMISSION_DENIED', databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_CORRUPT':
+        case 'SQLITE_CORRUPT_VTAB':
+        case 'SQLITE_SCHEMA':
+            return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
     }
 
     if (upper.includes('CANNOT START A TRANSACTION WITHIN A TRANSACTION')) {
@@ -225,50 +239,57 @@ function getBunSqliteSqliteErrorReason(error: BunSqliteSqliteError): TsSqlErrorR
     }
 
     if (code === 'SQLITE_ERROR') {
-            return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
     }
     return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
 }
 
-function getBunSqliteDriverErrorReason(error: BunSqliteDriverError): TsSqlErrorReason {
+function getBunSqliteDriverErrorReason(error: Error): TsSqlErrorReason {
     const message = error.message || ''
     const upper = message.toUpperCase()
 
     if (upper.includes('CANNOT OPEN DATABASE BECAUSE THE DIRECTORY DOES NOT EXIST')) {
-        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration' }
+        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration', databaseErrorMessage: message || undefined }
     }
     if (upper.includes('IN-MEMORY/TEMPORARY DATABASES CANNOT BE READONLY')) {
-        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration' }
+        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration', databaseErrorMessage: message || undefined }
     }
     if (upper.includes('DATABASE CONNECTION IS NOT OPEN')) {
-        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost' }
+        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorMessage: message || undefined }
     }
     if (upper.includes('DATABASE CONNECTION IS BUSY EXECUTING A QUERY') || upper.includes('STATEMENT IS BUSY EXECUTING A QUERY')) {
-        return { reason: 'FORBIDDEN_CONCURRENT_USAGE' }
+        return { reason: 'FORBIDDEN_CONCURRENT_USAGE', databaseErrorMessage: message || undefined }
     }
-    if (upper.includes('MISSING NAMED PARAMETERS')) {
-        return { reason: 'SQL_INVALID_PARAMETER' }
+    if (upper === 'STATEMENT HAS FINALIZED') {
+        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorMessage: message || undefined }
     }
-    if (upper.includes('SQLITE3 CAN ONLY BIND NUMBERS, STRINGS, BIGINTS, BUFFERS, AND NULL')) {
-        return { reason: 'SQL_INVALID_PARAMETER' }
+    if (upper.includes('EXPECTED OBJECT OR ARRAY')) {
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage: message || undefined }
     }
-    if (upper.includes('YOU CANNOT SPECIFY NAMED PARAMETERS IN TWO DIFFERENT OBJECTS')) {
-        return { reason: 'SQL_INVALID_PARAMETER' }
+    if (upper.startsWith('MISSING PARAMETER "')) {
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage: message || undefined }
     }
-    if (upper.includes('NAMED PARAMETERS CAN ONLY BE PASSED WITHIN PLAIN OBJECTS')) {
-        return { reason: 'SQL_INVALID_PARAMETER' }
+    if (upper.includes('BINDING EXPECTED STRING, TYPEDARRAY, BOOLEAN, NUMBER, BIGINT OR NULL')) {
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage: message || undefined }
     }
-    return { reason: 'SQL_UNKNOWN' }
+    if (upper === 'EXPECTED STRING') {
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage: message || undefined }
+    }
+    if (upper.startsWith('BIGINT VALUE ') && upper.includes(' IS OUT OF RANGE')) {
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage: message || undefined }
+    }
+    if (upper.includes('OUT OF MEMORY')) {
+        return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'memory', databaseErrorMessage: message || undefined }
+    }
+    return { reason: 'SQL_UNKNOWN', databaseErrorMessage: message || undefined }
 }
 
-function isBunSqliteError(error: unknown): error is BunSqliteError {
-    if (error instanceof SQLiteError) {
-        return true
-    }
-    if (!(error instanceof TypeError)) {
+function isBunSqliteDriverError(error: unknown): error is Error {
+    if (!(error instanceof Error)) {
         return false
     }
     const message = (error.message || '').toUpperCase()
+
     if (message.includes('CANNOT OPEN DATABASE BECAUSE THE DIRECTORY DOES NOT EXIST')) {
         return true
     }
@@ -278,10 +299,17 @@ function isBunSqliteError(error: unknown): error is BunSqliteError {
     return message.includes('DATABASE CONNECTION IS NOT OPEN')
         || message.includes('DATABASE CONNECTION IS BUSY EXECUTING A QUERY')
         || message.includes('STATEMENT IS BUSY EXECUTING A QUERY')
-        || message.includes('MISSING NAMED PARAMETERS')
-        || message.includes('SQLITE3 CAN ONLY BIND NUMBERS, STRINGS, BIGINTS, BUFFERS, AND NULL')
-        || message.includes('YOU CANNOT SPECIFY NAMED PARAMETERS IN TWO DIFFERENT OBJECTS')
-        || message.includes('NAMED PARAMETERS CAN ONLY BE PASSED WITHIN PLAIN OBJECTS')
+        || message === 'STATEMENT HAS FINALIZED'
+        || message.includes('EXPECTED OBJECT OR ARRAY')
+        || message.startsWith('MISSING PARAMETER "')
+        || message.includes('BINDING EXPECTED STRING, TYPEDARRAY, BOOLEAN, NUMBER, BIGINT OR NULL')
+        || message === 'EXPECTED STRING'
+        || (message.startsWith('BIGINT VALUE ') && message.includes(' IS OUT OF RANGE'))
+        || message.includes('OUT OF MEMORY')
+}
+
+function isBunSqliteError(error: unknown): error is SQLiteError {
+    return error instanceof SQLiteError
 }
 
 function getSqliteConstraintReason(message: string, databaseErrorCode: TsSqlDatabaseErrorCode | undefined, databaseErrorMessage?: string): TsSqlErrorReason {
@@ -321,7 +349,7 @@ function getSqliteConstraintReason(message: string, databaseErrorCode: TsSqlData
     return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
 }
 
-function getBunSqliteDatabaseErrorCode(error: BunSqliteSqliteError): TsSqlDatabaseErrorCode | undefined {
+function getBunSqliteDatabaseErrorCode(error: SQLiteError): TsSqlDatabaseErrorCode | undefined {
     return error.code
 }
 

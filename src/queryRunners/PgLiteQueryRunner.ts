@@ -44,7 +44,7 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
 
     useDatabase(database: DatabaseType): void {
         if (database !== 'postgreSql') {
-            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. PgQueryRunner only supports postgreSql databases')
+            throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. PgLiteQueryRunner only supports postgreSql databases')
         }
     }
 

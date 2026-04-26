@@ -2,9 +2,9 @@
 search:
   boost: 0.577
 ---
-# bun:sqlite
+# Bun Sqlite
 
-This runner provides integration with the [bun:sqlite](https://bun.com/docs/runtime/sqlite) driver, allowing `ts-sql-query` to execute queries on SQLite databases. It wraps an instance of a connected SQLite database and must be used in combination with a `ts-sql-query` connection.
+This runner provides integration with the [Bun Sqlite](https://bun.com/docs/runtime/sqlite) driver, allowing `ts-sql-query` to execute queries on [SQLite](../../supported-databases/sqlite.md) databases.
 
 !!! success "Supported databases"
 
@@ -24,7 +24,7 @@ This runner provides integration with the [bun:sqlite](https://bun.com/docs/runt
 
 ## Using a single connection
 
-Enables executing queries through a dedicated [bun:sqlite](https://bun.com/docs/runtime/sqlite) connection.
+Enables executing queries through a dedicated [Bun Sqlite](https://bun.com/docs/runtime/sqlite) connection.
 
 ```ts
 import { BunSqlite3QueryRunner } from "ts-sql-query/queryRunners/BunSqlite3QueryRunner";

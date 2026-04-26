@@ -105,7 +105,6 @@ nav:
       - SQL Server: configuration/supported-databases/sqlserver.md
     - Recommended query runners: 
       - better-sqlite3: configuration/query-runners/recommended/better-sqlite3.md
-      - bun:sqlite: docs/configuration/query-runners/recommended/bun_sqlite.md
       - mariadb: configuration/query-runners/recommended/mariadb.md
       - mssql: configuration/query-runners/recommended/mssql.md
       - mysql2: configuration/query-runners/recommended/mysql2.md
@@ -115,6 +114,8 @@ nav:
       - pglite: configuration/query-runners/recommended/pglite.md
       - sqlite3: configuration/query-runners/recommended/sqlite3.md
       - sqlite-wasm OO1: configuration/query-runners/recommended/sqlite-wasm-OO1.md
+    - Bun's recommended query runners:
+      - Bun Sqlite: docs/configuration/query-runners/recommended/bun_sqlite.md
     - General purpose query runners:
       - InterceptorQueryRunner: configuration/query-runners/general-purpose/InterceptorQueryRunner.md
       - LoggingQueryRunner: configuration/query-runners/general-purpose/LoggingQueryRunner.md

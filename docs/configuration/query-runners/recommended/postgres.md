@@ -4,7 +4,7 @@ search:
 ---
 # postgres
 
-This page explains how to use `ts-sql-query` with the [postgres.js](https://github.com/porsager/postgres) driver. It covers two approaches: using a connection pool or using a single connection directly.
+This page explains how to use `ts-sql-query` with the [postgres.js](https://github.com/porsager/postgres) driver.
 
 !!! success "Supported databases"
 

@@ -54,7 +54,11 @@ interface ComparableValueSource<T> extends EqualableValueSource<T> {
     lessThan(value: T | this): BooleanValueSource
     greaterThanIfValue(value: T | null | undefined): BooleanValueSource
     greaterThan(value: T | this): BooleanValueSource
+    lessOrEqualIfValue(value: T | null | undefined): BooleanValueSource
+    lessOrEqual(value: T | this): BooleanValueSource
+    /** @deprecated use lessOrEqualIfValue method instead */
     lessOrEqualsIfValue(value: T | null | undefined): BooleanValueSource
+    /** @deprecated use lessOrEqual method instead */
     lessOrEquals(value: T | this): BooleanValueSource
     greaterOrEqualsIfValue(value: T | null | undefined): BooleanValueSource
     greaterOrEquals(value: T | this): BooleanValueSource
@@ -69,9 +73,9 @@ interface ComparableValueSource<T> extends EqualableValueSource<T> {
     largerIfValue(value: T | null | undefined): BooleanValueSource
     /** @deprecated use greaterThan method instead */
     larger(value: T | this): BooleanValueSource
-    /** @deprecated use lessOrEqualsIfValue method instead */
+    /** @deprecated use lessOrEqualIfValue method instead */
     smallAsIfValue(value: T | null | undefined): BooleanValueSource
-    /** @deprecated use lessOrEquals method instead */
+    /** @deprecated use lessOrEqual method instead */
     smallAs(value: T | this): BooleanValueSource
     /** @deprecated use greaterOrEqualsIfValue method instead */
     largeAsIfValue(value: T | null | undefined): BooleanValueSource

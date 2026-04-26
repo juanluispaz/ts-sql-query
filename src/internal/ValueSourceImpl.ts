@@ -246,19 +246,19 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     larger(value: any): any {
         return condition(new SqlOperation1ValueSource('_greaterThan', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
-    /** @deprecated use lessOrEqualsIfValue method instead */
+    /** @deprecated use lessOrEqualIfValue method instead */
     smallAsIfValue(value: any): any {
         return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
-    /** @deprecated use lessOrEquals method instead */
+    /** @deprecated use lessOrEqual method instead */
     smallAs(value: any): any {
         return condition(new SqlOperation1ValueSource('_lessOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
-    /** @deprecated use greaterOrEqualsIfValue method instead */
+    /** @deprecated use greaterOrEqualIfValue method instead */
     largeAsIfValue(value: any): any {
         return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
-    /** @deprecated use greaterOrEquals method instead */
+    /** @deprecated use greaterOrEqual method instead */
     largeAs(value: any): any {
         return condition(new SqlOperation1ValueSource('_greaterOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
@@ -274,15 +274,31 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     greaterThan(value: any): any {
         return condition(new SqlOperation1ValueSource('_greaterThan', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
+    lessOrEqualIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+    }
+    lessOrEqual(value: any): any {
+        return condition(new SqlOperation1ValueSource('_lessOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+    }
+    /** @deprecated use lessOrEqualIfValue method instead */
     lessOrEqualsIfValue(value: any): any {
         return condition(new SqlOperation1ValueSourceIfValueOrNoop('_lessOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
+    /** @deprecated use lessOrEqual method instead */
     lessOrEquals(value: any): any {
         return condition(new SqlOperation1ValueSource('_lessOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
+    greaterOrEqualIfValue(value: any): any {
+        return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+    }
+    greaterOrEqual(value: any): any {
+        return condition(new SqlOperation1ValueSource('_greaterOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
+    }
+    /** @deprecated use greaterOrEqualIfValue method instead */
     greaterOrEqualsIfValue(value: any): any {
         return condition(new SqlOperation1ValueSourceIfValueOrNoop('_greaterOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }
+    /** @deprecated use greaterOrEqual method instead */
     greaterOrEquals(value: any): any {
         return condition(new SqlOperation1ValueSource('_greaterOrEquals', this, value, 'boolean', 'boolean', getOptionalType2(this, value), getTypeAdapter2(this, value)))
     }

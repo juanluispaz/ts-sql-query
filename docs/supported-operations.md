@@ -73,9 +73,17 @@ interface ComparableValueSource<T> extends EqualableValueSource<T> {
     lessThan(value: T | this): BooleanValueSource
     greaterThanIfValue(value: T | null | undefined): BooleanValueSource
     greaterThan(value: T | this): BooleanValueSource
+    lessOrEqualIfValue(value: T | null | undefined): BooleanValueSource
+    lessOrEqual(value: T | this): BooleanValueSource
+    /** @deprecated use lessOrEqualIfValue method instead */
     lessOrEqualsIfValue(value: T | null | undefined): BooleanValueSource
+    /** @deprecated use lessOrEqual method instead */
     lessOrEquals(value: T | this): BooleanValueSource
+    greaterOrEqualIfValue(value: T | null | undefined): BooleanValueSource
+    greaterOrEqual(value: T | this): BooleanValueSource
+    /** @deprecated use greaterOrEqualIfValue method instead */
     greaterOrEqualsIfValue(value: T | null | undefined): BooleanValueSource
+    /** @deprecated use greaterOrEqual method instead */
     greaterOrEquals(value: T | this): BooleanValueSource
     between(value: T | this, value2: T | this): BooleanValueSource
     notBetween(value: T | this, value2: T | this): BooleanValueSource
@@ -88,13 +96,13 @@ interface ComparableValueSource<T> extends EqualableValueSource<T> {
     largerIfValue(value: T | null | undefined): BooleanValueSource
     /** @deprecated use greaterThan method instead */
     larger(value: T | this): BooleanValueSource
-    /** @deprecated use lessOrEqualsIfValue method instead */
+    /** @deprecated use lessOrEqualIfValue method instead */
     smallAsIfValue(value: T | null | undefined): BooleanValueSource
-    /** @deprecated use lessOrEquals method instead */
+    /** @deprecated use lessOrEqual method instead */
     smallAs(value: T | this): BooleanValueSource
-    /** @deprecated use greaterOrEqualsIfValue method instead */
+    /** @deprecated use greaterOrEqualIfValue method instead */
     largeAsIfValue(value: T | null | undefined): BooleanValueSource
-    /** @deprecated use greaterOrEquals method instead */
+    /** @deprecated use greaterOrEqual method instead */
     largeAs(value: T | this): BooleanValueSource
 }
 
@@ -2630,9 +2638,17 @@ interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
     lessThan?: TYPE
     greaterThanIfValue?: TYPE | null | undefined
     greaterThan?: TYPE
+    lessOrEqualIfValue?: TYPE | null | undefined
+    lessOrEqual?: TYPE
+    /** @deprecated use lessOrEqualIfValue instead */
     lessOrEqualsIfValue?: TYPE | null | undefined
+    /** @deprecated use lessOrEqual instead */
     lessOrEquals?: TYPE
+    greaterOrEqualIfValue?: TYPE | null | undefined
+    greaterOrEqual?: TYPE
+    /** @deprecated use greaterOrEqualIfValue instead */
     greaterOrEqualsIfValue?: TYPE | null | undefined
+    /** @deprecated use greaterOrEqual instead */
     greaterOrEquals?: TYPE
 
     /** @deprecated use lessThanIfValue instead */
@@ -2643,13 +2659,13 @@ interface ComparableFilter<TYPE> extends EqualableFilter<TYPE> {
     largerIfValue?: TYPE | null | undefined
     /** @deprecated use greaterThan instead */
     larger?: TYPE
-    /** @deprecated use lessOrEqualsIfValue instead */
+    /** @deprecated use lessOrEqualIfValue instead */
     smallAsIfValue?: TYPE | null | undefined
-    /** @deprecated use lessOrEquals instead */
+    /** @deprecated use lessOrEqual instead */
     smallAs?: TYPE
-    /** @deprecated use greaterOrEqualsIfValue instead */
+    /** @deprecated use greaterOrEqualIfValue instead */
     largeAsIfValue?: TYPE | null | undefined
-    /** @deprecated use greaterOrEquals instead */
+    /** @deprecated use greaterOrEqual instead */
     largeAs?: TYPE
 }
 

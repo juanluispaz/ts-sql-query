@@ -253,9 +253,17 @@ const allowedOpreations: { [operation: string]: true | undefined } = {
     lessThan: true,
     greaterThanIfValue: true,
     greaterThan: true,
+    lessOrEqualIfValue: true,
+    lessOrEqual: true,
+    /** @deprecated use lessOrEqualIfValue instead */
     lessOrEqualsIfValue: true,
+    /** @deprecated use lessOrEqual instead */
     lessOrEquals: true,
+    greaterOrEqualIfValue: true,
+    greaterOrEqual: true,
+    /** @deprecated use greaterOrEqualIfValue instead */
     greaterOrEqualsIfValue: true,
+    /** @deprecated use greaterOrEqual instead */
     greaterOrEquals: true,
     /** @deprecated use lessThanIfValue instead */
     smallerIfValue: true,
@@ -265,13 +273,13 @@ const allowedOpreations: { [operation: string]: true | undefined } = {
     largerIfValue: true,
     /** @deprecated use greaterThan instead */
     larger: true,
-    /** @deprecated use lessOrEqualsIfValue instead */
+    /** @deprecated use lessOrEqualIfValue instead */
     smallAsIfValue: true,
-    /** @deprecated use lessOrEquals instead */
+    /** @deprecated use lessOrEqual instead */
     smallAs: true,
-    /** @deprecated use greaterOrEqualsIfValue instead */
+    /** @deprecated use greaterOrEqualIfValue instead */
     largeAsIfValue: true,
-    /** @deprecated use greaterOrEquals instead */
+    /** @deprecated use greaterOrEqual instead */
     largeAs: true,
     equalsInsensitiveIfValue: true,
     equalsInsensitive: true,

@@ -38,6 +38,10 @@ async function main() {
 }
 ```
 
+!!! note "safeIntegers"
+
+    If your queries may return integers larger than JavaScript's safe integer range, consider enabling `safeIntegers` in the database configuration.
+
 ## better-sqlite3 and UUIDs
 
 To work with [UUIDs in SQLite](../../supported-databases/sqlite.md#uuid-strategies) the default strategy is `uuid-extension` that requires the [uuid extension](https://sqlite.org/src/file?name=ext/misc/uuid.c); you can provide a compatible implementation as indicated here:

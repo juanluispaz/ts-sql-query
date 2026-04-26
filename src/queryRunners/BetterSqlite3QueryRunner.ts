@@ -39,7 +39,7 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
 
     protected executeQueryReturning(query: string, params: any[]): Promise<any[]> {
         try {
-            const rows = this.connection.prepare(query).safeIntegers(true).all(params)
+            const rows = this.connection.prepare(query).all(params)
             return this.promise.resolve(rows)
         } catch (e) {
             return this.promise.reject(e)
@@ -58,7 +58,7 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
         }
 
         try {
-            return this.promise.resolve(this.connection.prepare(query).safeIntegers(true).run(params).lastInsertRowid)
+            return this.promise.resolve(this.connection.prepare(query).run(params).lastInsertRowid)
         } catch (e) {
             return this.promise.reject(e)
         }

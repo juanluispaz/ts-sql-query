@@ -194,7 +194,7 @@ function getMySql2ErrorReason(error: QueryError): TsSqlErrorReason {
         case 1242:
             return { reason: 'SQL_CARDINALITY_VIOLATION', databaseErrorCode: errno, databaseErrorMessage: message }
         case 1213:
-            return { reason: 'SQL_DEADLOCK_DETECTED', databaseErrorCode: errno, databaseErrorMessage: message }
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: errno, databaseErrorMessage: message, transactionErrorType: 'deadlock' }
         case 1205:
             return { reason: 'SQL_TIMEOUT', databaseErrorCode: errno, databaseErrorMessage: message, timeoutType: 'lock' }
         case 1206:
@@ -229,7 +229,7 @@ function getMySql2ErrorReason(error: QueryError): TsSqlErrorReason {
         case 1318:
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: errno, databaseErrorMessage: message }
         case 1792:
-            return { reason: 'SQL_READ_ONLY_VIOLATION', databaseErrorCode: errno, databaseErrorMessage: message }
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: errno, databaseErrorMessage: message, transactionErrorType: 'read only' }
         case 1235:
             return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode: errno, databaseErrorMessage: message }
         default:

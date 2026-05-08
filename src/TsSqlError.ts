@@ -80,11 +80,14 @@ export type TsSqlErrorReason =
         fn: () => void | Promise<void>, index: number, 
         deferredType: 'before next commit' | 'after next commit' | 'after next rollback' }
     | /** Low-level transaction not supported by the provided query runner */ 
-      { reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }
+      { reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
     | /** Specified transaction level not supported in the current database (like using a low-level query runner) */ 
-      { reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: string | undefined}
+      { reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: string | undefined,
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
     | /** Specified transaction access mode not supported in the current database (like using a low-level query runner) */ 
-      { reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode: string | undefined }
+      { reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode: string | undefined,
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
 
     /* ********************************************************************************************
      * Query construction validation
@@ -122,7 +125,8 @@ export type TsSqlErrorReason =
           Note: primary key violations are reported as unique. */
       { reason: 'SQL_CONSTRAINT_VIOLATED', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        constraintType?: 'unique' | 'not null' | 'foreign key' | 'check' | 'exclusion' | 'commit hook' | 'function' | 'trigger' | 'virtual table' | 'pinned row', 
+        constraintType?: 'unique' | 'not null' | 'foreign key' | 'check' | 'exclusion' | 'commit hook' | 'function' | 
+            'trigger' | 'virtual table' | 'pinned row', 
         constraintName?: string, tableName?: string, columnName?: string }
     | /** The value sent to the database is not valid for the target SQL type or column */
       { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', 
@@ -176,20 +180,16 @@ export type TsSqlErrorReason =
     | /** Permission denied while executing the SQL statement */
       { reason: 'SQL_PERMISSION_DENIED', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
-    | /** Deadlock detected by the database */
-      { reason: 'SQL_DEADLOCK_DETECTED', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
     | /** SQL operation timed out or was cancelled; use timeoutType when the specific kind is known */
       { reason: 'SQL_TIMEOUT', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
         timeoutType?: 'connection' | 'database file busy' | 'lock' | 'statement' | 'transaction' | 'idle transaction' | 'cancelled' }
-    | /** Transaction serialization failure */
-      { reason: 'SQL_SERIALIZATION_FAILURE', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
-    | /** The current transaction is aborted and no further SQL statements can be executed until it ends */
-      { reason: 'SQL_TRANSACTION_ABORTED', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
-    | /** The SQL operation is not allowed because the connection, session, transaction, or database is read-only */
+    | /** Transactional error reported by the database, driver, or transaction engine */
+      { reason: 'TRANSACTION_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
+        transactionErrorType?: 'invalid state' | 'aborted' | 'read only' | 'serialization failure' | 'deadlock' | 
+        'transaction rolled back' | 'outcome unknown' | 'invalid savepoint' | 'unsupported operation' }
+    | /** The SQL operation is not allowed because the connection, session, database, or storage is read-only */
       { reason: 'SQL_READ_ONLY_VIOLATION', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
     | /** Connection or pool infrastructure error while acquiring or using a database connection, excluding resource exhaustion cases */
@@ -199,7 +199,8 @@ export type TsSqlErrorReason =
     | /** Low-level database file or virtual filesystem I/O error */
       { reason: 'SQL_IO_ERROR',
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
-        ioErrorType?: 'read' | 'write' | 'fsync' | 'truncate' | 'file stat' | 'lock' | 'unlock' | 'delete' | 'file not found' | 'access' | 'shared memory' | 'seek' | 'mmap' | 'path' | 'atomic write' | 'reserved extension' | 'unknown' }
+        ioErrorType?: 'read' | 'write' | 'fsync' | 'truncate' | 'file stat' | 'lock' | 'unlock' | 'delete' | 'file not found' | 
+            'access' | 'shared memory' | 'seek' | 'mmap' | 'path' | 'atomic write' | 'reserved extension' | 'unknown' }
     | /** Authentication failed while connecting to the database */
       { reason: 'SQL_AUTHENTICATION_ERROR', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }

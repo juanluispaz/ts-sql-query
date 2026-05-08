@@ -11,6 +11,69 @@ export interface PostgresEngineError {
     constraintName?: string
 }
 
+function getPostgresTransactionErrorReasonFromSqlState(
+    sqlState: string,
+    databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
+    databaseErrorMessage: string | undefined
+): TsSqlErrorReason | undefined {
+    switch (sqlState) {
+        case '08007':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'outcome unknown' }
+        case '0B000':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'invalid state' }
+        case '25000':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'invalid state' }
+        case '25001':
+        case '25002':
+            return { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED', databaseErrorCode, databaseErrorMessage }
+        case '25003':
+            return { reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode: undefined, databaseErrorCode, databaseErrorMessage }
+        case '25004':
+        case '25008':
+            return { reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: undefined, databaseErrorCode, databaseErrorMessage }
+        case '25005':
+        case '25P01':
+            return { reason: 'NOT_IN_TRANSACTION', databaseErrorCode, databaseErrorMessage }
+        case '25006':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'read only' }
+        case '25007':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'unsupported operation' }
+        case '25P02':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'aborted' }
+        case '2D000':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'invalid state' }
+        case '3B000':
+        case '3B001':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'invalid savepoint' }
+        case '40000':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'transaction rolled back' }
+        case '40001':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'serialization failure' }
+        case '40003':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'outcome unknown' }
+        case '40P01':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'deadlock' }
+    }
+
+    if (sqlState.startsWith('0B')) {
+        return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'invalid state' }
+    }
+    if (sqlState.startsWith('25')) {
+        return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'invalid state' }
+    }
+    if (sqlState.startsWith('2D')) {
+        return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'invalid state' }
+    }
+    if (sqlState.startsWith('3B')) {
+        return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'invalid savepoint' }
+    }
+    if (sqlState.startsWith('40') && sqlState !== '40002') {
+        return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'transaction rolled back' }
+    }
+
+    return undefined
+}
+
 export function getPostgresEngineErrorReason(error: PostgresEngineError): TsSqlErrorReason {
     const code = error.sqlState || ''
     const databaseErrorCode = error.databaseErrorCode ?? (code || undefined)
@@ -33,6 +96,8 @@ export function getPostgresEngineErrorReason(error: PostgresEngineError): TsSqlE
             return getConstraintViolation(error, 'check')
         case '23P01':
             return getConstraintViolation(error, 'exclusion')
+        case '40002':
+            return getConstraintViolation(error)
         case '22003':
             return getInvalidValueForColumn(error, 'out of range')
         case '22001':
@@ -82,8 +147,6 @@ export function getPostgresEngineErrorReason(error: PostgresEngineError): TsSqlE
             return { reason: 'SQL_SYNTAX_ERROR', databaseErrorCode, databaseErrorMessage }
         case '42501':
             return { reason: 'SQL_PERMISSION_DENIED', databaseErrorCode, databaseErrorMessage }
-        case '40P01':
-            return { reason: 'SQL_DEADLOCK_DETECTED', databaseErrorCode, databaseErrorMessage }
         case '57000':
         case '57015':
         case '57P01':
@@ -101,20 +164,10 @@ export function getPostgresEngineErrorReason(error: PostgresEngineError): TsSqlE
             return { reason: 'SQL_TIMEOUT', databaseErrorCode, databaseErrorMessage, timeoutType: 'idle transaction' }
         case '25P04':
             return { reason: 'SQL_TIMEOUT', databaseErrorCode, databaseErrorMessage, timeoutType: 'transaction' }
-        case '40001':
-            return { reason: 'SQL_SERIALIZATION_FAILURE', databaseErrorCode, databaseErrorMessage }
-        case '25P01':
-        case '2D000':
-            return { reason: 'NOT_IN_TRANSACTION', databaseErrorCode, databaseErrorMessage }
-        case '25P02':
-            return { reason: 'SQL_TRANSACTION_ABORTED', databaseErrorCode, databaseErrorMessage }
-        case '25006':
-            return { reason: 'SQL_READ_ONLY_VIOLATION', databaseErrorCode, databaseErrorMessage }
         case '08001':
         case '08003':
         case '08004':
         case '08006':
-        case '08007':
             return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode, databaseErrorMessage, errorType: 'connection lost' }
         case '08P01':
             if (isPostgresInvalidParameterMessage(error.message || '')) {
@@ -136,6 +189,10 @@ export function getPostgresEngineErrorReason(error: PostgresEngineError): TsSqlE
         case '0A000':
             return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode, databaseErrorMessage }
         default:
+            const transactionErrorReason = getPostgresTransactionErrorReasonFromSqlState(code, databaseErrorCode, databaseErrorMessage)
+            if (transactionErrorReason) {
+                return transactionErrorReason
+            }
             if (code.startsWith('08')) {
                 return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode, databaseErrorMessage, errorType: 'connection lost' }
             }

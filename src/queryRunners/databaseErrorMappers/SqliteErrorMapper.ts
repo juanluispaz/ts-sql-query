@@ -136,11 +136,14 @@ export function getSqliteEngineErrorReason(error: SqliteEngineError): TsSqlError
     if (code.startsWith('SQLITE_READONLY')) {
         return { reason: 'SQL_READ_ONLY_VIOLATION', databaseErrorCode, databaseErrorMessage }
     }
+    if (code === 'SQLITE_ABORT_ROLLBACK') {
+        return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'aborted' }
+    }
     if (code.startsWith('SQLITE_ABORT')) {
         return { reason: 'SQL_TIMEOUT', timeoutType: 'cancelled', databaseErrorCode, databaseErrorMessage }
     }
     if (code === 'SQLITE_BUSY_SNAPSHOT') {
-        return { reason: 'SQL_SERIALIZATION_FAILURE', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'serialization failure' }
     }
     if (code.startsWith('SQLITE_BUSY')) {
         return { reason: 'SQL_TIMEOUT', timeoutType: 'database file busy', databaseErrorCode, databaseErrorMessage }
@@ -307,13 +310,16 @@ function getSqliteCorruptionReason(code: string, databaseErrorCode: TsSqlDatabas
 }
 
 function getSqliteEngineMessageReason(upper: string, message: string, databaseErrorCode: TsSqlDatabaseErrorCode | undefined, databaseErrorMessage?: string): TsSqlErrorReason | undefined {
-    if (upper.includes('CANNOT START A TRANSACTION WITHIN A TRANSACTION')) {
+    if (upper.includes('CANNOT START A TRANSACTION WITHIN A TRANSACTION') || upper.includes('BEGIN INSIDE A TRANSACTION')) {
         return { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED', databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('CANNOT COMMIT') && upper.includes('NO TRANSACTION IS ACTIVE')) {
         return { reason: 'NOT_IN_TRANSACTION', databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('CANNOT ROLLBACK') && upper.includes('NO TRANSACTION IS ACTIVE')) {
+        return { reason: 'NOT_IN_TRANSACTION', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('NO TRANSACTION') || upper.includes('NOT IN A TRANSACTION')) {
         return { reason: 'NOT_IN_TRANSACTION', databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('SQL STATEMENTS IN PROGRESS')) {

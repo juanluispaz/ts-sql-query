@@ -207,11 +207,11 @@ function getOracleDbErrorReason(error: DBError): TsSqlErrorReason {
         case 1476:
             return { reason: 'SQL_DIVISION_BY_ZERO', databaseErrorCode: errorNum, databaseErrorMessage }
         case 8177:
-            return { reason: 'SQL_SERIALIZATION_FAILURE', databaseErrorCode: errorNum, databaseErrorMessage }
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: errorNum, databaseErrorMessage, transactionErrorType: 'serialization failure' }
         case 54:
             return { reason: 'SQL_TIMEOUT', databaseErrorCode: errorNum, databaseErrorMessage, timeoutType: 'lock' }
         case 60:
-            return { reason: 'SQL_DEADLOCK_DETECTED', databaseErrorCode: errorNum, databaseErrorMessage }
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: errorNum, databaseErrorMessage, transactionErrorType: 'deadlock' }
         case 1013:
             return { reason: 'SQL_TIMEOUT', databaseErrorCode: errorNum, databaseErrorMessage, timeoutType: 'cancelled' }
         case 2049:

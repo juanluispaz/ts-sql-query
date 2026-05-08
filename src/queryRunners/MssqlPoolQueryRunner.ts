@@ -251,7 +251,7 @@ function getMssqlTransactionErrorReason(error: TransactionError): TsSqlErrorReas
         case 'ENOTBEGUN':
             return { reason: 'NOT_IN_TRANSACTION', databaseErrorCode: error.code, databaseErrorMessage: error.message }
         case 'EABORT':
-            return { reason: 'SQL_TRANSACTION_ABORTED', databaseErrorCode: error.code, databaseErrorMessage: error.message }
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: error.code, databaseErrorMessage: error.message, transactionErrorType: 'aborted' }
         case 'EALREADYBEGUN':
             return { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED', databaseErrorCode: error.code, databaseErrorMessage: error.message }
         case 'EREQINPROG':
@@ -334,16 +334,16 @@ function getMssqlRequestErrorReason(error: RequestError): TsSqlErrorReason {
         case 512:
             return { reason: 'SQL_CARDINALITY_VIOLATION', databaseErrorCode: number, databaseErrorMessage: message }
         case 1205:
-            return { reason: 'SQL_DEADLOCK_DETECTED', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: number, databaseErrorMessage: message, transactionErrorType: 'deadlock' }
         case 1222:
             return { reason: 'SQL_TIMEOUT', databaseErrorCode: number, databaseErrorMessage: message, timeoutType: 'lock' }
         case 3960:
-            return { reason: 'SQL_SERIALIZATION_FAILURE', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: number, databaseErrorMessage: message, transactionErrorType: 'serialization failure' }
         case 3902:
         case 3903:
             return { reason: 'NOT_IN_TRANSACTION', databaseErrorCode: number, databaseErrorMessage: message }
         case 3930:
-            return { reason: 'SQL_TRANSACTION_ABORTED', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: number, databaseErrorMessage: message, transactionErrorType: 'aborted' }
         case 3906:
             return { reason: 'SQL_READ_ONLY_VIOLATION', databaseErrorCode: number, databaseErrorMessage: message }
         case 229:

@@ -345,9 +345,9 @@ function getPrismaKnownRequestErrorReason(error: PrismaClientKnownRequestError):
             return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode, databaseErrorMessage }
         case 'P2034':
             if (message.toLowerCase().includes('deadlock')) {
-                return { reason: 'SQL_DEADLOCK_DETECTED', databaseErrorCode, databaseErrorMessage }
+                return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'deadlock' }
             }
-            return { reason: 'SQL_SERIALIZATION_FAILURE', databaseErrorCode, databaseErrorMessage }
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'serialization failure' }
         case 'P2036':
             return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
         case 'P2037':
@@ -444,9 +444,12 @@ function getPrismaRawQueryErrorReason(error: PrismaClientKnownRequestError, data
         return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', identifier: extractQuotedIdentifier(rawMessage), databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage }
     }
     if (lower.includes('deadlock')) {
-        return { reason: 'SQL_DEADLOCK_DETECTED', databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage }
+        return { reason: 'TRANSACTION_ERROR', databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage, transactionErrorType: 'deadlock' }
     }
     if (lower.includes('read-only') || lower.includes('read only')) {
+        if (lower.includes('transaction')) {
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage, transactionErrorType: 'read only' }
+        }
         return { reason: 'SQL_READ_ONLY_VIOLATION', databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage }
     }
     if (lower.includes('permission denied')) {

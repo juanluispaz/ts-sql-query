@@ -78,9 +78,11 @@ function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason
             return { reason: 'SQL_SYNTAX_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message }
         case 'ERR_POSTGRES_INVALID_QUERY_BINDING':
         case 'ERR_POSTGRES_NOT_TAGGED_CALL':
-        case 'ERR_POSTGRES_UNSAFE_TRANSACTION':
-        case 'ERR_POSTGRES_INVALID_TRANSACTION_STATE':
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message }
+        case 'ERR_POSTGRES_UNSAFE_TRANSACTION':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, transactionErrorType: 'unsupported operation' }
+        case 'ERR_POSTGRES_INVALID_TRANSACTION_STATE':
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, transactionErrorType: 'invalid state' }
         case 'ERR_POSTGRES_UNSUPPORTED_AUTHENTICATION_METHOD':
         case 'ERR_POSTGRES_UNKNOWN_AUTHENTICATION_METHOD':
         case 'ERR_POSTGRES_INVALID_SERVER_SIGNATURE':

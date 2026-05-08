@@ -2,6 +2,7 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Sql, TransactionSql, ReservedSql } from 'postgres'
+import { getPostgresEngineErrorReason, isPostgresSqlState } from './databaseErrorMappers/PostgresErrorMapper.js'
 
 type PostgresJsConnectionError = Error & {
     code?: string
@@ -174,244 +175,59 @@ function getPostgresErrorReason(error: PostgresJsError): TsSqlErrorReason {
         return { reason: 'SQL_UNKNOWN' }
     }
 
+    if (isPostgresSqlState(code)) {
+        return getPostgresEngineErrorReason({
+            sqlState: code,
+            databaseErrorCode: code,
+            message: error.message,
+            schemaName: getSchemaName(error),
+            tableName: getTableName(error),
+            columnName: getColumnName(error),
+            typeName: getTypeName(error),
+            constraintName: getConstraintName(error),
+        })
+    }
+
     switch (code) {
-        case '23000':
-            return getConstraintViolation(error)
-        case '23505':
-            return getConstraintViolation(error, 'unique')
-        case '23502':
-            return getConstraintViolation(error, 'not null')
-        case '23503':
-            return getConstraintViolation(error, 'foreign key')
-        case '23514':
-            return getConstraintViolation(error, 'check')
-        case '23P01':
-            return getConstraintViolation(error, 'exclusion')
-        case '22003':
-            return getInvalidValueForColumn(error, 'out of range')
-        case '22001':
-            return getInvalidValueForColumn(error, 'too long')
-        case '22007':
-        case '22P02':
-        case '22008':
-        case '22018':
-        case '22023':
-            return getInvalidValueForColumn(error, 'invalid value')
-        case '3D000':
-            return getObjectNotFound(error, 'database')
-        case '3F000':
-            return getObjectNotFound(error, 'schema')
-        case '42P01':
-            return getObjectNotFound(error, 'table or view')
-        case '42703':
-            return getObjectNotFound(error, 'column')
-        case '42704':
-            return getObjectNotFound(error)
-        case '42883':
-            return getObjectNotFound(error, 'routine')
-        case '42P04':
-            return getObjectAlreadyExists(error, 'database')
-        case '42P06':
-            return getObjectAlreadyExists(error, 'schema')
-        case '42P07':
-            return getObjectAlreadyExists(error, 'table or view')
-        case '42701':
-            return getObjectAlreadyExists(error, 'column')
-        case '42710':
-            return getObjectAlreadyExists(error)
-        case '42723':
-            return getObjectAlreadyExists(error, 'routine')
-        case '22012':
-            return { reason: 'SQL_DIVISION_BY_ZERO', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '21000':
-            return { reason: 'SQL_CARDINALITY_VIOLATION', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '42702':
-        case '42P09':
-            return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', databaseErrorCode: code, databaseErrorMessage: error.message, identifier: getColumnName(error) || extractQuotedName(error.message) }
-        case '42P10':
-            return { reason: 'SQL_INVALID_CONFLICT_TARGET', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '42P02':
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '42601':
-            return { reason: 'SQL_SYNTAX_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '42501':
-            return { reason: 'SQL_PERMISSION_DENIED', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '40P01':
-            return { reason: 'SQL_DEADLOCK_DETECTED', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '57000':
-        case '57015':
-        case '57P01':
-        case '57P02':
-            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
-        case '57P03':
-            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'temporarily unavailable' }
-        case '57P04':
-            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'invalid connection configuration' }
-        case '55P03':
-            return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'lock' }
-        case '57014':
-            return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: get57014TimeoutType(error) }
-        case '25P03':
-            return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'idle transaction' }
-        case '25P04':
-            return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'transaction' }
-        case '40001':
-            return { reason: 'SQL_SERIALIZATION_FAILURE', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '25P01':
-        case '2D000':
-            return { reason: 'NOT_IN_TRANSACTION', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '25P02':
-            return { reason: 'SQL_TRANSACTION_ABORTED', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '25006':
-            return { reason: 'SQL_READ_ONLY_VIOLATION', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '08001':
-        case '08003':
-        case '08004':
-        case '08006':
-        case '08007':
         case 'CONNECTION_DESTROYED':
         case 'CONNECTION_CLOSED':
         case 'CONNECTION_ENDED':
             return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
-        case '08P01':
-            if (isPostgresInvalidParameterMessage(error.message)) {
-                return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message }
-            }
-            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
         case 'UNDEFINED_VALUE':
         case 'MAX_PARAMETERS_EXCEEDED':
+        case 'NOT_TAGGED_CALL':
+        case 'UNSAFE_TRANSACTION':
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message }
         case 'SASL_SIGNATURE_MISMATCH':
+        case 'AUTH_TYPE_NOT_IMPLEMENTED':
             return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message }
         case 'CONNECT_TIMEOUT':
             return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'connection' }
-        case '28P01':
-        case 'AUTH_TYPE_NOT_IMPLEMENTED':
-            return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '28000':
-            return { reason: 'SQL_AUTHORIZATION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '53100':
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: code, databaseErrorMessage: error.message, resourceType: 'disk' }
-        case '53200':
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: code, databaseErrorMessage: error.message, resourceType: 'memory' }
-        case '53300':
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: code, databaseErrorMessage: error.message, resourceType: 'connections' }
-        case '53400':
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: code, databaseErrorMessage: error.message }
-        case '0A000':
         case 'MESSAGE_NOT_SUPPORTED':
             return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode: code, databaseErrorMessage: error.message }
         default:
-            if (code.startsWith('08')) {
-                return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
-            }
-            if (code.startsWith('28')) {
-                return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message }
-            }
-            if (code.startsWith('53')) {
-                return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: code, databaseErrorMessage: error.message }
-            }
             return { reason: 'SQL_UNKNOWN', databaseErrorCode: code, databaseErrorMessage: error.message }
     }
 }
 
-function getConstraintViolation(error: PostgresJsError, constraintType?: 'unique' | 'not null' | 'foreign key' | 'check' | 'exclusion'): TsSqlErrorReason {
-    return {
-        reason: 'SQL_CONSTRAINT_VIOLATED',
-        databaseErrorCode: getDatabaseErrorCode(error),
-        databaseErrorMessage: error.message,
-        constraintType,
-        constraintName: getConstraintName(error),
-        tableName: getTableName(error),
-        columnName: getColumnName(error),
-    }
-}
-
-function getInvalidValueForColumn(error: PostgresJsError, errorType?: 'out of range' | 'too long' | 'invalid value'): TsSqlErrorReason {
-    return {
-        reason: 'SQL_INVALID_VALUE_FOR_COLUMN',
-        databaseErrorCode: getDatabaseErrorCode(error),
-        databaseErrorMessage: error.message,
-        errorType,
-        tableName: getTableName(error),
-        columnName: getColumnName(error),
-        typeName: getTypeName(error),
-    }
-}
-
-function getObjectNotFound(error: PostgresJsError, objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'database'): TsSqlErrorReason {
-    return {
-        reason: 'SQL_OBJECT_NOT_FOUND',
-        databaseErrorCode: getDatabaseErrorCode(error),
-        databaseErrorMessage: error.message,
-        objectType,
-        schemaName: getSchemaName(error),
-        tableName: getTableName(error),
-        columnName: getColumnName(error),
-        objectName: getObjectName(error),
-    }
-}
-
-function getObjectAlreadyExists(error: PostgresJsError, objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'database'): TsSqlErrorReason {
-    return {
-        reason: 'SQL_OBJECT_ALREADY_EXISTS',
-        databaseErrorCode: getDatabaseErrorCode(error),
-        databaseErrorMessage: error.message,
-        objectType,
-        schemaName: getSchemaName(error),
-        tableName: getTableName(error),
-        columnName: getColumnName(error),
-        objectName: getObjectName(error),
-    }
-}
-
-function getObjectName(error: PostgresJsError): string | undefined {
-    return getTableName(error)
-        || getColumnName(error)
-        || getConstraintName(error)
-        || extractQuotedName(error.message)
-}
-
 function getSchemaName(error: PostgresJsError): string | undefined {
-    return asDatabaseError(error)?.schema_name
+    return stringValue(asDatabaseError(error)?.schema_name)
 }
 
 function getTableName(error: PostgresJsError): string | undefined {
-    return asDatabaseError(error)?.table_name
+    return stringValue(asDatabaseError(error)?.table_name)
 }
 
 function getColumnName(error: PostgresJsError): string | undefined {
-    return asDatabaseError(error)?.column_name
+    return stringValue(asDatabaseError(error)?.column_name)
 }
 
 function getConstraintName(error: PostgresJsError): string | undefined {
-    return asDatabaseError(error)?.constraint_name
+    return stringValue(asDatabaseError(error)?.constraint_name)
 }
 
 function getTypeName(error: PostgresJsError): string | undefined {
-    return asDatabaseError(error)?.type_name
-}
-
-function get57014TimeoutType(error: PostgresJsError): 'statement' | 'cancelled' {
-    const message = error.message.toLowerCase()
-    if (message.includes('statement timeout') || message.includes('canceling statement due to statement timeout')) {
-        return 'statement'
-    }
-    return 'cancelled'
-}
-
-function extractQuotedName(message: string): string | undefined {
-    const quoted = /"([^"]+)"/.exec(message)
-    if (quoted) {
-        return quoted[1]
-    }
-
-    const singleQuoted = /'([^']+)'/.exec(message)
-    if (singleQuoted) {
-        return singleQuoted[1]
-    }
-
-    return undefined
+    return stringValue(asDatabaseError(error)?.type_name)
 }
 
 function isPostgresJsError(error: unknown): error is PostgresJsError {
@@ -441,16 +257,10 @@ function isPostgresJsError(error: unknown): error is PostgresJsError {
         || code === 'AUTH_TYPE_NOT_IMPLEMENTED'
 }
 
-function isPostgresInvalidParameterMessage(message: string): boolean {
-    const lower = message.toLowerCase()
-    return lower.includes('bind message supplies')
-        || lower.includes('there is no parameter $')
-}
-
 function asDatabaseError(error: PostgresJsError): PostgresJsDatabaseError | undefined {
     return error.name === 'PostgresError' ? error as PostgresJsDatabaseError : undefined
 }
 
-function getDatabaseErrorCode(error: PostgresJsError): string | undefined {
-    return error.code
+function stringValue(value: unknown): string | undefined {
+    return typeof value === 'string' ? value : undefined
 }

@@ -110,67 +110,78 @@ function getBunSqliteErrorReason(error: SQLiteError): TsSqlErrorReason {
 }
 
 function getBunSqliteDriverErrorReason(error: Error): TsSqlErrorReason {
+    return getKnownBunSqliteDriverErrorReason(error) || { reason: 'SQL_UNKNOWN', databaseErrorMessage: error.message || undefined }
+}
+
+function getKnownBunSqliteDriverErrorReason(error: Error): TsSqlErrorReason | undefined {
     const message = error.message || ''
+    const databaseErrorMessage = message || undefined
     const upper = message.toUpperCase()
 
-    if (upper.includes('CANNOT OPEN DATABASE BECAUSE THE DIRECTORY DOES NOT EXIST')) {
-        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration', databaseErrorMessage: message || undefined }
+    if (upper.includes('CANNOT OPEN AN ANONYMOUS DATABASE IN READ-ONLY MODE')) {
+        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration', databaseErrorMessage }
     }
-    if (upper.includes('IN-MEMORY/TEMPORARY DATABASES CANNOT BE READONLY')) {
-        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration', databaseErrorMessage: message || undefined }
+    if (upper.includes('MISSPELLED OPTION "READONLY" SHOULD BE "READONLY"')) {
+        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration', databaseErrorMessage }
     }
-    if (upper.includes('DATABASE CONNECTION IS NOT OPEN')) {
-        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorMessage: message || undefined }
+    if (upper.includes("EXPECTED 'FILENAME' TO BE A STRING")) {
+        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration', databaseErrorMessage }
     }
-    if (upper.includes('DATABASE CONNECTION IS BUSY EXECUTING A QUERY') || upper.includes('STATEMENT IS BUSY EXECUTING A QUERY')) {
-        return { reason: 'FORBIDDEN_CONCURRENT_USAGE', databaseErrorMessage: message || undefined }
+
+    if (upper.includes('CANNOT USE A CLOSED DATABASE') || upper.includes('DATABASE HAS CLOSED') || upper.includes("CAN'T DO THIS ON A CLOSED DATABASE")) {
+        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorMessage }
     }
+    if (upper === 'DATABASE IS LOCKED') {
+        return { reason: 'SQL_TIMEOUT', timeoutType: 'database file busy', databaseErrorMessage }
+    }
+
     if (upper === 'STATEMENT HAS FINALIZED') {
-        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorMessage: message || undefined }
+        return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorMessage }
     }
-    if (upper.includes('EXPECTED OBJECT OR ARRAY')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage: message || undefined }
+    if (upper.includes('INVALID DATABASE HANDLE')) {
+        return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorMessage }
+    }
+    if (upper.includes("SQL STRING MUSTN'T BE BLANK") || upper.includes('SQL QUERY CANNOT BE EMPTY') || upper.includes('QUERY CONTAINED NO VALID SQL STATEMENT') || upper.includes('INVALID SQL STATEMENT')) {
+        return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorMessage }
+    }
+
+    if (upper.startsWith('SQLITE QUERY EXPECTED ') && upper.includes(' VALUES, RECEIVED ')) {
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
     }
     if (upper.startsWith('MISSING PARAMETER "')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage: message || undefined }
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
+    }
+    if (upper.includes('EXPECTED BINDINGS TO BE AN OBJECT OR ARRAY')) {
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
+    }
+    if (upper.includes('EXPECTED OBJECT OR ARRAY')) {
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
+    }
+    if (upper === 'EXPECTED ARRAY') {
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
     }
     if (upper.includes('BINDING EXPECTED STRING, TYPEDARRAY, BOOLEAN, NUMBER, BIGINT OR NULL')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage: message || undefined }
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
     }
     if (upper === 'EXPECTED STRING') {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage: message || undefined }
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
     }
+
     if (upper.startsWith('BIGINT VALUE ') && upper.includes(' IS OUT OF RANGE')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage: message || undefined }
+        return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'out of range', databaseErrorMessage }
     }
-    if (upper.includes('OUT OF MEMORY')) {
-        return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'memory', databaseErrorMessage: message || undefined }
+    if (upper.includes('OUT OF MEMORY') || upper.includes('FAILED TO ALLOCATE MEMORY')) {
+        return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'memory', databaseErrorMessage }
     }
-    return { reason: 'SQL_UNKNOWN', databaseErrorMessage: message || undefined }
+
+    return undefined
 }
 
 function isBunSqliteDriverError(error: unknown): error is Error {
     if (!(error instanceof Error)) {
         return false
     }
-    const message = (error.message || '').toUpperCase()
-
-    if (message.includes('CANNOT OPEN DATABASE BECAUSE THE DIRECTORY DOES NOT EXIST')) {
-        return true
-    }
-    if (message.includes('IN-MEMORY/TEMPORARY DATABASES CANNOT BE READONLY')) {
-        return true
-    }
-    return message.includes('DATABASE CONNECTION IS NOT OPEN')
-        || message.includes('DATABASE CONNECTION IS BUSY EXECUTING A QUERY')
-        || message.includes('STATEMENT IS BUSY EXECUTING A QUERY')
-        || message === 'STATEMENT HAS FINALIZED'
-        || message.includes('EXPECTED OBJECT OR ARRAY')
-        || message.startsWith('MISSING PARAMETER "')
-        || message.includes('BINDING EXPECTED STRING, TYPEDARRAY, BOOLEAN, NUMBER, BIGINT OR NULL')
-        || message === 'EXPECTED STRING'
-        || (message.startsWith('BIGINT VALUE ') && message.includes(' IS OUT OF RANGE'))
-        || message.includes('OUT OF MEMORY')
+    return !!getKnownBunSqliteDriverErrorReason(error)
 }
 
 function isBunSqliteError(error: unknown): error is SQLiteError {

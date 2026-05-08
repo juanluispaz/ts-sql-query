@@ -110,11 +110,14 @@ type Sqlite3WasmDbError = SQLite3Error & Error & {
 function getSqlite3WasmErrorReason(error: Sqlite3WasmDbError): TsSqlErrorReason {
     const databaseErrorCode = getSqlite3WasmDatabaseErrorCode(error)
     const databaseErrorMessage = error.message || undefined
-    const message = error.message || ''
+    const message = normalizeSqlite3WasmErrorMessage(error.message || '')
     const upper = message.toUpperCase()
 
     if (upper.includes('OPERATION IS ILLEGAL WHEN STATEMENT IS LOCKED')) {
         return { reason: 'FORBIDDEN_CONCURRENT_USAGE', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('DB HAS BEEN CLOSED.') || upper.includes('STMT HAS BEEN CLOSED.')) {
+        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('INVALID BIND() PARAMETER NAME:')) {
         return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
@@ -137,8 +140,33 @@ function getSqlite3WasmErrorReason(error: Sqlite3WasmDbError): TsSqlErrorReason 
     if (upper.includes('WHEN BINDING AN OBJECT, AN INDEX ARGUMENT IS NOT PERMITTED.')) {
         return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
     }
+    if (upper.includes('BIGINT VALUE IS TOO BIG TO STORE WITHOUT PRECISION LOSS:')) {
+        return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'out of range', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('INTEGER IS OUT OF RANGE FOR JS INTEGER RANGE:')) {
+        return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'out of range', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('EXEC() REQUIRES AN SQL STRING.') || upper.includes('CANNOT PREPARE EMPTY SQL.')) {
+        return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorCode, databaseErrorMessage }
+    }
 
-    return getSqliteEngineErrorReason({ code: getSqlite3WasmErrorCode(error), databaseErrorCode, message })
+    return withOriginalSqlite3WasmErrorMessage(
+        getSqliteEngineErrorReason({ code: getSqlite3WasmErrorCode(error), databaseErrorCode, message }),
+        databaseErrorMessage
+    )
+}
+
+function normalizeSqlite3WasmErrorMessage(message: string): string {
+    return message
+        .replace(/^SQLITE_[A-Z0-9_]+:\s*sqlite3 result code\s+-?\d+:\s*/i, '')
+        .replace(/^SQLITE_[A-Z0-9_]+:\s*/i, '')
+}
+
+function withOriginalSqlite3WasmErrorMessage(errorReason: TsSqlErrorReason, databaseErrorMessage: string | undefined): TsSqlErrorReason {
+    if (!databaseErrorMessage) {
+        return errorReason
+    }
+    return { ...errorReason, databaseErrorMessage } as TsSqlErrorReason
 }
 
 function isSqlite3WasmError(error: unknown): error is Sqlite3WasmDbError {

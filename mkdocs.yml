@@ -116,6 +116,7 @@ nav:
       - sqlite-wasm OO1: configuration/query-runners/recommended/sqlite-wasm-OO1.md
     - Bun's recommended query runners:
       - Bun Sqlite: configuration/query-runners/recommended/bun_sqlite.md
+      - Bun SQL for SQLite: configuration/query-runners/recommended/bun_sql_sqlite.md
       - Bun SQL for PostgreSQL: configuration/query-runners/recommended/bun_sql_postgres.md
     - General purpose query runners:
       - InterceptorQueryRunner: configuration/query-runners/general-purpose/InterceptorQueryRunner.md

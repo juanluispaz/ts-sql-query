@@ -23,5 +23,6 @@ bun run ./src/examples/PgLiteExample.ts || exit 1
 
 bun run src/examples/BunSqliteExample.ts || exit 1
 bun run src/examples/BunSqliteSynchronousExample.ts || exit 1
+bun run src/examples/BunSqlSqliteExample.ts || exit 1
 
 echo 'All Bun no docker examples ok'

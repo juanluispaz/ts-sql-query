@@ -27,13 +27,13 @@ This runner provides integration with the [Bun Sqlite](https://bun.com/docs/runt
 Enables executing queries through a dedicated [Bun Sqlite](https://bun.com/docs/runtime/sqlite) connection.
 
 ```ts
-import { BunSqlite3QueryRunner } from "ts-sql-query/queryRunners/BunSqlite3QueryRunner";
+import { BunSqliteQueryRunner } from "ts-sql-query/queryRunners/BunSqliteQueryRunner";
 import { Database } from "bun:sqlite";
 
 const db = new Database('foobar.db', options);
 
 async function main() {
-    const connection = new DBConnection(new BunSqlite3QueryRunner(db));
+    const connection = new DBConnection(new BunSqliteQueryRunner(db));
     // Do your queries here
 }
 ```

@@ -128,7 +128,7 @@ export function getSqliteEngineErrorReason(error: SqliteEngineError): TsSqlError
         return getSqliteConstraintReason(code, message, databaseErrorCode, databaseErrorMessage)
     }
     if (code.startsWith('SQLITE_IOERR')) {
-        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorCode, databaseErrorMessage }
+        return getSqliteIoErrorReason(code, databaseErrorCode, databaseErrorMessage)
     }
     if (code.startsWith('SQLITE_CANTOPEN')) {
         return { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration', databaseErrorCode, databaseErrorMessage }
@@ -139,6 +139,9 @@ export function getSqliteEngineErrorReason(error: SqliteEngineError): TsSqlError
     if (code.startsWith('SQLITE_ABORT')) {
         return { reason: 'SQL_TIMEOUT', timeoutType: 'cancelled', databaseErrorCode, databaseErrorMessage }
     }
+    if (code === 'SQLITE_BUSY_SNAPSHOT') {
+        return { reason: 'SQL_SERIALIZATION_FAILURE', databaseErrorCode, databaseErrorMessage }
+    }
     if (code.startsWith('SQLITE_BUSY')) {
         return { reason: 'SQL_TIMEOUT', timeoutType: 'database file busy', databaseErrorCode, databaseErrorMessage }
     }
@@ -146,10 +149,34 @@ export function getSqliteEngineErrorReason(error: SqliteEngineError): TsSqlError
         return { reason: 'SQL_TIMEOUT', timeoutType: 'lock', databaseErrorCode, databaseErrorMessage }
     }
     if (code.startsWith('SQLITE_CORRUPT')) {
-        return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
+        return getSqliteCorruptionReason(code, databaseErrorCode, databaseErrorMessage)
+    }
+    if (code.startsWith('SQLITE_NOTICE')) {
+        return { reason: 'SQL_DIAGNOSTIC_EVENT', eventType: 'notice', databaseErrorCode, databaseErrorMessage }
+    }
+    if (code.startsWith('SQLITE_WARNING')) {
+        return { reason: 'SQL_DIAGNOSTIC_EVENT', eventType: 'warning', databaseErrorCode, databaseErrorMessage }
     }
 
     switch (code) {
+        case 'SQLITE_OK':
+        case 'SQLITE_ROW':
+        case 'SQLITE_DONE':
+        case 'SQLITE_OK_LOAD_PERMANENTLY':
+            return { reason: 'SQL_INTERNAL_ERROR', errorType: 'unexpected non-error result code', databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_INTERNAL':
+            return { reason: 'SQL_INTERNAL_ERROR', errorType: 'engine internal', databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_NOTFOUND':
+            return { reason: 'SQL_INTERNAL_ERROR', errorType: 'engine internal', databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_EMPTY':
+        case 'SQLITE_FORMAT':
+            return { reason: 'SQL_INTERNAL_ERROR', errorType: 'unused result code', databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_ERROR_MISSING_COLLSEQ':
+            return { reason: 'SQL_OBJECT_NOT_FOUND', objectType: 'collation', objectName: extractSqliteMissingCollationName(message), databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_ERROR_RETRY':
+            return { reason: 'SQL_INTERNAL_ERROR', errorType: 'retry requested', databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_ERROR_SNAPSHOT':
+            return { reason: 'SQL_SNAPSHOT_NOT_AVAILABLE', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_TOOBIG':
             return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'too long', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_MISMATCH':
@@ -160,23 +187,26 @@ export function getSqliteEngineErrorReason(error: SqliteEngineError): TsSqlError
             if (upper.includes('DATABASE HANDLE IS CLOSED') || upper.includes('DATABASE IS CLOSED')) {
                 return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorCode, databaseErrorMessage }
             }
-            break
+            return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_INTERRUPT':
             return { reason: 'SQL_TIMEOUT', timeoutType: 'cancelled', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_NOMEM':
             return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'memory', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_FULL':
             return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'disk', databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_NOLFS':
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'file size', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_PROTOCOL':
-            return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorCode, databaseErrorMessage }
+            return { reason: 'SQL_TIMEOUT', timeoutType: 'lock', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_NOTADB':
             return { reason: 'SQL_CONNECTION_ERROR', errorType: 'invalid connection configuration', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_AUTH':
+        case 'SQLITE_AUTH_USER':
             return { reason: 'SQL_AUTHORIZATION_ERROR', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_PERM':
             return { reason: 'SQL_PERMISSION_DENIED', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_SCHEMA':
-            return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
+            return { reason: 'SQL_SCHEMA_CHANGED', databaseErrorCode, databaseErrorMessage }
     }
 
     const reasonByMessage = getSqliteEngineMessageReason(upper, message, databaseErrorCode, databaseErrorMessage)
@@ -196,6 +226,84 @@ export function getSqliteDatabaseErrorCodeFromNumeric(errorCode: number | undefi
         return undefined
     }
     return getSqliteErrorCodeName(errorCode) || errorCode
+}
+
+function getSqliteIoErrorReason(code: string, databaseErrorCode: TsSqlDatabaseErrorCode | undefined, databaseErrorMessage?: string): TsSqlErrorReason {
+    switch (code) {
+        case 'SQLITE_IOERR_NOMEM':
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'memory', databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_IOERR_SHMSIZE':
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'disk', databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_IOERR_DATA':
+            return { reason: 'SQL_DATABASE_CORRUPTED', corruptionType: 'checksum', databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_IOERR_CORRUPTFS':
+            return { reason: 'SQL_DATABASE_CORRUPTED', corruptionType: 'filesystem', databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_IOERR_AUTH':
+            return { reason: 'SQL_AUTHORIZATION_ERROR', databaseErrorCode, databaseErrorMessage }
+        default:
+            return { reason: 'SQL_IO_ERROR', ioErrorType: getSqliteIoErrorType(code), databaseErrorCode, databaseErrorMessage }
+    }
+}
+
+function getSqliteIoErrorType(code: string): 'read' | 'write' | 'fsync' | 'truncate' | 'file stat' | 'lock' | 'unlock' | 'delete' | 'file not found' | 'access' | 'shared memory' | 'seek' | 'mmap' | 'path' | 'atomic write' | 'reserved extension' | 'unknown' {
+    switch (code) {
+        case 'SQLITE_IOERR_READ':
+        case 'SQLITE_IOERR_SHORT_READ':
+            return 'read'
+        case 'SQLITE_IOERR_WRITE':
+            return 'write'
+        case 'SQLITE_IOERR_FSYNC':
+        case 'SQLITE_IOERR_DIR_FSYNC':
+            return 'fsync'
+        case 'SQLITE_IOERR_TRUNCATE':
+            return 'truncate'
+        case 'SQLITE_IOERR_FSTAT':
+            return 'file stat'
+        case 'SQLITE_IOERR_LOCK':
+        case 'SQLITE_IOERR_RDLOCK':
+        case 'SQLITE_IOERR_CHECKRESERVEDLOCK':
+            return 'lock'
+        case 'SQLITE_IOERR_UNLOCK':
+            return 'unlock'
+        case 'SQLITE_IOERR_DELETE':
+            return 'delete'
+        case 'SQLITE_IOERR_DELETE_NOENT':
+            return 'file not found'
+        case 'SQLITE_IOERR_ACCESS':
+            return 'access'
+        case 'SQLITE_IOERR_SHMOPEN':
+        case 'SQLITE_IOERR_SHMLOCK':
+        case 'SQLITE_IOERR_SHMMAP':
+            return 'shared memory'
+        case 'SQLITE_IOERR_SEEK':
+            return 'seek'
+        case 'SQLITE_IOERR_MMAP':
+            return 'mmap'
+        case 'SQLITE_IOERR_GETTEMPPATH':
+        case 'SQLITE_IOERR_CONVPATH':
+            return 'path'
+        case 'SQLITE_IOERR_BEGIN_ATOMIC':
+        case 'SQLITE_IOERR_COMMIT_ATOMIC':
+        case 'SQLITE_IOERR_ROLLBACK_ATOMIC':
+            return 'atomic write'
+        case 'SQLITE_IOERR_VNODE':
+            return 'reserved extension'
+        default:
+            return 'unknown'
+    }
+}
+
+function getSqliteCorruptionReason(code: string, databaseErrorCode: TsSqlDatabaseErrorCode | undefined, databaseErrorMessage?: string): TsSqlErrorReason {
+    switch (code) {
+        case 'SQLITE_CORRUPT_INDEX':
+            return { reason: 'SQL_DATABASE_CORRUPTED', corruptionType: 'index', databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_CORRUPT_SEQUENCE':
+            return { reason: 'SQL_DATABASE_CORRUPTED', corruptionType: 'sequence', databaseErrorCode, databaseErrorMessage }
+        case 'SQLITE_CORRUPT_VTAB':
+            return { reason: 'SQL_DATABASE_CORRUPTED', corruptionType: 'virtual table', databaseErrorCode, databaseErrorMessage }
+        default:
+            return { reason: 'SQL_DATABASE_CORRUPTED', corruptionType: 'database file', databaseErrorCode, databaseErrorMessage }
+    }
 }
 
 function getSqliteEngineMessageReason(upper: string, message: string, databaseErrorCode: TsSqlDatabaseErrorCode | undefined, databaseErrorMessage?: string): TsSqlErrorReason | undefined {
@@ -282,6 +390,21 @@ function getSqliteConstraintReason(code: string, message: string, databaseErrorC
             databaseErrorMessage,
         }
     }
+    if (code === 'SQLITE_CONSTRAINT_COMMITHOOK') {
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'commit hook', databaseErrorCode, databaseErrorMessage }
+    }
+    if (code === 'SQLITE_CONSTRAINT_FUNCTION') {
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'function', databaseErrorCode, databaseErrorMessage }
+    }
+    if (code === 'SQLITE_CONSTRAINT_TRIGGER') {
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'trigger', databaseErrorCode, databaseErrorMessage }
+    }
+    if (code === 'SQLITE_CONSTRAINT_VTAB') {
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'virtual table', databaseErrorCode, databaseErrorMessage }
+    }
+    if (code === 'SQLITE_CONSTRAINT_PINNED') {
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'pinned row', databaseErrorCode, databaseErrorMessage }
+    }
     return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
 }
 
@@ -291,6 +414,10 @@ function extractAfterColon(message: string): string | undefined {
         return match[1]?.trim()
     }
     return undefined
+}
+
+function extractSqliteMissingCollationName(message: string): string | undefined {
+    return extractAfterColon(message)
 }
 
 function extractColumnPathLastSegment(message: string): string | undefined {

@@ -122,7 +122,7 @@ export type TsSqlErrorReason =
           Note: primary key violations are reported as unique. */
       { reason: 'SQL_CONSTRAINT_VIOLATED', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        constraintType?: 'unique' | 'not null' | 'foreign key' | 'check' | 'exclusion', 
+        constraintType?: 'unique' | 'not null' | 'foreign key' | 'check' | 'exclusion' | 'commit hook' | 'function' | 'trigger' | 'virtual table' | 'pinned row', 
         constraintName?: string, tableName?: string, columnName?: string }
     | /** The value sent to the database is not valid for the target SQL type or column */
       { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', 
@@ -137,7 +137,7 @@ export type TsSqlErrorReason =
     | /** SQL object referenced by the query was not found */
       { reason: 'SQL_OBJECT_NOT_FOUND', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database', 
+        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database' | 'collation', 
         schemaName?: string, tableName?: string, columnName?: string, objectName?: string }
     | /** SQL object already exists */
       { reason: 'SQL_OBJECT_ALREADY_EXISTS', 
@@ -196,6 +196,10 @@ export type TsSqlErrorReason =
       { reason: 'SQL_CONNECTION_ERROR', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
         errorType?: 'connection lost' | 'temporarily unavailable' | 'invalid connection configuration' | 'pool error' }
+    | /** Low-level database file or virtual filesystem I/O error */
+      { reason: 'SQL_IO_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
+        ioErrorType?: 'read' | 'write' | 'fsync' | 'truncate' | 'file stat' | 'lock' | 'unlock' | 'delete' | 'file not found' | 'access' | 'shared memory' | 'seek' | 'mmap' | 'path' | 'atomic write' | 'reserved extension' | 'unknown' }
     | /** Authentication failed while connecting to the database */
       { reason: 'SQL_AUTHENTICATION_ERROR', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
@@ -205,10 +209,28 @@ export type TsSqlErrorReason =
     | /** A database or connection/pool capacity limit was reached while executing the SQL statement */
       { reason: 'SQL_RESOURCE_LIMIT_REACHED', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        resourceType?: 'disk' | 'memory' | 'temp space' | 'connections' | 'pool' | 'cpu' }
+        resourceType?: 'disk' | 'memory' | 'temp space' | 'connections' | 'pool' | 'cpu' | 'file size' }
     | /** The database reported that the requested SQL feature is not supported */
       { reason: 'SQL_FEATURE_NOT_SUPPORTED', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** The database reported corrupted database, index, or storage content */
+      { reason: 'SQL_DATABASE_CORRUPTED',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
+        corruptionType?: 'database file' | 'index' | 'sequence' | 'virtual table' | 'filesystem' | 'checksum' }
+    | /** The schema changed while a statement was being prepared or executed */
+      { reason: 'SQL_SCHEMA_CHANGED',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** The requested database snapshot is no longer available */
+      { reason: 'SQL_SNAPSHOT_NOT_AVAILABLE',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** Internal database engine condition, driver misuse, or unexpected non-error result code */
+      { reason: 'SQL_INTERNAL_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
+        errorType?: 'engine internal' | 'api misuse' | 'unexpected non-error result code' | 'retry requested' | 'unused result code' }
+    | /** Diagnostic notice or warning reported by the database */
+      { reason: 'SQL_DIAGNOSTIC_EVENT',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
+        eventType?: 'notice' | 'warning' }
 
     /* ********************************************************************************************
      * SQL execution: Unknown or uncategorized SQL error

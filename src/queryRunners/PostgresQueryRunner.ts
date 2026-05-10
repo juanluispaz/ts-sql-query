@@ -170,9 +170,9 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
 }
 
 function getPostgresErrorReason(error: PostgresJsError): TsSqlErrorReason {
-    const code = error.code
+    const code = stringValue(error.code)
     if (!code) {
-        return { reason: 'SQL_UNKNOWN', databaseErrorMessage: error.message }
+        return getKnownPostgresJsDriverErrorReason(error) || { reason: 'SQL_UNKNOWN', databaseErrorMessage: error.message }
     }
 
     if (isPostgresSqlState(code)) {
@@ -188,36 +188,83 @@ function getPostgresErrorReason(error: PostgresJsError): TsSqlErrorReason {
         })
     }
 
+    const knownDriverReason = getKnownPostgresJsDriverErrorReason(error)
+    if (knownDriverReason) {
+        return knownDriverReason
+    }
+
+    return { reason: 'SQL_UNKNOWN', databaseErrorCode: code, databaseErrorMessage: error.message }
+}
+
+function getKnownPostgresJsDriverErrorReason(error: PostgresJsError): TsSqlErrorReason | undefined {
+    const code = stringValue(error.code)
+    const message = error.message
+    const databaseErrorMessage = message || undefined
+
+    if (!code) {
+        const targetSessionAttrs = /^target_session_attrs (.+) is not supported$/.exec(message)
+        if (targetSessionAttrs) {
+            return { reason: 'INVALID_CONFIGURATION', name: 'target_session_attrs', value: targetSessionAttrs[1] }
+        }
+
+        switch (message) {
+            case '.stream has been renamed to .forEach':
+                return { reason: 'SQL_INTERNAL_ERROR', databaseErrorMessage, errorType: 'api misuse' }
+            case 'Missing publication names':
+                return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage, parameterErrorType: 'missing' }
+        }
+
+        if (message.startsWith('Malformed subscribe pattern: ')) {
+            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage, parameterErrorType: 'invalid value' }
+        }
+
+        return undefined
+    }
+
     switch (code) {
         case 'CONNECTION_DESTROYED':
         case 'CONNECTION_CLOSED':
         case 'CONNECTION_ENDED':
-            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
+            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage, errorType: 'connection lost' }
+        case '57014':
+            if (isPostgresJsQueryCancelledMessage(message)) {
+                return getPostgresEngineErrorReason({ sqlState: code, databaseErrorCode: code, message })
+            }
+            return undefined
         case 'ECONNRESET':
         case 'EPIPE':
         case 'ECONNREFUSED':
         case 'ENOTFOUND':
         case 'EAI_AGAIN':
         case 'EHOSTUNREACH':
-            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
+            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage, errorType: 'connection lost' }
+        case 'ETIMEDOUT':
+        case 'ESOCKETTIMEDOUT':
+            return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage, timeoutType: 'connection' }
         case 'UNDEFINED_VALUE':
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, parameterErrorType: 'invalid value' }
+            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage, parameterErrorType: 'invalid value' }
         case 'MAX_PARAMETERS_EXCEEDED':
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, parameterErrorType: 'too many' }
+            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage, ...getPostgresJsMaxParametersExceededDetails(message) }
         case 'NOT_TAGGED_CALL':
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, parameterErrorType: 'invalid binding' }
+            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage, parameterErrorType: 'invalid binding' }
         case 'UNSAFE_TRANSACTION':
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message }
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: code, databaseErrorMessage, transactionErrorType: 'unsupported operation' }
+        case 'COPY_IN_PROGRESS':
+            return { reason: 'FORBIDDEN_CONCURRENT_USAGE', databaseErrorCode: code, databaseErrorMessage }
         case 'SASL_SIGNATURE_MISMATCH':
         case 'AUTH_TYPE_NOT_IMPLEMENTED':
-            return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message }
+            return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode: code, databaseErrorMessage }
         case 'CONNECT_TIMEOUT':
-            return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'connection' }
+            return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage, timeoutType: 'connection' }
         case 'MESSAGE_NOT_SUPPORTED':
-            return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode: code, databaseErrorMessage: error.message }
-        default:
-            return { reason: 'SQL_UNKNOWN', databaseErrorCode: code, databaseErrorMessage: error.message }
+            return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode: code, databaseErrorMessage }
     }
+
+    if (isPostgresJsInvalidConnectionConfigurationCode(code)) {
+        return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage, errorType: 'invalid connection configuration' }
+    }
+
+    return undefined
 }
 
 function getSchemaName(error: PostgresJsError): string | undefined {
@@ -249,34 +296,47 @@ function isPostgresJsError(error: unknown): error is PostgresJsError {
         return true
     }
 
-    const code = (error as PostgresJsError).code
-    if (typeof code !== 'string') {
-        return false
-    }
-
-    return code === 'CONNECTION_DESTROYED'
-        || code === 'CONNECT_TIMEOUT'
-        || code === 'CONNECTION_CLOSED'
-        || code === 'CONNECTION_ENDED'
-        || code === 'ECONNRESET'
-        || code === 'EPIPE'
-        || code === 'ECONNREFUSED'
-        || code === 'ENOTFOUND'
-        || code === 'EAI_AGAIN'
-        || code === 'EHOSTUNREACH'
-        || code === 'MESSAGE_NOT_SUPPORTED'
-        || code === 'NOT_TAGGED_CALL'
-        || code === 'UNDEFINED_VALUE'
-        || code === 'MAX_PARAMETERS_EXCEEDED'
-        || code === 'SASL_SIGNATURE_MISMATCH'
-        || code === 'UNSAFE_TRANSACTION'
-        || code === 'AUTH_TYPE_NOT_IMPLEMENTED'
+    return !!getKnownPostgresJsDriverErrorReason(error as PostgresJsError)
 }
 
 function asDatabaseError(error: PostgresJsError): PostgresJsDatabaseError | undefined {
     return error.name === 'PostgresError' ? error as PostgresJsDatabaseError : undefined
 }
 
+function getPostgresJsMaxParametersExceededDetails(message: string): {
+    parameterErrorType: 'too many'
+    expectedParameterCount?: number
+} {
+    const maximum = /Max number of parameters \((\d+)\) exceeded/i.exec(message)
+    return {
+        parameterErrorType: 'too many',
+        expectedParameterCount: numberValue(maximum?.[1]),
+    }
+}
+
+function isPostgresJsQueryCancelledMessage(message: string): boolean {
+    return message === '57014: canceling statement due to user request'
+        || message === 'canceling statement due to user request'
+}
+
+function isPostgresJsInvalidConnectionConfigurationCode(code: string): boolean {
+    return code === 'CERT_HAS_EXPIRED'
+        || code === 'DEPTH_ZERO_SELF_SIGNED_CERT'
+        || code === 'SELF_SIGNED_CERT_IN_CHAIN'
+        || code === 'ERR_TLS_CERT_ALTNAME_INVALID'
+        || code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE'
+        || code.startsWith('ERR_TLS_')
+        || code.startsWith('ERR_SSL_')
+}
+
 function stringValue(value: unknown): string | undefined {
     return typeof value === 'string' ? value : undefined
+}
+
+function numberValue(value: string | undefined): number | undefined {
+    if (value === undefined) {
+        return undefined
+    }
+    const number = Number(value)
+    return Number.isFinite(number) ? number : undefined
 }

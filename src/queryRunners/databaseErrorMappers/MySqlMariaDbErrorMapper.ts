@@ -993,7 +993,7 @@ export function isMySqlMariaDbEngineError(error: unknown): error is MySqlMariaDb
         return false
     }
     const engineError = error as MySqlMariaDbEngineError
-    return typeof engineError.errno === 'number'
+    return typeof engineError.errno === 'number' && engineError.errno > 0
         || typeof engineError.sqlState === 'string'
         || isMySqlMariaDbEngineErrorCode(engineError.code)
 }
@@ -1012,7 +1012,7 @@ export function isMySqlMariaDbEngineErrorCode(code: unknown): code is string {
 }
 
 function getMySqlMariaDbErrorNumber(errno: number | undefined, code: string): number | undefined {
-    if (typeof errno === 'number') {
+    if (typeof errno === 'number' && errno > 0) {
         return errno
     }
     if (!code) {
@@ -1205,7 +1205,7 @@ function getObjectAlreadyExistsFromSymbol(
 }
 
 function getMySqlMariaDbDatabaseErrorCode(error: MySqlMariaDbEngineError): TsSqlDatabaseErrorCode | undefined {
-    return error.errno ?? (error.code || undefined) ?? (error.sqlState || undefined)
+    return (typeof error.errno === 'number' && error.errno > 0 ? error.errno : undefined) ?? (error.code || undefined) ?? (error.sqlState || undefined)
 }
 
 function extractQuotedName(message: string): string | undefined {

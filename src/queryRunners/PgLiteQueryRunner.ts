@@ -124,7 +124,7 @@ function getPgDriverErrorReason(error: PgDriverError): TsSqlErrorReason {
         return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'connection' }
     }
     if (isPgInvalidParameterError(error.message)) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message }
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, ...getPgInvalidParameterDetails(error.message) }
     }
     return { reason: 'SQL_UNKNOWN', databaseErrorCode: code, databaseErrorMessage: error.message }
 }
@@ -162,4 +162,31 @@ function isPgInvalidParameterError(message: string): boolean {
     const lower = message.toLowerCase()
     return lower.includes('bind message supplies')
         || lower.includes('there is no parameter $')
+}
+
+function getPgInvalidParameterDetails(message: string): {
+    parameterErrorType: 'missing' | 'wrong count' | 'invalid binding'
+    parameterIndex?: number
+    expectedParameterCount?: number
+    actualParameterCount?: number
+} {
+    const missingIndex = /there is no parameter \$(\d+)/i.exec(message)
+    if (missingIndex) {
+        return { parameterErrorType: 'missing', parameterIndex: Number(missingIndex[1]) }
+    }
+
+    const wrongCount = /bind message supplies (\d+) parameters?, but prepared statement .+ requires (\d+)/i.exec(message)
+    if (wrongCount) {
+        return {
+            parameterErrorType: 'wrong count',
+            actualParameterCount: Number(wrongCount[1]),
+            expectedParameterCount: Number(wrongCount[2]),
+        }
+    }
+
+    if (message.toLowerCase().includes('bind message supplies')) {
+        return { parameterErrorType: 'wrong count' }
+    }
+
+    return { parameterErrorType: 'invalid binding' }
 }

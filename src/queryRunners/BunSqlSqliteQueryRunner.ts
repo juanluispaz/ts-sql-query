@@ -74,7 +74,7 @@ function getBunSqliteErrorReason(error: BunSqliteError): TsSqlErrorReason {
         case 'ERR_SQLITE_QUERY_CANCELLED':
             return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'cancelled' }
         case 'ERR_SQLITE_NOT_TAGGED_CALL':
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message }
+            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, parameterErrorType: 'invalid binding' }
         case 'ERR_SQLITE_INVALID_TRANSACTION_STATE':
             return getSqliteEngineErrorReason({ code: 'SQLITE_ERROR', databaseErrorCode: code, message: error.message })
     }

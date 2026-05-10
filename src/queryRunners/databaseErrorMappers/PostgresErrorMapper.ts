@@ -14,9 +14,15 @@ export interface PostgresEngineError {
 type ConstraintType = 'unique' | 'not null' | 'foreign key' | 'check' | 'exclusion' | 'restrict'
 type InvalidValueErrorType = 'out of range' | 'too long' | 'invalid value' | 'invalid format' | 'invalid encoding' |
     'invalid json' | 'invalid xml' | 'invalid regular expression' | 'null not allowed' | 'sequence limit'
+type IdentifierType = 'column' | 'routine' | 'parameter' | 'alias' | 'object'
+type IdentifierErrorType = 'ambiguous' | 'duplicate'
 type ObjectType = 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database' | 'collation' |
-    'cursor' | 'prepared statement' | 'role'
-type StatementErrorType = 'incomplete statement' | 'invalid definition' | 'type mismatch' | 'invalid statement context'
+    'index' | 'trigger' | 'cursor' | 'prepared statement' | 'role'
+type StatementErrorType = 'incomplete statement' | 'invalid definition' | 'type mismatch' | 'invalid statement context' |
+    'invalid identifier' | 'invalid reference' | 'invalid grouping' | 'invalid windowing' | 'invalid recursion' |
+    'invalid locator' | 'case not found' | 'invalid argument'
+type ParameterErrorType = 'missing' | 'too many' | 'wrong count' | 'invalid name' | 'invalid index' |
+    'invalid type' | 'invalid value' | 'invalid binding' | 'not bindable' | 'already bound'
 
 export function getPostgresEngineErrorReason(error: PostgresEngineError): TsSqlErrorReason {
     const code = error.sqlState || ''
@@ -53,7 +59,7 @@ function getPostgresSpecificErrorReason(
             return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'outcome unknown' }
         case '08P01':
             if (isPostgresInvalidParameterMessage(error.message || '')) {
-                return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
+                return getInvalidParameter(error, getPostgresInvalidParameterDetails(error.message || '', 'invalid binding'))
             }
             return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode, databaseErrorMessage, errorType: 'connection lost' }
 
@@ -168,7 +174,7 @@ function getPostgresSpecificErrorReason(
         case '42602':
         case '42622':
         case '42939':
-            return { reason: 'SQL_INVALID_SQL_STATEMENT', databaseErrorCode, databaseErrorMessage }
+            return getInvalidSqlStatement(error, 'invalid identifier')
         case '42703':
             return getObjectNotFound(error, 'column')
         case '42883':
@@ -176,9 +182,9 @@ function getPostgresSpecificErrorReason(
         case '42P01':
             return getObjectNotFound(error, 'table or view')
         case '42P02':
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
+            return getInvalidParameter(error, getPostgresInvalidParameterDetails(error.message || '', 'missing'))
         case '42704':
-            return getObjectNotFound(error)
+            return getObjectNotFound(error, getPostgresObjectTypeFromMessage(error.message || ''))
         case '42701':
             return getObjectAlreadyExists(error, 'column')
         case '42P03':
@@ -193,21 +199,28 @@ function getPostgresSpecificErrorReason(
             return getObjectAlreadyExists(error, 'schema')
         case '42P07':
             return getObjectAlreadyExists(error, 'table or view')
-        case '42710':
-            return getObjectAlreadyExists(error)
         case '42702':
+            return getAmbiguousIdentifier(error, 'column', 'ambiguous', databaseErrorCode, databaseErrorMessage)
         case '42725':
+            return getAmbiguousIdentifier(error, 'routine', 'ambiguous', databaseErrorCode, databaseErrorMessage)
         case '42P08':
+            return getAmbiguousIdentifier(error, 'parameter', 'ambiguous', databaseErrorCode, databaseErrorMessage)
         case '42P09':
-            return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', databaseErrorCode, databaseErrorMessage, identifier: stringValue(error.columnName) || extractQuotedName(error.message || '') }
+            return getAmbiguousIdentifier(error, 'alias', 'ambiguous', databaseErrorCode, databaseErrorMessage)
+        case '42712':
+            return getAmbiguousIdentifier(error, 'alias', 'duplicate', databaseErrorCode, databaseErrorMessage)
+        case '42710':
+            return getObjectAlreadyExists(error, getPostgresObjectTypeFromMessage(error.message || ''))
         case '42P10':
-            return { reason: 'SQL_INVALID_CONFLICT_TARGET', databaseErrorCode, databaseErrorMessage }
+            return getInvalidSqlStatement(error, 'invalid reference')
         case '42809':
             return getObjectStateError(error, 'wrong object type')
         case '42P11':
             return getInvalidSqlStatement(error, 'invalid definition')
         case '42P19':
-            return { reason: 'SQL_INVALID_SQL_STATEMENT', databaseErrorCode, databaseErrorMessage }
+            return getInvalidSqlStatement(error, 'invalid recursion')
+        case '42803':
+            return getInvalidSqlStatement(error, 'invalid grouping')
         case '42846':
         case '42804':
         case '42P18':
@@ -224,6 +237,8 @@ function getPostgresSpecificErrorReason(
         case '42P17':
         case '428C9':
             return getInvalidSqlStatement(error, 'invalid definition')
+        case '42P20':
+            return getInvalidSqlStatement(error, 'invalid windowing')
 
         case '44000':
             return getConstraintViolation(error, 'check')
@@ -312,16 +327,16 @@ function getPostgresErrorReasonFromClass(
         return getInvalidSqlStatement(error, 'invalid statement context')
     }
     if (code.startsWith('0F')) {
-        return { reason: 'SQL_INVALID_SQL_STATEMENT', databaseErrorCode, databaseErrorMessage }
+        return getInvalidSqlStatement(error, 'invalid locator')
     }
     if (code.startsWith('0Z')) {
         return { reason: 'SQL_ROUTINE_ERROR', databaseErrorCode, databaseErrorMessage }
     }
     if (code.startsWith('10')) {
-        return { reason: 'SQL_INVALID_SQL_STATEMENT', databaseErrorCode, databaseErrorMessage }
+        return getInvalidSqlStatement(error, 'invalid argument')
     }
     if (code.startsWith('20')) {
-        return { reason: 'SQL_INVALID_SQL_STATEMENT', databaseErrorCode, databaseErrorMessage }
+        return getInvalidSqlStatement(error, 'case not found')
     }
     if (code.startsWith('22')) {
         return getPostgresDataExceptionReason(error, code)
@@ -557,6 +572,41 @@ function getInvalidSqlStatement(error: PostgresEngineError, statementErrorType?:
     }
 }
 
+function getInvalidParameter(
+    error: PostgresEngineError,
+    parameterDetails?: {
+        parameterErrorType?: ParameterErrorType
+        parameterName?: string
+        parameterIndex?: number
+        expectedParameterCount?: number
+        actualParameterCount?: number
+    }
+): TsSqlErrorReason {
+    return {
+        reason: 'SQL_INVALID_PARAMETER',
+        databaseErrorCode: error.databaseErrorCode ?? error.sqlState,
+        databaseErrorMessage: error.message || undefined,
+        ...parameterDetails,
+    }
+}
+
+function getAmbiguousIdentifier(
+    error: PostgresEngineError,
+    identifierType: IdentifierType,
+    identifierErrorType: IdentifierErrorType,
+    databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
+    databaseErrorMessage: string | undefined
+): TsSqlErrorReason {
+    return {
+        reason: 'SQL_AMBIGUOUS_IDENTIFIER',
+        databaseErrorCode,
+        databaseErrorMessage,
+        identifier: stringValue(error.columnName) || extractQuotedName(error.message || ''),
+        identifierType,
+        identifierErrorType,
+    }
+}
+
 function getObjectNotFound(error: PostgresEngineError, objectType?: ObjectType): TsSqlErrorReason {
     return {
         reason: 'SQL_OBJECT_NOT_FOUND',
@@ -616,6 +666,8 @@ function getObjectName(error: PostgresEngineError, objectType?: ObjectType): str
         case 'sequence':
         case 'database':
         case 'collation':
+        case 'index':
+        case 'trigger':
         case 'role':
             return extractQuotedName(error.message || '')
         default:
@@ -640,6 +692,46 @@ function isPostgresInvalidParameterMessage(message: string): boolean {
         || lower.includes('there is no parameter $')
 }
 
+function getPostgresInvalidParameterDetails(
+    message: string,
+    fallbackParameterErrorType: ParameterErrorType
+): {
+    parameterErrorType: ParameterErrorType
+    parameterIndex?: number
+    expectedParameterCount?: number
+    actualParameterCount?: number
+} {
+    const missingIndex = /there is no parameter \$(\d+)/i.exec(message)
+    if (missingIndex) {
+        return { parameterErrorType: 'missing', parameterIndex: numberValue(missingIndex[1]) }
+    }
+
+    const wrongCount = /bind message supplies (\d+) parameters?, but prepared statement .+ requires (\d+)/i.exec(message)
+    if (wrongCount) {
+        return {
+            parameterErrorType: 'wrong count',
+            actualParameterCount: numberValue(wrongCount[1]),
+            expectedParameterCount: numberValue(wrongCount[2]),
+        }
+    }
+
+    if (message.toLowerCase().includes('bind message supplies')) {
+        return { parameterErrorType: 'wrong count' }
+    }
+
+    return { parameterErrorType: fallbackParameterErrorType }
+}
+
+function getPostgresObjectTypeFromMessage(message: string): 'index' | 'trigger' | undefined {
+    if (/^\s*index\s+"/i.test(message)) {
+        return 'index'
+    }
+    if (/^\s*trigger\s+"/i.test(message)) {
+        return 'trigger'
+    }
+    return undefined
+}
+
 function extractQuotedName(message: string): string | undefined {
     const quoted = /"([^"]+)"/.exec(message)
     if (quoted) {
@@ -656,4 +748,12 @@ function extractQuotedName(message: string): string | undefined {
 
 function stringValue(value: unknown): string | undefined {
     return typeof value === 'string' ? value : undefined
+}
+
+function numberValue(value: string | undefined): number | undefined {
+    if (value === undefined) {
+        return undefined
+    }
+    const number = Number(value)
+    return Number.isFinite(number) ? number : undefined
 }

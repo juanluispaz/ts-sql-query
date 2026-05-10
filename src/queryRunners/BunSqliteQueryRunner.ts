@@ -146,25 +146,25 @@ function getKnownBunSqliteDriverErrorReason(error: Error): TsSqlErrorReason | un
     }
 
     if (upper.startsWith('SQLITE QUERY EXPECTED ') && upper.includes(' VALUES, RECEIVED ')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
+        return getSqliteEngineErrorReason({ message })
     }
     if (upper.startsWith('MISSING PARAMETER "')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
+        return getSqliteEngineErrorReason({ message })
     }
     if (upper.includes('EXPECTED BINDINGS TO BE AN OBJECT OR ARRAY')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
+        return getSqliteEngineErrorReason({ message })
     }
     if (upper.includes('EXPECTED OBJECT OR ARRAY')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
+        return getSqliteEngineErrorReason({ message })
     }
     if (upper === 'EXPECTED ARRAY') {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
+        return getSqliteEngineErrorReason({ message })
     }
     if (upper.includes('BINDING EXPECTED STRING, TYPEDARRAY, BOOLEAN, NUMBER, BIGINT OR NULL')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
+        return getSqliteEngineErrorReason({ message })
     }
     if (upper === 'EXPECTED STRING') {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
+        return getSqliteEngineErrorReason({ message })
     }
 
     if (upper.startsWith('BIGINT VALUE ') && upper.includes(' IS OUT OF RANGE')) {

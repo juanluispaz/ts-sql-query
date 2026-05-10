@@ -120,25 +120,25 @@ function getSqlite3WasmErrorReason(error: Sqlite3WasmDbError): TsSqlErrorReason 
         return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('INVALID BIND() PARAMETER NAME:')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
+        return getSqliteEngineErrorReason({ databaseErrorCode, message })
     }
     if (upper.includes('THIS STATEMENT HAS NO BINDABLE PARAMETERS.')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
+        return getSqliteEngineErrorReason({ databaseErrorCode, message })
     }
     if (upper.includes('INVALID BIND() ARGUMENTS.')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
+        return getSqliteEngineErrorReason({ databaseErrorCode, message })
     }
     if (upper.includes('UNSUPPORTED BIND() ARGUMENT TYPE:')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
+        return getSqliteEngineErrorReason({ databaseErrorCode, message })
     }
     if (upper.includes('BIND INDEX') && upper.includes('IS OUT OF RANGE.')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
+        return getSqliteEngineErrorReason({ databaseErrorCode, message })
     }
     if (upper.includes('WHEN BINDING AN ARRAY, AN INDEX ARGUMENT IS NOT PERMITTED.')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
+        return getSqliteEngineErrorReason({ databaseErrorCode, message })
     }
     if (upper.includes('WHEN BINDING AN OBJECT, AN INDEX ARGUMENT IS NOT PERMITTED.')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
+        return getSqliteEngineErrorReason({ databaseErrorCode, message })
     }
     if (upper.includes('BIGINT VALUE IS TOO BIG TO STORE WITHOUT PRECISION LOSS:')) {
         return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorCode, databaseErrorMessage }

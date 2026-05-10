@@ -201,8 +201,11 @@ function getPostgresErrorReason(error: PostgresJsError): TsSqlErrorReason {
         case 'EHOSTUNREACH':
             return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
         case 'UNDEFINED_VALUE':
+            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, parameterErrorType: 'invalid value' }
         case 'MAX_PARAMETERS_EXCEEDED':
+            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, parameterErrorType: 'too many' }
         case 'NOT_TAGGED_CALL':
+            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, parameterErrorType: 'invalid binding' }
         case 'UNSAFE_TRANSACTION':
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message }
         case 'SASL_SIGNATURE_MISMATCH':

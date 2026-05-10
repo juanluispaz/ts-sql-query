@@ -119,7 +119,7 @@ function getSqlite3ErrorReason(error: Sqlite3Error): TsSqlErrorReason {
         return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('DATA TYPE IS NOT SUPPORTED')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'invalid type', databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('STATEMENT IS ALREADY FINALIZED')) {
         return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorCode, databaseErrorMessage }

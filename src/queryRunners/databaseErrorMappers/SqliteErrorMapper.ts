@@ -185,7 +185,7 @@ export function getSqliteEngineErrorReason(error: SqliteEngineError): TsSqlError
         case 'SQLITE_MISMATCH':
             return { reason: 'SQL_INVALID_VALUE', errorType: 'invalid value', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_RANGE':
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
+            return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'invalid index', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_MISUSE':
             if (upper.includes('DATABASE HANDLE IS CLOSED') || upper.includes('DATABASE IS CLOSED')) {
                 return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorCode, databaseErrorMessage }
@@ -252,7 +252,7 @@ function getSqliteIoErrorReason(code: string, databaseErrorCode: TsSqlDatabaseEr
     }
 }
 
-function getSqliteIoErrorType(code: string): 'read' | 'write' | 'fsync' | 'truncate' | 'file stat' | 'lock' | 'unlock' | 'delete' | 'file not found' | 'access' | 'shared memory' | 'seek' | 'mmap' | 'path' | 'atomic write' | 'reserved extension' | 'unknown' {
+function getSqliteIoErrorType(code: string): 'read' | 'write' | 'fsync' | 'truncate' | 'file stat' | 'lock' | 'unlock' | 'delete' | 'file not found' | 'access' | 'shared memory' | 'seek' | 'mmap' | 'path' | 'atomic write' | 'close' | 'reserved extension' | 'unknown' {
     switch (code) {
         case 'SQLITE_IOERR_READ':
         case 'SQLITE_IOERR_SHORT_READ':
@@ -293,6 +293,9 @@ function getSqliteIoErrorType(code: string): 'read' | 'write' | 'fsync' | 'trunc
         case 'SQLITE_IOERR_COMMIT_ATOMIC':
         case 'SQLITE_IOERR_ROLLBACK_ATOMIC':
             return 'atomic write'
+        case 'SQLITE_IOERR_CLOSE':
+        case 'SQLITE_IOERR_DIR_CLOSE':
+            return 'close'
         case 'SQLITE_IOERR_VNODE':
             return 'reserved extension'
         default:
@@ -329,14 +332,12 @@ function getSqliteEngineMessageReason(upper: string, message: string, databaseEr
     if (upper.includes('SQL STATEMENTS IN PROGRESS')) {
         return { reason: 'FORBIDDEN_CONCURRENT_USAGE', databaseErrorCode, databaseErrorMessage }
     }
-    if (upper.includes('BIND OR COLUMN INDEX OUT OF RANGE')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
-    }
-    if (upper.includes('WRONG NUMBER OF ARGUMENTS TO FUNCTION')) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
+    const invalidParameterReason = getSqliteInvalidParameterMessageReason(upper, message, databaseErrorCode, databaseErrorMessage)
+    if (invalidParameterReason) {
+        return invalidParameterReason
     }
     if (upper.includes('ON CONFLICT CLAUSE DOES NOT MATCH ANY PRIMARY KEY OR UNIQUE CONSTRAINT')) {
-        return { reason: 'SQL_INVALID_CONFLICT_TARGET', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_INVALID_SQL_STATEMENT', statementErrorType: 'invalid reference', databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('NO SUCH TABLE:')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', objectType: 'table or view', objectName: extractAfterColon(message), databaseErrorCode, databaseErrorMessage }
@@ -351,6 +352,12 @@ function getSqliteEngineMessageReason(upper: string, message: string, databaseEr
     if (upper.includes('NO SUCH COLLATION SEQUENCE:')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', objectType: 'collation', objectName: extractAfterColon(message), databaseErrorCode, databaseErrorMessage }
     }
+    if (upper.includes('NO SUCH INDEX:')) {
+        return { reason: 'SQL_OBJECT_NOT_FOUND', objectType: 'index', objectName: extractAfterColon(message), databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('NO SUCH TRIGGER:')) {
+        return { reason: 'SQL_OBJECT_NOT_FOUND', objectType: 'trigger', objectName: extractAfterColon(message), databaseErrorCode, databaseErrorMessage }
+    }
     if (upper.includes('UNKNOWN DATABASE')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', objectType: 'database', objectName: extractUnknownDatabaseName(message), databaseErrorCode, databaseErrorMessage }
     }
@@ -361,7 +368,10 @@ function getSqliteEngineMessageReason(upper: string, message: string, databaseEr
         return { reason: 'SQL_OBJECT_ALREADY_EXISTS', objectType: 'table or view', objectName: extractObjectAlreadyExistsName(message), databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('INDEX ') && upper.includes(' ALREADY EXISTS')) {
-        return { reason: 'SQL_OBJECT_ALREADY_EXISTS', objectName: extractObjectAlreadyExistsName(message), databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_OBJECT_ALREADY_EXISTS', objectType: 'index', objectName: extractObjectAlreadyExistsName(message), databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('TRIGGER ') && upper.includes(' ALREADY EXISTS')) {
+        return { reason: 'SQL_OBJECT_ALREADY_EXISTS', objectType: 'trigger', objectName: extractObjectAlreadyExistsName(message), databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('CANNOT MODIFY') && upper.includes('BECAUSE IT IS A VIEW')) {
         return { reason: 'SQL_OBJECT_STATE_ERROR', objectStateErrorType: 'wrong object type', objectType: 'table or view', objectName: extractCannotModifyObjectName(message), databaseErrorCode, databaseErrorMessage }
@@ -370,7 +380,24 @@ function getSqliteEngineMessageReason(upper: string, message: string, databaseEr
         return { reason: 'SQL_OBJECT_STATE_ERROR', objectStateErrorType: 'wrong object type', objectType: 'table or view', objectName: extractAfterKeyword(message, 'view'), databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('AMBIGUOUS COLUMN NAME:')) {
-        return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', identifier: extractAfterColon(message), databaseErrorCode, databaseErrorMessage }
+        return {
+            reason: 'SQL_AMBIGUOUS_IDENTIFIER',
+            identifier: extractAfterColon(message),
+            identifierType: 'column',
+            identifierErrorType: 'ambiguous',
+            databaseErrorCode,
+            databaseErrorMessage,
+        }
+    }
+    if (upper.includes('DUPLICATE COLUMN NAME:')) {
+        return {
+            reason: 'SQL_AMBIGUOUS_IDENTIFIER',
+            identifier: extractAfterColon(message),
+            identifierType: 'column',
+            identifierErrorType: 'duplicate',
+            databaseErrorCode,
+            databaseErrorMessage,
+        }
     }
     if (upper.includes('NEAR "') && upper.includes('SYNTAX ERROR')) {
         return { reason: 'SQL_SYNTAX_ERROR', databaseErrorCode, databaseErrorMessage }
@@ -400,6 +427,18 @@ function getSqliteEngineMessageReason(upper: string, message: string, databaseEr
     }
     if (upper.includes('DATATYPE MISMATCH')) {
         return { reason: 'SQL_INVALID_VALUE', errorType: 'invalid value', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('SUB-SELECT RETURNS') && upper.includes('COLUMNS')) {
+        return { reason: 'SQL_CARDINALITY_VIOLATION', databaseErrorCode, databaseErrorMessage }
+    }
+    if (isSqliteRecursiveStatementError(upper)) {
+        return { reason: 'SQL_INVALID_SQL_STATEMENT', statementErrorType: 'invalid recursion', databaseErrorCode, databaseErrorMessage }
+    }
+    if (isSqliteGroupingStatementError(upper)) {
+        return { reason: 'SQL_INVALID_SQL_STATEMENT', statementErrorType: 'invalid grouping', databaseErrorCode, databaseErrorMessage }
+    }
+    if (isSqliteWindowingStatementError(upper)) {
+        return { reason: 'SQL_INVALID_SQL_STATEMENT', statementErrorType: 'invalid windowing', databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('USER-DEFINED FUNCTION') && (upper.includes('RAISED EXCEPTION') || upper.includes('ERROR'))) {
         return { reason: 'SQL_ROUTINE_ERROR', databaseErrorCode, databaseErrorMessage }
@@ -473,6 +512,97 @@ function extractAfterColon(message: string): string | undefined {
     return undefined
 }
 
+function getSqliteInvalidParameterMessageReason(
+    upper: string,
+    message: string,
+    databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
+    databaseErrorMessage?: string
+): TsSqlErrorReason | undefined {
+    if (upper.includes('BIND OR COLUMN INDEX OUT OF RANGE')) {
+        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'invalid index', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('BIND INDEX') && upper.includes('IS OUT OF RANGE')) {
+        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'invalid index', parameterIndex: extractBindIndex(message), databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('WRONG NUMBER OF ARGUMENTS TO FUNCTION')) {
+        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'wrong count', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('SQLITE QUERY EXPECTED ') && upper.includes(' VALUES, RECEIVED ')) {
+        return {
+            reason: 'SQL_INVALID_PARAMETER',
+            parameterErrorType: 'wrong count',
+            expectedParameterCount: extractExpectedParameterCount(message),
+            actualParameterCount: extractActualParameterCount(message),
+            databaseErrorCode,
+            databaseErrorMessage,
+        }
+    }
+    if (upper.includes('MISSING NAMED PARAMETER "') || upper.includes('MISSING PARAMETER "')) {
+        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'missing', parameterName: extractQuotedName(message), databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('MISSING NAMED PARAMETERS') || upper.includes('TOO FEW PARAMETER VALUES WERE PROVIDED')) {
+        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'missing', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('TOO MANY PARAMETER VALUES WERE PROVIDED')) {
+        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'too many', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('DATA TYPE IS NOT SUPPORTED')
+        || upper.includes('UNSUPPORTED BIND() ARGUMENT TYPE:')
+        || upper.includes('SQLITE3 CAN ONLY BIND NUMBERS, STRINGS, BIGINTS, BUFFERS, AND NULL')
+        || upper.includes('BINDING EXPECTED STRING, TYPEDARRAY, BOOLEAN, NUMBER, BIGINT OR NULL')
+        || upper === 'EXPECTED STRING') {
+        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'invalid type', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('INVALID BIND() PARAMETER NAME:')) {
+        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'invalid name', parameterName: extractAfterColon(message), databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('THIS STATEMENT HAS NO BINDABLE PARAMETERS')) {
+        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'not bindable', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('THIS STATEMENT ALREADY HAS BOUND PARAMETERS')) {
+        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'already bound', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('INVALID BIND() ARGUMENTS')
+        || upper.includes('EXPECTED BINDINGS TO BE AN OBJECT OR ARRAY')
+        || upper.includes('EXPECTED OBJECT OR ARRAY')
+        || upper === 'EXPECTED ARRAY'
+        || upper.includes('WHEN BINDING AN ARRAY, AN INDEX ARGUMENT IS NOT PERMITTED')
+        || upper.includes('WHEN BINDING AN OBJECT, AN INDEX ARGUMENT IS NOT PERMITTED')
+        || upper.includes('YOU CANNOT SPECIFY NAMED PARAMETERS IN TWO DIFFERENT OBJECTS')
+        || upper.includes('NAMED PARAMETERS CAN ONLY BE PASSED WITHIN PLAIN OBJECTS')) {
+        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'invalid binding', databaseErrorCode, databaseErrorMessage }
+    }
+    return undefined
+}
+
+function extractQuotedName(message: string): string | undefined {
+    const match = /"([^"]+)"/.exec(message)
+    return match?.[1]
+}
+
+function extractBindIndex(message: string): number | undefined {
+    const match = /bind index\s+(\d+)/i.exec(message)
+    return numberValue(match?.[1])
+}
+
+function extractExpectedParameterCount(message: string): number | undefined {
+    const match = /sqlite query expected\s+(\d+)\s+values,\s+received\s+(\d+)/i.exec(message)
+    return numberValue(match?.[1])
+}
+
+function extractActualParameterCount(message: string): number | undefined {
+    const match = /sqlite query expected\s+(\d+)\s+values,\s+received\s+(\d+)/i.exec(message)
+    return numberValue(match?.[2])
+}
+
+function numberValue(value: string | undefined): number | undefined {
+    if (value === undefined) {
+        return undefined
+    }
+    const number = Number(value)
+    return Number.isFinite(number) ? number : undefined
+}
+
 function extractSqliteMissingCollationName(message: string): string | undefined {
     return extractAfterColon(message)
 }
@@ -510,11 +640,33 @@ function extractColumnPathTableName(message: string): string | undefined {
 }
 
 function extractObjectAlreadyExistsName(message: string): string | undefined {
-    const match = /(?:table|view|index)\s+(.+?)\s+already exists/i.exec(message)
+    const match = /(?:table|view|index|trigger)\s+(.+?)\s+already exists/i.exec(message)
     if (match) {
         return match[1]?.replace(/^["'`[]|["'`\]]$/g, '')
     }
     return undefined
+}
+
+function isSqliteGroupingStatementError(upper: string): boolean {
+    return upper.includes('MISUSE OF AGGREGATE FUNCTION')
+        || upper.includes('AGGREGATE FUNCTIONS ARE NOT ALLOWED')
+        || upper.includes('AGGREGATES PROHIBITED')
+}
+
+function isSqliteWindowingStatementError(upper: string): boolean {
+    return upper.includes('MISUSE OF WINDOW FUNCTION')
+        || upper.includes('WINDOW FUNCTIONS ARE NOT ALLOWED')
+        || upper.includes('NO SUCH WINDOW:')
+        || upper.includes('CANNOT OVERRIDE FRAME SPECIFICATION OF WINDOW')
+        || upper.includes('CANNOT OVERRIDE PARTITION CLAUSE OF WINDOW')
+        || upper.includes('CANNOT OVERRIDE ORDER BY CLAUSE OF WINDOW')
+}
+
+function isSqliteRecursiveStatementError(upper: string): boolean {
+    return upper.includes('MULTIPLE REFERENCES TO RECURSIVE TABLE')
+        || upper.includes('RECURSIVE REFERENCE IN A SUBQUERY')
+        || upper.includes('RECURSIVE AGGREGATE QUERIES NOT SUPPORTED')
+        || upper.includes('CIRCULAR REFERENCE:')
 }
 
 function extractUnknownDatabaseName(message: string): string | undefined {

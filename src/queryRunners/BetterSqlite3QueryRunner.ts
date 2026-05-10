@@ -138,7 +138,7 @@ function getBetterSqlite3DriverErrorReason(error: BetterSqlite3DriverError): TsS
         return { reason: 'FORBIDDEN_CONCURRENT_USAGE', databaseErrorMessage }
     }
     if (isBetterSqlite3InvalidParameterMessage(message)) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
+        return getSqliteEngineErrorReason({ message })
     }
     if (message === 'The bound string, buffer, or bigint is too big') {
         return { reason: 'SQL_INVALID_VALUE', errorType: 'too long', databaseErrorMessage }

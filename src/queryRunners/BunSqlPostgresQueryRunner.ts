@@ -1,6 +1,6 @@
 /// <reference types="bun-types" />
 
-import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
+import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorNumber, type TsSqlErrorReason } from '../TsSqlError.js'
 import { AbstractBunSqlQueryRunner } from './AbstractBunSqlQueryRunner.js'
 import { getPostgresEngineErrorReason, isPostgresSqlState } from './databaseErrorMappers/PostgresErrorMapper.js'
 import { SQL } from 'bun'
@@ -39,14 +39,19 @@ export class BunSqlPostgresQueryRunner extends AbstractBunSqlQueryRunner {
 }
 
 function getPostgresErrorReason(error: BunSqlError): TsSqlErrorReason {
+    const databaseErrorNumber = getBunPostgresDatabaseErrorNumber(error)
     if (!(error instanceof SQL.PostgresError)) {
-        return { reason: 'SQL_UNKNOWN', databaseErrorMessage: error.message }
+        return withDatabaseErrorNumber({
+            reason: 'SQL_UNKNOWN',
+            databaseErrorCode: getBunPostgresDatabaseErrorCode(error),
+            databaseErrorMessage: error.message,
+        }, databaseErrorNumber)
     }
     const sqlState = getPostgresSqlState(error)
     if (sqlState) {
         return getPostgresEngineErrorReason({
             sqlState,
-            databaseErrorCode: sqlState,
+            databaseErrorNumber: sqlState,
             message: error.message,
             schemaName: getSchemaName(error),
             tableName: getTableName(error),
@@ -61,30 +66,33 @@ function getPostgresErrorReason(error: BunSqlError): TsSqlErrorReason {
 
 function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason {
     const code = getBunPostgresErrorCode(error)
+    const databaseErrorCode = getBunPostgresDatabaseErrorCode(error)
+    const databaseErrorNumber = getBunPostgresDatabaseErrorNumber(error)
+    const withNumber = (reason: TsSqlErrorReason) => withDatabaseErrorNumber(reason, databaseErrorNumber)
     if (!code) {
-        return { reason: 'SQL_UNKNOWN', databaseErrorMessage: error.message }
+        return withNumber({ reason: 'SQL_UNKNOWN', databaseErrorMessage: error.message })
     }
 
     switch (code) {
         case 'ERR_POSTGRES_CONNECTION_CLOSED':
         case 'ERR_POSTGRES_IDLE_TIMEOUT':
         case 'ERR_POSTGRES_LIFETIME_TIMEOUT':
-            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
+            return withNumber({ reason: 'SQL_CONNECTION_ERROR', databaseErrorCode, databaseErrorMessage: error.message, errorType: 'connection lost' })
         case 'ERR_POSTGRES_CONNECTION_TIMEOUT':
-            return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'connection' }
+            return withNumber({ reason: 'SQL_TIMEOUT', databaseErrorCode, databaseErrorMessage: error.message, timeoutType: 'connection' })
         case 'ERR_POSTGRES_QUERY_CANCELLED':
-            return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'cancelled' }
+            return withNumber({ reason: 'SQL_TIMEOUT', databaseErrorCode, databaseErrorMessage: error.message, timeoutType: 'cancelled' })
         case 'ERR_POSTGRES_SYNTAX_ERROR':
-            return { reason: 'SQL_SYNTAX_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message }
+            return withNumber({ reason: 'SQL_SYNTAX_ERROR', databaseErrorCode, databaseErrorMessage: error.message })
         case 'ERR_POSTGRES_INVALID_QUERY_BINDING':
         case 'ERR_POSTGRES_NOT_TAGGED_CALL':
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, parameterErrorType: 'invalid binding' }
+            return withNumber({ reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage: error.message, parameterErrorType: 'invalid binding' })
         case 'ERR_POSTGRES_TOO_MANY_PARAMETERS':
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, ...getBunPostgresTooManyParametersDetails(error.message) }
+            return withNumber({ reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage: error.message, ...getBunPostgresTooManyParametersDetails(error.message) })
         case 'ERR_POSTGRES_UNSAFE_TRANSACTION':
-            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, transactionErrorType: 'unsupported operation' }
+            return withNumber({ reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage: error.message, transactionErrorType: 'unsupported operation' })
         case 'ERR_POSTGRES_INVALID_TRANSACTION_STATE':
-            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, transactionErrorType: 'invalid state' }
+            return withNumber({ reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage: error.message, transactionErrorType: 'invalid state' })
         case 'ERR_POSTGRES_UNSUPPORTED_AUTHENTICATION_METHOD':
         case 'ERR_POSTGRES_UNKNOWN_AUTHENTICATION_METHOD':
         case 'ERR_POSTGRES_INVALID_SERVER_SIGNATURE':
@@ -92,39 +100,39 @@ function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason
         case 'ERR_POSTGRES_AUTHENTICATION_FAILED_PBKDF2':
         case 'ERR_POSTGRES_SASL_SIGNATURE_INVALID_BASE64':
         case 'ERR_POSTGRES_SASL_SIGNATURE_MISMATCH':
-            return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message }
+            return withNumber({ reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode, databaseErrorMessage: error.message })
         case 'ERR_POSTGRES_TLS_NOT_AVAILABLE':
         case 'ERR_POSTGRES_TLS_UPGRADE_FAILED':
-            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'invalid connection configuration' }
+            return withNumber({ reason: 'SQL_CONNECTION_ERROR', databaseErrorCode, databaseErrorMessage: error.message, errorType: 'invalid connection configuration' })
         case 'ERR_POSTGRES_INVALID_BINARY_DATA':
         case 'ERR_POSTGRES_INVALID_TIME_FORMAT':
         case 'ERR_POSTGRES_UNSUPPORTED_NUMERIC_FORMAT':
         case 'ERR_POSTGRES_UNKNOWN_FORMAT_CODE':
-            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'invalid format' }
+            return withNumber({ reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage: error.message, errorType: 'invalid format' })
         case 'ERR_POSTGRES_INVALID_BYTE_SEQUENCE':
         case 'ERR_POSTGRES_INVALID_BYTE_SEQUENCE_FOR_ENCODING':
-            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'invalid encoding' }
+            return withNumber({ reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage: error.message, errorType: 'invalid encoding' })
         case 'ERR_POSTGRES_INVALID_CHARACTER':
-            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'invalid value' }
+            return withNumber({ reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage: error.message, errorType: 'invalid value' })
         case 'ERR_POSTGRES_OVERFLOW':
         case 'ERR_POSTGRES_UNSUPPORTED_INTEGER_SIZE':
-            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'out of range' }
+            return withNumber({ reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage: error.message, errorType: 'out of range' })
         case 'ERR_POSTGRES_UNSUPPORTED_BYTEA_FORMAT':
         case 'ERR_POSTGRES_UNSUPPORTED_ARRAY_FORMAT':
         case 'ERR_POSTGRES_MULTIDIMENSIONAL_ARRAY_NOT_SUPPORTED_YET':
         case 'ERR_POSTGRES_NULLS_IN_ARRAY_NOT_SUPPORTED_YET':
-            return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode: code, databaseErrorMessage: error.message }
+            return withNumber({ reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode, databaseErrorMessage: error.message })
         case 'ERR_POSTGRES_EXPECTED_REQUEST':
         case 'ERR_POSTGRES_EXPECTED_STATEMENT':
         case 'ERR_POSTGRES_INVALID_BACKEND_KEY_DATA':
         case 'ERR_POSTGRES_INVALID_MESSAGE':
         case 'ERR_POSTGRES_INVALID_MESSAGE_LENGTH':
         case 'ERR_POSTGRES_UNEXPECTED_MESSAGE':
-            return { reason: 'SQL_INTERNAL_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'engine internal' }
+            return withNumber({ reason: 'SQL_INTERNAL_ERROR', databaseErrorCode, databaseErrorMessage: error.message, errorType: 'engine internal' })
         case 'ERR_POSTGRES_SERVER_ERROR':
-            return { reason: 'SQL_UNKNOWN', databaseErrorCode: code, databaseErrorMessage: error.message }
+            return withNumber({ reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage: error.message })
         default:
-            return { reason: 'SQL_UNKNOWN', databaseErrorCode: code, databaseErrorMessage: error.message }
+            return withNumber({ reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage: error.message })
     }
 }
 
@@ -157,7 +165,29 @@ function getPostgresSqlState(error: BunSqlPostgresError): string | undefined {
 }
 
 function getBunPostgresErrorCode(error: BunSqlPostgresError): string | undefined {
-    return error.code
+    return getStringProperty(error, 'code')
+}
+
+function getBunPostgresDatabaseErrorCode(error: BunSqlError): string | undefined {
+    const code = getStringProperty(error, 'code')
+    return code && !isPostgresSqlState(code) ? code : undefined
+}
+
+function getBunPostgresDatabaseErrorNumber(error: BunSqlError): TsSqlDatabaseErrorNumber | undefined {
+    const code = getStringProperty(error, 'code')
+    if (isPostgresSqlState(code)) {
+        return code
+    }
+
+    const errno = getStringOrNumberProperty(error, 'errno')
+    return errno !== code ? errno : undefined
+}
+
+function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {
+    if (databaseErrorNumber === undefined) {
+        return reason
+    }
+    return { ...reason, databaseErrorNumber } as TsSqlErrorReason
 }
 
 function getBunPostgresTooManyParametersDetails(message: string): {
@@ -171,9 +201,14 @@ function getBunPostgresTooManyParametersDetails(message: string): {
     }
 }
 
-function getStringProperty(error: BunSqlPostgresError, property: string): string | undefined {
+function getStringProperty(error: BunSqlError, property: string): string | undefined {
     const value = (error as unknown as Record<string, unknown>)[property]
     return typeof value === 'string' ? value : undefined
+}
+
+function getStringOrNumberProperty(error: BunSqlError, property: string): string | number | undefined {
+    const value = (error as unknown as Record<string, unknown>)[property]
+    return typeof value === 'string' || typeof value === 'number' ? value : undefined
 }
 
 function numberValue(value: string | undefined): number | undefined {

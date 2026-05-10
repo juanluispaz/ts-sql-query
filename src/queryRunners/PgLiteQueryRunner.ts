@@ -87,7 +87,7 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         if (isPgLiteDatabaseError(error)) {
             return getPostgresEngineErrorReason({
                 sqlState: error.code,
-                databaseErrorCode: error.code,
+                databaseErrorNumber: error.code,
                 message: error.message,
                 schemaName: error.schema,
                 tableName: error.table,

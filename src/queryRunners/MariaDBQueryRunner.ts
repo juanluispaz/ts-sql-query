@@ -1,8 +1,8 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
 import type { Connection } from 'mariadb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
-import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
-import { getMySqlMariaDbEngineErrorReason, isMySqlMariaDbEngineError } from './databaseErrorMappers/MySqlMariaDbErrorMapper.js'
+import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorNumber, type TsSqlErrorReason } from '../TsSqlError.js'
+import { getMySqlMariaDbEngineErrorReason, getMySqlMariaDbErrorCodeName, getMySqlMariaDbErrorNumberFromCode, isMySqlMariaDbEngineError } from './databaseErrorMappers/MySqlMariaDbErrorMapper.js'
 
 type UpsertResult = {
     affectedRows: number
@@ -188,14 +188,17 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
 function getMariaDbErrorReason(error: SqlError): TsSqlErrorReason {
     const message = error.sqlMessage || error.message || ''
 
-    return getKnownMariaDbDriverErrorReason(error, message)
+    const reason = getKnownMariaDbDriverErrorReason(error, message)
         || getMySqlMariaDbEngineErrorReason({
             errno: error.errno,
             code: error.code,
             sqlState: error.sqlState,
             databaseErrorCode: getMariaDbDatabaseErrorCode(error),
+            databaseErrorNumber: getMariaDbDatabaseErrorNumber(error),
             message,
         })
+
+    return withDatabaseErrorNumber(reason, getMariaDbDatabaseErrorNumber(error))
 }
 
 function getKnownMariaDbDriverErrorReason(error: SqlError, message = error.sqlMessage || error.message || ''): TsSqlErrorReason | undefined {
@@ -345,9 +348,21 @@ function isMariaDbDriverMessage(message: string): boolean {
         || isMariaDbPlainDriverFeatureNotSupportedMessage(message)
 }
 
-function getMariaDbDatabaseErrorCode(error: SqlError): string | number | undefined {
+function getMariaDbDatabaseErrorCode(error: SqlError): string | undefined {
+    const code = getMariaDbStringCode(error)
+    if (code) {
+        return getMySqlMariaDbErrorCodeName(getMySqlMariaDbErrorNumberFromCode(code)) ?? code
+    }
     const errorNumber = getMariaDbPositiveErrorNumber(error)
-    return errorNumber ?? getMariaDbStringCode(error)
+    return getMySqlMariaDbErrorCodeName(errorNumber)
+}
+
+function getMariaDbDatabaseErrorNumber(error: SqlError): TsSqlDatabaseErrorNumber | undefined {
+    const code = getMariaDbStringCode(error)
+    return getMariaDbPositiveErrorNumber(error)
+        ?? (code ? MARIADB_DRIVER_ERROR_CODE_NUMBERS.get(code) : undefined)
+        ?? getMySqlMariaDbErrorNumberFromCode(code)
+        ?? error.sqlState
 }
 
 function getMariaDbPositiveErrorNumber(error: SqlError): number | undefined {
@@ -370,6 +385,13 @@ function getMariaDbDriverErrorCode(error: SqlError): string | undefined {
     }
 
     return undefined
+}
+
+function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {
+    if (databaseErrorNumber === undefined || reason.reason === 'UNKNOWN') {
+        return reason
+    }
+    return { ...reason, databaseErrorNumber } as TsSqlErrorReason
 }
 
 function isMariaDbNetworkErrorCode(code: string | undefined): boolean {

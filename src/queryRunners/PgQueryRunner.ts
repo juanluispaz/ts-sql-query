@@ -1,11 +1,12 @@
 import type { DatabaseType } from './QueryRunner.js'
 import { DatabaseError, type ClientBase } from 'pg'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
-import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
+import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorNumber, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getPostgresEngineErrorReason, isPostgresSqlState } from './databaseErrorMappers/PostgresErrorMapper.js'
 
 type PgDriverError = Error & {
     code?: string
+    errno?: string | number
     sqlState?: string
 }
 
@@ -90,7 +91,8 @@ function getPgEngineErrorReason(error: PgDriverError): TsSqlErrorReason | undefi
     }
     return getPostgresEngineErrorReason({
         sqlState,
-        databaseErrorCode: sqlState || getStringProperty(error, 'code') || getStringProperty(error, 'sqlState'),
+        databaseErrorCode: sqlState ? undefined : getStringProperty(error, 'code') || getStringProperty(error, 'sqlState'),
+        databaseErrorNumber: sqlState || undefined,
         message: getPgErrorMessage(error),
         schemaName: getStringProperty(error, 'schema') || getStringProperty(error, 'schemaName'),
         tableName: getStringProperty(error, 'table') || getStringProperty(error, 'tableName'),
@@ -101,6 +103,11 @@ function getPgEngineErrorReason(error: PgDriverError): TsSqlErrorReason | undefi
 }
 
 function getPgDriverErrorReason(error: PgDriverError): TsSqlErrorReason | undefined {
+    const reason = getPgDriverErrorReasonWithoutNumber(error)
+    return reason && withDatabaseErrorNumber(reason, getPgDriverDatabaseErrorNumber(error))
+}
+
+function getPgDriverErrorReasonWithoutNumber(error: PgDriverError): TsSqlErrorReason | undefined {
     const code = getStringProperty(error, 'code')
     const message = getPgErrorMessage(error)
     const databaseErrorCode = code || getStringProperty(error, 'sqlState')
@@ -217,6 +224,17 @@ function getPgSqlState(error: PgDriverError): string | undefined {
     return isPostgresSqlState(sqlState) ? sqlState : undefined
 }
 
+function getPgDriverDatabaseErrorNumber(error: PgDriverError): TsSqlDatabaseErrorNumber | undefined {
+    const sqlState = getPgSqlState(error)
+    if (sqlState) {
+        return sqlState
+    }
+
+    const code = getStringProperty(error, 'code')
+    const errno = getStringOrNumberProperty(error, 'errno')
+    return errno !== code ? errno : undefined
+}
+
 function getPgErrorMessage(error: PgDriverError): string {
     return error.message || getStringProperty(error, 'messagePrimary') || ''
 }
@@ -295,4 +313,16 @@ function getPgInvalidParameterDetails(message: string): {
 function getStringProperty(error: PgDriverError, property: string): string | undefined {
     const value = (error as unknown as Record<string, unknown>)[property]
     return typeof value === 'string' ? value : undefined
+}
+
+function getStringOrNumberProperty(error: PgDriverError, property: string): string | number | undefined {
+    const value = (error as unknown as Record<string, unknown>)[property]
+    return typeof value === 'string' || typeof value === 'number' ? value : undefined
+}
+
+function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {
+    if (databaseErrorNumber === undefined) {
+        return reason
+    }
+    return { ...reason, databaseErrorNumber } as TsSqlErrorReason
 }

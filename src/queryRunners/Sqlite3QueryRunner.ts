@@ -1,8 +1,8 @@
 import type { DatabaseType } from './QueryRunner.js'
 import type { Database } from 'sqlite3'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
-import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorCode, type TsSqlErrorReason } from '../TsSqlError.js'
-import { getSqliteEngineErrorReason, getSqliteErrorCodeName } from './databaseErrorMappers/SqliteErrorMapper.js'
+import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorCode, type TsSqlDatabaseErrorNumber, type TsSqlErrorReason } from '../TsSqlError.js'
+import { getSqliteEngineErrorReason, getSqliteErrorCodeName, getSqliteErrorCodeNumber } from './databaseErrorMappers/SqliteErrorMapper.js'
 
 export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
@@ -108,6 +108,7 @@ type Sqlite3Error = Error & {
 
 function getSqlite3ErrorReason(error: Sqlite3Error): TsSqlErrorReason {
     const databaseErrorCode = getSqlite3DatabaseErrorCode(error)
+    const databaseErrorNumber = getSqlite3DatabaseErrorNumber(error)
     const databaseErrorMessage = error.message || undefined
     const message = error.message || ''
     const upper = message.toUpperCase()
@@ -116,19 +117,19 @@ function getSqlite3ErrorReason(error: Sqlite3Error): TsSqlErrorReason {
             || upper.includes('DATABASE IS CLOSING')
             || upper.includes('DATABASE IS CLOSED')
             || upper.includes('DATABASE HANDLE IS CLOSED')) {
-        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }
     }
     if (upper.includes('DATA TYPE IS NOT SUPPORTED')) {
-        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'invalid type', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_INVALID_PARAMETER', parameterErrorType: 'invalid type', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }
     }
     if (upper.includes('STATEMENT IS ALREADY FINALIZED')) {
-        return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }
     }
     if (upper.includes('SQL QUERY EXPECTED') || upper.includes('CALLBACK EXPECTED')) {
-        return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }
     }
 
-    return getSqliteEngineErrorReason({ code: getSqlite3ErrorCode(error), databaseErrorCode, message })
+    return getSqliteEngineErrorReason({ code: getSqlite3ErrorCode(error), databaseErrorCode, databaseErrorNumber, message })
 }
 
 function getSqlite3DatabaseErrorCode(error: Sqlite3Error): TsSqlDatabaseErrorCode | undefined {
@@ -137,9 +138,16 @@ function getSqlite3DatabaseErrorCode(error: Sqlite3Error): TsSqlDatabaseErrorCod
         return code
     }
     if (typeof error.errno === 'number') {
-        return error.errno
+        return getSqliteErrorCodeName(error.errno)
     }
     return undefined
+}
+
+function getSqlite3DatabaseErrorNumber(error: Sqlite3Error): TsSqlDatabaseErrorNumber | undefined {
+    if (typeof error.errno === 'number') {
+        return error.errno
+    }
+    return getSqliteErrorCodeNumber(getSqlite3ErrorCode(error))
 }
 
 function getSqlite3ErrorCode(error: Sqlite3Error): string | undefined {

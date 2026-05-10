@@ -1,8 +1,10 @@
-import type { TsSqlDatabaseErrorCode, TsSqlErrorReason } from '../../TsSqlError.js'
+import type { TsSqlDatabaseErrorCode, TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlError.js'
+import { POSTGRES_SQLSTATE_NAMES } from './PostgresSqlStateCodes.js'
 
 export interface PostgresEngineError {
     sqlState?: string
     databaseErrorCode?: TsSqlDatabaseErrorCode
+    databaseErrorNumber?: TsSqlDatabaseErrorNumber
     message?: string
     schemaName?: string
     tableName?: string
@@ -26,23 +28,59 @@ type ParameterErrorType = 'missing' | 'too many' | 'wrong count' | 'invalid name
 
 export function getPostgresEngineErrorReason(error: PostgresEngineError): TsSqlErrorReason {
     const code = error.sqlState || ''
-    const databaseErrorCode = error.databaseErrorCode ?? (code || undefined)
+    const databaseErrorCode = getPostgresDatabaseErrorCode(error.databaseErrorCode, code)
+    const databaseErrorNumber = error.databaseErrorNumber ?? (code || undefined)
     const databaseErrorMessage = error.message || undefined
 
     if (!code) {
-        return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }
     }
 
     const reason = getPostgresSpecificErrorReason(error, code, databaseErrorCode, databaseErrorMessage)
     if (reason) {
-        return reason
+        return withPostgresDatabaseErrorMetadata(reason, databaseErrorCode, databaseErrorNumber, databaseErrorMessage)
     }
 
-    return getPostgresErrorReasonFromClass(error, code, databaseErrorCode, databaseErrorMessage)
+    return withPostgresDatabaseErrorMetadata(
+        getPostgresErrorReasonFromClass(error, code, databaseErrorCode, databaseErrorMessage),
+        databaseErrorCode,
+        databaseErrorNumber,
+        databaseErrorMessage
+    )
 }
 
 export function isPostgresSqlState(code: unknown): code is string {
     return typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code)
+}
+
+export function getPostgresSqlStateName(sqlState: string | undefined): string | undefined {
+    if (!sqlState) {
+        return undefined
+    }
+    return POSTGRES_SQLSTATE_NAMES.get(sqlState)
+}
+
+function getPostgresDatabaseErrorCode(databaseErrorCode: TsSqlDatabaseErrorCode | undefined, sqlState: string): TsSqlDatabaseErrorCode | undefined {
+    return databaseErrorCode ?? getPostgresSqlStateName(sqlState)
+}
+
+function withPostgresDatabaseErrorMetadata(
+    reason: TsSqlErrorReason,
+    databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
+    databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined,
+    databaseErrorMessage: string | undefined
+): TsSqlErrorReason {
+    const reasonMetadata = reason as {
+        databaseErrorCode?: TsSqlDatabaseErrorCode
+        databaseErrorNumber?: TsSqlDatabaseErrorNumber
+        databaseErrorMessage?: string
+    }
+    return {
+        ...reason,
+        databaseErrorCode: reasonMetadata.databaseErrorCode ?? databaseErrorCode,
+        databaseErrorNumber: reasonMetadata.databaseErrorNumber ?? databaseErrorNumber,
+        databaseErrorMessage: reasonMetadata.databaseErrorMessage ?? databaseErrorMessage,
+    } as TsSqlErrorReason
 }
 
 function getPostgresSpecificErrorReason(
@@ -542,7 +580,7 @@ function getPostgresPlPgSqlReason(
 function getConstraintViolation(error: PostgresEngineError, constraintType?: ConstraintType): TsSqlErrorReason {
     return {
         reason: 'SQL_CONSTRAINT_VIOLATED',
-        databaseErrorCode: error.databaseErrorCode ?? error.sqlState,
+        databaseErrorCode: getPostgresDatabaseErrorCode(error.databaseErrorCode, error.sqlState || ''),
         databaseErrorMessage: error.message || undefined,
         constraintType,
         constraintName: stringValue(error.constraintName),
@@ -554,7 +592,7 @@ function getConstraintViolation(error: PostgresEngineError, constraintType?: Con
 function getInvalidValue(error: PostgresEngineError, errorType?: InvalidValueErrorType): TsSqlErrorReason {
     return {
         reason: 'SQL_INVALID_VALUE',
-        databaseErrorCode: error.databaseErrorCode ?? error.sqlState,
+        databaseErrorCode: getPostgresDatabaseErrorCode(error.databaseErrorCode, error.sqlState || ''),
         databaseErrorMessage: error.message || undefined,
         errorType,
         tableName: stringValue(error.tableName),
@@ -566,7 +604,7 @@ function getInvalidValue(error: PostgresEngineError, errorType?: InvalidValueErr
 function getInvalidSqlStatement(error: PostgresEngineError, statementErrorType?: StatementErrorType): TsSqlErrorReason {
     return {
         reason: 'SQL_INVALID_SQL_STATEMENT',
-        databaseErrorCode: error.databaseErrorCode ?? error.sqlState,
+        databaseErrorCode: getPostgresDatabaseErrorCode(error.databaseErrorCode, error.sqlState || ''),
         databaseErrorMessage: error.message || undefined,
         statementErrorType,
     }
@@ -584,7 +622,7 @@ function getInvalidParameter(
 ): TsSqlErrorReason {
     return {
         reason: 'SQL_INVALID_PARAMETER',
-        databaseErrorCode: error.databaseErrorCode ?? error.sqlState,
+        databaseErrorCode: getPostgresDatabaseErrorCode(error.databaseErrorCode, error.sqlState || ''),
         databaseErrorMessage: error.message || undefined,
         ...parameterDetails,
     }
@@ -610,7 +648,7 @@ function getAmbiguousIdentifier(
 function getObjectNotFound(error: PostgresEngineError, objectType?: ObjectType): TsSqlErrorReason {
     return {
         reason: 'SQL_OBJECT_NOT_FOUND',
-        databaseErrorCode: error.databaseErrorCode ?? error.sqlState,
+        databaseErrorCode: getPostgresDatabaseErrorCode(error.databaseErrorCode, error.sqlState || ''),
         databaseErrorMessage: error.message || undefined,
         objectType,
         schemaName: stringValue(error.schemaName),
@@ -623,7 +661,7 @@ function getObjectNotFound(error: PostgresEngineError, objectType?: ObjectType):
 function getObjectAlreadyExists(error: PostgresEngineError, objectType?: Exclude<ObjectType, 'collation' | 'role'>): TsSqlErrorReason {
     return {
         reason: 'SQL_OBJECT_ALREADY_EXISTS',
-        databaseErrorCode: error.databaseErrorCode ?? error.sqlState,
+        databaseErrorCode: getPostgresDatabaseErrorCode(error.databaseErrorCode, error.sqlState || ''),
         databaseErrorMessage: error.message || undefined,
         objectType,
         schemaName: stringValue(error.schemaName),
@@ -640,7 +678,7 @@ function getObjectStateError(
 ): TsSqlErrorReason {
     return {
         reason: 'SQL_OBJECT_STATE_ERROR',
-        databaseErrorCode: error.databaseErrorCode ?? error.sqlState,
+        databaseErrorCode: getPostgresDatabaseErrorCode(error.databaseErrorCode, error.sqlState || ''),
         databaseErrorMessage: error.message || undefined,
         objectStateErrorType,
         objectType,

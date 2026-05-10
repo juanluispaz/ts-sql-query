@@ -282,6 +282,8 @@ function getMssqlConnectionErrorReason(error: ConnectionError): TsSqlErrorReason
 function getMssqlRequestErrorReason(error: RequestError): TsSqlErrorReason {
     const number = error.number
     const code: string = error.code || ''
+    const databaseErrorCode = code || undefined
+    const databaseErrorNumber = typeof number === 'number' ? number : undefined
     const message = error.message || ''
 
     switch (number) {
@@ -290,19 +292,19 @@ function getMssqlRequestErrorReason(error: RequestError): TsSqlErrorReason {
         case 8144:
         case 8146:
         case 8178:
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
         case 2601:
         case 2627:
-            return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode: number, databaseErrorMessage: message, constraintType: 'unique', constraintName: extractUniqueConstraintName(message), tableName: extractObjectTableName(message) }
+            return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, constraintType: 'unique', constraintName: extractUniqueConstraintName(message), tableName: extractObjectTableName(message) }
         case 515:
-            return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode: number, databaseErrorMessage: message, constraintType: 'not null', tableName: extractTableName(message), columnName: extractColumnName(message) }
+            return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, constraintType: 'not null', tableName: extractTableName(message), columnName: extractColumnName(message) }
         case 547:
-            return getConstraintViolationFrom547(message, number)
+            return getConstraintViolationFrom547(message, databaseErrorCode, databaseErrorNumber)
         case 8115:
-            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: number, databaseErrorMessage: message, errorType: 'out of range', columnName: extractColumnName(message) }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, errorType: 'out of range', columnName: extractColumnName(message) }
         case 8152:
         case 2628:
-            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: number, databaseErrorMessage: message, errorType: 'too long', columnName: extractColumnName(message) }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, errorType: 'too long', columnName: extractColumnName(message) }
         case 241:
         case 242:
         case 245:
@@ -311,76 +313,76 @@ function getMssqlRequestErrorReason(error: RequestError): TsSqlErrorReason {
         case 295:
         case 296:
         case 8169:
-            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: number, databaseErrorMessage: message, errorType: 'invalid value', columnName: extractColumnName(message) }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, errorType: 'invalid value', columnName: extractColumnName(message) }
         case 911:
-            return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode: number, databaseErrorMessage: message, objectType: 'database', objectName: extractQuotedName(message) }
+            return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, objectType: 'database', objectName: extractQuotedName(message) }
         case 208:
-            return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode: number, databaseErrorMessage: message, objectType: 'table or view', objectName: extractQuotedName(message) }
+            return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, objectType: 'table or view', objectName: extractQuotedName(message) }
         case 207:
-            return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode: number, databaseErrorMessage: message, objectType: 'column', columnName: extractQuotedName(message), objectName: extractQuotedName(message) }
+            return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, objectType: 'column', columnName: extractQuotedName(message), objectName: extractQuotedName(message) }
         case 2812:
-            return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode: number, databaseErrorMessage: message, objectType: 'routine', objectName: extractQuotedName(message) }
+            return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, objectType: 'routine', objectName: extractQuotedName(message) }
         case 2714:
-            return { reason: 'SQL_OBJECT_ALREADY_EXISTS', databaseErrorCode: number, databaseErrorMessage: message, objectName: extractQuotedName(message) }
+            return { reason: 'SQL_OBJECT_ALREADY_EXISTS', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, objectName: extractQuotedName(message) }
         case 209:
-            return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', databaseErrorCode: number, databaseErrorMessage: message, identifier: extractQuotedName(message) }
+            return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, identifier: extractQuotedName(message) }
         case 102:
         case 105:
         case 156:
         case 319:
-            return { reason: 'SQL_SYNTAX_ERROR', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'SQL_SYNTAX_ERROR', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
         case 8134:
-            return { reason: 'SQL_DIVISION_BY_ZERO', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'SQL_DIVISION_BY_ZERO', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
         case 512:
-            return { reason: 'SQL_CARDINALITY_VIOLATION', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'SQL_CARDINALITY_VIOLATION', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
         case 1205:
-            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: number, databaseErrorMessage: message, transactionErrorType: 'deadlock' }
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, transactionErrorType: 'deadlock' }
         case 1222:
-            return { reason: 'SQL_TIMEOUT', databaseErrorCode: number, databaseErrorMessage: message, timeoutType: 'lock' }
+            return { reason: 'SQL_TIMEOUT', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, timeoutType: 'lock' }
         case 3960:
-            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: number, databaseErrorMessage: message, transactionErrorType: 'serialization failure' }
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, transactionErrorType: 'serialization failure' }
         case 3902:
         case 3903:
-            return { reason: 'NOT_IN_TRANSACTION', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'NOT_IN_TRANSACTION', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
         case 3930:
-            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: number, databaseErrorMessage: message, transactionErrorType: 'aborted' }
+            return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, transactionErrorType: 'aborted' }
         case 3906:
-            return { reason: 'SQL_READ_ONLY_VIOLATION', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'SQL_READ_ONLY_VIOLATION', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
         case 229:
-            return { reason: 'SQL_PERMISSION_DENIED', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'SQL_PERMISSION_DENIED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
         case 916:
-            return { reason: 'SQL_AUTHORIZATION_ERROR', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'SQL_AUTHORIZATION_ERROR', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
         case 4060:
-            return { reason: 'SQL_AUTHORIZATION_ERROR', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'SQL_AUTHORIZATION_ERROR', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
         case 18456:
-            return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
         case 701:
         case 802:
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: number, databaseErrorMessage: message, resourceType: 'memory' }
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, resourceType: 'memory' }
         case 1101:
         case 1105:
         case 9002:
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: number, databaseErrorMessage: message, resourceType: 'disk' }
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, resourceType: 'disk' }
         case 10928:
         case 10929:
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
         case 40544:
         case 40551:
         case 40553:
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: number, databaseErrorMessage: message, resourceType: 'disk' }
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, resourceType: 'disk' }
         case 40549:
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: number, databaseErrorMessage: message, resourceType: 'temp space' }
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, resourceType: 'temp space' }
         case 40552:
         case 40557:
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: number, databaseErrorMessage: message, resourceType: 'memory' }
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, resourceType: 'memory' }
         case 40554:
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: number, databaseErrorMessage: message, resourceType: 'cpu' }
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, resourceType: 'cpu' }
         case 40550:
         case 40555:
         case 40556:
-            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
         case 40558:
-            return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode: number, databaseErrorMessage: message }
+            return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
     }
 
     switch (code) {
@@ -400,19 +402,19 @@ function getMssqlRequestErrorReason(error: RequestError): TsSqlErrorReason {
         case 'EINJECT':
             return { reason: 'SQL_UNKNOWN', databaseErrorCode: code, databaseErrorMessage: message }
         default:
-            return { reason: 'SQL_UNKNOWN', databaseErrorCode: code || number, databaseErrorMessage: message }
+            return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message }
     }
 }
 
-function getConstraintViolationFrom547(message: string, databaseErrorCode: number): TsSqlErrorReason {
+function getConstraintViolationFrom547(message: string, databaseErrorCode: string | undefined, databaseErrorNumber: number | undefined): TsSqlErrorReason {
     const upper = message.toUpperCase()
     if (upper.includes('FOREIGN KEY CONSTRAINT')) {
-        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage: message, constraintType: 'foreign key', constraintName: extractConstraintName(message), tableName: extractTableName(message) }
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, constraintType: 'foreign key', constraintName: extractConstraintName(message), tableName: extractTableName(message) }
     }
     if (upper.includes('CHECK CONSTRAINT')) {
-        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage: message, constraintType: 'check', constraintName: extractConstraintName(message), tableName: extractTableName(message) }
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, constraintType: 'check', constraintName: extractConstraintName(message), tableName: extractTableName(message) }
     }
-    return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage: message, constraintName: extractConstraintName(message), tableName: extractTableName(message) }
+    return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorNumber, databaseErrorMessage: message, constraintName: extractConstraintName(message), tableName: extractTableName(message) }
 }
 
 function isMssqlError(error: unknown): error is MssqlError {

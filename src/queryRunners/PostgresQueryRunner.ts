@@ -1,4 +1,4 @@
-import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
+import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorNumber, type TsSqlErrorReason } from '../TsSqlError.js'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import type { BeginTransactionOpts, DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Sql, TransactionSql, ReservedSql } from 'postgres'
@@ -6,6 +6,7 @@ import { getPostgresEngineErrorReason, isPostgresSqlState } from './databaseErro
 
 type PostgresJsConnectionError = Error & {
     code?: string
+    errno?: string | number
 }
 type PostgresJsDatabaseError = InstanceType<Sql['PostgresError']>
 type PostgresJsError = PostgresJsDatabaseError | PostgresJsConnectionError
@@ -178,7 +179,7 @@ function getPostgresErrorReason(error: PostgresJsError): TsSqlErrorReason {
     if (isPostgresSqlState(code)) {
         return getPostgresEngineErrorReason({
             sqlState: code,
-            databaseErrorCode: code,
+            databaseErrorNumber: code,
             message: error.message,
             schemaName: getSchemaName(error),
             tableName: getTableName(error),
@@ -197,6 +198,11 @@ function getPostgresErrorReason(error: PostgresJsError): TsSqlErrorReason {
 }
 
 function getKnownPostgresJsDriverErrorReason(error: PostgresJsError): TsSqlErrorReason | undefined {
+    const reason = getKnownPostgresJsDriverErrorReasonWithoutNumber(error)
+    return reason && withDatabaseErrorNumber(reason, getPostgresJsDatabaseErrorNumber(error))
+}
+
+function getKnownPostgresJsDriverErrorReasonWithoutNumber(error: PostgresJsError): TsSqlErrorReason | undefined {
     const code = stringValue(error.code)
     const message = error.message
     const databaseErrorMessage = message || undefined
@@ -228,7 +234,7 @@ function getKnownPostgresJsDriverErrorReason(error: PostgresJsError): TsSqlError
             return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage, errorType: 'connection lost' }
         case '57014':
             if (isPostgresJsQueryCancelledMessage(message)) {
-                return getPostgresEngineErrorReason({ sqlState: code, databaseErrorCode: code, message })
+                return getPostgresEngineErrorReason({ sqlState: code, databaseErrorNumber: code, message })
             }
             return undefined
         case 'ECONNRESET':
@@ -303,6 +309,23 @@ function asDatabaseError(error: PostgresJsError): PostgresJsDatabaseError | unde
     return error.name === 'PostgresError' ? error as PostgresJsDatabaseError : undefined
 }
 
+function getPostgresJsDatabaseErrorNumber(error: PostgresJsError): TsSqlDatabaseErrorNumber | undefined {
+    const code = stringValue(error.code)
+    if (isPostgresSqlState(code)) {
+        return code
+    }
+
+    const errno = stringOrNumberValue((error as { errno?: unknown }).errno)
+    return errno !== code ? errno : undefined
+}
+
+function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {
+    if (databaseErrorNumber === undefined) {
+        return reason
+    }
+    return { ...reason, databaseErrorNumber } as TsSqlErrorReason
+}
+
 function getPostgresJsMaxParametersExceededDetails(message: string): {
     parameterErrorType: 'too many'
     expectedParameterCount?: number
@@ -331,6 +354,10 @@ function isPostgresJsInvalidConnectionConfigurationCode(code: string): boolean {
 
 function stringValue(value: unknown): string | undefined {
     return typeof value === 'string' ? value : undefined
+}
+
+function stringOrNumberValue(value: unknown): string | number | undefined {
+    return typeof value === 'string' || typeof value === 'number' ? value : undefined
 }
 
 function numberValue(value: string | undefined): number | undefined {

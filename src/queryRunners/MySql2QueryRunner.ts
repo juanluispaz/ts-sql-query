@@ -1,8 +1,8 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
 import type { Connection, QueryError, ResultSetHeader, RowDataPacket } from 'mysql2'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
-import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
-import { getMySqlMariaDbEngineErrorReason, isMySqlMariaDbEngineErrorCode } from './databaseErrorMappers/MySqlMariaDbErrorMapper.js'
+import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorNumber, type TsSqlErrorReason } from '../TsSqlError.js'
+import { getMySqlMariaDbEngineErrorReason, getMySqlMariaDbErrorCodeName, getMySqlMariaDbErrorNumberFromCode, isMySqlMariaDbEngineErrorCode } from './databaseErrorMappers/MySqlMariaDbErrorMapper.js'
 
 type MySql2DriverError = Error & {
     errno?: number
@@ -172,14 +172,17 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
 function getMySql2ErrorReason(error: MySql2DriverError): TsSqlErrorReason {
     const message = getMySql2ErrorMessage(error)
 
-    return getKnownMySql2DriverErrorReason(error, message)
+    const reason = getKnownMySql2DriverErrorReason(error, message)
         || (isMySql2EngineError(error) ? getMySqlMariaDbEngineErrorReason({
             errno: getMySql2ErrorNumber(error),
             code: getMySql2EngineErrorCode(error),
             sqlState: getMySql2SqlState(error),
             databaseErrorCode: getMySql2DatabaseErrorCode(error),
+            databaseErrorNumber: getMySql2DatabaseErrorNumber(error),
             message,
         }) : { reason: 'UNKNOWN' })
+
+    return withDatabaseErrorNumber(reason, getMySql2DatabaseErrorNumber(error))
 }
 
 function getKnownMySql2DriverErrorReason(error: MySql2DriverError, message = getMySql2ErrorMessage(error)): TsSqlErrorReason | undefined {
@@ -366,16 +369,24 @@ function getMySql2ErrorNumber(error: MySql2DriverError): number | undefined {
     return undefined
 }
 
-function getMySql2DatabaseErrorCode(error: MySql2DriverError): string | number | undefined {
-    const errorNumber = getMySql2ErrorNumber(error)
-    if (errorNumber !== undefined) {
-        return errorNumber
-    }
-
+function getMySql2DatabaseErrorCode(error: MySql2DriverError): string | undefined {
     const code = getMySql2StringCode(error)
     if (code && (isMySqlMariaDbEngineErrorCode(code) || isMySql2KnownDriverCode(code))) {
-        return code
+        return getMySqlMariaDbErrorCodeName(getMySqlMariaDbErrorNumberFromCode(code)) ?? code
     }
 
-    return getMySql2SqlState(error)
+    const errorNumber = getMySql2ErrorNumber(error)
+    return getMySqlMariaDbErrorCodeName(errorNumber)
+}
+
+function getMySql2DatabaseErrorNumber(error: MySql2DriverError): TsSqlDatabaseErrorNumber | undefined {
+    const code = getMySql2StringCode(error)
+    return getMySql2ErrorNumber(error) ?? getMySqlMariaDbErrorNumberFromCode(code) ?? getMySql2SqlState(error)
+}
+
+function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {
+    if (databaseErrorNumber === undefined || reason.reason === 'UNKNOWN') {
+        return reason
+    }
+    return { ...reason, databaseErrorNumber } as TsSqlErrorReason
 }

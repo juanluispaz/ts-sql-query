@@ -1,7 +1,7 @@
 import type { DatabaseType, PromiseProvider } from './QueryRunner.js'
 import type { Database, SQLite3Error } from '@sqlite.org/sqlite-wasm'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
-import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorCode, type TsSqlErrorReason } from '../TsSqlError.js'
+import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorCode, type TsSqlDatabaseErrorNumber, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getSqliteEngineErrorReason, getSqliteErrorCodeName } from './databaseErrorMappers/SqliteErrorMapper.js'
 
 export interface Sqlite3WasmOO1QueryRunnerConfig {
@@ -109,49 +109,50 @@ type Sqlite3WasmDbError = SQLite3Error & Error & {
 
 function getSqlite3WasmErrorReason(error: Sqlite3WasmDbError): TsSqlErrorReason {
     const databaseErrorCode = getSqlite3WasmDatabaseErrorCode(error)
+    const databaseErrorNumber = getSqlite3WasmDatabaseErrorNumber(error)
     const databaseErrorMessage = error.message || undefined
     const message = normalizeSqlite3WasmErrorMessage(error.message || '')
     const upper = message.toUpperCase()
 
     if (upper.includes('OPERATION IS ILLEGAL WHEN STATEMENT IS LOCKED')) {
-        return { reason: 'FORBIDDEN_CONCURRENT_USAGE', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'FORBIDDEN_CONCURRENT_USAGE', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }
     }
     if (upper.includes('DB HAS BEEN CLOSED.') || upper.includes('STMT HAS BEEN CLOSED.')) {
-        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }
     }
     if (upper.includes('INVALID BIND() PARAMETER NAME:')) {
-        return getSqliteEngineErrorReason({ databaseErrorCode, message })
+        return getSqliteEngineErrorReason({ databaseErrorCode, databaseErrorNumber, message })
     }
     if (upper.includes('THIS STATEMENT HAS NO BINDABLE PARAMETERS.')) {
-        return getSqliteEngineErrorReason({ databaseErrorCode, message })
+        return getSqliteEngineErrorReason({ databaseErrorCode, databaseErrorNumber, message })
     }
     if (upper.includes('INVALID BIND() ARGUMENTS.')) {
-        return getSqliteEngineErrorReason({ databaseErrorCode, message })
+        return getSqliteEngineErrorReason({ databaseErrorCode, databaseErrorNumber, message })
     }
     if (upper.includes('UNSUPPORTED BIND() ARGUMENT TYPE:')) {
-        return getSqliteEngineErrorReason({ databaseErrorCode, message })
+        return getSqliteEngineErrorReason({ databaseErrorCode, databaseErrorNumber, message })
     }
     if (upper.includes('BIND INDEX') && upper.includes('IS OUT OF RANGE.')) {
-        return getSqliteEngineErrorReason({ databaseErrorCode, message })
+        return getSqliteEngineErrorReason({ databaseErrorCode, databaseErrorNumber, message })
     }
     if (upper.includes('WHEN BINDING AN ARRAY, AN INDEX ARGUMENT IS NOT PERMITTED.')) {
-        return getSqliteEngineErrorReason({ databaseErrorCode, message })
+        return getSqliteEngineErrorReason({ databaseErrorCode, databaseErrorNumber, message })
     }
     if (upper.includes('WHEN BINDING AN OBJECT, AN INDEX ARGUMENT IS NOT PERMITTED.')) {
-        return getSqliteEngineErrorReason({ databaseErrorCode, message })
+        return getSqliteEngineErrorReason({ databaseErrorCode, databaseErrorNumber, message })
     }
     if (upper.includes('BIGINT VALUE IS TOO BIG TO STORE WITHOUT PRECISION LOSS:')) {
-        return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }
     }
     if (upper.includes('INTEGER IS OUT OF RANGE FOR JS INTEGER RANGE:')) {
-        return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }
     }
     if (upper.includes('EXEC() REQUIRES AN SQL STRING.') || upper.includes('CANNOT PREPARE EMPTY SQL.')) {
-        return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorCode, databaseErrorNumber, databaseErrorMessage }
     }
 
     return withOriginalSqlite3WasmErrorMessage(
-        getSqliteEngineErrorReason({ code: getSqlite3WasmErrorCode(error), databaseErrorCode, message }),
+        getSqliteEngineErrorReason({ code: getSqlite3WasmErrorCode(error), databaseErrorCode, databaseErrorNumber, message }),
         databaseErrorMessage
     )
 }
@@ -185,5 +186,9 @@ function getSqlite3WasmErrorCode(error: Sqlite3WasmDbError): string | undefined 
 }
 
 function getSqlite3WasmDatabaseErrorCode(error: Sqlite3WasmDbError): TsSqlDatabaseErrorCode | undefined {
-    return getSqlite3WasmErrorCode(error) || error.resultCode
+    return getSqlite3WasmErrorCode(error)
+}
+
+function getSqlite3WasmDatabaseErrorNumber(error: Sqlite3WasmDbError): TsSqlDatabaseErrorNumber | undefined {
+    return typeof error.resultCode === 'number' ? error.resultCode : undefined
 }

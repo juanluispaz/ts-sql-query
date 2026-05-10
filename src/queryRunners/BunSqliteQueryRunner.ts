@@ -4,7 +4,7 @@ import type { DatabaseType, PromiseProvider } from './QueryRunner.js'
 import { type Database, SQLiteError } from 'bun:sqlite'
 import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSqlError.js"
-import { getSqliteEngineErrorReason } from './databaseErrorMappers/SqliteErrorMapper.js'
+import { getSqliteEngineErrorReason, getSqliteErrorCodeNumber } from './databaseErrorMappers/SqliteErrorMapper.js'
 
 export interface BunSqliteQueryRunnerConfig {
     promise?: PromiseProvider
@@ -106,7 +106,15 @@ export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {
 }
 
 function getBunSqliteErrorReason(error: SQLiteError): TsSqlErrorReason {
-    return getSqliteEngineErrorReason({ code: error.code, message: error.message })
+    return getSqliteEngineErrorReason({ code: error.code, databaseErrorNumber: getBunSqliteErrorNumber(error), message: error.message })
+}
+
+function getBunSqliteErrorNumber(error: SQLiteError): number | undefined {
+    const errno = (error as { errno?: unknown }).errno
+    if (typeof errno === 'number' && errno > 0) {
+        return errno
+    }
+    return getSqliteErrorCodeNumber(error.code)
 }
 
 function getBunSqliteDriverErrorReason(error: Error): TsSqlErrorReason {

@@ -1,7 +1,7 @@
 /// <reference types="bun-types" />
 
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
-import { getSqliteEngineErrorReason } from './databaseErrorMappers/SqliteErrorMapper.js'
+import { getSqliteEngineErrorReason, getSqliteErrorCodeNumber } from './databaseErrorMappers/SqliteErrorMapper.js'
 import { AbstractBunSqlQueryRunner } from './AbstractBunSqlQueryRunner.js'
 import { SQL } from 'bun'
 
@@ -67,22 +67,31 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
 
 function getBunSqliteErrorReason(error: BunSqliteError): TsSqlErrorReason {
     const code = error.code
+    const databaseErrorNumber = getBunSqliteErrorNumber(error)
     switch (code) {
         case 'ERR_SQLITE_CONNECTION_CLOSED':
         case 'SQLITE_CONNECTION_CLOSED':
-            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
+            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorNumber, databaseErrorMessage: error.message, errorType: 'connection lost' }
         case 'ERR_SQLITE_QUERY_CANCELLED':
-            return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'cancelled' }
+            return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorNumber, databaseErrorMessage: error.message, timeoutType: 'cancelled' }
         case 'ERR_SQLITE_NOT_TAGGED_CALL':
-            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, parameterErrorType: 'invalid binding' }
+            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorNumber, databaseErrorMessage: error.message, parameterErrorType: 'invalid binding' }
         case 'ERR_SQLITE_INVALID_TRANSACTION_STATE':
-            return getSqliteEngineErrorReason({ code: 'SQLITE_ERROR', databaseErrorCode: code, message: error.message })
+            return getSqliteEngineErrorReason({ code: 'SQLITE_ERROR', databaseErrorCode: code, databaseErrorNumber, message: error.message })
     }
 
     if (code.startsWith('SQLITE_')) {
-        return getSqliteEngineErrorReason({ code, databaseErrorCode: code, message: error.message })
+        return getSqliteEngineErrorReason({ code, databaseErrorCode: code, databaseErrorNumber, message: error.message })
     }
-    return { reason: 'SQL_UNKNOWN', databaseErrorCode: code, databaseErrorMessage: error.message }
+    return { reason: 'SQL_UNKNOWN', databaseErrorCode: code, databaseErrorNumber, databaseErrorMessage: error.message }
+}
+
+function getBunSqliteErrorNumber(error: BunSqliteError): number | undefined {
+    const errno = (error as { errno?: unknown }).errno
+    if (typeof errno === 'number' && errno > 0) {
+        return errno
+    }
+    return getSqliteErrorCodeNumber(error.code)
 }
 
 function getBunSqliteDriverErrorReason(error: Error): TsSqlErrorReason {

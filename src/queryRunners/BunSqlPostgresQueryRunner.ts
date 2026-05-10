@@ -79,6 +79,8 @@ function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason
         case 'ERR_POSTGRES_INVALID_QUERY_BINDING':
         case 'ERR_POSTGRES_NOT_TAGGED_CALL':
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, parameterErrorType: 'invalid binding' }
+        case 'ERR_POSTGRES_TOO_MANY_PARAMETERS':
+            return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, ...getBunPostgresTooManyParametersDetails(error.message) }
         case 'ERR_POSTGRES_UNSAFE_TRANSACTION':
             return { reason: 'TRANSACTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, transactionErrorType: 'unsupported operation' }
         case 'ERR_POSTGRES_INVALID_TRANSACTION_STATE':
@@ -95,23 +97,33 @@ function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason
         case 'ERR_POSTGRES_TLS_UPGRADE_FAILED':
             return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'invalid connection configuration' }
         case 'ERR_POSTGRES_INVALID_BINARY_DATA':
+        case 'ERR_POSTGRES_INVALID_TIME_FORMAT':
+        case 'ERR_POSTGRES_UNSUPPORTED_NUMERIC_FORMAT':
+        case 'ERR_POSTGRES_UNKNOWN_FORMAT_CODE':
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'invalid format' }
         case 'ERR_POSTGRES_INVALID_BYTE_SEQUENCE':
         case 'ERR_POSTGRES_INVALID_BYTE_SEQUENCE_FOR_ENCODING':
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'invalid encoding' }
         case 'ERR_POSTGRES_INVALID_CHARACTER':
             return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'invalid value' }
         case 'ERR_POSTGRES_OVERFLOW':
         case 'ERR_POSTGRES_UNSUPPORTED_INTEGER_SIZE':
             return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'out of range' }
         case 'ERR_POSTGRES_UNSUPPORTED_BYTEA_FORMAT':
+        case 'ERR_POSTGRES_UNSUPPORTED_ARRAY_FORMAT':
         case 'ERR_POSTGRES_MULTIDIMENSIONAL_ARRAY_NOT_SUPPORTED_YET':
         case 'ERR_POSTGRES_NULLS_IN_ARRAY_NOT_SUPPORTED_YET':
             return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode: code, databaseErrorMessage: error.message }
+        case 'ERR_POSTGRES_EXPECTED_REQUEST':
+        case 'ERR_POSTGRES_EXPECTED_STATEMENT':
+        case 'ERR_POSTGRES_INVALID_BACKEND_KEY_DATA':
+        case 'ERR_POSTGRES_INVALID_MESSAGE':
+        case 'ERR_POSTGRES_INVALID_MESSAGE_LENGTH':
+        case 'ERR_POSTGRES_UNEXPECTED_MESSAGE':
+            return { reason: 'SQL_INTERNAL_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'engine internal' }
         case 'ERR_POSTGRES_SERVER_ERROR':
             return { reason: 'SQL_UNKNOWN', databaseErrorCode: code, databaseErrorMessage: error.message }
         default:
-            if (code.startsWith('ERR_POSTGRES_')) {
-                return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message }
-            }
             return { reason: 'SQL_UNKNOWN', databaseErrorCode: code, databaseErrorMessage: error.message }
     }
 }
@@ -148,7 +160,26 @@ function getBunPostgresErrorCode(error: BunSqlPostgresError): string | undefined
     return error.code
 }
 
+function getBunPostgresTooManyParametersDetails(message: string): {
+    parameterErrorType: 'too many'
+    expectedParameterCount?: number
+} {
+    const maximum = /maximum of (\d+) parameters?/i.exec(message)
+    return {
+        parameterErrorType: 'too many',
+        expectedParameterCount: numberValue(maximum?.[1]),
+    }
+}
+
 function getStringProperty(error: BunSqlPostgresError, property: string): string | undefined {
     const value = (error as unknown as Record<string, unknown>)[property]
     return typeof value === 'string' ? value : undefined
+}
+
+function numberValue(value: string | undefined): number | undefined {
+    if (value === undefined) {
+        return undefined
+    }
+    const number = Number(value)
+    return Number.isFinite(number) ? number : undefined
 }

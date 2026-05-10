@@ -363,12 +363,14 @@ export class TsSqlError extends Error {
     constructor(errorReason: TsSqlErrorReason, message: string, cause: unknown)
     constructor(errorReason: TsSqlErrorReason, messageOrCause: unknown)
     constructor(errorReason: TsSqlErrorReason, message: string | unknown, cause?: unknown) {
+        const errorCause = cause !== undefined ? cause : typeof message === 'string' ? undefined : message
+
         if (message instanceof Error) {
-            super(errorReason.reason + ': ' + message.message, { cause })
+            super(errorReason.reason + ': ' + message.message, { cause: errorCause })
         }   else if (typeof message === 'string') {
-            super(errorReason.reason + ': ' + message, { cause })
+            super(errorReason.reason + ': ' + message, { cause: errorCause })
         } else {
-            super(errorReason.reason, { cause });
+            super(errorReason.reason, { cause: errorCause });
         }
 
         this.name = "TsSqlError"

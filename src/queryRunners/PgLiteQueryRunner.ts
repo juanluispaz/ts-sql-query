@@ -23,10 +23,6 @@ type PgLiteDatabaseError = Error & {
     routine?: string
 }
 
-type PgDriverError = Error & {
-    code?: string
-}
-
 export interface PgQueryRunnerConfig {
     allowNestedTransactions?: boolean
 }
@@ -100,7 +96,7 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
                 constraintName: error.constraint,
             })
         }
-        return getPgDriverErrorReason(error)
+        return getPgLiteErrorReason(error) || { reason: 'UNKNOWN' }
     }
 
     static isSqlError(error: unknown): boolean {
@@ -109,45 +105,8 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
 
 }
 
-function getPgDriverErrorReason(error: PgDriverError): TsSqlErrorReason {
-    const code = error.code
-    if (code === 'ECONNRESET' || code === 'EPIPE' || code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'EAI_AGAIN' || code === 'EHOSTUNREACH') {
-        return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
-    }
-    if (code === 'ETIMEDOUT' || code === 'ESOCKETTIMEDOUT') {
-        return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'connection' }
-    }
-    if (error.message === 'Query read timeout') {
-        return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'statement' }
-    }
-    if (error.message === 'timeout expired') {
-        return { reason: 'SQL_TIMEOUT', databaseErrorCode: code, databaseErrorMessage: error.message, timeoutType: 'connection' }
-    }
-    if (isPgInvalidParameterError(error.message)) {
-        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: code, databaseErrorMessage: error.message, ...getPgInvalidParameterDetails(error.message) }
-    }
-    return { reason: 'SQL_UNKNOWN', databaseErrorCode: code, databaseErrorMessage: error.message }
-}
-
-function isPgError(error: unknown): error is PgLiteDatabaseError | PgDriverError {
-    if (!(error instanceof Error)) {
-        return false
-    }
-    if (isPgLiteDatabaseError(error)) {
-        return true
-    }
-    const code = (error as PgDriverError).code
-    return code === 'ECONNRESET'
-        || code === 'EPIPE'
-        || code === 'ECONNREFUSED'
-        || code === 'ENOTFOUND'
-        || code === 'EAI_AGAIN'
-        || code === 'EHOSTUNREACH'
-        || code === 'ETIMEDOUT'
-        || code === 'ESOCKETTIMEDOUT'
-        || error.message === 'Query read timeout'
-        || error.message === 'timeout expired'
-        || isPgInvalidParameterError(error.message)
+function isPgError(error: unknown): error is PgLiteDatabaseError | Error | string {
+    return isPgLiteDatabaseError(error) || !!getPgLiteErrorReason(error)
 }
 
 function isPgLiteDatabaseError(error: unknown): error is PgLiteDatabaseError {
@@ -158,35 +117,82 @@ function isPgLiteDatabaseError(error: unknown): error is PgLiteDatabaseError {
     return isPostgresSqlState(code)
 }
 
-function isPgInvalidParameterError(message: string): boolean {
-    const lower = message.toLowerCase()
-    return lower.includes('bind message supplies')
-        || lower.includes('there is no parameter $')
+function getPgLiteErrorReason(error: unknown): TsSqlErrorReason | undefined {
+    const message = getPgLiteErrorMessage(error)
+    if (!message) {
+        return undefined
+    }
+    const databaseErrorMessage = message
+
+    if (message === 'PGlite is closing' || message === 'PGlite is closed') {
+        return { reason: 'SQL_CONNECTION_ERROR', databaseErrorMessage, errorType: 'connection lost' }
+    }
+
+    const invalidInput = /^Invalid input for (string|boolean|date|bytea) type$/.exec(message)
+    if (invalidInput) {
+        return { reason: 'SQL_INVALID_VALUE', databaseErrorMessage, errorType: 'invalid value', typeName: invalidInput[1] }
+    }
+
+    if (message === 'Transaction is closed') {
+        return { reason: 'TRANSACTION_ERROR', databaseErrorMessage, transactionErrorType: 'invalid state' }
+    }
+
+    if (message === 'No /dev/blob File or Blob provided to read from') {
+        return { reason: 'SQL_IO_ERROR', databaseErrorMessage, ioErrorType: 'read' }
+    }
+    if (message === 'No /dev/blob File or Blob provided to llseek') {
+        return { reason: 'SQL_IO_ERROR', databaseErrorMessage, ioErrorType: 'seek' }
+    }
+    if (message.startsWith('Extension bundle not found: ')) {
+        return { reason: 'SQL_IO_ERROR', databaseErrorMessage, ioErrorType: 'file not found' }
+    }
+
+    if (message === 'Compression not supported in this environment' || message === 'Unsupported environment for decompression') {
+        return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorMessage }
+    }
+
+    if (message === 'Invalid dataDir, must be a valid path'
+        || message.startsWith('Invalid FS bundle size: ')
+        || message.startsWith('Unknown package: ')
+        || message === 'Database already exists, cannot load from tarball'
+        || message.startsWith('INITDB failed to initialize: ')
+        || message.startsWith('Bad substitution: ')) {
+        return { reason: 'SQL_CONFIGURATION_ERROR', databaseErrorMessage, configurationErrorType: 'runtime parameter' }
+    }
+
+    if (message === 'offset and limit must be provided together') {
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage, parameterErrorType: 'wrong count' }
+    }
+    if (message === 'offset and limit must be numbers') {
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage, parameterErrorType: 'invalid type' }
+    }
+    if (message === 'offset and limit cannot be provided for non-windowed queries') {
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage, parameterErrorType: 'invalid binding' }
+    }
+    if (message === 'key is required for changes queries' || message === 'key is required for incremental queries') {
+        return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage, parameterErrorType: 'missing' }
+    }
+    if (message === 'Live query is no longer active and cannot be subscribed to') {
+        return { reason: 'SQL_INTERNAL_ERROR', databaseErrorMessage, errorType: 'api misuse' }
+    }
+
+    if (message === 'Unhandled cmd'
+        || message === 'Assertion failed'
+        || message === 'PGlite single mode already running'
+        || message === 'PGlite failed to initialize properly'
+        || message.startsWith('Unknown authenticationOk message type ')
+        || message.startsWith('Unhandled pclose ')
+        || message.startsWith('Unexpected popen mode value ')
+        || message.startsWith('Cannot process startup packet + ')) {
+        return { reason: 'SQL_INTERNAL_ERROR', databaseErrorMessage, errorType: 'engine internal' }
+    }
+
+    return undefined
 }
 
-function getPgInvalidParameterDetails(message: string): {
-    parameterErrorType: 'missing' | 'wrong count' | 'invalid binding'
-    parameterIndex?: number
-    expectedParameterCount?: number
-    actualParameterCount?: number
-} {
-    const missingIndex = /there is no parameter \$(\d+)/i.exec(message)
-    if (missingIndex) {
-        return { parameterErrorType: 'missing', parameterIndex: Number(missingIndex[1]) }
+function getPgLiteErrorMessage(error: unknown): string | undefined {
+    if (error instanceof Error) {
+        return error.message
     }
-
-    const wrongCount = /bind message supplies (\d+) parameters?, but prepared statement .+ requires (\d+)/i.exec(message)
-    if (wrongCount) {
-        return {
-            parameterErrorType: 'wrong count',
-            actualParameterCount: Number(wrongCount[1]),
-            expectedParameterCount: Number(wrongCount[2]),
-        }
-    }
-
-    if (message.toLowerCase().includes('bind message supplies')) {
-        return { parameterErrorType: 'wrong count' }
-    }
-
-    return { parameterErrorType: 'invalid binding' }
+    return typeof error === 'string' ? error : undefined
 }

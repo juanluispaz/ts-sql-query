@@ -98,10 +98,10 @@ function getBunPostgresErrorReason(error: BunSqlPostgresError): TsSqlErrorReason
         case 'ERR_POSTGRES_INVALID_BYTE_SEQUENCE':
         case 'ERR_POSTGRES_INVALID_BYTE_SEQUENCE_FOR_ENCODING':
         case 'ERR_POSTGRES_INVALID_CHARACTER':
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'invalid value' }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'invalid value' }
         case 'ERR_POSTGRES_OVERFLOW':
         case 'ERR_POSTGRES_UNSUPPORTED_INTEGER_SIZE':
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'out of range' }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'out of range' }
         case 'ERR_POSTGRES_UNSUPPORTED_BYTEA_FORMAT':
         case 'ERR_POSTGRES_MULTIDIMENSIONAL_ARRAY_NOT_SUPPORTED_YET':
         case 'ERR_POSTGRES_NULLS_IN_ARRAY_NOT_SUPPORTED_YET':

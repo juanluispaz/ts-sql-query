@@ -125,13 +125,13 @@ export type TsSqlErrorReason =
           Note: primary key violations are reported as unique. */
       { reason: 'SQL_CONSTRAINT_VIOLATED', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        constraintType?: 'unique' | 'not null' | 'foreign key' | 'check' | 'exclusion' | 'commit hook' | 'function' | 
-            'trigger' | 'virtual table' | 'pinned row', 
+        constraintType?: 'unique' | 'not null' | 'foreign key' | 'check' | 'exclusion' | 'restrict', 
         constraintName?: string, tableName?: string, columnName?: string }
-    | /** The value sent to the database is not valid for the target SQL type or column */
-      { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', 
+    | /** The value sent to the database is not valid for the target SQL type, expression, or column */
+      { reason: 'SQL_INVALID_VALUE', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        errorType?: 'out of range' | 'too long' | 'invalid value', 
+        errorType?: 'out of range' | 'too long' | 'invalid value' | 'invalid format' | 'invalid encoding' | 
+            'invalid json' | 'invalid xml' | 'invalid regular expression' | 'null not allowed' | 'sequence limit', 
         tableName?: string, columnName?: string, typeName?: string }
 
     /* ********************************************************************************************
@@ -141,12 +141,14 @@ export type TsSqlErrorReason =
     | /** SQL object referenced by the query was not found */
       { reason: 'SQL_OBJECT_NOT_FOUND', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database' | 'collation', 
+        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database' | 'collation' | 
+            'cursor' | 'prepared statement' | 'role', 
         schemaName?: string, tableName?: string, columnName?: string, objectName?: string }
     | /** SQL object already exists */
       { reason: 'SQL_OBJECT_ALREADY_EXISTS', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database', 
+        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database' | 
+            'cursor' | 'prepared statement', 
         schemaName?: string, tableName?: string, columnName?: string, objectName?: string }
 
     /* ********************************************************************************************
@@ -169,6 +171,10 @@ export type TsSqlErrorReason =
       { reason: 'SQL_AMBIGUOUS_IDENTIFIER', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
         identifier?: string }
+    | /** The SQL statement is semantically invalid, excluding syntax, permission, object, parameter, constraint, and value errors */
+      { reason: 'SQL_INVALID_SQL_STATEMENT',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
+        statementErrorType?: 'incomplete statement' | 'invalid definition' | 'type mismatch' | 'invalid statement context' }
 
     /* ********************************************************************************************
      * SQL execution: Errors caused by misuse, transactions, connections, or runtime concurrency conditions
@@ -187,8 +193,10 @@ export type TsSqlErrorReason =
     | /** Transactional error reported by the database, driver, or transaction engine */
       { reason: 'TRANSACTION_ERROR',
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
-        transactionErrorType?: 'invalid state' | 'aborted' | 'read only' | 'serialization failure' | 'deadlock' | 
-        'transaction rolled back' | 'outcome unknown' | 'invalid savepoint' | 'unsupported operation' }
+        transactionErrorType?:     'invalid state' | 'aborted' | 'active transaction' |
+          'serialization failure' | 'deadlock' | 'transaction rolled back' |
+          'outcome unknown' | 'invalid savepoint' | 'unsupported operation'
+      }
     | /** The SQL operation is not allowed because the connection, session, database, or storage is read-only */
       { reason: 'SQL_READ_ONLY_VIOLATION', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
@@ -201,6 +209,23 @@ export type TsSqlErrorReason =
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
         ioErrorType?: 'read' | 'write' | 'fsync' | 'truncate' | 'file stat' | 'lock' | 'unlock' | 'delete' | 'file not found' | 
             'access' | 'shared memory' | 'seek' | 'mmap' | 'path' | 'atomic write' | 'reserved extension' | 'unknown' }
+    | /** SQL routine or external routine failed while executing */
+      { reason: 'SQL_ROUTINE_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+    | /** SQL object exists but cannot be used in its current state or due to dependencies */
+      { reason: 'SQL_OBJECT_STATE_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
+        objectStateErrorType?: 'dependent objects still exist' | 'object in use' | 'invalid state' | 'wrong object type',
+        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database' | 'collation' | 
+            'cursor' | 'prepared statement' | 'role',
+        schemaName?: string, tableName?: string, columnName?: string, objectName?: string }
+    | /** Database or session configuration error */
+      { reason: 'SQL_CONFIGURATION_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
+        configurationErrorType?: 'configuration file' | 'lock file' | 'runtime parameter' }
+    | /** External or remote SQL data source error that cannot be more specifically classified */
+      { reason: 'SQL_EXTERNAL_DATA_SOURCE_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
     | /** Authentication failed while connecting to the database */
       { reason: 'SQL_AUTHENTICATION_ERROR', 
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
@@ -218,20 +243,10 @@ export type TsSqlErrorReason =
       { reason: 'SQL_DATABASE_CORRUPTED',
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
         corruptionType?: 'database file' | 'index' | 'sequence' | 'virtual table' | 'filesystem' | 'checksum' }
-    | /** The schema changed while a statement was being prepared or executed */
-      { reason: 'SQL_SCHEMA_CHANGED',
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
-    | /** The requested database snapshot is no longer available */
-      { reason: 'SQL_SNAPSHOT_NOT_AVAILABLE',
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
-    | /** Internal database engine condition, driver misuse, or unexpected non-error result code */
+    | /** Internal database engine condition or driver API misuse */
       { reason: 'SQL_INTERNAL_ERROR',
         databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
-        errorType?: 'engine internal' | 'api misuse' | 'unexpected non-error result code' | 'retry requested' | 'unused result code' }
-    | /** Diagnostic notice or warning reported by the database */
-      { reason: 'SQL_DIAGNOSTIC_EVENT',
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string,
-        eventType?: 'notice' | 'warning' }
+        errorType?: 'engine internal' | 'api misuse' }
 
     /* ********************************************************************************************
      * SQL execution: Unknown or uncategorized SQL error

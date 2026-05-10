@@ -168,7 +168,7 @@ function getKnownBunSqliteDriverErrorReason(error: Error): TsSqlErrorReason | un
     }
 
     if (upper.startsWith('BIGINT VALUE ') && upper.includes(' IS OUT OF RANGE')) {
-        return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'out of range', databaseErrorMessage }
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorMessage }
     }
     if (upper.includes('OUT OF MEMORY') || upper.includes('FAILED TO ALLOCATE MEMORY')) {
         return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'memory', databaseErrorMessage }

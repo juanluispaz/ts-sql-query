@@ -165,10 +165,10 @@ function getOracleDbErrorReason(error: DBError): TsSqlErrorReason {
         case 2290:
             return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode: errorNum, databaseErrorMessage, constraintType: 'check', constraintName: extractOracleConstraintName(error.message) }
         case 12899:
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', databaseErrorCode: errorNum, databaseErrorMessage, errorType: 'too long', columnName: extractOracleColumnName(error.message) }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: errorNum, databaseErrorMessage, errorType: 'too long', columnName: extractOracleColumnName(error.message) }
         case 1438:
         case 1455:
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', databaseErrorCode: errorNum, databaseErrorMessage, errorType: 'out of range' }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: errorNum, databaseErrorMessage, errorType: 'out of range' }
         case 1722:
         case 1830:
         case 1840:
@@ -179,7 +179,7 @@ function getOracleDbErrorReason(error: DBError): TsSqlErrorReason {
         case 1861:
         case 1882:
         case 1888:
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', databaseErrorCode: errorNum, databaseErrorMessage, errorType: 'invalid value' }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: errorNum, databaseErrorMessage, errorType: 'invalid value' }
         case 942:
             return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode: errorNum, databaseErrorMessage, objectType: 'table or view', objectName: extractOracleObjectName(error.message) }
         case 904:

@@ -172,7 +172,7 @@ export class PostgresQueryRunner extends SqlTransactionQueryRunner {
 function getPostgresErrorReason(error: PostgresJsError): TsSqlErrorReason {
     const code = error.code
     if (!code) {
-        return { reason: 'SQL_UNKNOWN' }
+        return { reason: 'SQL_UNKNOWN', databaseErrorMessage: error.message }
     }
 
     if (isPostgresSqlState(code)) {
@@ -192,6 +192,13 @@ function getPostgresErrorReason(error: PostgresJsError): TsSqlErrorReason {
         case 'CONNECTION_DESTROYED':
         case 'CONNECTION_CLOSED':
         case 'CONNECTION_ENDED':
+            return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
+        case 'ECONNRESET':
+        case 'EPIPE':
+        case 'ECONNREFUSED':
+        case 'ENOTFOUND':
+        case 'EAI_AGAIN':
+        case 'EHOSTUNREACH':
             return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
         case 'UNDEFINED_VALUE':
         case 'MAX_PARAMETERS_EXCEEDED':
@@ -248,6 +255,12 @@ function isPostgresJsError(error: unknown): error is PostgresJsError {
         || code === 'CONNECT_TIMEOUT'
         || code === 'CONNECTION_CLOSED'
         || code === 'CONNECTION_ENDED'
+        || code === 'ECONNRESET'
+        || code === 'EPIPE'
+        || code === 'ECONNREFUSED'
+        || code === 'ENOTFOUND'
+        || code === 'EAI_AGAIN'
+        || code === 'EHOSTUNREACH'
         || code === 'MESSAGE_NOT_SUPPORTED'
         || code === 'NOT_TAGGED_CALL'
         || code === 'UNDEFINED_VALUE'

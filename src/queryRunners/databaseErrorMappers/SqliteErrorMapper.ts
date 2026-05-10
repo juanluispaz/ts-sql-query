@@ -122,7 +122,7 @@ export function getSqliteEngineErrorReason(error: SqliteEngineError): TsSqlError
     const upper = message.toUpperCase()
 
     if (code === 'SQLITE_CONSTRAINT_DATATYPE') {
-        return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'invalid value', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'invalid value', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
     }
     if (code.startsWith('SQLITE_CONSTRAINT')) {
         return getSqliteConstraintReason(code, message, databaseErrorCode, databaseErrorMessage)
@@ -155,10 +155,10 @@ export function getSqliteEngineErrorReason(error: SqliteEngineError): TsSqlError
         return getSqliteCorruptionReason(code, databaseErrorCode, databaseErrorMessage)
     }
     if (code.startsWith('SQLITE_NOTICE')) {
-        return { reason: 'SQL_DIAGNOSTIC_EVENT', eventType: 'notice', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_INTERNAL_ERROR', errorType: 'engine internal', databaseErrorCode, databaseErrorMessage }
     }
     if (code.startsWith('SQLITE_WARNING')) {
-        return { reason: 'SQL_DIAGNOSTIC_EVENT', eventType: 'warning', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_INTERNAL_ERROR', errorType: 'engine internal', databaseErrorCode, databaseErrorMessage }
     }
 
     switch (code) {
@@ -166,24 +166,24 @@ export function getSqliteEngineErrorReason(error: SqliteEngineError): TsSqlError
         case 'SQLITE_ROW':
         case 'SQLITE_DONE':
         case 'SQLITE_OK_LOAD_PERMANENTLY':
-            return { reason: 'SQL_INTERNAL_ERROR', errorType: 'unexpected non-error result code', databaseErrorCode, databaseErrorMessage }
+            return { reason: 'SQL_INTERNAL_ERROR', errorType: 'engine internal', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_INTERNAL':
             return { reason: 'SQL_INTERNAL_ERROR', errorType: 'engine internal', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_NOTFOUND':
             return { reason: 'SQL_INTERNAL_ERROR', errorType: 'engine internal', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_EMPTY':
         case 'SQLITE_FORMAT':
-            return { reason: 'SQL_INTERNAL_ERROR', errorType: 'unused result code', databaseErrorCode, databaseErrorMessage }
+            return { reason: 'SQL_INTERNAL_ERROR', errorType: 'engine internal', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_ERROR_MISSING_COLLSEQ':
             return { reason: 'SQL_OBJECT_NOT_FOUND', objectType: 'collation', objectName: extractSqliteMissingCollationName(message), databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_ERROR_RETRY':
-            return { reason: 'SQL_INTERNAL_ERROR', errorType: 'retry requested', databaseErrorCode, databaseErrorMessage }
+            return { reason: 'SQL_INTERNAL_ERROR', errorType: 'engine internal', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_ERROR_SNAPSHOT':
-            return { reason: 'SQL_SNAPSHOT_NOT_AVAILABLE', databaseErrorCode, databaseErrorMessage }
+            return { reason: 'TRANSACTION_ERROR', transactionErrorType: 'invalid state', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_TOOBIG':
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'too long', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
+            return { reason: 'SQL_INVALID_VALUE', errorType: 'too long', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_MISMATCH':
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'invalid value', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
+            return { reason: 'SQL_INVALID_VALUE', errorType: 'invalid value', columnName: extractColumnPathLastSegment(message), databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_RANGE':
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_MISUSE':
@@ -209,12 +209,16 @@ export function getSqliteEngineErrorReason(error: SqliteEngineError): TsSqlError
         case 'SQLITE_PERM':
             return { reason: 'SQL_PERMISSION_DENIED', databaseErrorCode, databaseErrorMessage }
         case 'SQLITE_SCHEMA':
-            return { reason: 'SQL_SCHEMA_CHANGED', databaseErrorCode, databaseErrorMessage }
+            return { reason: 'SQL_OBJECT_STATE_ERROR', objectType: 'schema', objectStateErrorType: 'invalid state', databaseErrorCode, databaseErrorMessage }
     }
 
     const reasonByMessage = getSqliteEngineMessageReason(upper, message, databaseErrorCode, databaseErrorMessage)
     if (reasonByMessage) {
         return reasonByMessage
+    }
+
+    if (code === 'SQLITE_ERROR') {
+        return { reason: 'SQL_INVALID_SQL_STATEMENT', databaseErrorCode, databaseErrorMessage }
     }
 
     return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
@@ -331,6 +335,9 @@ function getSqliteEngineMessageReason(upper: string, message: string, databaseEr
     if (upper.includes('WRONG NUMBER OF ARGUMENTS TO FUNCTION')) {
         return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
     }
+    if (upper.includes('ON CONFLICT CLAUSE DOES NOT MATCH ANY PRIMARY KEY OR UNIQUE CONSTRAINT')) {
+        return { reason: 'SQL_INVALID_CONFLICT_TARGET', databaseErrorCode, databaseErrorMessage }
+    }
     if (upper.includes('NO SUCH TABLE:')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', objectType: 'table or view', objectName: extractAfterColon(message), databaseErrorCode, databaseErrorMessage }
     }
@@ -341,6 +348,12 @@ function getSqliteEngineMessageReason(upper: string, message: string, databaseEr
     if (upper.includes('NO SUCH FUNCTION:')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', objectType: 'routine', objectName: extractAfterColon(message), databaseErrorCode, databaseErrorMessage }
     }
+    if (upper.includes('NO SUCH COLLATION SEQUENCE:')) {
+        return { reason: 'SQL_OBJECT_NOT_FOUND', objectType: 'collation', objectName: extractAfterColon(message), databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('UNKNOWN DATABASE')) {
+        return { reason: 'SQL_OBJECT_NOT_FOUND', objectType: 'database', objectName: extractUnknownDatabaseName(message), databaseErrorCode, databaseErrorMessage }
+    }
     if (upper.includes('TABLE ') && upper.includes(' ALREADY EXISTS')) {
         return { reason: 'SQL_OBJECT_ALREADY_EXISTS', objectType: 'table or view', objectName: extractObjectAlreadyExistsName(message), databaseErrorCode, databaseErrorMessage }
     }
@@ -350,6 +363,12 @@ function getSqliteEngineMessageReason(upper: string, message: string, databaseEr
     if (upper.includes('INDEX ') && upper.includes(' ALREADY EXISTS')) {
         return { reason: 'SQL_OBJECT_ALREADY_EXISTS', objectName: extractObjectAlreadyExistsName(message), databaseErrorCode, databaseErrorMessage }
     }
+    if (upper.includes('CANNOT MODIFY') && upper.includes('BECAUSE IT IS A VIEW')) {
+        return { reason: 'SQL_OBJECT_STATE_ERROR', objectStateErrorType: 'wrong object type', objectType: 'table or view', objectName: extractCannotModifyObjectName(message), databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('CANNOT CREATE INDEX ON VIEW')) {
+        return { reason: 'SQL_OBJECT_STATE_ERROR', objectStateErrorType: 'wrong object type', objectType: 'table or view', objectName: extractAfterKeyword(message, 'view'), databaseErrorCode, databaseErrorMessage }
+    }
     if (upper.includes('AMBIGUOUS COLUMN NAME:')) {
         return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', identifier: extractAfterColon(message), databaseErrorCode, databaseErrorMessage }
     }
@@ -358,6 +377,38 @@ function getSqliteEngineMessageReason(upper: string, message: string, databaseEr
     }
     if (upper.includes('INCOMPLETE INPUT')) {
         return { reason: 'SQL_SYNTAX_ERROR', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('UNRECOGNIZED TOKEN:')) {
+        return { reason: 'SQL_SYNTAX_ERROR', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('DATABASE IS LOCKED') || upper.includes('DATABASE TABLE IS LOCKED')) {
+        return { reason: 'SQL_TIMEOUT', timeoutType: 'database file busy', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('CANNOT VACUUM FROM WITHIN A TRANSACTION')
+        || upper.includes('CANNOT CHANGE INTO WAL MODE FROM WITHIN A TRANSACTION')) {
+        return { reason: 'TRANSACTION_ERROR', transactionErrorType: 'active transaction', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('TOO MANY SQL VARIABLES')
+        || upper.includes('TOO MANY COLUMNS')
+        || upper.includes('TOO MANY TERMS IN COMPOUND SELECT')
+        || upper.includes('TOO MANY TERMS IN ORDER BY CLAUSE')
+        || upper.includes('TOO MANY TERMS IN GROUP BY CLAUSE')) {
+        return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('STRING OR BLOB TOO BIG')) {
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'too long', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('DATATYPE MISMATCH')) {
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'invalid value', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('USER-DEFINED FUNCTION') && (upper.includes('RAISED EXCEPTION') || upper.includes('ERROR'))) {
+        return { reason: 'SQL_ROUTINE_ERROR', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('FOREIGN KEY MISMATCH')) {
+        return { reason: 'SQL_INVALID_SQL_STATEMENT', statementErrorType: 'invalid definition', databaseErrorCode, databaseErrorMessage }
+    }
+    if (upper.includes('MALFORMED DATABASE SCHEMA') || upper.includes('DATABASE DISK IMAGE IS MALFORMED')) {
+        return { reason: 'SQL_DATABASE_CORRUPTED', corruptionType: 'database file', databaseErrorCode, databaseErrorMessage }
     }
     return undefined
 }
@@ -397,19 +448,19 @@ function getSqliteConstraintReason(code: string, message: string, databaseErrorC
         }
     }
     if (code === 'SQLITE_CONSTRAINT_COMMITHOOK') {
-        return { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'commit hook', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
     }
     if (code === 'SQLITE_CONSTRAINT_FUNCTION') {
-        return { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'function', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
     }
     if (code === 'SQLITE_CONSTRAINT_TRIGGER') {
-        return { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'trigger', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
     }
     if (code === 'SQLITE_CONSTRAINT_VTAB') {
-        return { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'virtual table', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
     }
     if (code === 'SQLITE_CONSTRAINT_PINNED') {
-        return { reason: 'SQL_CONSTRAINT_VIOLATED', constraintType: 'pinned row', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
     }
     return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
 }
@@ -464,4 +515,32 @@ function extractObjectAlreadyExistsName(message: string): string | undefined {
         return match[1]?.replace(/^["'`[]|["'`\]]$/g, '')
     }
     return undefined
+}
+
+function extractUnknownDatabaseName(message: string): string | undefined {
+    const match = /unknown database\s+(.+)$/i.exec(message)
+    if (match) {
+        return trimSqliteIdentifier(match[1])
+    }
+    return undefined
+}
+
+function extractCannotModifyObjectName(message: string): string | undefined {
+    const match = /cannot modify\s+(.+?)\s+because it is a view/i.exec(message)
+    if (match) {
+        return trimSqliteIdentifier(match[1])
+    }
+    return undefined
+}
+
+function extractAfterKeyword(message: string, keyword: string): string | undefined {
+    const match = new RegExp(`${keyword}\\s+(.+)$`, 'i').exec(message)
+    if (match) {
+        return trimSqliteIdentifier(match[1])
+    }
+    return undefined
+}
+
+function trimSqliteIdentifier(value: string | undefined): string | undefined {
+    return value?.trim().replace(/^["'`[]|["'`\]]$/g, '')
 }

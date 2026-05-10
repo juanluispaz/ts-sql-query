@@ -141,10 +141,10 @@ function getSqlite3WasmErrorReason(error: Sqlite3WasmDbError): TsSqlErrorReason 
         return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('BIGINT VALUE IS TOO BIG TO STORE WITHOUT PRECISION LOSS:')) {
-        return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'out of range', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('INTEGER IS OUT OF RANGE FOR JS INTEGER RANGE:')) {
-        return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'out of range', databaseErrorCode, databaseErrorMessage }
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorCode, databaseErrorMessage }
     }
     if (upper.includes('EXEC() REQUIRES AN SQL STRING.') || upper.includes('CANNOT PREPARE EMPTY SQL.')) {
         return { reason: 'SQL_INTERNAL_ERROR', errorType: 'api misuse', databaseErrorCode, databaseErrorMessage }

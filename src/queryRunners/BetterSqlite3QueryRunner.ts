@@ -141,13 +141,13 @@ function getBetterSqlite3DriverErrorReason(error: BetterSqlite3DriverError): TsS
         return { reason: 'SQL_INVALID_PARAMETER', databaseErrorMessage }
     }
     if (message === 'The bound string, buffer, or bigint is too big') {
-        return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'too long', databaseErrorMessage }
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'too long', databaseErrorMessage }
     }
     if (isBetterSqlite3TooBigReturnedValueMessage(message)) {
-        return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'out of range', databaseErrorMessage }
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorMessage }
     }
     if (isBetterSqlite3InvalidReturnedValueMessage(message)) {
-        return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'invalid value', databaseErrorMessage }
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'invalid value', databaseErrorMessage }
     }
     if (message === 'Out of memory' || message === 'Array overflow (too many rows returned)') {
         return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'memory', databaseErrorMessage }

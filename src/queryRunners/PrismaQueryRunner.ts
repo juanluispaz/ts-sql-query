@@ -265,7 +265,7 @@ function getPrismaKnownRequestErrorReason(error: PrismaClientKnownRequestError):
             return { reason: 'SQL_CONNECTION_ERROR', errorType: 'connection lost', databaseErrorCode, databaseErrorMessage }
         case 'P2000':
             return {
-                reason: 'SQL_INVALID_VALUE_FOR_COLUMN',
+                reason: 'SQL_INVALID_VALUE',
                 errorType: 'too long',
                 columnName: getPrismaMetaString(meta, 'column_name') || getPrismaMetaString(meta, 'column'),
                 databaseErrorCode,
@@ -312,7 +312,7 @@ function getPrismaKnownRequestErrorReason(error: PrismaClientKnownRequestError):
             return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage }
         case 'P2020':
         case 'P2033':
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'out of range', databaseErrorCode, databaseErrorMessage }
+            return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorCode, databaseErrorMessage }
         case 'P2021': {
             const tableName = getPrismaMetaString(meta, 'table')
             return {
@@ -336,7 +336,7 @@ function getPrismaKnownRequestErrorReason(error: PrismaClientKnownRequestError):
             }
         }
         case 'P2023':
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'invalid value', databaseErrorCode, databaseErrorMessage }
+            return { reason: 'SQL_INVALID_VALUE', errorType: 'invalid value', databaseErrorCode, databaseErrorMessage }
         case 'P2024':
             return { reason: 'SQL_RESOURCE_LIMIT_REACHED', resourceType: 'pool', databaseErrorCode, databaseErrorMessage }
         case 'P2028':
@@ -426,10 +426,10 @@ function getPrismaRawQueryErrorReason(error: PrismaClientKnownRequestError, data
         return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage }
     }
     if (lower.includes('value too long') || lower.includes('data too long')) {
-        return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'too long', databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage }
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'too long', databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage }
     }
     if (lower.includes('out of range')) {
-        return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', errorType: 'out of range', databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage }
+        return { reason: 'SQL_INVALID_VALUE', errorType: 'out of range', databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage }
     }
     if (lower.includes('syntax error')) {
         return { reason: 'SQL_SYNTAX_ERROR', databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage }
@@ -448,7 +448,7 @@ function getPrismaRawQueryErrorReason(error: PrismaClientKnownRequestError, data
     }
     if (lower.includes('read-only') || lower.includes('read only')) {
         if (lower.includes('transaction')) {
-            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage, transactionErrorType: 'read only' }
+            return { reason: 'SQL_READ_ONLY_VIOLATION', databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage }
         }
         return { reason: 'SQL_READ_ONLY_VIOLATION', databaseErrorCode: rawCode || databaseErrorCode, databaseErrorMessage: rawMessage }
     }

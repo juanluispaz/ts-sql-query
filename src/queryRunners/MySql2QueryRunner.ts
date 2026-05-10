@@ -160,14 +160,14 @@ function getMySql2ErrorReason(error: QueryError): TsSqlErrorReason {
         case 4025:
             return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode: errno, databaseErrorMessage: message, constraintType: 'check', constraintName: extractKeyName(message), tableName: extractMySqlCheckTableName(message) }
         case 1406:
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', databaseErrorCode: errno, databaseErrorMessage: message, errorType: 'too long', columnName: extractQuotedName(message) }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: errno, databaseErrorMessage: message, errorType: 'too long', columnName: extractQuotedName(message) }
         case 1264:
         case 1690:
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', databaseErrorCode: errno, databaseErrorMessage: message, errorType: 'out of range' }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: errno, databaseErrorMessage: message, errorType: 'out of range' }
         case 1292:
         case 1366:
         case 1411:
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', databaseErrorCode: errno, databaseErrorMessage: message, errorType: 'invalid value' }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: errno, databaseErrorMessage: message, errorType: 'invalid value' }
         case 1049:
             return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode: errno, databaseErrorMessage: message, objectType: 'database', objectName: extractQuotedName(message) }
         case 1146:
@@ -229,7 +229,7 @@ function getMySql2ErrorReason(error: QueryError): TsSqlErrorReason {
         case 1318:
             return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode: errno, databaseErrorMessage: message }
         case 1792:
-            return { reason: 'TRANSACTION_ERROR', databaseErrorCode: errno, databaseErrorMessage: message, transactionErrorType: 'read only' }
+            return { reason: 'SQL_READ_ONLY_VIOLATION', databaseErrorCode: errno, databaseErrorMessage: message }
         case 1235:
             return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode: errno, databaseErrorMessage: message }
         default:

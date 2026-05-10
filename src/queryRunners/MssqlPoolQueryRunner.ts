@@ -299,10 +299,10 @@ function getMssqlRequestErrorReason(error: RequestError): TsSqlErrorReason {
         case 547:
             return getConstraintViolationFrom547(message, number)
         case 8115:
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', databaseErrorCode: number, databaseErrorMessage: message, errorType: 'out of range', columnName: extractColumnName(message) }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: number, databaseErrorMessage: message, errorType: 'out of range', columnName: extractColumnName(message) }
         case 8152:
         case 2628:
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', databaseErrorCode: number, databaseErrorMessage: message, errorType: 'too long', columnName: extractColumnName(message) }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: number, databaseErrorMessage: message, errorType: 'too long', columnName: extractColumnName(message) }
         case 241:
         case 242:
         case 245:
@@ -311,7 +311,7 @@ function getMssqlRequestErrorReason(error: RequestError): TsSqlErrorReason {
         case 295:
         case 296:
         case 8169:
-            return { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', databaseErrorCode: number, databaseErrorMessage: message, errorType: 'invalid value', columnName: extractColumnName(message) }
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode: number, databaseErrorMessage: message, errorType: 'invalid value', columnName: extractColumnName(message) }
         case 911:
             return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode: number, databaseErrorMessage: message, objectType: 'database', objectName: extractQuotedName(message) }
         case 208:

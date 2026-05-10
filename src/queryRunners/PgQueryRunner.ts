@@ -92,7 +92,7 @@ export class PgQueryRunner extends SqlTransactionQueryRunner {
 
 function getPgDriverErrorReason(error: PgDriverError): TsSqlErrorReason {
     const code = error.code
-    if (code === 'ECONNRESET' || code === 'EPIPE') {
+    if (code === 'ECONNRESET' || code === 'EPIPE' || code === 'ECONNREFUSED' || code === 'ENOTFOUND' || code === 'EAI_AGAIN' || code === 'EHOSTUNREACH') {
         return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode: code, databaseErrorMessage: error.message, errorType: 'connection lost' }
     }
     if (code === 'ETIMEDOUT' || code === 'ESOCKETTIMEDOUT') {
@@ -120,6 +120,10 @@ function isPgError(error: unknown): error is DatabaseError | PgDriverError {
     const code = (error as PgDriverError).code
     return code === 'ECONNRESET'
         || code === 'EPIPE'
+        || code === 'ECONNREFUSED'
+        || code === 'ENOTFOUND'
+        || code === 'EAI_AGAIN'
+        || code === 'EHOSTUNREACH'
         || code === 'ETIMEDOUT'
         || code === 'ESOCKETTIMEDOUT'
         || error.message === 'Query read timeout'

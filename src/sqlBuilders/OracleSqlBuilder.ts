@@ -263,7 +263,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             case 'minusAll':
                 return ' except all '
             default:
-                throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_COMPOUND_OPERATOR', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
+                throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid compound operator', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
         }   
     }
     _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
@@ -415,7 +415,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     _buildInsertMultiple(query: InsertData, params: any[]): string {
         const multiple = query.__multiple
         if (!multiple) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_EXPECTING_INSERT_OF_MULTIPLE_VALUES' }, 'Exepected a multiple insert')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'expecting insert of multiple values' }, 'Exepected a multiple insert')
         }
         if (multiple.length <= 0) {
             return ''

@@ -2292,11 +2292,11 @@ function isSelectQuery(value: any): value is InlineSelectData {
 
 function valueSourceInitializationForInlineSelect(selectData: SelectData, required: boolean) {
     if (selectData.__asInlineAggregatedArrayValue) {
-        throw new TsSqlProcessingError({ reason: 'INTERNAL_UNEXPECTED_VALUE' }, 'Unexpected inline aggregated array vaule')
+        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'Unexpected inline aggregated array vaule')
     } else if (selectData.__oneColumn) {
         const result = selectData.__columns['result']
         if (!isValueSource(result)) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'Result column for a select one column not found')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'Result column for a select one column not found')
         }
         const valueSourcePrivate = __getValueSourcePrivate(result)
         let typeAdapter = valueSourcePrivate.__typeAdapter
@@ -2306,7 +2306,7 @@ function valueSourceInitializationForInlineSelect(selectData: SelectData, requir
         }
         return [valueSourcePrivate.__valueType, valueSourcePrivate.__valueTypeName, required ? 'required' : 'optional', typeAdapter, valueSourcePrivate.__aggregatedArrayColumns, valueSourcePrivate.__aggregatedArrayMode, valueSourcePrivate.__uuidString] as const
     } else {
-        throw new TsSqlProcessingError({ reason: 'INTERNAL_UNEXPECTED_VALUE' }, 'Unexpected inline select')
+        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'unexpected value' }, 'Unexpected inline select')
     }
 }
 

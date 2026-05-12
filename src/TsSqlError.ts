@@ -4,6 +4,36 @@
 export type TsSqlDatabaseErrorCode = string
 export type TsSqlDatabaseErrorNumber = string | number
 
+/**
+ * Internal error produced by ts-sql-query when one of its own invariants is broken.
+ */
+export type TsSqlInternalErrorReason =
+    | /** The builder ended in an invalid state */
+      { reason: 'INTERNAL', internalErrorType: 'illegal state' }
+    | /** Result column not found or it has the wrong type */
+      { reason: 'INTERNAL', internalErrorType: 'invalid result column' }
+    | /** Unable to discover option joins */
+      { reason: 'INTERNAL', internalErrorType: 'unable to discover optional joins' }
+    | /** Invalid compound operator (union, union, intersect, etc.) */
+      { reason: 'INTERNAL', internalErrorType: 'invalid compound operator', operator: string }
+    | /** Invalid compound operator (inner join, left join, etc.) */
+      { reason: 'INTERNAL', internalErrorType: 'invalid join type', joinType: string }
+    | /** Invalid out bind returned by the database implementation */
+      { reason: 'INTERNAL', internalErrorType: 'invalid out binds returned', value: unknown }
+    | /** Expecting an insert of multiple values */
+      { reason: 'INTERNAL', internalErrorType: 'expecting insert of multiple values' }
+    | /** Expecting an insert with values coming from a select query */
+      { reason: 'INTERNAL', internalErrorType: 'expecting insert from select' }
+    | /** The provided value source is invalid due to a wrong implementation */
+      { reason: 'INTERNAL', internalErrorType: 'invalid value source' }
+    | /** Unable to create the old value emulation query */
+      { reason: 'INTERNAL', internalErrorType: 'incomplete old value query' }
+    | /** The same column name appears several times where it is not expected to be repeated, 
+          like the returned select columns alias */
+      { reason: 'INTERNAL', internalErrorType: 'repeated column', columnPath: string }
+    | /** A value was found where it is not expected */
+      { reason: 'INTERNAL', internalErrorType: 'unexpected value' }
+
 export type TsSqlErrorReason = 
 
     /* ********************************************************************************************
@@ -298,31 +328,7 @@ export type TsSqlErrorReason =
      * Internal errors
      */
 
-    | /** The builder ended in an invalid state */
-      { reason: 'INTERNAL_ILLEGAL_STATE' }
-    | /** Result column not found or it has the wrong type */
-      { reason: 'INTERNAL_INVALID_RESULT_COLUMN' }
-    | /** Unable to discover option joins */
-      { reason: 'INTERNAL_UNABLE_TO_DISCOVER_OPTIONAL_JOINS' }
-    | /** Invalid compound operator (union, union, intersect, etc.) */
-      { reason: 'INTERNAL_INVALID_COMPOUND_OPERATOR', operator: string }
-    | /** Invalid compound operator (inner join, left join, etc.) */
-      { reason: 'INTERNAL_INVALID_JOIN_TYPE', joinType: string }
-    | /** Invalid out bind returned by the database implementation */
-      { reason: 'INTERNAL_INVALID_OUT_BINDS_RETURNED', value: unknown }
-    | /** Expecting an insert of multiple values */
-      { reason: 'INTERNAL_EXPECTING_INSERT_OF_MULTIPLE_VALUES' }
-    | /** Expecting an insert with values coming from a select query */
-      { reason: 'INTERNAL_EXPECTING_INSERT_FROM_SELECT' }
-    | /** The provided value source is invalid due to a wrong implementation */
-      { reason: 'INTERNAL_INVALID_VALUE_SOURCE' }
-    | /** Unable to create the old value emulation query */
-      { reason: 'INTERNAL_INCOMPLETE_OLD_VALUE_QUERY' }
-    | /** The same column name appears several times where it is not expected to be repeated, 
-          like the returned select columns alias */
-      { reason: 'INTERNAL_REPEATED_COLUMN', columnPath: string }
-    | /** A value was found where it is not expected */
-      { reason: 'INTERNAL_UNEXPECTED_VALUE' }
+    | TsSqlInternalErrorReason
 
     /* ********************************************************************************************
      * Configuration errors

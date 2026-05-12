@@ -77,7 +77,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
                     }
                     if (value === undefined) {
                         return null
@@ -113,7 +113,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
                     }
                     if (value === undefined) {
                         throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
@@ -149,7 +149,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeDeleteReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
                     }
 
                     return values.map((value) => {
@@ -219,7 +219,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__where) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__where = asAlwaysIfValueSource(condition)
         __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
@@ -278,7 +278,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'join',
@@ -291,7 +291,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'innerJoin',
@@ -304,7 +304,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'leftJoin',
@@ -317,7 +317,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         this.__finishJoin()
         this.__query = ''
         if (this.__lastJoin) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__lastJoin = {
             __joinType: 'leftOuterJoin',
@@ -333,7 +333,7 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     on(condition: IAnyBooleanValueSource<any, any>): any {
         this.__query = ''
         if (!this.__lastJoin) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__lastJoin.__on = asAlwaysIfValueSource(condition)
         if (!this.__joins) {

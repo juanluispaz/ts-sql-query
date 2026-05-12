@@ -372,7 +372,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (hasToSql(condition)) {
             return condition.__toSqlForCondition(this, params)
         }
-        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_VALUE_SOURCE' }, 'Conditions must have a __toSqlForCondition method')
+        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid value source' }, 'Conditions must have a __toSqlForCondition method')
     }
     _appendConditionParenthesis(condition: IAnyBooleanValueSource<any, any>, params: any[]): string {
         if (this._needParenthesis(condition)) {
@@ -646,7 +646,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             case 'minusAll':
                 return ' except all '
             default:
-                throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_COMPOUND_OPERATOR', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
+                throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid compound operator', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
         }
     }
     _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
@@ -697,7 +697,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                     fromJoins += ' left outer join '
                     break
                 default:
-                    throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_JOIN_TYPE', joinType: join.__joinType }, 'Invalid join type: ' + join.__joinType)
+                    throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid join type', joinType: join.__joinType }, 'Invalid join type: ' + join.__joinType)
             }
             fromJoins += this._appendTableOrViewName(join.__tableOrView, params)
             if (join.__on) {
@@ -856,7 +856,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             if (query.__oneColumn) {
                 aggregatedArrayColumns = query.__columns['result']
                 if (!aggregatedArrayColumns) {
-                    throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'Result column for a select one column not found')
+                    throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'Result column for a select one column not found')
                 }
             } else {
                 aggregatedArrayColumns = query.__columns
@@ -1115,7 +1115,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildInsertMultiple(query: InsertData, params: any[]): string {
         const multiple = query.__multiple
         if (!multiple) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_EXPECTING_INSERT_OF_MULTIPLE_VALUES' }, 'Exepected a multiple insert')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'expecting insert of multiple values' }, 'Exepected a multiple insert')
         }
         if (multiple.length <= 0) {
             return ''
@@ -1617,7 +1617,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _buildInsertFromSelect(query: InsertData, params: any[]): string {
         const from = query.__from
         if (!from) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_EXPECTING_INSERT_FROM_SELECT' }, 'Exepected an insert from a subquery')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'expecting insert from select' }, 'Exepected an insert from a subquery')
         }
 
         this._ensureRootQuery(query, params)
@@ -1979,7 +1979,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
                 }
                 const oldCoumn = __getValueSourceOfObject(oldValues, property)
                 if (!oldCoumn) {
-                    throw new TsSqlProcessingError({ reason: 'INTERNAL_INCOMPLETE_OLD_VALUE_QUERY' }, 'The column ' + property + ' is missing from the old values table')
+                    throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'incomplete old value query' }, 'The column ' + property + ' is missing from the old values table')
                 }
                 const condition = (column as any as EqualableValueSource<any, any, any, any>).equals(oldCoumn)
                 if (where) {
@@ -2097,7 +2097,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         const oldValuesPrivate = __getTableOrViewPrivate(oldValues)
         if (!oldValuesPrivate.__as) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_INCOMPLETE_OLD_VALUE_QUERY' }, 'No alias found for the old values to define the locking strategy')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'incomplete old value query' }, 'No alias found for the old values to define the locking strategy')
         }
         let result
         if (updatePrimaryKey) {
@@ -2131,7 +2131,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const oldValuesPrivate = __getTableOrViewPrivate(oldValues)
         if (!oldValuesPrivate.__as) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_INCOMPLETE_OLD_VALUE_QUERY' }, 'No alias found for the old values')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'incomplete old value query' }, 'No alias found for the old values')
         }
 
         const oldForceAliasFor = this._getForceAliasFor(params)
@@ -3021,7 +3021,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (query.__oneColumn) {
             aggregatedArrayColumns = query.__columns['result']
             if (!aggregatedArrayColumns) {
-                throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'Result column for a select one column not found')
+                throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'Result column for a select one column not found')
             }
         } else {
             aggregatedArrayColumns = query.__columns

@@ -200,7 +200,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
                     }
                     if (value === undefined) {
                         return null
@@ -236,7 +236,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnOneRow(this.__query, this.__params).then((value) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
                     }
                     if (value === undefined) {
                         throw new TsSqlProcessingError({ reason: 'NO_RESULT' }, 'No result returned by the database')
@@ -272,7 +272,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                 result = this.__sqlBuilder._queryRunner.executeInsertReturningOneColumnManyRows(this.__query, this.__params).then((values) => {
                     const valueSource = this.__columns!['result']!
                     if (!isValueSource(valueSource)) {
-                        throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_RESULT_COLUMN' }, 'The result column must be a ValueSource')
+                        throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid result column' }, 'The result column must be a ValueSource')
                     }
 
                     return values.map((value) => {
@@ -1665,7 +1665,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
         this.__query = ''
         if (this.__onConflictUpdateSets) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__onConflictUpdateSets = {}
         if (this.__shape) {
@@ -1680,7 +1680,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
 
         if (this.__onConflictUpdateSets) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
 
         this.__onConflictUpdateSets = {}
@@ -1709,7 +1709,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
 
         if (this.__onConflictUpdateSets) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
 
         this.__onConflictUpdateSets = {}
@@ -1737,7 +1737,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     onConflictOn(...columns: AnyValueSource[]): this {
         this.__query = ''
         if (this.__onConflictOnColumns) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__onConflictOnColumns = columns
         for (let i = 0, length = columns.length; i < length; i++) {
@@ -1748,7 +1748,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     onConflictOnConstraint(constraint: string | IStringValueSource<any, any> | RawFragment<any>): this {
         this.__query = ''
         if (this.__onConflictOnConstraint) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__onConflictOnConstraint = constraint
         __addWiths(constraint, this.__sqlBuilder, this.__withs)
@@ -1766,7 +1766,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
         this.__query = ''
         if (this.__onConflictUpdateSets) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         this.__onConflictUpdateSets = {}
         if (this.__shape) {
@@ -1781,7 +1781,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
 
         if (this.__onConflictUpdateSets) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
 
         this.__onConflictUpdateSets = {}
@@ -1810,7 +1810,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
 
         if (this.__onConflictUpdateSets) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
 
         this.__onConflictUpdateSets = {}
@@ -1846,7 +1846,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
 
         if (this.__onConflictUpdateSets) {
             if (this.__onConflictUpdateWhere) {
-                throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+                throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
             }
             this.__onConflictUpdateWhere = asAlwaysIfValueSource(condition)
             const conditionPrivate = __getValueSourcePrivate(condition)
@@ -1854,12 +1854,12 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             this.__valuesForInsert = this.__valuesForInsert || conditionPrivate.__getValuesForInsert(this.__sqlBuilder)
         } else if (this.__onConflictOnColumns) {
             if (this.__onConflictOnColumnsWhere) {
-                throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+                throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
             }
             this.__onConflictOnColumnsWhere = asAlwaysIfValueSource(condition)
             __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         } else {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         return this
     }
@@ -1882,7 +1882,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         } else {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         return this
     }
@@ -1905,7 +1905,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             }
             __getValueSourcePrivate(condition).__addWiths(this.__sqlBuilder, this.__withs)
         } else {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_ILLEGAL_STATE' }, 'Illegal state')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')
         }
         return this
     }

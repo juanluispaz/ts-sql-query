@@ -75,7 +75,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
             return []
         }
         if (!Array.isArray(outBinds)) {
-            throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_OUT_BINDS_RETURNED', value: outBinds }, 'Invalid outBinds returned by the database')
+            throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid out binds returned', value: outBinds }, 'Invalid outBinds returned by the database')
         } 
 
         if (outBinds.length <= 0) {

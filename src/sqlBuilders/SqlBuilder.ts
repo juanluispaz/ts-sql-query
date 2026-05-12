@@ -52,7 +52,7 @@ export function flattenQueryColumns(columns: QueryColumns, target: FlatQueryColu
         if (isValueSource(column)) {
             const name = prefix + prop
             if (target[name]) {
-                throw new TsSqlProcessingError({ reason: 'INTERNAL_REPEATED_COLUMN', columnPath: name }, "You are trying to use the same column name '" + name + "' several times in the same query")
+                throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'repeated column', columnPath: name }, "You are trying to use the same column name '" + name + "' several times in the same query")
             }
             target[name] = column
         } else {

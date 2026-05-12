@@ -29,7 +29,7 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
             case 'minusAll':
                 return ' minus all '
             default:
-                throw new TsSqlProcessingError({ reason: 'INTERNAL_INVALID_COMPOUND_OPERATOR', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
+                throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid compound operator', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
         }   
     }
     _supportOrderByWhenAggregateArray = true

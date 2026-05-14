@@ -14,12 +14,14 @@ Every `TsSqlError` includes an `errorReason` property of type `TsSqlErrorReason`
 
 For SQL and related driver or transaction errors, the reason can also include `databaseErrorCode`, preserving the original code reported by the database, driver, or pool implementation, and `databaseErrorMessage`, preserving the original message when available.
 
+SQL error reasons prioritize the portable semantics of the failure over the database mechanism that produced it. For example, a trigger or foreign data wrapper can still produce a constraint, object, value, connection, or invalid-query error; use `databaseErrorCode`, `databaseErrorMessage`, and the native error available as `cause` when you need engine-specific detail.
+
 `QueryExecutionSource` is a helper error type used to capture where query execution was requested, making the execution stack trace and causality chain easier to understand.
 
 To access these types, import them as follows:
 
 ```ts
-import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, TsSqlErrorReason } from "ts-sql-query/TsSqlError";
+import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, TsSqlErrorReason, TsSqlInternalErrorReason } from "ts-sql-query/TsSqlError";
 ```
 
 ## TsSqlErrorReason type
@@ -28,7 +30,8 @@ import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, TsSqlErrorR
 /**
  * Reason of the errors thrown by ts-sql-query
  */
-export type TsSqlDatabaseErrorCode = string | number
+export type TsSqlDatabaseErrorCode = string
+export type TsSqlDatabaseErrorNumber = string | number
 
 export type TsSqlErrorReason = 
 
@@ -92,13 +95,20 @@ export type TsSqlErrorReason =
      * Transaction related errors
      */
 
+    | /** Transactional error reported by the database, driver, or transaction engine */
+      { reason: 'TRANSACTION_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string,
+        transactionErrorType?:     'invalid state' | 'aborted' | 'active transaction' |
+          'serialization failure' | 'deadlock' | 'transaction rolled back' |
+          'outcome unknown' | 'invalid savepoint' | 'unsupported operation'
+      }
     | /** You are trying to start a transaction when there is a transaction already opened */
       { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
     | /** You are trying to perform an action that required to be in a transaction (like commit), 
           but there is no open transaction */
       { reason: 'NOT_IN_TRANSACTION', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
     | /** You are trying to call a defer in transaction inside another defer in transaction */
       { reason: 'NESTED_DEFERRING_IN_TRANSACTION_NOT_SUPPORTED' }
     | /** Error executing a defer in transaction. 
@@ -107,11 +117,14 @@ export type TsSqlErrorReason =
         fn: () => void | Promise<void>, index: number, 
         deferredType: 'before next commit' | 'after next commit' | 'after next rollback' }
     | /** Low-level transaction not supported by the provided query runner */ 
-      { reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED' }
+      { reason: 'LOW_LEVEL_TRANSACTION_NOT_SUPPORTED',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
     | /** Specified transaction level not supported in the current database (like using a low-level query runner) */ 
-      { reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: string | undefined}
+      { reason: 'TRANSACTION_LEVEL_NOT_SUPPORTED', transactionLevel: string | undefined,
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
     | /** Specified transaction access mode not supported in the current database (like using a low-level query runner) */ 
-      { reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode: string | undefined }
+      { reason: 'TRANSACTION_ACCESS_MODE_NOT_SUPPORTED', accessMode: string | undefined,
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
 
     /* ********************************************************************************************
      * Query construction validation
@@ -135,7 +148,7 @@ export type TsSqlErrorReason =
     | /** Concurrent usage of the connection was detected. 
           SQL connections must be dedicated and cannot process queries in parallel */
       { reason: 'FORBIDDEN_CONCURRENT_USAGE', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
     | /** You are trying to use a database connection with other piece (like a query runner) that doesn't support it */ 
       { reason: 'UNSUPPORTED_DATABASE', database: string }
     | /** You are trying to execute a query that is not supported by the database */ 
@@ -148,13 +161,14 @@ export type TsSqlErrorReason =
     | /** SQL constraint violation reported by the database. 
           Note: primary key violations are reported as unique. */
       { reason: 'SQL_CONSTRAINT_VIOLATED', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        constraintType?: 'unique' | 'not null' | 'foreign key' | 'check' | 'exclusion', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string, 
+        constraintType?: 'unique' | 'not null' | 'foreign key' | 'check' | 'exclusion' | 'restrict', 
         constraintName?: string, tableName?: string, columnName?: string }
-    | /** The value sent to the database is not valid for the target SQL type or column */
-      { reason: 'SQL_INVALID_VALUE_FOR_COLUMN', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        errorType?: 'out of range' | 'too long' | 'invalid value', 
+    | /** The value sent to the database is not valid for the target SQL type, expression, or column */
+      { reason: 'SQL_INVALID_VALUE', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string, 
+        errorType?: 'out of range' | 'too long' | 'invalid value' | 'invalid format' | 'invalid encoding' | 
+            'invalid json' | 'invalid xml' | 'invalid regular expression' | 'null not allowed' | 'sequence limit', 
         tableName?: string, columnName?: string, typeName?: string }
 
     /* ********************************************************************************************
@@ -163,13 +177,15 @@ export type TsSqlErrorReason =
 
     | /** SQL object referenced by the query was not found */
       { reason: 'SQL_OBJECT_NOT_FOUND', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string, 
+        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database' | 'collation' | 
+            'index' | 'trigger' | 'cursor' | 'prepared statement' | 'role', 
         schemaName?: string, tableName?: string, columnName?: string, objectName?: string }
     | /** SQL object already exists */
       { reason: 'SQL_OBJECT_ALREADY_EXISTS', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database', 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string, 
+        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database' | 
+            'index' | 'trigger' | 'cursor' | 'prepared statement', 
         schemaName?: string, tableName?: string, columnName?: string, objectName?: string }
 
     /* ********************************************************************************************
@@ -178,20 +194,28 @@ export type TsSqlErrorReason =
     
     | /** Division by zero reported by the database */
       { reason: 'SQL_DIVISION_BY_ZERO', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
     | /** The SQL operation expected a different number of rows or matches, like a scalar subquery returning multiple rows */
       { reason: 'SQL_CARDINALITY_VIOLATION', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
     | /** Invalid SQL parameter binding or parameter reference reported by the database */
       { reason: 'SQL_INVALID_PARAMETER', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
-    | /** Invalid on conflict or merge conflict target reported by the database */
-      { reason: 'SQL_INVALID_CONFLICT_TARGET', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string,
+        parameterErrorType?: 'missing' | 'too many' | 'wrong count' | 'invalid name' | 'invalid index' |
+            'invalid type' | 'invalid value' | 'invalid binding' | 'not bindable' | 'already bound',
+        parameterName?: string, parameterIndex?: number, expectedParameterCount?: number, actualParameterCount?: number }
     | /** The query references an ambiguous column or object name */
       { reason: 'SQL_AMBIGUOUS_IDENTIFIER', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        identifier?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string, 
+        identifier?: string,
+        identifierType?: 'column' | 'routine' | 'parameter' | 'alias' | 'object',
+        identifierErrorType?: 'ambiguous' | 'duplicate' }
+    | /** The SQL statement is semantically invalid, excluding syntax, permission, object, parameter, constraint, and value errors */
+      { reason: 'SQL_INVALID_SQL_STATEMENT',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string,
+        statementErrorType?: 'incomplete statement' | 'invalid definition' | 'type mismatch' | 'invalid statement context' |
+            'invalid identifier' | 'invalid reference' | 'invalid grouping' | 'invalid windowing' | 'invalid recursion' |
+            'invalid locator' | 'case not found' | 'invalid argument' }
 
     /* ********************************************************************************************
      * SQL execution: Errors caused by misuse, transactions, connections, or runtime concurrency conditions
@@ -199,43 +223,64 @@ export type TsSqlErrorReason =
 
     | /** SQL syntax error reported by the database */
       { reason: 'SQL_SYNTAX_ERROR', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
     | /** Permission denied while executing the SQL statement */
       { reason: 'SQL_PERMISSION_DENIED', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
-    | /** Deadlock detected by the database */
-      { reason: 'SQL_DEADLOCK_DETECTED', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
     | /** SQL operation timed out or was cancelled; use timeoutType when the specific kind is known */
       { reason: 'SQL_TIMEOUT', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string, 
         timeoutType?: 'connection' | 'database file busy' | 'lock' | 'statement' | 'transaction' | 'idle transaction' | 'cancelled' }
-    | /** Transaction serialization failure */
-      { reason: 'SQL_SERIALIZATION_FAILURE', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
-    | /** The current transaction is aborted and no further SQL statements can be executed until it ends */
-      { reason: 'SQL_TRANSACTION_ABORTED', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
-    | /** The SQL operation is not allowed because the connection, session, transaction, or database is read-only */
+    | /** The SQL operation is not allowed because the connection, session, database, or storage is read-only */
       { reason: 'SQL_READ_ONLY_VIOLATION', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
     | /** Connection or pool infrastructure error while acquiring or using a database connection, excluding resource exhaustion cases */
       { reason: 'SQL_CONNECTION_ERROR', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string, 
         errorType?: 'connection lost' | 'temporarily unavailable' | 'invalid connection configuration' | 'pool error' }
+    | /** Low-level database file or virtual filesystem I/O error */
+      { reason: 'SQL_IO_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string,
+        ioErrorType?: 'read' | 'write' | 'fsync' | 'truncate' | 'file stat' | 'lock' | 'unlock' | 'delete' | 'file not found' | 
+            'access' | 'shared memory' | 'seek' | 'mmap' | 'path' | 'atomic write' | 'close' | 'reserved extension' | 'unknown' }
+    | /** SQL routine or external routine failed while executing */
+      { reason: 'SQL_ROUTINE_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
+    | /** SQL object exists but cannot be used in its current state or due to dependencies */
+      { reason: 'SQL_OBJECT_STATE_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string,
+        objectStateErrorType?: 'dependent objects still exist' | 'object in use' | 'invalid state' | 'wrong object type',
+        objectType?: 'schema' | 'table' | 'table or view' | 'column' | 'routine' | 'sequence' | 'database' | 'collation' | 
+            'index' | 'trigger' | 'cursor' | 'prepared statement' | 'role',
+        schemaName?: string, tableName?: string, columnName?: string, objectName?: string }
+    | /** Database or session configuration error */
+      { reason: 'SQL_CONFIGURATION_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string,
+        configurationErrorType?: 'configuration file' | 'lock file' | 'runtime parameter' }
+    | /** External or remote SQL data source error that cannot be more specifically classified */
+      { reason: 'SQL_EXTERNAL_DATA_SOURCE_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
     | /** Authentication failed while connecting to the database */
       { reason: 'SQL_AUTHENTICATION_ERROR', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
     | /** Authorization failed while accessing the database, schema, or other SQL resources */
       { reason: 'SQL_AUTHORIZATION_ERROR', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
     | /** A database or connection/pool capacity limit was reached while executing the SQL statement */
       { reason: 'SQL_RESOURCE_LIMIT_REACHED', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string, 
-        resourceType?: 'disk' | 'memory' | 'temp space' | 'connections' | 'pool' | 'cpu' }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string, 
+        resourceType?: 'disk' | 'memory' | 'temp space' | 'connections' | 'pool' | 'cpu' | 'file size' }
     | /** The database reported that the requested SQL feature is not supported */
       { reason: 'SQL_FEATURE_NOT_SUPPORTED', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
+    | /** The database reported corrupted database, index, or storage content */
+      { reason: 'SQL_DATABASE_CORRUPTED',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string,
+        corruptionType?: 'database file' | 'index' | 'sequence' | 'virtual table' | 'filesystem' | 'checksum' }
+    | /** Internal database engine condition or driver API misuse */
+      { reason: 'SQL_INTERNAL_ERROR',
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string,
+        errorType?: 'engine internal' | 'api misuse' }
 
     /* ********************************************************************************************
      * SQL execution: Unknown or uncategorized SQL error
@@ -243,7 +288,7 @@ export type TsSqlErrorReason =
     
     | /** Unknown SQL error reported by the database */
       { reason: 'SQL_UNKNOWN', 
-        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorMessage?: string }
+        databaseErrorCode?: TsSqlDatabaseErrorCode, databaseErrorNumber?: TsSqlDatabaseErrorNumber, databaseErrorMessage?: string }
 
     /* ********************************************************************************************
      * Dynamic condition generation 
@@ -282,31 +327,7 @@ export type TsSqlErrorReason =
      * Internal errors
      */
 
-    | /** The builder ended in an invalid state */
-      { reason: 'INTERNAL_ILLEGAL_STATE' }
-    | /** Result column not found or it has the wrong type */
-      { reason: 'INTERNAL_INVALID_RESULT_COLUMN' }
-    | /** Unable to discover option joins */
-      { reason: 'INTERNAL_UNABLE_TO_DISCOVER_OPTIONAL_JOINS' }
-    | /** Invalid compound operator (union, union, intersect, etc.) */
-      { reason: 'INTERNAL_INVALID_COMPOUND_OPERATOR', operator: string }
-    | /** Invalid compound operator (inner join, left join, etc.) */
-      { reason: 'INTERNAL_INVALID_JOIN_TYPE', joinType: string }
-    | /** Invalid out bind returned by the database implementation */
-      { reason: 'INTERNAL_INVALID_OUT_BINDS_RETURNED', value: unknown }
-    | /** Expecting an insert of multiple values */
-      { reason: 'INTERNAL_EXPECTING_INSERT_OF_MULTIPLE_VALUES' }
-    | /** Expecting an insert with values coming from a select query */
-      { reason: 'INTERNAL_EXPECTING_INSERT_FROM_SELECT' }
-    | /** The provided value source is invalid due to a wrong implementation */
-      { reason: 'INTERNAL_INVALID_VALUE_SOURCE' }
-    | /** Unable to create the old value emulation query */
-      { reason: 'INTERNAL_INCOMPLETE_OLD_VALUE_QUERY' }
-    | /** The same column name appears several times where it is not expected to be repeated, 
-          like the returned select columns alias */
-      { reason: 'INTERNAL_REPEATED_COLUMN', columnPath: string }
-    | /** A value was found where it is not expected */
-      { reason: 'INTERNAL_UNEXPECTED_VALUE' }
+    | TsSqlInternalErrorReason
 
     /* ********************************************************************************************
      * Configuration errors
@@ -336,6 +357,37 @@ export type TsSqlErrorReason =
 
     | /** Unknown error */
       { reason: 'UNKNOWN' }
+
+
+/**
+ * Internal error produced by ts-sql-query when one of its own invariants is broken.
+ */
+export type TsSqlInternalErrorReason =
+    | /** The builder ended in an invalid state */
+      { reason: 'INTERNAL', internalErrorType: 'illegal state' }
+    | /** Result column not found or it has the wrong type */
+      { reason: 'INTERNAL', internalErrorType: 'invalid result column' }
+    | /** Unable to discover option joins */
+      { reason: 'INTERNAL', internalErrorType: 'unable to discover optional joins' }
+    | /** Invalid compound operator (union, union, intersect, etc.) */
+      { reason: 'INTERNAL', internalErrorType: 'invalid compound operator', operator: string }
+    | /** Invalid compound operator (inner join, left join, etc.) */
+      { reason: 'INTERNAL', internalErrorType: 'invalid join type', joinType: string }
+    | /** Invalid out bind returned by the database implementation */
+      { reason: 'INTERNAL', internalErrorType: 'invalid out binds returned', value: unknown }
+    | /** Expecting an insert of multiple values */
+      { reason: 'INTERNAL', internalErrorType: 'expecting insert of multiple values' }
+    | /** Expecting an insert with values coming from a select query */
+      { reason: 'INTERNAL', internalErrorType: 'expecting insert from select' }
+    | /** The provided value source is invalid due to a wrong implementation */
+      { reason: 'INTERNAL', internalErrorType: 'invalid value source' }
+    | /** Unable to create the old value emulation query */
+      { reason: 'INTERNAL', internalErrorType: 'incomplete old value query' }
+    | /** The same column name appears several times where it is not expected to be repeated, 
+          like the returned select columns alias */
+      { reason: 'INTERNAL', internalErrorType: 'repeated column', columnPath: string }
+    | /** A value was found where it is not expected */
+      { reason: 'INTERNAL', internalErrorType: 'unexpected value' }
 ```
 
 ## TsSqlError class

@@ -15,6 +15,8 @@ tsx ./src/examples/documentation/Oracle.ts || exit 1
 tsx ./src/examples/Sqlite3Example.ts || exit 1
 tsx ./src/examples/BetterSqlite3Example.ts || exit 1
 tsx ./src/examples/BetterSqlite3SynchronousExample.ts || exit 1
+tsx ./src/examples/NodeSqliteExample.ts || exit 1
+tsx ./src/examples/NodeSqliteSynchronousExample.ts || exit 1
 tsx ./src/examples/Sqlite3WasmOO1Example.ts || exit 1
 tsx ./src/examples/Sqlite3WasmOO1SynchronousExample.ts || exit 1
 tsx ./src/examples/PrismaSqliteExample.ts || exit 1

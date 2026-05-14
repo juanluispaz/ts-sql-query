@@ -107,6 +107,7 @@ nav:
       - better-sqlite3: configuration/query-runners/recommended/better-sqlite3.md
       - mariadb: configuration/query-runners/recommended/mariadb.md
       - mssql: configuration/query-runners/recommended/mssql.md
+      - "node:sqlite": configuration/query-runners/recommended/node_sqlite.md
       - mysql2: configuration/query-runners/recommended/mysql2.md
       - oracledb: configuration/query-runners/recommended/oracledb.md
       - pg: configuration/query-runners/recommended/pg.md

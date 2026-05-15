@@ -98,7 +98,7 @@ const connectionPromise = oracledb.getConnection({
 async function main() {
     const conn = await connectionPromise
     const connection = new DBConnection(new ConsoleLogQueryRunner(new OracleDBQueryRunner(conn)))
-    // Ignore the local timezone to set database and node both in UTC
+    // Keep the Oracle session aligned with UTC.
     await connection.queryRunner.executeDatabaseSchemaModification(`ALTER SESSION SET TIME_ZONE='UTC'`)
     await connection.beginTransaction()
 
@@ -940,7 +940,6 @@ async function main() {
 
         const date = new Date('2022-11-21T19:33:56.123Z')
         const dateValue = connection.const(date, 'localDateTime')
-        // Note: due we are using the value directly it contains the timezone, then oracle returns the local values
         const dateValidation = await connection
             .selectFromNoTable()
             .select({

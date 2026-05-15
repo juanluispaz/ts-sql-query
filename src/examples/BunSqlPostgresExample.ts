@@ -11,6 +11,8 @@ import { Values } from '../Values.js'
 import { BunSqlPostgresQueryRunner } from '../queryRunners/BunSqlPostgresQueryRunner.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
+process.env.TZ = 'UTC'
+
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     protected transformPlaceholder(placeholder: string, type: string, _forceTypeCast: boolean, valueSentToDB: unknown): string {
         return super.transformPlaceholder(placeholder, type, true, valueSentToDB)

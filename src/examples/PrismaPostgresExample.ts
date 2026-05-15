@@ -12,6 +12,8 @@ import { PrismaQueryRunner } from '../queryRunners/PrismaQueryRunner.js'
 import { Values } from '../Values.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
+process.env.TZ = 'UTC'
+
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     increment(i: number) {
         return this.executeFunction('increment', [this.const(i, 'int')], 'int', 'required')

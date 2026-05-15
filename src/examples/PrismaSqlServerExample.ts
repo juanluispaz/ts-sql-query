@@ -12,6 +12,8 @@ import { PrismaQueryRunner } from '../queryRunners/PrismaQueryRunner.js'
 import { Values } from '../Values.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
+process.env.TZ = 'UTC'
+
 class DBConnection extends SqlServerConnection<'DBConnection'> {
 
     // Due Prisma doesn't allow to create functions or procedures, let emulate it for testing purpose

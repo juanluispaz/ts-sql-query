@@ -13,6 +13,8 @@ import { IDEncrypter } from '../extras/IDEncrypter.js'
 import { Values } from '../Values.js'
 import { TsSqlProcessingError } from '../TsSqlError.js';
 
+process.env.TZ = 'UTC'
+
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     increment(i: number) {
         return this.executeFunction('increment', [this.const(i, 'int')], 'int', 'required')
@@ -986,4 +988,3 @@ main().then(() => {
     console.error(e)
     process.exit(1)
 })
-

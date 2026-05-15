@@ -12,6 +12,8 @@ import { PrismaClient } from './prisma/generated/mariadb/client.js'
 import { PrismaQueryRunner } from '../queryRunners/PrismaQueryRunner.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
+process.env.TZ = 'UTC'
+
 class DBConnection extends MariaDBConnection<'DBConnection'> {
     protected uuidStrategy = 'string' as const
 
@@ -769,7 +771,6 @@ async function main() {
 
         // const date = new Date('2022-11-21T19:33:56.123Z')
         // const dateValue = connection.const(date, 'localDateTime')
-        // // Note: due we are using the value directly it contains the timezone, then MariaDB returns the local values
         // const dateValidation = await connection
         //     .selectFromNoTable()
         //     .select({
@@ -781,20 +782,20 @@ async function main() {
         //         minutes: dateValue.getMinutes(),
         //         second: dateValue.getSeconds(),
         //         milliseconds: dateValue.getMilliseconds(),
-        //         // time: dateValue.getTime(),
+        //         time: dateValue.getTime(),
         //         dateValue: dateValue,
         //     })
         //     .executeSelectOne()
         // assertEquals(dateValidation, {
-        //     fullYear: date.getFullYear(),
-        //     month: date.getMonth(),
-        //     date: date.getDate(),
-        //     day: date.getDay(),
-        //     hours: date.getHours(),
-        //     minutes: date.getMinutes(),
-        //     second: date.getSeconds(),
-        //     milliseconds: date.getMilliseconds(),
-        //     // time: date.getTime(),
+        //     fullYear: date.getUTCFullYear(),
+        //     month: date.getUTCMonth(),
+        //     date: date.getUTCDate(),
+        //     day: date.getUTCDay(),
+        //     hours: date.getUTCHours(),
+        //     minutes: date.getUTCMinutes(),
+        //     second: date.getUTCSeconds(),
+        //     milliseconds: date.getUTCMilliseconds(),
+        //     time: date.getTime(),
         //     dateValue: date,
         // })
 

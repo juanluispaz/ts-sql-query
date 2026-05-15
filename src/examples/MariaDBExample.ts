@@ -11,6 +11,8 @@ import { MariaDBPoolQueryRunner } from '../queryRunners/MariaDBPoolQueryRunner.j
 import { MariaDBConnection } from '../connections/MariaDBConnection.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
+process.env.TZ = 'UTC'
+
 class DBConnection extends MariaDBConnection<'DBConnection'> {
     increment(i: number) {
         return this.executeFunction('incrementt', [this.const(i, 'int')], 'int', 'required')
@@ -765,7 +767,6 @@ async function main() {
 
         const date = new Date('2022-11-21T19:33:56.123Z')
         const dateValue = connection.const(date, 'localDateTime')
-        // Note: due we are using the value directly it contains the timezone, then MariaDB returns the local values
         const dateValidation = await connection
             .selectFromNoTable()
             .select({
@@ -777,20 +778,20 @@ async function main() {
                 minutes: dateValue.getMinutes(),
                 second: dateValue.getSeconds(),
                 milliseconds: dateValue.getMilliseconds(),
-                // time: dateValue.getTime(), // The Unix time have a different value due the configuration of the database
+                time: dateValue.getTime(),
                 dateValue: dateValue,
             })
             .executeSelectOne()
         assertEquals(dateValidation, {
-            fullYear: date.getFullYear(),
-            month: date.getMonth(),
-            date: date.getDate(),
-            day: date.getDay(),
-            hours: date.getHours(),
-            minutes: date.getMinutes(),
-            second: date.getSeconds(),
-            milliseconds: date.getMilliseconds(),
-            // time: date.getTime(),
+            fullYear: date.getUTCFullYear(),
+            month: date.getUTCMonth(),
+            date: date.getUTCDate(),
+            day: date.getUTCDay(),
+            hours: date.getUTCHours(),
+            minutes: date.getUTCMinutes(),
+            second: date.getUTCSeconds(),
+            milliseconds: date.getUTCMilliseconds(),
+            time: date.getTime(),
             dateValue: date,
         })
 
@@ -1948,4 +1949,3 @@ main().then(() => {
     console.error(e)
     process.exit(1)
 })
-

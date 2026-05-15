@@ -12,6 +12,8 @@ import { MssqlPoolPromiseQueryRunner } from '../queryRunners/MssqlPoolPromiseQue
 import mssql from 'mssql'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
+process.env.TZ = 'UTC'
+
 const { ConnectionPool } = mssql
 
 class DBConnection extends SqlServerConnection<'DBConnection'> {

@@ -27,3 +27,25 @@
 .md-grid {
     max-width: unset;
 }
+
+@media screen and (min-width: 768px) {
+    .md-typeset .min-width-7rem {
+        display: inline-block;
+        min-width: 7rem;
+    }
+
+    .md-typeset .min-width-8rem {
+        display: inline-block;
+        min-width: 8rem;
+    }
+
+    .md-typeset .min-width-9rem {
+        display: inline-block;
+        min-width: 9rem;
+    }
+
+    .md-typeset .min-width-11rem {
+        display: inline-block;
+        min-width: 11rem;
+    }
+}

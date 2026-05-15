@@ -148,20 +148,20 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
         return '?'
     }
     getErrorReason(error: unknown): TsSqlErrorReason {
-        return MySql2QueryRunner.getErrorReason(error)
+        return MySql2QueryRunner.getErrorReason(error, this.database)
     }
     isSqlError(error: unknown): boolean {
         return MySql2QueryRunner.isSqlError(error)
     }
 
-    static getErrorReason(error: unknown): TsSqlErrorReason {
+    static getErrorReason(error: unknown, database?: DatabaseType): TsSqlErrorReason {
         if (error instanceof TsSqlError) {
             return error.errorReason
         }
         if (!isMySql2Error(error)) {
             return { reason: 'UNKNOWN' }
         }
-        return getMySql2ErrorReason(error)
+        return getMySql2ErrorReason(error, database)
     }
 
     static isSqlError(error: unknown): boolean {
@@ -169,25 +169,26 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
     }
 }
 
-function getMySql2ErrorReason(error: MySql2DriverError): TsSqlErrorReason {
+function getMySql2ErrorReason(error: MySql2DriverError, database?: DatabaseType): TsSqlErrorReason {
     const message = getMySql2ErrorMessage(error)
 
-    const reason = getKnownMySql2DriverErrorReason(error, message)
+    const reason = getKnownMySql2DriverErrorReason(error, message, database)
         || (isMySql2EngineError(error) ? getMySqlMariaDbEngineErrorReason({
+            database,
             errno: getMySql2ErrorNumber(error),
             code: getMySql2EngineErrorCode(error),
             sqlState: getMySql2SqlState(error),
-            databaseErrorCode: getMySql2DatabaseErrorCode(error),
-            databaseErrorNumber: getMySql2DatabaseErrorNumber(error),
+            databaseErrorCode: getMySql2DatabaseErrorCode(error, database),
+            databaseErrorNumber: getMySql2DatabaseErrorNumber(error, database),
             message,
         }) : { reason: 'UNKNOWN' })
 
-    return withDatabaseErrorNumber(reason, getMySql2DatabaseErrorNumber(error))
+    return withDatabaseErrorNumber(reason, getMySql2DatabaseErrorNumber(error, database))
 }
 
-function getKnownMySql2DriverErrorReason(error: MySql2DriverError, message = getMySql2ErrorMessage(error)): TsSqlErrorReason | undefined {
+function getKnownMySql2DriverErrorReason(error: MySql2DriverError, message = getMySql2ErrorMessage(error), database?: DatabaseType): TsSqlErrorReason | undefined {
     const code = getMySql2StringCode(error)
-    const databaseErrorCode = getMySql2DatabaseErrorCode(error)
+    const databaseErrorCode = getMySql2DatabaseErrorCode(error, database)
     const databaseErrorMessage = message || undefined
 
     if (message === 'Pool is closed.') {
@@ -369,19 +370,19 @@ function getMySql2ErrorNumber(error: MySql2DriverError): number | undefined {
     return undefined
 }
 
-function getMySql2DatabaseErrorCode(error: MySql2DriverError): string | undefined {
+function getMySql2DatabaseErrorCode(error: MySql2DriverError, database?: DatabaseType): string | undefined {
     const code = getMySql2StringCode(error)
     if (code && (isMySqlMariaDbEngineErrorCode(code) || isMySql2KnownDriverCode(code))) {
-        return getMySqlMariaDbErrorCodeName(getMySqlMariaDbErrorNumberFromCode(code)) ?? code
+        return getMySqlMariaDbErrorCodeName(getMySqlMariaDbErrorNumberFromCode(code, database), database) ?? code
     }
 
     const errorNumber = getMySql2ErrorNumber(error)
-    return getMySqlMariaDbErrorCodeName(errorNumber)
+    return getMySqlMariaDbErrorCodeName(errorNumber, database)
 }
 
-function getMySql2DatabaseErrorNumber(error: MySql2DriverError): TsSqlDatabaseErrorNumber | undefined {
+function getMySql2DatabaseErrorNumber(error: MySql2DriverError, database?: DatabaseType): TsSqlDatabaseErrorNumber | undefined {
     const code = getMySql2StringCode(error)
-    return getMySql2ErrorNumber(error) ?? getMySqlMariaDbErrorNumberFromCode(code) ?? getMySql2SqlState(error)
+    return getMySql2ErrorNumber(error) ?? getMySqlMariaDbErrorNumberFromCode(code, database) ?? getMySql2SqlState(error)
 }
 
 function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {

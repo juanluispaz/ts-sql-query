@@ -1,7 +1,19 @@
 import type { TsSqlDatabaseErrorCode, TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlError.js'
+import type { DatabaseType } from '../QueryRunner.js'
 import * as ErrorCodes from './MySqlMariaDbErrorCodes.js'
 
+// MySQL and MariaDB reuse numeric ranges with different meanings. Keep these
+// engine-specific numeric sets gated by the selected database, but still honor an
+// explicit driver-provided symbol when the driver is known to emit one.
+const MYSQL_EXTERNAL_DATA_SOURCE_ERROR_NUMBERS = new Set([2022, 2023])
+const MYSQL_DATA_TRUNCATED_ERROR_NUMBERS = new Set([2032])
+const MYSQL_COLLATION_NOT_FOUND_ERROR_NUMBERS = new Set([28])
+const MYSQL_OBJECT_NOT_FOUND_EXTRA_ERROR_NUMBERS = new Set([3548, 3902])
+const MYSQL_OBJECT_ALREADY_EXISTS_EXTRA_ERROR_NUMBERS = new Set([3712])
+const MYSQL_DEPENDENT_OBJECTS_STILL_EXIST_ERROR_NUMBERS = new Set([3716])
+
 export interface MySqlMariaDbEngineError {
+    database?: DatabaseType
     errno?: number
     code?: string
     sqlState?: string
@@ -15,15 +27,16 @@ export function getMySqlMariaDbEngineErrorReason(error: MySqlMariaDbEngineError)
     const sqlState = error.sqlState || ''
     const message = error.message || ''
     const databaseErrorMessage = message || undefined
-    const errorNumber = getMySqlMariaDbErrorNumber(error.errno, code)
+    const errorNumber = getMySqlMariaDbErrorNumber(error.errno, code, error.database)
     const databaseErrorCode = error.databaseErrorCode ?? getMySqlMariaDbDatabaseErrorCode(error, errorNumber)
     const databaseErrorNumber = error.databaseErrorNumber ?? getMySqlMariaDbDatabaseErrorNumber(error, errorNumber)
+    const reasonCode = code || (typeof databaseErrorCode === 'string' ? databaseErrorCode : '')
 
-    const reason = getMySqlMariaDbErrorReasonFromNumber(errorNumber, code, databaseErrorCode, databaseErrorMessage, message)
+    const reason = getMySqlMariaDbErrorReasonFromNumber(errorNumber, reasonCode, error.database, databaseErrorCode, databaseErrorMessage, message)
         || getMySqlMariaDbErrorReasonFromSqlState(sqlState, databaseErrorCode, databaseErrorMessage, message)
-        || getMySqlMariaDbErrorReasonFromSymbol(code, databaseErrorCode, databaseErrorMessage, message)
+        || getMySqlMariaDbErrorReasonFromSymbol(reasonCode, databaseErrorCode, databaseErrorMessage, message)
         || getMySqlMariaDbErrorReasonFromMessage(message, databaseErrorCode, databaseErrorMessage)
-        || getMySqlMariaDbKnownErrorFallbackReason(errorNumber, code, databaseErrorCode, databaseErrorMessage)
+        || getMySqlMariaDbKnownErrorFallbackReason(errorNumber, reasonCode, error.database, databaseErrorCode, databaseErrorMessage)
         || { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
 
     return withDatabaseErrorNumber(reason, databaseErrorNumber)
@@ -32,6 +45,7 @@ export function getMySqlMariaDbEngineErrorReason(error: MySqlMariaDbEngineError)
 function getMySqlMariaDbErrorReasonFromNumber(
     errorNumber: number | undefined,
     code: string,
+    database: DatabaseType | undefined,
     databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
     databaseErrorMessage: string | undefined,
     message: string
@@ -46,261 +60,507 @@ function getMySqlMariaDbErrorReasonFromNumber(
         return mariaDbSymbolReason
     }
 
-    if (ErrorCodes.MYSQL_DUPLICATE_CONSTRAINT_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_DUPLICATE_CONSTRAINT_ERROR_NUMBERS, database, code, 'unique')) {
         return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'unique', constraintName: extractKeyName(message), tableName: extractMessageTableName(message) }
     }
-    if (ErrorCodes.MYSQL_NOT_NULL_CONSTRAINT_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_NOT_NULL_CONSTRAINT_ERROR_NUMBERS, database, code, 'not_null')) {
         return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'not null', columnName: extractQuotedName(message), tableName: extractMessageTableName(message) }
     }
-    if (ErrorCodes.MYSQL_FOREIGN_KEY_CONSTRAINT_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_FOREIGN_KEY_CONSTRAINT_ERROR_NUMBERS, database, code, 'foreign_key')) {
         return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'foreign key', constraintName: extractKeyName(message), tableName: extractConstraintTableName(message), columnName: extractForeignKeyColumnName(message) }
     }
-    if (ErrorCodes.MYSQL_CHECK_CONSTRAINT_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_CHECK_CONSTRAINT_ERROR_NUMBERS, database, code, 'check')) {
         return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'check', constraintName: extractKeyName(message), tableName: extractCheckTableName(message) }
     }
     if (errorNumber === 1215) {
         return { reason: 'SQL_INVALID_SQL_STATEMENT', databaseErrorCode, databaseErrorMessage, statementErrorType: 'invalid definition' }
     }
 
-    if (ErrorCodes.MYSQL_INVALID_VALUE_TOO_LONG_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_VALUE_TOO_LONG_ERROR_NUMBERS, database, code, 'too_long')) {
         return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'too long', columnName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MYSQL_INVALID_VALUE_OUT_OF_RANGE_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_VALUE_OUT_OF_RANGE_ERROR_NUMBERS, database, code, 'out_of_range')) {
         return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'out of range' }
     }
-    if (ErrorCodes.MYSQL_INVALID_JSON_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_JSON_ERROR_NUMBERS, database, code, 'invalid_json')) {
         return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'invalid json', columnName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MARIADB_INVALID_ENCODING_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_INVALID_ENCODING_ERROR_NUMBERS, database, code, 'invalid_encoding')) {
         return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'invalid encoding', columnName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MARIADB_INVALID_FORMAT_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_INVALID_FORMAT_ERROR_NUMBERS, database, code, 'invalid_format')) {
         return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'invalid format', columnName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MARIADB_INVALID_VALUE_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_INVALID_VALUE_ERROR_NUMBERS, database, code, 'invalid_value')) {
         return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'invalid value', columnName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MARIADB_SEQUENCE_LIMIT_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_SEQUENCE_LIMIT_ERROR_NUMBERS, database, code, 'sequence_limit')) {
         return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'sequence limit' }
     }
     if (errorNumber === 1138 || errorNumber === 1263) {
         return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'null not allowed', columnName: extractQuotedName(message) }
     }
-    if (errorNumber === 1292 || errorNumber === 1366 || errorNumber === 1367 || errorNumber === 1411 || errorNumber === 1416 || errorNumber === 2032) {
+    if (errorNumber === 1292 || errorNumber === 1366 || errorNumber === 1367 || errorNumber === 1411 || errorNumber === 1416 || hasMySqlSemanticErrorNumber(errorNumber, MYSQL_DATA_TRUNCATED_ERROR_NUMBERS, database, code, 'invalid_value')) {
         return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'invalid value', columnName: extractQuotedName(message) }
     }
     if (errorNumber === 1139) {
         return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'invalid regular expression' }
     }
 
-    if (ErrorCodes.MYSQL_DATABASE_NOT_FOUND_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_DATABASE_NOT_FOUND_ERROR_NUMBERS, database, code, 'object_not_found')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectType: 'database', objectName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MYSQL_TABLE_NOT_FOUND_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_TABLE_NOT_FOUND_ERROR_NUMBERS, database, code, 'object_not_found')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectType: 'table or view', objectName: extractQuotedName(message), tableName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MYSQL_COLUMN_NOT_FOUND_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_COLUMN_NOT_FOUND_ERROR_NUMBERS, database, code, 'object_not_found')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectType: 'column', columnName: extractQuotedName(message), objectName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MYSQL_ROUTINE_NOT_FOUND_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_ROUTINE_NOT_FOUND_ERROR_NUMBERS, database, code, 'object_not_found')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectType: 'routine', objectName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MYSQL_INDEX_NOT_FOUND_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INDEX_NOT_FOUND_ERROR_NUMBERS, database, code, 'object_not_found')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectType: 'index', objectName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MARIADB_ROLE_NOT_FOUND_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_ROLE_NOT_FOUND_ERROR_NUMBERS, database, code, 'object_not_found')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectType: 'role', objectName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MARIADB_SEQUENCE_NOT_FOUND_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_SEQUENCE_NOT_FOUND_ERROR_NUMBERS, database, code, 'object_not_found')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectType: 'sequence', objectName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MARIADB_TRIGGER_NOT_FOUND_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_TRIGGER_NOT_FOUND_ERROR_NUMBERS, database, code, 'object_not_found')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectType: 'trigger', objectName: extractQuotedName(message) }
     }
-    if (errorNumber === 28) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, MYSQL_COLLATION_NOT_FOUND_ERROR_NUMBERS, database, code, 'object_not_found')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectType: 'collation', objectName: extractQuotedName(message) }
     }
-    if (errorNumber === 3548 || errorNumber === 3902) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, MYSQL_OBJECT_NOT_FOUND_EXTRA_ERROR_NUMBERS, database, code, 'object_not_found')) {
         return { reason: 'SQL_OBJECT_NOT_FOUND', databaseErrorCode, databaseErrorMessage, objectName: extractQuotedName(message) }
     }
 
-    if (ErrorCodes.MYSQL_DATABASE_ALREADY_EXISTS_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_DATABASE_ALREADY_EXISTS_ERROR_NUMBERS, database, code, 'object_already_exists')) {
         return { reason: 'SQL_OBJECT_ALREADY_EXISTS', databaseErrorCode, databaseErrorMessage, objectType: 'database', objectName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MYSQL_TABLE_ALREADY_EXISTS_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_TABLE_ALREADY_EXISTS_ERROR_NUMBERS, database, code, 'object_already_exists')) {
         return { reason: 'SQL_OBJECT_ALREADY_EXISTS', databaseErrorCode, databaseErrorMessage, objectType: 'table or view', objectName: extractQuotedName(message), tableName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MYSQL_COLUMN_ALREADY_EXISTS_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_COLUMN_ALREADY_EXISTS_ERROR_NUMBERS, database, code, 'object_already_exists')) {
         return { reason: 'SQL_OBJECT_ALREADY_EXISTS', databaseErrorCode, databaseErrorMessage, objectType: 'column', columnName: extractQuotedName(message), objectName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MYSQL_ROUTINE_ALREADY_EXISTS_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_ROUTINE_ALREADY_EXISTS_ERROR_NUMBERS, database, code, 'object_already_exists')) {
         return { reason: 'SQL_OBJECT_ALREADY_EXISTS', databaseErrorCode, databaseErrorMessage, objectType: 'routine', objectName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MYSQL_INDEX_ALREADY_EXISTS_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INDEX_ALREADY_EXISTS_ERROR_NUMBERS, database, code, 'object_already_exists')) {
         return { reason: 'SQL_OBJECT_ALREADY_EXISTS', databaseErrorCode, databaseErrorMessage, objectType: 'index', objectName: extractQuotedName(message) }
     }
-    if (ErrorCodes.MARIADB_OBJECT_ALREADY_EXISTS_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_OBJECT_ALREADY_EXISTS_ERROR_NUMBERS, database, code, 'object_already_exists')) {
         return { reason: 'SQL_OBJECT_ALREADY_EXISTS', databaseErrorCode, databaseErrorMessage, objectName: extractQuotedName(message) }
     }
-    if (errorNumber === 3712) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, MYSQL_OBJECT_ALREADY_EXISTS_EXTRA_ERROR_NUMBERS, database, code, 'object_already_exists')) {
         return { reason: 'SQL_OBJECT_ALREADY_EXISTS', databaseErrorCode, databaseErrorMessage, objectName: extractQuotedName(message) }
     }
 
-    if (ErrorCodes.MYSQL_AMBIGUOUS_IDENTIFIER_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_AMBIGUOUS_IDENTIFIER_ERROR_NUMBERS, database, code, 'ambiguous_identifier')) {
         return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', databaseErrorCode, databaseErrorMessage, identifier: extractQuotedName(message), identifierErrorType: errorNumber === 1066 ? 'duplicate' : 'ambiguous' }
     }
-    if (ErrorCodes.MARIADB_DUPLICATE_IDENTIFIER_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_DUPLICATE_IDENTIFIER_ERROR_NUMBERS, database, code, 'ambiguous_identifier')) {
         return { reason: 'SQL_AMBIGUOUS_IDENTIFIER', databaseErrorCode, databaseErrorMessage, identifier: extractQuotedName(message), identifierErrorType: 'duplicate' }
     }
-    if (ErrorCodes.MYSQL_SYNTAX_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_SYNTAX_ERROR_NUMBERS, database, code, 'syntax')) {
         return { reason: 'SQL_SYNTAX_ERROR', databaseErrorCode, databaseErrorMessage }
     }
     if (errorNumber === 1365) {
         return { reason: 'SQL_DIVISION_BY_ZERO', databaseErrorCode, databaseErrorMessage }
     }
-    if (errorNumber === 1172 || errorNumber === 1222 || errorNumber === 1241 || errorNumber === 1242 || errorNumber === 1058 || errorNumber === 1136 || ErrorCodes.MARIADB_CARDINALITY_ERROR_NUMBERS.has(errorNumber)) {
+    if (errorNumber === 1172 || errorNumber === 1222 || errorNumber === 1241 || errorNumber === 1242 || errorNumber === 1058 || errorNumber === 1136 || hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_CARDINALITY_ERROR_NUMBERS, database, code, 'cardinality')) {
         return { reason: 'SQL_CARDINALITY_VIOLATION', databaseErrorCode, databaseErrorMessage }
     }
-    if (ErrorCodes.MYSQL_INVALID_PARAMETER_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_PARAMETER_ERROR_NUMBERS, database, code, 'invalid_parameter')) {
         return { reason: 'SQL_INVALID_PARAMETER', databaseErrorCode, databaseErrorMessage, ...getInvalidParameterDetailsFromMessage(message) }
     }
-    if (ErrorCodes.MARIADB_ROUTINE_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_ROUTINE_ERROR_NUMBERS, database, code, 'routine')) {
         return { reason: 'SQL_ROUTINE_ERROR', databaseErrorCode, databaseErrorMessage }
     }
-    if (ErrorCodes.MYSQL_PERMISSION_DENIED_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_PERMISSION_DENIED_ERROR_NUMBERS, database, code, 'permission')) {
         return { reason: 'SQL_PERMISSION_DENIED', databaseErrorCode, databaseErrorMessage }
     }
-    if (ErrorCodes.MYSQL_AUTHENTICATION_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_AUTHENTICATION_ERROR_NUMBERS, database, code, 'authentication')) {
         return { reason: 'SQL_AUTHENTICATION_ERROR', databaseErrorCode, databaseErrorMessage }
     }
-    if (ErrorCodes.MYSQL_AUTHORIZATION_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_AUTHORIZATION_ERROR_NUMBERS, database, code, 'authorization')) {
         return { reason: 'SQL_AUTHORIZATION_ERROR', databaseErrorCode, databaseErrorMessage }
     }
-    if (errorNumber === 2022 || errorNumber === 2023 || ErrorCodes.MARIADB_EXTERNAL_DATA_SOURCE_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, MYSQL_EXTERNAL_DATA_SOURCE_ERROR_NUMBERS, database, code, 'external_data_source') || hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_EXTERNAL_DATA_SOURCE_ERROR_NUMBERS, database, code, 'external_data_source')) {
         return { reason: 'SQL_EXTERNAL_DATA_SOURCE_ERROR', databaseErrorCode, databaseErrorMessage }
     }
-    if (ErrorCodes.MARIADB_STATEMENT_TIMEOUT_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_STATEMENT_TIMEOUT_ERROR_NUMBERS, database, code, 'timeout')) {
         return { reason: 'SQL_TIMEOUT', databaseErrorCode, databaseErrorMessage, timeoutType: 'statement' }
     }
-    if (ErrorCodes.MYSQL_CONNECTION_TIMEOUT_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_CONNECTION_TIMEOUT_ERROR_NUMBERS, database, code, 'timeout')) {
         return { reason: 'SQL_TIMEOUT', databaseErrorCode, databaseErrorMessage, timeoutType: 'connection' }
     }
-    if (ErrorCodes.MYSQL_CONNECTION_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_CONNECTION_ERROR_NUMBERS, database, code, 'connection')) {
         return { reason: 'SQL_CONNECTION_ERROR', databaseErrorCode, databaseErrorMessage, errorType: getConnectionErrorTypeFromNumber(errorNumber) }
     }
-    if (ErrorCodes.MYSQL_RESOURCE_CONNECTION_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_RESOURCE_CONNECTION_ERROR_NUMBERS, database, code, 'resource_connections')) {
         return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'connections' }
     }
-    if (ErrorCodes.MYSQL_RESOURCE_MEMORY_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_RESOURCE_MEMORY_ERROR_NUMBERS, database, code, 'resource_memory')) {
         return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'memory' }
     }
-    if (ErrorCodes.MYSQL_RESOURCE_DISK_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_RESOURCE_DISK_ERROR_NUMBERS, database, code, 'resource_disk')) {
         return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage, resourceType: 'disk' }
     }
-    if (ErrorCodes.MYSQL_RESOURCE_LIMIT_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_RESOURCE_LIMIT_ERROR_NUMBERS, database, code, 'resource_limit')) {
         return { reason: 'SQL_RESOURCE_LIMIT_REACHED', databaseErrorCode, databaseErrorMessage }
     }
-    if (ErrorCodes.MYSQL_IO_READ_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_IO_READ_ERROR_NUMBERS, database, code, 'io_read')) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'read' }
     }
-    if (ErrorCodes.MYSQL_IO_WRITE_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_IO_WRITE_ERROR_NUMBERS, database, code, 'io_write')) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'write' }
     }
-    if (ErrorCodes.MYSQL_IO_CLOSE_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_IO_CLOSE_ERROR_NUMBERS, database, code, 'io_close')) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'close' }
     }
-    if (ErrorCodes.MYSQL_IO_DELETE_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_IO_DELETE_ERROR_NUMBERS, database, code, 'io_delete')) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'delete' }
     }
-    if (ErrorCodes.MYSQL_IO_LOCK_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_IO_LOCK_ERROR_NUMBERS, database, code, 'io_lock')) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'lock' }
     }
-    if (ErrorCodes.MYSQL_IO_UNLOCK_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_IO_UNLOCK_ERROR_NUMBERS, database, code, 'io_unlock')) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'unlock' }
     }
-    if (ErrorCodes.MYSQL_IO_FILE_STAT_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_IO_FILE_STAT_ERROR_NUMBERS, database, code, 'io_file_stat')) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'file stat' }
     }
-    if (ErrorCodes.MYSQL_IO_FILE_NOT_FOUND_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_IO_FILE_NOT_FOUND_ERROR_NUMBERS, database, code, 'io_file_not_found')) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'file not found' }
     }
-    if (ErrorCodes.MYSQL_IO_ACCESS_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_IO_ACCESS_ERROR_NUMBERS, database, code, 'io_access')) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'access' }
     }
-    if (ErrorCodes.MYSQL_IO_FSYNC_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_IO_FSYNC_ERROR_NUMBERS, database, code, 'io_fsync')) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'fsync' }
     }
-    if (ErrorCodes.MYSQL_IO_SEEK_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_IO_SEEK_ERROR_NUMBERS, database, code, 'io_seek')) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'seek' }
     }
-    if (ErrorCodes.MYSQL_IO_PATH_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_IO_PATH_ERROR_NUMBERS, database, code, 'io_path')) {
         return { reason: 'SQL_IO_ERROR', databaseErrorCode, databaseErrorMessage, ioErrorType: 'path' }
     }
-    if (ErrorCodes.MYSQL_CONFIGURATION_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_CONFIGURATION_ERROR_NUMBERS, database, code, 'configuration')) {
         return { reason: 'SQL_CONFIGURATION_ERROR', databaseErrorCode, databaseErrorMessage, configurationErrorType: 'runtime parameter' }
     }
-    if (ErrorCodes.MYSQL_DATABASE_CORRUPTED_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_DATABASE_CORRUPTED_ERROR_NUMBERS, database, code, 'database_corrupted')) {
         return { reason: 'SQL_DATABASE_CORRUPTED', databaseErrorCode, databaseErrorMessage, corruptionType: getCorruptionTypeFromNumber(errorNumber) }
     }
-    if (ErrorCodes.MARIADB_SEQUENCE_CORRUPTED_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_SEQUENCE_CORRUPTED_ERROR_NUMBERS, database, code, 'sequence_corrupted')) {
         return { reason: 'SQL_DATABASE_CORRUPTED', databaseErrorCode, databaseErrorMessage, corruptionType: 'sequence' }
     }
-    if (ErrorCodes.MYSQL_READ_ONLY_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_READ_ONLY_ERROR_NUMBERS, database, code, 'read_only')) {
         return { reason: 'SQL_READ_ONLY_VIOLATION', databaseErrorCode, databaseErrorMessage }
     }
-    if (ErrorCodes.MYSQL_FEATURE_NOT_SUPPORTED_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_FEATURE_NOT_SUPPORTED_ERROR_NUMBERS, database, code, 'feature_not_supported')) {
         return { reason: 'SQL_FEATURE_NOT_SUPPORTED', databaseErrorCode, databaseErrorMessage }
     }
-    if (ErrorCodes.MYSQL_INVALID_DEFINITION_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_DEFINITION_ERROR_NUMBERS, database, code, 'invalid_definition')) {
         return { reason: 'SQL_INVALID_SQL_STATEMENT', databaseErrorCode, databaseErrorMessage, statementErrorType: 'invalid definition' }
     }
-    if (ErrorCodes.MYSQL_INVALID_REFERENCE_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_REFERENCE_ERROR_NUMBERS, database, code, 'invalid_reference')) {
         return { reason: 'SQL_INVALID_SQL_STATEMENT', databaseErrorCode, databaseErrorMessage, statementErrorType: 'invalid reference' }
     }
-    if (ErrorCodes.MYSQL_INVALID_GROUPING_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_GROUPING_ERROR_NUMBERS, database, code, 'invalid_grouping')) {
         return { reason: 'SQL_INVALID_SQL_STATEMENT', databaseErrorCode, databaseErrorMessage, statementErrorType: 'invalid grouping' }
     }
-    if (ErrorCodes.MYSQL_INVALID_IDENTIFIER_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_IDENTIFIER_ERROR_NUMBERS, database, code, 'invalid_identifier')) {
         return { reason: 'SQL_INVALID_SQL_STATEMENT', databaseErrorCode, databaseErrorMessage, statementErrorType: 'invalid identifier' }
     }
-    if (ErrorCodes.MYSQL_INVALID_STATEMENT_CONTEXT_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_INVALID_STATEMENT_CONTEXT_ERROR_NUMBERS, database, code, 'invalid_statement_context')) {
         return { reason: 'SQL_INVALID_SQL_STATEMENT', databaseErrorCode, databaseErrorMessage, statementErrorType: 'invalid statement context' }
     }
-    if (ErrorCodes.MYSQL_TRANSACTION_DEADLOCK_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_TRANSACTION_DEADLOCK_ERROR_NUMBERS, database, code, 'transaction_deadlock')) {
         return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'deadlock' }
     }
-    if (ErrorCodes.MYSQL_TRANSACTION_TIMEOUT_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_TRANSACTION_TIMEOUT_ERROR_NUMBERS, database, code, 'transaction_timeout')) {
         return { reason: 'SQL_TIMEOUT', databaseErrorCode, databaseErrorMessage, timeoutType: 'lock' }
     }
-    if (ErrorCodes.MYSQL_TRANSACTION_ACTIVE_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_TRANSACTION_ACTIVE_ERROR_NUMBERS, database, code, 'transaction_active')) {
         return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'active transaction' }
     }
-    if (ErrorCodes.MYSQL_TRANSACTION_ROLLBACK_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_TRANSACTION_ROLLBACK_ERROR_NUMBERS, database, code, 'transaction_rollback')) {
         return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'transaction rolled back' }
     }
-    if (ErrorCodes.MARIADB_TRANSACTION_OUTCOME_UNKNOWN_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_TRANSACTION_OUTCOME_UNKNOWN_ERROR_NUMBERS, database, code, 'transaction_outcome_unknown')) {
         return { reason: 'TRANSACTION_ERROR', databaseErrorCode, databaseErrorMessage, transactionErrorType: 'outcome unknown' }
     }
-    if (ErrorCodes.MYSQL_CURSOR_INVALID_STATE_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_CURSOR_INVALID_STATE_ERROR_NUMBERS, database, code, 'cursor_invalid_state')) {
         return { reason: 'SQL_OBJECT_STATE_ERROR', databaseErrorCode, databaseErrorMessage, objectType: 'cursor', objectStateErrorType: 'invalid state' }
     }
-    if (ErrorCodes.MARIADB_WRONG_OBJECT_TYPE_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_WRONG_OBJECT_TYPE_ERROR_NUMBERS, database, code, 'wrong_object_type')) {
         return { reason: 'SQL_OBJECT_STATE_ERROR', databaseErrorCode, databaseErrorMessage, objectType: getWrongObjectTypeFromNumber(errorNumber), objectName: extractQuotedName(message), objectStateErrorType: 'wrong object type' }
     }
-    if (ErrorCodes.MARIADB_OBJECT_INVALID_STATE_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMariaDbSemanticErrorNumber(errorNumber, ErrorCodes.MARIADB_OBJECT_INVALID_STATE_ERROR_NUMBERS, database, code, 'object_invalid_state')) {
         return { reason: 'SQL_OBJECT_STATE_ERROR', databaseErrorCode, databaseErrorMessage, objectName: extractQuotedName(message), objectStateErrorType: 'invalid state' }
     }
-    if (ErrorCodes.MYSQL_API_MISUSE_ERROR_NUMBERS.has(errorNumber)) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, ErrorCodes.MYSQL_API_MISUSE_ERROR_NUMBERS, database, code, 'api_misuse')) {
         return { reason: 'SQL_INTERNAL_ERROR', databaseErrorCode, databaseErrorMessage, errorType: 'api misuse' }
     }
     if (errorNumber === 1317) {
         return { reason: 'SQL_TIMEOUT', databaseErrorCode, databaseErrorMessage, timeoutType: 'cancelled' }
     }
-    if (errorNumber === 3716) {
+    if (hasMySqlSemanticErrorNumber(errorNumber, MYSQL_DEPENDENT_OBJECTS_STILL_EXIST_ERROR_NUMBERS, database, code, 'object_invalid_state')) {
         return { reason: 'SQL_OBJECT_STATE_ERROR', databaseErrorCode, databaseErrorMessage, objectStateErrorType: 'dependent objects still exist' }
     }
 
     return undefined
+}
+
+type SemanticErrorCategory =
+    'ambiguous_identifier'
+    | 'api_misuse'
+    | 'authentication'
+    | 'authorization'
+    | 'cardinality'
+    | 'check'
+    | 'configuration'
+    | 'connection'
+    | 'cursor_invalid_state'
+    | 'database_corrupted'
+    | 'external_data_source'
+    | 'feature_not_supported'
+    | 'foreign_key'
+    | 'invalid_definition'
+    | 'invalid_encoding'
+    | 'invalid_format'
+    | 'invalid_grouping'
+    | 'invalid_identifier'
+    | 'invalid_json'
+    | 'invalid_parameter'
+    | 'invalid_reference'
+    | 'invalid_statement_context'
+    | 'invalid_value'
+    | 'io_access'
+    | 'io_close'
+    | 'io_delete'
+    | 'io_file_not_found'
+    | 'io_file_stat'
+    | 'io_fsync'
+    | 'io_lock'
+    | 'io_path'
+    | 'io_read'
+    | 'io_seek'
+    | 'io_unlock'
+    | 'io_write'
+    | 'not_null'
+    | 'object_already_exists'
+    | 'object_invalid_state'
+    | 'object_not_found'
+    | 'out_of_range'
+    | 'permission'
+    | 'read_only'
+    | 'resource_connections'
+    | 'resource_disk'
+    | 'resource_limit'
+    | 'resource_memory'
+    | 'routine'
+    | 'sequence_corrupted'
+    | 'sequence_limit'
+    | 'syntax'
+    | 'timeout'
+    | 'too_long'
+    | 'transaction_active'
+    | 'transaction_deadlock'
+    | 'transaction_outcome_unknown'
+    | 'transaction_rollback'
+    | 'transaction_timeout'
+    | 'unique'
+    | 'wrong_object_type'
+
+function hasMySqlSemanticErrorNumber(
+    errorNumber: number,
+    errorNumbers: Set<number>,
+    database: DatabaseType | undefined,
+    code: string,
+    category: SemanticErrorCategory
+): boolean {
+    if (!errorNumbers.has(errorNumber)) {
+        return false
+    }
+    if (isCodeCompatibleWithSemanticCategory(code, category)) {
+        return true
+    }
+    if (!database) {
+        return getMySqlMariaDbErrorCodeName(errorNumber) !== undefined
+    }
+
+    const activeCode = getMySqlMariaDbErrorCodeName(errorNumber, database)
+    if (!activeCode) {
+        return false
+    }
+    if (!isCollidingErrorNumber(errorNumber)) {
+        return true
+    }
+    return isCodeCompatibleWithSemanticCategory(activeCode, category)
+}
+
+function hasMariaDbSemanticErrorNumber(
+    errorNumber: number,
+    errorNumbers: Set<number>,
+    database: DatabaseType | undefined,
+    code: string,
+    category: SemanticErrorCategory
+): boolean {
+    if (!errorNumbers.has(errorNumber)) {
+        return false
+    }
+    if (database === 'mariaDB') {
+        return getMySqlMariaDbErrorCodeName(errorNumber, 'mariaDB') !== undefined
+            || isCodeCompatibleWithSemanticCategory(code, category)
+    }
+    if (database === 'mySql') {
+        const mySqlCode = getMySqlMariaDbErrorCodeName(errorNumber, 'mySql')
+        const mariaDbCode = getMySqlMariaDbErrorCodeName(errorNumber, 'mariaDB')
+        return !!mySqlCode && mySqlCode === mariaDbCode
+    }
+    if (isCodeCompatibleWithSemanticCategory(code, category)) {
+        return true
+    }
+    return getMySqlMariaDbErrorCodeName(errorNumber) !== undefined
+}
+
+function isCollidingErrorNumber(errorNumber: number): boolean {
+    const mySqlCode = getMySqlMariaDbErrorCodeName(errorNumber, 'mySql')
+    const mariaDbCode = getMySqlMariaDbErrorCodeName(errorNumber, 'mariaDB')
+    return !!mySqlCode && !!mariaDbCode && mySqlCode !== mariaDbCode
+}
+
+function isCodeCompatibleWithSemanticCategory(code: string, category: SemanticErrorCategory): boolean {
+    const upperCode = code.toUpperCase()
+    if (!upperCode) {
+        return false
+    }
+
+    switch (category) {
+        case 'ambiguous_identifier':
+            return upperCode.includes('AMBIGUOUS') || upperCode.includes('DUP') || upperCode.includes('DUPLICATE')
+        case 'api_misuse':
+            return upperCode.startsWith('CR_') || upperCode.includes('COMMAND') || upperCode.includes('PACKET') || upperCode.includes('SYNC')
+        case 'authentication':
+            return upperCode.includes('AUTH') || upperCode.includes('PASSWORD') || upperCode.includes('USER_IS_BLOCKED')
+        case 'authorization':
+        case 'permission':
+            return upperCode.includes('ACCESS_DENIED') || upperCode.includes('PRIVILEGE') || upperCode.includes('PERMISSION') || upperCode.includes('ACCOUNT_HAS_BEEN_LOCKED') || upperCode.includes('LOAD_INFILE_CAPABILITY_DISABLED')
+        case 'cardinality':
+            return upperCode.includes('CARDINALITY') || upperCode.includes('WRONG_NUMBER') || upperCode.includes('WRONG_LIST') || upperCode.includes('COL_WRONG_LIST')
+        case 'check':
+            return upperCode.includes('CHECK_CONSTRAINT') || upperCode.includes('CONSTRAINT_FAILED')
+        case 'configuration':
+            return upperCode.includes('CONFIG') || upperCode.includes('VARIABLE') || upperCode.includes('OPTION') || upperCode.includes('PERSIST') || upperCode.includes('CF_') || upperCode.includes('TRANSPORT')
+        case 'connection':
+            return upperCode.includes('CONNECTION') || upperCode.includes('CONNECT') || upperCode.includes('SOCKET') || upperCode.includes('HANDSHAKE') || upperCode.includes('SERVER_LOST') || upperCode.includes('SERVER_GONE') || upperCode.includes('NET_READ') || upperCode.includes('NET_WRITE')
+        case 'cursor_invalid_state':
+            return upperCode.includes('CURSOR')
+        case 'database_corrupted':
+            return upperCode.includes('CORRUPT') || upperCode.includes('INCONSISTENCY') || upperCode.includes('METADATA')
+        case 'external_data_source':
+            return upperCode.includes('REPLICA') || upperCode.includes('SOURCE') || upperCode.includes('SLAVE') || upperCode.includes('MASTER') || upperCode.includes('GTID') || upperCode.includes('RPL') || upperCode.includes('BINLOG') || upperCode.includes('GROUP_REPLICATION') || upperCode.startsWith('CR_PROBE_')
+        case 'feature_not_supported':
+            return upperCode.includes('NOT_SUPPORTED') || upperCode.includes('UNSUPPORTED') || upperCode.includes('NOT_IMPLEMENTED') || upperCode.includes('DISABLED') || upperCode.includes('PROHIBITED')
+        case 'foreign_key':
+            return upperCode.includes('FOREIGN') || upperCode.includes('REFERENCED')
+        case 'invalid_definition':
+            return upperCode.includes('DEFAULT') || upperCode.includes('DEFINITION') || upperCode.includes('WINDOW') || upperCode.includes('FRAME') || upperCode.includes('PARTITION') || upperCode.includes('PERIOD') || upperCode.includes('VERS') || upperCode.includes('PRIMARY_KEY') || upperCode.includes('RECURSIVE') || upperCode.includes('NTILE') || upperCode.includes('TABLE_NO_PRIMARY_KEY')
+        case 'invalid_encoding':
+            return upperCode.includes('ENCODING') || upperCode.includes('CHARSET') || upperCode.includes('COLLATION')
+        case 'invalid_format':
+            return upperCode.includes('FORMAT') || upperCode.includes('SFORMAT') || upperCode.includes('COMPRESSION_METHOD') || upperCode.includes('TIMESTAMP_FORMAT')
+        case 'invalid_grouping':
+            return upperCode.includes('GROUP') || upperCode.includes('SUM_FUNC') || upperCode.includes('WINDOW_FUNC')
+        case 'invalid_identifier':
+            return upperCode.includes('IDENT') || upperCode.includes('VARIABLE') || upperCode.includes('STRUCTURED') || upperCode.includes('FIELD') || upperCode.includes('COLUMN')
+        case 'invalid_json':
+            return upperCode.includes('JSON') || upperCode.includes('GEOJSON')
+        case 'invalid_parameter':
+            return upperCode.includes('PARAM') || upperCode.includes('ARGUMENT') || upperCode.includes('PLACEHOLDER') || upperCode.includes('BIND') || upperCode.includes('COUNT') || upperCode.includes('BAD_REPLICA_UNTIL_COND') || upperCode.includes('BAD_SLAVE_UNTIL_COND')
+        case 'invalid_reference':
+            return upperCode.includes('REF') || upperCode.includes('REFERENCE') || upperCode.includes('RECURSIVE') || upperCode.includes('UNINIT') || upperCode.includes('NOT_EMPTY')
+        case 'invalid_statement_context':
+            return upperCode.includes('CONTEXT') || upperCode.includes('COMMAND') || upperCode.includes('PLACEMENT') || upperCode.includes('NOT_ALLOWED') || upperCode.includes('ONLY_ONCE') || upperCode.includes('NEED_REBUILD')
+        case 'invalid_value':
+            return upperCode.includes('VALUE') || upperCode.includes('WRONG') || upperCode.includes('ILLEGAL') || upperCode.includes('ARGUMENT') || upperCode.includes('TYPE') || upperCode.includes('TRUNCATED') || upperCode.includes('PARAMETER_DATA') || upperCode.includes('KEYS_OUT_OF_ORDER') || upperCode.includes('OVERLAPPING_KEYS') || upperCode.includes('TTL') || upperCode.includes('GIS') || upperCode.includes('GEOMETRY')
+        case 'io_access':
+            return upperCode.includes('ACCESS')
+        case 'io_close':
+            return upperCode.includes('CLOSE')
+        case 'io_delete':
+            return upperCode.includes('DELETE') || upperCode.includes('REMOVE')
+        case 'io_file_not_found':
+            return upperCode.includes('FILE') && (upperCode.includes('NOT_FOUND') || upperCode.includes('MISSING') || upperCode.includes('NO_SUCH'))
+        case 'io_file_stat':
+            return upperCode.includes('STAT')
+        case 'io_fsync':
+            return upperCode.includes('FSYNC')
+        case 'io_lock':
+            return upperCode.includes('LOCK')
+        case 'io_path':
+            return upperCode.includes('PATH') || upperCode.includes('DIR')
+        case 'io_read':
+            return hasSymbolWord(upperCode, 'READ')
+        case 'io_seek':
+            return upperCode.includes('SEEK')
+        case 'io_unlock':
+            return upperCode.includes('UNLOCK')
+        case 'io_write':
+            return hasSymbolWord(upperCode, 'WRITE')
+        case 'not_null':
+            return upperCode.includes('NOT_NULL') || upperCode.includes('NULL_TO_NOTNULL')
+        case 'object_already_exists':
+            return upperCode.includes('ALREADY_EXISTS') || upperCode.includes('CREATE_EXISTS') || upperCode.includes('TABLE_EXISTS') || upperCode.includes('PLUGIN_INSTALLED')
+        case 'object_invalid_state':
+            return upperCode.includes('ALREADY') || upperCode.includes('ACTIVE') || upperCode.includes('NOT_RUNNING') || upperCode.includes('WRONG_STAGE') || upperCode.includes('SEQUENCE_ACCESS') || upperCode.includes('CANT_MODIFY')
+        case 'object_not_found':
+            return isObjectNotFoundSymbol(upperCode)
+        case 'out_of_range':
+            return upperCode.includes('OUT_OF_RANGE') || upperCode.includes('OVERFLOW') || upperCode.includes('TOO_BIG') || upperCode.includes('INVALID_LATITUDE') || upperCode.includes('INVALID_LONGITUDE') || upperCode.includes('INVALID_HEIGHT') || upperCode.includes('INVALID_SCALING') || upperCode.includes('INVALID_ZONE') || upperCode.includes('PART_WRONG_VALUE')
+        case 'read_only':
+            return upperCode.includes('READ_ONLY') || upperCode.includes('READONLY')
+        case 'resource_connections':
+            return upperCode.includes('CONNECTION') || upperCode.includes('TOO_MANY_USER_CONNECTIONS')
+        case 'resource_disk':
+            return upperCode.includes('DISK') || upperCode.includes('FILE_FULL') || upperCode.includes('INDEX_FILE_FULL')
+        case 'resource_limit':
+            return upperCode.includes('TOO_MANY') || upperCode.includes('LIMIT') || upperCode.includes('EXCEEDS') || upperCode.includes('TOO_BIG') || upperCode.includes('TOO_LARGE')
+        case 'resource_memory':
+            return upperCode.includes('MEMORY') || upperCode.includes('OUT_OF_MEMORY')
+        case 'routine':
+            return upperCode.includes('ROUTINE') || upperCode.includes('FUNCTION') || upperCode.includes('STD_LOGIC') || upperCode.includes('STD_RUNTIME') || upperCode.includes('EVALUATING_EXPRESSION') || upperCode.includes('CALCULATING_DEFAULT_VALUE') || upperCode.includes('SFORMAT')
+        case 'sequence_corrupted':
+            return upperCode.includes('SEQUENCE_INVALID')
+        case 'sequence_limit':
+            return upperCode.includes('SEQUENCE_RUN_OUT')
+        case 'syntax':
+            return upperCode.includes('SYNTAX') || upperCode.includes('PARSE')
+        case 'timeout':
+        case 'transaction_timeout':
+            return upperCode.includes('TIMEOUT') || upperCode.includes('TIMEDOUT') || upperCode.includes('INTERRUPTED')
+        case 'too_long':
+            return upperCode.includes('TOO_LONG') || upperCode.includes('LENGTH') || upperCode.includes('OVERLONG') || upperCode.includes('MAX_SIZE')
+        case 'transaction_active':
+            return upperCode.includes('TRANSACTION') || upperCode.includes('CONSISTENT_SNAPSHOT') || upperCode.includes('SKIP_REPLICATION')
+        case 'transaction_deadlock':
+            return upperCode.includes('DEADLOCK')
+        case 'transaction_outcome_unknown':
+            return upperCode.includes('OUTCOME') || upperCode.includes('UNKNOWN')
+        case 'transaction_rollback':
+            return upperCode.includes('ROLLBACK') || upperCode.includes('ROLLED_BACK')
+        case 'unique':
+            return upperCode.includes('DUP') || upperCode.includes('UNIQUE')
+        case 'wrong_object_type':
+            return upperCode.includes('NOT_SEQUENCE') || upperCode.includes('IT_IS_A_VIEW') || upperCode.includes('VERS_NOT_VERSIONED')
+    }
+    return false
 }
 
 function getMariaDbSpecificSymbolReasonFromNumber(
@@ -310,6 +570,10 @@ function getMariaDbSpecificSymbolReasonFromNumber(
     message: string
 ): TsSqlErrorReason | undefined {
     switch (upperCode) {
+        case 'ER_CONSTRAINT_FAILED':
+            return { reason: 'SQL_CONSTRAINT_VIOLATED', databaseErrorCode, databaseErrorMessage, constraintType: 'check', constraintName: extractKeyName(message), tableName: extractCheckTableName(message) }
+        case 'ER_INNODB_AUTOEXTEND_SIZE_OUT_OF_RANGE':
+            return { reason: 'SQL_INVALID_VALUE', databaseErrorCode, databaseErrorMessage, errorType: 'out of range' }
         case 'ER_NOT_AGGREGATE_FUNCTION':
         case 'ER_INVALID_AGGREGATE_FUNCTION':
             return { reason: 'SQL_INVALID_SQL_STATEMENT', databaseErrorCode, databaseErrorMessage, statementErrorType: 'invalid statement context' }
@@ -491,7 +755,7 @@ function getMySqlMariaDbErrorReasonFromSymbol(
     if (upperCode.includes('NOT_SEQUENCE') || upperCode.includes('IT_IS_A_VIEW')) {
         return { reason: 'SQL_OBJECT_STATE_ERROR', databaseErrorCode, databaseErrorMessage, objectStateErrorType: 'wrong object type', objectName: extractQuotedName(message) }
     }
-    if (upperCode.includes('NO_SUCH') || upperCode.includes('UNKNOWN') || upperCode.includes('NOT_FOUND') || upperCode.includes('DOES_NOT_EXIST') || upperCode.includes('DROP_EXISTS')) {
+    if (isObjectNotFoundSymbol(upperCode)) {
         return getObjectNotFoundFromSymbol(upperCode, databaseErrorCode, databaseErrorMessage, message)
     }
     if (upperCode.includes('ALREADY_EXISTS') || upperCode.includes('CREATE_EXISTS') || upperCode.includes('TABLE_EXISTS')) {
@@ -616,11 +880,22 @@ function getMySqlMariaDbErrorReasonFromMessage(
 function getMySqlMariaDbKnownErrorFallbackReason(
     errorNumber: number | undefined,
     code: string,
+    database: DatabaseType | undefined,
     databaseErrorCode: TsSqlDatabaseErrorCode | undefined,
     databaseErrorMessage: string | undefined
 ): TsSqlErrorReason | undefined {
     const upperCode = code.toUpperCase()
 
+    // A naked errno that does not exist in the active catalog is just an
+    // unknown native number for this database, not a reason to borrow semantics
+    // from the other MySQL-family engine.
+    if (!upperCode && database && typeof errorNumber === 'number' && !getMySqlMariaDbErrorCodeName(errorNumber, database)) {
+        return undefined
+    }
+
+    if (upperCode.startsWith('CR_PROBE_')) {
+        return { reason: 'SQL_EXTERNAL_DATA_SOURCE_ERROR', databaseErrorCode, databaseErrorMessage }
+    }
     if (upperCode === 'CR_UNKNOWN_ERROR' || errorNumber === 2000) {
         return { reason: 'SQL_UNKNOWN', databaseErrorCode, databaseErrorMessage }
     }
@@ -675,18 +950,18 @@ export function isMySqlMariaDbEngineErrorCode(code: unknown): code is string {
         || ErrorCodes.MYSQL_MARIADB_ERROR_CODE_NUMBERS.has(normalizedCode)
 }
 
-export function getMySqlMariaDbErrorCodeName(errorNumber: number | undefined): string | undefined {
+export function getMySqlMariaDbErrorCodeName(errorNumber: number | undefined, database?: DatabaseType): string | undefined {
     if (typeof errorNumber !== 'number') {
         return undefined
     }
-    return ErrorCodes.MYSQL_MARIADB_ERROR_NUMBER_CODES.get(errorNumber)
+    return getErrorNumberCodes(database).get(errorNumber)
 }
 
-export function getMySqlMariaDbErrorNumberFromCode(code: string | undefined): number | undefined {
-    return getMySqlMariaDbErrorNumber(undefined, code || '')
+export function getMySqlMariaDbErrorNumberFromCode(code: string | undefined, database?: DatabaseType): number | undefined {
+    return getMySqlMariaDbErrorNumber(undefined, code || '', database)
 }
 
-function getMySqlMariaDbErrorNumber(errno: number | undefined, code: string): number | undefined {
+function getMySqlMariaDbErrorNumber(errno: number | undefined, code: string, database?: DatabaseType): number | undefined {
     if (typeof errno === 'number' && errno > 0) {
         return errno
     }
@@ -694,7 +969,7 @@ function getMySqlMariaDbErrorNumber(errno: number | undefined, code: string): nu
         return undefined
     }
     const normalizedCode = code.toUpperCase()
-    const mappedNumber = ErrorCodes.MYSQL_MARIADB_ERROR_CODE_NUMBERS.get(normalizedCode)
+    const mappedNumber = getErrorCodeNumbers(database).get(normalizedCode)
     if (mappedNumber !== undefined) {
         return mappedNumber
     }
@@ -706,6 +981,28 @@ function getMySqlMariaDbErrorNumber(errno: number | undefined, code: string): nu
         return Number(normalizedCode)
     }
     return undefined
+}
+
+function getErrorCodeNumbers(database?: DatabaseType): Map<string, number> {
+    switch (database) {
+        case 'mySql':
+            return ErrorCodes.MYSQL_ERROR_CODE_NUMBERS
+        case 'mariaDB':
+            return ErrorCodes.MARIADB_ERROR_CODE_NUMBERS
+        default:
+            return ErrorCodes.MYSQL_MARIADB_UNAMBIGUOUS_ERROR_CODE_NUMBERS
+    }
+}
+
+function getErrorNumberCodes(database?: DatabaseType): Map<number, string> {
+    switch (database) {
+        case 'mySql':
+            return ErrorCodes.MYSQL_ERROR_NUMBER_CODES
+        case 'mariaDB':
+            return ErrorCodes.MARIADB_ERROR_NUMBER_CODES
+        default:
+            return ErrorCodes.MYSQL_MARIADB_ERROR_NUMBER_CODES
+    }
 }
 
 function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: TsSqlDatabaseErrorNumber | undefined): TsSqlErrorReason {
@@ -721,6 +1018,32 @@ function isInRange(value: number | undefined, min: number, max: number): boolean
 
 function hasSymbolWord(code: string, word: string): boolean {
     return code === word || code.includes('_' + word + '_') || code.endsWith('_' + word) || code.startsWith(word + '_')
+}
+
+function isObjectNotFoundSymbol(code: string): boolean {
+    if (code.includes('NO_SUCH') || code.includes('NOT_FOUND') || code.includes('DOES_NOT_EXIST') || code.includes('DROP_EXISTS')) {
+        return true
+    }
+    if (!code.includes('UNKNOWN')) {
+        return false
+    }
+    return code.includes('DB')
+        || code.includes('DATABASE')
+        || code.includes('TABLE')
+        || code.includes('ROLE')
+        || code.includes('SEQUENCE')
+        || code.includes('TRG')
+        || code.includes('TRIGGER')
+        || code.includes('FIELD')
+        || code.includes('COLUMN')
+        || code.includes('PROC')
+        || code.includes('ROUTINE')
+        || code.includes('SP_')
+        || code.includes('FUNCTION')
+        || code.includes('UDF')
+        || code.includes('KEY')
+        || code.includes('INDEX')
+        || code.includes('COLLATION')
 }
 
 function getConnectionErrorTypeFromNumber(errorNumber: number): 'connection lost' | 'temporarily unavailable' | 'invalid connection configuration' {
@@ -892,13 +1215,12 @@ function getMySqlMariaDbDatabaseErrorCode(
 ): TsSqlDatabaseErrorCode | undefined {
     const code = error.code || undefined
     if (code) {
-        const codeNumber = getMySqlMariaDbErrorNumber(undefined, code)
-        if (codeNumber !== undefined && codeNumber.toString() === code) {
-            return getMySqlMariaDbErrorCodeName(codeNumber) ?? code
+        if (/^\d+$/.test(code)) {
+            return getMySqlMariaDbErrorCodeName(Number(code), error.database) ?? code
         }
-        return getMySqlMariaDbErrorCodeName(codeNumber) ?? code
+        return code
     }
-    return getMySqlMariaDbErrorCodeName(errorNumber)
+    return getMySqlMariaDbErrorCodeName(errorNumber, error.database)
 }
 
 function getMySqlMariaDbDatabaseErrorNumber(

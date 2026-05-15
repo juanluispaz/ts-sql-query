@@ -37,14 +37,14 @@ export class MariaDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     }
 
     getErrorReason(error: unknown): TsSqlErrorReason {
-        return MariaDBQueryRunner.getErrorReason(error)
+        return MariaDBQueryRunner.getErrorReason(error, this.database)
     }
     isSqlError(error: unknown): boolean {
         return MariaDBQueryRunner.isSqlError(error)
     }
 
-    static getErrorReason(error: unknown): TsSqlErrorReason {
-        return MariaDBQueryRunner.getErrorReason(error)
+    static getErrorReason(error: unknown, database?: DatabaseType): TsSqlErrorReason {
+        return MariaDBQueryRunner.getErrorReason(error, database)
     }
     static isSqlError(error: unknown): boolean {
         return MariaDBQueryRunner.isSqlError(error)

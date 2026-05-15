@@ -164,20 +164,20 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         return '?'
     }
     getErrorReason(error: unknown): TsSqlErrorReason {
-        return MariaDBQueryRunner.getErrorReason(error)
+        return MariaDBQueryRunner.getErrorReason(error, this.database)
     }
     isSqlError(error: unknown): boolean {
         return MariaDBQueryRunner.isSqlError(error)
     }
 
-    static getErrorReason(error: unknown): TsSqlErrorReason {
+    static getErrorReason(error: unknown, database?: DatabaseType): TsSqlErrorReason {
         if (error instanceof TsSqlError) {
             return error.errorReason
         }
         if (!isMariaDbError(error)) {
             return { reason: 'UNKNOWN' }
         }
-        return getMariaDbErrorReason(error)
+        return getMariaDbErrorReason(error, database)
     }
 
     static isSqlError(error: unknown): boolean {
@@ -185,26 +185,27 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     }
 }
 
-function getMariaDbErrorReason(error: SqlError): TsSqlErrorReason {
+function getMariaDbErrorReason(error: SqlError, database?: DatabaseType): TsSqlErrorReason {
     const message = error.sqlMessage || error.message || ''
 
-    const reason = getKnownMariaDbDriverErrorReason(error, message)
+    const reason = getKnownMariaDbDriverErrorReason(error, message, database)
         || getMySqlMariaDbEngineErrorReason({
+            database,
             errno: error.errno,
             code: error.code,
             sqlState: error.sqlState,
-            databaseErrorCode: getMariaDbDatabaseErrorCode(error),
-            databaseErrorNumber: getMariaDbDatabaseErrorNumber(error),
+            databaseErrorCode: getMariaDbDatabaseErrorCode(error, database),
+            databaseErrorNumber: getMariaDbDatabaseErrorNumber(error, database),
             message,
         })
 
-    return withDatabaseErrorNumber(reason, getMariaDbDatabaseErrorNumber(error))
+    return withDatabaseErrorNumber(reason, getMariaDbDatabaseErrorNumber(error, database))
 }
 
-function getKnownMariaDbDriverErrorReason(error: SqlError, message = error.sqlMessage || error.message || ''): TsSqlErrorReason | undefined {
+function getKnownMariaDbDriverErrorReason(error: SqlError, message = error.sqlMessage || error.message || '', database?: DatabaseType): TsSqlErrorReason | undefined {
     const code = getMariaDbStringCode(error)
     const driverCode = getMariaDbDriverErrorCode(error)
-    const databaseErrorCode = getMariaDbDatabaseErrorCode(error)
+    const databaseErrorCode = getMariaDbDatabaseErrorCode(error, database)
     const databaseErrorMessage = message || undefined
 
     switch (driverCode) {
@@ -348,20 +349,20 @@ function isMariaDbDriverMessage(message: string): boolean {
         || isMariaDbPlainDriverFeatureNotSupportedMessage(message)
 }
 
-function getMariaDbDatabaseErrorCode(error: SqlError): string | undefined {
+function getMariaDbDatabaseErrorCode(error: SqlError, database?: DatabaseType): string | undefined {
     const code = getMariaDbStringCode(error)
     if (code) {
-        return getMySqlMariaDbErrorCodeName(getMySqlMariaDbErrorNumberFromCode(code)) ?? code
+        return getMySqlMariaDbErrorCodeName(getMySqlMariaDbErrorNumberFromCode(code, database), database) ?? code
     }
     const errorNumber = getMariaDbPositiveErrorNumber(error)
-    return getMySqlMariaDbErrorCodeName(errorNumber)
+    return getMySqlMariaDbErrorCodeName(errorNumber, database)
 }
 
-function getMariaDbDatabaseErrorNumber(error: SqlError): TsSqlDatabaseErrorNumber | undefined {
+function getMariaDbDatabaseErrorNumber(error: SqlError, database?: DatabaseType): TsSqlDatabaseErrorNumber | undefined {
     const code = getMariaDbStringCode(error)
     return getMariaDbPositiveErrorNumber(error)
         ?? (code ? MARIADB_DRIVER_ERROR_CODE_NUMBERS.get(code) : undefined)
-        ?? getMySqlMariaDbErrorNumberFromCode(code)
+        ?? getMySqlMariaDbErrorNumberFromCode(code, database)
         ?? error.sqlState
 }
 

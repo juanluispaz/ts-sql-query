@@ -55,18 +55,18 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
         return sql
     }
     getErrorReason(error: unknown): TsSqlErrorReason {
-        return BunSqlMySqlQueryRunner.getErrorReason(error)
+        return BunSqlMySqlQueryRunner.getErrorReason(error, this.database)
     }
     isSqlError(error: unknown): boolean {
         return BunSqlMySqlQueryRunner.isSqlError(error)
     }
 
-    static getErrorReason(error: unknown): TsSqlErrorReason {
+    static getErrorReason(error: unknown, database?: DatabaseType): TsSqlErrorReason {
         if (error instanceof TsSqlError) {
             return error.errorReason
         }
         if (isBunSqlMySqlError(error)) {
-            return getBunSqlMySqlErrorReason(error)
+            return getBunSqlMySqlErrorReason(error, database)
         }
         if (isBunSqlError(error)) {
             return { reason: 'SQL_UNKNOWN', databaseErrorMessage: error.message || undefined }
@@ -82,7 +82,7 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
     }
 }
 
-function getBunSqlMySqlErrorReason(error: BunSqlMySqlError): TsSqlErrorReason {
+function getBunSqlMySqlErrorReason(error: BunSqlMySqlError, database?: DatabaseType): TsSqlErrorReason {
     const connectorReason = getKnownBunSqlMySqlConnectorErrorReason(error)
     if (connectorReason) {
         return connectorReason
@@ -93,8 +93,9 @@ function getBunSqlMySqlErrorReason(error: BunSqlMySqlError): TsSqlErrorReason {
     }
 
     return getMySqlMariaDbEngineErrorReason({
+        database,
         errno: getBunSqlMySqlErrorNumber(error),
-        code: getBunSqlMySqlEngineErrorCode(error),
+        code: getBunSqlMySqlEngineErrorCode(error, database),
         sqlState: error.sqlState,
         message: error.message,
     })
@@ -153,12 +154,12 @@ function getKnownBunSqlMySqlConnectorErrorReason(error: BunSqlMySqlError): TsSql
     return undefined
 }
 
-function getBunSqlMySqlEngineErrorCode(error: BunSqlMySqlError): string | undefined {
+function getBunSqlMySqlEngineErrorCode(error: BunSqlMySqlError, database?: DatabaseType): string | undefined {
     const code = error.code || undefined
     const errorNumber = getBunSqlMySqlErrorNumber(error)
 
     if (errorNumber !== undefined && isBunSqlMySqlGenericServerErrorCode(code)) {
-        return getMySqlMariaDbErrorCodeName(errorNumber) ?? code
+        return getMySqlMariaDbErrorCodeName(errorNumber, database) ?? code
     }
     return code
 }

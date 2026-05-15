@@ -23,10 +23,10 @@ This page explains how to use `ts-sql-query` with the [oracledb](https://www.npm
 Executes queries through a [oracledb](https://www.npmjs.com/package/oracledb) connection obtained from a pool promise.
 
 ```ts
-import { createPool } from 'oracledb';
+import oracledb from 'oracledb';
 import { OracleDBPoolPromiseQueryRunner } from "ts-sql-query/queryRunners/OracleDBPoolPromiseQueryRunner";
 
-const poolPromise = createPool({
+const poolPromise = oracledb.createPool({
     user: 'user',
     password: 'pwd',
     connectString: 'localhost/XEPDB1'
@@ -58,10 +58,10 @@ async function main() {
 Executes queries through a [oracledb](https://www.npmjs.com/package/oracledb) connection obtained from a pool.
 
 ```ts
-import { createPool } from 'oracledb';
+import oracledb from 'oracledb';
 import { OracleDBPoolQueryRunner } from "ts-sql-query/queryRunners/OracleDBPoolQueryRunner";
 
-const poolPromise = createPool({
+const poolPromise = oracledb.createPool({
     user: 'user',
     password: 'pwd',
     connectString: 'localhost/XEPDB1'
@@ -94,12 +94,12 @@ async function main() {
 Executes queries through a dedicated [oracledb](https://www.npmjs.com/package/oracledb) connection.
 
 ```ts
-import { createPool } from 'oracledb';
+import oracledb from 'oracledb';
 import { OracleDBQueryRunner } from "ts-sql-query/queryRunners/OracleDBQueryRunner";
 
 async function init() {
     try {
-        await createPool({
+        await oracledb.createPool({
             user: 'user',
             password: 'pwd',
             connectString: 'localhost/XEPDB1'

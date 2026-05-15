@@ -3,20 +3,22 @@
  * # Download and uncompress instantclient-basic-linux: https://www.oracle.com/es/database/technologies/instant-client/linux-x86-64-downloads.html
  * sudo apt-get install libaio1
  * export LD_LIBRARY_PATH=/path/to/instantclient/
- * docker run --name ts-sql-query-oracle -d -p 1521:1521 quillbuilduser/oracle-18-xe
+ * docker run --name ts-sql-query-oracle -d -p 1521:1521 -e ORACLE_PASSWORD=Oracle18 gvenzl/oracle-free:23-slim-faststart
  */
 
  /*
   * Useful query for see errors: select * from SYS.USER_ERRORS
   */
 
-import * as oracledb from 'oracledb'
+import oracledb from 'oracledb'
 import { Table } from '../Table.js'
 import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
 import { OracleConnection } from '../connections/OracleConnection.js'
 import { OracleDBQueryRunner } from '../queryRunners/OracleDBQueryRunner.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
+
+process.env.TZ = 'UTC'
 
 class DBConnection extends OracleConnection<'DBConnection'> {
     increment(i: number) {
@@ -89,7 +91,7 @@ const tBoolean = new class TBoolean extends Table<DBConnection, 'TBoolean'> {
 const connectionPromise = oracledb.getConnection({
     user: 'sys',
     password: 'Oracle18',
-    connectString: 'localhost:1521/XE',
+    connectString: 'localhost:1521/FREEPDB1',
     privilege: oracledb.SYSDBA
 });
 
@@ -2121,4 +2123,3 @@ main().then(() => {
     console.error(e)
     process.exit(1)
 })
-

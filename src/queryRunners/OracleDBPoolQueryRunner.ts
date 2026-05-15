@@ -1,6 +1,6 @@
 import type { DatabaseType, QueryRunner } from './QueryRunner.js'
 import type { Pool, Connection } from 'oracledb'
-import { BIND_OUT } from 'oracledb'
+import oracledb from 'oracledb'
 import { OracleDBQueryRunner } from './OracleDBQueryRunner.js'
 import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQueryRunner.js'
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
@@ -31,9 +31,9 @@ export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     addOutParam(params: any[], name: string): string {
         const index = params.length
         if (name) {
-            params.push({dir: BIND_OUT, as: name})
+            params.push({dir: oracledb.BIND_OUT, as: name})
         } else {
-            params.push({dir: BIND_OUT})
+            params.push({dir: oracledb.BIND_OUT})
         }
         return ':' + index
     }

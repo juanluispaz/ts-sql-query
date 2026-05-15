@@ -23,8 +23,10 @@ This page explains how to use `ts-sql-query` with the [mssql](https://www.npmjs.
 Enables executing queries through a [mssql](https://www.npmjs.com/package/mssql) connection obtained from a pool promise.
 
 ```ts
-import { ConnectionPool } from 'mssql'
+import mssql from 'mssql'
 import { MssqlPoolPromiseQueryRunner } from "ts-sql-query/queryRunners/MssqlPoolPromiseQueryRunner";
+
+const { ConnectionPool } = mssql
 
 const poolPromise = new ConnectionPool({
     user: '...',
@@ -44,8 +46,10 @@ async function main() {
 Enables executing queries through a [mssql](https://www.npmjs.com/package/mssql) connection obtained from a pool.
 
 ```ts
-import { ConnectionPool } from 'mssql'
+import mssql from 'mssql'
 import { MssqlPoolQueryRunner } from "ts-sql-query/queryRunners/MssqlPoolQueryRunner";
+
+const { ConnectionPool } = mssql
 
 const poolPromise = new ConnectionPool({
     user: '...',

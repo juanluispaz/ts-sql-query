@@ -9,8 +9,10 @@ import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
 import { SqlServerConnection } from '../connections/SqlServerConnection.js'
 import { MssqlPoolPromiseQueryRunner } from '../queryRunners/MssqlPoolPromiseQueryRunner.js'
-import { ConnectionPool } from 'mssql'
+import mssql from 'mssql'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
+
+const { ConnectionPool } = mssql
 
 class DBConnection extends SqlServerConnection<'DBConnection'> {
     increment(i: number) {
@@ -67,7 +69,10 @@ const poolPromise = new ConnectionPool({
     user: 'sa',
     password: 'yourStrong(!)Password',
     server: 'localhost',
-    database: 'master'
+    database: 'master',
+    options: {
+        trustServerCertificate: true,
+    },
 }).connect();
 
 

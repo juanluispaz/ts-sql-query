@@ -1,6 +1,6 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, RollbackOpts } from './QueryRunner.js'
 import type { Connection, DBError } from 'oracledb'
-import * as oracleDb from 'oracledb'
+import oracleDb from 'oracledb'
 import { DelegatedSetTransactionQueryRunner } from './DelegatedSetTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getOracleEngineErrorReason } from './databaseErrorMappers/OracleErrorMapper.js'

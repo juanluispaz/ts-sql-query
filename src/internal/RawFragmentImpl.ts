@@ -17,11 +17,11 @@ export class RawFragmentImpl implements RawFragment<any>, HasAddWiths, ToSql {
         this.__template = template
         this.__params = params
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._rawFragment(params, this.__template, this.__params)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
-        return this.__toSql(sqlBuilder, params)
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        return this.__toSql(sqlBuilder, params, forceTypeCast)
     }
 
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {

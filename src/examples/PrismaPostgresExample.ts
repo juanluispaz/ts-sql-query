@@ -36,9 +36,6 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         }
         return super.transformValueFromDB(value, type)
     }
-    protected transformPlaceholder(placeholder: string, type: string, _forceTypeCast: boolean, valueSentToDB: unknown): string {
-        return super.transformPlaceholder(placeholder, type, true, valueSentToDB)
-    }
 }
 
 const tCompany = new class TCompany extends Table<DBConnection, 'TCompany'> {
@@ -882,20 +879,18 @@ async function main() {
 
         const date = new Date('2022-11-21T19:33:56.123Z')
         const dateValue = connection.const(date, 'localDateTime')
-        // PostgreSql fails to call date part functions when a constant date is provided
-        const dateValueCasted = connection.fragmentWithType('localDateTime', 'required').sql`TIMESTAMP '2022-11-21 19:33:56.123'`
         const dateValidation = await connection
             .selectFromNoTable()
             .select({
-                fullYear: dateValueCasted.getFullYear(),
-                month: dateValueCasted.getMonth(),
-                date: dateValueCasted.getDate(),
-                day: dateValueCasted.getDay(),
-                hours: dateValueCasted.getHours(),
-                minutes: dateValueCasted.getMinutes(),
-                second: dateValueCasted.getSeconds(),
-                milliseconds: dateValueCasted.getMilliseconds(),
-                time: dateValueCasted.getTime(),
+                fullYear: dateValue.getFullYear(),
+                month: dateValue.getMonth(),
+                date: dateValue.getDate(),
+                day: dateValue.getDay(),
+                hours: dateValue.getHours(),
+                minutes: dateValue.getMinutes(),
+                second: dateValue.getSeconds(),
+                milliseconds: dateValue.getMilliseconds(),
+                time: dateValue.getTime(),
                 dateValue: dateValue,
             })
             .executeSelectOne()

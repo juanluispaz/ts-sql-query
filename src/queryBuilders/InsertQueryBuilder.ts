@@ -333,7 +333,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         return this.__params
     }
 
-    __toSql(_sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(_sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         if (this.__from) {
             return this.__sqlBuilder._buildInsertFromSelect(this, params)
         } else if (this.__multiple) {
@@ -344,8 +344,8 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             return this.__sqlBuilder._buildInsert(this, params)
         }
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
-        return this.__toSql(sqlBuilder, params)
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        return this.__toSql(sqlBuilder, params, forceTypeCast)
     }
     shapedAs(shape: any): any {
         this.__query = ''

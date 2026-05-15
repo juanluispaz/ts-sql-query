@@ -7,10 +7,10 @@ export interface Default {
 
 export class DefaultImpl implements Default, ToSql {
     [type]!: 'default'
-    __toSql(SqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(SqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return SqlBuilder._default(params)
     }
-    __toSqlForCondition(SqlBuilder: SqlBuilder, params: any[]): string {
+    __toSqlForCondition(SqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return SqlBuilder._default(params)
     }
 }

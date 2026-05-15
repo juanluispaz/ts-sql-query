@@ -64,9 +64,9 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
             this.__uuidString = uuidString
         }
     }
-    abstract __toSql(sqlBuilder: SqlBuilder, params: any[]): string
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
-        return this.__toSql(sqlBuilder, params)
+    abstract __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        return this.__toSql(sqlBuilder, params, forceTypeCast)
     }
     __addWiths(_sqlBuilder: HasIsValue, _withs: Array<IWithView<any>>): void {
         // Do nothing
@@ -709,7 +709,7 @@ export class SqlOperationStatic0ValueSource extends ValueSourceImpl implements H
         super(valueType, valueTypeName, optionalType, typeAdapter)
         this.__operation = operation
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params)
     }
 }
@@ -721,10 +721,10 @@ export class SqlOperationStaticBooleanValueSource extends ValueSourceImpl implem
         super('boolean', 'boolean', 'required', undefined)
         this.__operation = operation
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         if (this.__operation === '_true') {
             return sqlBuilder._trueForCondition(params)
         } else {
@@ -742,8 +742,8 @@ export class BooleanValueWhenNoValueValueSource extends ValueSourceImpl implemen
         this.__valueSource = valueSource
         this.__operation = operation
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
-        const sql = this.__valueSource.__toSql(sqlBuilder, params)
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        const sql = this.__valueSource.__toSql(sqlBuilder, params, forceTypeCast)
         if (sql) {
             return sql
         }
@@ -751,8 +751,8 @@ export class BooleanValueWhenNoValueValueSource extends ValueSourceImpl implemen
         // No value
         return sqlBuilder[this.__operation](params)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
-        const sql = this.__valueSource.__toSql(sqlBuilder, params)
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        const sql = this.__valueSource.__toSql(sqlBuilder, params, forceTypeCast)
         if (sql) {
             return sql
         }
@@ -793,23 +793,23 @@ export class ValueWhenNoValueValueSource extends ValueSourceImpl {
         this.__valueSource = valueSource
         this.__valueWhenNoValue = valueWhenNoValue
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
-        const sql = this.__valueSource.__toSql(sqlBuilder, params)
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        const sql = this.__valueSource.__toSql(sqlBuilder, params, forceTypeCast)
         if (sql) {
             return sql
         }
 
         // No value
-        return this.__valueWhenNoValue.__toSql(sqlBuilder, params)
+        return this.__valueWhenNoValue.__toSql(sqlBuilder, params, forceTypeCast)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
-        const sql = this.__valueSource.__toSql(sqlBuilder, params)
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        const sql = this.__valueSource.__toSql(sqlBuilder, params, forceTypeCast)
         if (sql) {
             return sql
         }
 
         // No value
-        return this.__valueWhenNoValue.__toSqlForCondition(sqlBuilder, params)
+        return this.__valueWhenNoValue.__toSqlForCondition(sqlBuilder, params, forceTypeCast)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -843,8 +843,8 @@ export class SqlOperationStatic1ValueSource extends ValueSourceImpl implements H
         this.__operation = operation
         this.__value = value
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
-        return sqlBuilder[this.__operation](params, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter)
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        return sqlBuilder[this.__operation](params, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter, forceTypeCast)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         __addWiths(this.__value, sqlBuilder, withs)
@@ -875,11 +875,11 @@ export class SqlOperationConstValueSource extends ValueSourceImpl implements Has
         this.__operation = '_const'
         this.__value = value
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
-        return sqlBuilder._const(params, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter)
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        return sqlBuilder._const(params, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter, forceTypeCast)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
-        return sqlBuilder._constForCondition(params, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter)
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        return sqlBuilder._constForCondition(params, this.__value, this.__valueType, this.__valueTypeName, this.__typeAdapter, forceTypeCast)
     }
     isConstValue(): boolean {
         return true
@@ -916,7 +916,7 @@ export class SqlOperation0ValueSource extends ValueSourceImpl implements HasOper
         this.__valueSource = valueSource
         this.__operation = operation
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__valueSource)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
@@ -948,7 +948,7 @@ export class SqlOperationIsNullValueSource extends ValueSourceImpl implements Ha
         this.__valueSource = valueSource
         this.__operation = operation
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__valueSource)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
@@ -982,7 +982,7 @@ export class SqlOperation1ValueSource extends ValueSourceImpl implements HasOper
         this.__operation = operation
         this.__value = value
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
@@ -1019,7 +1019,7 @@ export class SqlOperationInValueSource extends ValueSourceImpl implements HasOpe
         this.__operation = operation
         this.__value = value
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
@@ -1126,7 +1126,7 @@ export class SqlOperationValueWhenNullValueSource extends ValueSourceImpl implem
         this.__operation = '_valueWhenNull'
         this.__value = value
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
@@ -1163,7 +1163,7 @@ export class SqlOperation1NotOptionalValueSource extends ValueSourceImpl impleme
         this.__operation = operation
         this.__value = value
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
@@ -1200,7 +1200,7 @@ export class SqlOperation1ValueSourceIfValueOrNoop extends ValueSourceImpl imple
         this.__operation = operation
         this.__value = value
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         if (!sqlBuilder._isValue(this.__value)) {
             return ''
         }
@@ -1258,7 +1258,7 @@ export class SqlOperationInValueSourceIfValueOrNoop extends ValueSourceImpl impl
         this.__operation = operation
         this.__value = value
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         if (!sqlBuilder._isValue(this.__value)) {
             return ''
         }
@@ -1376,7 +1376,7 @@ export class SqlOperationValueSourceIfValueAlwaysNoop extends ValueSourceImpl {
     constructor() {
         super('', '', 'required', undefined)
     }
-    __toSql(_sqlBuilder: SqlBuilder, _params: any[]): string {
+    __toSql(_sqlBuilder: SqlBuilder, _params: any[], _forceTypeCast: boolean): string {
         return ''
     }
 }
@@ -1393,9 +1393,9 @@ export class SqlOperation1ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         this.__operation = operation
         this.__value = value
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
         if (!sqlBuilder._isValue(this.__value)) {
-            return this.__valueSource.__toSql(sqlBuilder, params)
+            return this.__valueSource.__toSql(sqlBuilder, params, forceTypeCast)
         }
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
@@ -1435,7 +1435,7 @@ export class SqlOperation2ValueSource extends ValueSourceImpl implements HasOper
         this.__value = value
         this.__value2 = value2
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
@@ -1477,12 +1477,12 @@ export class SqlOperation2ValueSourceIfValueOrIgnore extends ValueSourceImpl imp
         this.__value = value
         this.__value2 = value2
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
         if (!sqlBuilder._isValue(this.__value)) {
-            return this.__valueSource.__toSql(sqlBuilder, params)
+            return this.__valueSource.__toSql(sqlBuilder, params, forceTypeCast)
         }
         if (!sqlBuilder._isValue(this.__value2)) {
-            return this.__valueSource.__toSql(sqlBuilder, params)
+            return this.__valueSource.__toSql(sqlBuilder, params, forceTypeCast)
         }
         return sqlBuilder[this.__operation](params, this.__valueSource, this.__value, this.__value2, this.__valueSource.__valueType, this.__valueSource.__valueTypeName, this.__valueSource.__typeAdapter)
     }
@@ -1518,8 +1518,8 @@ export class NoopValueSource extends ValueSourceImpl {
         super(valueType, valueTypeName, optionalType, typeAdapter)
         this.__valueSource = valueSource
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
-        return this.__valueSource.__toSql(sqlBuilder, params)
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        return this.__valueSource.__toSql(sqlBuilder, params, forceTypeCast)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1549,7 +1549,7 @@ export class SequenceValueSource extends ValueSourceImpl {
         this.__operation = operation
         this.__sequenceName = sequenceName
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__sequenceName)
     }
 }
@@ -1567,7 +1567,7 @@ export class FragmentValueSource extends ValueSourceImpl {
             this.__isBooleanForCondition = true
         }
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._fragment(params, this.__sql, this.__sqlParams)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
@@ -1648,12 +1648,12 @@ export class ValueSourceFromBuilder extends ValueSourceImpl {
     __getBuilderOutputPrivate(): __ValueSourcePrivate {
         return __getValueSourcePrivate(this.__getBuilderOutput())
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
         const builderOutput = this.__getBuilderOutput()
         if (!hasToSql(builderOutput)) {
             throw new TsSqlProcessingError({ reason: 'INVALID_SQL_FRAGMENT_RETURN_TYPE', typeName: this.__valueTypeName }, 'The result of value from fragment functions is no a valid sql element')
         }
-        return builderOutput.__toSql(sqlBuilder, params)
+        return builderOutput.__toSql(sqlBuilder, params, forceTypeCast)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__getBuilderOutputPrivate().__addWiths(sqlBuilder, withs)
@@ -1685,11 +1685,11 @@ export class AllowWhenValueSource extends ValueSourceImpl {
         this.__error = error
         this.__allowed = allowed
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
         if (!this.__allowed) {
             throw this.__error
         }
-        return this.__valueSource.__toSql(sqlBuilder, params)
+        return this.__valueSource.__toSql(sqlBuilder, params, forceTypeCast)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
         this.__valueSource.__addWiths(sqlBuilder, withs)
@@ -1721,7 +1721,7 @@ export class AggregateFunctions0ValueSource extends ValueSourceImpl implements H
         super(valueType, valueTypeName, optionalType, typeAdapter)
         this.__operation = operation
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params)
     }
 }
@@ -1732,7 +1732,7 @@ export class NullValueSource extends ValueSourceImpl implements HasOperation {
     constructor(valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
         super(valueType, valueTypeName, optionalType, typeAdapter)
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._asNullValue(params, this.__valueType, this.__valueTypeName, this.__typeAdapter)
     }
     __isAllowed(_sqlBuilder: HasIsValue): boolean {
@@ -1749,7 +1749,7 @@ export class AggregateFunctions1ValueSource extends ValueSourceImpl implements H
         this.__operation = operation
         this.__value = value
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__value)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
@@ -1783,7 +1783,7 @@ export class AggregateFunctions1or2ValueSource extends ValueSourceImpl implement
         this.__separator = separator
         this.__value = value
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__separator, this.__value)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: Array<IWithView<any>>): void {
@@ -1957,11 +1957,11 @@ export class TableOrViewRawFragmentValueSource implements ValueSource<any, any, 
     __isAllowed(_sqlBuilder: HasIsValue): boolean {
         return true
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder[this.__operation](params, this.__tableOrView)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
-        return this.__toSql(sqlBuilder, params)
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        return this.__toSql(sqlBuilder, params, forceTypeCast)
     }
 }
 
@@ -1973,11 +1973,11 @@ export class AllowWhenTableOrViewRawFragmentValueSource extends TableOrViewRawFr
         this.__error = error
         this.__allowed = allowed
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
         if (!this.__allowed) {
             throw this.__error
         }
-        return super.__toSql(sqlBuilder, params)
+        return super.__toSql(sqlBuilder, params, forceTypeCast)
     }
     __isAllowed(sqlBuilder: HasIsValue): boolean {
         if (!this.__allowed) {
@@ -1997,10 +1997,10 @@ export class InlineSelectValueSource extends ValueSourceImpl implements HasOpera
         super(...valueSourceInitializationForInlineSelect(selectData, required))
         this.__selectData = selectData
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._inlineSelectAsValue(this.__selectData, params)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._inlineSelectAsValueForCondition(this.__selectData, params)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[]): void {
@@ -2068,10 +2068,10 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
         }
     }
 
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._inlineSelectAsValue(this.__selectData, params)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._inlineSelectAsValueForCondition(this.__selectData, params)
     }
     __addWiths(sqlBuilder: HasIsValue, withs: IWithView<any>[]): void {
@@ -2130,11 +2130,11 @@ export class AllowWhenAggregateSelectValueSource extends AggregateSelectValueSou
         this.__error = error
         this.__allowed = allowed
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
         if (!this.__allowed) {
             throw this.__error
         }
-        return super.__toSql(sqlBuilder, params)
+        return super.__toSql(sqlBuilder, params, forceTypeCast)
     }
     __isAllowed(sqlBuilder: HasIsValue): boolean {
         if (!this.__allowed) {
@@ -2188,11 +2188,11 @@ export class NullAggregateSelectValueSource implements ValueSource<any, any, any
         }
     }
 
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._asNullValue(params, this.__valueType, this.__valueTypeName, undefined)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
-        return this.__toSql(sqlBuilder, params)
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        return this.__toSql(sqlBuilder, params, forceTypeCast)
     }
     __addWiths(_sqlBuilder: HasIsValue, _withs: IWithView<any>[]): void {
     }
@@ -2246,11 +2246,11 @@ export class NullAllowWhenAggregateSelectValueSource extends NullAggregateSelect
         this.__error = error
         this.__allowed = allowed
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
         if (!this.__allowed) {
             throw this.__error
         }
-        return super.__toSql(sqlBuilder, params)
+        return super.__toSql(sqlBuilder, params, forceTypeCast)
     }
     __isAllowed(sqlBuilder: HasIsValue): boolean {
         if (!this.__allowed) {
@@ -2456,11 +2456,11 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
             return true
         }
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._aggregateValueAsArray(this, params)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
-        return this.__toSql(sqlBuilder, params)
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        return this.__toSql(sqlBuilder, params, forceTypeCast)
     }
 
     useEmptyArrayForNoValue(): any {
@@ -2500,11 +2500,11 @@ export class AllowWhenAggregateValueAsArrayValueSource extends AggregateValueAsA
         this.__error = error
         this.__allowed = allowed
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
         if (!this.__allowed) {
             throw this.__error
         }
-        return super.__toSql(sqlBuilder, params)
+        return super.__toSql(sqlBuilder, params, forceTypeCast)
     }
     __isAllowed(sqlBuilder: HasIsValue): boolean {
         if (!this.__allowed) {
@@ -2572,11 +2572,11 @@ export class NullAggregateValueAsArrayValueSource implements ValueSource<any, an
     __isAllowed(_sqlBuilder: HasIsValue): boolean {
         return false
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._asNullValue(params, this.__valueType, this.__valueTypeName, undefined)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
-        return this.__toSql(sqlBuilder, params)
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        return this.__toSql(sqlBuilder, params, forceTypeCast)
     }
 
     useEmptyArrayForNoValue(): any {
@@ -2615,11 +2615,11 @@ export class NullAllowWhenAggregateValueAsArrayValueSource extends NullAggregate
         this.__error = error
         this.__allowed = allowed
     }
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
         if (!this.__allowed) {
             throw this.__error
         }
-        return super.__toSql(sqlBuilder, params)
+        return super.__toSql(sqlBuilder, params, forceTypeCast)
     }
     __isAllowed(sqlBuilder: HasIsValue): boolean {
         if (!this.__allowed) {

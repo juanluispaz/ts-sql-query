@@ -264,8 +264,8 @@ export interface SqlBuilder extends SqlOperation {
 }
 
 export interface ToSql {
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string
+    __toSql(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string
 }
 
 export function hasToSql(value: any): value is ToSql {
@@ -347,11 +347,11 @@ export interface SqlFunctionStatic0 {
 }
 
 export interface SqlFunctionStatic1 {
-    _const(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _constForCondition(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _exists(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _notExists(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
-    _escapeLikeWildcard(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string
+    _const(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
+    _constForCondition(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
+    _exists(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
+    _notExists(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
+    _escapeLikeWildcard(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string
 }
 
 export interface SqlFunction0 {

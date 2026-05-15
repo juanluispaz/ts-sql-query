@@ -30,11 +30,11 @@ export class DBColumnImpl extends ValueSourceImpl implements DBColumn, WritableD
         this.__tableOrView = table
     }
 
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._appendColumnName(this.__asColumn(), params)
     }
 
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._appendColumnNameForCondition(this.__asColumn(), params)
     }
 

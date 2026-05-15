@@ -500,11 +500,11 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
     abstract __isAllowed(sqlBuilder: HasIsValue): boolean
 
     abstract __asSelectData(): SelectData & AbstractSelect
-    __toSql(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         this.__finishJoinHaving()
         return sqlBuilder._buildInlineSelect(this.__asSelectData(), params)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         this.__finishJoinHaving()
         return sqlBuilder._buildInlineSelect(this.__asSelectData(), params)
     }

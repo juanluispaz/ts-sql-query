@@ -203,11 +203,11 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         return this.__params
     }
 
-    __toSql(_sqlBuilder: SqlBuilder, params: any[]): string {
+    __toSql(_sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return this.__sqlBuilder._buildDelete(this, params)
     }
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[]): string {
-        return this.__toSql(sqlBuilder, params)
+    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], forceTypeCast: boolean): string {
+        return this.__toSql(sqlBuilder, params, forceTypeCast)
     }
 
     dynamicWhere(): this {

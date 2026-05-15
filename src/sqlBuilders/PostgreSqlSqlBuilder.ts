@@ -4,8 +4,8 @@ import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
-import type { ValueType } from '../expressions/values.js'
-import { __isBooleanValueSource, isValueSource } from '../expressions/values.js'
+import type { AnyValueSource, ValueType } from '../expressions/values.js'
+import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '../expressions/values.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
@@ -31,6 +31,13 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             return this._forceAsIdentifier(name)
         }
         return this._escape(name, true)
+    }
+    _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
+        const valueSourcePrivate = __getValueSourcePrivate(value)
+        if (valueSourcePrivate.isConstValue()) {
+            return this._appendSql(value, params, true)
+        }
+        return super._appendColumnValue(value, params, isOutermostQuery)
     }
     _buildWithValues(withValues: WithValuesData, params: any[]) {
         let result = withValues.__name
@@ -78,16 +85,16 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
 
         const limit = query.__limit
         if (limit !== null && limit !== undefined) {
-            result += ' limit ' + this._appendValue(limit, params, 'int', 'int', undefined)
+            result += ' limit ' + this._appendValue(limit, params, 'int', 'int', undefined, false)
         }
 
         const offset = query.__offset
         if (offset !== null && offset !== undefined) {
-            result += ' offset ' + this._appendValue(offset, params, 'int', 'int', undefined)
+            result += ' offset ' + this._appendValue(offset, params, 'int', 'int', undefined, false)
         }
         return result
     }
-    _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, params: any[]): string | null {
+    _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, params: any[], forceTypeCast: boolean): string | null {
         const columnPrivate = __getColumnPrivate(column)
         const columnTypeAdapter = columnPrivate.__typeAdapter
         const columnTypeName = columnPrivate.__valueTypeName
@@ -117,20 +124,20 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
                 } else {
                     if (columnPrivate.__optionalType === 'required') {
                         // remapped
-                        return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                        return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
                     } else {
                         // remapped
-                        return 'case ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                        return 'case ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' when ' + this._trueValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when ' + this._falseValue + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
                     }
                 }
             } else if (isValueSource(value)) {
                 // There are some boolean expressions involved
                 if (columnPrivate.__optionalType === 'required') {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
+                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' else ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' end'
                 } else {
                     // remapped
-                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when not ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
+                    return 'case when ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.trueValue, params) + ' when not ' + this._appendConditionValue(value, params, columnType, columnTypeName, columnTypeAdapter, forceTypeCast) + ' then ' + this._appendLiteralValue(columnTypeAdapter.falseValue, params) + ' else null end'
                 }
             } else {
                 if (columnPrivate.__optionalType === 'required') {
@@ -148,11 +155,11 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         return null
     }
     _asDouble(params: any[], valueSource: ToSql): string {
-        return this._appendSqlParenthesis(valueSource, params) + '::float'
+        return this._appendSqlParenthesis(valueSource, params, false) + '::float'
     }
     _asString(params: any[], valueSource: ToSql): string {
         // Transform an uuid to string
-        return this._appendSqlParenthesis(valueSource, params) + '::text'
+        return this._appendSqlParenthesis(valueSource, params, false) + '::text'
     }
     _asNullValue(_params: any[], _columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (typeAdapter && typeAdapter.transformPlaceholder) {
@@ -162,90 +169,90 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
         }
     }
     _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesis(valueSource, params) + '::float / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter) + '::float'
+        return this._appendSqlParenthesis(valueSource, params, false) + '::float / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + '::float'
     }
     _equalsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params) + ' = ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, params, false) + ' = ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate "' + collation + '"'
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params) + ' = ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter)
+            return this._appendSqlParenthesis(valueSource, params, false) + ' = ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
         } else {
-            return 'lower(' + this._appendSql(valueSource, params) + ') = lower(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter) + ')'
+            return 'lower(' + this._appendSql(valueSource, params, false) + ') = lower(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
         }
     }
     _notEqualsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params) + ' <> ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, params, false) + ' <> ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate "' + collation + '"'
         } else if (collation === '') {
-            return this._appendSqlParenthesis(valueSource, params) + ' <> ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter)
+            return this._appendSqlParenthesis(valueSource, params, false) + ' <> ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
         } else {
-            return 'lower(' + this._appendSql(valueSource, params) + ') <> lower(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter) + ')'
+            return 'lower(' + this._appendSql(valueSource, params, false) + ') <> lower(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
         }
     }
     _likeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params) + ' ilike ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, params, false) + ' ilike ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, params) + ' ilike ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter)
+            return this._appendSqlParenthesis(valueSource, params, false) + ' ilike ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
         }
     }
     _notLikeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params) + ' not ilike ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter) + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, params, false) + ' not ilike ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, params) + ' not ilike ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter)
+            return this._appendSqlParenthesis(valueSource, params, false) + ' not ilike ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
         }
     }
     _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params) + ' ilike (' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter) + " || '%')" + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, params, false) + ' ilike (' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, params) + ' ilike (' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter) + " || '%')"
+            return this._appendSqlParenthesis(valueSource, params, false) + ' ilike (' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%')"
         }
     }
     _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params) + ' not ilike (' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter) + " || '%')" + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, params, false) + ' not ilike (' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, params) + ' not ilike (' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter) + " || '%')"
+            return this._appendSqlParenthesis(valueSource, params, false) + ' not ilike (' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%')"
         }
     }
     _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params) + " ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter) + ') collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, params, false) + " ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ') collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, params) + " ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter) + ')'
+            return this._appendSqlParenthesis(valueSource, params, false) + " ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ')'
         }
     }
     _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params) + " not ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter) + ') collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, params, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ') collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, params) + " not ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter) + ')'
+            return this._appendSqlParenthesis(valueSource, params, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ')'
         }
     }
     _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params) + " ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter) + " || '%')" + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, params, false) + " ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, params) + " ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter) + " || '%')"
+            return this._appendSqlParenthesis(valueSource, params, false) + " ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%')"
         }
     }
     _notContainsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insesitiveCollation
         if (collation) {
-            return this._appendSqlParenthesis(valueSource, params) + " not ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter) + " || '%')" + ' collate "' + collation + '"'
+            return this._appendSqlParenthesis(valueSource, params, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%')" + ' collate "' + collation + '"'
         } else {
-            return this._appendSqlParenthesis(valueSource, params) + " not ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter) + " || '%')"
+            return this._appendSqlParenthesis(valueSource, params, false) + " not ilike ('%' || " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%')"
         }
     }
     _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
@@ -262,33 +269,54 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     }
     _stringConcat(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
-            return 'string_agg(' + this._appendSql(value, params) + ", ',')"
+            return 'string_agg(' + this._appendSql(value, params, false) + ", ',')"
         } else if (separator === '') {
-            return 'string_agg(' + this._appendSql(value, params) + ", '')"
+            return 'string_agg(' + this._appendSql(value, params, false) + ", '')"
         } else {
-            return 'string_agg(' + this._appendSql(value, params) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined) + ')'
+            return 'string_agg(' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
         }
     }
     _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
-            return 'string_agg(distinct ' + this._appendSql(value, params) + ", ',')"
+            return 'string_agg(distinct ' + this._appendSql(value, params, false) + ", ',')"
         } else if (separator === '') {
-            return 'string_agg(distinct ' + this._appendSql(value, params) + ", '')"
+            return 'string_agg(distinct ' + this._appendSql(value, params, false) + ", '')"
         } else {
-            return 'string_agg(distinct ' + this._appendSql(value, params) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined) + ')'
+            return 'string_agg(distinct ' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
         }
     }
     _getTime(params: any[], valueSource: ToSql): string {
-        return 'round(extract(epoch from ' + this._appendSql(valueSource, params) + ') * 1000)'
+        return 'round(extract(epoch from ' + this._appendSqlForDatePartArgument(valueSource, params) + ') * 1000)'
     }
-    _getSeconds(params: any[], valueSource: ToSql): string {
-        return 'extract(second from ' + this._appendSql(valueSource, params) + ')::integer'
+    _getDate(params: any[], valueSource: ToSql): string {
+        return 'extract(day from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
+    }
+    _getFullYear(params: any[], valueSource: ToSql): string {
+        return 'extract(year from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
     }
     _getMonth(params: any[], valueSource: ToSql): string {
-        return 'extract(month from ' + this._appendSql(valueSource, params) + ') - 1'
+        return 'extract(month from ' + this._appendSqlForDatePartArgument(valueSource, params) + ') - 1'
+    }
+    _getDay(params: any[], valueSource: ToSql): string {
+        return 'extract(dow from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
+    }
+    _getHours(params: any[], valueSource: ToSql): string {
+        return 'extract(hour from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
+    }
+    _getMinutes(params: any[], valueSource: ToSql): string {
+        return 'extract(minute from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')'
+    }
+    _getSeconds(params: any[], valueSource: ToSql): string {
+        return 'extract(second from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')::integer'
     }
     _getMilliseconds(params: any[], valueSource: ToSql): string {
-        return 'extract(millisecond from ' + this._appendSql(valueSource, params) + ')::integer % 1000'
+        return 'extract(millisecond from ' + this._appendSqlForDatePartArgument(valueSource, params) + ')::integer % 1000'
+    }
+    _appendSqlForDatePartArgument(valueSource: ToSql, params: any[]): string {
+        if (isValueSource(valueSource) && __getValueSourcePrivate(valueSource).isConstValue()) {
+            return this._appendSql(valueSource, params, true)
+        }
+        return this._appendSql(valueSource, params, false)
     }
 }
 

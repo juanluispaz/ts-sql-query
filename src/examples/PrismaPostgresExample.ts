@@ -29,10 +29,13 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         }
     }
     protected transformValueFromDB(value: unknown, type: string): unknown {
-        if (value !== null && value !== undefined && value.constructor.name === 'Decimal') {
+        if (value !== null && value !== undefined && value.constructor.name.startsWith('Decimal')) {
             return super.transformValueFromDB(value.toString(), type)
         }
         return super.transformValueFromDB(value, type)
+    }
+    protected transformPlaceholder(placeholder: string, type: string, _forceTypeCast: boolean, valueSentToDB: unknown): string {
+        return super.transformPlaceholder(placeholder, type, true, valueSentToDB)
     }
 }
 
@@ -166,6 +169,17 @@ async function main() {
             .values({ name: 'FOO' })
             .executeInsert()
         assertEquals(i, 1)
+
+        let ii = await connection
+            .insertInto(tCustomer)
+            .values([
+                { firstName: 'John', lastName: 'Smith', companyId: 1 },
+                { firstName: 'Other', lastName: 'Person', companyId: 1 },
+                { firstName: 'Jane', lastName: 'Doe', companyId: 1 }
+            ])
+            .returningLastInsertedId()
+            .executeInsert()
+        assertEquals(ii, [1, 2, 3])
 
         let company = await connection
             .selectFrom(tCompany)
@@ -635,7 +649,7 @@ async function main() {
             .executeSelectOne()
         assertEquals(name, 'ACME Cia.')
 
-        let ii = await connection
+        ii = await connection
             .insertInto(tCompany)
             .from(
                 connection
@@ -866,18 +880,20 @@ async function main() {
 
         const date = new Date('2022-11-21T19:33:56.123Z')
         const dateValue = connection.const(date, 'localDateTime')
+        // PostgreSql fails to call date part functions when a constant date is provided
+        const dateValueCasted = connection.fragmentWithType('localDateTime', 'required').sql`TIMESTAMP '2022-11-21 19:33:56.123'`
         const dateValidation = await connection
             .selectFromNoTable()
             .select({
-                fullYear: dateValue.getFullYear(),
-                month: dateValue.getMonth(),
-                date: dateValue.getDate(),
-                day: dateValue.getDay(),
-                hours: dateValue.getHours(),
-                minutes: dateValue.getMinutes(),
-                second: dateValue.getSeconds(),
-                milliseconds: dateValue.getMilliseconds(),
-                time: dateValue.getTime(),
+                fullYear: dateValueCasted.getFullYear(),
+                month: dateValueCasted.getMonth(),
+                date: dateValueCasted.getDate(),
+                day: dateValueCasted.getDay(),
+                hours: dateValueCasted.getHours(),
+                minutes: dateValueCasted.getMinutes(),
+                second: dateValueCasted.getSeconds(),
+                milliseconds: dateValueCasted.getMilliseconds(),
+                time: dateValueCasted.getTime(),
                 dateValue: dateValue,
             })
             .executeSelectOne()

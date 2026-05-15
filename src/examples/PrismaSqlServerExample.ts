@@ -29,8 +29,19 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
         return this.updateAllowingNoWhere(tCompany).set({name: tCompany.name.concat(aditional)}).executeUpdate()
     }
 
+    protected transformValueFromDB(value: unknown, type: string): unknown {
+        if (type === 'localDateTime' && typeof value === 'string' && isDateTimeWithoutTimezone(value)) {
+            return super.transformValueFromDB(value + 'Z', type)
+        }
+        return super.transformValueFromDB(value, type)
+    }
+
     // By default Prisma doesn't run in a transaction, let skip transaction based tests
     //customerSeq = this.sequence('customer_seq', 'int')
+}
+
+function isDateTimeWithoutTimezone(value: string): boolean {
+    return /^\d+-\d\d?-\d\d?(\s|T)\d\d?:\d\d?(:\d\d?(\.\d+)?)?$/.test(value)
 }
 
 const tCompany = new class TCompany extends Table<DBConnection, 'TCompany'> {

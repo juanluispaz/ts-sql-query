@@ -162,6 +162,22 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
             })
         }, {...this.config?.interactiveTransactionsOptions, isolationLevel})
     }
+    executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
+        if (this.transaction) {
+            return super.executeCombined(fn1, fn2)
+        }
+
+        const result = this.connection.$transaction((interactiveTransactions: RawPrismaClient) => {
+            if (this.transaction) {
+                throw new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to execute combined queries.')
+            }
+            this.transaction = interactiveTransactions
+            return super.executeCombined(fn1, fn2).finally(() => {
+                this.transaction = undefined
+            })
+        }, this.config?.interactiveTransactionsOptions)
+        return this.wrapPrismaPromise(result)
+    }
     addParam(params: any[], value: any): string {
         const index = params.length
         let result

@@ -15,6 +15,8 @@ bun run ./src/examples/documentation/Oracle.ts || exit 1
 bun run ./src/examples/Sqlite3Example.ts || exit 1
 # bun run ./src/examples/BetterSqlite3Example.ts || exit 1
 # bun run ./src/examples/BetterSqlite3SynchronousExample.ts || exit 1
+# bun run ./src/examples/NodeSqliteExample.ts || exit 1
+# bun run ./src/examples/NodeSqliteSynchronousExample.ts || exit 1
 bun run ./src/examples/Sqlite3WasmOO1Example.ts || exit 1
 bun run ./src/examples/Sqlite3WasmOO1SynchronousExample.ts || exit 1
 # bun run ./src/examples/PrismaSqliteExample.ts || exit 1

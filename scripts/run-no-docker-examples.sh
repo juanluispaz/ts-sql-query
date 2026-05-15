@@ -23,4 +23,8 @@ tsx ./src/examples/PrismaSqliteExample.ts || exit 1
 
 tsx ./src/examples/PgLiteExample.ts || exit 1
 
+# tsx src/examples/BunSqliteExample.ts || exit 1
+# tsx src/examples/BunSqliteSynchronousExample.ts || exit 1
+# tsx src/examples/BunSqlSqliteExample.ts || exit 1
+
 echo 'All no docker examples ok'

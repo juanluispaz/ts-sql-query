@@ -10,6 +10,12 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
 
     - [SQLite](../../supported-databases/sqlite.md)
 
+!!! danger "Experimental"
+
+    This query runner is experimental.
+
+    Bun SQL's SQLite adapter currently has known bugs that require compatibility notes and query-runner workarounds. This status will be revisited when the upstream Bun issues are resolved.
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.
@@ -17,6 +23,12 @@ This page explains how to use `ts-sql-query` with the [Bun SQL](https://bun.com/
     Therefore, **you must not share the same connection object between concurrent HTTP requests**. Instead, create a new connection object for each request, along with its own query runners.
 
     Even if the query runner internally uses a connection pool, the `ts-sql-query` connection still represents a single active connection, acquired from the pool. It must be treated as such and never reused across requests.
+
+!!! note "Inserted rows count workaround"
+
+    Bun SQL SQLite currently reports `count = 0` for some `INSERT ... SELECT` statements even when rows are inserted. `BunSqlSqliteQueryRunner` applies a workaround for this case by reading SQLite's `changes()` value after the insert.
+
+    See [oven-sh/bun#30811](https://github.com/oven-sh/bun/issues/30811) for the upstream bug report.
 
 ## Using a Bun SQL SQLite connection
 

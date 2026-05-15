@@ -12,6 +12,9 @@ import { BunSqlPostgresQueryRunner } from '../queryRunners/BunSqlPostgresQueryRu
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    protected transformPlaceholder(placeholder: string, type: string, _forceTypeCast: boolean, valueSentToDB: unknown): string {
+        return super.transformPlaceholder(placeholder, type, true, valueSentToDB)
+    }
     increment(i: number) {
         return this.executeFunction('increment', [this.const(i, 'int')], 'int', 'required')
     }
@@ -2044,4 +2047,3 @@ main().then(() => {
     console.error(e)
     process.exit(1)
 })
-

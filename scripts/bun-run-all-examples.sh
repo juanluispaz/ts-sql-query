@@ -73,8 +73,7 @@ bun run ./src/examples/PrismaMariaDBExample.ts || { docker stop ts-sql-query-mar
 docker stop ts-sql-query-mariadb
 docker rm ts-sql-query-mariadb
 
-# docker run --name ts-sql-query-sqlserver -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=yourStrong(!)Password' -e 'MSSQL_PID=Express' -p 1433:1433 -d mcr.microsoft.com/mssql/server:2019-latest
-docker run --name ts-sql-query-sqlserver -e 'ACCEPT_EULA=Y' -e 'SA_PASSWORD=yourStrong(!)Password' -e 'MSSQL_PID=Express' -p 1433:1433 --health-cmd "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P 'yourStrong(!)Password' -Q 'select 1' -b -o /dev/null || /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'yourStrong(!)Password' -Q 'select 1' -C -b -o /dev/null" --health-interval 1s --health-timeout 5s --health-retries 120 -d mcr.microsoft.com/mssql/server:2017-latest-ubuntu
+docker run --name ts-sql-query-sqlserver -e 'ACCEPT_EULA=Y' -e 'MSSQL_SA_PASSWORD=yourStrong(!)Password' -p 1433:1433 --health-cmd "bash -c '</dev/tcp/127.0.0.1/1433'" --health-interval 1s --health-timeout 5s --health-retries 120 -d mcr.microsoft.com/azure-sql-edge:1.0.7
 wait_healthy ts-sql-query-sqlserver 120 || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
 bun run ./src/examples/MssqlTediousExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
 bun run ./src/examples/PrismaSqlServerExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }

@@ -1,29 +1,25 @@
 on:
-  workflow_dispatch:
+  push:
+    branches: [v1]
+  pull_request:
+    branches: [v1]
 
-name: Release-V1
+name: CI-v1
 
 jobs:
   build:
     name: build library
     runs-on: ubuntu-latest
-    environment: npm-release
-
+    strategy:
+        matrix:
+            node-version: [22.x]
     steps:
       # Setup environment
       - uses: actions/checkout@v6
-        with:
-          ref: v1
-
-      - name: Use Node.js 22.x
+      - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v6
         with:
-          node-version: '22.x'
-          registry-url: 'https://registry.npmjs.org'
-
-      # Show package.json
-      - name: Show package.json
-        run: 'cat package.json'
+          node-version: ${{ matrix.node-version }}
 
       # Install dependencies
       - name: Install dependencies
@@ -38,10 +34,3 @@ jobs:
       # Light tests (docker tests not supported yet)
       - name: Light tests
         run: npm run no-docker-examples
-
-      # Publish
-      - name: Build for dist & Publish
-        run: npm run dist
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-

@@ -1,7 +1,8 @@
 on:
   push:
-    branches: [master, v1]
+    branches: [master]
   pull_request:
+    branches: [master]
 
 name: CI
 
@@ -11,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
         matrix:
-            node-version: [22.x, 24.x]
+            node-version: [22.x, 24.x, 26.x]
     steps:
       # Setup environment
       - uses: actions/checkout@v6
@@ -33,3 +34,30 @@ jobs:
       # Light tests (docker tests not supported yet)
       - name: Light tests
         run: npm run no-docker-examples
+
+  bun:
+    name: bun examples
+    runs-on: ubuntu-latest
+    steps:
+      # Setup environment
+      - uses: actions/checkout@v6
+      - name: Use Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # Install dependencies
+      - name: Install dependencies
+        run: bun install
+
+      # Prepare generated clients used by examples
+      - name: Prepare
+        run: bun run generate-prisma
+
+      # Build check without emitting dist
+      - name: Bun build
+        run: bun run validate
+
+      # Light tests (docker tests not supported yet)
+      - name: Bun light tests
+        run: bun run bun:no-docker-examples

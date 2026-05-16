@@ -26,7 +26,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 
 ## Insensitive strategies
 
-By default, when you specify that you want to perform an insensitive operation (like `startsWithInsensitive`) the operation is performed calling the function `lower` on the affected parts. But, another way to perform it is changing the collation of the text by one insensitive. If you set the insesitiveCollation in the connection, the provided collate will be used instead of calling the `lower` function.
+By default, when you specify that you want to perform an insensitive operation (like `startsWithInsensitive`) the operation is performed calling the function `lower` on the affected parts. But, another way to perform it is changing the collation of the text by one insensitive. If you set the `insensitiveCollation` in the connection, the provided collate will be used instead of calling the `lower` function.
 
 Providing the collation allows you to perform more advanced insensitive operations like case insensitive and accent insensitive, or even more in some languages (like manage some letter composition alternatives). Some databases offer general collations that are case insensitive and accent insensitive. But it is expected you want to use a collated specific for the language used by the user.
 
@@ -34,9 +34,11 @@ Providing the collation allows you to perform more advanced insensitive operatio
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
-    insesitiveCollation = 'insensitive'
+    insensitiveCollation = 'insensitive'
 }
 ```
+
+**Note**: `insesitiveCollation` is deprecated, use `insensitiveCollation` instead.
 
 **Usefull collations per database**:
 

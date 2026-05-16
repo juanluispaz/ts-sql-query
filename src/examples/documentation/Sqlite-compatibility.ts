@@ -11,7 +11,7 @@ import { View } from "../../View"
 import { assertEquals } from "../assertEquals"
 
 class DBConnection extends SqliteConnection<'DBConnection'> { 
-    // insesitiveCollation = 'acs'
+    // insensitiveCollation = 'acs'
 
     protected getDateTimeFormat() {
         return 'UTC as text using T separator and Z timezone' as const

@@ -38,11 +38,22 @@ export abstract class AbstractConnection<DB extends AnyDB> implements IConnectio
 
     protected __sqlBuilder: SqlBuilder
     protected allowEmptyString: boolean = false
+    protected insensitiveCollation?: string
+    /** @deprecated use insensitiveCollation property instead */
     protected insesitiveCollation?: string
     readonly queryRunner: QueryRunner
     readonly defaultTypeAdapter: DefaultTypeAdapter
 
     constructor(queryRunner: QueryRunner, sqlBuilder: SqlBuilder) {
+        Object.defineProperty(this, 'insensitiveCollation', {
+            configurable: true,
+            enumerable: false,
+            get: () => this.insesitiveCollation,
+            set: (value: string | undefined) => {
+                this.insesitiveCollation = value
+            }
+        })
+
         this.defaultTypeAdapter = this as any // transform protected methods to public
         sqlBuilder._defaultTypeAdapter = this.defaultTypeAdapter
         this.__sqlBuilder = sqlBuilder

@@ -480,7 +480,7 @@ console.log(querya, parmsa);
 /********************************************************************************************** */
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
-    // insesitiveCollation = 'acs'
+    // insensitiveCollation = 'acs'
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
         this.arg('int', 'required'),

@@ -680,7 +680,7 @@ interface Connection {
     fragmentWithType<T, TYPE_NAME = T>(type: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     fragmentWithType<T, TYPE_NAME = T>(type: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): FragmentExpression
     
-    /** 
+    /**
      * This is a template, you can call as: .rawFragment`sql text with ${valueSourceParam}` 
      */
     rawFragment(sql: TemplateStringsArray, ...p: Array<AnyValueSource | Subquery>): RawFragment
@@ -836,6 +836,12 @@ interface Connection {
      * Default value: false
      */
     allowEmptyString: boolean
+    /**
+     * Protected property that allows specifying a collation to use in insensitive operations instead of calling the lower function.
+     */
+    insensitiveCollation?: string
+    /** @deprecated use insensitiveCollation property instead */
+    insesitiveCollation?: string
 
     /** Protected method that allows to transform the values received from the database */
     transformValueFromDB(value: unknown, type: string): unknown

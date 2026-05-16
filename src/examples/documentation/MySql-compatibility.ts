@@ -10,7 +10,7 @@ import { View } from "../../View"
 import { assertEquals } from "../assertEquals"
 
 class DBConnection extends MySqlConnection<'DBConnection'> { 
-    // insesitiveCollation = 'acs'
+    // insensitiveCollation = 'acs'
     compatibilityMode = true
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(

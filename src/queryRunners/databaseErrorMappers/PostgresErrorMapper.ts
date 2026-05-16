@@ -2,15 +2,15 @@ import type { TsSqlDatabaseErrorCode, TsSqlDatabaseErrorNumber, TsSqlErrorReason
 import { POSTGRES_SQLSTATE_NAMES } from './PostgresSqlStateCodes.js'
 
 export interface PostgresEngineError {
-    sqlState?: string
-    databaseErrorCode?: TsSqlDatabaseErrorCode
-    databaseErrorNumber?: TsSqlDatabaseErrorNumber
-    message?: string
-    schemaName?: string
-    tableName?: string
-    columnName?: string
-    typeName?: string
-    constraintName?: string
+    sqlState?: string | undefined
+    databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    message?: string | undefined
+    schemaName?: string | undefined
+    tableName?: string | undefined
+    columnName?: string | undefined
+    typeName?: string | undefined
+    constraintName?: string | undefined
 }
 
 type ConstraintType = 'unique' | 'not null' | 'foreign key' | 'check' | 'exclusion' | 'restrict'
@@ -71,9 +71,9 @@ function withPostgresDatabaseErrorMetadata(
     databaseErrorMessage: string | undefined
 ): TsSqlErrorReason {
     const reasonMetadata = reason as {
-        databaseErrorCode?: TsSqlDatabaseErrorCode
-        databaseErrorNumber?: TsSqlDatabaseErrorNumber
-        databaseErrorMessage?: string
+        databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+        databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+        databaseErrorMessage?: string | undefined
     }
     return {
         ...reason,
@@ -613,11 +613,11 @@ function getInvalidSqlStatement(error: PostgresEngineError, statementErrorType?:
 function getInvalidParameter(
     error: PostgresEngineError,
     parameterDetails?: {
-        parameterErrorType?: ParameterErrorType
-        parameterName?: string
-        parameterIndex?: number
-        expectedParameterCount?: number
-        actualParameterCount?: number
+        parameterErrorType?: ParameterErrorType | undefined
+        parameterName?: string | undefined
+        parameterIndex?: number | undefined
+        expectedParameterCount?: number | undefined
+        actualParameterCount?: number | undefined
     }
 ): TsSqlErrorReason {
     return {
@@ -735,9 +735,9 @@ function getPostgresInvalidParameterDetails(
     fallbackParameterErrorType: ParameterErrorType
 ): {
     parameterErrorType: ParameterErrorType
-    parameterIndex?: number
-    expectedParameterCount?: number
-    actualParameterCount?: number
+    parameterIndex?: number | undefined
+    expectedParameterCount?: number | undefined
+    actualParameterCount?: number | undefined
 } {
     const missingIndex = /there is no parameter \$(\d+)/i.exec(message)
     if (missingIndex) {

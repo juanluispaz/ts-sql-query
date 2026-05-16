@@ -47,9 +47,9 @@ The library is layered. Read top-down when tracing a query through the system:
 ## Module / TypeScript conventions
 
 - ESM-only (`"type": "module"`). **Relative imports must use the `.js` extension** even when pointing at a `.ts` file (`verbatimModuleSyntax` + `isolatedModules` are on). Type-only imports must use `import type`.
-- Strictness is high: `strict`, `noUncheckedIndexedAccess`, `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns`, `noPropertyAccessFromIndexSignature`, `noFallthroughCasesInSwitch`, `noUncheckedSideEffectImports`. Don't suppress these — fix the type.
+- Strictness is high: `strict`, `noUncheckedIndexedAccess`, `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns`, `noImplicitOverride`, `noPropertyAccessFromIndexSignature`, `noFallthroughCasesInSwitch`, `noUncheckedSideEffectImports`, `exactOptionalPropertyTypes`. Don't suppress these — fix the type.
 - Target `es2023`, module `node20`, `rootDir: src`, `outDir: dist`. Indentation is 4 spaces (see [.editorconfig](.editorconfig)).
-- The compiler currently has `exactOptionalPropertyTypes` and `noImplicitOverride` listed as TODO in [tsconfig.json](tsconfig.json) — don't rely on the optional-`undefined` distinction.
+- With `exactOptionalPropertyTypes` on, `prop?: T` is not the same as `prop?: T | undefined`. Optional internal fields and `TsSqlErrorReason` union members spell out `| undefined` explicitly so callers can assign `undefined` to them. When you add a new optional field that may be assigned `undefined` (vs. just left absent), declare it as `T | undefined`.
 
 ## When adding or changing public behavior
 
@@ -63,3 +63,4 @@ The library is layered. Read top-down when tracing a query through the system:
     - **Database-specific** additions (per-connection, per-driver runner, error mapper) go only in the `exports` map by subpath, never in the barrel.
     - Documentation snippets should import cross-database symbols from the root entry with a trailing `// or 'ts-sql-query/<subpath>'` comment; database-specific symbols stay on their subpath.
     - Never widen the public surface by adding exports under `internal/`, `expressions/`, `queryBuilders/`, `sqlBuilders/`, `utils/` or `complexProjections/` — those remain reachable only via the `unsupported/<original/path>` escape hatch.
+6. **Writing changelog entries** in [docs/CHANGELOG.md](docs/CHANGELOG.md): write from the **library user's perspective**, not the contributor's. Describe what consumers will see — API additions, behavior changes, type-surface shifts, migration steps — and skip purely internal refactors that don't change the public surface. Internal-only work (compiler flag tightening, dependency updates, build-pipeline tweaks) goes under the **Internal changes** subsection and only when the user might still notice a side effect (e.g. a flag enabling stricter consumer typings). If a change doesn't affect anything a user imports, observes at runtime, or sees in their TS errors, don't add it to the changelog.

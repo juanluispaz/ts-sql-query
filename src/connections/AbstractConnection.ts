@@ -38,7 +38,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     protected __sqlBuilder: SqlBuilder
     protected allowEmptyString: boolean = false
-    protected insensitiveCollation?: string
+    protected insensitiveCollation?: string | undefined
     readonly queryRunner: QueryRunner
     readonly defaultTypeAdapter: DefaultTypeAdapter
 
@@ -51,14 +51,14 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         sqlBuilder._connectionConfiguration = this as any // transform protected methods to public
     }
 
-    private beforeCommit?: Array<() => void | Promise<void>> | null
-    private onCommit?: Array<() => void | Promise<void>> | null
-    private onRollback?: Array<() => void | Promise<void>> | null
-    private transactionMetadata?: Map<unknown, unknown>
-    private beforeCommitStack?: Array<Array<() => void | Promise<void>> | undefined>
-    private onCommitStack?: Array<Array<() => void | Promise<void>> | undefined>
-    private onRollbackStack?: Array<Array<() => void | Promise<void>> | undefined>
-    private transactionMetadataStack?: Array<Map<unknown, unknown> | undefined>
+    private beforeCommit?: Array<() => void | Promise<void>> | null | undefined
+    private onCommit?: Array<() => void | Promise<void>> | null | undefined
+    private onRollback?: Array<() => void | Promise<void>> | null | undefined
+    private transactionMetadata?: Map<unknown, unknown> | undefined
+    private beforeCommitStack?: Array<Array<() => void | Promise<void>> | undefined> | undefined
+    private onCommitStack?: Array<Array<() => void | Promise<void>> | undefined> | undefined
+    private onRollbackStack?: Array<Array<() => void | Promise<void>> | undefined> | undefined
+    private transactionMetadataStack?: Array<Map<unknown, unknown> | undefined> | undefined
 
     private pushTransactionStack() {
         if (this.onCommit || this.onCommitStack || this.onRollback || this.onRollbackStack || this.beforeCommit || this.beforeCommitStack || this.transactionMetadata || this.transactionMetadataStack) {

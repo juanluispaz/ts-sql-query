@@ -104,15 +104,15 @@ export function isUsableValue(prop: string, value: any, _columns: QueryColumns) 
 export interface WithSelectData {
     __type: 'with'
     __name: string
-    __as?: string
+    __as?: string | undefined
     __selectData: SelectData
-    __recursive?: boolean
+    __recursive?: boolean | undefined
 }
 
 export interface WithValuesData {
     __type: 'values'
     __name: string
-    __as?: string
+    __as?: string | undefined
     __values: any[]
     __getTableOrView(): AnyTableOrView
 }
@@ -134,14 +134,14 @@ export function getWithData(withView: IWithView<any>): WithData {
 export interface JoinData {
     __joinType: 'join' | 'innerJoin' | 'leftJoin' | 'leftOuterJoin'
     __tableOrView: AnyTableOrView
-    __on?: AlwaysIfValueSource<any, any>
-    __optional?: boolean
+    __on?: AlwaysIfValueSource<any, any> | undefined
+    __optional?: boolean | undefined
 }
 
 export interface WithQueryData {
     __withs: Array<IWithView<any>>
-    __customization?: SelectCustomization<any, any>
-    __subSelectUsing?: Array<AnyTableOrView>
+    __customization?: SelectCustomization<any, any> | undefined
+    __subSelectUsing?: Array<AnyTableOrView> | undefined
 }
 
 export type OrderByEntry = {
@@ -159,18 +159,18 @@ export interface PlainSelectData extends WithQueryData {
     __oneColumn: boolean
     __tablesOrViews: Array<AnyTableOrView>
     __joins: Array<JoinData>
-    __where?: AlwaysIfValueSource<any, any>
-    __startWith?: AlwaysIfValueSource<any, any> // Oracle
-    __connectBy?: AlwaysIfValueSource<any, any> // Oracle
-    __connectByNoCycle?: boolean // Oracle
-    __having?: AlwaysIfValueSource<any, any>
+    __where?: AlwaysIfValueSource<any, any> | undefined
+    __startWith?: AlwaysIfValueSource<any, any> | undefined // Oracle
+    __connectBy?: AlwaysIfValueSource<any, any> | undefined // Oracle
+    __connectByNoCycle?: boolean | undefined // Oracle
+    __having?: AlwaysIfValueSource<any, any> | undefined
     __groupBy:  Array<AnyValueSource>
-    __orderBy?: OrderByEntry[]
-    __orderingSiblingsOnly?: boolean // Oracle
-    __limit?: number | INumberValueSource<any, any>
-    __offset?: number | INumberValueSource<any, any>
-    __requiredTablesOrViews?: Set<AnyTableOrView>
-    __asInlineAggregatedArrayValue?: boolean
+    __orderBy?: OrderByEntry[] | undefined
+    __orderingSiblingsOnly?: boolean | undefined // Oracle
+    __limit?: number | INumberValueSource<any, any> | undefined
+    __offset?: number | INumberValueSource<any, any> | undefined
+    __requiredTablesOrViews?: Set<AnyTableOrView> | undefined
+    __asInlineAggregatedArrayValue?: boolean | undefined
 }
 
 export type CompoundOperator = 'union' | 'unionAll' | 'intersect' | 'intersectAll' | 'except' | 'exceptAll' | 'minus' | 'minusAll'
@@ -183,53 +183,53 @@ export interface CompoundSelectData extends WithQueryData {
     __secondQuery: SelectData
     __columns: QueryColumns
     __oneColumn: boolean
-    __orderBy?: OrderByEntry[]
-    __orderingSiblingsOnly?: boolean // Oracle
-    __limit?: number | INumberValueSource<any, any>
-    __offset?: number | INumberValueSource<any, any>
-    __asInlineAggregatedArrayValue?: boolean
+    __orderBy?: OrderByEntry[] | undefined
+    __orderingSiblingsOnly?: boolean | undefined // Oracle
+    __limit?: number | INumberValueSource<any, any> | undefined
+    __offset?: number | INumberValueSource<any, any> | undefined
+    __asInlineAggregatedArrayValue?: boolean | undefined
 }
 
 export interface InsertData extends WithQueryData {
     __table: ITable<any>
-    __shape?: { [property: string] : string }
+    __shape?: { [property: string] : string } | undefined
     __sets: { [property: string]: any }
-    __multiple?: { [property: string]: any }[]
-    __idColumn?: DBColumn
-    __from?: SelectData
-    __customization?: InsertCustomization<any, any>
-    __columns?: QueryColumns
-    __onConflictOnConstraint?: string | IStringValueSource<any, any> | RawFragment<any>
-    __onConflictOnColumns?: AnyValueSource[]
-    __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any>
-    __onConflictDoNothing?: boolean
-    __onConflictUpdateShape?: { [property: string] : string }
-    __onConflictUpdateSets?: { [property: string]: any }
-    __onConflictUpdateWhere?: AlwaysIfValueSource<any, any>
-    __valuesForInsert?: AnyTableOrView
+    __multiple?: { [property: string]: any }[] | undefined
+    __idColumn?: DBColumn | undefined
+    __from?: SelectData | undefined
+    __customization?: InsertCustomization<any, any> | undefined
+    __columns?: QueryColumns | undefined
+    __onConflictOnConstraint?: string | IStringValueSource<any, any> | RawFragment<any> | undefined
+    __onConflictOnColumns?: AnyValueSource[] | undefined
+    __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any> | undefined
+    __onConflictDoNothing?: boolean | undefined
+    __onConflictUpdateShape?: { [property: string] : string } | undefined
+    __onConflictUpdateSets?: { [property: string]: any } | undefined
+    __onConflictUpdateWhere?: AlwaysIfValueSource<any, any> | undefined
+    __valuesForInsert?: AnyTableOrView | undefined
 }
 
 export interface UpdateData extends WithQueryData {
     __table: ITable<any>
-    __shape?: { [property: string] : DBColumn | string }
+    __shape?: { [property: string] : DBColumn | string } | undefined
     __sets: { [property: string] : any}
-    __where?: AlwaysIfValueSource<any, any>
+    __where?: AlwaysIfValueSource<any, any> | undefined
     __allowNoWhere: boolean
-    __customization?: UpdateCustomization<any, any>
-    __columns?: QueryColumns
-    __oldValues?: AnyTableOrView
-    __froms?: Array<AnyTableOrView>
-    __joins?: Array<JoinData>
+    __customization?: UpdateCustomization<any, any> | undefined
+    __columns?: QueryColumns | undefined
+    __oldValues?: AnyTableOrView | undefined
+    __froms?: Array<AnyTableOrView> | undefined
+    __joins?: Array<JoinData> | undefined
 }
 
 export interface DeleteData extends WithQueryData {
     __table: ITable<any>,
-    __where?: AlwaysIfValueSource<any, any>
+    __where?: AlwaysIfValueSource<any, any> | undefined
     __allowNoWhere: boolean
-    __customization?: DeleteCustomization<any, any>
-    __columns?: QueryColumns
-    __using?: Array<AnyTableOrView>
-    __joins?: Array<JoinData>
+    __customization?: DeleteCustomization<any, any> | undefined
+    __columns?: QueryColumns | undefined
+    __using?: Array<AnyTableOrView> | undefined
+    __joins?: Array<JoinData> | undefined
 }
 
 export interface SqlBuilder extends SqlOperation {

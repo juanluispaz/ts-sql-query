@@ -9,8 +9,8 @@ import { TsSqlError, TsSqlProcessingError } from '../TsSqlError.js'
 
 export class AbstractQueryBuilder {
     __sqlBuilder: SqlBuilder
-    __columns?: QueryColumns
-    __projectOptionalValuesAsNullable?: boolean
+    __columns?: QueryColumns | undefined
+    __projectOptionalValuesAsNullable?: boolean | undefined
 
     constructor(sqlBuilder: SqlBuilder) {
         this.__sqlBuilder = sqlBuilder

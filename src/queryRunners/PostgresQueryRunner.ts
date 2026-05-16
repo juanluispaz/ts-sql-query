@@ -5,8 +5,8 @@ import type { Sql, TransactionSql, ReservedSql } from 'postgres'
 import { getPostgresEngineErrorReason, isPostgresSqlState } from './databaseErrorMappers/PostgresErrorMapper.js'
 
 type PostgresJsConnectionError = Error & {
-    code?: string
-    errno?: string | number
+    code?: string | undefined
+    errno?: string | number | undefined
 }
 type PostgresJsDatabaseError = InstanceType<Sql['PostgresError']>
 type PostgresJsError = PostgresJsDatabaseError | PostgresJsConnectionError
@@ -14,8 +14,8 @@ type PostgresJsError = PostgresJsDatabaseError | PostgresJsConnectionError
 export class PostgresQueryRunner extends SqlTransactionQueryRunner {
     database: DatabaseType
     readonly connection: Sql
-    transaction?: TransactionSql
-    lowLevelTransaction?: ReservedSql
+    transaction?: TransactionSql | undefined
+    lowLevelTransaction?: ReservedSql | undefined
 
     constructor(connection: Sql) {
         super()
@@ -328,7 +328,7 @@ function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: 
 
 function getPostgresJsMaxParametersExceededDetails(message: string): {
     parameterErrorType: 'too many'
-    expectedParameterCount?: number
+    expectedParameterCount?: number | undefined
 } {
     const maximum = /Max number of parameters \((\d+)\) exceeded/i.exec(message)
     return {

@@ -22,7 +22,7 @@ const { TYPES, ISOLATION_LEVEL, ConnectionError, MSSQLError, PreparedStatementEr
 export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
     readonly database: DatabaseType
     readonly pool: ConnectionPool
-    transaction?: Transaction
+    transaction?: Transaction | undefined
 
     constructor(pool: ConnectionPool) {
         super()
@@ -247,14 +247,14 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
 type MssqlError = MssqlBaseError | MssqlConnectionError | MssqlPreparedStatementError | MssqlRequestError | MssqlTransactionError | TimeoutError | PlainMssqlDriverError
 
 type PlainMssqlDriverError = Error & {
-    code?: unknown
-    number?: unknown
-    originalError?: unknown
+    code?: unknown | undefined
+    number?: unknown | undefined
+    originalError?: unknown | undefined
 }
 
 type ErrorMetadata = {
-    databaseErrorCode?: string
-    databaseErrorMessage?: string
+    databaseErrorCode?: string | undefined
+    databaseErrorMessage?: string | undefined
 }
 
 function getMssqlErrorReason(error: MssqlError): TsSqlErrorReason {

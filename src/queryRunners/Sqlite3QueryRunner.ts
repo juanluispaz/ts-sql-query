@@ -102,8 +102,8 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
 }
 
 type Sqlite3Error = Error & {
-    errno?: number
-    code?: string
+    errno?: number | undefined
+    code?: string | undefined
 }
 
 function getSqlite3ErrorReason(error: Sqlite3Error): TsSqlErrorReason {

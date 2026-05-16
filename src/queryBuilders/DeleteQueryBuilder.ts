@@ -20,16 +20,16 @@ export class DeleteQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     [resultType]: any
 
     __table: ITable<any>
-    __where?: AlwaysIfValueSource<any, any>
+    __where?: AlwaysIfValueSource<any, any> | undefined
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
-    __customization?: DeleteCustomization<any, any>
+    __customization?: DeleteCustomization<any, any> | undefined
     //__columns?: QueryColumns // declared at AbstractQueryBuilder
-    __using?: Array<AnyTableOrView>
-    __joins?: Array<JoinData>
+    __using?: Array<AnyTableOrView> | undefined
+    __joins?: Array<JoinData> | undefined
 
-    __oneColumn?: boolean
-    __lastJoin?: JoinData
+    __oneColumn?: boolean | undefined
+    __lastJoin?: JoinData | undefined
 
     // cache
     __query = ''

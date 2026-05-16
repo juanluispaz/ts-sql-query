@@ -104,14 +104,14 @@ export function __isAllowed(value: any, sqlBuilder: HasIsValue): boolean {
 export interface __ITableOrViewPrivate extends HasAddWiths {
     [isTableOrViewObject]: true
     __name: string
-    __as?: string
+    __as?: string | undefined
     __type: 'table' | 'view' | 'with' | 'values'
-    __forUseInLeftJoin?: boolean
-    __template?: RawFragment<any>
-    __customizationName?: string
-    __oldValues?: boolean
-    __valuesForInsert?: boolean
-    __hasExternalDependencies?: boolean
+    __forUseInLeftJoin?: boolean | undefined
+    __template?: RawFragment<any> | undefined
+    __customizationName?: string | undefined
+    __oldValues?: boolean | undefined
+    __valuesForInsert?: boolean | undefined
+    __hasExternalDependencies?: boolean | undefined
 }
 
 export function __getTableOrViewPrivate(table: AnyTableOrView | ForUseInLeftJoin<any>): __ITableOrViewPrivate {

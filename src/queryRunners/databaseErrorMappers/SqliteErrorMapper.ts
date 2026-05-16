@@ -5,10 +5,10 @@ import {
 } from './SqliteErrorCodes.js'
 
 export interface SqliteEngineError {
-    code?: string
-    databaseErrorCode?: TsSqlDatabaseErrorCode
-    databaseErrorNumber?: TsSqlDatabaseErrorNumber
-    message?: string
+    code?: string | undefined
+    databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    message?: string | undefined
 }
 
 export function getSqliteEngineErrorReason(error: SqliteEngineError): TsSqlErrorReason {

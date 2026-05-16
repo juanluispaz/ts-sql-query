@@ -112,13 +112,13 @@ export interface __ValueSourcePrivate extends HasAddWiths {
     __valueType: ValueType
     __valueTypeName: string
     __optionalType: OptionalType
-    __typeAdapter?: TypeAdapter
-    __isBooleanForCondition?: boolean
-    __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource
-    __aggregatedArrayMode?: __AggregatedArrayMode
-    __aggreagtedProjectingOptionalValuesAsNullable?: boolean
-    __aggregatedArrayDistinct?: boolean
-    __uuidString?: boolean
+    __typeAdapter?: TypeAdapter | undefined
+    __isBooleanForCondition?: boolean | undefined
+    __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
+    __aggregatedArrayMode?: __AggregatedArrayMode | undefined
+    __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
+    __aggregatedArrayDistinct?: boolean | undefined
+    __uuidString?: boolean | undefined
 
     isConstValue(): boolean
     getConstValue(): any
@@ -1085,7 +1085,7 @@ export class Argument<T extends ArgumentType, OPTIONAL_TYPE extends ArgumentOpti
     readonly typeName: string
     readonly optionalType: OPTIONAL_TYPE
     readonly mode: MODE
-    readonly adapter?: TypeAdapter
+    readonly adapter?: TypeAdapter | undefined
     [valueType]!: TYPE
     [typeName_]!: TYPE_NAME
 

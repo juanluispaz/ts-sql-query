@@ -23,6 +23,7 @@ search:
 **Internal changes**:
 
 - Enable the TypeScript `noImplicitOverride` compiler flag. Members of subclasses that override a base-class member now require the `override` modifier — this is internal to the library, but documentation snippets that subclass a `Connection` have been updated to match.
+- Enable the TypeScript `exactOptionalPropertyTypes` compiler flag. The library now type-checks cleanly when consumers also enable it. Optional properties in projected query results are emitted as `prop?: T` (the absent-field form) instead of `prop?: T | undefined`, so `noUncheckedIndexedAccess`-style consumers see the field as absent rather than present-with-`undefined`. Optional fields on the public `TsSqlErrorReason` union and `QueryLogger` interface now spell `| undefined` explicitly so callers may assign `undefined` to them — assignability the other way (reading and narrowing) is unchanged.
 - Update to TypeScript 6.
 - Update to Prisma 7.
 - Update pipeline to remove End-of-Life Node versions; ts-sql-query now requires Node 22 or newer and is tested against Node 22, 24 and 26.

@@ -22,19 +22,19 @@ export class UpdateQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     [resultType]: any
 
     __table: ITable<any>
-    __shape?: { [property: string] : DBColumn | string }
+    __shape?: { [property: string] : DBColumn | string } | undefined
     __sets: { [property: string] : any} = {}
-    __where?: AlwaysIfValueSource<any, any>
+    __where?: AlwaysIfValueSource<any, any> | undefined
     __allowNoWhere: boolean
     __withs: Array<IWithView<any>> = []
-    __customization?: UpdateCustomization<any, any>
+    __customization?: UpdateCustomization<any, any> | undefined
     //__columns?: QueryColumns // declared at AbstractQueryBuilder
-    __oldValues?: AnyTableOrView
-    __froms?: Array<AnyTableOrView>
-    __joins?: Array<JoinData>
+    __oldValues?: AnyTableOrView | undefined
+    __froms?: Array<AnyTableOrView> | undefined
+    __joins?: Array<JoinData> | undefined
 
-    __oneColumn?: boolean
-    __lastJoin?: JoinData
+    __oneColumn?: boolean | undefined
+    __lastJoin?: JoinData | undefined
 
     // cache
     __params: any[] = []

@@ -145,5 +145,5 @@ interface ErrorContainer {
     error: TsSqlQueryExecutionError | undefined
     readonly name: 'before next commit' | 'after next commit' | 'after next rollback'
     readonly source: QueryExecutionSource
-    readonly transactionError?: Error
+    readonly transactionError?: Error | undefined
 }

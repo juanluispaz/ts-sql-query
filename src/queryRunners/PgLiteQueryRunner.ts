@@ -5,32 +5,32 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSq
 import { getPostgresEngineErrorReason, isPostgresSqlState } from './databaseErrorMappers/PostgresErrorMapper.js'
 
 type PgLiteDatabaseError = Error & {
-    code?: string
-    severity?: string
-    detail?: string
-    hint?: string
-    position?: string
-    internalPosition?: string
-    internalQuery?: string
-    where?: string
-    schema?: string
-    table?: string
-    column?: string
-    dataType?: string
-    constraint?: string
-    file?: string
-    line?: string
-    routine?: string
+    code?: string | undefined
+    severity?: string | undefined
+    detail?: string | undefined
+    hint?: string | undefined
+    position?: string | undefined
+    internalPosition?: string | undefined
+    internalQuery?: string | undefined
+    where?: string | undefined
+    schema?: string | undefined
+    table?: string | undefined
+    column?: string | undefined
+    dataType?: string | undefined
+    constraint?: string | undefined
+    file?: string | undefined
+    line?: string | undefined
+    routine?: string | undefined
 }
 
 export interface PgQueryRunnerConfig {
-    allowNestedTransactions?: boolean
+    allowNestedTransactions?: boolean | undefined
 }
 
 export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: PGlite
-    private config?: PgQueryRunnerConfig
+    private config?: PgQueryRunnerConfig | undefined
 
     constructor(connection: PGlite, config?: PgQueryRunnerConfig) {
         super()

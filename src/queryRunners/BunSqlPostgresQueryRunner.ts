@@ -192,7 +192,7 @@ function withDatabaseErrorNumber(reason: TsSqlErrorReason, databaseErrorNumber: 
 
 function getBunPostgresTooManyParametersDetails(message: string): {
     parameterErrorType: 'too many'
-    expectedParameterCount?: number
+    expectedParameterCount?: number | undefined
 } {
     const maximum = /maximum of (\d+) parameters?/i.exec(message)
     return {

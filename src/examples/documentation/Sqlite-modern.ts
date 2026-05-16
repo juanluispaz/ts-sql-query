@@ -195,7 +195,7 @@ async function main() {
         id: number;
         firstName: string;
         lastName: string;
-        birthday?: Date | undefined;
+        birthday?: Date;
     } = null as any
 
     customerWithId = typeValidation
@@ -4810,7 +4810,7 @@ async function main() {
         company: {
             id: number;
             name: string;
-            parentId?: number | undefined;
+            parentId?: number;
         };
     }[] = null as any
 

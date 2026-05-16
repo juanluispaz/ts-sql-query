@@ -13,13 +13,13 @@ const MYSQL_OBJECT_ALREADY_EXISTS_EXTRA_ERROR_NUMBERS = new Set([3712])
 const MYSQL_DEPENDENT_OBJECTS_STILL_EXIST_ERROR_NUMBERS = new Set([3716])
 
 export interface MySqlMariaDbEngineError {
-    database?: DatabaseType
-    errno?: number
-    code?: string
-    sqlState?: string
-    databaseErrorCode?: TsSqlDatabaseErrorCode
-    databaseErrorNumber?: TsSqlDatabaseErrorNumber
-    message?: string
+    database?: DatabaseType | undefined
+    errno?: number | undefined
+    code?: string | undefined
+    sqlState?: string | undefined
+    databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    message?: string | undefined
 }
 
 export function getMySqlMariaDbEngineErrorReason(error: MySqlMariaDbEngineError): TsSqlErrorReason {
@@ -1095,9 +1095,9 @@ function getWrongObjectTypeFromNumber(errorNumber: number): 'table or view' | 's
 }
 
 function getInvalidParameterDetailsFromMessage(message: string): {
-    parameterErrorType?: 'missing' | 'too many' | 'wrong count' | 'invalid name' | 'invalid index' | 'invalid type' | 'invalid value' | 'invalid binding' | 'not bindable' | 'already bound'
-    expectedParameterCount?: number
-    actualParameterCount?: number
+    parameterErrorType?: 'missing' | 'too many' | 'wrong count' | 'invalid name' | 'invalid index' | 'invalid type' | 'invalid value' | 'invalid binding' | 'not bindable' | 'already bound' | undefined
+    expectedParameterCount?: number | undefined
+    actualParameterCount?: number | undefined
 } {
     const lower = message.toLowerCase()
     const countMatch = /expected\s+(\d+),\s+got\s+(\d+)/i.exec(message)

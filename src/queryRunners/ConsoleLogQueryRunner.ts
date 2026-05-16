@@ -4,12 +4,12 @@ import { LoggingQueryRunner } from './LoggingQueryRunner.js'
 export type TimeGranularity = 'ms' | 'us' | 'ns'
 
 export interface ConsoleLogQueryRunnerOpts {
-    timeGranularity?: TimeGranularity
-    logTimestamps?: boolean
-    logDurations?: boolean
-    logResults?: boolean
-    paramsAsObject?: boolean
-    includeLogPhase?: boolean
+    timeGranularity?: TimeGranularity | undefined
+    logTimestamps?: boolean | undefined
+    logDurations?: boolean | undefined
+    logResults?: boolean | undefined
+    paramsAsObject?: boolean | undefined
+    includeLogPhase?: boolean | undefined
 }
 
 export class ConsoleLogQueryRunner<T extends QueryRunner> extends LoggingQueryRunner<T> {

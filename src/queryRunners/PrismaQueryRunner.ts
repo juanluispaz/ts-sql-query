@@ -10,8 +10,8 @@ interface RawPrismaClient {
 }
 
 export interface PrismaConfig {
-    interactiveTransactionsOptions?: { maxWait?: number, timeout?: number },
-    forUseInTransaction?: boolean
+    interactiveTransactionsOptions?: { maxWait?: number, timeout?: number } | undefined,
+    forUseInTransaction?: boolean | undefined
 }
 
 // Prisma surfaces a Prisma-specific error model (`Pxxxx`, `meta`, `message`) instead of
@@ -21,8 +21,8 @@ export interface PrismaConfig {
 export class PrismaQueryRunner extends AbstractQueryRunner {
     readonly database: DatabaseType;
     readonly connection: RawPrismaClient
-    private transaction?: RawPrismaClient
-    readonly config?: PrismaConfig
+    private transaction?: RawPrismaClient | undefined
+    readonly config?: PrismaConfig | undefined
 
     constructor(connection: RawPrismaClient, config?: PrismaConfig) {
         super()

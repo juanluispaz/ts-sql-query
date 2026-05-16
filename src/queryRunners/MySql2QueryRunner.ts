@@ -5,11 +5,11 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorNumber, type T
 import { getMySqlMariaDbEngineErrorReason, getMySqlMariaDbErrorCodeName, getMySqlMariaDbErrorNumberFromCode, isMySqlMariaDbEngineErrorCode } from './databaseErrorMappers/MySqlMariaDbErrorMapper.js'
 
 type MySql2DriverError = Error & {
-    errno?: number
-    code?: string | number
-    sqlState?: string
-    sqlMessage?: string
-    syscall?: string
+    errno?: number | undefined
+    code?: string | number | undefined
+    sqlState?: string | undefined
+    sqlMessage?: string | undefined
+    syscall?: string | undefined
 }
 
 const MYSQL2_NETWORK_ERROR_CODES = new Set([
@@ -281,7 +281,7 @@ function isMySql2InvalidParameterMessage(message: string): boolean {
 }
 
 function getMySql2InvalidParameterDetails(message: string): {
-    parameterErrorType?: 'invalid value' | 'invalid binding'
+    parameterErrorType?: 'invalid value' | 'invalid binding' | undefined
 } {
     if (message === 'Bind parameters must be array if namedPlaceholders parameter is not enabled') {
         return { parameterErrorType: 'invalid binding' }

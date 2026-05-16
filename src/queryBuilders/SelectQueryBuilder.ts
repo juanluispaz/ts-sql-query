@@ -31,27 +31,27 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
     [isSelectQueryObject]: true = true
 
     override __columns: QueryColumns = {}
-    __orderBy?: OrderByEntry[]
-    __orderingSiblingsOnly?: boolean // Oracle
-    __limit?: number | INumberValueSource<any, any>
-    __offset?: number | INumberValueSource<any, any>
+    __orderBy?: OrderByEntry[] | undefined
+    __orderingSiblingsOnly?: boolean | undefined // Oracle
+    __limit?: number | INumberValueSource<any, any> | undefined
+    __offset?: number | INumberValueSource<any, any> | undefined
     __withs: Array<IWithView<any>> = []
-    __customization?: SelectCustomization<any, any>
+    __customization?: SelectCustomization<any, any> | undefined
 
     __oneColumn = false
-    __requiredResult?: boolean
+    __requiredResult?: boolean | undefined
 
     // cache
     __query = ''
     __params: any[] = []
 
-    __recursiveInternalView?: WithViewImpl
-    __recursiveView?: WithViewImpl
-    __recursiveSelect?: SelectData & AbstractSelect
+    __recursiveInternalView?: WithViewImpl | undefined
+    __recursiveView?: WithViewImpl | undefined
+    __recursiveSelect?: SelectData & AbstractSelect | undefined
 
-    __subSelectUsing?: AnyTableOrView[]
+    __subSelectUsing?: AnyTableOrView[] | undefined
 
-    __asInlineAggregatedArrayValue?: boolean
+    __asInlineAggregatedArrayValue?: boolean | undefined
 
     constructor(sqlBuilder: SqlBuilder) {
         super(sqlBuilder)
@@ -620,15 +620,15 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
     __distinct: boolean
     __tablesOrViews: Array<AnyTableOrView>
     __joins: Array<JoinData> = []
-    __where?: AlwaysIfValueSource<any, any>
-    __startWith?: AlwaysIfValueSource<any, any> // Oracle
-    __connectBy?: AlwaysIfValueSource<any, any> // Oracle
-    __connectByNoCycle?: boolean // Oracle
-    __having?: AlwaysIfValueSource<any, any>
+    __where?: AlwaysIfValueSource<any, any> | undefined
+    __startWith?: AlwaysIfValueSource<any, any> | undefined // Oracle
+    __connectBy?: AlwaysIfValueSource<any, any> | undefined // Oracle
+    __connectByNoCycle?: boolean | undefined // Oracle
+    __having?: AlwaysIfValueSource<any, any> | undefined
     __groupBy:  Array<AnyValueSource> = []
-    __requiredTablesOrViews?: Set<AnyTableOrView>
+    __requiredTablesOrViews?: Set<AnyTableOrView> | undefined
 
-    __lastJoin?: JoinData
+    __lastJoin?: JoinData | undefined
     __inHaving = false
     __hasOptionalJoin = false
 

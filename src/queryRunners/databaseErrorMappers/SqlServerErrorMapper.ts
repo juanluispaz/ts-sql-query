@@ -2,18 +2,18 @@ import type { TsSqlDatabaseErrorCode, TsSqlDatabaseErrorNumber, TsSqlErrorReason
 import * as ErrorCodes from './SqlServerErrorCodes.js'
 
 export interface SqlServerEngineError {
-    number?: number
-    code?: string
-    databaseErrorCode?: TsSqlDatabaseErrorCode
-    databaseErrorNumber?: TsSqlDatabaseErrorNumber
-    message?: string
+    number?: number | undefined
+    code?: string | undefined
+    databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    message?: string | undefined
 }
 
 interface SqlServerErrorContext {
-    number?: number
-    databaseErrorCode?: TsSqlDatabaseErrorCode
-    databaseErrorNumber?: TsSqlDatabaseErrorNumber
-    databaseErrorMessage?: string
+    number?: number | undefined
+    databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    databaseErrorMessage?: string | undefined
     message: string
 }
 

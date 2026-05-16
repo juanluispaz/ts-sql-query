@@ -1,11 +1,11 @@
 import type { TsSqlDatabaseErrorCode, TsSqlDatabaseErrorNumber, TsSqlErrorReason } from '../../TsSqlError.js'
 
 export interface OracleEngineError {
-    errorNum?: number
-    code?: string
-    databaseErrorCode?: TsSqlDatabaseErrorCode
-    databaseErrorNumber?: TsSqlDatabaseErrorNumber
-    message?: string
+    errorNum?: number | undefined
+    code?: string | undefined
+    databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    message?: string | undefined
 }
 
 type ConstraintReason = Extract<TsSqlErrorReason, { reason: 'SQL_CONSTRAINT_VIOLATED' }>
@@ -22,14 +22,14 @@ type ConnectionReason = Extract<TsSqlErrorReason, { reason: 'SQL_CONNECTION_ERRO
 type ResourceLimitReason = Extract<TsSqlErrorReason, { reason: 'SQL_RESOURCE_LIMIT_REACHED' }>
 type DatabaseCorruptedReason = Extract<TsSqlErrorReason, { reason: 'SQL_DATABASE_CORRUPTED' }>
 type InternalErrorReason = Extract<TsSqlErrorReason, { reason: 'SQL_INTERNAL_ERROR' }>
-type OracleTableColumnNames = { tableName?: string, columnName?: string }
+type OracleTableColumnNames = { tableName?: string | undefined, columnName?: string | undefined }
 
 interface OracleErrorContext {
-    errorNum?: number
+    errorNum?: number | undefined
     code: string
-    databaseErrorCode?: TsSqlDatabaseErrorCode
-    databaseErrorNumber?: TsSqlDatabaseErrorNumber
-    databaseErrorMessage?: string
+    databaseErrorCode?: TsSqlDatabaseErrorCode | undefined
+    databaseErrorNumber?: TsSqlDatabaseErrorNumber | undefined
+    databaseErrorMessage?: string | undefined
     message: string
     lowerMessage: string
 }

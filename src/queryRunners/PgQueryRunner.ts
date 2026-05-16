@@ -5,19 +5,19 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorNumber, type T
 import { getPostgresEngineErrorReason, isPostgresSqlState } from './databaseErrorMappers/PostgresErrorMapper.js'
 
 type PgDriverError = Error & {
-    code?: string
-    errno?: string | number
-    sqlState?: string
+    code?: string | undefined
+    errno?: string | number | undefined
+    sqlState?: string | undefined
 }
 
 export interface PgQueryRunnerConfig {
-    allowNestedTransactions?: boolean
+    allowNestedTransactions?: boolean | undefined
 }
 
 export class PgQueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: ClientBase
-    private config?: PgQueryRunnerConfig
+    private config?: PgQueryRunnerConfig | undefined
 
     constructor(connection: ClientBase, config?: PgQueryRunnerConfig) {
         super()
@@ -274,7 +274,7 @@ function isPgWrongArgumentCountError(message: string): boolean {
 
 function getPgWrongArgumentCountDetails(message: string): {
     parameterErrorType: 'wrong count'
-    expectedParameterCount?: number
+    expectedParameterCount?: number | undefined
 } {
     const expected = /^Must supply (\d+) arguments?$/i.exec(message)
     return {
@@ -285,9 +285,9 @@ function getPgWrongArgumentCountDetails(message: string): {
 
 function getPgInvalidParameterDetails(message: string): {
     parameterErrorType: 'missing' | 'wrong count' | 'invalid binding'
-    parameterIndex?: number
-    expectedParameterCount?: number
-    actualParameterCount?: number
+    parameterIndex?: number | undefined
+    expectedParameterCount?: number | undefined
+    actualParameterCount?: number | undefined
 } {
     const missingIndex = /there is no parameter \$(\d+)/i.exec(message)
     if (missingIndex) {

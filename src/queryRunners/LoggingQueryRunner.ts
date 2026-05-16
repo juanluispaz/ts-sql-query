@@ -2,9 +2,9 @@ import type { BeginTransactionOpts, CommitOpts, QueryRunner, QueryType, Rollback
 import { ChainedQueryRunner } from './ChainedQueryRunner.js'
 
 export interface QueryLogger {
-    onQuery?: (queryType: QueryType, query: string, params: any[], timestamps: { startedAt: bigint }) => void;
-    onQueryResult?: (queryType: QueryType, query: string, params: any[], result: any, timestamps: { startedAt: bigint, endedAt: bigint }) => void;
-    onQueryError?: (queryType: QueryType, query: string, params: any[], error: any, timestamps: { startedAt: bigint, endedAt: bigint }) => void;
+    onQuery?: ((queryType: QueryType, query: string, params: any[], timestamps: { startedAt: bigint }) => void) | undefined;
+    onQueryResult?: ((queryType: QueryType, query: string, params: any[], result: any, timestamps: { startedAt: bigint, endedAt: bigint }) => void) | undefined;
+    onQueryError?: ((queryType: QueryType, query: string, params: any[], error: any, timestamps: { startedAt: bigint, endedAt: bigint }) => void) | undefined;
 }
 
 function now(): bigint {

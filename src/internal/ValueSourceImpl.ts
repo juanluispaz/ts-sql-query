@@ -45,11 +45,11 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     __valueType: ValueType
     __valueTypeName: string
     __optionalType: OptionalType
-    __typeAdapter?: TypeAdapter
-    __isBooleanForCondition?: boolean
-    __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource
-    __aggregatedArrayMode?: __AggregatedArrayMode
-    __uuidString?: boolean
+    __typeAdapter?: TypeAdapter | undefined
+    __isBooleanForCondition?: boolean | undefined
+    __aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource | undefined
+    __aggregatedArrayMode?: __AggregatedArrayMode | undefined
+    __uuidString?: boolean | undefined
 
     constructor(valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined, aggregatedArrayColumns?: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode?: __AggregatedArrayMode, uuidString?: boolean) {
         this.__valueType = valueType
@@ -1629,7 +1629,7 @@ export class FragmentValueSource extends ValueSourceImpl {
 export class ValueSourceFromBuilder extends ValueSourceImpl {
     __builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource
     __fragmentBuilder: FragmentQueryBuilder
-    __builderOutput?: AnyValueSource 
+    __builderOutput?: AnyValueSource | undefined 
 
     constructor(builder: (fragmentBuilder: FragmentQueryBuilder) => AnyValueSource, fragmentBuilder: FragmentQueryBuilder, valueType: ValueType, valueTypeName: string, optionalType: OptionalType, typeAdapter: TypeAdapter | undefined) {
         super(valueType, valueTypeName, optionalType, typeAdapter)
@@ -2038,7 +2038,7 @@ export class AggregateSelectValueSource implements ValueSource<any, any, any, an
     __selectData: InlineSelectData
     __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
     __aggregatedArrayMode: __AggregatedArrayMode
-    __aggreagtedProjectingOptionalValuesAsNullable?: boolean
+    __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
 
     constructor(selectData: InlineSelectData, aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType) {
         this.__selectData = selectData
@@ -2324,7 +2324,7 @@ export class AggregateValueAsArrayValueSource implements ValueSource<any, any, a
     __operation: '_aggregateValueAsArray' = '_aggregateValueAsArray'
     __aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource
     __aggregatedArrayMode: __AggregatedArrayMode
-    __aggreagtedProjectingOptionalValuesAsNullable?: boolean
+    __aggreagtedProjectingOptionalValuesAsNullable?: boolean | undefined
     __aggregatedArrayDistinct: boolean
 
     constructor(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayMode: __AggregatedArrayMode, _optionalType: OptionalType, distict: boolean) {

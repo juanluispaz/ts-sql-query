@@ -8,8 +8,8 @@ import type { SQL, TransactionSQL, ReservedSQL } from 'bun'
 export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunner {
     database: DatabaseType
     readonly connection: SQL
-    transaction?: TransactionSQL
-    lowLevelTransaction?: ReservedSQL
+    transaction?: TransactionSQL | undefined
+    lowLevelTransaction?: ReservedSQL | undefined
 
     constructor(connection: SQL, database: DatabaseType) {
         super()

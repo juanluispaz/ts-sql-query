@@ -5,13 +5,13 @@ import { ManagedTransactionPoolQueryRunner } from './ManagedTransactionPoolQuery
 import { TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 
 export interface PgPoolQueryRunnerConfig {
-    allowNestedTransactions?: boolean
+    allowNestedTransactions?: boolean | undefined
 }
 
 export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     readonly database: DatabaseType
     readonly pool: Pool
-    private config?: PgPoolQueryRunnerConfig
+    private config?: PgPoolQueryRunnerConfig | undefined
 
     constructor(pool: Pool, config?: PgPoolQueryRunnerConfig) {
         super()

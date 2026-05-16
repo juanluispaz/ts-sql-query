@@ -7,7 +7,7 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from "../TsSq
 import { getSqliteEngineErrorReason, getSqliteErrorCodeNumber } from './databaseErrorMappers/SqliteErrorMapper.js'
 
 export interface BunSqliteQueryRunnerConfig {
-    promise?: PromiseProvider
+    promise?: PromiseProvider | undefined
 }
 
 export class BunSqliteQueryRunner extends SqlTransactionQueryRunner {

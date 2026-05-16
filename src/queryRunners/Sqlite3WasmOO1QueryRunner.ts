@@ -5,7 +5,7 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorCode, type TsS
 import { getSqliteEngineErrorReason, getSqliteErrorCodeName } from './databaseErrorMappers/SqliteErrorMapper.js'
 
 export interface Sqlite3WasmOO1QueryRunnerConfig {
-    promise?: PromiseProvider
+    promise?: PromiseProvider | undefined
 }
 
 export class Sqlite3WasmOO1QueryRunner extends SqlTransactionQueryRunner {

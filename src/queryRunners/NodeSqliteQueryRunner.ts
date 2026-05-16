@@ -5,7 +5,7 @@ import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorCode, type TsS
 import { getSqliteEngineErrorReason, getSqliteErrorCodeName } from './databaseErrorMappers/SqliteErrorMapper.js'
 
 export interface NodeSqliteQueryRunnerConfig {
-    promise?: PromiseProvider
+    promise?: PromiseProvider | undefined
 }
 
 export class NodeSqliteQueryRunner extends SqlTransactionQueryRunner {
@@ -102,9 +102,9 @@ export class NodeSqliteQueryRunner extends SqlTransactionQueryRunner {
 }
 
 type NodeSqliteError = Error & {
-    code?: string
-    errcode?: number
-    errstr?: string
+    code?: string | undefined
+    errcode?: number | undefined
+    errstr?: string | undefined
 }
 type NodeSqliteEngineError = NodeSqliteError & {
     code: string

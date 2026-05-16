@@ -4,9 +4,9 @@ import { TsSqlError, TsSqlProcessingError } from "../TsSqlError.js"
 
 export abstract class AbstractPoolQueryRunner implements QueryRunner {
     abstract readonly database: DatabaseType
-    private currentQueryRunner?: QueryRunner
+    private currentQueryRunner?: QueryRunner | undefined
     private transactionLevel = 0
-    private transactionOpts?: BeginTransactionOpts
+    private transactionOpts?: BeginTransactionOpts | undefined
 
     execute<RESULT>(fn: (connection: unknown, transaction?: unknown) => Promise<RESULT>): Promise<RESULT> {
         return this.getQueryRunner().then(queryRunner => queryRunner.execute(fn)).finally(() => this.releaseIfNeeded())

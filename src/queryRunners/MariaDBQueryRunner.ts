@@ -10,10 +10,10 @@ type UpsertResult = {
 }
 
 type SqlError = Error & {
-    errno?: number
-    code?: string
-    sqlState?: string
-    sqlMessage?: string
+    errno?: number | undefined
+    code?: string | undefined
+    sqlState?: string | undefined
+    sqlMessage?: string | undefined
 }
 
 const MARIADB_DRIVER_ERROR_CODE_NUMBERS = new Map<string, number>([
@@ -408,8 +408,8 @@ function isMariaDbTlsConfigurationErrorCode(code: string | undefined): boolean {
 }
 
 function getMariaDbInvalidParameterDetails(code: string, message: string): {
-    parameterErrorType?: 'missing' | 'invalid value'
-    parameterName?: string
+    parameterErrorType?: 'missing' | 'invalid value' | undefined
+    parameterName?: string | undefined
 } {
     if (code === 'ER_BAD_PARAMETER_VALUE') {
         return { parameterErrorType: 'invalid value' }

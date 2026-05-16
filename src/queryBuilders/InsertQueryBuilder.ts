@@ -24,26 +24,26 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     [resultType]: any
 
     __table: ITable<any>
-    __shape?: { [property: string] : string }
+    __shape?: { [property: string] : string } | undefined
     __sets: { [property: string]: any } = {}
-    __multiple?: { [property: string]: any }[]
-    __multipleAlreadyCopied?: boolean
+    __multiple?: { [property: string]: any }[] | undefined
+    __multipleAlreadyCopied?: boolean | undefined
     __isMultiple: boolean = false
-    __idColumn?: DBColumn
-    __from?: SelectData
+    __idColumn?: DBColumn | undefined
+    __from?: SelectData | undefined
     __withs: Array<IWithView<any>> = []
-    __customization?: InsertCustomization<any, any>
+    __customization?: InsertCustomization<any, any> | undefined
     //__columns?: QueryColumns // declared at AbstractQueryBuilder
-    __onConflictOnConstraint?: string | IStringValueSource<any, any> | RawFragment<any>
-    __onConflictOnColumns?: AnyValueSource[]
-    __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any>
-    __onConflictDoNothing?: boolean
-    __onConflictUpdateShape?: { [property: string] : string }
-    __onConflictUpdateSets?: { [property: string]: any }
-    __onConflictUpdateWhere?: AlwaysIfValueSource<any, any>
-    __valuesForInsert?: AnyTableOrView
+    __onConflictOnConstraint?: string | IStringValueSource<any, any> | RawFragment<any> | undefined
+    __onConflictOnColumns?: AnyValueSource[] | undefined
+    __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any> | undefined
+    __onConflictDoNothing?: boolean | undefined
+    __onConflictUpdateShape?: { [property: string] : string } | undefined
+    __onConflictUpdateSets?: { [property: string]: any } | undefined
+    __onConflictUpdateWhere?: AlwaysIfValueSource<any, any> | undefined
+    __valuesForInsert?: AnyTableOrView | undefined
 
-    __oneColumn?: boolean
+    __oneColumn?: boolean | undefined
 
     // cache
     __query = ''

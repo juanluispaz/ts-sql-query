@@ -99,10 +99,10 @@ export function getQueryExecutionStack(query: string, params: any[]): string | u
     return source?.stack
 }
 export interface FunctionExecutingQueryInformation {
-    functionName?: string,
-    fileName?: string,
-    lineNumber?: string,
-    positionNumber?: string
+    functionName?: string | undefined,
+    fileName?: string | undefined,
+    lineNumber?: string | undefined,
+    positionNumber?: string | undefined
 }
 export function getFunctionExecutingQuery(query: string, params: any[]): FunctionExecutingQueryInformation | undefined {
     const stack = getQueryExecutionStack(query, params)

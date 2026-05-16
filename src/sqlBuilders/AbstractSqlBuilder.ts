@@ -26,7 +26,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _queryRunner: QueryRunner
     // @ts-ignore
     _connectionConfiguration: ConnectionConfiguration
-    _operationsThatNeedParenthesis: { [operation in keyof SqlOperation]?: boolean }
+    _operationsThatNeedParenthesis: { [operation in keyof SqlOperation]?: boolean | undefined }
     _unique = 1
     constructor() {
         this._operationsThatNeedParenthesis = {

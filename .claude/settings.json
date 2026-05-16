@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build *)",
+      "Bash(npm run validate *)",
+      "Bash(npm run no-docker-examples *)",
+      "Bash(bun run build *)",
+      "Bash(bun run validate *)",
+      "Bash(bun run bun:no-docker-examples *)",
+      "Bash(bun run bun:all-examples *)"
+    ]
+  }
+}

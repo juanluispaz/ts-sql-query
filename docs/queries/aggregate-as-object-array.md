@@ -129,11 +129,11 @@ The executed query is:
     select 
         company.id as id, 
         company.name as name, 
-        concat('[', string_agg(concat('{', 
-            '"id": ', isnull(convert(nvarchar, customer.id), 'null'), ', 
-            "firstName": ', isnull('"' + string_escape(convert(nvarchar, customer.first_name), 'json') + '"', 'null'), ', 
-            "lastName": ', isnull('"' + string_escape(convert(nvarchar, customer.last_name), 'json') + '"', 'null'), 
-        '}'), ','), ']') as customers 
+        json_arrayagg(json_object(
+            'id':customer.id, 
+            'firstName':customer.first_name, 
+            'lastName':customer.last_name
+        )) as customers 
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = @0 
@@ -158,6 +158,10 @@ const acmeCompanyWithCustomers: Promise<{
 !!! note
 
     You can treat optional properties as required values that allow `null` by calling `projectingOptionalValuesAsNullable()` immediately after `aggregateAsArray(...)`.
+
+!!! note "SQL Server: native JSON aggregates require SQL Server 2025+"
+
+    The `json_arrayagg` and `json_object` aggregates shown above are emitted only when the connection's [`compatibilityVersion`](../configuration/supported-databases/sqlserver.md) is at least `17_000_000` (SQL Server 2025), which is the default. On older versions, set `compatibilityVersion` to your actual version (e.g. `16_000_000` for SQL Server 2022); the same query is then emitted using `string_agg`/`string_escape` to build the JSON output. The `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` variants always use the `string_agg` form regardless of `compatibilityVersion`, because `json_arrayagg` does not accept `DISTINCT`.
 
 ## Aggregate as an array of values
 
@@ -237,7 +241,7 @@ The executed query is:
     select 
         company.id as id, 
         company.name as name, 
-        concat('[', string_agg(isnull('"' + string_escape(convert(nvarchar, customer.first_name + @0 + customer.last_name), 'json') + '"', 'null'), ','), ']') as customers 
+        json_arrayagg(customer.first_name + @0 + customer.last_name null on null) as customers 
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = @1 
@@ -544,7 +548,7 @@ The executed query is:
         id as id, 
         name as name, 
         (
-            select concat('[', string_agg('"' + string_escape(convert(nvarchar, a_1_.[result]), 'json') + '"', ','), ']') 
+            select json_arrayagg(a_1_.[result] null on null) 
             from (
                 select first_name + @0 + last_name as [result] 
                 from customer 

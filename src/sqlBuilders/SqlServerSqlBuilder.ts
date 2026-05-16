@@ -890,7 +890,25 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return super._appendAggragateArrayWrapperEnd(query, params, aggregateId)
     }
+    _useJsonAggregatesWhenPossible(): boolean {
+        return this._connectionConfiguration.compatibilityVersion >= 17_000_000
+    }
     override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
+        if (this._useJsonAggregatesWhenPossible() && !aggregatedArrayDistinct) {
+            if (isValueSource(aggregatedArrayColumns)) {
+                return 'json_arrayagg(' + this._appendSql(aggregatedArrayColumns, params, false) + ' null on null)'
+            }
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+            let jsonObject = ''
+            for (const prop in columns) {
+                if (jsonObject) {
+                    jsonObject += ', '
+                }
+                jsonObject += "'" + prop + "':" + this._appendSql(columns[prop]!, params, false)
+            }
+            return 'json_arrayagg(json_object(' + jsonObject + '))'
+        }
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             return "concat('[', string_agg(" + distict + this._appendJsonValueForAggregate(aggregatedArrayColumns, params) + ", ','), ']')"
@@ -957,6 +975,21 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return result
     }
     override _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, params: any[], aggregateId: number): string {
+        if (this._useJsonAggregatesWhenPossible()) {
+            if (isValueSource(aggregatedArrayColumns)) {
+                return 'json_arrayagg(a_' + aggregateId + '_.' + this._escape('result', true) + ' null on null)'
+            }
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+            let jsonObject = ''
+            for (const prop in columns) {
+                if (jsonObject) {
+                    jsonObject += ', '
+                }
+                jsonObject += "'" + prop + "':a_" + aggregateId + '_.' + this._escape(prop, true)
+            }
+            return 'json_arrayagg(json_object(' + jsonObject + '))'
+        }
         if (isValueSource(aggregatedArrayColumns)) {
             return "concat('[', string_agg(" + this._appendJsonValueForWrappedAggregate('result', aggregatedArrayColumns, params, aggregateId) + ", ','), ']')"
         } else {

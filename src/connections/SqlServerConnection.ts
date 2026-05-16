@@ -10,10 +10,12 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
      * Minimum SQL Server version the generated SQL must support, encoded as
      * `major * 1_000_000 + minor * 1_000 + patch` (e.g. `16_000_000` for SQL
      * Server 2022, whose internal version is 16.0). Defaults to
-     * `Number.POSITIVE_INFINITY` (latest). No dialect features depend on this
-     * setting today; reserved for forward compatibility — set it to your real
-     * version so future ts-sql-query releases that gate features on it pick the
-     * right behavior automatically.
+     * `Number.POSITIVE_INFINITY` (latest). When this value is at least
+     * `17_000_000` (SQL Server 2025), `aggregateAsArray` and
+     * `aggregateAsArrayOfOneColumn` emit the native `json_arrayagg` /
+     * `json_object` aggregates; older versions fall back to a `string_agg`-
+     * based emulation. The `Distinct` variants always use the emulation
+     * because `json_arrayagg` does not accept `DISTINCT`.
      */
     protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 

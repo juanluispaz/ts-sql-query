@@ -38,7 +38,9 @@ class DBConnection extends SqlServerConnection<'DBConnection'> { }
 
 The `compatibilityVersion` property declares the minimum SQL Server version the generated SQL must support, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `16_000_000` for SQL Server 2022 (whose internal version is 16.0). The default is `Number.POSITIVE_INFINITY` (latest).
 
-No dialect features depend on this setting today, so leaving it unset is fine. It is reserved for forward compatibility — set it to your real database version so future ts-sql-query releases that gate features on it pick the right behavior automatically.
+When `compatibilityVersion >= 17_000_000` (SQL Server 2025), ts-sql-query emits the native `json_arrayagg` / `json_object` aggregates introduced in that version for [`aggregateAsArray`](../../queries/aggregate-as-object-array.md) and `aggregateAsArrayOfOneColumn`. On older SQL Server versions, set `compatibilityVersion` to your actual version (e.g. `16_000_000` for SQL Server 2022); the same queries are then emitted using `string_agg`/`string_escape` to build the JSON output. The `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` variants always use the `string_agg` form regardless of `compatibilityVersion`, because `json_arrayagg` does not accept `DISTINCT`.
+
+It is recommended to set this value to your real database version so future ts-sql-query releases that gate additional features on it pick the right behavior automatically.
 
 ```ts
 import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";

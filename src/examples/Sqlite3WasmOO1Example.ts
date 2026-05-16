@@ -15,7 +15,6 @@ import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { Sqlite3WasmOO1QueryRunner } from '../queryRunners/Sqlite3WasmOO1QueryRunner.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    protected override compatibilityMode = false
     protected override uuidStrategy = 'string' as const
 
     protected override getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {

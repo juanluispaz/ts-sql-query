@@ -50,7 +50,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return result
     }
     override _buildSelectOrderBy(query: SelectData, params: any[]): string {
-        if (!this._connectionConfiguration.compatibilityMode) {
+        if (this._connectionConfiguration.compatibilityVersion >= 3_030) {
             return super._buildSelectOrderBy(query, params)
         }
         const orderBy = query.__orderBy
@@ -167,7 +167,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return ''
     }
     override _buildInsertReturning(query: InsertData, params: any[]): string {
-        if (!this._connectionConfiguration.compatibilityMode || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
+        if (this._connectionConfiguration.compatibilityVersion >= 3_035 || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
             return super._buildInsertReturning(query, params)
         }
         this._setContainsInsertReturningClause(params, false)

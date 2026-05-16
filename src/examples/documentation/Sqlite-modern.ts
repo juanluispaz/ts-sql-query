@@ -14,7 +14,6 @@ import { View } from '../../View.js'
 import { assertEquals } from '../assertEquals.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    override compatibilityMode = false
     // insensitiveCollation = 'acs'
 
     protected override getDateTimeFormat() {

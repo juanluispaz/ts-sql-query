@@ -27,7 +27,7 @@ bun run ./src/examples/documentation/PostgreSql.ts || exit 1
 bun run ./src/examples/documentation/MySql.ts || exit 1
 bun run ./src/examples/documentation/MySql-compatibility.ts || exit 1
 bun run ./src/examples/documentation/MariaDB.ts || exit 1
-bun run ./src/examples/documentation/MariaDB-modern.ts || exit 1
+bun run ./src/examples/documentation/MariaDB-compatibility.ts || exit 1
 bun run ./src/examples/documentation/SqlServer.ts || exit 1
 bun run ./src/examples/documentation/Oracle.ts || exit 1
 
@@ -67,7 +67,7 @@ docker rm ts-sql-query-mysql
 docker run --name ts-sql-query-mariadb -p 3306:3306 -e MYSQL_ROOT_PASSWORD=my-secret-pw --health-cmd "mariadb-admin ping -h 127.0.0.1 -uroot -pmy-secret-pw --silent || mysqladmin ping -h 127.0.0.1 -uroot -pmy-secret-pw --silent" --health-interval 1s --health-timeout 5s --health-retries 120 -d mariadb
 wait_healthy ts-sql-query-mariadb 120 || { docker stop ts-sql-query-mariadb; docker rm ts-sql-query-mariadb; exit 1; }
 bun run ./src/examples/MariaDBExample.ts || { docker stop ts-sql-query-mariadb; docker rm ts-sql-query-mariadb; exit 1; }
-bun run ./src/examples/MariaDBExample-modern.ts || { docker stop ts-sql-query-mariadb; docker rm ts-sql-query-mariadb; exit 1; }
+bun run ./src/examples/MariaDBExample-compatibility.ts || { docker stop ts-sql-query-mariadb; docker rm ts-sql-query-mariadb; exit 1; }
 bun run ./src/examples/BunSqlMariaDBExample.ts || { docker stop ts-sql-query-mariadb; docker rm ts-sql-query-mariadb; exit 1; }
 bun run ./src/examples/PrismaMariaDBExample.ts || { docker stop ts-sql-query-mariadb; docker rm ts-sql-query-mariadb; exit 1; }
 docker stop ts-sql-query-mariadb

@@ -13,7 +13,8 @@ import { Values } from '../../Values.js'
 import { View } from '../../View.js'
 import { assertEquals } from '../assertEquals.js'
 
-class DBConnection extends SqliteConnection<'DBConnection'> { 
+class DBConnection extends SqliteConnection<'DBConnection'> {
+    override compatibilityVersion = 3_029
     // insensitiveCollation = 'acs'
 
     protected override getDateTimeFormat() {

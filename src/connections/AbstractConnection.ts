@@ -39,6 +39,22 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected __sqlBuilder: SqlBuilder
     protected allowEmptyString: boolean = false
     protected insensitiveCollation?: string | undefined
+    /**
+     * Minimum database version the generated SQL must support, encoded as a single
+     * integer that packs `major.minor` using three digits for the minor part
+     * (zero-padded on the left): `major * 1000 + minor`. The numeric separator
+     * underscore is recommended for readability — e.g. `10_005` for MariaDB 10.5,
+     * `3_029` for SQLite 3.29, `8_000` for MySQL 8.
+     *
+     * The default `Number.POSITIVE_INFINITY` means "latest" — every supported
+     * dialect feature is emitted. Lower values progressively turn off features
+     * introduced after that version. Each database-specific connection documents
+     * the breakpoints it recognises; you may still set any version number you
+     * like (your real database version), even one we don't recognise as a
+     * breakpoint — it simply behaves the same as the nearest recognised lower
+     * breakpoint.
+     */
+    protected compatibilityVersion: number = Number.POSITIVE_INFINITY
     readonly queryRunner: QueryRunner
     readonly defaultTypeAdapter: DefaultTypeAdapter
 

@@ -8,7 +8,7 @@ tsx ./src/examples/documentation/PostgreSql.ts || exit 1
 tsx ./src/examples/documentation/MySql.ts || exit 1
 tsx ./src/examples/documentation/MySql-compatibility.ts || exit 1
 tsx ./src/examples/documentation/MariaDB.ts || exit 1
-tsx ./src/examples/documentation/MariaDB-modern.ts || exit 1
+tsx ./src/examples/documentation/MariaDB-compatibility.ts || exit 1
 tsx ./src/examples/documentation/SqlServer.ts || exit 1
 tsx ./src/examples/documentation/Oracle.ts || exit 1
 

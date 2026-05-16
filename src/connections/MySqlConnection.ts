@@ -9,14 +9,17 @@ export abstract class MySqlConnection</*in|out*/ NAME extends string> extends Ab
     protected uuidStrategy: 'string' | 'binary' = 'binary'
 
     /**
-     * The compatibility mode try to maximize the compatibility with older versions of MySQL (MySQL 5)
+     * Minimum MySQL version the generated SQL must support, encoded as
+     * `major * 1000 + minor` (e.g. `8_000` for MySQL 8, `5_007` for MySQL 5.7).
+     * Defaults to `Number.POSITIVE_INFINITY` (latest).
      *
-     * The syntax avoided are:
-     * - With clause, instead the query is directly included in the from
-     * 
-     * Note: Recursive queries are not supported
+     * Recognised breakpoints:
+     * - `>= 8_000`: the `WITH` clause is used; recursive queries are supported.
+     * - `< 8_000`: the `WITH` clause is not emitted (the inner query is inlined
+     *   inside the `FROM` instead) and recursive queries throw at query-build
+     *   time.
      */
-    protected compatibilityMode: boolean = false
+    protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 
     constructor(queryRunner: QueryRunner, sqlBuilder: MySqlSqlBuilder = new MySqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)

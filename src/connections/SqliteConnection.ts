@@ -15,16 +15,20 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     }
 
     /**
-     * The compatibility mode avoid to use the newer syntax introduces in the newer versions of sqlite
+     * Minimum SQLite version the generated SQL must support, encoded as
+     * `major * 1000 + minor` (e.g. `3_035` for SQLite 3.35, `3_029` for SQLite 3.29).
+     * Defaults to `Number.POSITIVE_INFINITY` (latest).
      *
-     * The newer syntax are:
-     * - Sqlite 3.30.0 (2019-10-04): Add support for the NULLS FIRST and NULLS LAST syntax in ORDER BY clauses.
-     *   In the copatibility mode their are emulated
-     * - Sqlite 3.35.0 (2021-03-12): Add support for the RETURNING clause on DELETE, INSERT, and UPDATE statements.
-     *   In the compatibility mode last_insert_id() is used to get the last inserted id.
-     *   When the compatibility mode is disabled the RETURNING clause on the insert statement is used.
+     * Recognised breakpoints:
+     * - `>= 3_035`: the `RETURNING` clause (added in SQLite 3.35 for `DELETE`,
+     *   `INSERT` and `UPDATE`) is emitted on `INSERT` to retrieve the last
+     *   inserted id directly from the statement.
+     * - `>= 3_030`: native `NULLS FIRST` / `NULLS LAST` syntax in `ORDER BY` is
+     *   emitted (added in SQLite 3.30).
+     * - below those breakpoints, `NULLS FIRST` / `NULLS LAST` ordering is
+     *   emulated and `last_insert_rowid()` is used to retrieve the inserted id.
      */
-    protected compatibilityMode: boolean = true
+    protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 
     protected getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return 'localdate as text'

@@ -6,6 +6,16 @@ import type { TransactionIsolationLevel } from './AbstractConnection.js'
 
 export abstract class PostgreSqlConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'postgreSql', NAME>> {
 
+    /**
+     * Minimum PostgreSQL version the generated SQL must support, encoded as
+     * `major * 1000 + minor` (e.g. `18_000` for PostgreSQL 18). Defaults to
+     * `Number.POSITIVE_INFINITY` (latest). No dialect features depend on this
+     * setting today; reserved for forward compatibility — set it to your real
+     * version so future ts-sql-query releases that gate features on it pick the
+     * right behavior automatically.
+     */
+    protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
+
     constructor(queryRunner: QueryRunner, sqlBuilder = new PostgreSqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('postgreSql')

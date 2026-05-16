@@ -8,6 +8,16 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
 
     protected uuidStrategy: 'string' | 'custom-functions' | 'built-in' = 'built-in'
 
+    /**
+     * Minimum Oracle Database version the generated SQL must support, encoded as
+     * `major * 1000 + minor` (e.g. `23_009` for Oracle Database 23.9). Defaults to
+     * `Number.POSITIVE_INFINITY` (latest). No dialect features depend on this
+     * setting today; reserved for forward compatibility — set it to your real
+     * version so future ts-sql-query releases that gate features on it pick the
+     * right behavior automatically.
+     */
+    protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
+
     constructor(queryRunner: QueryRunner, sqlBuilder = new OracleSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('oracle')

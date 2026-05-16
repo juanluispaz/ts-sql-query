@@ -26,15 +26,22 @@ import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
 class DBConnection extends MariaDBConnection<'DBConnection'> { }
 ```
 
-## Insert ID Retrieval Strategies
+## Compatibility version
 
-Starting from MariaDB 10.5, the `RETURNING` clause is supported for `INSERT` and `DELETE` statements. If you set this flag to `true`, `ts-sql-query` will use the `RETURNING` clause to retrieve the last inserted ID, instead of relying on the ID returned by the underlying connector after the query execution.
+The `compatibilityVersion` property declares the minimum MariaDB version the generated SQL must support, encoded as the integer `major * 1000 + minor` — e.g. `10_005` for MariaDB 10.5, `10_004` for MariaDB 10.4. The numeric separator `_` is for readability only (`10_005 === 10005`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
+
+You can set this to your real database version (whatever it is) regardless of whether ts-sql-query currently uses it — extra granularity is harmless and future-proof.
+
+Recognised breakpoints:
+
+- `>= 10_005` *(default)*: target MariaDB 10.5+. The `RETURNING` clause (supported on `INSERT` and `DELETE` since MariaDB 10.5) is emitted on `INSERT` to retrieve the last inserted ID directly from the statement.
+- `< 10_005`: target MariaDB 10.4 or older. The `RETURNING` clause is not emitted on `INSERT`; the last inserted ID reported by the underlying connector after the query execution is used instead.
 
 ```ts
 import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
 
-class DBConnection extends MariaDBConnection<'DBConnection'> { 
-    protected override alwaysUseReturningClauseWhenInsert = true
+class DBConnection extends MariaDBConnection<'DBConnection'> {
+    protected override compatibilityVersion = 10_004
 }
 ```
 

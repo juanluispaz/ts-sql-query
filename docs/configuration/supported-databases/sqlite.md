@@ -151,21 +151,22 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 
     When generating UUIDs on the application side, prefer **UUID v7** over UUID v4. With the `'string'` strategy v7 sorts chronologically by lexicographic comparison of its 36-character text representation; with the `'uuid-extension'` strategy this depends on the `uuid_blob` function you register — the snippets recommended in the [better-sqlite3](../query-runners/recommended/better-sqlite3.md#better-sqlite3-and-uuids) and [node:sqlite](../query-runners/recommended/node_sqlite.md#nodesqlite-and-uuids) pages preserve the canonical byte order, so v7 sorts on the primary-key index. See the [column types](../column-types.md) page for more context.
 
-## Compatibility mode
+## Compatibility version
 
-The compatibility mode prevents the use of syntax introduced in newer versions of SQLite.
+The `compatibilityVersion` property declares the minimum SQLite version the generated SQL must support, encoded as the integer `major * 1000 + minor` — e.g. `3_035` for SQLite 3.35, `3_029` for SQLite 3.29. The numeric separator `_` is for readability only (`3_035 === 3035`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
 
-The newer syntax are:
+You can set this to your real database version (whatever it is) regardless of whether ts-sql-query currently uses it — extra granularity is harmless and future-proof.
 
-- **Sqlite 3.30.0** (*2019-10-04*): Add support for the `NULLS FIRST` and `NULLS LAST` syntax in `ORDER BY` clauses. In compatibility mode, they are emulated.
-- **Sqlite 3.35.0** (*2021-03-12*): Add support for the `RETURNING` clause on `DELETE`, `INSERT`, and `UPDATE` statements. When compatibility mode is *disabled*, the `RETURNING` clause *is enabled* for insert statements.
+Recognised breakpoints:
 
-By default the compatibility mode is enabled. To disable the compatibility mode you must set the `compatibilityMode` property of the connection to false.
+- `>= 3_035` *(default)*: target SQLite 3.35+ (released *2021-03-12*). Uses native `NULLS FIRST` / `NULLS LAST` syntax in `ORDER BY`, and the `RETURNING` clause (added in SQLite 3.35 for `DELETE`, `INSERT` and `UPDATE`) on `INSERT` to retrieve the last inserted ID directly from the statement.
+- `>= 3_030`: target SQLite 3.30 to 3.34 (3.30 released *2019-10-04*). Uses native `NULLS FIRST` / `NULLS LAST` syntax in `ORDER BY`. The `RETURNING` clause is not emitted on `INSERT`; `last_insert_rowid()` is used to retrieve the inserted ID instead.
+- `< 3_030`: target SQLite 3.29 or older. `NULLS FIRST` / `NULLS LAST` ordering is emulated. The `RETURNING` clause is not emitted on `INSERT`; `last_insert_rowid()` is used to retrieve the inserted ID instead.
 
 ```ts
 import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    protected override compatibilityMode = false
+    protected override compatibilityVersion = 3_029
 }
 ```

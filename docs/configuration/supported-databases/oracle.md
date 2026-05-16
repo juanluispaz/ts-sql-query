@@ -30,6 +30,20 @@ class DBConnection extends OracleConnection<'DBConnection'> { }
 
     Oracle doesn't have boolean data type; `ts-sql-query` assumes that the boolean is represented by a number where `0` is false, and `1` is true. All conversions are made automatically by `ts-sql-query`. In case you need a different way to represent a boolean, see [Custom booleans values](../../advanced/custom-booleans-values.md) for more information.
 
+## Compatibility version
+
+The `compatibilityVersion` property declares the minimum Oracle Database version the generated SQL must support, encoded as the integer `major * 1000 + minor` — e.g. `23_009` for Oracle Database 23.9. The default is `Number.POSITIVE_INFINITY` (latest).
+
+No dialect features depend on this setting today, so leaving it unset is fine. It is reserved for forward compatibility — set it to your real database version so future ts-sql-query releases that gate features on it pick the right behavior automatically.
+
+```ts
+import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
+
+class DBConnection extends OracleConnection<'DBConnection'> {
+    protected override compatibilityVersion = 23_009
+}
+```
+
 ## UUID strategies
 
 `ts-sql-query` provides different strategies to handle UUID values in Oracle. These strategies control how UUID values are represented in JavaScript and stored in the database. In every case, UUIDs are exchanged as `string` at the JavaScript layer.

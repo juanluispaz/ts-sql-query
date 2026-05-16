@@ -11,7 +11,6 @@ import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override uuidStrategy = 'string' as const
-    protected override compatibilityMode = false
 
     protected override getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return 'Unix time seconds as integer'

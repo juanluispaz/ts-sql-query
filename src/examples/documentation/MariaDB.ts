@@ -12,7 +12,7 @@ import { CustomBooleanTypeAdapter } from '../../TypeAdapter.js'
 import { View } from '../../View.js'
 import { assertEquals } from '../assertEquals.js'
 
-class DBConnection extends MariaDBConnection<'DBConnection'> { 
+class DBConnection extends MariaDBConnection<'DBConnection'> {
     // insensitiveCollation = 'acs'
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
@@ -46,7 +46,7 @@ class DBConnection extends MariaDBConnection<'DBConnection'> {
         const from = this.const(fromDate, 'localDateTime')
         const to = this.const(toDate, 'localDateTime')
         return this.rawFragment`${table} for system_time between ${from} and ${to} ${alias}`
-    }) 
+    })
 
     myOwnProcedure(param1: number) {
         return this.executeProcedure('myOwnprocedure', [this.const(param1, 'int')]);
@@ -361,7 +361,7 @@ async function main() {
         .executeSelectMany()
     
     assertEquals(searchedCustomers3, result)
-
+    
     /* *** Preparation ************************************************************/
 
     result = []
@@ -637,7 +637,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`insert into customer (first_name, last_name, company_id, birthday) values (?, ?, ?, ?)`)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id, birthday) values (?, ?, ?, ?) returning id`)
     expectedParams.push(`["John","Smith",1,"2000-03-01T00:00:00.000Z"]`)
     expectedType.push(`insertReturningLastInsertedId`)
     
@@ -658,7 +658,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?)`)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?) returning id`)
     expectedParams.push(`["John","Smith",23]`)
     expectedType.push(`insertReturningLastInsertedId`)
     
@@ -685,100 +685,99 @@ async function main() {
     
     assertEquals(insertCustomer2, result)
     
-    // Example not supported
-    // /* *** Preparation ************************************************************/
+    /* *** Preparation ************************************************************/
 
-    // result = [2, 3]
-    // expectedResult.push(result)
-    // expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?), (?, ?, ?) returning id`)
-    // expectedParams.push(`["John","Smith",1,"Other","Person",1]`)
-    // expectedType.push(`insertReturningMultipleLastInsertedId`)
+    result = [2, 3]
+    expectedResult.push(result)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?), (?, ?, ?) returning id`)
+    expectedParams.push(`["John","Smith",1,"Other","Person",1]`)
+    expectedType.push(`insertReturningMultipleLastInsertedId`)
     
-    // /* *** Example ****************************************************************/
+    /* *** Example ****************************************************************/
 
-    // const valuesToInsert = [
-    //     {
-    //         firstName: 'John',
-    //         lastName: 'Smith',
-    //         companyId: 1
-    //     },
-    //     {
-    //         firstName: 'Other',
-    //         lastName: 'Person',
-    //         companyId: 1
-    //     }
-    // ]
+    const valuesToInsert = [
+        {
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        },
+        {
+            firstName: 'Other',
+            lastName: 'Person',
+            companyId: 1
+        }
+    ]
     
-    // const insertMultipleCustomers = await connection.insertInto(tCustomer)
-    //     .values(valuesToInsert)
-    //     .returningLastInsertedId()
-    //     .executeInsert();
+    const insertMultipleCustomers = await connection.insertInto(tCustomer)
+        .values(valuesToInsert)
+        .returningLastInsertedId()
+        .executeInsert();
     
-    // assertEquals(insertMultipleCustomers, result)
+    assertEquals(insertMultipleCustomers, result)
     
-    // /* *** Preparation ************************************************************/
+    /* *** Preparation ************************************************************/
 
-    // result = [2, 3]
-    // expectedResult.push(result)
-    // expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?), (?, ?, ?) returning id`)
-    // expectedParams.push(`["John","Smith",23,"Other","Person",23]`)
-    // expectedType.push(`insertReturningMultipleLastInsertedId`)
+    result = [2, 3]
+    expectedResult.push(result)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?), (?, ?, ?) returning id`)
+    expectedParams.push(`["John","Smith",23,"Other","Person",23]`)
+    expectedType.push(`insertReturningMultipleLastInsertedId`)
     
-    // /* *** Example ****************************************************************/
+    /* *** Example ****************************************************************/
 
-    // const customersToInsert = [
-    //     {
-    //         customerFirstName: 'John',
-    //         customerLastName: 'Smith'
-    //     },
-    //     {
-    //         customerFirstName: 'Other',
-    //         customerLastName: 'Person'
-    //     }
-    // ]
-    // currentCompanyId = 23
+    const customersToInsert = [
+        {
+            customerFirstName: 'John',
+            customerLastName: 'Smith'
+        },
+        {
+            customerFirstName: 'Other',
+            customerLastName: 'Person'
+        }
+    ]
+    currentCompanyId = 23
     
-    // const insertMultipleCustomers2 = await connection.insertInto(tCustomer)
-    //     .shapedAs({
-    //         customerFirstName: 'firstName',
-    //         customerLastName: 'lastName'
-    //     })
-    //     .values(customersToInsert)
-    //     .extendShape({
-    //         customerCompanyId: 'companyId'
-    //     }).setForAll({
-    //         customerCompanyId: currentCompanyId
-    //     }).returningLastInsertedId()
-    //     .executeInsert()
+    const insertMultipleCustomers2 = await connection.insertInto(tCustomer)
+        .shapedAs({
+            customerFirstName: 'firstName',
+            customerLastName: 'lastName'
+        })
+        .values(customersToInsert)
+        .extendShape({
+            customerCompanyId: 'companyId'
+        }).setForAll({
+            customerCompanyId: currentCompanyId
+        }).returningLastInsertedId()
+        .executeInsert()
     
-    // assertEquals(insertMultipleCustomers2, result)
+    assertEquals(insertMultipleCustomers2, result)
     
-    // /* *** Preparation ************************************************************/
+    /* *** Preparation ************************************************************/
 
-    // result = 1
-    // expectedResult.push(result)
-    // expectedQuery.push(`insert into customer (first_name, last_name, company_id, birthday) values ($1, $2, $3, $4)`)
-    // expectedParams.push(`["John","Smith",1,"2000-03-01T00:00:00.000Z"]`)
-    // expectedType.push(`insert`)
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id, birthday) values (?, ?, ?, ?)`)
+    expectedParams.push(`["John","Smith",1,"2000-03-01T00:00:00.000Z"]`)
+    expectedType.push(`insert`)
     
-    // /* *** Example ****************************************************************/
+    /* *** Example ****************************************************************/
 
-    // const valuesToInsert3 = [
-    //     {
-    //         firstName: 'John',
-    //         lastName: 'Smith',
-    //         companyId: 1
-    //     }
-    // ]
+    const valuesToInsert3 = [
+        {
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        }
+    ]
     
-    // const insertMultipleCustomers3 = await connection.insertInto(tCustomer)
-    //     .dynamicValues(valuesToInsert3)
-    //     .setForAllIfHasNoValue({
-    //         birthday: new Date('2000-03-01')
-    //     })
-    //     .executeInsert();
+    const insertMultipleCustomers3 = await connection.insertInto(tCustomer)
+        .dynamicValues(valuesToInsert3)
+        .setForAllIfHasNoValue({
+            birthday: new Date('2000-03-01')
+        })
+        .executeInsert();
     
-    // assertEquals(insertMultipleCustomers3, result)
+    assertEquals(insertMultipleCustomers3, result)
     
     /* *** Preparation ************************************************************/
 
@@ -910,7 +909,7 @@ async function main() {
     
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`insert into custom_company (name, is_big) values (?, case when ? then 'Y' else 'N' end)`)
+    expectedQuery.push(`insert into custom_company (name, is_big) values (?, case when ? then 'Y' else 'N' end) returning id`)
     expectedParams.push(`["My Big Company",true]`)
     expectedType.push(`insertReturningLastInsertedId`)
     
@@ -1193,7 +1192,7 @@ async function main() {
             .executeSelectOne()
     
     assertEquals(customerWithCompanyObject2, result)
-    
+
     /* *** Preparation ************************************************************/
 
     result = []
@@ -1293,7 +1292,7 @@ async function main() {
         }).executeSelectMany()
     
     assertEquals(recursiveOnChildrenCompany, result)
-        
+            
     /* *** Preparation ************************************************************/
 
     result = [{
@@ -1410,7 +1409,7 @@ async function main() {
         .executeSelectOne()
     
     assertEquals(customerWithIdPeaking, result)
-            
+        
     /* *** Preparation ************************************************************/
 
     result = [{
@@ -2251,7 +2250,7 @@ async function main() {
 
     const parentParent = tCompany.forUseInLeftJoinAs('parentParent')
     
-    const companyMultiSplit2 = await connection.selectFrom(tCompany)
+    const companyMultiParent = await connection.selectFrom(tCompany)
         .leftJoin(parent).on(tCompany.parentId.equals(parent.id))
         .leftJoin(parentParent).on(parent.parentId.equals(parentParent.id))
         .select({
@@ -2269,7 +2268,7 @@ async function main() {
         })
         .executeSelectMany()
 
-    assertEquals(companyMultiSplit2, result)
+    assertEquals(companyMultiParent, result)
 
     /* *** Preparation ************************************************************/
 
@@ -2295,6 +2294,163 @@ async function main() {
         .executeSelectMany()
 
     assertEquals(acmeCustomers, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 10,
+        name: 'ACME'
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`delete from company where name = ? returning id as id, name as name`)
+    expectedParams.push(`["ACME"]`)
+    expectedType.push(`deleteReturningOneRow`)
+    
+    /* *** Example ****************************************************************/
+
+    const deletedAcmeCompany = await connection.deleteFrom(tCompany)
+        .where(tCompany.name.equals('ACME'))
+        .returning({
+            id: tCompany.id,
+            name: tCompany.name
+        })
+        .executeDeleteOne()
+
+    assertEquals(deletedAcmeCompany, result)
+
+    /* *** Preparation ************************************************************/
+
+    // result = 'Ron'
+    // expectedResult.push(result)
+    // expectedQuery.push(`update customer set first_name = $1 where id = $2 returning first_name as result`)
+    // expectedParams.push(`["Ron",1]`)
+    // expectedType.push(`updateReturningOneColumnOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    // const updatedSmithFirstName = await connection.update(tCustomer)
+    //     .set({
+    //         firstName: 'Ron'
+    //     })
+    //     .where(tCustomer.id.equals(1))
+    //     .returningOneColumn(tCustomer.firstName)
+    //     .executeUpdateOne()
+
+    // assertEquals(updatedSmithFirstName, result)
+
+    /* *** Preparation ************************************************************/
+
+    // result = {
+    //     oldLastName: 'Shith', 
+    //     newLastName: 'Thomson'
+    // }
+    // expectedResult.push(result)
+    // expectedQuery.push(`update customer as _new_ set last_name = $1 from (select _old_.* from customer as _old_ where _old_.id = $2 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"`)
+    // expectedParams.push(`["Thomson",2]`)
+    // expectedType.push(`updateReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    // const oldCustomerValues = tCustomer.oldValues()
+    // const updatedLastNames = await connection.update(tCustomer)
+    //     .set({
+    //         lastName: 'Thomson'
+    //     })
+    //     .where(tCustomer.id.equals(2))
+    //     .returning({
+    //         oldLastName: oldCustomerValues.lastName,
+    //         newLastName: tCustomer.lastName
+    //     })
+    //     .executeUpdateOne()
+    
+    // assertEquals(updatedLastNames, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Smith',
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?) returning id as id, first_name as firstName, last_name as lastName`)
+    expectedParams.push(`["John","Smith",1]`)
+    expectedType.push(`insertReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const insertReturningCustomerData = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        }).returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertOne()
+
+    assertEquals(insertReturningCustomerData, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Smith',
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`insert ignore into customer (first_name, last_name, company_id) values (?, ?, ?) returning id as id, first_name as firstName, last_name as lastName`)
+    expectedParams.push(`["John","Smith",1]`)
+    expectedType.push(`insertReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const insertReturningCustomerData2 = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        })
+        .onConflictDoNothing()
+        .returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertNoneOrOne()
+
+    assertEquals(insertReturningCustomerData2, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Smith',
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?) on duplicate key update company_id = ? returning id as id, first_name as firstName, last_name as lastName`)
+    expectedParams.push(`["John","Smith",1,1]`)
+    expectedType.push(`insertReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const insertReturningCustomerData3 = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        })
+        .onConflictDoUpdateSet({
+            companyId: 1
+        })
+        .returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertOne()
+
+    assertEquals(insertReturningCustomerData3, result)
 
     /* *** Preparation ************************************************************/
 
@@ -2334,6 +2490,93 @@ async function main() {
         .executeDelete()
 
     assertEquals(deleteACMECustomers, result)
+
+    /* *** Preparation ************************************************************/
+
+    // result = {
+    //     oldLastName: 'Smith 2', 
+    //     newLastName: 'Smith'
+    // }
+    // expectedResult.push(result)
+    // expectedQuery.push(`update customer as _new_ set last_name = $1 from (select _old_.* from customer as _old_, company where _old_.company_id = company.id and company.name = $2 and _old_.first_name = $3 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"`)
+    // expectedParams.push(`["Smith","ACME Cia.","Ron 2"]`)
+    // expectedType.push(`updateReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    // const smithLastNameUpdate = await connection.update(tCustomer)
+    //     .from(tCompany)
+    //     .set({
+    //         lastName: 'Smith'
+    //     })
+    //     .where(tCustomer.companyId.equals(tCompany.id))
+    //     .and(tCompany.name.equals('ACME Cia.'))
+    //     .and(tCustomer.firstName.equals('Ron 2'))
+    //     .returning({
+    //         oldLastName: oldCustomerValues.lastName,
+    //         newLastName: tCustomer.lastName
+    //     })
+    //     .executeUpdateOne()
+
+    // assertEquals(smithLastNameUpdate, result)
+
+    /* *** Preparation ************************************************************/
+
+    // result = {
+    //     oldLastName: 'Smith', 
+    //     newLastName: 'Smith - ACME Cia.'
+    // }
+    // expectedResult.push(result)
+    // expectedQuery.push(`update customer as _new_ set last_name = _new_.last_name || $1 || _old_.company__name from (select _old_.*, company.name as company__name from customer as _old_, company where _old_.company_id = company.id and company.name = $2 and _old_.first_name = $3 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"`)
+    // expectedParams.push(`[" - ","ACME Cia.","Ron 2"]`)
+    // expectedType.push(`updateReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    // const smithLastNameUpdate2 = await connection.update(tCustomer)
+    //     .from(tCompany)
+    //     .set({
+    //         lastName: tCustomer.lastName.concat(' - ').concat(tCompany.name)
+    //     })
+    //     .where(tCustomer.companyId.equals(tCompany.id))
+    //     .and(tCompany.name.equals('ACME Cia.'))
+    //     .and(tCustomer.firstName.equals('Ron 2'))
+    //     .returning({
+    //         oldLastName: oldCustomerValues.lastName,
+    //         newLastName: tCustomer.lastName
+    //     })
+    //     .executeUpdateOne()
+
+    // assertEquals(smithLastNameUpdate2, result)
+
+    /* *** Preparation ************************************************************/
+
+    // result = {
+    //     oldLastName: 'Smith - ACME Cia.', 
+    //     newLastName: 'Smith/ACME Cia.'
+    // }
+    // expectedResult.push(result)
+    // expectedQuery.push(`update customer as _new_ set last_name = $1 from (select _old_.*, company.name as company__name from customer as _old_, company where _old_.company_id = company.id and company.name = $2 and _old_.first_name = $3 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name || $4 || _old_.company__name as "newLastName"`)
+    // expectedParams.push(`["Smith","ACME Cia.","Ron 2","/"]`)
+    // expectedType.push(`updateReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    // const smithLastNameUpdate3 = await connection.update(tCustomer)
+    //     .from(tCompany)
+    //     .set({
+    //         lastName: 'Smith'
+    //     })
+    //     .where(tCustomer.companyId.equals(tCompany.id))
+    //     .and(tCompany.name.equals('ACME Cia.'))
+    //     .and(tCustomer.firstName.equals('Ron 2'))
+    //     .returning({
+    //         oldLastName: oldCustomerValues.lastName,
+    //         newLastName: tCustomer.lastName.concat('/').concat(tCompany.name)
+    //     })
+    //     .executeUpdateOne()
+
+    // assertEquals(smithLastNameUpdate3, result)
 
     /* *** Preparation ************************************************************/
 
@@ -2890,15 +3133,13 @@ async function main() {
     //     ]
     // }
     // expectedResult.push(result)
-    // expectedQuery.push("select id as id, name as name, parent_id as parentId, (with recursive recursive_select_1 as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany where parentCompany.id = company.parent_id union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select json_arrayagg(json_object('id', id, 'name', name, 'parentId', parentId)) from recursive_select_1) as parents from company where id = ?")
+    // expectedQuery.push(`select id as id, name as name, parent_id as "parentId", (with recursive recursive_select_1 as (select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany where parentCompany.id = company.parent_id union all select parentCompany.id as id, parentCompany.name as name, parentCompany.parent_id as parentId from company as parentCompany join recursive_select_1 on recursive_select_1.parentId = parentCompany.id) select json_agg(json_build_object('id', id, 'name', name, 'parentId', parentId)) from recursive_select_1) as parents from company where id = $1`)
     // expectedParams.push(`[10]`)
     // expectedType.push(`selectOneRow`)
 
     /* *** Example ****************************************************************/
 
     const parentCompany2 = tCompany.as('parentCompany')
-
-    // MariaDB doesn't support recursives queries that have outer tables that depends on
 
     // const parentCompanies = connection.subSelectUsing(tCompany)
     //     .from(parentCompany2)
@@ -3127,6 +3368,67 @@ async function main() {
 
     /* *** Preparation ************************************************************/
 
+    // result = 1
+    // expectedResult.push(result)
+    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict on constraint $3 do nothing`)
+    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","title_constraint"]`)
+    // expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    // insertUuid = await connection.insertInto(tRecord)
+    //     .values({
+    //         id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+    //         title: 'My voice memo'
+    //     })
+    //     .onConflictOnConstraint('title_constraint')
+    //     .doNothing()
+    //     .executeInsert()
+    // assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    // result = 1
+    // expectedResult.push(result)
+    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict (title) do nothing`)
+    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo"]`)
+    // expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    // insertUuid = await connection.insertInto(tRecord)
+    //     .values({
+    //         id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+    //         title: 'My voice memo'
+    //     })
+    //     .onConflictOn(tRecord.title)
+    //     .doNothing()
+    //     .executeInsert()
+    // assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    // result = 1
+    // expectedResult.push(result)
+    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict (title) where title ilike ('%' || $3 || '%') do nothing`)
+    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","memo"]`)
+    // expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    // insertUuid = await connection.insertInto(tRecord)
+    //     .values({
+    //         id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+    //         title: 'My voice memo'
+    //     })
+    //     .onConflictOn(tRecord.title)
+    //     .where(tRecord.title.containsInsensitive('memo'))
+    //     .doNothing()
+    //     .executeInsert()
+    // assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
     result = 1
     expectedResult.push(result)
     expectedQuery.push(`insert into record (id, title) values (?, ?) on duplicate key update title = ?`)
@@ -3148,6 +3450,165 @@ async function main() {
 
     /* *** Preparation ************************************************************/
 
+    // result = 1
+    // expectedResult.push(result)
+    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict on constraint $3 do update set title = $4`)
+    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","title_constraint","My voice memo 2"]`)
+    // expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    // insertUuid = await connection.insertInto(tRecord)
+    //     .values({
+    //         id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+    //         title: 'My voice memo'
+    //     })
+    //     .onConflictOnConstraint('title_constraint')
+    //     .doUpdateSet({
+    //         title: 'My voice memo 2'
+    //     })
+    //     .executeInsert()
+    // assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    // result = 1
+    // expectedResult.push(result)
+    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict (title) do update set title = $3`)
+    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","My voice memo 2"]`)
+    // expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    // insertUuid = await connection.insertInto(tRecord)
+    //     .values({
+    //         id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+    //         title: 'My voice memo'
+    //     })
+    //     .onConflictOn(tRecord.title)
+    //     .doUpdateSet({
+    //         title: 'My voice memo 2'
+    //     })
+    //     .executeInsert()
+    // assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    // result = 1
+    // expectedResult.push(result)
+    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict (title) where title ilike ('%' || $3 || '%') do update set title = $4`)
+    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","memo","My voice memo 2"]`)
+    // expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    // insertUuid = await connection.insertInto(tRecord)
+    //     .values({
+    //         id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+    //         title: 'My voice memo'
+    //     })
+    //     .onConflictOn(tRecord.title)
+    //     .where(tRecord.title.containsInsensitive('memo'))
+    //     .doUpdateSet({
+    //         title: 'My voice memo 2'
+    //     })
+    //     .executeInsert()
+    // assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    // result = 1
+    // expectedResult.push(result)
+    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict do update set title = $3 where record.title ilike ('%' || $4 || '%')`)
+    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","My voice memo 2","My"]`)
+    // expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    // insertUuid = await connection.insertInto(tRecord)
+    //     .values({
+    //         id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+    //         title: 'My voice memo'
+    //     })
+    //     .onConflictDoUpdateSet({
+    //         title: 'My voice memo 2'
+    //     })
+    //     .where(tRecord.title.containsInsensitive('My'))
+    //     .executeInsert()
+    // assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    // result = 1
+    // expectedResult.push(result)
+    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict on constraint $3 do update set title = $4 where record.title ilike ('%' || $5 || '%')`)
+    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","title_constraint","My voice memo 2","My"]`)
+    // expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    // insertUuid = await connection.insertInto(tRecord)
+    //     .values({
+    //         id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+    //         title: 'My voice memo'
+    //     })
+    //     .onConflictOnConstraint('title_constraint')
+    //     .doUpdateSet({
+    //         title: 'My voice memo 2'
+    //     })
+    //     .where(tRecord.title.containsInsensitive('My'))
+    //     .executeInsert()
+    // assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    // result = 1
+    // expectedResult.push(result)
+    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict (title) do update set title = $3 where record.title ilike ('%' || $4 || '%')`)
+    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","My voice memo 2","My"]`)
+    // expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    // insertUuid = await connection.insertInto(tRecord)
+    //     .values({
+    //         id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+    //         title: 'My voice memo'
+    //     })
+    //     .onConflictOn(tRecord.title)
+    //     .doUpdateSet({
+    //         title: 'My voice memo 2'
+    //     })
+    //     .where(tRecord.title.containsInsensitive('My'))
+    //     .executeInsert()
+    // assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
+    // result = 1
+    // expectedResult.push(result)
+    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict (title) where title ilike ('%' || $3 || '%') do update set title = $4 where record.title ilike ('%' || $5 || '%')`)
+    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","memo","My voice memo 2","My"]`)
+    // expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    // insertUuid = await connection.insertInto(tRecord)
+    //     .values({
+    //         id: '89bf68fc-7002-11ec-90d6-0242ac120003',
+    //         title: 'My voice memo'
+    //     })
+    //     .onConflictOn(tRecord.title)
+    //     .where(tRecord.title.containsInsensitive('memo'))
+    //     .doUpdateSet({
+    //         title: 'My voice memo 2'
+    //     })
+    //     .where(tRecord.title.containsInsensitive('My'))
+    //     .executeInsert()
+    // assertEquals(insertUuid, result)
+
+    /* *** Preparation ************************************************************/
+
     result = 1
     expectedResult.push(result)
     expectedQuery.push(`insert into record (id, title) values (?, ?) on duplicate key update title = concat(title, ?, values(title))`)
@@ -3166,7 +3627,38 @@ async function main() {
             title: tRecord.title.concat(' - ').concat(tRecordForInsert.title)
         })
         .executeInsert()
-    assertEquals(insertUuid, result)
+    assertEquals(insertUuid, result)/* *** Preparation ************************************************************/
+
+    result = {
+        id: 1,
+        firstName: 'John',
+        lastName: 'Smith',
+    }
+    expectedResult.push(result)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?) on duplicate key update first_name = concat(first_name, ?, values(first_name)), last_name = concat(last_name, ?, values(last_name)) returning id as id, first_name as firstName, last_name as lastName`)
+    expectedParams.push(`["John","Smith",1," - "," - "]`)
+    expectedType.push(`insertReturningOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const tCustomerForInsert = tCustomer.valuesForInsert()
+    const insertReturningCustomerData4 = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        })
+        .onConflictDoUpdateSet({
+            firstName: tCustomer.firstName.concat(' - ').concat(tCustomerForInsert.firstName),
+            lastName: tCustomer.lastName.concat(' - ').concat(tCustomerForInsert.lastName)
+        })
+        .returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertOne()
+
+    assertEquals(insertReturningCustomerData4, result)
 
     /* *** Preparation ************************************************************/
 
@@ -3205,7 +3697,7 @@ async function main() {
         .select(extractWritableColumnsFrom(tCustomer))
         .executeSelectMany()
     assertEquals(customers, result)
-        
+    
     /* *** Preparation ************************************************************/
 
     result = []
@@ -4551,7 +5043,7 @@ async function main() {
     const functionResult = await connection.myOwnFunction(10)
 
     assertEquals(functionResult, result)
-        
+    
     /* *** Preparation ************************************************************/
 
     result = []

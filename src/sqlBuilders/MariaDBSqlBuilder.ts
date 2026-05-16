@@ -35,7 +35,7 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     override _supportOrderByWhenAggregateArray = true
     override _supportLimitWhenAggregateArray = true
     override _buildInsertReturning(query: InsertData, params: any[]): string {
-        if (this._connectionConfiguration.alwaysUseReturningClauseWhenInsert || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
+        if (this._connectionConfiguration.compatibilityVersion >= 10_005 || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
             return super._buildInsertReturning(query, params)
         }
         this._setContainsInsertReturningClause(params, false)

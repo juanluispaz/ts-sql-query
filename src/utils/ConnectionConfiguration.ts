@@ -3,7 +3,6 @@ export interface ConnectionConfiguration {
     escape(identifier: string, strict: boolean): string
     insensitiveCollation?: string
     getDateTimeFormat?(type: string): string
-    compatibilityMode?: boolean
+    compatibilityVersion: number
     uuidStrategy?: string
-    alwaysUseReturningClauseWhenInsert?: boolean
 }

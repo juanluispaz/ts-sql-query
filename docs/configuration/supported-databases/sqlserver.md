@@ -34,6 +34,20 @@ class DBConnection extends SqlServerConnection<'DBConnection'> { }
 
     SQL Server does not have a native boolean data type; `ts-sql-query` assumes that the boolean is represented by a bit where `0` is false, and `1` is true. All conversions are made automatically by `ts-sql-query`. In case you need a different way to represent a boolean, see [Custom booleans values](../../advanced/custom-booleans-values.md) for more information.
 
+## Compatibility version
+
+The `compatibilityVersion` property declares the minimum SQL Server version the generated SQL must support, encoded as the integer `major * 1000 + minor` — e.g. `16_000` for SQL Server 2022 (whose internal version is 16.0). The default is `Number.POSITIVE_INFINITY` (latest).
+
+No dialect features depend on this setting today, so leaving it unset is fine. It is reserved for forward compatibility — set it to your real database version so future ts-sql-query releases that gate features on it pick the right behavior automatically.
+
+```ts
+import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";
+
+class DBConnection extends SqlServerConnection<'DBConnection'> {
+    protected override compatibilityVersion = 16_000
+}
+```
+
 ## UUID management
 
 In SQL Server, UUIDs are stored in columns of type `uniqueidentifier`, which preserve values in uppercase. If you prefer to convert them to lowercase during projection, you can override the `transformValueFromDB` method as shown below:

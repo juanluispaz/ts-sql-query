@@ -47,20 +47,21 @@ class DBConnection extends MySqlConnection<'DBConnection'> {
 
     Prefer **UUID v7** over UUID v4. With the `'binary'` strategy on MySQL 8+, the bytes are stored in canonical order, so a UUID v7 keeps its chronological ordering on the primary-key index. MySQL has no server-side v7 generator (its built-in `UUID()` returns v1, which does not preserve sortability under the canonical byte order of the `'binary'` strategy), so v7 must be generated in the application — the only exception to the general rule of preferring database-side generation that is laid out in the [column types](../column-types.md) page.
 
-## Compatibility mode
+## Compatibility version
 
-The compatibility mode avoids using the `WITH` clause to increase the compatibility with MySql 5.
+The `compatibilityVersion` property declares the minimum MySQL version the generated SQL must support, encoded as the integer `major * 1000 + minor` — e.g. `8_000` for MySQL 8.0, `5_007` for MySQL 5.7. The numeric separator `_` is for readability only (`8_000 === 8000`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
 
-By default the compatibility mode is disabled. To enable the compatibility mode, you must set the `compatibilityMode` property of the connection to true.
+You can set this to your real database version (whatever it is) regardless of whether ts-sql-query currently uses it — extra granularity is harmless and future-proof.
+
+Recognised breakpoints:
+
+- `>= 8_000` *(default)*: target MySQL 8+. Uses the `WITH` clause; recursive queries are supported.
+- `< 8_000`: target MySQL 5. The `WITH` clause is not emitted — the inner query is inlined in the `FROM` instead — and recursive queries throw at query-build time.
 
 ```ts
 import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
 
 class DBConnection extends MySqlConnection<'DBConnection'> {
-    protected override compatibilityMode = true
+    protected override compatibilityVersion = 5_007
 }
 ```
-
-!!! warning
-
-    When the compatibility mode is enabled recursive queries are not supported and you will get an error if you try to use them.

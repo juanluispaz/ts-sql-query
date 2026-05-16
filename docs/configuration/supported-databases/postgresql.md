@@ -26,6 +26,20 @@ import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnect
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { }
 ```
 
+## Compatibility version
+
+The `compatibilityVersion` property declares the minimum PostgreSQL version the generated SQL must support, encoded as the integer `major * 1000 + minor` — e.g. `18_000` for PostgreSQL 18. The default is `Number.POSITIVE_INFINITY` (latest).
+
+No dialect features depend on this setting today, so leaving it unset is fine. It is reserved for forward compatibility — set it to your real database version so future ts-sql-query releases that gate features on it pick the right behavior automatically.
+
+```ts
+import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    protected override compatibilityVersion = 18_000
+}
+```
+
 ## Explicit typing
 
 In some situations, PostgreSQL may be unable to infer the correct type of a parameter in a query. This often happens with untyped `NULL` values or when using generic placeholders. To ensure type safety and proper execution, you can explicitly cast the parameter type in the generated SQL.

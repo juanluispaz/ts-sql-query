@@ -14,7 +14,7 @@ import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 process.env.TZ = 'UTC'
 
 class DBConnection extends MariaDBConnection<'DBConnection'> {
-    protected override alwaysUseReturningClauseWhenInsert = true
+    protected override compatibilityVersion = 10_004
 
     increment(i: number) {
         return this.executeFunction('incrementt', [this.const(i, 'int')], 'int', 'required')

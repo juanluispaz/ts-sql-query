@@ -9,12 +9,19 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
     protected uuidStrategy: 'string' | 'uuid' = 'uuid'
 
     /**
-     * MariaBD 10.5 added support to the returning clause when insert or delete.
-     * If you set this flag to true, the insert returning last inserted id will
-     * generate the returning clause instead of use the last inserted id provided
-     * by the connector after the execution of the query.
+     * Minimum MariaDB version the generated SQL must support, encoded as
+     * `major * 1000 + minor` (e.g. `10_005` for MariaDB 10.5, `10_004` for
+     * MariaDB 10.4). Defaults to `Number.POSITIVE_INFINITY` (latest).
+     *
+     * Recognised breakpoints:
+     * - `>= 10_005`: the `RETURNING` clause (supported on `INSERT` and `DELETE`
+     *   since MariaDB 10.5) is emitted on `INSERT` to retrieve the last inserted
+     *   id directly from the statement.
+     * - `< 10_005`: the `RETURNING` clause is not emitted; the last inserted id
+     *   reported by the underlying connector after the query execution is used
+     *   instead.
      */
-    protected alwaysUseReturningClauseWhenInsert: boolean = false
+    protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 
     constructor(queryRunner: QueryRunner, sqlBuilder = new MariaDBSqlBuilder()) {
         super(queryRunner, sqlBuilder)

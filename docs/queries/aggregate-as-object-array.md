@@ -354,8 +354,9 @@ The executed query is:
         name as name, 
         (
             select json_agg(json_build_object(
-                'id', a_1_.id, 'firstName', 
-                a_1_.firstName, 'lastName', a_1_.lastName
+                'id', a_1_.id, 
+                'firstName', a_1_.firstName,
+                'lastName', a_1_.lastName
             )) 
             from (
                 select 

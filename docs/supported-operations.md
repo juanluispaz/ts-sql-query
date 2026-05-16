@@ -165,6 +165,8 @@ interface NumberValueSource extends ComparableValueSource<number> {
      */
     maxValue(value: number | this): this
     add(value: number | this): this
+    subtract(value: number | this): this
+    /** @deprecated use subtract method instead */
     substract(value: number | this): this
     multiply(value: number | this): this
     divide(value: number | this): this
@@ -214,6 +216,8 @@ interface StringNumberValueSource extends ComparableValueSource<string|number> {
      */
     maxValue(value: number|string | this): this
     add(value: number|string | this): this
+    subtract(value: number|string | this): this
+    /** @deprecated use subtract method instead */
     substract(value: number|string | this): this
     multiply(value: number|string | this): this
     divide(value: number|string | this): this
@@ -243,6 +247,8 @@ interface BigintValueSource extends ComparableValueSource<bigint> {
      */
     maxValue(value: bigint | this): this
     add(value: bigint | this): this
+    subtract(value: bigint | this): this
+    /** @deprecated use subtract method instead */
     substract(value: bigint | this): this
     multiply(value: bigint | this): this
     modulo(value: bigint | this): this
@@ -396,6 +402,8 @@ interface CustomIntValueSource<T> extends ComparableValueSource<T> {
      */
     maxValue(value: T | this): this
     add(value: T | this): this
+    subtract(value: T | this): this
+    /** @deprecated use subtract method instead */
     substract(value: T | this): this
     multiply(value: T | this): this
     modulo(value: T | this): this
@@ -436,6 +444,8 @@ interface CustomDoubleValueSource<T> extends ComparableValueSource<T> {
      */
     maxValue(value: T | this): this
     add(value: T | this): this
+    subtract(value: T | this): this
+    /** @deprecated use subtract method instead */
     substract(value: T | this): this
     multiply(value: T | this): this
     divide(value: T | this): this

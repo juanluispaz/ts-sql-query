@@ -533,9 +533,15 @@ export interface NumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends INumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    substract(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract<VALUE extends INumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
+    substract(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract(value: number | OptionalValueType<OPTIONAL_TYPE>): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends INumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): NumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     multiply(value: number): NumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
@@ -628,9 +634,15 @@ export interface StringNumberValueSource<TABLE_OR_VIEW extends ITableOrViewRef<A
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    substract(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
+    substract(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract(value: number | string | OptionalValueType<OPTIONAL_TYPE>): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends IStringNumberValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringNumberValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     multiply(value: number | string): StringNumberValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
@@ -743,13 +755,25 @@ export interface IntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>, OP
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IDoubleValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    subtract(value: int): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: int | OptionalValueType<OPTIONAL_TYPE>): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract<VALUE extends IIntValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): IntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    subtract(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract<VALUE extends IDoubleValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
     substract(value: int): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    /** @deprecated use subtract method instead */
     substract(value: int | OptionalValueType<OPTIONAL_TYPE>): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends IIntValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): IntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
     substract(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    /** @deprecated use subtract method instead */
     substract(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends IDoubleValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     multiply(value: int): IntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
@@ -876,13 +900,25 @@ export interface DoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IDoubleValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    subtract(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract<VALUE extends IIntValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    subtract(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract<VALUE extends IDoubleValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
     substract(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    /** @deprecated use subtract method instead */
     substract(value: int | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends IIntValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
     substract(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    /** @deprecated use subtract method instead */
     substract(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends IDoubleValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     multiply(value: int): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
@@ -1012,9 +1048,15 @@ export interface BigintValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyDB>,
     // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // add(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // add<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    substract(value: bigint): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract(value: bigint): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: bigint | OptionalValueType<OPTIONAL_TYPE>): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract<VALUE extends IBigintValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): BigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
+    substract(value: bigint): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract(value: bigint | OptionalValueType<OPTIONAL_TYPE>): BigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends IBigintValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): BigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // substract(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
@@ -1149,9 +1191,15 @@ export interface TypeSafeBigintValueSource<TABLE_OR_VIEW extends ITableOrViewRef
     // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // add(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // add<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    substract(value: bigint): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract(value: bigint): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: bigint | OptionalValueType<OPTIONAL_TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract<VALUE extends ITypeSafeBigintValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): TypeSafeBigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
+    substract(value: bigint): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract(value: bigint | OptionalValueType<OPTIONAL_TYPE>): TypeSafeBigintValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends ITypeSafeBigintValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): TypeSafeBigintValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // substract(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
@@ -1283,9 +1331,15 @@ export interface CustomIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyD
     // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     // add(value: double | OptionalValueType<OPTIONAL_TYPE>): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // add<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    substract(value: TYPE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    subtract(value: TYPE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    subtract<VALUE extends CustomIntValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
+    substract(value: TYPE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends CustomIntValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // substract(value: double): DoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     // /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
@@ -1403,9 +1457,15 @@ export interface CustomDoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<A
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     add<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    substract(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    subtract(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    subtract<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
+    substract(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract(value: TYPE | OptionalValueType<OPTIONAL_TYPE>): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends CustomDoubleValueSource<ITableOrViewRef<this[typeof database]>, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     multiply(value: TYPE): CustomDoubleValueSource<TABLE_OR_VIEW, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
@@ -1514,13 +1574,25 @@ export interface StringIntValueSource<TABLE_OR_VIEW extends ITableOrViewRef<AnyD
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IStringDoubleValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    subtract(value: stringInt): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract<VALUE extends IStringIntValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringIntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    subtract(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract<VALUE extends IStringDoubleValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
     substract(value: stringInt): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    /** @deprecated use subtract method instead */
     substract(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends IStringIntValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringIntValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
     substract(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    /** @deprecated use subtract method instead */
     substract(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends IStringDoubleValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     multiply(value: stringInt): StringIntValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
@@ -1647,13 +1719,25 @@ export interface StringDoubleValueSource<TABLE_OR_VIEW extends ITableOrViewRef<A
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
     add(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     add<VALUE extends IStringDoubleValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    subtract(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract<VALUE extends IStringIntValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    subtract(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    subtract(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    subtract<VALUE extends IStringDoubleValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
     substract(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    /** @deprecated use subtract method instead */
     substract(value: stringInt | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends IStringIntValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    /** @deprecated use subtract method instead */
     substract(value: stringDouble): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
-    /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */
+    /** @deprecated use subtract method instead */
     substract(value: stringDouble | OptionalValueType<OPTIONAL_TYPE>): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
+    /** @deprecated use subtract method instead */
     substract<VALUE extends IStringDoubleValueSource<ITableOrViewRef<this[typeof database]>, any>>(value: VALUE): StringDoubleValueSource<TABLE_OR_VIEW | VALUE[typeof tableOrView], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     multiply(value: stringInt): StringDoubleValueSource<TABLE_OR_VIEW, OPTIONAL_TYPE>
     /** @deprecated you are using a value that can returns an unexpected null value (when the provided value is null or undefined); this could be an error in your code */

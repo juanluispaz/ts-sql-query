@@ -220,5 +220,5 @@ type TransformOptionalProperties<RESULT> =
 
 type OptionalMap<TYPE> = { [P in MandatoryPropertiesOf<TYPE>]-?: true } & { [P in OptionalPropertiesOf<TYPE>]?: false }
 
-type MandatoryPropertiesOf<TYPE> = Exclude<keyof TYPE, OptionalPropertiesOf<TYPE>> // Do the substractio to deal with union types
+type MandatoryPropertiesOf<TYPE> = Exclude<keyof TYPE, OptionalPropertiesOf<TYPE>> // Do the subtractio to deal with union types
 type OptionalPropertiesOf<TYPE> = ({ [K in keyof TYPE]-?: null | undefined extends TYPE[K] ? K : (null extends TYPE[K] ? K : (undefined extends TYPE[K] ? K : never)) })[keyof TYPE]

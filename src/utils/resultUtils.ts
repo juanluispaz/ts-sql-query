@@ -1,2 +1,2 @@
-export type MandatoryPropertiesOf<TYPE> = Exclude<keyof TYPE, OptionalPropertiesOf<TYPE>> // Do the substractio to deal with union types
+export type MandatoryPropertiesOf<TYPE> = Exclude<keyof TYPE, OptionalPropertiesOf<TYPE>> // Do the subtractio to deal with union types
 export type OptionalPropertiesOf<TYPE> = ({ [K in keyof TYPE]-?: null | undefined extends TYPE[K] ? K : (null extends TYPE[K] ? K : (undefined extends TYPE[K] ? K : never)) })[keyof TYPE]

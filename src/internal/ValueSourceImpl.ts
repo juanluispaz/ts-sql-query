@@ -667,8 +667,8 @@ export abstract class ValueSourceImpl implements IValueSource<any, any, any, any
     add(value: any): any {
         return createSqlOperation1ofOverloadedNumber(this, value, '_add')
     }
-    substract(value: any): any {
-        return createSqlOperation1ofOverloadedNumber(this, value, '_substract')
+    subtract(value: any): any {
+        return createSqlOperation1ofOverloadedNumber(this, value, '_subtract')
     }
     multiply(value: any): any {
         return createSqlOperation1ofOverloadedNumber(this, value, '_multiply')

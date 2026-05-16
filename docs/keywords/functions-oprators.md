@@ -9,7 +9,7 @@ This page provides a comprehensive mapping between SQL keywords and their corres
 | SQL Keyword                         | ts-sql-query Equivalent                             | Notes                                                       | Link                                                 |
 |:------------------------------------|:----------------------------------------------------|:------------------------------------------------------------|:-----------------------------------------------------|
 | value + x (Addition)                | value `.add(x)`                                     | Arithmetic addition                                         | [Value expressions API](../api/value-expressions.md) |
-| value - x (Subtraction)             | value `.substract(x)`                               | Arithmetic subtraction                                      | [Value expressions API](../api/value-expressions.md) |
+| value - x (Subtraction)             | value `.subtract(x)`                               | Arithmetic subtraction                                      | [Value expressions API](../api/value-expressions.md) |
 | value * x (Multiplication)          | value `.multiply(x)`                                | Arithmetic multiplication                                   | [Value expressions API](../api/value-expressions.md) |
 | value / x (Division)                | value `.divide(x)`                                  | Arithmetic division                                         | [Value expressions API](../api/value-expressions.md) |
 | value % x (Modulo)                  | value `.modulo(x)`                                  | Modulo operation                                            | [Value expressions API](../api/value-expressions.md) |

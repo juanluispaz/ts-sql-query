@@ -414,8 +414,8 @@ export interface NumberValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/
     // Number operators
     add(value: number): NumberValueSource<SOURCE, OPTIONAL_TYPE>
     add<VALUE extends INumberValueSource<any, any>>(value: VALUE): NumberValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    substract(value: number): NumberValueSource<SOURCE, OPTIONAL_TYPE>
-    substract<VALUE extends INumberValueSource<any, any>>(value: VALUE): NumberValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    subtract(value: number): NumberValueSource<SOURCE, OPTIONAL_TYPE>
+    subtract<VALUE extends INumberValueSource<any, any>>(value: VALUE): NumberValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     multiply(value: number): NumberValueSource<SOURCE, OPTIONAL_TYPE>
     multiply<VALUE extends INumberValueSource<any, any>>(value: VALUE): NumberValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     divide(value: number): NumberValueSource<SOURCE, OPTIONAL_TYPE>
@@ -486,10 +486,10 @@ export interface BigintValueSource</*in|out*/ SOURCE extends NSource, /*in|out*/
     add<VALUE extends IBigintValueSource<any, any>>(value: VALUE): BigintValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // add(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
     // add<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    substract(value: bigint): BigintValueSource<SOURCE, OPTIONAL_TYPE>
-    substract<VALUE extends IBigintValueSource<any, any>>(value: VALUE): BigintValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    // substract(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
-    // substract<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    subtract(value: bigint): BigintValueSource<SOURCE, OPTIONAL_TYPE>
+    subtract<VALUE extends IBigintValueSource<any, any>>(value: VALUE): BigintValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // subtract(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
+    // subtract<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // multiply(value: bigint): IntValueSource<SOURCE, OPTIONAL_TYPE>
     // multiply<VALUE extends IIntValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): IntValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // multiply(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
@@ -568,10 +568,10 @@ export interface CustomIntValueSource</*in|out*/ SOURCE extends NSource, /*in|ou
     add<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // add(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
     // add<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    substract(value: TYPE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
-    substract<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    // substract(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
-    // substract<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    subtract(value: TYPE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    subtract<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    // subtract(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
+    // subtract<VALUE extends IDoubleValueSource<TableOrViewRef<this[typeof database]>, any>>(value: VALUE): DoubleValueSource<SOURCE | VALUE[typeof source], MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     multiply(value: TYPE): CustomIntValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     multiply<VALUE extends CustomIntValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomIntValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     // multiply(value: double): DoubleValueSource<SOURCE, OPTIONAL_TYPE>
@@ -644,8 +644,8 @@ export interface CustomDoubleValueSource</*in|out*/ SOURCE extends NSource, /*in
     // Number operators
     add(value: TYPE): CustomDoubleValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     add<VALUE extends CustomDoubleValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
-    substract(value: TYPE): CustomDoubleValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
-    substract<VALUE extends CustomDoubleValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
+    subtract(value: TYPE): CustomDoubleValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
+    subtract<VALUE extends CustomDoubleValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     multiply(value: TYPE): CustomDoubleValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>
     multiply<VALUE extends CustomDoubleValueSource<any, TYPE, TYPE_NAME, any>>(value: VALUE): CustomDoubleValueSource<SOURCE | VALUE[typeof source], TYPE, TYPE_NAME, MergeOptional<OPTIONAL_TYPE, VALUE[typeof optionalType]>>
     divide(value: TYPE): CustomDoubleValueSource<SOURCE, TYPE, TYPE_NAME, OPTIONAL_TYPE>

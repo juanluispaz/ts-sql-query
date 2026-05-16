@@ -44,7 +44,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             _or: true,
             _concat: true,
             _add: true,
-            _substract: true,
+            _subtract: true,
             _multiply: true,
             _divide: true,
             _modulo: true,
@@ -2826,8 +2826,8 @@ export class AbstractSqlBuilder implements SqlBuilder {
     _add(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesisExcluding(valueSource, params, '_add', false) + ' + ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, '_add', false)
     }
-    _substract(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return this._appendSqlParenthesisExcluding(valueSource, params, '_substract', false) + ' - ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false)
+    _subtract(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        return this._appendSqlParenthesisExcluding(valueSource, params, '_subtract', false) + ' - ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false)
     }
     _multiply(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesisExcluding(valueSource, params, '_multiply', false) + ' * ' + this._appendValueParenthesisExcluding(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, '_multiply', false)

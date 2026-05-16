@@ -14,10 +14,18 @@ export abstract class MySqlConnection</*in|out*/ NAME extends string> extends Ab
      * Defaults to `Number.POSITIVE_INFINITY` (latest).
      *
      * Recognised breakpoints:
-     * - `>= 8_000`: the `WITH` clause is used; recursive queries are supported.
-     * - `< 8_000`: the `WITH` clause is not emitted (the inner query is inlined
-     *   inside the `FROM` instead) and recursive queries throw at query-build
-     *   time.
+     * - `>= 8_000`: target MySQL 8+. The `WITH` clause is used (recursive queries
+     *   supported), and the row alias syntax
+     *   `INSERT ... AS _new_ ON DUPLICATE KEY UPDATE col = _new_.col` is emitted
+     *   instead of the legacy `values(col)` reference — the alias was added in
+     *   MySQL 8.0.19 and `VALUES()` was deprecated in 8.0.20, so this only fails
+     *   on the very first stable 8.0 patches (8.0.0–8.0.18, released Apr 2018 –
+     *   Oct 2019). Set a value below `8_000` if you really need to target one
+     *   of those.
+     * - `< 8_000`: target MySQL 5. The `WITH` clause is not emitted (the inner
+     *   query is inlined inside the `FROM` instead) and recursive queries throw
+     *   at query-build time; the legacy `values(col)` reference is used inside
+     *   `ON DUPLICATE KEY UPDATE`.
      */
     protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 

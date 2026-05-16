@@ -6,6 +6,8 @@ import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder
 import type { FlatQueryColumns, InsertData, SelectData, ToSql, WithQueryData } from './SqlBuilder.js'
 import { flattenQueryColumns, hasWithData } from './SqlBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import type { DBColumn } from '../utils/Column.js'
+import { __getColumnPrivate } from '../utils/Column.js'
 
 export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mySql: true = true
@@ -18,6 +20,26 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     override _buildInsertReturning(_query: InsertData, params: any[]): string {
         this._setContainsInsertReturningClause(params, false)
         return ''
+    }
+    override _appendRawColumnNameForValuesForInsert(column: DBColumn, params: any[]): string {
+        // MySQL 8.0.19 introduced a row alias for INSERT ... ON DUPLICATE KEY UPDATE
+        // (`INSERT ... AS new ON DUPLICATE KEY UPDATE col = new.col`), and 8.0.20
+        // deprecated the previous VALUES(col) function reference in favour of it.
+        // ts-sql-query uses its canonical alias name '_new_' (see _updateNewAlias),
+        // matching the convention used elsewhere in the library.
+        if (this._connectionConfiguration.compatibilityVersion >= 8_000) {
+            const columnPrivate = __getColumnPrivate(column)
+            return this._escape(this._updateNewAlias, true) + '.' + this._escape(columnPrivate.__name, true)
+        }
+        return super._appendRawColumnNameForValuesForInsert(column, params)
+    }
+    override _buildInsertOnConflictBeforeReturning(query: InsertData, params: any[]): string {
+        const result = super._buildInsertOnConflictBeforeReturning(query, params)
+        if (result && this._connectionConfiguration.compatibilityVersion >= 8_000) {
+            // The row alias must sit between the VALUES clause and ON DUPLICATE KEY UPDATE
+            return ' as ' + this._escape(this._updateNewAlias, true) + result
+        }
+        return result
     }
     override _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (__isUuidValueType(columnType) && this._getUuidStrategy() === 'binary') {

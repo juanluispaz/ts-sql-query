@@ -53,10 +53,9 @@ The `compatibilityVersion` property declares the minimum MySQL version the gener
 
 You can set this to your real database version (whatever it is) regardless of whether ts-sql-query currently uses it — extra granularity is harmless and future-proof.
 
-Recognised breakpoints:
+Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakpoint below is enabled — the list reads as the bar you need to clear to keep each feature):
 
-- `>= 8_000` *(default)*: target MySQL 8+. Uses the `WITH` clause; recursive queries are supported.
-- `< 8_000`: target MySQL 5. The `WITH` clause is not emitted — the inner query is inlined in the `FROM` instead — and recursive queries throw at query-build time.
+- `>= 8_000`: target MySQL 8+. The `WITH` clause is used (recursive queries supported), and the row alias syntax `INSERT ... AS _new_ ON DUPLICATE KEY UPDATE col = _new_.col` is emitted to reference values being inserted (added in MySQL 8.0.19, with the legacy `VALUES(col)` function reference deprecated in 8.0.20). Below this breakpoint the `WITH` clause is not emitted — the inner query is inlined in the `FROM` instead — recursive queries throw at query-build time, and the legacy `VALUES(col)` reference is used inside `ON DUPLICATE KEY UPDATE`.
 
 ```ts
 import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";

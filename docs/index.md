@@ -86,7 +86,7 @@ Two ways to import:
   import { Table, Values, CustomBooleanTypeAdapter, dynamicPick,
            extractColumnsFrom, type Connection, type SelectedRow } from 'ts-sql-query'
   ```
-  Re-exports the cross-database surface (everything from `Connection`, `Table`, `View`, `TypeAdapter`, `Values`, `TsSqlError`, `dynamicCondition`, `extras/types` and `extras/utils`). Database-specific symbols are intentionally not re-exported here.
+  Re-exports the cross-database surface (everything from `Connection`, `Table`, `View`, `TypeAdapter`, `Values`, `TsSqlError`, `dynamicCondition`, `extras/types`, `extras/utils` and `extras/sync`). Database-specific symbols are intentionally not re-exported here.
 
 - **Per-feature subpaths** for database-specific imports (each connection, each query runner, `IDEncrypter`) — for example:
   ```ts

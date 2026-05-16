@@ -74,3 +74,5 @@ export {
     extractProvidedIdColumnNamesFrom,
     extractWritableShapeFrom
 } from './extras/utils.js'
+
+export { sync } from './extras/sync.js'

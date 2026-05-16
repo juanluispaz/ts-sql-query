@@ -15,6 +15,7 @@ import { SynchronousPromise } from 'synchronous-promise'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
 import { Values } from '../Values.js'
 import { Sqlite3WasmOO1QueryRunner } from '../queryRunners/Sqlite3WasmOO1QueryRunner.js'
+import { sync } from '../extras/sync.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override uuidStrategy = 'string' as const
@@ -865,38 +866,3 @@ if (Number(process.versions.node.split('.')[0]) < 16) {
     run()
 }
 
-/**
- * This function unwraps the synchronous promise in a synchronous way,
- * returning the result.
- */
-function sync<T>(promise: Promise<T>): T {
-    const UNSET = Symbol('unset');
-
-    let result: T | typeof UNSET = UNSET;
-    let error: unknown | typeof UNSET = UNSET;
-
-    promise.then(
-        (r) => (result = r),
-        (e) => (error = e),
-    );
-
-    // Propagate error, if available
-    if (error !== UNSET) {
-        throw error;
-    }
-
-    // Propagate result, if available
-    if (result !== UNSET) {
-        return result;
-    }
-
-    // Note: This wrapper is to be used in combination with the `SynchronousPromise` type,
-    // which is not strictly Promise-spec-compliant because it does not defer when calling
-    // `.then`. See https://www.npmjs.com/package/synchronous-promise for more details.
-    // To ensure that we're indeed using a synchronous promise, ensure that the promise resolved
-    // immediately.
-    throw new Error(
-        'You performed a real async operation, not a database operation, ' +
-            'inside the function dedicated to calling the database',
-    );
-}

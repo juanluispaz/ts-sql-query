@@ -61,6 +61,7 @@
         "./queryRunners/Sqlite3WasmOO1QueryRunner":      { "types": "./queryRunners/Sqlite3WasmOO1QueryRunner.d.ts",      "default": "./queryRunners/Sqlite3WasmOO1QueryRunner.js" },
 
         "./extras/IDEncrypter": { "types": "./extras/IDEncrypter.d.ts", "default": "./extras/IDEncrypter.js" },
+        "./extras/sync":        { "types": "./extras/sync.d.ts",        "default": "./extras/sync.js" },
         "./extras/types":       { "types": "./extras/types.d.ts",       "default": "./extras/types.js" },
         "./extras/utils":       { "types": "./extras/utils.d.ts",       "default": "./extras/utils.js" },
 

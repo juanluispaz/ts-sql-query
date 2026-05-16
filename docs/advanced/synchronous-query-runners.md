@@ -24,18 +24,33 @@ Some query runners support executing queries synchronously if you provide a Prom
         - [ConsoleLogNoopQueryRunner](../configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md)
         - [NoopQueryRunner](../configuration/query-runners/general-purpose/NoopQueryRunner.md)
 
+## Unwrapping synchronous promises
+
+`ts-sql-query` ships a `sync` helper that unwraps the result of a synchronous promise in a blocking manner, similar to how `await` unwraps regular promises. When combined with a promise implementation like [`synchronous-promise`](https://www.npmjs.com/package/synchronous-promise) — which resolves synchronously and does not defer `.then` execution — and one of the supported query runners listed above, it lets you interact with `ts-sql-query` in a fully synchronous style.
+
+```ts
+import { sync } from 'ts-sql-query' // or 'ts-sql-query/extras/sync';
+```
+
+The promise passed to `sync()` must be truly synchronous — typically a database operation wrapped with `SynchronousPromise`. If `sync()` detects that the operation has not resolved (or rejected) by the time `.then(...)` returns, it throws an error, preventing misuse.
+
+!!! tip "No need to re-implement `sync()`"
+
+    Previously, the recommendation was to copy a `sync()` implementation into your own codebase. That is no longer necessary — import it from `ts-sql-query` (or its `ts-sql-query/extras/sync` subpath) instead.
+
 ## Usage Example
 
 ```ts
 import { BetterSqlite3QueryRunner } from "ts-sql-query/queryRunners/BetterSqlite3QueryRunner";
+import { sync } from "ts-sql-query"; // or "ts-sql-query/extras/sync"
 import * as betterSqlite3 from "better-sqlite3";
 import { SynchronousPromise } from "synchronous-promise";
 
 const db = betterSqlite3('foobar.db', options);
 
-async function main() {
+function main() {
     const connection = new DBConnection(new BetterSqlite3QueryRunner(db, { promise: SynchronousPromise }));
-    // Do your queries here,  surrounding it by the sync function. For example:
+    // Do your queries here, surrounding each one with the sync function. For example:
     const selectCompanies = sync(
         connection.selectFrom(tCompany)
             .where(tCompany.isBig)
@@ -49,49 +64,5 @@ async function main() {
     var result = sync(connection.insertInto...)
     result = sync(connection.update...)
     result = sync(connection.delete...)
-}
-```
-
-## Unwrapping synchronous promises
-
-This utility function unwraps the result of a synchronous promise in a blocking manner, similar to how `await` unwraps regular promises. When using a promise implementation like [`synchronous-promise`](https://www.npmjs.com/package/synchronous-promise), which resolves synchronously and does not defer `.then` execution, this function allows interacting with `ts-sql-query` in a fully synchronous style.
-
-It is essential to ensure that the promise passed to `sync()` is truly synchronous — typically a database operation wrapped with `SynchronousPromise`. If the function detects that the operation was asynchronous (i.e. resolution was deferred), it throws an error, preventing misuse.
-
-```ts
-/**
- * This function unwraps the synchronous promise in a synchronous way,
- * returning the result.
- */
-function sync<T>(promise: Promise<T>): T {
-    const UNSET = Symbol('unset');
-
-    let result: T | typeof UNSET = UNSET;
-    let error: unknown | typeof UNSET = UNSET;
-
-    promise.then(
-        (r) => (result = r),
-        (e) => (error = e),
-    );
-
-    // Propagate error, if available
-    if (error !== UNSET) {
-        throw error;
-    }
-
-    // Propagate result, if available
-    if (result !== UNSET) {
-        return result;
-    }
-
-    // Note: This wrapper is to be used in combination with the `SynchronousPromise` type,
-    // which is not strictly Promise-spec-compliant because it does not defer when calling
-    // `.then`. See https://www.npmjs.com/package/synchronous-promise for more details.
-    // To ensure that we're indeed using a synchronous promise, ensure that the promise resolved
-    // immediately.
-    throw new Error(
-        'You performed a real async operation (not a synchronous database call) ' +
-            'inside a function meant to execute synchronous database queries.',
-    );
 }
 ```

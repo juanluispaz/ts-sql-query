@@ -90,7 +90,7 @@
         "sqlite": "5.1.1",
         "synchronous-promise": "2.0.15",
         "tedious": "9.2.1",
-        "ts-node": "10.2.1",
+        "ts-node": "10.9.2",
         "typescript": "4.9.5",
         "uuid": "7.0.3",
         "@types/node": "24.0.3"

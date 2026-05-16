@@ -15,7 +15,7 @@ import { assertEquals } from '../assertEquals.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
     compatibilityMode = false
-    // insesitiveCollation = 'acs'
+    // insensitiveCollation = 'acs'
 
     protected getDateTimeFormat() {
         return 'UTC as text using T separator and Z timezone' as const

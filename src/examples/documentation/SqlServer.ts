@@ -14,7 +14,7 @@ import { View } from '../../View.js'
 import { assertEquals } from '../assertEquals.js'
 
 class DBConnection extends SqlServerConnection<'DBConnection'> { 
-    // insesitiveCollation = 'acs'
+    // insensitiveCollation = 'acs'
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
         this.arg('int', 'required'),

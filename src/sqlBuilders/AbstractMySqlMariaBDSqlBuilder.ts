@@ -201,7 +201,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
     }
     _appendOrderByColumnExpressionInsensitive(entry: OrderByEntry, query: SelectData, params: any[]): string {
-        const collation = this._connectionConfiguration.insesitiveCollation
+        const collation = this._connectionConfiguration.insensitiveCollation
         const expression = entry.expression
         const stringColumn = this._isStringOrderByColumn(entry, query)
         if (stringColumn && collation) {
@@ -389,7 +389,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return this._appendSqlParenthesis(valueSource, params, false) + " like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ')'
     }
     _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insesitiveCollation
+        const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' like concat(' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ", '%') collate " + collation
         } else if (collation === '') {
@@ -399,7 +399,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
     }
     _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insesitiveCollation
+        const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' not like concat(' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ", '%') collate " + collation
         } else if (collation === '') {
@@ -409,7 +409,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
     }
     _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insesitiveCollation
+        const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
         } else if (collation === '') {
@@ -419,7 +419,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
     }
     _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insesitiveCollation
+        const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " not like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
         } else if (collation === '') {
@@ -435,7 +435,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         return this._appendSqlParenthesis(valueSource, params, false) + " not like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ", '%')"
     }
     _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insesitiveCollation
+        const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ", '%') collate " + collation
         } else if (collation === '') {
@@ -445,7 +445,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
     }
     _notContainsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        const collation = this._connectionConfiguration.insesitiveCollation
+        const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " not like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ", '%') collate " + collation
         } else if (collation === '') {

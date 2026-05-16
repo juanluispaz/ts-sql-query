@@ -14,7 +14,7 @@ import { assertEquals } from '../assertEquals.js'
 
 class DBConnection extends MariaDBConnection<'DBConnection'> { 
     protected alwaysUseReturningClauseWhenInsert = true
-    // insesitiveCollation = 'acs'
+    // insensitiveCollation = 'acs'
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
         this.arg('int', 'required'),

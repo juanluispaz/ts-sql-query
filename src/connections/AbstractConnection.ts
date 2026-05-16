@@ -38,7 +38,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     protected __sqlBuilder: SqlBuilder
     protected allowEmptyString: boolean = false
-    protected insesitiveCollation?: string
+    protected insensitiveCollation?: string
     readonly queryRunner: QueryRunner
     readonly defaultTypeAdapter: DefaultTypeAdapter
 

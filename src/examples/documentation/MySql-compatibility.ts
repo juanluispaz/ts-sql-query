@@ -13,7 +13,7 @@ import { View } from '../../View.js'
 import { assertEquals } from '../assertEquals.js'
 
 class DBConnection extends MySqlConnection<'DBConnection'> { 
-    // insesitiveCollation = 'acs'
+    // insensitiveCollation = 'acs'
     compatibilityMode = true
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(

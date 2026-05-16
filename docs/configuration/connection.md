@@ -38,7 +38,7 @@ Providing the collation allows you to perform more advanced insensitive operatio
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
-    insesitiveCollation = 'insensitive'
+    insensitiveCollation = 'insensitive'
 }
 ```
 

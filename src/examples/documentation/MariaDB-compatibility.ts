@@ -13,7 +13,7 @@ import { View } from '../../View.js'
 import { assertEquals } from '../assertEquals.js'
 
 class DBConnection extends MariaDBConnection<'DBConnection'> {
-    override compatibilityVersion = 10_004
+    override compatibilityVersion = 10_002
     // insensitiveCollation = 'acs'
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(

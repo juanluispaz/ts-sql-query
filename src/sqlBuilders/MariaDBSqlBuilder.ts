@@ -4,6 +4,8 @@ import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder
 import type { CompoundOperator, FlatQueryColumns, InsertData, SelectData } from './SqlBuilder.js'
 import { flattenQueryColumns } from './SqlBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import type { DBColumn } from '../utils/Column.js'
+import { __getColumnPrivate } from '../utils/Column.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mariaDB: true = true
@@ -34,6 +36,18 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     }
     override _supportOrderByWhenAggregateArray = true
     override _supportLimitWhenAggregateArray = true
+    override _appendRawColumnNameForValuesForInsert(column: DBColumn, _params: any[]): string {
+        // MariaDB 10.3 renamed the VALUES() function to VALUE() to avoid clashing
+        // with the standard Table Value Constructors syntax introduced in the same
+        // release (MDEV-12172). The legacy VALUES() name still works inside
+        // ON DUPLICATE KEY UPDATE but VALUE() is the preferred form on every
+        // version that recognises it.
+        if (this._connectionConfiguration.compatibilityVersion >= 10_003) {
+            const columnPrivate = __getColumnPrivate(column)
+            return 'value(' + this._escape(columnPrivate.__name, true) + ')'
+        }
+        return super._appendRawColumnNameForValuesForInsert(column, _params)
+    }
     override _buildInsertReturning(query: InsertData, params: any[]): string {
         if (this._connectionConfiguration.compatibilityVersion >= 10_005 || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
             return super._buildInsertReturning(query, params)

@@ -3611,7 +3611,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`insert into record (id, title) values (?, ?) on duplicate key update title = concat(title, ?, values(title))`)
+    expectedQuery.push(`insert into record (id, title) values (?, ?) on duplicate key update title = concat(title, ?, value(title))`)
     expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo"," - "]`)
     expectedType.push(`insert`)
 
@@ -3635,7 +3635,7 @@ async function main() {
         lastName: 'Smith',
     }
     expectedResult.push(result)
-    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?) on duplicate key update first_name = concat(first_name, ?, values(first_name)), last_name = concat(last_name, ?, values(last_name)) returning id as id, first_name as firstName, last_name as lastName`)
+    expectedQuery.push(`insert into customer (first_name, last_name, company_id) values (?, ?, ?) on duplicate key update first_name = concat(first_name, ?, value(first_name)), last_name = concat(last_name, ?, value(last_name)) returning id as id, first_name as firstName, last_name as lastName`)
     expectedParams.push(`["John","Smith",1," - "," - "]`)
     expectedType.push(`insertReturningOneRow`)
 

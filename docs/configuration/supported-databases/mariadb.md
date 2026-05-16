@@ -4,7 +4,7 @@ search:
 ---
 # MariaDB
 
-This page describes how `ts-sql-query` integrates with **[MariaDB](https://mariadb.org)**, including dialect-specific behavior, configuration options, and available features. It covers the proper setup of a MariaDB connection, guidelines for connection management, and advanced behaviors such as ID retrieval and UUID handling.
+This page describes how `ts-sql-query` integrates with **[MariaDB](https://mariadb.org)**, including dialect-specific behavior, configuration options, and available features. It covers the proper setup of a MariaDB connection, guidelines for connection management, and advanced behaviors such as UUID handling.
 
 !!! info
 
@@ -32,10 +32,10 @@ The `compatibilityVersion` property declares the minimum MariaDB version the gen
 
 You can set this to your real database version (whatever it is) regardless of whether ts-sql-query currently uses it — extra granularity is harmless and future-proof.
 
-Recognised breakpoints:
+Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakpoint below is enabled — the list reads as the bar you need to clear to keep each feature):
 
-- `>= 10_005` *(default)*: target MariaDB 10.5+. The `RETURNING` clause (supported on `INSERT` and `DELETE` since MariaDB 10.5) is emitted on `INSERT` to retrieve the last inserted ID directly from the statement.
-- `< 10_005`: target MariaDB 10.4 or older. The `RETURNING` clause is not emitted on `INSERT`; the last inserted ID reported by the underlying connector after the query execution is used instead.
+- `>= 10_005`: target MariaDB 10.5+. The `RETURNING` clause (supported on `INSERT` and `DELETE` since MariaDB 10.5) is emitted on `INSERT` to retrieve the last inserted ID directly from the statement. Below this breakpoint the last inserted ID reported by the underlying connector after the query execution is used instead.
+- `>= 10_003`: target MariaDB 10.3+. The `VALUE(col)` function — added in MariaDB 10.3 ([MDEV-12172](https://jira.mariadb.org/browse/MDEV-12172)) as a rename of `VALUES(col)`, to avoid the name clash with the standard Table Value Constructors syntax introduced in the same release — is emitted inside `ON DUPLICATE KEY UPDATE` to reference the values being inserted. Below this breakpoint the legacy `VALUES(col)` name is emitted instead — it remains accepted by every modern MariaDB version, so generated SQL stays runnable.
 
 ```ts
 import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";

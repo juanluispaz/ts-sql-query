@@ -1041,8 +1041,8 @@ The executed query is:
     insert into customer (first_name, last_name, company_id) 
     values (?, ?, ?) 
     on duplicate key update 
-        first_name = concat(first_name, ?, values(first_name)), 
-        last_name = concat(last_name, ?, values(last_name)) 
+        first_name = concat(first_name, ?, value(first_name)), 
+        last_name = concat(last_name, ?, value(last_name)) 
     returning 
         id as id, 
         first_name as firstName, 

@@ -188,7 +188,7 @@ interface Connection {
     executeFunction<T, TYPE_NAME = T>(functionName: string, params: AnyValueSource[], returnType: 'custom', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
     executeFunction<T, TYPE_NAME = T>(functionName: string, params: AnyValueSource[], returnType: 'customComparable', typeName: string, required: 'required' | 'optional', adapter?: TypeAdapter): Promise<T>
 
-    // Protected methods to define a sequence (only available in oracle, postgreSql and sqlServer)
+    // Protected methods to define a sequence (only available in mariaDB, oracle, postgreSql and sqlServer)
     sequence(name: string, type: 'boolean', adapter?: TypeAdapter): Sequence<BooleanValueSource>
     sequence(name: string, type: 'int', adapter?: TypeAdapter): Sequence<NumberValueSource>
     sequence(name: string, type: 'bigint', adapter?: TypeAdapter): Sequence<BigintValueSource>

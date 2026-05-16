@@ -63,6 +63,18 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
         return super._appendRawColumnName(column, params)
     }
+    override _nextSequenceValue(_params: any[], sequenceName: string): string {
+        // MariaDB sequences (MDEV-10139, MariaDB 10.3.0) expose NEXTVAL(seq) for the
+        // function form and the SQL-standard NEXT VALUE FOR seq alias; we emit the
+        // function form because it accepts a regular (back-tick-escaped) identifier.
+        return 'nextval(' + this._escape(sequenceName, false) + ')'
+    }
+    override _currentSequenceValue(_params: any[], sequenceName: string): string {
+        // LASTVAL(seq) returns the most recent NEXTVAL(seq) issued in the current
+        // connection (NULL if none); equivalent to PostgreSQL's currval() and to
+        // the SQL-standard PREVIOUS VALUE FOR seq.
+        return 'lastval(' + this._escape(sequenceName, false) + ')'
+    }
     override _buildInsertReturning(query: InsertData, params: any[]): string {
         if (this._connectionConfiguration.compatibilityVersion >= 10_005_000 || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
             return super._buildInsertReturning(query, params)

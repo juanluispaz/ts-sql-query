@@ -20,6 +20,7 @@ class DBConnection extends MariaDBConnection<'DBConnection'> {
     appendToAllCompaniesName(aditional: string) {
         return this.executeProcedure('append_to_all_companies_name', [this.const(aditional, 'string')])
     }
+    customerSeq = this.sequence('customer_seq', 'int')
 }
 
 const tCompany = new class TCompany extends Table<DBConnection, 'TCompany'> {
@@ -81,8 +82,11 @@ async function main() {
         await connection.queryRunner.executeDatabaseSchemaModification(`use test`)
         await connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists customer`)
         await connection.queryRunner.executeDatabaseSchemaModification(`drop table if exists company`)
+        await connection.queryRunner.executeDatabaseSchemaModification(`drop sequence if exists customer_seq`)
         await connection.queryRunner.executeDatabaseSchemaModification(`drop function if exists increment`)
         await connection.queryRunner.executeDatabaseSchemaModification(`drop procedure if exists append_to_all_companies_name`)
+
+        await connection.queryRunner.executeDatabaseSchemaModification(`create sequence customer_seq`)
 
         await connection.queryRunner.executeDatabaseSchemaModification(`
             create table company (
@@ -176,6 +180,18 @@ async function main() {
             .returningLastInsertedId()
             .executeInsert()
         assertEquals(i, 3)
+
+        i = await connection
+            .selectFromNoTable()
+            .selectOneColumn(connection.customerSeq.nextValue())
+            .executeSelectOne()
+        assertEquals(i, 1)
+
+        i = await connection
+            .selectFromNoTable()
+            .selectOneColumn(connection.customerSeq.currentValue())
+            .executeSelectOne()
+        assertEquals(i, 1)
 
         let company = await connection
             .selectFrom(tCompany)

@@ -169,11 +169,9 @@ async function main() {
             .executeInsert()
         assertEquals(ii, [1, 2, 3])
 
-        // i = await connection
-        //     .selectFromNoTable()
-        //     .selectOneColumn(connection.customerSeq.currentValue())
-        //     .executeSelectOne()
-        // assertEquals(i, 3)
+        // SEQUENCE support was added in MariaDB 10.3.0 (MDEV-10139); this
+        // compatibility example targets 10.2, so sequences are intentionally
+        // unused here. See MariaDBExample.ts for sequence coverage.
 
         let company = await connection
             .selectFrom(tCompany)

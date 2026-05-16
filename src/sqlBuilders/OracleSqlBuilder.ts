@@ -851,10 +851,8 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         return 'cast(' + this._appendSql(valueSource, params, false) + ' as float)'
     }
     override _log10(params: any[], valueSource: ToSql): string {
-        return 'log(' + this._appendSql(valueSource, params, false) + ', 10)'
-    }
-    override _cbrt(params: any[], valueSource: ToSql): string {
-        return 'power(' + this._appendSql(valueSource, params, false) + ', 3)'
+        // Oracle's LOG signature is LOG(base, value), so the base 10 goes first.
+        return 'log(10, ' + this._appendSql(valueSource, params, false) + ')'
     }
     override _getDate(params: any[], valueSource: ToSql): string {
         return 'extract(day from ' + this._appendSql(valueSource, params, false) + ')'

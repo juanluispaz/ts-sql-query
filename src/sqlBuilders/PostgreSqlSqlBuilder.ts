@@ -18,6 +18,9 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
+    override _cbrt(params: any[], valueSource: ToSql): string {
+        return 'cbrt(' + this._appendSql(valueSource, params, false) + ')'
+    }
     override _useUpdateOldValueInFrom(): boolean {
         // PostgreSQL 18 added native OLD/NEW qualifiers to the RETURNING clause
         // (INSERT/UPDATE/DELETE/MERGE), so the FROM-subquery trick used by older

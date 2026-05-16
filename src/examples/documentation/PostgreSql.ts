@@ -5069,9 +5069,30 @@ async function main() {
         .select(pickedFields9)
         .where(tCustomer.id.equals(12))
         .executeSelectMany()
-    
+
     assertEquals(customerWithOptionalCompany9, result)
-    
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select cbrt(id) as "idCubeRoot", log(id) as "idLog10", log($1, id) as "idLogBase2" from customer where id = $2`)
+    expectedParams.push(`[2,8]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const customerMath = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(8))
+        .select({
+            idCubeRoot: tCustomer.id.cbrt(),
+            idLog10: tCustomer.id.log10(),
+            idLogBase2: tCustomer.id.logn(2),
+        })
+        .executeSelectMany()
+
+    assertEquals(customerMath, result)
+
 }
 
 main().then(() => {

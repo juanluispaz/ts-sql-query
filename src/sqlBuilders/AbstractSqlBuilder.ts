@@ -2631,7 +2631,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'sqrt(' + this._appendSql(valueSource, params, false) + ')'
     }
     _cbrt(params: any[], valueSource: ToSql): string {
-        return 'cbrt(' + this._appendSql(valueSource, params, false) + ')'
+        // No portable native CBRT exists across engines, and `power(x, 1.0 / 3.0)` returns NaN
+        // (or an error) for negative x on every engine except PostgreSQL. Emulate the cube
+        // root as `sign(x) * power(abs(x), 1.0 / 3.0)` so it works for the full real domain.
+        return 'sign(' + this._appendSql(valueSource, params, false) + ') * power(abs(' + this._appendSql(valueSource, params, false) + '), 1.0 / 3.0)'
     }
     _sign(params: any[], valueSource: ToSql): string {
         return 'sign(' + this._appendSql(valueSource, params, false) + ')'
@@ -2823,7 +2826,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return 'power(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
     }
     _logn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'log(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+        // The public API `value.logn(n)` means log base n of value, i.e. `log_n(value)`.
+        // PostgreSQL, MariaDB, MySQL, SQLite and Oracle all spell this as `LOG(base, value)`
+        // — base first. SQL Server's LOG is `LOG(value, base)` and overrides this method.
+        return 'log(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ', ' + this._appendSql(valueSource, params, false) + ')'
     }
     _roundn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'round(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'

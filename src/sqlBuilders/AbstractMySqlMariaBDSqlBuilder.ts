@@ -510,12 +510,6 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
     override _log10(params: any[], valueSource: ToSql): string {
         return 'log10(' +this._appendSql(valueSource, params, false) + ')'
     }
-    override _cbrt(params: any[], valueSource: ToSql): string {
-        return 'power(' + this._appendSql(valueSource, params, false) + ', 3)'
-    }
-    override _logn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
-        return 'log(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ', ' + this._appendSql(valueSource, params, false) + ')'
-    }
     override _getDate(params: any[], valueSource: ToSql): string {
         return 'dayofmonth(' + this._appendSql(valueSource, params, false) + ')'
     }

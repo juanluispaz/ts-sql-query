@@ -284,9 +284,6 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     override _log10(params: any[], valueSource: ToSql): string {
         return 'log10(' + this._appendSql(valueSource, params, false) + ')'
     }
-    override _cbrt(params: any[], valueSource: ToSql): string {
-        return 'power(' + this._appendSql(valueSource, params, false) + ', 3)'
-    }
     override _minimumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'min(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
     }

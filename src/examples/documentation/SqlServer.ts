@@ -4740,6 +4740,27 @@ async function main() {
 
     assertEquals(today, result)
 
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select sign(id) * power(abs(id), 1.0 / 3.0) as idCubeRoot, log10(id) as idLog10, log(id, @0) as idLogBase2 from customer where id = @1`)
+    expectedParams.push(`[2,8]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const customerMath = await connection.selectFrom(tCustomer)
+        .where(tCustomer.id.equals(8))
+        .select({
+            idCubeRoot: tCustomer.id.cbrt(),
+            idLog10: tCustomer.id.log10(),
+            idLogBase2: tCustomer.id.logn(2),
+        })
+        .executeSelectMany()
+
+    assertEquals(customerMath, result)
+
 }
 
 main().then(() => {

@@ -75,7 +75,7 @@ bun run ./src/examples/PrismaMariaDBExample.ts || { docker stop ts-sql-query-mar
 docker stop ts-sql-query-mariadb
 docker rm ts-sql-query-mariadb
 
-docker run --name ts-sql-query-sqlserver -e 'ACCEPT_EULA=Y' -e 'MSSQL_SA_PASSWORD=yourStrong(!)Password' -p 1433:1433 --health-cmd "bash -c '</dev/tcp/127.0.0.1/1433'" --health-interval 1s --health-timeout 5s --health-retries 120 -d mcr.microsoft.com/azure-sql-edge:1.0.7
+docker run --name ts-sql-query-sqlserver -e 'ACCEPT_EULA=Y' -e 'MSSQL_SA_PASSWORD=yourStrong(!)Password' -p 1433:1433 --health-cmd "bash -c '</dev/tcp/127.0.0.1/1433'" --health-interval 1s --health-timeout 5s --health-retries 120 -d mcr.microsoft.com/mssql/server:2025-latest
 wait_healthy ts-sql-query-sqlserver 120 || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
 bun run ./src/examples/MssqlTediousExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }
 bun run ./src/examples/PrismaSqlServerExample.ts || { docker stop ts-sql-query-sqlserver; docker rm ts-sql-query-sqlserver; exit 1; }

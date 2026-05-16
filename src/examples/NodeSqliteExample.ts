@@ -5,8 +5,7 @@ import { SqliteConnection } from '../connections/SqliteConnection.js'
 import { DatabaseSync, type SQLInputValue, type SQLOutputValue } from 'node:sqlite'
 import { Buffer } from 'node:buffer'
 import { NodeSqliteQueryRunner } from '../queryRunners/NodeSqliteQueryRunner.js'
-import { fromBinaryUUID, toBinaryUUID } from 'binary-uuid'
-import { v4 as uuidv4 } from 'uuid'
+import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from 'uuid'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
 import { Values } from '../Values.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
@@ -74,18 +73,18 @@ const tBoolean = new class TBoolean extends Table<DBConnection, 'TBoolean'> {
 
 type NodeSqliteFunction = (...args: SQLOutputValue[]) => SQLInputValue
 
-const uuid: NodeSqliteFunction = () => uuidv4()
+const uuid: NodeSqliteFunction = () => uuidv7()
 const uuidStr: NodeSqliteFunction = (value) => {
     if (!(value instanceof Uint8Array)) {
         throw new TypeError('uuid_str expects a SQLite BLOB')
     }
-    return fromBinaryUUID(Buffer.from(value))
+    return uuidStringify(value)
 }
 const uuidBlob: NodeSqliteFunction = (value) => {
     if (typeof value !== 'string') {
         throw new TypeError('uuid_blob expects a UUID string')
     }
-    return toBinaryUUID(value)
+    return Buffer.from(uuidParse(value))
 }
 
 const db = new DatabaseSync(':memory:')

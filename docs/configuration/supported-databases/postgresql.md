@@ -52,3 +52,11 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 !!! tip
 
     You can also enforce type casting using the `ForceTypeCast` adapter provided in `ts-sql-query/TypeAdapter`. For more advanced usage, see the section on [Global type adapter](../column-types.md#global-type-adapter).
+
+## UUID handling
+
+PostgreSQL has a native `uuid` data type (available since PostgreSQL 8.3, present in every supported version), and `ts-sql-query` maps the `uuid` column type to it directly — no extension or conversion function is required. The `uuid` type compares values byte-by-byte, so a UUID v7 stored there keeps its chronological ordering on the primary-key index.
+
+!!! tip "Generating UUIDs"
+
+    Prefer **UUID v7** over UUID v4. PostgreSQL 18 adds the server-side `uuidv7()` SQL function, alongside `gen_random_uuid()` for v4 available since PostgreSQL 13. As a general rule, generating the UUID in the database as a column `DEFAULT` is preferred over generating it in application code; the latter is the fallback when the value must be known before the `INSERT`. See the [column types](../column-types.md) page for more context.

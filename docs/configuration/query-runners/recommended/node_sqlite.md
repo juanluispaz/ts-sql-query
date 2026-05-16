@@ -55,23 +55,22 @@ To work with [UUIDs in SQLite](../../supported-databases/sqlite.md#uuid-strategi
 ```ts
 import { Buffer } from "node:buffer";
 import { DatabaseSync, type SQLInputValue, type SQLOutputValue } from "node:sqlite";
-import { fromBinaryUUID, toBinaryUUID } from "binary-uuid";
-import { v4 as uuidv4 } from "uuid";
+import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from "uuid";
 
 type NodeSqliteFunction = (...args: SQLOutputValue[]) => SQLInputValue;
 
-const uuid: NodeSqliteFunction = () => uuidv4();
+const uuid: NodeSqliteFunction = () => uuidv7();
 const uuidStr: NodeSqliteFunction = (value) => {
     if (!(value instanceof Uint8Array)) {
         throw new TypeError("uuid_str expects a SQLite BLOB");
     }
-    return fromBinaryUUID(Buffer.from(value));
+    return uuidStringify(value);
 };
 const uuidBlob: NodeSqliteFunction = (value) => {
     if (typeof value !== "string") {
         throw new TypeError("uuid_blob expects a UUID string");
     }
-    return toBinaryUUID(value);
+    return Buffer.from(uuidParse(value));
 };
 
 const db = new DatabaseSync(/* ... */);
@@ -84,6 +83,10 @@ db.function("uuid_blob", uuidBlob);
 
 // ...
 ```
+
+!!! tip "Generating UUIDs"
+
+    The snippet uses **UUID v7** so that, with the canonical byte order produced by `uuidParse`, the 16-byte blob keeps its chronological ordering on the primary-key index.
 
 !!! warning
 

@@ -14,6 +14,12 @@ search:
 - The package now exposes an **aggregated root entry** (`import 'ts-sql-query'`) that re-exports the cross-database public surface (the symbols from `Connection`, `Table`, `View`, `TypeAdapter`, `Values`, `TsSqlError`, `dynamicCondition`, `extras/types` and `extras/utils`). Database-specific symbols — per-database `Connection`s, every `QueryRunner` implementation, and `IDEncrypter` — are intentionally not re-exported: they must be imported from their subpath so the import line stays database-aware. In v1 the root entry was not supported at all; in early v2 alphas it was blocked by the `exports` map; this restores it in a controlled, cross-database-only form.
 - TypeScript consumers must use `moduleResolution: "node16"`, `"nodenext"` or `"bundler"` to resolve the subpath exports.
 
+**Changes**:
+
+- New Oracle `uuidStrategy` option: `'built-in'` (now the default), targeting Oracle Database 23ai (23.9)+ whose `UUID_TO_RAW` / `RAW_TO_UUID` functions are built into the engine — no user-defined functions are required. The previous default `'custom-functions'` (where you supply the conversion functions in PL/SQL) is still available for older Oracle versions. Both strategies emit identical SQL, so the default change does not break installations that already declare those functions.
+- Fixed two bugs in the Oracle SQL builder that produced malformed `raw_to_uuid(...)` calls inside `json_arrayagg` when projecting a single UUID column via `aggregateAsArrayOfOneColumn` under either function-based strategy.
+- Documentation: added per-database guidance for **UUID v7** (RFC 9562), covering storage and sort characteristics on each engine and pointing to the native server-side generators when available (PostgreSQL 18's `uuidv7()`, MariaDB 11.7's `UUID_v7()`, and the supporting roles of `gen_random_uuid()`, Oracle 23.9's `UUID()` and SQL Server's `NEWSEQUENTIALID()`). Updated the SQLite UUID example snippets (better-sqlite3, node:sqlite) to register `uuid_str` / `uuid_blob` using the `uuid` package's `parse` / `stringify` directly, replacing snippets that previously imported the unmaintained `binary-uuid` package.
+
 **Internal changes**:
 
 - Enable the TypeScript `noImplicitOverride` compiler flag. Members of subclasses that override a base-class member now require the `override` modifier — this is internal to the library, but documentation snippets that subclass a `Connection` have been updated to match.

@@ -55,3 +55,7 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
 !!! tip
 
     If you use Prisma, this is done automatically.
+
+!!! tip "Generating UUIDs"
+
+    Prefer **UUID v7** over UUID v4 — v7 keeps the rest of the supported databases time-ordered on the primary-key index. SQL Server's `uniqueidentifier` is the exception: it uses a non-byte-order comparison that ignores the leading bytes, so the chronological ordering of v7 is not preserved inside the index. Uniqueness and cross-database identifier portability are still preserved. SQL Server has no server-side v7 generator, but provides `NEWID()` (random) and `NEWSEQUENTIALID()` (which produces GUIDs that match `uniqueidentifier`'s sort order — useful as a column `DEFAULT` if you accept a SQL Server-specific format instead of RFC 9562 v7). See the [column types](../column-types.md) page for more context.

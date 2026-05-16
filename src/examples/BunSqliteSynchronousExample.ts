@@ -844,9 +844,9 @@ function main(db: Database) {
 async function run() {
     try {
         const db: Database = new Database();
-        // db.createFunction('uuid', _ => uuidv4())
-        // db.createFunction('uuid_str', (_context, blob: any) => fromBinaryUUID(blob))
-        // db.createFunction('uuid_blob', (_context, str: any) => toBinaryUUID(str))
+        // db.createFunction('uuid', _ => uuidv7())
+        // db.createFunction('uuid_str', (_context, blob: Uint8Array) => uuidStringify(blob))
+        // db.createFunction('uuid_blob', (_context, str: string) => Buffer.from(uuidParse(str)))
         await main(db);
         console.log('All ok');
         process.exit(0);

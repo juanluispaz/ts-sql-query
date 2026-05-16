@@ -32,10 +32,11 @@ class DBConnection extends OracleConnection<'DBConnection'> { }
 
 ## UUID strategies
 
-`ts-sql-query` provides different strategies to handle UUID values in Oracle. These strategies control how UUID values are represented in JavaScript and stored in the database.
+`ts-sql-query` provides different strategies to handle UUID values in Oracle. These strategies control how UUID values are represented in JavaScript and stored in the database. In every case, UUIDs are exchanged as `string` at the JavaScript layer.
 
-- `'uuid'` *(default strategy)*: UUIDs are treated as strings and stored using the native `RAW(16)` column type. This requires that the database includes the functions `uuid_to_raw` and `raw_to_uuid`, which handle the conversion between UUID strings and RAW values.
-- `'string'`: UUIDs are treated as strings and stored in character-based columns such as `CHAR(36)`, `VARCHAR(36)`, or `TEXT`.
+- `'built-in'` *(default strategy)*: UUIDs are stored as `RAW(16)` and converted using Oracle's built-in `UUID_TO_RAW` / `RAW_TO_UUID` functions, available since **Oracle Database 23ai (23.9)**. The built-ins preserve canonical byte order, so UUID v7 sorts chronologically in the primary-key index.
+- `'custom-functions'`: same `RAW(16)` storage, but `ts-sql-query` calls user-provided functions named `uuid_to_raw` and `raw_to_uuid` instead. Use this option on Oracle versions older than 23.9 (where the built-ins don't exist) or when you want to inject your own conversion logic — for example, the v1-style byte reordering shown below. Oracle resolves identifiers case-insensitively, so the names match the built-ins on 23.9+ and your functions take precedence over them if both exist.
+- `'string'`: UUIDs are stored as text in character-based columns such as `CHAR(36)`, `VARCHAR(36)`, or `TEXT`. No conversion functions are involved.
 
 You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
 
@@ -47,11 +48,40 @@ class DBConnection extends OracleConnection<'DBConnection'> {
 }
 ```
 
+!!! tip "Generating UUIDs"
+
+    Prefer **UUID v7** over UUID v4. The `'built-in'` strategy on Oracle 23ai (23.9)+ stores them as `RAW(16)` in canonical byte order, so v7 inserts stay clustered at the end of the primary-key index without any extra setup. On older Oracle versions use the `'custom-functions'` strategy together with the canonical implementation shown in [UUID utility functions for Oracle](#uuid-utility-functions-for-oracle). Oracle 23ai (23.9)+ also provides a server-side `UUID()` function that returns v4 — useful if you accept v4 and want the database to generate the value as a column `DEFAULT`. There is no server-side v7 generator, so v7 must be generated in the application. See the [column types](../column-types.md) page for more context.
+
 ## UUID utility functions for Oracle
 
-The `custom-functions` required `uuid_to_raw` and `raw_to_uuid` functions exists in the database.
+The `'custom-functions'` strategy requires the `uuid_to_raw` and `raw_to_uuid` functions to exist in the database. Two implementations are documented below — pick the one that matches the UUID version your application generates, since each preserves the time-ordering of a different version. The `'built-in'` strategy doesn't need either implementation, because Oracle 23ai (23.9)+ already ships built-ins that behave like the canonical (non-reordering) variant.
 
-An implementation of these functions based on [binary-uuid](https://github.com/odo-network/binary-uuid) and optimized for UUID v1 is:
+### For UUID v7 (or UUID v4) — preserve canonical byte order
+
+UUID v7 already places the 48-bit timestamp at the start of the value, so storing the bytes as-is yields a chronologically sortable `RAW(16)`. UUID v4 is random, so byte ordering is irrelevant. **This is the recommended implementation for new applications:**
+
+```oracle
+CREATE FUNCTION uuid_to_raw(uuid IN char) RETURN raw AS
+BEGIN 
+    RETURN HEXTORAW(REPLACE(uuid, '-'));
+END uuid_to_raw;
+
+CREATE FUNCTION raw_to_uuid(raw_uuid IN raw) RETURN char IS
+	hex_text char(32);
+BEGIN 
+	hex_text := RAWTOHEX(raw_uuid);
+    -- If you want the lower-case version wrap the expression in lower( ... )
+    RETURN SUBSTR (hex_text, 1, 8) || '-' || 
+           SUBSTR (hex_text, 9, 4) || '-' || 
+           SUBSTR (hex_text, 13, 4) || '-' || 
+           SUBSTR (hex_text, 17, 4) || '-' || 
+           SUBSTR (hex_text, 21);
+END raw_to_uuid;
+```
+
+### For UUID v1 — reorder bytes so the timestamp segment sorts first
+
+UUID v1 places the 60-bit timestamp split across the `time-low`, `time-mid` and `time-hi` fields, with `time-low` at the start of the string but the most-significant bits sitting in `time-hi`. To make a v1 UUID sortable inside `RAW(16)`, the fields are rearranged on store and put back on read. **Use this only if your application generates UUID v1; it will scramble v7's timestamp prefix.**
 
 ```oracle
 CREATE FUNCTION uuid_to_raw(uuid IN char) RETURN raw IS
@@ -72,27 +102,6 @@ BEGIN
     RETURN SUBSTR (hex_text, 9, 8) || '-' || 
            SUBSTR (hex_text, 5, 4) || '-' || 
            SUBSTR (hex_text, 0, 4) || '-' || 
-           SUBSTR (hex_text, 17, 4) || '-' || 
-           SUBSTR (hex_text, 21);
-END raw_to_uuid;
-```
-
-The simplest implementation of these functions that doesn't reorder the bytes is:
-
-```oracle
-CREATE FUNCTION uuid_to_raw(uuid IN char) RETURN raw AS
-BEGIN 
-    RETURN HEXTORAW(REPLACE(uuid, '-'));
-END uuid_to_raw;
-
-CREATE FUNCTION raw_to_uuid(raw_uuid IN raw) RETURN char IS
-	hex_text char(32);
-BEGIN 
-	hex_text := RAWTOHEX(raw_uuid);
-    -- If you want the lower-case version wrap the expression in lower( ... )
-    RETURN SUBSTR (hex_text, 1, 8) || '-' || 
-           SUBSTR (hex_text, 9, 4) || '-' || 
-           SUBSTR (hex_text, 13, 4) || '-' || 
            SUBSTR (hex_text, 17, 4) || '-' || 
            SUBSTR (hex_text, 21);
 END raw_to_uuid;

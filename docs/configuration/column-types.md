@@ -56,6 +56,14 @@ this.column<MyCustomType>('ColumnName', 'custom', 'MyCustomTypeName')
 this.column<MyCustomComparableType>('ColumnName', 'customComparable', 'MyCustomComparableTypeName')
 ```
 
+!!! tip "Generating UUIDs"
+
+    **Which version**: prefer **UUID v7** (timestamp-first, as defined in [RFC 9562](https://www.rfc-editor.org/rfc/rfc9562)) over UUID v4. Because v7 encodes the creation time in its leading bytes, primary keys built on v7 stay roughly time-ordered, which keeps index B-trees compact and reduces write amplification on inserts — without giving up the uniqueness guarantees of a random UUID.
+
+    **Where to generate it**: whichever UUID version you choose, prefer letting the database produce the value as a column `DEFAULT` over generating it in application code. The database is a single authoritative source (which also fixes the timestamp authority for v7), removes the application's runtime dependency on a UUID library, and produces the same shape regardless of which caller issues the `INSERT`. Generate it in the application only when the value must be known before the `INSERT` — for example to reference it in related records inserted in the same transaction or to return it eagerly to a caller. With the `uuid` package the application-side path for v7 is `import { v7 as uuidv7 } from 'uuid'`.
+
+    Per-database considerations apply; see the supported databases section for the server-side generators available on your engine.
+
 ## Type adapters
 
 You can control how a value is sent and received from the database. For that purpose, you can add a type adapter at the end of the column definition.

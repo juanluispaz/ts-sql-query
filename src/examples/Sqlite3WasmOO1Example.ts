@@ -8,8 +8,7 @@ import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
 import { SqliteConnection } from '../connections/SqliteConnection.js'
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import type { Database } from '@sqlite.org/sqlite-wasm'
-// import { fromBinaryUUID, toBinaryUUID } from 'binary-uuid'
-// import { v4 as uuidv4 } from 'uuid'
+// import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from 'uuid'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
 import { Values } from '../Values.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
@@ -78,9 +77,9 @@ const tBoolean = new class TBoolean extends Table<DBConnection, 'TBoolean'> {
 }()
 
 //const db = new sqlite3(Database()
-// db.function('uuid', uuidv4 as (_: unknown) => unknown)
-// db.function('uuid_str', fromBinaryUUID as (_: unknown) => unknown)
-// db.function('uuid_blob', toBinaryUUID as (_: unknown) => unknown)
+// db.function('uuid', uuidv7 as (_: unknown) => unknown)
+// db.function('uuid_str', ((blob: Uint8Array) => uuidStringify(blob)) as (_: unknown) => unknown)
+// db.function('uuid_blob', ((uuid: string) => Buffer.from(uuidParse(uuid))) as (_: unknown) => unknown)
 
 async function main(db: Database) {
     const connection = new DBConnection(new ConsoleLogQueryRunner(new Sqlite3WasmOO1QueryRunner(db)))
@@ -1982,9 +1981,9 @@ async function run() {
     try {
         const sqlite3 = await sqlite3InitModule();
         const db: Database = new sqlite3.oo1.DB();
-        // db.createFunction('uuid', _ => uuidv4())
-        // db.createFunction('uuid_str', (_context, blob: any) => fromBinaryUUID(blob))
-        // db.createFunction('uuid_blob', (_context, str: any) => toBinaryUUID(str))
+        // db.createFunction('uuid', _ => uuidv7())
+        // db.createFunction('uuid_str', (_context, blob: Uint8Array) => uuidStringify(blob))
+        // db.createFunction('uuid_blob', (_context, str: string) => Buffer.from(uuidParse(str)))
         await main(db);
         console.log('All ok');
         process.exit(0);

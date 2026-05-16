@@ -11,8 +11,7 @@ import { SqliteConnection } from '../connections/SqliteConnection.js'
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm'
 import type { Database } from '@sqlite.org/sqlite-wasm'
 import { SynchronousPromise } from 'synchronous-promise'
-// import { fromBinaryUUID, toBinaryUUID } from 'binary-uuid'
-// import { v4 as uuidv4 } from 'uuid'
+// import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from 'uuid'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connections/SqliteConfiguration.js'
 import { Values } from '../Values.js'
 import { Sqlite3WasmOO1QueryRunner } from '../queryRunners/Sqlite3WasmOO1QueryRunner.js'
@@ -850,9 +849,9 @@ async function run() {
     try {
         const sqlite3 = await sqlite3InitModule();
         const db: Database = new sqlite3.oo1.DB();
-        // db.createFunction('uuid', _ => uuidv4())
-        // db.createFunction('uuid_str', (_context, blob: any) => fromBinaryUUID(blob))
-        // db.createFunction('uuid_blob', (_context, str: any) => toBinaryUUID(str))
+        // db.createFunction('uuid', _ => uuidv7())
+        // db.createFunction('uuid_str', (_context, blob: Uint8Array) => uuidStringify(blob))
+        // db.createFunction('uuid_blob', (_context, str: string) => Buffer.from(uuidParse(str)))
         await main(db);
         console.log('All ok');
         process.exit(0);

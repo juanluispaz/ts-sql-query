@@ -28,9 +28,9 @@ class DBConnection extends MySqlConnection<'DBConnection'> { }
 
 ## UUID strategies
 
-`ts-sql-query` provides different strategies to handle UUID values in MariaDB. These strategies control how UUID values are represented in JavaScript and stored in the database.
+`ts-sql-query` provides different strategies to handle UUID values in MySQL. These strategies control how UUID values are represented in JavaScript and stored in the database.
 
-- `'uuid'` *(default strategy)*: UUIDs are treated as strings and stored using the native `BINARY` column type. This requires MySQL version 8 or higher.
+- `'binary'` *(default strategy)*: UUIDs are treated as strings and stored using the native `BINARY(16)` column type via the `UUID_TO_BIN` / `BIN_TO_UUID` functions. This requires MySQL version 8 or higher.
 - `'string'`: UUIDs are treated as strings and stored in character-based columns such as `CHAR(36)`, `VARCHAR(36)`, or `TEXT`. This option can be used with older MySQL versions or when avoiding the `BINARY` type.
 
 You can configure the strategy by overriding the `uuidStrategy` field in your connection class:
@@ -42,6 +42,10 @@ class DBConnection extends MySqlConnection<'DBConnection'> {
     protected override uuidStrategy = 'string' as const
 }
 ```
+
+!!! tip "Generating UUIDs"
+
+    Prefer **UUID v7** over UUID v4. With the `'binary'` strategy on MySQL 8+, the bytes are stored in canonical order, so a UUID v7 keeps its chronological ordering on the primary-key index. MySQL has no server-side v7 generator (its built-in `UUID()` returns v1, which does not preserve sortability under the canonical byte order of the `'binary'` strategy), so v7 must be generated in the application — the only exception to the general rule of preferring database-side generation that is laid out in the [column types](../column-types.md) page.
 
 ## Compatibility mode
 

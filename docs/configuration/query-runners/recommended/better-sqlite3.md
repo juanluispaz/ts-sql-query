@@ -54,19 +54,22 @@ To work with [UUIDs in SQLite](../../supported-databases/sqlite.md#uuid-strategi
 
 ```ts
 import * as betterSqlite3 from "better-sqlite3";
-import { fromBinaryUUID, toBinaryUUID } from "binary-uuid";
-import { v4 as uuidv4 } from "uuid";
+import { parse as uuidParse, stringify as uuidStringify, v7 as uuidv7 } from "uuid";
 
 const db = betterSqlite3(/* ... */);
 
 // Implement uuid extension functions
 
-db.function('uuid', uuidv4)
-db.function('uuid_str', fromBinaryUUID)
-db.function('uuid_blob', toBinaryUUID)
+db.function('uuid', uuidv7)
+db.function('uuid_str', (blob: Uint8Array) => uuidStringify(blob))
+db.function('uuid_blob', (uuid: string) => Buffer.from(uuidParse(uuid)))
 
 // ...
 ```
+
+!!! tip "Generating UUIDs"
+
+    The snippet uses **UUID v7** so that, with the canonical byte order produced by `uuidParse`, the 16-byte blob keeps its chronological ordering on the primary-key index.
 
 !!! warning
 

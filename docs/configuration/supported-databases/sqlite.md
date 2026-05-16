@@ -147,6 +147,10 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 }
 ```
 
+!!! tip "Generating UUIDs"
+
+    When generating UUIDs on the application side, prefer **UUID v7** over UUID v4. With the `'string'` strategy v7 sorts chronologically by lexicographic comparison of its 36-character text representation; with the `'uuid-extension'` strategy this depends on the `uuid_blob` function you register — the snippets recommended in the [better-sqlite3](../query-runners/recommended/better-sqlite3.md#better-sqlite3-and-uuids) and [node:sqlite](../query-runners/recommended/node_sqlite.md#nodesqlite-and-uuids) pages preserve the canonical byte order, so v7 sorts on the primary-key index. See the [column types](../column-types.md) page for more context.
+
 ## Compatibility mode
 
 The compatibility mode prevents the use of syntax introduced in newer versions of SQLite.

@@ -134,7 +134,6 @@
         "@types/sqlite3": "^3.1.11",
         "@typescript/native-preview": "^7.0.0-dev.20260516.1",
         "better-sqlite3": "^12.9.0",
-        "binary-uuid": "^2.0.3",
         "mariadb": "^3.5.2",
         "mssql": "^12.5.0",
         "mysql2": "^3.22.2",

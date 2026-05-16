@@ -54,3 +54,7 @@ class DBConnection extends MariaDBConnection<'DBConnection'> {
     protected override uuidStrategy = 'string' as const
 }
 ```
+
+!!! tip "Generating UUIDs"
+
+    Prefer **UUID v7** over UUID v4. MariaDB's native `UUID` type stores UUIDs with version ≥ 6 in canonical byte order ([MDEV-29959](https://jira.mariadb.org/browse/MDEV-29959), since MariaDB 10.10.6 / 10.11.5 — predates the RFC 9562 publication), so v7 keeps its chronological ordering on the primary-key index. MariaDB 11.7+ also exposes a server-side `UUID_v7()` function. As a general rule, generating the UUID in the database as a column `DEFAULT` is preferred over generating it in application code; the latter is the fallback when the value must be known before the `INSERT`. See the [column types](../column-types.md) page for more context.

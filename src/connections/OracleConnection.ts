@@ -6,7 +6,7 @@ import type { TransactionIsolationLevel } from './AbstractConnection.js'
 
 export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'oracle', NAME>> {
 
-    protected uuidStrategy: 'string' | 'custom-functions' = 'custom-functions'
+    protected uuidStrategy: 'string' | 'custom-functions' | 'built-in' = 'built-in'
 
     constructor(queryRunner: QueryRunner, sqlBuilder = new OracleSqlBuilder()) {
         super(queryRunner, sqlBuilder)

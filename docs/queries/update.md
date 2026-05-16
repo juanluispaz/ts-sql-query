@@ -208,18 +208,12 @@ The executed query is:
     ```
 ===+ "PostgreSQL"
     ```postgresql
-    update customer as _new_ 
+    update customer 
     set last_name = $1 
-    from (
-        select _old_.* 
-        from customer as _old_ 
-        where _old_.id = $2 
-        for no key update of _old_
-    ) as _old_ 
-    where _new_.id = _old_.id 
+    where id = $2 
     returning 
-        _old_.last_name as "oldLastName", 
-        _new_.last_name as "newLastName"
+        old.last_name as "oldLastName", 
+        last_name as "newLastName"
     ```
 === "SQLite"
     ```sqlite

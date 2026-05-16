@@ -352,7 +352,9 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _buildInsertReturning(_query: InsertData, _params: any[]): string {
         return ''
     }
-    override _updateOldValueInFrom = false
+    override _useUpdateOldValueInFrom(): boolean {
+        return false
+    }
     override _buildUpdateOutput(query: UpdateData, params: any[]): string {
         return this._buildQueryOutput(query.__columns, query.__table, 'inserted', params)
     }

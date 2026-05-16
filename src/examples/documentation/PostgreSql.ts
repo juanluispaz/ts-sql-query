@@ -2346,7 +2346,7 @@ async function main() {
         newLastName: 'Thomson'
     }
     expectedResult.push(result)
-    expectedQuery.push(`update customer as _new_ set last_name = $1 from (select _old_.* from customer as _old_ where _old_.id = $2 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"`)
+    expectedQuery.push(`update customer set last_name = $1 where id = $2 returning old.last_name as "oldLastName", last_name as "newLastName"`)
     expectedParams.push(`["Thomson",2]`)
     expectedType.push(`updateReturningOneRow`)
 
@@ -2499,7 +2499,7 @@ async function main() {
         newLastName: 'Smith'
     }
     expectedResult.push(result)
-    expectedQuery.push(`update customer as _new_ set last_name = $1 from (select _old_.* from customer as _old_, company where _old_.company_id = company.id and company.name = $2 and _old_.first_name = $3 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"`)
+    expectedQuery.push(`update customer set last_name = $1 from company where customer.company_id = company.id and company.name = $2 and customer.first_name = $3 returning old.last_name as "oldLastName", customer.last_name as "newLastName"`)
     expectedParams.push(`["Smith","ACME Cia.","Ron 2"]`)
     expectedType.push(`updateReturningOneRow`)
 
@@ -2528,7 +2528,7 @@ async function main() {
         newLastName: 'Smith - ACME Cia.'
     }
     expectedResult.push(result)
-    expectedQuery.push(`update customer as _new_ set last_name = _new_.last_name || $1 || _old_.company__name from (select _old_.*, company.name as company__name from customer as _old_, company where _old_.company_id = company.id and company.name = $2 and _old_.first_name = $3 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name as "newLastName"`)
+    expectedQuery.push(`update customer set last_name = customer.last_name || $1 || company.name from company where customer.company_id = company.id and company.name = $2 and customer.first_name = $3 returning old.last_name as "oldLastName", customer.last_name as "newLastName"`)
     expectedParams.push(`[" - ","ACME Cia.","Ron 2"]`)
     expectedType.push(`updateReturningOneRow`)
 
@@ -2557,7 +2557,7 @@ async function main() {
         newLastName: 'Smith/ACME Cia.'
     }
     expectedResult.push(result)
-    expectedQuery.push(`update customer as _new_ set last_name = $1 from (select _old_.*, company.name as company__name from customer as _old_, company where _old_.company_id = company.id and company.name = $2 and _old_.first_name = $3 for no key update of _old_) as _old_ where _new_.id = _old_.id returning _old_.last_name as "oldLastName", _new_.last_name || $4 || _old_.company__name as "newLastName"`)
+    expectedQuery.push(`update customer set last_name = $1 from company where customer.company_id = company.id and company.name = $2 and customer.first_name = $3 returning old.last_name as "oldLastName", customer.last_name || $4 || company.name as "newLastName"`)
     expectedParams.push(`["Smith","ACME Cia.","Ron 2","/"]`)
     expectedType.push(`updateReturningOneRow`)
 

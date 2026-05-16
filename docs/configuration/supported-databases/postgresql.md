@@ -28,15 +28,20 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> { }
 
 ## Compatibility version
 
-The `compatibilityVersion` property declares the minimum PostgreSQL version the generated SQL must support, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `18_000_000` for PostgreSQL 18. The default is `Number.POSITIVE_INFINITY` (latest).
+The `compatibilityVersion` property declares the minimum PostgreSQL version the generated SQL must support, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `18_000_000` for PostgreSQL 18, `17_000_000` for PostgreSQL 17. The numeric separator `_` is for readability only (`18_000_000 === 18000000`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
 
-No dialect features depend on this setting today, so leaving it unset is fine. It is reserved for forward compatibility — set it to your real database version so future ts-sql-query releases that gate features on it pick the right behavior automatically.
+You can set this to your real database version (whatever it is) regardless of whether ts-sql-query currently uses it — extra granularity is harmless and future-proof.
+
+Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakpoint below is enabled — the list reads as the bar you need to clear to keep each feature):
+
+- `>= 18_000_000`: target PostgreSQL 18+. Column references on a table-or-view returned by `.oldValues()` are emitted as `old.col` inside `UPDATE ... RETURNING`, taking advantage of the native `OLD`/`NEW` qualifiers added in PostgreSQL 18 for `RETURNING` in `INSERT`/`UPDATE`/`DELETE`/`MERGE`. The `UPDATE` statement no longer needs the `FROM (SELECT _old_.* FROM ... FOR NO KEY UPDATE OF _old_) AS _old_` subquery to capture pre-update values, nor the `_new_` alias of the target table.
+- `< 18_000_000`: target PostgreSQL 17 or older. The `FROM (subquery FOR NO KEY UPDATE)` trick is emitted to capture pre-update values and join them back into the `UPDATE` via the primary key; the updated table is aliased as `_new_` and `.oldValues()` references emit as `_old_.col`.
 
 ```ts
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected override compatibilityVersion = 18_000_000
+    protected override compatibilityVersion = 17_000_000
 }
 ```
 

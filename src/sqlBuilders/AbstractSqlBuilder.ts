@@ -1889,7 +1889,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const oldForceAliasFor = this._getForceAliasFor(params)
         const oldForceAliasAs = this._getForceAliasAs(params)
-        if (this._updateOldValueInFrom && query.__oldValues) {
+        if (this._useUpdateOldValueInFrom() && query.__oldValues) {
             this._setForceAliasFor(params, query.__table)
             this._setForceAliasAs(params, this._updateNewAlias)
         }
@@ -1966,7 +1966,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         updateQuery += this._buildUpdateOutput(query, params)
         updateQuery += this._buildUpdateFrom(query, updatePrimaryKey, requiredTables, requiredColumns, params)
 
-        if (oldValues && this._updateOldValueInFrom) {
+        if (oldValues && this._useUpdateOldValueInFrom()) {
             let where: BooleanValueSource<any, any> | undefined
             for (let property in table) {
                 const column = __getColumnOfObject(table, property)
@@ -2030,7 +2030,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return updateQuery
     }
     _extractAdditionalRequiredTablesForUpdate(query: UpdateData, _params: any[]): Set<AnyTableOrView> | undefined {
-        if (!this._updateOldValueInFrom || !query.__oldValues) {
+        if (!this._useUpdateOldValueInFrom() || !query.__oldValues) {
             return undefined
         }
         const froms = query.__froms
@@ -2085,7 +2085,9 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return result
     }
     _updateNewAlias = '_new_'
-    _updateOldValueInFrom = true
+    _useUpdateOldValueInFrom(): boolean {
+        return true
+    }
     _appendColumnNameForUpdate(column: DBColumn, _params: any[]) {
         const columnPrivate = __getColumnPrivate(column)
         return this._escape(columnPrivate.__name, true)
@@ -2111,7 +2113,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         return ''
     }
     _buildUpdateFrom(query: UpdateData, updatePrimaryKey: boolean, requiredTables: Set<AnyTableOrView> | undefined, requiredColumns: Set<DBColumn> | undefined, params: any[]): string {
-        if (!this._updateOldValueInFrom) {
+        if (!this._useUpdateOldValueInFrom()) {
             const from = this._buildFromJoins(query.__froms, query.__joins, undefined, params)
             if (from) {
                 return ' from ' + from

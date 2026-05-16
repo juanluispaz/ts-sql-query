@@ -9,10 +9,16 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
     /**
      * Minimum PostgreSQL version the generated SQL must support, encoded as
      * `major * 1_000_000 + minor * 1_000 + patch` (e.g. `18_000_000` for
-     * PostgreSQL 18). Defaults to `Number.POSITIVE_INFINITY` (latest). No
-     * dialect features depend on this setting today; reserved for forward
-     * compatibility — set it to your real version so future ts-sql-query
-     * releases that gate features on it pick the right behavior automatically.
+     * PostgreSQL 18). Defaults to `Number.POSITIVE_INFINITY` (latest).
+     *
+     * Recognised breakpoints:
+     * - `>= 18_000_000`: target PostgreSQL 18+. `UPDATE ... RETURNING` references
+     *   on a table-or-view returned by `.oldValues()` are emitted as `old.col`
+     *   directly (added in PostgreSQL 18 as native `OLD`/`NEW` qualifiers for
+     *   `RETURNING` in `INSERT`/`UPDATE`/`DELETE`/`MERGE`), and the legacy
+     *   `FROM (subquery FOR NO KEY UPDATE) AS _old_` trick is no longer emitted.
+     *   Below this breakpoint, the FROM-subquery is used to capture pre-update
+     *   values and the updated table is aliased as `_new_`.
      */
     protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 

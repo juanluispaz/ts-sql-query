@@ -6,6 +6,7 @@ import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import type { AnyValueSource, ValueType } from '../expressions/values.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '../expressions/values.js'
+import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     postgreSql: true = true
@@ -16,6 +17,25 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     }
     override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
+    }
+    override _useUpdateOldValueInFrom(): boolean {
+        // PostgreSQL 18 added native OLD/NEW qualifiers to the RETURNING clause
+        // (INSERT/UPDATE/DELETE/MERGE), so the FROM-subquery trick used by older
+        // versions to capture pre-update values is no longer needed.
+        return this._connectionConfiguration.compatibilityVersion < 18_000_000
+    }
+    override _appendRawColumnName(column: DBColumn, params: any[]): string {
+        // PostgreSQL 18+: a column reference on a `.oldValues()` table-or-view is
+        // emitted as `old.col` inside RETURNING. Bare references to the updated
+        // table emit unqualified column names, which is the post-update value.
+        if (this._connectionConfiguration.compatibilityVersion >= 18_000_000) {
+            const columnPrivate = __getColumnPrivate(column)
+            const tableOrView = columnPrivate.__tableOrView
+            if (__getTableOrViewPrivate(tableOrView).__oldValues) {
+                return 'old.' + this._escape(columnPrivate.__name, true)
+            }
+        }
+        return super._appendRawColumnName(column, params)
     }
     override _appendColumnAlias(name: string, params: any[]): string {
         if (!this._isWithGeneratedFinished(params)) {

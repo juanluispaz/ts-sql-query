@@ -13,6 +13,11 @@ import { Values } from '../Values.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    // PgLite 0.4.x ships PostgreSQL 17, so the native OLD/NEW qualifiers in
+    // RETURNING (added in PG 18) are not available — fall back to the legacy
+    // FROM-subquery form for UPDATE ... RETURNING with oldValues().
+    protected override compatibilityVersion = 17_000_000
+
     increment(i: number) {
         return this.executeFunction('increment', [this.const(i, 'int')], 'int', 'required')
     }

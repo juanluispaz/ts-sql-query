@@ -4698,8 +4698,47 @@ async function main() {
         .select(pickedFields9)
         .where(tCustomer.id.equals(12))
         .executeSelectMany()
-    
+
     assertEquals(customerWithOptionalCompany9, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select greatest(id, @0) as idAtLeast, least(id, @1) as idAtMost, substring(first_name, @2) as nameFromIndex, substring(last_name, @3) as nameFromIndex2 from customer`)
+    expectedParams.push(`[5,100,3,3]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const customersWithMinMaxSubstring = await connection.selectFrom(tCustomer)
+        .select({
+            idAtLeast: tCustomer.id.minValue(5),
+            idAtMost: tCustomer.id.maxValue(100),
+            nameFromIndex: tCustomer.firstName.substringToEnd(2),
+            nameFromIndex2: tCustomer.lastName.substrToEnd(2)
+        })
+        .executeSelectMany()
+
+    assertEquals(customersWithMinMaxSubstring, result)
+
+    /* *** Preparation ************************************************************/
+
+    const todayDate = new Date()
+    todayDate.setUTCHours(0, 0, 0, 0)
+    result = todayDate
+    expectedResult.push(result)
+    expectedQuery.push(`select current_date as [result]`)
+    expectedParams.push(`[]`)
+    expectedType.push(`selectOneColumnOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const today = await connection.selectFromNoTable()
+        .selectOneColumn(connection.currentDate())
+        .executeSelectOne()
+
+    assertEquals(today, result)
 
 }
 

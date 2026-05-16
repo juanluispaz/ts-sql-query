@@ -38,9 +38,15 @@ class DBConnection extends SqlServerConnection<'DBConnection'> { }
 
 The `compatibilityVersion` property declares the minimum SQL Server version the generated SQL must support, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `16_000_000` for SQL Server 2022 (whose internal version is 16.0). The default is `Number.POSITIVE_INFINITY` (latest).
 
-When `compatibilityVersion >= 17_000_000` (SQL Server 2025), ts-sql-query emits the native `json_arrayagg` / `json_object` aggregates introduced in that version for [`aggregateAsArray`](../../queries/aggregate-as-object-array.md) and `aggregateAsArrayOfOneColumn`. On older SQL Server versions, set `compatibilityVersion` to your actual version (e.g. `16_000_000` for SQL Server 2022); the same queries are then emitted using `string_agg`/`string_escape` to build the JSON output. The `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` variants always use the `string_agg` form regardless of `compatibilityVersion`, because `json_arrayagg` does not accept `DISTINCT`.
+Recognized breakpoints:
 
-It is recommended to set this value to your real database version so future ts-sql-query releases that gate additional features on it pick the right behavior automatically.
+- `compatibilityVersion >= 16_000_000` (SQL Server 2022): `minValue(...)` / `maxValue(...)` emit the native `LEAST(a, b)` / `GREATEST(a, b)` functions added in SQL Server 2022, instead of a `IIF(a < b, a, b)` emulation that evaluates each argument twice.
+- `compatibilityVersion >= 17_000_000` (SQL Server 2025):
+    - [`aggregateAsArray`](../../queries/aggregate-as-object-array.md) and `aggregateAsArrayOfOneColumn` emit the native `JSON_ARRAYAGG` / `JSON_OBJECT` aggregates instead of a `string_agg`/`string_escape`-based emulation. The `aggregateAsArrayDistinct` / `aggregateAsArrayOfOneColumnDistinct` variants always use the emulation regardless of `compatibilityVersion`, because `JSON_ARRAYAGG` does not accept `DISTINCT`.
+    - `substringToEnd(...)` / `substrToEnd(...)` emit `substring(x, start + 1)` (relying on the now-optional `length` argument) instead of `substring(x, start + 1, len(x) - start)`.
+    - `currentDate()` emits the native `CURRENT_DATE` keyword introduced in SQL Server 2025, which returns a `date` value. On earlier versions it emits `cast(getdate() as date)` — also a proper `date`, matching the [`currentDate()`](../../api/connection.md) public API contract (the previous implementation emitted `getdate()`, which returns a `datetime` with the time portion).
+
+On older SQL Server versions, set `compatibilityVersion` to your actual version so the right emulation is chosen automatically. It is recommended to keep this value in sync with your real database version so future ts-sql-query releases that gate additional features on it pick the right behavior automatically.
 
 ```ts
 import { SqlServerConnection } from "ts-sql-query/connections/SqlServerConnection";

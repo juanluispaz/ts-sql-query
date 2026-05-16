@@ -14,7 +14,7 @@ import { View } from '../../View.js'
 import { assertEquals } from '../assertEquals.js'
 
 class DBConnection extends SqlServerConnection<'DBConnection'> {
-    override compatibilityVersion = 16_000_000
+    override compatibilityVersion = 15_000_000
     // insensitiveCollation = 'acs'
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
@@ -4699,8 +4699,47 @@ async function main() {
         .select(pickedFields9)
         .where(tCustomer.id.equals(12))
         .executeSelectMany()
-    
+
     assertEquals(customerWithOptionalCompany9, result)
+
+    /* *** Preparation ************************************************************/
+
+    result = []
+    expectedResult.push(result)
+    expectedQuery.push(`select iif(id > @0, id, @1) as idAtLeast, iif(id < @2, id, @3) as idAtMost, substring(first_name, @4, len(first_name) - @5) as nameFromIndex, substring(last_name, @6, len(last_name) - @7) as nameFromIndex2 from customer`)
+    expectedParams.push(`[5,5,100,100,3,2,3,2]`)
+    expectedType.push(`selectManyRows`)
+
+    /* *** Example ****************************************************************/
+
+    const customersWithMinMaxSubstring = await connection.selectFrom(tCustomer)
+        .select({
+            idAtLeast: tCustomer.id.minValue(5),
+            idAtMost: tCustomer.id.maxValue(100),
+            nameFromIndex: tCustomer.firstName.substringToEnd(2),
+            nameFromIndex2: tCustomer.lastName.substrToEnd(2)
+        })
+        .executeSelectMany()
+
+    assertEquals(customersWithMinMaxSubstring, result)
+
+    /* *** Preparation ************************************************************/
+
+    const todayDate = new Date()
+    todayDate.setUTCHours(0, 0, 0, 0)
+    result = todayDate
+    expectedResult.push(result)
+    expectedQuery.push(`select cast(getdate() as date) as [result]`)
+    expectedParams.push(`[]`)
+    expectedType.push(`selectOneColumnOneRow`)
+
+    /* *** Example ****************************************************************/
+
+    const today = await connection.selectFromNoTable()
+        .selectOneColumn(connection.currentDate())
+        .executeSelectOne()
+
+    assertEquals(today, result)
 
 }
 

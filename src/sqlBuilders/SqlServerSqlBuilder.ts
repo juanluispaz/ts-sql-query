@@ -666,7 +666,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return 'rtrim(' + this._appendSqlMaybeUuid(valueSource, params) + ')'
     }
     override _currentDate(): string {
-        return 'getdate()'
+        if (this._connectionConfiguration.compatibilityVersion >= 17_000_000) {
+            return 'current_date'
+        }
+        return 'cast(getdate() as date)'
     }
     override _currentTime(): string {
         return 'convert(time, current_timestamp)'
@@ -713,28 +716,18 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     override _minimumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const argumentType = this._getMathArgumentType(columnType, columnTypeName, value)
         const argumentTypeName = this._getMathArgumentTypeName(columnType, columnTypeName, value)
+        if (this._connectionConfiguration.compatibilityVersion >= 16_000_000) {
+            return 'least(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
+        }
         return 'iif(' + this._appendSql(valueSource, params, false) + ' < ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ', ' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
-        // Alternative implementation that avoid evaluate multiple times the arguments
-        // if (isColumn(valueSource) || !isValueSource(valueSource) || valueSource.isConstValue()) {
-        //     if (isColumn(value) || !isValueSource(value) || value.isConstValue()) {
-        //         // Both values are repeteables, then, we can use the sql that compare both values repeting them
-        //         return 'iif(' + this._appendSql(valueSource, params) + ' < ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter) + ')'
-        //     }
-        // }
-        // return '(select min(__minValue__) from (values (' + this._appendSql(valueSource, params) + '), (' + this._appendSql(valueSource, params) + ')) as __minValueTable__(__minValue__))'
     }
     override _maximumBetweenTwoValues(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const argumentType = this._getMathArgumentType(columnType, columnTypeName, value)
         const argumentTypeName = this._getMathArgumentTypeName(columnType, columnTypeName, value)
+        if (this._connectionConfiguration.compatibilityVersion >= 16_000_000) {
+            return 'greatest(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
+        }
         return 'iif(' + this._appendSql(valueSource, params, false) + ' > ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ', ' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter, false) + ')'
-        // Alternative implementation that avoid evaluate multiple times the arguments
-        // if (isColumn(valueSource) || !isValueSource(valueSource) || valueSource.getConstValue()) {
-        //     if (isColumn(value) || !isValueSource(value) || value.isConstValue()) {
-        //         // Both values are repeteables, then, we can use the sql that compare both values repeting them
-        //         return 'iif(' + this._appendSql(valueSource, params) + ' > ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter) + ', ' + this._appendSql(valueSource, params) + ', ' + this._appendValue(value, params, argumentType, argumentTypeName, typeAdapter) + ')'
-        //     }
-        // }
-        // return '(select max(__maxValue__) from (values (' + this._appendSql(valueSource, params) + '), (' + this._appendSql(valueSource, params) + ')) as __maxValueTable__(__maxValue__))'
     }
     override _getDate(params: any[], valueSource: ToSql): string {
         return 'datepart(day, ' + this._appendSql(valueSource, params, false) + ')'
@@ -802,6 +795,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return super._notIn(params, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
     override _substrToEnd(params: any[], valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (this._connectionConfiguration.compatibilityVersion >= 17_000_000) {
+            if (typeof value === 'number') {
+                return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ')'
+            } else {
+                return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1)'
+            }
+        }
         if (typeof value === 'number') {
             return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', len(' + this._appendSql(valueSource, params, false) +  ') - ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) +  ')'
         } else {
@@ -809,6 +809,13 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
     }
     override _substringToEnd(params: any[], valueSource: ToSql, value: any, _columnType: ValueType, _columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        if (this._connectionConfiguration.compatibilityVersion >= 17_000_000) {
+            if (typeof value === 'number') {
+                return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ')'
+            } else {
+                return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValueParenthesis(value, params, 'int', 'int', typeAdapter, false) + ' + 1)'
+            }
+        }
         if (typeof value === 'number') {
             return 'substring(' + this._appendSqlMaybeUuid(valueSource, params) + ', ' + this._appendValue(value + 1, params, 'int', 'int', typeAdapter, false) + ', len(' + this._appendSql(valueSource, params, false) +  ') - ' + this._appendValue(value, params, 'int', 'int', typeAdapter, false) +  ')'
         } else {

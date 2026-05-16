@@ -1111,7 +1111,16 @@ export class AbstractSqlBuilder implements SqlBuilder {
         }
         return result
     }
-    _insertSupportWith = true
+    /**
+     * Whether `INSERT` statements support a leading `WITH` clause (i.e. emit
+     * `WITH cte AS (...) INSERT INTO ...`). When `false`, any CTEs associated
+     * with the INSERT are not emitted at the INSERT level — engines that
+     * inline CTEs (e.g. MySQL before 8.0 via `_appendTableOrViewNameForFrom`)
+     * rely on that inlining to keep the resulting SQL valid.
+     */
+    _useInsertSupportWith(): boolean {
+        return true
+    }
     _buildInsertMultiple(query: InsertData, params: any[]): string {
         const multiple = query.__multiple
         if (!multiple) {
@@ -1134,7 +1143,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (customization && customization.beforeQuery) {
             insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
         }
-        if (this._insertSupportWith) {
+        if (this._useInsertSupportWith()) {
             insertQuery += this._buildWith(query, params)
         }
         insertQuery += 'insert '
@@ -1376,7 +1385,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (customization && customization.beforeQuery) {
             insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
         }
-        if (this._insertSupportWith) {
+        if (this._useInsertSupportWith()) {
             insertQuery += this._buildWith(query, params)
         }
         insertQuery += 'insert '
@@ -1454,7 +1463,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (customization && customization.beforeQuery) {
             insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
         }
-        if (this._insertSupportWith) {
+        if (this._useInsertSupportWith()) {
             insertQuery += this._buildWith(query, params)
         }
         insertQuery += 'insert '
@@ -1635,7 +1644,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
         if (customization && customization.beforeQuery) {
             insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
         }
-        if (this._insertSupportWith) {
+        if (this._useInsertSupportWith()) {
             insertQuery += this._buildWith(query, params)
         }
         insertQuery += 'insert '

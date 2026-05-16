@@ -20,7 +20,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._negate = true
     }
 
-    override _insertSupportWith = false
+    override _useInsertSupportWith(): boolean {
+        return false
+    }
     _getUuidStrategy(): 'string' | 'custom-functions' | 'built-in' {
         return this._connectionConfiguration.uuidStrategy as any || 'built-in'
     }
@@ -436,7 +438,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const returning = !!query.__idColumn || !!query.__columns
 
         let insertQuery = ''
-        if (this._insertSupportWith) {
+        if (this._useInsertSupportWith()) {
             insertQuery += this._buildWith(query, params)
         }
         if (returning) {
@@ -639,7 +641,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         if (customization && customization.beforeQuery) {
             insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
         }
-        if (this._insertSupportWith) {
+        if (this._useInsertSupportWith()) {
             insertQuery += this._buildWith(query, params)
         }
         insertQuery += 'insert '

@@ -802,9 +802,41 @@ async function main() {
             })
         )
         .executeInsert();
-    
+
     assertEquals(insertCustomersFromSelect, result)
-    
+
+    /* *** Preparation ************************************************************/
+
+    result = 1
+    expectedResult.push(result)
+    expectedQuery.push(`with sourceCustomers as (select first_name as firstName, last_name as lastName, company_id as companyId from customer where company_id = ?) insert into customer (first_name, last_name, company_id) select firstName as firstName, lastName as lastName, companyId as companyId from sourceCustomers`)
+    expectedParams.push(`[1]`)
+    expectedType.push(`insert`)
+
+    /* *** Example ****************************************************************/
+
+    const sourceCustomers = connection.selectFrom(tCustomer)
+        .where(tCustomer.companyId.equals(1))
+        .select({
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName,
+            companyId: tCustomer.companyId
+        })
+        .forUseInQueryAs('sourceCustomers')
+
+    const insertCustomersFromCte = await connection.insertInto(tCustomer)
+        .from(
+            connection.selectFrom(sourceCustomers)
+            .select({
+                firstName: sourceCustomers.firstName,
+                lastName: sourceCustomers.lastName,
+                companyId: sourceCustomers.companyId
+            })
+        )
+        .executeInsert();
+
+    assertEquals(insertCustomersFromCte, result)
+
     /* *** Preparation ************************************************************/
 
     result = 1

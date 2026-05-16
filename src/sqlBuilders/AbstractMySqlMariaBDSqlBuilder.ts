@@ -20,7 +20,6 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._getDate = true
         this._operationsThatNeedParenthesis._getMonth = true
     }
-    override _insertSupportWith = false
     override _forceAsIdentifier(identifier: string): string {
         return '`' + identifier + '`'
     }

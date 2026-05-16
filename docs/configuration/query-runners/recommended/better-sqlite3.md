@@ -10,6 +10,12 @@ This runner provides integration with the [better-sqlite3](https://www.npmjs.com
 
     - [SQLite](../../supported-databases/sqlite.md)
 
+!!! info "Tested with"
+
+    [better-sqlite3](https://www.npmjs.com/package/better-sqlite3) `^12.9.0`
+
+    This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
+
 !!! tip
 
     better-sqlite3 supports synchronous query execution. See the [Synchronous query runners](../../../advanced/synchronous-query-runners.md) for more information.

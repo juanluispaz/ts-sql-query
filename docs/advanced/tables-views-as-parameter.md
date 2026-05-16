@@ -14,7 +14,7 @@ These types accept the referenced table or view as the first generic argument, a
 To access the columns of the table or view, you need to convert the reference into an actual instance using the `fromRef` function. The first argument is the table or view (or its class), and the second is the reference object.
 
 ```ts
-import { fromRef, TableOrViewLeftJoinOf, TableOrViewOf } from 'ts-sql-query/extras/types';
+import { fromRef, TableOrViewLeftJoinOf, TableOrViewOf } from 'ts-sql-query' // or 'ts-sql-query/extras/types';
 
 function buildNumberOfCustomersSubquery<COMPANY extends TableOrViewOf<typeof tCompany, 'company'>>(connection: DBConnection, companyRef: COMPANY) {
     const company = fromRef(tCompany, companyRef);

@@ -40,17 +40,65 @@ Install in [Bun](https://bun.com):
 $ bun install ts-sql-query
 ```
 
-ts-sql-query doesn't expose a global export; instead, you need import specific files refered in this documentation according to the functionality you need. Only the files included in this documentation are considered public; then, don't reference explicitly files outside of the following:
+ts-sql-query is an ESM-only package and requires Node.js 22 or newer. The public API is the **enumerated** list of subpaths declared in the package's `exports` map. Any path not in that list — including abstract base classes, internal utilities, and helpers used to build custom runners — fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`.
+
+**Root entry (aggregated, cross-database use)**: a single `import 'ts-sql-query'` re-exports the cross-database surface: the entry points listed below (except where noted), the `extras/types` and `extras/utils` symbols, and the dynamic-condition helpers. Database-specific symbols (per-database `Connection`s, every `QueryRunner` implementation, and `IDEncrypter`) are intentionally **not** included in the root entry — you import them directly from their subpath, which keeps the import line database-aware.
+
+```ts
+// Cross-database, from the root entry
+import { Table, Values, CustomBooleanTypeAdapter, dynamicPick,
+         extractColumnsFrom, type Connection, type SelectedRow } from 'ts-sql-query'
+
+// Database-specific, from the subpath
+import { PostgreSqlConnection } from 'ts-sql-query/connections/PostgreSqlConnection'
+import { PgPoolQueryRunner }    from 'ts-sql-query/queryRunners/PgPoolQueryRunner'
+```
+
+**Subpath entry points** (also available individually):
+
 - `ts-sql-query/Connection`
 - `ts-sql-query/Table`
-- `ts-sql-query/TypeAdapter`
 - `ts-sql-query/View`
-- `ts-sql-query/connections/*`
-- `ts-sql-query/extras/*`
-- `ts-sql-query/queryRunners/*`
+- `ts-sql-query/TypeAdapter`
+- `ts-sql-query/Values`
+- `ts-sql-query/TsSqlError`
 - `ts-sql-query/dynamicCondition`
 
-Any reference to a file outside of the previous list can change at any moment.
+**Public connections** (one per supported database, plus `SqliteConfiguration`, which exports the `SqliteDateTimeFormat` and `SqliteDateTimeFormatType` type literals used to declare how SQLite stores dates/times — see [docs/configuration/supported-databases/sqlite.md](docs/configuration/supported-databases/sqlite.md)):
+
+- `ts-sql-query/connections/MariaDBConnection`
+- `ts-sql-query/connections/MySqlConnection`
+- `ts-sql-query/connections/OracleConnection`
+- `ts-sql-query/connections/PostgreSqlConnection`
+- `ts-sql-query/connections/SqlServerConnection`
+- `ts-sql-query/connections/SqliteConfiguration`
+- `ts-sql-query/connections/SqliteConnection`
+
+**Public query runners** (one subpath per file in `src/queryRunners/` that has its own documentation page — covers every supported driver plus the general-purpose runners `MockQueryRunner`, `NoopQueryRunner`, `ConsoleLogQueryRunner`, `ConsoleLogNoopQueryRunner`, `InterceptorQueryRunner`, `LoggingQueryRunner`, and the `QueryRunner` interface module). The full list is in the [`exports` field of `package.json`](package.json).
+
+**Public extras:**
+
+- `ts-sql-query/extras/IDEncrypter`
+- `ts-sql-query/extras/types`
+- `ts-sql-query/extras/utils`
+
+TypeScript consumers must use `moduleResolution: "node16"`, `"nodenext"` or `"bundler"` for these subpaths to resolve.
+
+### Escape hatch for advanced use cases
+
+If you need to reach into anything that isn't on the public list — abstract base classes (`AbstractSqlBuilder`, `AbstractQueryRunner`, `ManagedTransactionQueryRunner`, …), the per-database error mappers under `queryRunners/databaseErrorMappers/`, the expression/builder internals, etc. — every file in the package remains importable under the `ts-sql-query/unsupported/<original/path>` prefix:
+
+```ts
+// Public, stable
+import { Table } from 'ts-sql-query' // or 'ts-sql-query/Table'
+
+// Unsupported, no stability guarantees
+import { AbstractSqlBuilder } from 'ts-sql-query/unsupported/sqlBuilders/AbstractSqlBuilder'
+import { ManagedTransactionQueryRunner } from 'ts-sql-query/unsupported/queryRunners/ManagedTransactionQueryRunner'
+import { PostgresErrorMapper } from 'ts-sql-query/unsupported/queryRunners/databaseErrorMappers/PostgresErrorMapper'
+```
+
+Anything imported through `unsupported/` may change, break or disappear in any release, including patch releases. The `unsupported/` prefix is mandatory — the natural paths (e.g. `ts-sql-query/sqlBuilders/...`) remain blocked.
 
 ## Documentation
 

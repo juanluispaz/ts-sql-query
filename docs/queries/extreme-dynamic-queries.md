@@ -152,7 +152,7 @@ const searchedCustomers: Promise<{
 You can create a dynamic condition for use in a where (for example). In these dynamic conditions, the criteria are provided as an object. Another system, like the user interface, may fill the criteria object. The provided criteria object is translated to the corresponding SQL. To use this feature, you must call the method `dynamicConditionFor` from the connection; this method receives a map where the key is the name that the external system is going to use to refer to the field and the value is the corresponding value source to be used in the query. The `dynamicConditionFor` method returns an object that contains the method `withValues` that receives the criteria provided to the external system.
 
 ```ts
-import { DynamicCondition } from "ts-sql-query/dynamicCondition"
+import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamicCondition"
 
 const selectFields = {
     id: tCustomer.id,
@@ -356,7 +356,7 @@ Sometimes you need to extend the available rules used in dynamic conditions to p
 You can create a select where the caller can conditionally pick the columns that want to be returned (like in GraphQL)
 
 ```ts
-import { dynamicPick, dynamicPickPaths } from "ts-sql-query/dynamicCondition"
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamicCondition"
 
 const availableFields = {
     firstName: tCustomer.firstName,
@@ -455,7 +455,7 @@ The `fieldsToPick` object defines all the properties that will be included, and 
     This feature offers you the most extreme form of modification over the queries but the hardest one to figure out the consequences because the columns can disappear. Try to use first [Ignorable expression as null](../queries/dynamic-queries.md#ignorable-expression-as-null) instead of this feature where the structure of the columns is kept as is, and you will be able to reason over your queries more easily.
 
 ```ts
-import { dynamicPick, dynamicPickPaths } from "ts-sql-query/dynamicCondition"
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamicCondition"
 
 const availableFields = {
     id: tCustomer.id,
@@ -643,7 +643,7 @@ The parameters are: `[ 12 ]`
 Sometimes you want to allow access to a value only under some circumstances, such as when you want a column in a dynamic select to be available only if the user has permissions. For this, you can call the function `allowWhen`, indicating as the first argument if it is allowed to use this value, and as the second argument, an error or text's error that will be thrown if the value is used in the generated query. Additionally, there is the `disallowWhen` that is analogous to `allowWhen`, but the boolean received as an argument indicates when the value is disallowed.
 
 ```ts
-import { dynamicPick, dynamicPickPaths } from "ts-sql-query/dynamicCondition"
+import { dynamicPick, dynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamicCondition"
 
 const birthdayVisible = false
 
@@ -753,7 +753,7 @@ An error will be thrown with the message "_You don't have permission to see the 
 ## Select using a dynamic filter with complex projections
 
 ```ts
-import { DynamicCondition } from "ts-sql-query/dynamicCondition"
+import { DynamicCondition } from "ts-sql-query" // or "ts-sql-query/dynamicCondition"
 
 type QueryFilterType = DynamicCondition<{
     id: 'int',
@@ -955,7 +955,7 @@ See [Select using a dynamic filter](#select-using-a-dynamic-filter) and [Dynamic
 ## Select dynamically picking columns with complex projections
 
 ```ts
-import { dynamicPick } from "ts-sql-query/dynamicCondition"
+import { dynamicPick } from "ts-sql-query" // or "ts-sql-query/dynamicCondition"
 
 const availableFields = {
     id: tCustomer.id,

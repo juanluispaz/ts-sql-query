@@ -63,7 +63,7 @@ You can control how a value is sent and received from the database. For that pur
 **Example**: Imagine you want to store an RGB colour as a single number in the database, but in your application, you want to handle it as an object with R, G & B properties as a number. You can define a type adapter as:
 
 ```ts
-import { DefaultTypeAdapter, TypeAdapter } from "ts-sql-query/TypeAdapter"
+import { DefaultTypeAdapter, TypeAdapter } from "ts-sql-query" // or "ts-sql-query/TypeAdapter"
 
 interface RgbColor {r: number, g: number, b: number}
 

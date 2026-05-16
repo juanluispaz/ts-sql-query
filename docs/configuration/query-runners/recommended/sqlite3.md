@@ -10,6 +10,12 @@ This runner provides integration with the [sqlite3](https://www.npmjs.com/packag
 
     - [SQLite](../../supported-databases/sqlite.md)
 
+!!! info "Tested with"
+
+    [sqlite3](https://www.npmjs.com/package/sqlite3) `^6.0.1`
+
+    This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.

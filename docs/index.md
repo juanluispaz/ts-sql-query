@@ -77,18 +77,28 @@ Install in [Bun](https://bun.com):
 $ bun install ts-sql-query
 ```
 
-`ts-sql-query` does not expose a global export. Instead, you should import specific modules as described in the documentation, depending on the features you need. Only the modules listed below are considered part of the public API — avoid importing from any other internal paths, as they may change without prior notice:
+`ts-sql-query` is an ESM-only package and requires Node.js 22 or newer. The set of importable paths is enforced by the `exports` map in `package.json`; anything not declared there fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. TypeScript consumers must use `moduleResolution: "node16"`, `"nodenext"` or `"bundler"`.
 
-- `ts-sql-query/Connection`
-- `ts-sql-query/Table`
-- `ts-sql-query/TypeAdapter`
-- `ts-sql-query/View`
-- `ts-sql-query/connections/*`
-- `ts-sql-query/extras/*`
-- `ts-sql-query/queryRunners/*`
-- `ts-sql-query/dynamicCondition`
+Two ways to import:
 
-Any reference to a file outside of the previous list can change at any moment.
+- **Aggregated root entry** for cross-database use:
+  ```ts
+  import { Table, Values, CustomBooleanTypeAdapter, dynamicPick,
+           extractColumnsFrom, type Connection, type SelectedRow } from 'ts-sql-query'
+  ```
+  Re-exports the cross-database surface (everything from `Connection`, `Table`, `View`, `TypeAdapter`, `Values`, `TsSqlError`, `dynamicCondition`, `extras/types` and `extras/utils`). Database-specific symbols are intentionally not re-exported here.
+
+- **Per-feature subpaths** for database-specific imports (each connection, each query runner, `IDEncrypter`) — for example:
+  ```ts
+  import { PostgreSqlConnection } from 'ts-sql-query/connections/PostgreSqlConnection'
+  import { PgPoolQueryRunner }    from 'ts-sql-query/queryRunners/PgPoolQueryRunner'
+  ```
+
+The complete enumerated list of public subpaths lives in the [`exports` field of `package.json`](https://github.com/juanluispaz/ts-sql-query/blob/master/package.json) and in the [project README](https://github.com/juanluispaz/ts-sql-query#install). Abstract base classes, transaction utility runners, error mappers and the internals (`internal/`, `expressions/`, `queryBuilders/`, `sqlBuilders/`, `utils/`, `complexProjections/`) are deliberately not part of the public API.
+
+!!! warning "Escape hatch"
+
+    Anything not listed in the public API can still be imported through the `ts-sql-query/unsupported/<original/path>` prefix as an explicit, opt-in escape hatch (for custom dialects, plugins or debugging). Paths under `unsupported/` carry **no stability guarantees** and may change, break or disappear in any release, including patch releases.
 
 ## Related projects
 

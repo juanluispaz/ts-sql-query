@@ -4,6 +4,24 @@ search:
 ---
 # Change Log
 
+## v2.0.0-alpha.4 (unreleased)
+
+**Breaking changes**:
+
+- ts-sql-query is now an **ESM-only** package. CommonJS consumers must migrate to ESM or load it via dynamic `import()`. The package no longer ships a CJS build.
+- Minimum supported Node.js version is now **22**.
+- The set of importable subpaths is now enforced by an `exports` map in `package.json` and is **enumerated explicitly** — each public file is listed by name. Concrete classes that have a documentation page (the 7 root entries, the 7 per-database connections, the runners for each supported driver, the general-purpose runners `Mock`/`Noop`/`ConsoleLog`/`ConsoleLogNoop`/`Interceptor`/`Logging`, the `QueryRunner` interface module, and the 3 `extras/*` files) are public. **Everything else** — abstract base classes (`AbstractConnection`, `AbstractSqlBuilder`, `AbstractQueryRunner`, …), the `NoopDBConnection`, the transaction utility runners (`ManagedTransactionQueryRunner`, `ManagedTransactionPoolQueryRunner`, `SqlTransactionQueryRunner`, `DelegatedSetTransactionQueryRunner`, `ChainedQueryRunner`), the per-database error mappers under `queryRunners/databaseErrorMappers/`, and the internals under `internal/`, `expressions/`, `queryBuilders/`, `sqlBuilders/`, `utils/`, `complexProjections/` — fails with `ERR_PACKAGE_PATH_NOT_EXPORTED`. As an escape hatch for advanced use cases (custom dialects, plugins, debugging), any internal file can still be imported via the `ts-sql-query/unsupported/<original/path>` prefix — these paths have **no stability guarantees**: they may change, break or disappear in any release, including patch releases.
+- The package now exposes an **aggregated root entry** (`import 'ts-sql-query'`) that re-exports the cross-database public surface (the symbols from `Connection`, `Table`, `View`, `TypeAdapter`, `Values`, `TsSqlError`, `dynamicCondition`, `extras/types` and `extras/utils`). Database-specific symbols — per-database `Connection`s, every `QueryRunner` implementation, and `IDEncrypter` — are intentionally not re-exported: they must be imported from their subpath so the import line stays database-aware. In v1 the root entry was not supported at all; in early v2 alphas it was blocked by the `exports` map; this restores it in a controlled, cross-database-only form.
+- TypeScript consumers must use `moduleResolution: "node16"`, `"nodenext"` or `"bundler"` to resolve the subpath exports.
+
+**Internal changes**:
+
+- Update to TypeScript 6.
+- Update to Prisma 7.
+- Update pipeline to remove End-of-Life Node versions; ts-sql-query now requires Node 22 or newer and is tested against Node 22, 24 and 26.
+- Build now uses a dedicated `tsconfig.build.json` that excludes `src/examples`, so the published package no longer contains example sources.
+- Removed the obsolete `.npmignore`; the published file set is now controlled by the `files` field in `package.json`.
+
 ## v2.0.0-alpha.3 (14 Jun 2025)
 
 **Changes**:

@@ -10,6 +10,12 @@ This page explains how to use `ts-sql-query` with the [postgres.js](https://gith
 
     - [PostgreSQL](../../supported-databases/postgresql.md)
 
+!!! info "Tested with"
+
+    [postgres](https://www.npmjs.com/package/postgres) `^3.4.9`
+
+    This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.

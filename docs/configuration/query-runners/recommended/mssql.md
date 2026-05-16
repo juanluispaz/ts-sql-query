@@ -10,6 +10,12 @@ This page explains how to use `ts-sql-query` with the [mssql](https://www.npmjs.
 
     - [SQL Server](../../supported-databases/sqlserver.md)
 
+!!! info "Tested with"
+
+    [mssql](https://www.npmjs.com/package/mssql) `^12.5.0`
+
+    This information reflects the driver version pinned in this project's `devDependencies` and exercised by the CI suite. Other compatible versions may work but are not actively tested.
+
 !!! warning "Do not share connections between requests"
 
     A `ts-sql-query` connection object — along with the query runner instances passed to its constructor — represents a **dedicated connection** to the database.

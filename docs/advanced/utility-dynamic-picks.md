@@ -25,7 +25,7 @@ When building a query with dynamic column selection (using `dynamicPick` or `dyn
 Returns a new object including only the properties in `availableFields` that are marked as `true` in `fieldsToPick`. Nested objects are also supported.
 
 ```ts
-import { dynamicPick } from 'ts-sql-query/dynamicCondition';
+import { dynamicPick } from 'ts-sql-query' // or 'ts-sql-query/dynamicCondition';
 
 const availableFields = {
     firstName: tCustomer.firstName,
@@ -53,7 +53,7 @@ const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id']);
 Like `dynamicPick`, but instead of a shape object, you provide an array of property names or paths (e.g. `'name.firstName'`).
 
 ```ts
-import { dynamicPickPaths } from 'ts-sql-query/dynamicCondition';
+import { dynamicPickPaths } from 'ts-sql-query' // or 'ts-sql-query/dynamicCondition';
 
 const pickedFields = dynamicPickPaths(availableFields, ['firstName', 'birthday'], ['id'])
 ```
@@ -74,7 +74,7 @@ These utility types help ensure proper typing when defining dynamic picks or ret
 Use this type to define the shape of a `fieldsToPick` object, where the user sets `true` to include each field.
 
 ```ts
-import { DynamicPick } from 'ts-sql-query/dynamicCondition';
+import { DynamicPick } from 'ts-sql-query' // or 'ts-sql-query/dynamicCondition';
 
 type FieldsToPick = DynamicPick<typeof availableFields, 'firstName' | 'birthday'>
 ```
@@ -86,7 +86,7 @@ type FieldsToPick = DynamicPick<typeof availableFields, 'firstName' | 'birthday'
 Use this type when your fields are selected by path strings (e.g. `'name.firstName'`).
 
 ```ts
-import { DynamicPickPaths } from 'ts-sql-query/dynamicCondition';
+import { DynamicPickPaths } from 'ts-sql-query' // or 'ts-sql-query/dynamicCondition';
 
 type FieldsToPickList = DynamicPickPaths<typeof availableFields, 'firstName' | 'birthday'>
 ```
@@ -98,7 +98,7 @@ type FieldsToPickList = DynamicPickPaths<typeof availableFields, 'firstName' | '
 Use this type to infer the result of a query that dynamically selects a subset of fields. The output will include **only** the selected fields.
 
 ```ts
-import { PickValuesPath } from 'ts-sql-query/dynamicCondition';
+import { PickValuesPath } from 'ts-sql-query' // or 'ts-sql-query/dynamicCondition';
 
 type ResultType = PickValuesPath<typeof availableFields, 'firstName' | 'birthday'>
 ```
@@ -113,7 +113,7 @@ type ResultType = PickValuesPath<typeof availableFields, 'firstName' | 'birthday
 Similar to `PickValuesPath`, but includes **all** properties from the original object: selected ones as required, and unselected ones as optional.
 
 ```ts
-import { PickValuesPathWitAllProperties } from 'ts-sql-query/dynamicCondition';
+import { PickValuesPathWitAllProperties } from 'ts-sql-query' // or 'ts-sql-query/dynamicCondition';
 
 type ResultType = PickValuesPathWitAllProperties<typeof availableFields, 'firstName' | 'birthday'>
 ```
@@ -145,7 +145,7 @@ To achieve that, use the function `expandTypeFromDynamicPickPaths` from `ts-sql-
 ### Creating definitions based on your database types
 
 ```ts
-import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query/dynamicCondition"
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths, DynamicPickPaths, PickValuesPath } from "ts-sql-query" // or "ts-sql-query/dynamicCondition"
 
 const customerInformationFields = {
     id: tCustomer.id,
@@ -173,7 +173,7 @@ async function getCustomersInformation<FIELDS extends CustomerInformationFields>
 ### Creating definitions based on your business types
 
 ```ts
-import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query/dynamicCondition"
+import { dynamicPickPaths, expandTypeFromDynamicPickPaths } from "ts-sql-query" // or "ts-sql-query/dynamicCondition"
 
 interface CustomerInformation {
     id: number;

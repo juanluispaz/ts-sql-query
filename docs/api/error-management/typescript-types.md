@@ -16,7 +16,7 @@ import {
   TsSqlInternalErrorReason,
   TsSqlProcessingError,
   TsSqlQueryExecutionError,
-} from "ts-sql-query/TsSqlError";
+} from "ts-sql-query" // or "ts-sql-query/TsSqlError";
 ```
 
 ## Database Error Metadata Types

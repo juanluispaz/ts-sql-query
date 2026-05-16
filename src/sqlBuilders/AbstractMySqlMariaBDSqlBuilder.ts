@@ -332,6 +332,15 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
+    // MySQL/MariaDB use comma-separated joins after the target table (emitted via
+    // `_buildAfterUpdateTable`), not the standard `FROM <joins>` clause; neither
+    // engine supports the PostgreSQL-style `FROM (subquery)` trick used by the
+    // abstract builder to capture old values. Set this to `false` so the abstract
+    // skips the `_new_` aliasing of the target table (which only makes sense when
+    // paired with that subquery) and the unused `requiredTables`/`requiredColumns`
+    // computation. MariaDB 13.0.1+ uses the native `OLD_VALUE(col)` function for
+    // old-value references instead, handled in `MariaDBSqlBuilder`.
+    override _updateOldValueInFrom = false
     override _buildUpdateFrom(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: Set<AnyTableOrView> | undefined, _requiredColumns: Set<DBColumn> | undefined, _params: any[]): string {
         return ''
     }

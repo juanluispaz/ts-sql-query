@@ -6,6 +6,7 @@ import { flattenQueryColumns } from './SqlBuilder.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 import type { DBColumn } from '../utils/Column.js'
 import { __getColumnPrivate } from '../utils/Column.js'
+import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mariaDB: true = true
@@ -47,6 +48,20 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
             return 'value(' + this._escape(columnPrivate.__name, true) + ')'
         }
         return super._appendRawColumnNameForValuesForInsert(column, _params)
+    }
+    override _appendRawColumnName(column: DBColumn, params: any[]): string {
+        // MariaDB 13.0.1 added UPDATE ... RETURNING with the OLD_VALUE(col) function
+        // (MDEV-5092) to reference a column's value from before the update; bare
+        // column references inside RETURNING already return the post-update value,
+        // so no special handling is needed for the new-value side.
+        if (this._connectionConfiguration.compatibilityVersion >= 13_000_001) {
+            const columnPrivate = __getColumnPrivate(column)
+            const tableOrView = columnPrivate.__tableOrView
+            if (__getTableOrViewPrivate(tableOrView).__oldValues) {
+                return 'old_value(' + this._escape(columnPrivate.__name, true) + ')'
+            }
+        }
+        return super._appendRawColumnName(column, params)
     }
     override _buildInsertReturning(query: InsertData, params: any[]): string {
         if (this._connectionConfiguration.compatibilityVersion >= 10_005_000 || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {

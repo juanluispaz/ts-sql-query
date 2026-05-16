@@ -11,10 +11,17 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
     /**
      * Minimum MariaDB version the generated SQL must support, encoded as
      * `major * 1_000_000 + minor * 1_000 + patch` (e.g. `10_005_000` for
-     * MariaDB 10.5.0, `10_003_003` for MariaDB 10.3.3). Defaults to
-     * `Number.POSITIVE_INFINITY` (latest).
+     * MariaDB 10.5.0, `10_003_003` for MariaDB 10.3.3, `13_000_001` for
+     * MariaDB 13.0.1). Defaults to `Number.POSITIVE_INFINITY` (latest).
      *
      * Recognised breakpoints:
+     * - `>= 13_000_001`: column references on a table-or-view returned by
+     *   `.oldValues()` are emitted as `OLD_VALUE(col)` inside `UPDATE ... RETURNING`
+     *   (added in MariaDB 13.0.1 via MDEV-5092). Bare column references on the
+     *   updated table continue to mean the post-update value inside `RETURNING`,
+     *   so a single statement can return both old and new values. Note: MariaDB
+     *   only supports `RETURNING` on single-table `UPDATE`s; referencing old
+     *   values of joined tables is not supported by the engine.
      * - `>= 10_005_000`: the `RETURNING` clause (supported on `INSERT` and
      *   `DELETE` since MariaDB 10.5) is emitted on `INSERT` to retrieve the
      *   last inserted id directly from the statement. Below this breakpoint,

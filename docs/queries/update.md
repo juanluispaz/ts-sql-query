@@ -82,7 +82,7 @@ const updateCustomer: Promise<number>
 
 ## Update returning
 
-If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), modern [SQLite](../configuration/supported-databases/sqlite.md), [SQL Server](../configuration/supported-databases/sqlserver.md) or [Oracle](../configuration/supported-databases/oracle.md), you can return updated values of the updated record in the same query using the `returning` or `returningOneColumn` methods.
+If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), modern [SQLite](../configuration/supported-databases/sqlite.md), modern [MariaDB](../configuration/supported-databases/mariadb.md), [SQL Server](../configuration/supported-databases/sqlserver.md) or [Oracle](../configuration/supported-databases/oracle.md), you can return updated values of the updated record in the same query using the `returning` or `returningOneColumn` methods.
 
 ```ts
 const updatedSmithFirstName = connection.update(tCustomer)
@@ -98,10 +98,10 @@ The executed query is:
 
 === "MariaDB"
     ```mariadb
-    --
-    --
-    -- MariaDB doesn't support update returning values
-    --
+    update customer 
+    set first_name = ? 
+    where id = ? 
+    returning first_name as result
     ```
 === "MySQL"
     ```mysql
@@ -161,7 +161,7 @@ Aditionally, if you want to return the value of a single column, you can use `re
 
 ## Update returning old values
 
-If you are using [SQL Server](../configuration/supported-databases/sqlserver.md) or [PostgreSQL](../configuration/supported-databases/postgresql.md) (emulated in a single query, the table must have a primary key), you can return previous values of the updated record in the same query; to do this, you can create a reference to the old values of the table calling `myTable.oldValues()` and then use it in the returning clause.
+If you are using [SQL Server](../configuration/supported-databases/sqlserver.md), modern [MariaDB](../configuration/supported-databases/mariadb.md) or [PostgreSQL](../configuration/supported-databases/postgresql.md) (emulated in a single query, the table must have a primary key), you can return previous values of the updated record in the same query; to do this, you can create a reference to the old values of the table calling `myTable.oldValues()` and then use it in the returning clause.
 
 ```ts
 const oldCustomerValues = tCustomer.oldValues()
@@ -181,12 +181,12 @@ The executed query is:
 
 === "MariaDB"
     ```mariadb
-    --
-    --
-    --
-    -- MariaDB doesn't support update returning values
-    --
-    --
+    update customer 
+    set last_name = ? 
+    where id = ? 
+    returning 
+        old_value(last_name) as oldLastName, 
+        last_name as newLastName
     ```
 === "MySQL"
     ```mysql

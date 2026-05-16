@@ -519,14 +519,14 @@ export interface CustomizableExecutableUpdateProjectableAsNullable</*in|out*/ TA
 }
 
 type ReturningFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
-    TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'oracle'>
+    TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'oracle' | 'mariaDB'>
     ? <COLUMNS extends UpdateReturningColumns<USING[typeof source] | NOldValuesFrom<TABLE[typeof source]>>>(columns: COLUMNS) => CustomizableExecutableUpdateProjectableAsNullable<TABLE, USING, COLUMNS>
     : TABLE extends OfDB<'sqlite'>
     ? <COLUMNS extends UpdateReturningColumns<TABLE[typeof source] | NNoTableOrViewRequiredFrom<TABLE[typeof source]>>>(columns: COLUMNS) => CustomizableExecutableUpdateProjectableAsNullable<TABLE, USING, COLUMNS>
     : never
 
 type ReturningOneColumnFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
-    TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'oracle'>
+    TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'oracle' | 'mariaDB'>
     ? <COLUMN extends ValueSourceOf<USING[typeof source] | NOldValuesFrom<TABLE[typeof source]>>>(column: COLUMN) => CustomizableExecutableUpdateReturning<TABLE, USING, COLUMN, ValueSourceValueTypeForResult<COLUMN>>
     : TABLE  extends OfDB<'sqlite'>
     ? <COLUMN extends ValueSourceOf<TABLE[typeof source] | NNoTableOrViewRequiredFrom<TABLE[typeof source]>> | NOldValuesFrom<TABLE[typeof source]>>(column: COLUMN) => CustomizableExecutableUpdateReturning<TABLE, USING, COLUMN, ValueSourceValueTypeForResult<COLUMN>>

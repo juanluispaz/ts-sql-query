@@ -44,10 +44,10 @@ export class MySql2PoolQueryRunner extends ManagedTransactionPoolQueryRunner {
         (queryRunner.getNativeRunner() as PoolConnection).release()
     }
 
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return MySql2QueryRunner.getErrorReason(error, this.database)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return MySql2QueryRunner.isSqlError(error)
     }
 

@@ -13,7 +13,7 @@ import { View } from '../../View.js'
 import { assertEquals } from '../assertEquals.js'
 
 class DBConnection extends MariaDBConnection<'DBConnection'> { 
-    protected alwaysUseReturningClauseWhenInsert = true
+    protected override alwaysUseReturningClauseWhenInsert = true
     // insensitiveCollation = 'acs'
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(

@@ -31,7 +31,7 @@ class DBConnection extends SqlServerConnection<'DBConnection'> {
         return this.updateAllowingNoWhere(tCompany).set({name: tCompany.name.concat(aditional)}).executeUpdate()
     }
 
-    protected transformValueFromDB(value: unknown, type: string): unknown {
+    protected override transformValueFromDB(value: unknown, type: string): unknown {
         if (type === 'localDateTime' && typeof value === 'string' && isDateTimeWithoutTimezone(value)) {
             return super.transformValueFromDB(value + 'Z', type)
         }

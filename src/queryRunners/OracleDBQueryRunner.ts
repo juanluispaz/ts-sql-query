@@ -39,7 +39,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.connection.execute(query, params).then((result) => result.rowsAffected || 0)
     }
-    protected executeMutationReturning(query: string, params: any[] = []): Promise<any[]> {
+    protected override executeMutationReturning(query: string, params: any[] = []): Promise<any[]> {
         return this.connection.execute(query, params).then((result) => {
             return this.processOutBinds(params, result.outBinds)
         })
@@ -54,7 +54,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     doRollback(_opts: RollbackOpts): Promise<void> {
         return this.connection.rollback()
     }
-    validateIntransaction(): boolean {
+    override validateIntransaction(): boolean {
         // Do not validate if in transaction due automatic in transaction oracle's hehaviour
         return false
     }
@@ -63,7 +63,7 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         params.push(value)
         return ':' + index
     }
-    addOutParam(params: any[], name: string): string {
+    override addOutParam(params: any[], name: string): string {
         const index = params.length
         if (name) {
             params.push({dir: oracleDb.BIND_OUT, as: name})
@@ -129,10 +129,10 @@ export class OracleDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         return result
     }
     
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return OracleDBQueryRunner.getErrorReason(error)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return OracleDBQueryRunner.isSqlError(error)
     }
 

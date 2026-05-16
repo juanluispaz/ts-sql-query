@@ -12,20 +12,20 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     _getUuidStrategy(): 'string' | 'binary' {
         return this._connectionConfiguration.uuidStrategy as any || 'binary'
     }
-    _isReservedKeyword(word: string): boolean {
+    override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
-    _buildInsertReturning(_query: InsertData, params: any[]): string {
+    override _buildInsertReturning(_query: InsertData, params: any[]): string {
         this._setContainsInsertReturningClause(params, false)
         return ''
     }
-    _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (__isUuidValueType(columnType) && this._getUuidStrategy() === 'binary') {
             return 'uuid_to_bin(' + super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
         }
         return super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
+    override _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._getUuidStrategy() === 'binary') {
             if (__isUuidValueSource(__getValueSourcePrivate(value))) {
                 return 'bin_to_uuid(' + this._appendSql(value, params, false) + ')'
@@ -33,7 +33,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
         return this._appendSql(value, params, false)
     }
-    _asString(params: any[], valueSource: ToSql): string {
+    override _asString(params: any[], valueSource: ToSql): string {
         // Transform an uuid to string
         if (this._getUuidStrategy() === 'string') {
             // No conversion required
@@ -41,7 +41,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
         return 'bin_to_uuid(' + this._appendSql(valueSource, params, false) + ')'
     }
-    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
+    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'binary') {
@@ -69,7 +69,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
             return 'json_arrayagg(' +  distict + 'json_object(' + result + '))'
         }
     }
-    _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
+    override _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'binary') {
                 return 'json_arrayagg(bin_to_uuid(a_' + aggregateId + '_.result))'
@@ -97,14 +97,14 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
     }
 
-    _buildWith(withData: WithQueryData, params: any[]): string {
+    override _buildWith(withData: WithQueryData, params: any[]): string {
         if (this._connectionConfiguration.compatibilityMode) {
             // No with should be generated
             return ''
         }
         return super._buildWith(withData, params)
     }
-    _appendTableOrViewNameForFrom(table: AnyTableOrView, params: any[]): string {
+    override _appendTableOrViewNameForFrom(table: AnyTableOrView, params: any[]): string {
         if (this._connectionConfiguration.compatibilityMode) {
             // The with clause must be expanded inline when it is required
             if (hasWithData(table)) {
@@ -120,7 +120,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         }
         return super._appendTableOrViewNameForFrom(table, params)
     }
-    _appendTableOrViewNoAliasForFrom(table: AnyTableOrView, params: any[]): string {
+    override _appendTableOrViewNoAliasForFrom(table: AnyTableOrView, params: any[]): string {
         if (this._connectionConfiguration.compatibilityMode) {
             // The with name must be used as alias
             if (hasWithData(table)) {
@@ -130,7 +130,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
 
         return super._appendTableOrViewNoAliasForFrom(table, params)
     }
-    _setSafeTableOrView(params: any[], tableOrView: AnyTableOrView | undefined): void {
+    override _setSafeTableOrView(params: any[], tableOrView: AnyTableOrView | undefined): void {
         if (this._connectionConfiguration.compatibilityMode) {
             // The inline query alias (from the with) always requires explicit name
             if (hasWithData(tableOrView)) {

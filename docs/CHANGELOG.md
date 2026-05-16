@@ -16,6 +16,7 @@ search:
 
 **Internal changes**:
 
+- Enable the TypeScript `noImplicitOverride` compiler flag. Members of subclasses that override a base-class member now require the `override` modifier — this is internal to the library, but documentation snippets that subclass a `Connection` have been updated to match.
 - Update to TypeScript 6.
 - Update to Prisma 7.
 - Update pipeline to remove End-of-Life Node versions; ts-sql-query now requires Node 22 or newer and is tested against Node 22, 24 and 26.

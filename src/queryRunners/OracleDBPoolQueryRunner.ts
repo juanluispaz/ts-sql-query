@@ -28,7 +28,7 @@ export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
         params.push(value)
         return ':' + index
     }
-    addOutParam(params: any[], name: string): string {
+    override addOutParam(params: any[], name: string): string {
         const index = params.length
         if (name) {
             params.push({dir: oracledb.BIND_OUT, as: name})
@@ -44,10 +44,10 @@ export class OracleDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
         (queryRunner.getNativeRunner() as Connection).close()
     }
         
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return OracleDBQueryRunner.getErrorReason(error)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return OracleDBQueryRunner.isSqlError(error)
     }
         

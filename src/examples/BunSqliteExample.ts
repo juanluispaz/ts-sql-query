@@ -9,10 +9,10 @@ import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { BunSqliteQueryRunner } from '../queryRunners/BunSqliteQueryRunner.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    protected compatibilityMode = false
-    protected uuidStrategy = 'string' as const
+    protected override compatibilityMode = false
+    protected override uuidStrategy = 'string' as const
 
-    protected getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
+    protected override getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return 'Julian day as real number'
     }
 

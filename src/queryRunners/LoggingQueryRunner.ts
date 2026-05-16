@@ -25,7 +25,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         this.logger = logger
     }
 
-    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -47,7 +47,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -69,7 +69,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -91,7 +91,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -113,7 +113,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
+    override executeInsert(query: string, params: any[] = []): Promise<number> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -135,7 +135,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -157,7 +157,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -179,7 +179,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -201,7 +201,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -223,7 +223,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -245,7 +245,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeInsertReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeInsertReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -267,7 +267,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
+    override executeUpdate(query: string, params: any[] = []): Promise<number> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -289,7 +289,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeUpdateReturningOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeUpdateReturningOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -311,7 +311,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeUpdateReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeUpdateReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -333,7 +333,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeUpdateReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeUpdateReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -355,7 +355,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeUpdateReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeUpdateReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -377,7 +377,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
+    override executeDelete(query: string, params: any[] = []): Promise<number> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -399,7 +399,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -421,7 +421,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeDeleteReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeDeleteReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -443,7 +443,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeDeleteReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeDeleteReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -465,7 +465,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeDeleteReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeDeleteReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -487,7 +487,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeProcedure(query: string, params: any[] = []): Promise<void> {
+    override executeProcedure(query: string, params: any[] = []): Promise<void> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -509,7 +509,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeFunction(query: string, params: any[] = []): Promise<any> {
+    override executeFunction(query: string, params: any[] = []): Promise<any> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -531,7 +531,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
+    override executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         if (!this.queryRunner.lowLevelTransactionManagementSupported()) {
             // Emulate beginTransaction, commit and rollback to see in logs
             return this.queryRunner.executeInTransaction(() => {
@@ -580,7 +580,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return this.queryRunner.executeInTransaction(fn, outermostQueryRunner, opts)
     }
-    executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
+    override executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         const query: string = ''
         const params: any[] = opts
         const logger = this.logger
@@ -604,7 +604,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeCommit(opts: CommitOpts = []): Promise<void> {
+    override executeCommit(opts: CommitOpts = []): Promise<void> {
         const query: string = ''
         const params: any[] = opts
         const logger = this.logger
@@ -628,7 +628,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeRollback(opts: RollbackOpts = []): Promise<void> {
+    override executeRollback(opts: RollbackOpts = []): Promise<void> {
         const query: string = ''
         const params: any[] = opts
         const logger = this.logger
@@ -652,7 +652,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
+    override executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {
@@ -674,7 +674,7 @@ export class LoggingQueryRunner<T extends QueryRunner> extends ChainedQueryRunne
         }
         return result
     }
-    executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
+    override executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
         const logger = this.logger
         const startedAt = now()
         if (logger.onQuery) {

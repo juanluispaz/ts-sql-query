@@ -7,10 +7,10 @@ import { TsSqlProcessingError } from '../TsSqlError.js'
 
 export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     mariaDB: true = true
-    _isReservedKeyword(word: string): boolean {
+    override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
-    _appendCompoundOperator(compoundOperator: CompoundOperator, _params: any[]): string {
+    override _appendCompoundOperator(compoundOperator: CompoundOperator, _params: any[]): string {
         switch(compoundOperator) {
             case 'union':
                 return ' union '
@@ -32,16 +32,16 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
                 throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid compound operator', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
         }   
     }
-    _supportOrderByWhenAggregateArray = true
-    _supportLimitWhenAggregateArray = true
-    _buildInsertReturning(query: InsertData, params: any[]): string {
+    override _supportOrderByWhenAggregateArray = true
+    override _supportLimitWhenAggregateArray = true
+    override _buildInsertReturning(query: InsertData, params: any[]): string {
         if (this._connectionConfiguration.alwaysUseReturningClauseWhenInsert || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
             return super._buildInsertReturning(query, params)
         }
         this._setContainsInsertReturningClause(params, false)
         return ''
     }
-    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], query: SelectData | undefined): string {
+    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         let result = ''
         if (isValueSource(aggregatedArrayColumns)) {

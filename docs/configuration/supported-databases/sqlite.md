@@ -39,7 +39,7 @@ import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
 import { SqliteDateTimeFormat, SqliteDateTimeFormatType } from "ts-sql-query/connections/SqliteConfiguration";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    protected getDateTimeFormat(type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
+    protected override getDateTimeFormat(type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         switch(type) {
             case 'date':
                 return 'localdate as text'
@@ -49,8 +49,8 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
                 return 'Unix time seconds as integer'
         }
     }
-    protected treatUnexpectedIntegerDateTimeAsJulian = false
-    protected treatUnexpectedStringDateTimeAsUTC = true
+    protected override treatUnexpectedIntegerDateTimeAsJulian = false
+    protected override treatUnexpectedStringDateTimeAsUTC = true
 }
 ```
 
@@ -143,7 +143,7 @@ You can configure the strategy by overriding the `uuidStrategy` field in your co
 import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    protected uuidStrategy = 'string' as const
+    protected override uuidStrategy = 'string' as const
 }
 ```
 
@@ -162,6 +162,6 @@ By default the compatibility mode is enabled. To disable the compatibility mode 
 import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    protected compatibilityMode = false
+    protected override compatibilityMode = false
 }
 ```

@@ -30,7 +30,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
             throw new Error('Unable to find the Prisma Client')
         }
     }
-    protected transformValueFromDB(value: unknown, type: string): unknown {
+    protected override transformValueFromDB(value: unknown, type: string): unknown {
         if (value !== null && value !== undefined && value.constructor.name.startsWith('Decimal')) {
             return super.transformValueFromDB(value.toString(), type)
         }

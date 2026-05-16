@@ -38,14 +38,14 @@ export class PgPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
     protected releaseQueryRunner(queryRunner: QueryRunner): void {
         (queryRunner.getNativeRunner() as PoolClient).release()
     }
-    nestedTransactionsSupported(): boolean {
+    override nestedTransactionsSupported(): boolean {
         return !!this.config?.allowNestedTransactions
     }
 
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return PgQueryRunner.getErrorReason(error)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return PgQueryRunner.isSqlError(error)
     }
     

@@ -33,7 +33,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     protected treatUnexpectedStringDateTimeAsUTC: boolean = false
     protected unexpectedUnixDateTimeAreMilliseconds: boolean = false
 
-    protected transformValueFromDB(value: unknown, type: string): unknown {
+    protected override transformValueFromDB(value: unknown, type: string): unknown {
         if (value === undefined || value == null) {
             return super.transformValueFromDB(value, type)
         }
@@ -276,7 +276,7 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
         }
         return super.transformValueFromDB(value, type)
     }
-    protected transformValueToDB(value: unknown, type: string): unknown {
+    protected override transformValueToDB(value: unknown, type: string): unknown {
         if (value === undefined || value == null) {
             return super.transformValueToDB(value, type)
         }

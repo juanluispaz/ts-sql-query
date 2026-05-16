@@ -14,7 +14,7 @@ import { assertEquals } from '../assertEquals.js'
 
 class DBConnection extends MySqlConnection<'DBConnection'> { 
     // insensitiveCollation = 'acs'
-    compatibilityMode = true
+    override compatibilityMode = true
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
         this.arg('int', 'required'),

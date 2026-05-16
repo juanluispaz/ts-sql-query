@@ -67,13 +67,13 @@ export class PgLiteQueryRunner extends SqlTransactionQueryRunner {
         params.push(value)
         return '$' + params.length
     }
-    nestedTransactionsSupported(): boolean {
+    override nestedTransactionsSupported(): boolean {
         return !!this.config?.allowNestedTransactions
     }
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return PgLiteQueryRunner.getErrorReason(error)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return PgLiteQueryRunner.isSqlError(error)
     }
 

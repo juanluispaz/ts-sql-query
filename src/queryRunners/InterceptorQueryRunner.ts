@@ -10,7 +10,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
     abstract onQueryResult(queryType: QueryType, query: string, params: any[], result: any, playload: PLAYLOAD_TYPE): void
     abstract onQueryError(queryType: QueryType, query: string, params: any[], error: any, playload: PLAYLOAD_TYPE): void
 
-    executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeSelectOneRow(query: string, params: any[] = []): Promise<any> {
         const playload = this.onQuery('selectOneRow', query, params)
         return this.queryRunner.executeSelectOneRow(query, params).then(r => {
             this.onQueryResult('selectOneRow', query, params, r, playload)
@@ -20,7 +20,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeSelectManyRows(query: string, params: any[] = []): Promise<any[]> {
         const playload = this.onQuery('selectManyRows', query, params)
         return this.queryRunner.executeSelectManyRows(query, params).then(r => {
             this.onQueryResult('selectManyRows', query, params, r, playload)
@@ -30,7 +30,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeSelectOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         const playload = this.onQuery('selectOneColumnOneRow', query, params)
         return this.queryRunner.executeSelectOneColumnOneRow(query, params).then(r => {
             this.onQueryResult('selectOneColumnOneRow', query, params, r, playload)
@@ -40,7 +40,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeSelectOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         const playload = this.onQuery('selectOneColumnManyRows', query, params)
         return this.queryRunner.executeSelectOneColumnManyRows(query, params).then(r => {
             this.onQueryResult('selectOneColumnManyRows', query, params, r, playload)
@@ -50,7 +50,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
+    override executeInsert(query: string, params: any[] = []): Promise<number> {
         const playload = this.onQuery('insert', query, params)
         return this.queryRunner.executeInsert(query, params).then(r => {
             this.onQueryResult('insert', query, params, r, playload)
@@ -60,7 +60,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         const playload = this.onQuery('insertReturningLastInsertedId', query, params)
         return this.queryRunner.executeInsertReturningLastInsertedId(query, params).then(r => {
             this.onQueryResult('insertReturningLastInsertedId', query, params, r, playload)
@@ -70,7 +70,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         const playload = this.onQuery('insertReturningMultipleLastInsertedId', query, params)
         return this.queryRunner.executeInsertReturningMultipleLastInsertedId(query, params).then(r => {
             this.onQueryResult('insertReturningMultipleLastInsertedId', query, params, r, playload)
@@ -80,7 +80,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningOneRow(query: string, params: any[] = []): Promise<any> {
         const playload = this.onQuery('insertReturningOneRow', query, params)
         return this.queryRunner.executeInsertReturningOneRow(query, params).then(r => {
             this.onQueryResult('insertReturningOneRow', query, params, r, playload)
@@ -90,7 +90,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeInsertReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
         const playload = this.onQuery('insertReturningManyRows', query, params)
         return this.queryRunner.executeInsertReturningManyRows(query, params).then(r => {
             this.onQueryResult('insertReturningManyRows', query, params, r, playload)
@@ -100,7 +100,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         const playload = this.onQuery('insertReturningOneColumnOneRow', query, params)
         return this.queryRunner.executeInsertReturningOneColumnOneRow(query, params).then(r => {
             this.onQueryResult('insertReturningOneColumnOneRow', query, params, r, playload)
@@ -110,7 +110,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeInsertReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeInsertReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         const playload = this.onQuery('insertReturningOneColumnManyRows', query, params)
         return this.queryRunner.executeInsertReturningOneColumnManyRows(query, params).then(r => {
             this.onQueryResult('insertReturningOneColumnManyRows', query, params, r, playload)
@@ -120,7 +120,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeUpdate(query: string, params: any[] = []): Promise<number> {
+    override executeUpdate(query: string, params: any[] = []): Promise<number> {
         const playload = this.onQuery('update', query, params)
         return this.queryRunner.executeUpdate(query, params).then(r => {
             this.onQueryResult('update', query, params, r, playload)
@@ -130,7 +130,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeUpdateReturningOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeUpdateReturningOneRow(query: string, params: any[] = []): Promise<any> {
         const playload = this.onQuery('updateReturningOneRow', query, params)
         return this.queryRunner.executeUpdateReturningOneRow(query, params).then(r => {
             this.onQueryResult('updateReturningOneRow', query, params, r, playload)
@@ -140,7 +140,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeUpdateReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeUpdateReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
         const playload = this.onQuery('updateReturningManyRows', query, params)
         return this.queryRunner.executeUpdateReturningManyRows(query, params).then(r => {
             this.onQueryResult('updateReturningManyRows', query, params, r, playload)
@@ -150,7 +150,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeUpdateReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeUpdateReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         const playload = this.onQuery('updateReturningOneColumnOneRow', query, params)
         return this.queryRunner.executeUpdateReturningOneColumnOneRow(query, params).then(r => {
             this.onQueryResult('updateReturningOneColumnOneRow', query, params, r, playload)
@@ -160,7 +160,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeUpdateReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeUpdateReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         const playload = this.onQuery('updateReturningOneColumnManyRows', query, params)
         return this.queryRunner.executeUpdateReturningOneColumnManyRows(query, params).then(r => {
             this.onQueryResult('updateReturningOneColumnManyRows', query, params, r, playload)
@@ -170,7 +170,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeDelete(query: string, params: any[] = []): Promise<number> {
+    override executeDelete(query: string, params: any[] = []): Promise<number> {
         const playload = this.onQuery('delete', query, params)
         return this.queryRunner.executeDelete(query, params).then(r => {
             this.onQueryResult('delete', query, params, r, playload)
@@ -180,7 +180,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeDeleteReturningOneRow(query: string, params: any[] = []): Promise<any> {
         const playload = this.onQuery('deleteReturningOneRow', query, params)
         return this.queryRunner.executeDeleteReturningOneRow(query, params).then(r => {
             this.onQueryResult('deleteReturningOneRow', query, params, r, playload)
@@ -190,7 +190,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeDeleteReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeDeleteReturningManyRows(query: string, params: any[] = []): Promise<any[]> {
         const playload = this.onQuery('deleteReturningManyRows', query, params)
         return this.queryRunner.executeDeleteReturningManyRows(query, params).then(r => {
             this.onQueryResult('deleteReturningManyRows', query, params, r, playload)
@@ -200,7 +200,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeDeleteReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
+    override executeDeleteReturningOneColumnOneRow(query: string, params: any[] = []): Promise<any> {
         const playload = this.onQuery('deleteReturningOneColumnOneRow', query, params)
         return this.queryRunner.executeDeleteReturningOneColumnOneRow(query, params).then(r => {
             this.onQueryResult('deleteReturningOneColumnOneRow', query, params, r, playload)
@@ -210,7 +210,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeDeleteReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
+    override executeDeleteReturningOneColumnManyRows(query: string, params: any[] = []): Promise<any[]> {
         const playload = this.onQuery('deleteReturningOneColumnManyRows', query, params)
         return this.queryRunner.executeDeleteReturningOneColumnManyRows(query, params).then(r => {
             this.onQueryResult('deleteReturningOneColumnManyRows', query, params, r, playload)
@@ -220,7 +220,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeProcedure(query: string, params: any[] = []): Promise<void> {
+    override executeProcedure(query: string, params: any[] = []): Promise<void> {
         const playload = this.onQuery('executeProcedure', query, params)
         return this.queryRunner.executeProcedure(query, params).then(r => {
             this.onQueryResult('executeProcedure', query, params, r, playload)
@@ -230,7 +230,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeFunction(query: string, params: any[] = []): Promise<any> {
+    override executeFunction(query: string, params: any[] = []): Promise<any> {
         const playload = this.onQuery('executeFunction', query, params)
         return this.queryRunner.executeFunction(query, params).then(r => {
             this.onQueryResult('executeFunction', query, params, r, playload)
@@ -240,7 +240,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
+    override executeInTransaction<T>(fn: () => Promise<T>, outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         if (!this.queryRunner.lowLevelTransactionManagementSupported()) {
             // Emulate beginTransaction, commit and rollback to see in logs
             return this.queryRunner.executeInTransaction(() => {
@@ -273,7 +273,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
         }
         return this.queryRunner.executeInTransaction(fn, outermostQueryRunner, opts)
     }
-    executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
+    override executeBeginTransaction(opts: BeginTransactionOpts = []): Promise<void> {
         const query: string = ''
         const params: any[] = opts
         const playload = this.onQuery('beginTransaction', query, params)
@@ -285,7 +285,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeCommit(opts: CommitOpts = []): Promise<void> {
+    override executeCommit(opts: CommitOpts = []): Promise<void> {
         const query: string = ''
         const params: any[] = opts
         const playload = this.onQuery('commit', query, params)
@@ -297,7 +297,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeRollback(opts: RollbackOpts = []): Promise<void> {
+    override executeRollback(opts: RollbackOpts = []): Promise<void> {
         const query: string = ''
         const params: any[] = opts
         const playload = this.onQuery('rollback', query, params)
@@ -309,7 +309,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
+    override executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         const playload = this.onQuery('executeDatabaseSchemaModification', query, params)
         return this.queryRunner.executeDatabaseSchemaModification(query, params).then(r => {
             this.onQueryResult('executeDatabaseSchemaModification', query, params, r, playload)
@@ -319,7 +319,7 @@ export abstract class InterceptorQueryRunner<PLAYLOAD_TYPE, T extends QueryRunne
             throw e
         })
     }
-    executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
+    override executeConnectionConfiguration(query: string, params: any[] = []): Promise<void> {
         const playload = this.onQuery('executeConnectionConfiguration', query, params)
         return this.queryRunner.executeConnectionConfiguration(query, params).then(r => {
             this.onQueryResult('executeConnectionConfiguration', query, params, r, playload)

@@ -19,7 +19,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     // PasswordEncrypter requires two strings of 16 chars of [A-Za-z0-9] working as passwords for the encrypt process
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c');
 
-    protected transformValueFromDB(value: unknown, type: string): unknown {
+    protected override transformValueFromDB(value: unknown, type: string): unknown {
         if (type === 'encryptedID') {
             const id = super.transformValueFromDB(value, 'bigint');
             if (typeof id === 'bigint') {
@@ -31,7 +31,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         }
         return super.transformValueFromDB(value, type);
     }
-    protected transformValueToDB(value: unknown, type: string): unknown {
+    protected override transformValueToDB(value: unknown, type: string): unknown {
         if (type === 'encryptedID') {
             if (value === null || value === undefined) {
                 // In case of null or undefined send null to the database
@@ -117,7 +117,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     // PasswordEncrypter requires two strings of 16 chars of [A-Za-z0-9] working as passwords for the encrypt process
     private encrypter = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c');
 
-    protected transformValueFromDB(value: unknown, type: string): unknown {
+    protected override transformValueFromDB(value: unknown, type: string): unknown {
         if (type.startsWith('ID:')) {
             const id = super.transformValueFromDB(value, 'bigint');
             if (typeof id === 'bigint') {
@@ -130,7 +130,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         }
         return super.transformValueFromDB(value, type);
     }
-    protected transformValueToDB(value: unknown, type: string): unknown {
+    protected override transformValueToDB(value: unknown, type: string): unknown {
         if (type.startsWith('ID:')) {
             if (value === null || value === undefined) {
                 // In case of null or undefined send null to the database

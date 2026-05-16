@@ -36,10 +36,10 @@ export class MariaDBPoolQueryRunner extends ManagedTransactionPoolQueryRunner {
         (queryRunner.getNativeRunner() as PoolConnection).release()
     }
 
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return MariaDBQueryRunner.getErrorReason(error, this.database)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return MariaDBQueryRunner.isSqlError(error)
     }
 

@@ -39,7 +39,7 @@ You can configure the strategy by overriding the `uuidStrategy` field in your co
 import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
 
 class DBConnection extends MySqlConnection<'DBConnection'> {
-    protected uuidStrategy = 'string' as const
+    protected override uuidStrategy = 'string' as const
 }
 ```
 
@@ -53,7 +53,7 @@ By default the compatibility mode is disabled. To enable the compatibility mode,
 import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
 
 class DBConnection extends MySqlConnection<'DBConnection'> {
-    protected compatibilityMode = true
+    protected override compatibilityMode = true
 }
 ```
 

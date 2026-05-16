@@ -22,7 +22,7 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
         return [level] as any
     }
 
-    protected transformValueToDB(value: unknown, type: string): unknown {
+    protected override transformValueToDB(value: unknown, type: string): unknown {
         if (type === 'boolean' && typeof value === 'boolean') {
             // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number#number_coercion
             return Number(value);

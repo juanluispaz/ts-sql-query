@@ -14,10 +14,10 @@ import { View } from '../../View.js'
 import { assertEquals } from '../assertEquals.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    compatibilityMode = false
+    override compatibilityMode = false
     // insensitiveCollation = 'acs'
 
-    protected getDateTimeFormat() {
+    protected override getDateTimeFormat() {
         return 'UTC as text using T separator and Z timezone' as const
     }
 

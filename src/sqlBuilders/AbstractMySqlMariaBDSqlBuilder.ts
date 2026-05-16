@@ -20,11 +20,11 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._getDate = true
         this._operationsThatNeedParenthesis._getMonth = true
     }
-    _insertSupportWith = false
-    _forceAsIdentifier(identifier: string): string {
+    override _insertSupportWith = false
+    override _forceAsIdentifier(identifier: string): string {
         return '`' + identifier + '`'
     }
-    _buildSelectOrderBy(query: SelectData, params: any[]): string {
+    override _buildSelectOrderBy(query: SelectData, params: any[]): string {
         const orderBy = query.__orderBy
         if (!orderBy) {
             let orderByColumns = ''
@@ -231,7 +231,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return this._appendRawFragment(expression, params)
         }
     }
-    _buildSelectLimitOffset(query: SelectData, params: any[]): string {
+    override _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = ''
 
         const limit = query.__limit
@@ -253,7 +253,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
-    _buildInsertDefaultValues(query: InsertData, params: any[]): string {
+    override _buildInsertDefaultValues(query: InsertData, params: any[]): string {
         this._ensureRootQuery(query, params)
         const customization = query.__customization
         let insertQuery = ''
@@ -274,17 +274,17 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         this._resetRootQuery(query, params)
         return insertQuery
     }
-    _buildInsertOutput(_query: InsertData, _params: any[]): string {
+    override _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''
     }
-    _buildInsertOnConflictBeforeInto(query: InsertData, _params: any[]): string {
+    override _buildInsertOnConflictBeforeInto(query: InsertData, _params: any[]): string {
         if (query.__onConflictDoNothing) {
             return 'ignore '
         }
 
         return ''
     }
-    _buildInsertOnConflictBeforeReturning(query: InsertData, params: any[]): string {
+    override _buildInsertOnConflictBeforeReturning(query: InsertData, params: any[]): string {
         let columns = ''
         const table = query.__table
         const sets = query.__onConflictUpdateSets
@@ -315,14 +315,14 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return ''
         }
     }
-    _appendRawColumnNameForValuesForInsert(column: DBColumn, _params: any[]): string {
+    override _appendRawColumnNameForValuesForInsert(column: DBColumn, _params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         return 'values(' + this._escape(columnPrivate.__name, true) + ')'
     }
-    _appendColumnNameForUpdate(column: DBColumn, params: any[]) {
+    override _appendColumnNameForUpdate(column: DBColumn, params: any[]) {
         return this._appendRawColumnName(column, params)
     }
-    _buildAfterUpdateTable(query: UpdateData, params: any[]): string {
+    override _buildAfterUpdateTable(query: UpdateData, params: any[]): string {
         const result = this._buildFromJoins(query.__froms, query.__joins, undefined, params)
         if (!result) {
             return ''
@@ -332,10 +332,10 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
-    _buildUpdateFrom(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: Set<AnyTableOrView> | undefined, _requiredColumns: Set<DBColumn> | undefined, _params: any[]): string {
+    override _buildUpdateFrom(_query: UpdateData, _updatePrimaryKey: boolean, _requiredTables: Set<AnyTableOrView> | undefined, _requiredColumns: Set<DBColumn> | undefined, _params: any[]): string {
         return ''
     }
-    _buidDeleteUsing(query: DeleteData, params: any[]): string {
+    override _buidDeleteUsing(query: DeleteData, params: any[]): string {
         const result = this._buildFromJoins(query.__using, query.__joins, undefined, params)
         if (result) {
             if (query.__using && query.__using.length > 0) {
@@ -345,28 +345,28 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return ''
     }
-    _is(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _is(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return this._appendRawColumnName(valueSource, params) + ' <=>' + this._appendRawColumnName(value, params)
         }
         return this._appendSqlParenthesis(valueSource, params, false) + ' <=> ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false)
     }
-    _isNot(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _isNot(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'not (' + this._appendRawColumnName(valueSource, params) + ' <=> ' + this._appendRawColumnName(value, params) + ')'
         }
         return 'not (' + this._appendSqlParenthesis(valueSource, params, false) + ' <=> ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
     }
-    _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false)
     }
-    _asDouble(params: any[], valueSource: ToSql): string {
+    override _asDouble(params: any[], valueSource: ToSql): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' * 1.0'
     }
-    _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'ifnull(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
     }
-    _escapeLikeWildcard(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _escapeLikeWildcard(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (typeof value === 'string') {
             value = value.replace(/\\/g, '\\\\\\\\')
             value = value.replace(/%/g, '\\%')
@@ -376,19 +376,19 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return "replace(replace(replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '\\\\', '\\\\\\\\\\\\\\\\'), '%', '\\\\%'), '_', '\\\\_')"
         }
     }
-    _startsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _startsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' like concat(' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ", '%')"
     }
-    _notStartsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notStartsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' not like concat(' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ", '%')"
     }
-    _endsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _endsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + " like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ')'
     }
-    _notEndsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notEndsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + " like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ')'
     }
-    _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' like concat(' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ", '%') collate " + collation
@@ -398,7 +398,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ') like concat(lower(' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + "), '%')"
         }
     }
-    _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' not like concat(' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ", '%') collate " + collation
@@ -408,7 +408,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ') not like concat(lower(' +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + "), '%')"
         }
     }
-    _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
@@ -418,7 +418,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ") like concat('%', lower(" +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + '))'
         }
     }
-    _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " not like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ') collate ' + collation
@@ -428,13 +428,13 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ") not like concat('%', lower(" +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + '))'
         }
     }
-    _contains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _contains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + " like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ", '%')"
     }
-    _notContains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notContains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + " not like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ", '%')"
     }
-    _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ", '%') collate " + collation
@@ -444,7 +444,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ") like concat('%', lower(" +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + "), '%')"
         }
     }
-    _notContainsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notContainsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " not like concat('%', " +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ", '%') collate " + collation
@@ -454,7 +454,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ") not like concat('%', lower(" +  this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + "), '%')"
         }
     }
-    _concat(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _concat(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         let result = 'concat('
         if (isValueSource(valueSource)) {
             result += this._appendMaybeInnerConcat(valueSource, params)
@@ -497,43 +497,43 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         }
         return this._appendSql(valueSource, params, false)
     }
-    _log10(params: any[], valueSource: ToSql): string {
+    override _log10(params: any[], valueSource: ToSql): string {
         return 'log10(' +this._appendSql(valueSource, params, false) + ')'
     }
-    _cbrt(params: any[], valueSource: ToSql): string {
+    override _cbrt(params: any[], valueSource: ToSql): string {
         return 'power(' + this._appendSql(valueSource, params, false) + ', 3)'
     }
-    _logn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _logn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'log(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ', ' + this._appendSql(valueSource, params, false) + ')'
     }
-    _getDate(params: any[], valueSource: ToSql): string {
+    override _getDate(params: any[], valueSource: ToSql): string {
         return 'dayofmonth(' + this._appendSql(valueSource, params, false) + ')'
     }
-    _getTime(params: any[], valueSource: ToSql): string {
+    override _getTime(params: any[], valueSource: ToSql): string {
         return 'round(unix_timestamp(' + this._appendSql(valueSource, params, false) + ') * 1000)'
     }
-    _getFullYear(params: any[], valueSource: ToSql): string {
+    override _getFullYear(params: any[], valueSource: ToSql): string {
         return 'year(' + this._appendSql(valueSource, params, false) + ')'
     }
-    _getMonth(params: any[], valueSource: ToSql): string {
+    override _getMonth(params: any[], valueSource: ToSql): string {
         return 'month(' + this._appendSql(valueSource, params, false) + ') - 1'
     }
-    _getDay(params: any[], valueSource: ToSql): string {
+    override _getDay(params: any[], valueSource: ToSql): string {
         return 'dayofweek(' + this._appendSql(valueSource, params, false) + ') - 1'
     }
-    _getHours(params: any[], valueSource: ToSql): string {
+    override _getHours(params: any[], valueSource: ToSql): string {
         return 'hour(' + this._appendSql(valueSource, params, false) + ')'
     }
-    _getMinutes(params: any[], valueSource: ToSql): string {
+    override _getMinutes(params: any[], valueSource: ToSql): string {
         return 'minute(' + this._appendSql(valueSource, params, false) + ')'
     }
-    _getSeconds(params: any[], valueSource: ToSql): string {
+    override _getSeconds(params: any[], valueSource: ToSql): string {
         return 'second(' + this._appendSql(valueSource, params, false) + ')'
     }
-    _getMilliseconds(params: any[], valueSource: ToSql): string {
+    override _getMilliseconds(params: any[], valueSource: ToSql): string {
         return 'round(microsecond(' + this._appendSql(valueSource, params, false) + ') / 1000)'
     }
-    _stringConcat(params: any[], separator: string | undefined, value: any): string {
+    override _stringConcat(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
             return 'group_concat(' + this._appendSql(value, params, false) + ')'
         } else if (separator === '') {
@@ -542,7 +542,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'group_concat(' + this._appendSql(value, params, false) + ' separator ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
         }
     }
-    _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string {
+    override _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
             return 'group_concat(distinct ' + this._appendSql(value, params, false) + ')'
         } else if (separator === '') {
@@ -551,19 +551,19 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'group_concat(distinct ' + this._appendSql(value, params, false) + ' separator ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
         }
     }
-    _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (Array.isArray(value) && value.length <= 0) {
             return this._falseValueForCondition
         }
         return super._in(params, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
-    _notIn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notIn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (Array.isArray(value) && value.length <= 0) {
             return this._trueValueForCondition
         }
         return super._notIn(params, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
-    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
+    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             return 'json_arrayagg(' + distict + this._appendSql(aggregatedArrayColumns, params, false) + ')'
@@ -582,7 +582,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
             return 'json_arrayagg(' +  distict + 'json_object(' + result + '))'
         }
     }
-    _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
+    override _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
             return 'json_arrayagg(a_' + aggregateId + '_.result)'
         } else {

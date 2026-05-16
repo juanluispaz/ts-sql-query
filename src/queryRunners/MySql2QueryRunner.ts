@@ -95,7 +95,7 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
             })
         })
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
@@ -147,10 +147,10 @@ export class MySql2QueryRunner extends DelegatedSetTransactionQueryRunner {
         params.push(value)
         return '?'
     }
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return MySql2QueryRunner.getErrorReason(error, this.database)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return MySql2QueryRunner.isSqlError(error)
     }
 

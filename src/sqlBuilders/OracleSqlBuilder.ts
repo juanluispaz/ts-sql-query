@@ -20,29 +20,29 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._negate = true
     }
 
-    _insertSupportWith = false
+    override _insertSupportWith = false
     _getUuidStrategy(): 'string' | 'custom-functions' {
         return this._connectionConfiguration.uuidStrategy as any || 'custom-functions'
     }
-    _isReservedKeyword(word: string): boolean {
+    override _isReservedKeyword(word: string): boolean {
         return word.toUpperCase() in reservedWords
     }
-    _nextSequenceValue(_params: any[], sequenceName: string) {
+    override _nextSequenceValue(_params: any[], sequenceName: string) {
         return this._escape(sequenceName, false) + '.nextval'
     }
-    _currentSequenceValue(_params: any[], sequenceName: string): string {
+    override _currentSequenceValue(_params: any[], sequenceName: string): string {
         return this._escape(sequenceName, false) + '.currval'
     }
-    _fromNoTable() {
+    override _fromNoTable() {
         return ' from dual'
     }
-    _supportTableAliasWithAs = false
-    _trueValue = '1'
-    _falseValue = '0'
-    _trueValueForCondition = '(1=1)'
-    _falseValueForCondition = '(0=1)'
+    override _supportTableAliasWithAs = false
+    override _trueValue = '1'
+    override _falseValue = '0'
+    override _trueValueForCondition = '(1=1)'
+    override _falseValueForCondition = '(0=1)'
     _nullValueForCondition = '(0=null)'
-    _appendSql(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
+    override _appendSql(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
         if (isValueSource(value) && !isColumn(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (valueSourcePrivate.__isBooleanForCondition) {
@@ -55,7 +55,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return super._appendSql(value, params, forceTypeCast)
     }
-    _appendConditionSql(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
+    override _appendConditionSql(value: ToSql | AnyValueSource, params: any[], forceTypeCast: boolean): string {
         if (isValueSource(value) && !isColumn(value) && hasToSql(value)) {
             const valueSourcePrivate = __getValueSourcePrivate(value)
             if (__isBooleanValueSource(valueSourcePrivate) && !valueSourcePrivate.__isBooleanForCondition) {
@@ -69,7 +69,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return super._appendConditionSql(value, params, forceTypeCast)
     }
-    _appendConditionParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _appendConditionParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (__isBooleanValueType(columnType)) {
             if (isColumn(value)) {
                 const columnPrivate = __getColumnPrivate(value)
@@ -82,7 +82,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return this._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _appendColumnName(column: DBColumn, params: any[]): string {
+    override _appendColumnName(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate)) {
@@ -97,7 +97,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         return this._appendRawColumnName(column, params)
     }
-    _appendColumnNameForCondition(column: DBColumn, params: any[]): string {
+    override _appendColumnNameForCondition(column: DBColumn, params: any[]): string {
         const columnPrivate = __getColumnPrivate(column)
         const typeAdapter = columnPrivate.__typeAdapter
         if (__isBooleanValueSource(columnPrivate)) {
@@ -110,7 +110,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         return this._appendRawColumnName(column, params)
     }
-    _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string {
+    override _inlineSelectAsValueForCondition(query: SelectData, params: any[]): string {
         if (query.__oneColumn) {
             const columns = query.__columns
             for (const prop in columns) {
@@ -124,7 +124,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         } 
         return this._buildInlineSelect(query, params)
     }
-    _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, params: any[], forceTypeCast: boolean): string | null {
+    override _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, params: any[], forceTypeCast: boolean): string | null {
         const columnPrivate = __getColumnPrivate(column)
         const columnTypeAdapter = columnPrivate.__typeAdapter
         const columnTypeName = columnPrivate.__valueTypeName
@@ -188,7 +188,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // if not it is same boolean, nothing to transform here
         return null
     }
-    _appendWithColumns(withData: WithSelectData, params: any[]): string {
+    override _appendWithColumns(withData: WithSelectData, params: any[]): string {
         if (withData.__selectData.__type === 'plain') {
             return ''
         }
@@ -206,11 +206,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         return '(' + result + ')'
     }
-    _appendWithKeyword(_recursive: boolean): string {
+    override _appendWithKeyword(_recursive: boolean): string {
         // Oracle doesn't uses the recursive keyword
         return 'with'
     }
-    _appendColumnAlias(name: string, params: any[]): string {
+    override _appendColumnAlias(name: string, params: any[]): string {
         if (!this._isWithGeneratedFinished(params)) {
             // Avoid quote identifiers when the with clause is generated
             return this._escape(name, true)
@@ -222,13 +222,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // Avoid automatically uppercase identifiers by oracle
         return this._forceAsIdentifier(name)
     }
-    _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (__isUuidValueType(columnType) && this._getUuidStrategy() === 'custom-functions') {
             return 'uuid_to_raw(' + super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ')'
         }
         return super._appendParam(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast)
     }
-    _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
+    override _appendColumnValue(value: AnyValueSource, params: any[], isOutermostQuery: boolean): string {
         if (isOutermostQuery && this._getUuidStrategy() === 'custom-functions') {
             if (__isUuidValueSource(__getValueSourcePrivate(value))) {
                 return 'raw_to_uuid(' + this._appendSql(value, params, false) + ')'
@@ -236,7 +236,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return this._appendSql(value, params, false)
     }
-    _asString(params: any[], valueSource: ToSql): string {
+    override _asString(params: any[], valueSource: ToSql): string {
         // Transform an uuid to string
         if (this._getUuidStrategy() === 'string') {
             // No conversion required
@@ -244,7 +244,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return 'raw_to_uuid(' + this._appendSql(valueSource, params, false) + ')'
     }
-    _appendCompoundOperator(compoundOperator: CompoundOperator, _params: any[]): string {
+    override _appendCompoundOperator(compoundOperator: CompoundOperator, _params: any[]): string {
         switch(compoundOperator) {
             case 'union':
                 return ' union '
@@ -266,14 +266,14 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
                 throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid compound operator', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
         }   
     }
-    _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
+    override _buildSelectWithColumnsInfoForCompound(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
         const result = this._buildSelectWithColumnsInfo(query, params, columnsForInsert, isOutermostQuery)
         if (query.__limit !== undefined || query.__offset !== undefined || query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems) {
             return 'select * from (' + result + ')'
         }
         return result
     }
-    _buildSelectOrderBy(query: SelectData, params: any[]): string {
+    override _buildSelectOrderBy(query: SelectData, params: any[]): string {
         if (query.__type === 'plain') {
             return super._buildSelectOrderBy(query, params)
         }
@@ -404,7 +404,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendCompoundOrderByColumnAlias(entry, columnNames, query, params) + ')'
         }
     } 
-    _buildSelectLimitOffset(query: SelectData, params: any[]): string {
+    override _buildSelectLimitOffset(query: SelectData, params: any[]): string {
         let result = super._buildSelectLimitOffset(query, params)
 
         if (!result && this._isAggregateArrayWrapped(params) && (query.__orderBy || query.__customization?.beforeOrderByItems || query.__customization?.afterOrderByItems)) {
@@ -412,7 +412,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
-    _buildInsertMultiple(query: InsertData, params: any[]): string {
+    override _buildInsertMultiple(query: InsertData, params: any[]): string {
         const multiple = query.__multiple
         if (!multiple) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'expecting insert of multiple values' }, 'Exepected a multiple insert')
@@ -619,7 +619,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         return insertQuery
     }
-    _buildInsertDefaultValues(query: InsertData, params: any[]): string {
+    override _buildInsertDefaultValues(query: InsertData, params: any[]): string {
         this._ensureRootQuery(query, params)
         const oldSafeTableOrView = this._getSafeTableOrView(params)
         const oldFakeNameOf = this._getFakeNamesOf(params)
@@ -694,10 +694,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         this._resetRootQuery(query, params)
         return insertQuery
     }
-    _buildInsertOutput(_query: InsertData, _params: any[]): string {
+    override _buildInsertOutput(_query: InsertData, _params: any[]): string {
         return ''
     }
-    _buildInsertReturning(query: InsertData, params: any[]): string {
+    override _buildInsertReturning(query: InsertData, params: any[]): string {
         const idColumn = query.__idColumn
         if (idColumn) {
             this._setContainsInsertReturningClause(params, true)
@@ -708,7 +708,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         this._setContainsInsertReturningClause(params, !!result)
         return result
     }
-    _buildQueryReturning(queryColumns: QueryColumns | undefined, params: any[]): string {
+    override _buildQueryReturning(queryColumns: QueryColumns | undefined, params: any[]): string {
         if (!queryColumns) {
             return ''
         }
@@ -740,7 +740,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return ' returning ' + result
     }
-    _isNull(params: any[], valueSource: ToSql): string {
+    override _isNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {
             this._appendRawColumnName(valueSource, params) + ' is null'
         }
@@ -757,7 +757,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return this._appendSqlParenthesis(valueSource, params, false) + ' is null'
     }
-    _isNotNull(params: any[], valueSource: ToSql): string {
+    override _isNotNull(params: any[], valueSource: ToSql): string {
         if (isColumn(valueSource)) {
             this._appendRawColumnName(valueSource, params) + ' is not null'
         }
@@ -774,68 +774,68 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         }
         return this._appendSqlParenthesis(valueSource, params, false) + ' is not null'
     }
-    _is(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _is(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'decode(' + this._appendRawColumnName(valueSource, params) + ', ' + this._appendRawColumnName(value, params) + ', 1, 0 ) = 1'
         }
         return 'decode(' + this._appendSqlParenthesis(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ', 1, 0 ) = 1'
     }
-    _isNot(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _isNot(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (isColumn(valueSource) && isColumn(value) && this._hasSameBooleanTypeAdapter(valueSource, value)) {
             return 'decode(' + this._appendRawColumnName(valueSource, params) + ', ' + this._appendRawColumnName(value, params) + ', 1, 0 ) = 0'
         }
         return 'decode(' + this._appendSqlParenthesis(valueSource, params, false) + ', ' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ', 1, 0 ) = 0'
     }
-    _random(_params: any): string {
+    override _random(_params: any): string {
         return '(select dbms_random.value from dual)'
     }
-    _currentDate(_params: any): string {
+    override _currentDate(_params: any): string {
         return 'trunc(current_timestamp)'
     }
-    _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'nvl(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
     }
-    _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false)
     }
-    _asDouble(params: any[], valueSource: ToSql): string {
+    override _asDouble(params: any[], valueSource: ToSql): string {
         return 'cast(' + this._appendSql(valueSource, params, false) + ' as float)'
     }
-    _log10(params: any[], valueSource: ToSql): string {
+    override _log10(params: any[], valueSource: ToSql): string {
         return 'log(' + this._appendSql(valueSource, params, false) + ', 10)'
     }
-    _cbrt(params: any[], valueSource: ToSql): string {
+    override _cbrt(params: any[], valueSource: ToSql): string {
         return 'power(' + this._appendSql(valueSource, params, false) + ', 3)'
     }
-    _getDate(params: any[], valueSource: ToSql): string {
+    override _getDate(params: any[], valueSource: ToSql): string {
         return 'extract(day from ' + this._appendSql(valueSource, params, false) + ')'
     }
-    _getTime(params: any[], valueSource: ToSql): string {
+    override _getTime(params: any[], valueSource: ToSql): string {
         return "extract(day from(sys_extract_utc(" + this._appendSql(valueSource, params, false) + ") - to_timestamp('1970-01-01', 'YYYY-MM-DD'))) * 86400000 + to_number(to_char(sys_extract_utc(" + this._appendSql(valueSource, params, false) + "), 'SSSSSFF3'))"
     }
-    _getFullYear(params: any[], valueSource: ToSql): string {
+    override _getFullYear(params: any[], valueSource: ToSql): string {
         return 'extract(year from ' + this._appendSql(valueSource, params, false) + ')'
     }
-    _getMonth(params: any[], valueSource: ToSql): string {
+    override _getMonth(params: any[], valueSource: ToSql): string {
         return 'extract(month from ' + this._appendSql(valueSource, params, false) + ') - 1'
     }
-    _getDay(params: any[], valueSource: ToSql): string {
+    override _getDay(params: any[], valueSource: ToSql): string {
         // https://riptutorial.com/oracle/example/31649/getting-the-day-of-the-week
         return "mod(trunc(" + this._appendSql(valueSource, params, false) + ") - trunc(" + this._appendSql(valueSource, params, false) + ", 'IW') + 1, 7)"
     }
-    _getHours(params: any[], valueSource: ToSql): string {
+    override _getHours(params: any[], valueSource: ToSql): string {
         return 'extract(hour from ' + this._appendSql(valueSource, params, false) + ')'
     }
-    _getMinutes(params: any[], valueSource: ToSql): string {
+    override _getMinutes(params: any[], valueSource: ToSql): string {
         return 'extract(minute from ' + this._appendSql(valueSource, params, false) + ')'
     }
-    _getSeconds(params: any[], valueSource: ToSql): string {
+    override _getSeconds(params: any[], valueSource: ToSql): string {
         return 'trunc(extract(second from ' + this._appendSql(valueSource, params, false) + '))'
     }
-    _getMilliseconds(params: any[], valueSource: ToSql): string {
+    override _getMilliseconds(params: any[], valueSource: ToSql): string {
         return "to_number(to_char(" + this._appendSql(valueSource, params, false) + ", 'FF3'))"
     }
-    _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string {
+    override _buildCallProcedure(params: any[], procedureName: string, procedureParams: AnyValueSource[]): string {
         let result = 'begin ' + this._escape(procedureName, false) + '('
         if (procedureParams.length > 0) {
             result += this._appendSql(procedureParams[0]!, params, false)
@@ -847,7 +847,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         return result + '); end;'
     }
-    _buildCallFunction(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
+    override _buildCallFunction(params: any[], functionName: string, functionParams: AnyValueSource[]): string {
         let result = 'select ' + this._escape(functionName, false) + '('
         if (functionParams.length > 0) {
             result += this._appendSql(functionParams[0]!, params, false)
@@ -859,7 +859,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         return result + ') from dual'
     }
-    _stringConcat(params: any[], separator: string | undefined, value: any): string {
+    override _stringConcat(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
             return 'listagg(' + this._appendSql(value, params, false) + ", ',') within group (order by" + this._appendSql(value, params, false) + ')'
         } else if (separator === '') {
@@ -868,7 +868,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'listagg(' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ') within group (order by' +  this._appendSql(value, params, false) + ')'
         }
     }
-    _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string {
+    override _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
             return 'listagg(distinct ' + this._appendSql(value, params, false) + ", ',') within group (order by" +  this._appendSql(value, params, false) + ')'
         } else if (separator === '') {
@@ -877,7 +877,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'listagg(distinct ' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ') within group (order by' +  this._appendSql(value, params, false) + ')'
         }
     }
-    _escapeLikeWildcard(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
+    override _escapeLikeWildcard(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (typeof value === 'string') {
             value = value.replace(/\[/g, '[[]')
             value = value.replace(/%/g, '[%]')
@@ -887,13 +887,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return "replace(replace(replace(" + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, forceTypeCast) + ", '[', '[[]'), '%', '[%]'), '_', '[]')"
         }
     }
-    _like(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _like(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' like ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + " escape '\\'"
     }
-    _notLike(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notLike(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' not like ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + " escape '\\'"
     }
-    _likeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _likeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' like (' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ") escape '\\'"
@@ -903,7 +903,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ') like lower(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
         }
     }
-    _notLikeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notLikeInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' not like (' + this._appendValueParenthesis(value, params, columnType, columnTypeName, typeAdapter, false) + ' collate ' + collation + ") escape '\\'"
@@ -913,19 +913,19 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ') not like lower(' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
         }
     }
-    _startsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _startsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' like (' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
     }
-    _notStartsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notStartsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + ' not like (' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
     }
-    _endsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _endsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
     }
-    _notEndsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notEndsWith(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
     }
-    _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _startsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' like ((' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') collate " + collation + ") escape '\\'"
@@ -935,7 +935,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ') like lower(' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
         }
     }
-    _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notStartsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + ' not like ((' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') collate " + collation + ") escape '\\'"
@@ -945,7 +945,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ') not like lower(' + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
         }
     }
-    _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _endsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " like (('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") collate " + collation + ") escape '\\'"
@@ -955,7 +955,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ") like lower('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
         }
     }
-    _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notEndsWithInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " not like (('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") collate " + collation + ") escape '\\'"
@@ -965,13 +965,13 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ") not like lower('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + ") escape '\\'"
         }
     }
-    _contains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _contains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + " like ('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
     }
-    _notContains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notContains(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + " not like ('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
     }
-    _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _containsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " like (('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') collate " + collation + ") escape '\\'"
@@ -981,7 +981,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ") like lower('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
         }
     }
-    _notContainsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notContainsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {
             return this._appendSqlParenthesis(valueSource, params, false) + " not like (('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') collate " + collation + ") escape '\\'"
@@ -991,19 +991,19 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'lower(' + this._appendSql(valueSource, params, false) + ") not like lower('%' || " + this._escapeLikeWildcard(params, value, columnType, columnTypeName, typeAdapter, false) + " || '%') escape '\\'"
         }
     }
-    _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (Array.isArray(value) && value.length <= 0) {
             return this._falseValueForCondition
         }
         return super._in(params, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
-    _notIn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+    override _notIn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         if (Array.isArray(value) && value.length <= 0) {
             return this._trueValueForCondition
         }
         return super._notIn(params, valueSource, value, columnType, columnTypeName, typeAdapter)
     }
-    _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
+    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], _query: SelectData | undefined): string {
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'custom-functions') {
@@ -1031,7 +1031,7 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             return 'json_arrayagg(' + distict + 'json_object(' + result + '))'
         }
     }
-    _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
+    override _appendAggragateArrayWrappedColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, _params: any[], aggregateId: number): string {
         if (isValueSource(aggregatedArrayColumns)) {
             if (__isUuidValueSource(__getValueSourcePrivate(aggregatedArrayColumns)) && this._getUuidStrategy() === 'custom-functions') {
                 return 'json_arrayagg(raw_to_uuida_' + aggregateId + '_.result))'

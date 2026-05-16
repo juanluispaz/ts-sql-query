@@ -16,10 +16,10 @@ export class BunSqlPostgresQueryRunner extends AbstractBunSqlQueryRunner {
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'adapter', value: adapter }, 'BunSqlPostgresQueryRunner only supports Bun.SQL connections using the postgres adapter')
         }
     }
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return BunSqlPostgresQueryRunner.getErrorReason(error)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return BunSqlPostgresQueryRunner.isSqlError(error)
     }
 

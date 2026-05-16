@@ -54,7 +54,7 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
             })
         })
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
@@ -69,7 +69,7 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
             })
         })
     }
-    executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningMultipleLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningMultipleLastInsertedId(query, params)
         }
@@ -79,10 +79,10 @@ export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
         params.push(value)
         return '?'
     }
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return Sqlite3QueryRunner.getErrorReason(error)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return Sqlite3QueryRunner.isSqlError(error)
     }
 

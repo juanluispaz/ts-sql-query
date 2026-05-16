@@ -23,7 +23,7 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
         return [level] as any
     }
 
-    protected transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
+    protected override transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
         if (!forceTypeCast) {
             return super.transformPlaceholder(placeholder, type, forceTypeCast, valueSentToDB)
         }

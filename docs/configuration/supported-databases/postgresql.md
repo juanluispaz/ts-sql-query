@@ -38,7 +38,7 @@ You may define your own cast rules or override the default behavior. For referen
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected transformPlaceholder(
+    protected override transformPlaceholder(
         placeholder: string,
         type: string,
         _forceTypeCast: boolean,

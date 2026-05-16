@@ -30,7 +30,7 @@ abstract class AbstractSelect extends AbstractQueryBuilder implements ToSql, Has
 
     [isSelectQueryObject]: true = true
 
-    __columns: QueryColumns = {}
+    override __columns: QueryColumns = {}
     __orderBy?: OrderByEntry[]
     __orderingSiblingsOnly?: boolean // Oracle
     __limit?: number | INumberValueSource<any, any>
@@ -1089,7 +1089,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
 
         return requiredTableOrView
     }
-    __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         let result = super.__getOldValues(this.__sqlBuilder)
         if (result) {
             return result
@@ -1104,7 +1104,7 @@ export class SelectQueryBuilder extends AbstractSelect implements ToSql, PlainSe
         }
         return undefined
     }
-    __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         let result = super.__getValuesForInsert(sqlBuilder)
         if (result) {
             return result
@@ -1321,10 +1321,10 @@ export class CompoundSelectQueryBuilder extends AbstractSelect implements ToSql,
         }
         return this
     }
-    __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         return super.__getOldValues(sqlBuilder) || __getOldValues(this.__firstQuery, sqlBuilder) || __getOldValues(this.__secondQuery, sqlBuilder)
     }
-    __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         return super.__getValuesForInsert(sqlBuilder) || __getValuesForInsert(this.__firstQuery, sqlBuilder) || __getValuesForInsert(this.__secondQuery, sqlBuilder)
     }
     __isAllowed(sqlBuilder: HasIsValue): boolean {

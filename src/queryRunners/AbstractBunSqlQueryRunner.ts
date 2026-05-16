@@ -45,7 +45,7 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
             return result.count
         })
     }
-    executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
+    override executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
         return this.connection.reserve().then((reserved) => {
             return reserved.unsafe(query, params).then(
                 (result) => {
@@ -73,7 +73,7 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
         })
 
     }
-    executeCommitQuery(query: string, params: any[]): Promise<number> {
+    override executeCommitQuery(query: string, params: any[]): Promise<number> {
         const transaction = this.lowLevelTransaction
         if (!transaction) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a low level transaction, you cannot commit the transaction'))
@@ -90,7 +90,7 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
             }
         )
     }
-    executeRollbackQuery(query: string, params: any[]): Promise<number> {
+    override executeRollbackQuery(query: string, params: any[]): Promise<number> {
         const transaction = this.lowLevelTransaction
         if (!transaction) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NOT_IN_TRANSACTION' }, 'Not in a low level transaction, you cannot rollback the transaction'))
@@ -109,14 +109,14 @@ export abstract class AbstractBunSqlQueryRunner extends SqlTransactionQueryRunne
             }
         )
     }
-    isTransactionActive(): boolean {
+    override isTransactionActive(): boolean {
         return !!this.transaction || !!this.lowLevelTransaction || super.isTransactionActive()
     }
     addParam(params: any[], value: any): string {
         params.push(value)
         return '$' + params.length
     }
-    executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
+    override executeInTransaction<T>(fn: () => Promise<T>, _outermostQueryRunner: QueryRunner, opts: BeginTransactionOpts = []): Promise<T> {
         if (this.transaction || this.lowLevelTransaction) {
             return this.createRejectedPromise(new TsSqlProcessingError({ reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions are not supported by ' + this.constructor.name))
         }

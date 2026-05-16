@@ -16,16 +16,16 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'adapter', value: adapter }, 'BunSqlSqliteQueryRunner only supports Bun.SQL connections using the sqlite adapter')
         }
     }
-    executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
+    override executeBeginTransactionQuery(query: string, params: any[]): Promise<number> {
         return this.connection.unsafe(query, params).then((result) => result.count)
     }
-    executeCommitQuery(query: string, params: any[]): Promise<number> {
+    override executeCommitQuery(query: string, params: any[]): Promise<number> {
         return this.connection.unsafe(query, params).then((result) => result.count)
     }
-    executeRollbackQuery(query: string, params: any[]): Promise<number> {
+    override executeRollbackQuery(query: string, params: any[]): Promise<number> {
         return this.connection.unsafe(query, params).then((result) => result.count)
     }
-    executeInsert(query: string, params: any[] = []): Promise<number> {
+    override executeInsert(query: string, params: any[] = []): Promise<number> {
         const sql = this.transaction || this.lowLevelTransaction || this.connection
         return sql.unsafe(query, params).then((result) => {
             const count = result.count
@@ -43,7 +43,7 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
             })
         })
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
@@ -51,17 +51,17 @@ export class BunSqlSqliteQueryRunner extends AbstractBunSqlQueryRunner {
         const sql = this.transaction || this.lowLevelTransaction || this.connection
         return sql.unsafe(query, params).then((result) => result.lastInsertRowid)
     }
-    addParam(params: any[], value: any): string {
+    override addParam(params: any[], value: any): string {
         params.push(value)
         return '$' + params.length
     }
     private requiresInsertSelectCountWorkaround(query: string, params: any[]): boolean {
         return /\bselect\b/i.test(query) && !this.containsInsertReturningClause(query, params)
     }
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return BunSqlSqliteQueryRunner.getErrorReason(error)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return BunSqlSqliteQueryRunner.isSqlError(error)
     }
 

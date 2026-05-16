@@ -34,7 +34,7 @@ Starting from MariaDB 10.5, the `RETURNING` clause is supported for `INSERT` and
 import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
 
 class DBConnection extends MariaDBConnection<'DBConnection'> { 
-    protected alwaysUseReturningClauseWhenInsert = true
+    protected override alwaysUseReturningClauseWhenInsert = true
 }
 ```
 
@@ -51,6 +51,6 @@ You can configure the strategy by overriding the `uuidStrategy` field in your co
 import { MariaDBConnection } from "ts-sql-query/connections/MariaDBConnection";
 
 class DBConnection extends MariaDBConnection<'DBConnection'> {
-    protected uuidStrategy = 'string' as const
+    protected override uuidStrategy = 'string' as const
 }
 ```

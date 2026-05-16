@@ -83,7 +83,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         const result = connection.$executeRawUnsafe<any[]>(query, ...params)
         return this.wrapPrismaPromise(result)
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.database === 'mySql' || this.database === 'mariaDB') {
             if (this.containsInsertReturningClause(query, params)) {
                 return super.executeInsertReturningLastInsertedId(query, params)
@@ -162,7 +162,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
             })
         }, {...this.config?.interactiveTransactionsOptions, isolationLevel})
     }
-    executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
+    override executeCombined<R1, R2>(fn1: () => Promise<R1>, fn2: () => Promise<R2>): Promise<[R1, R2]> {
         if (this.transaction) {
             return super.executeCombined(fn1, fn2)
         }
@@ -209,10 +209,10 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
         params.push(value)
         return result
     }
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return PrismaQueryRunner.getErrorReason(error)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return PrismaQueryRunner.isSqlError(error)
     }
     static getErrorReason(error: unknown): TsSqlErrorReason {
@@ -244,7 +244,7 @@ export class PrismaQueryRunner extends AbstractQueryRunner {
             || error instanceof PrismaClientUnknownRequestError
             || error instanceof PrismaClientRustPanicError
     }
-    lowLevelTransactionManagementSupported(): boolean {
+    override lowLevelTransactionManagementSupported(): boolean {
         return false
     }
     protected wrapPrismaPromise(promise: Promise<any>): Promise<any> {

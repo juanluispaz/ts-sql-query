@@ -34,7 +34,7 @@ export class DBColumnImpl extends ValueSourceImpl implements DBColumn, WritableD
         return sqlBuilder._appendColumnName(this.__asColumn(), params)
     }
 
-    __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
+    override __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
         return sqlBuilder._appendColumnNameForCondition(this.__asColumn(), params)
     }
 
@@ -96,23 +96,23 @@ export class DBColumnImpl extends ValueSourceImpl implements DBColumn, WritableD
         return this
     }
 
-    __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
+    override __registerTableOrView(sqlBuilder: HasIsValue, requiredTablesOrViews: Set<AnyTableOrView>): void {
         __getTableOrViewPrivate(this.__tableOrView).__registerTableOrView(sqlBuilder, requiredTablesOrViews)
     }
 
-    __registerRequiredColumn(_sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
+    override __registerRequiredColumn(_sqlBuilder: HasIsValue, requiredColumns: Set<DBColumn>, onlyForTablesOrViews: Set<AnyTableOrView>): void {
         if (onlyForTablesOrViews.has(this.__tableOrView)) {
             requiredColumns.add(this)
         }
     }
 
-    __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+    override __getOldValues(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         return __getTableOrViewPrivate(this.__tableOrView).__getOldValues(sqlBuilder)
     }
-    __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
+    override __getValuesForInsert(sqlBuilder: HasIsValue): AnyTableOrView | undefined {
         return __getTableOrViewPrivate(this.__tableOrView).__getValuesForInsert(sqlBuilder)
     }
-    __isAllowed(sqlBuilder: HasIsValue): boolean {
+    override __isAllowed(sqlBuilder: HasIsValue): boolean {
         return __getTableOrViewPrivate(this.__tableOrView).__isAllowed(sqlBuilder)
     }
 }

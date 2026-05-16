@@ -22,7 +22,7 @@ export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunn
     getNativeRunner(): Promise<ConnectionPool> {
         return this.promisePool
     }
-    getCurrentNativeTransaction(): Transaction | undefined {
+    override getCurrentNativeTransaction(): Transaction | undefined {
         return super.getCurrentNativeTransaction() as any
     }
     addParam(params: any[], value: any): string {
@@ -37,10 +37,10 @@ export class MssqlPoolPromiseQueryRunner extends ManagedTransactionPoolQueryRunn
         // Do nothing
     }
     
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return MssqlPoolQueryRunner.getErrorReason(error)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return MssqlPoolQueryRunner.isSqlError(error)
     }
     

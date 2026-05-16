@@ -126,10 +126,10 @@ export class MssqlPoolQueryRunner extends ManagedTransactionQueryRunner {
         params.push(value)
         return '@' + index
     }
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return MssqlPoolQueryRunner.getErrorReason(error)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return MssqlPoolQueryRunner.isSqlError(error)
     }
 

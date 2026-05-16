@@ -20,11 +20,11 @@ class BunSqlMariaDBSqlBuilder extends MariaDBSqlBuilder {
     // TODO: Remove this builder when Bun SQL MySQL/MariaDB prepared statements no longer hang
     // when a YEAR result column is followed by a NEWDECIMAL result column.
     // See https://github.com/oven-sh/bun/issues/30854
-    _getFullYear(params: any[], valueSource: ToSql): string {
+    override _getFullYear(params: any[], valueSource: ToSql): string {
         return 'cast(' + super._getFullYear(params, valueSource) + ' as signed)'
     }
 
-    _getMilliseconds(params: any[], valueSource: ToSql): string {
+    override _getMilliseconds(params: any[], valueSource: ToSql): string {
         return 'cast(' + super._getMilliseconds(params, valueSource) + ' as signed)'
     }
 }
@@ -34,7 +34,7 @@ class DBConnection extends MariaDBConnection<'DBConnection'> {
         super(queryRunner, new BunSqlMariaDBSqlBuilder())
     }
 
-    protected transformValueFromDB(value: unknown, type: string): unknown {
+    protected override transformValueFromDB(value: unknown, type: string): unknown {
         // TODO: Remove this method when Bun SQL decodes MySQL/MariaDB YEAR/NEWDECIMAL values correctly.
         // See https://github.com/oven-sh/bun/issues/29471
         function isNumericType(type: string) {

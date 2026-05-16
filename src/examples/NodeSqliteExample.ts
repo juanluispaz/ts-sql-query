@@ -12,9 +12,9 @@ import { Values } from '../Values.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    protected compatibilityMode = false
+    protected override compatibilityMode = false
 
-    protected getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
+    protected override getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return 'Julian day as real number'
     }
 

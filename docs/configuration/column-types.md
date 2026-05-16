@@ -144,7 +144,7 @@ function isRgbColor(value: any): value is RgbColor {
 }
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> {
-    protected transformValueFromDB(value: unknown, type: string) {
+    protected override transformValueFromDB(value: unknown, type: string) {
         if (type === 'RgbColor' && value) {
             if (value instanceof Uint8Array && value.length == 3) {
                 return { r: value[0], g: value[1], b: value[2] };
@@ -153,7 +153,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         }
         return super.transformValueFromDB(value, type);
     }
-    protected transformValueToDB(value: unknown, type: string) {
+    protected override transformValueToDB(value: unknown, type: string) {
         if (type === 'RgbColor' && value) {
             if (isRgbColor(value)) {
                 return Uint8Array.of(value.r, value.g, value.b);
@@ -162,7 +162,7 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
         }
         return super.transformValueToDB(value, type);
     }   
-    protected transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
+    protected override transformPlaceholder(placeholder: string, type: string, forceTypeCast: boolean, valueSentToDB: unknown): string {
         // You can force a type cast in the query if you want. With this code, the parameter in the SQL will looks like %1::bytea
         // By thefault, in PostgreSql only, a type cast is generated when forceTypeCast is true
         if (type === 'RgbColor') {

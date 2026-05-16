@@ -17,9 +17,9 @@ import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from '../connecti
 import { Values } from '../Values.js'
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    protected compatibilityMode = false
+    protected override compatibilityMode = false
 
-    protected getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
+    protected override getDateTimeFormat(_type: SqliteDateTimeFormatType): SqliteDateTimeFormat {
         return 'Unix time milliseconds as integer'
     }
 

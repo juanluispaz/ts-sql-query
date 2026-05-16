@@ -17,19 +17,19 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
             throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'adapter', value: adapter }, 'BunSqlMySqlQueryRunner only supports Bun.SQL connections using the mysql or mariadb adapter')
         }
     }
-    useDatabase(database: DatabaseType): void {
+    override useDatabase(database: DatabaseType): void {
         if (database !== 'mySql' && database !== 'mariaDB') {
             throw new TsSqlProcessingError({ reason: 'UNSUPPORTED_DATABASE', database }, 'Unsupported database: ' + database + '. BunSqlMySqlQueryRunner only supports mySql or mariaDB databases')
         }
         this.database = database
     }
-    protected executeMutation(query: string, params: any[]): Promise<number> {
+    protected override executeMutation(query: string, params: any[]): Promise<number> {
         const sql = this.transaction || this.lowLevelTransaction || this.connection
         return sql.unsafe(query, params).then((result) => {
             return result.affectedRows
         })
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
@@ -37,11 +37,11 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
         const sql = this.transaction || this.lowLevelTransaction || this.connection
         return sql.unsafe(query, params).then((result) => result.lastInsertRowid)
     }
-    addParam(params: any[], value: any): string {
+    override addParam(params: any[], value: any): string {
         params.push(value)
         return '?'
     }
-    createBeginTransactionQuery(opts: BeginTransactionOpts): string {
+    override createBeginTransactionQuery(opts: BeginTransactionOpts): string {
         const level = this.getTransactionLevel(opts)
         const accessMode = this.getTransactionAccessMode(opts)
         let sql = ''
@@ -54,10 +54,10 @@ export class BunSqlMySqlQueryRunner extends AbstractBunSqlQueryRunner {
         }
         return sql
     }
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return BunSqlMySqlQueryRunner.getErrorReason(error, this.database)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return BunSqlMySqlQueryRunner.isSqlError(error)
     }
 

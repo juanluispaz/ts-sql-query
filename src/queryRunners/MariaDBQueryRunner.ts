@@ -143,7 +143,7 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
     protected executeMutation(query: string, params: any[]): Promise<number> {
         return this.connection.query({ sql: query, bigNumberStrings: true }, params).then((result: UpsertResult) => result.affectedRows)
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
@@ -163,10 +163,10 @@ export class MariaDBQueryRunner extends DelegatedSetTransactionQueryRunner {
         params.push(value)
         return '?'
     }
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return MariaDBQueryRunner.getErrorReason(error, this.database)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return MariaDBQueryRunner.isSqlError(error)
     }
 

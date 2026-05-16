@@ -43,7 +43,7 @@ You can configure the strategy by overriding the `uuidStrategy` field in your co
 import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
 
 class DBConnection extends OracleConnection<'DBConnection'> {
-    protected uuidStrategy = 'string' as const
+    protected override uuidStrategy = 'string' as const
 }
 ```
 

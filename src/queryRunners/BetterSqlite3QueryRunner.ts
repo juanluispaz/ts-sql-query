@@ -53,7 +53,7 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
             return this.promise.reject(e)
         }
     }
-    executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
+    override executeInsertReturningLastInsertedId(query: string, params: any[] = []): Promise<any> {
         if (this.containsInsertReturningClause(query, params)) {
             return super.executeInsertReturningLastInsertedId(query, params)
         }
@@ -72,16 +72,16 @@ export class BetterSqlite3QueryRunner extends SqlTransactionQueryRunner {
         }
         return '?'
     }    
-    createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
+    override createResolvedPromise<RESULT>(result: RESULT): Promise<RESULT> {
         return this.promise.resolve(result) 
     }
-    createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
+    override createRejectedPromise<RESULT = any>(error: any): Promise<RESULT> {
         return this.promise.reject(error)
     }
-    getErrorReason(error: unknown): TsSqlErrorReason {
+    override getErrorReason(error: unknown): TsSqlErrorReason {
         return BetterSqlite3QueryRunner.getErrorReason(error)
     }
-    isSqlError(error: unknown): boolean {
+    override isSqlError(error: unknown): boolean {
         return BetterSqlite3QueryRunner.isSqlError(error)
     }
 

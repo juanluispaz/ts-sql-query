@@ -22,7 +22,7 @@ By default empty string as treated as null, if you want to allow sending and rec
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
-    allowEmptyString = true
+    override allowEmptyString = true
 }
 ```
 
@@ -38,7 +38,7 @@ Providing the collation allows you to perform more advanced insensitive operatio
 import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
 
 class DBConnection extends PostgreSqlConnection<'DBConnection'> { 
-    insensitiveCollation = 'insensitive'
+    override insensitiveCollation = 'insensitive'
 }
 ```
 

@@ -11,10 +11,17 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
     /**
      * Minimum Oracle Database version the generated SQL must support, encoded as
      * `major * 1_000_000 + minor * 1_000 + patch` (e.g. `23_009_000` for Oracle
-     * Database 23.9). Defaults to `Number.POSITIVE_INFINITY` (latest). No dialect
-     * features depend on this setting today; reserved for forward compatibility —
-     * set it to your real version so future ts-sql-query releases that gate
-     * features on it pick the right behavior automatically.
+     * Database 23.9). Defaults to `Number.POSITIVE_INFINITY` (latest). Recognized
+     * breakpoints:
+     *   - `>= 23_004_000` (Oracle Database 23ai) — the [[Values]] feature emits
+     *     the SQL-standard `WITH name(cols) AS (VALUES (…), …)` table constructor
+     *     introduced in 23ai. On older Oracle versions ts-sql-query emulates it
+     *     as `WITH name(cols) AS (SELECT … FROM dual UNION ALL SELECT … FROM
+     *     dual)` so the feature still works.
+     *
+     * Independent of `compatibilityVersion`, `stringConcatDistinct` emits
+     * `LISTAGG(DISTINCT …)`, which requires Oracle Database 19c or later (the
+     * `DISTINCT` keyword inside `LISTAGG` was added in 19c).
      */
     protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 

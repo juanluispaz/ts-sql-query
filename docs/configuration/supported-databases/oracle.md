@@ -34,7 +34,11 @@ class DBConnection extends OracleConnection<'DBConnection'> { }
 
 The `compatibilityVersion` property declares the minimum Oracle Database version the generated SQL must support, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `23_009_000` for Oracle Database 23.9. The default is `Number.POSITIVE_INFINITY` (latest).
 
-No dialect features depend on this setting today, so leaving it unset is fine. It is reserved for forward compatibility — set it to your real database version so future ts-sql-query releases that gate features on it pick the right behavior automatically.
+Recognized breakpoints:
+
+- `compatibilityVersion >= 23_004_000` (Oracle Database 23ai): the [`Values`](../mapping.md#mapping-constant-values-as-view) feature emits the SQL-standard `WITH name(cols) AS (VALUES (…), …)` table constructor introduced in 23ai. On earlier Oracle versions ts-sql-query emulates it as `WITH name(cols) AS (SELECT … FROM dual UNION ALL SELECT … FROM dual)` so the feature still works.
+
+On older Oracle versions, set `compatibilityVersion` to your actual version so the right emulation is chosen automatically. It is recommended to keep this value in sync with your real database version so future ts-sql-query releases that gate additional features on it pick the right behavior automatically.
 
 ```ts
 import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
@@ -43,6 +47,10 @@ class DBConnection extends OracleConnection<'DBConnection'> {
     protected override compatibilityVersion = 23_009_000
 }
 ```
+
+!!! info "Minimum Oracle version for `stringConcatDistinct`"
+
+    Independent of `compatibilityVersion`, `stringConcatDistinct` emits `LISTAGG(DISTINCT …)`, which requires Oracle Database 19c or later (the `DISTINCT` keyword inside `LISTAGG` was added in 19c). Targeting an older Oracle release means avoiding this aggregate.
 
 ## UUID strategies
 

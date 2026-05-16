@@ -1,4 +1,4 @@
-import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, OrderByEntry } from './SqlBuilder.js'
+import type { ToSql, InsertData, CompoundOperator, SelectData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry } from './SqlBuilder.js'
 import { flattenQueryColumns, hasToSql, getQueryColumn } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
@@ -193,6 +193,49 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         // if value is column and its type adapter is CustomBooleanTypeAdapter append value will be required to normalize value
         // if not it is same boolean, nothing to transform here
         return null
+    }
+    override _buildWithValues(withValues: WithValuesData, params: any[]): string {
+        if (this._connectionConfiguration.compatibilityVersion >= 23_004_000) {
+            return super._buildWithValues(withValues, params)
+        }
+        // Oracle < 23ai has no SQL-standard VALUES table constructor;
+        // emulate as `select … from dual union all select … from dual`.
+        const tableOrView = withValues.__getTableOrView()
+        let columns = ''
+        for (var columnName in withValues) {
+            const column = __getColumnOfObject(tableOrView, columnName)
+            if (!column) {
+                continue
+            }
+            if (columns) {
+                columns += ', '
+            }
+            const columnPrivate = __getColumnPrivate(column)
+            columns += this._appendColumnAlias(columnPrivate.__name, params)
+        }
+
+        const values = withValues.__values
+        let valuesSql = ''
+        for (let i = 0, length = values.length; i < length; i++) {
+            if (valuesSql) {
+                valuesSql += ' union all '
+            }
+            const value = values[i]!
+            let valueSql = ''
+            for (var columnName in withValues) {
+                const column = __getColumnOfObject(tableOrView, columnName)
+                if (!column) {
+                    continue
+                }
+                if (valueSql) {
+                    valueSql += ', '
+                }
+                valueSql += this._appendValueForColumn(column, value[columnName], params, false)
+            }
+            valuesSql += 'select ' + valueSql + ' from dual'
+        }
+
+        return withValues.__name + '(' + columns + ') as (' + valuesSql + ')'
     }
     override _appendWithColumns(withData: WithSelectData, params: any[]): string {
         if (withData.__selectData.__type === 'plain') {

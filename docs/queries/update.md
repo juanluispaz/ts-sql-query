@@ -325,7 +325,7 @@ const addACMECompanyNameToLastName: Promise<number>
 
 ## Bulk update
 
-Sometimes you want to do several updates in a single query, where each one have their own data; for this cases you can [map the constant values as view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the update. This is only supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQL Server](../configuration/supported-databases/sqlserver.md) and [SQLite](../configuration/supported-databases/sqlite.md).
+Sometimes you want to do several updates in a single query, where each one have their own data; for this cases you can [map the constant values as view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the update. This is only supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQL Server](../configuration/supported-databases/sqlserver.md) and [SQLite](../configuration/supported-databases/sqlite.md). On [Oracle](../configuration/supported-databases/oracle.md) the `Values` view itself is supported, but combining it with `update.from(...)` is rejected at compile time because Oracle's SQL has no `UPDATE ... FROM` clause; use a `MERGE` or a correlated subquery for the bulk-update use case instead.
 
 ```ts
 class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {

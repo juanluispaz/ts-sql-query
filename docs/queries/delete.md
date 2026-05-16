@@ -220,7 +220,7 @@ const deleteACMECustomers: Promise<number>
 
 ## Bulk delete
 
-Sometimes you need to delete multiple rows in a single query, where each condition depends on different data. For these cases, you can [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the deletion. This is only supported by [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQL Server](../configuration/supported-databases/sqlserver.md).
+Sometimes you need to delete multiple rows in a single query, where each condition depends on different data. For these cases, you can [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the deletion. This is only supported by [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQL Server](../configuration/supported-databases/sqlserver.md). On [Oracle](../configuration/supported-databases/oracle.md) the `Values` view itself is supported, but combining it with `deleteFrom.using(...)` is rejected at compile time because Oracle's SQL has no `DELETE ... USING` clause; use a `MERGE` or a correlated subquery for the bulk-delete use case instead.
 
 ```ts
 class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {

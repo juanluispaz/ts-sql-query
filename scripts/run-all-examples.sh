@@ -31,6 +31,7 @@ tsx ./src/examples/documentation/MariaDB-compatibility.ts || exit 1
 tsx ./src/examples/documentation/SqlServer.ts || exit 1
 tsx ./src/examples/documentation/SqlServer-compatibility.ts || exit 1
 tsx ./src/examples/documentation/Oracle.ts || exit 1
+tsx ./src/examples/documentation/Oracle-compatibility.ts || exit 1
 
 tsx ./src/examples/Sqlite3Example.ts || exit 1
 tsx ./src/examples/BetterSqlite3Example.ts || exit 1

@@ -13,7 +13,8 @@ import { Values } from '../../Values.js'
 import { View } from '../../View.js'
 import { assertEquals } from '../assertEquals.js'
 
-class DBConnection extends OracleConnection<'DBConnection'> { 
+class DBConnection extends OracleConnection<'DBConnection'> {
+    override compatibilityVersion = 19_000_000
     // insensitiveCollation = 'acs'
 
     bitwiseShiftLeft = this.buildFragmentWithArgs(
@@ -4605,7 +4606,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`with customerSearch(firstName, lastName) as (values (:0, :1), (:2, :3)) select customer.id as "id", customer.first_name as "firstName", customer.last_name as "lastName" from customer inner join customerSearch on customer.first_name = customerSearch.firstName and customer.last_name = customerSearch.lastName`)
+    expectedQuery.push(`with customerSearch(firstName, lastName) as (select :0, :1 from dual union all select :2, :3 from dual) select customer.id as "id", customer.first_name as "firstName", customer.last_name as "lastName" from customer inner join customerSearch on customer.first_name = customerSearch.firstName and customer.last_name = customerSearch.lastName`)
     expectedParams.push(`["John","Smith","Jane","Doe"]`)
     expectedType.push(`selectManyRows`)
 

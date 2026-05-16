@@ -12,6 +12,7 @@
 
 import oracledb from 'oracledb'
 import { Table } from '../Table.js'
+import { Values } from '../Values.js'
 import { assertEquals } from './assertEquals.js'
 import { ConsoleLogQueryRunner } from '../queryRunners/ConsoleLogQueryRunner.js'
 import { OracleConnection } from '../connections/OracleConnection.js'
@@ -968,42 +969,31 @@ async function main() {
             dateValue: date,
         })
 
-        // class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {
-        //     id = this.column('int')
-        //     firstName = this.column('string')
-        //     lastName = this.column('string')
-        // }
-        // const customerForUpdate = Values.create(VCustomerForUpdate, 'customerForUpdate', [{
-        //     id: 1,
-        //     firstName: 'First Name',
-        //     lastName: 'Last Name'
-        // }])
-        
-        // i = await connection.update(tCustomer)
-        //     .from(customerForUpdate)
-        //     .set({
-        //         firstName: customerForUpdate.firstName,
-        //         lastName: customerForUpdate.lastName
-        //     })
-        //     .where(tCustomer.id.equals(customerForUpdate.id))
-        //     .executeUpdate()
-        // assertEquals(i, 0)
-    
-        // class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {
-        //     firstName = this.column('string')
-        //     lastName = this.column('string')
-        // }
-        // const customerForDelete = Values.create(VCustomerForDelete, 'customerForDelete', [{
-        //     firstName: 'First Name',
-        //     lastName: 'Last Name'
-        // }])
-        
-        // i = await connection.deleteFrom(tCustomer)
-        //     .using(customerForDelete)
-        //     .where(tCustomer.firstName.equals(customerForDelete.firstName))
-        //     .and(tCustomer.lastName.equals(customerForDelete.lastName))
-        //     .executeDelete()
-        // assertEquals(i, 0)
+        class VCustomerSearch extends Values<DBConnection, 'customerSearch'> {
+            firstName = this.column('string')
+            lastName = this.column('string')
+        }
+        const customerSearch = Values.create(VCustomerSearch, 'customerSearch', [
+            { firstName: 'First Name', lastName: 'Last Name' },
+            { firstName: 'Other Name', lastName: 'Other Name' },
+        ])
+
+        const matchedCustomers = await connection.selectFrom(tCustomer)
+            .innerJoin(customerSearch).on(
+                tCustomer.firstName.equals(customerSearch.firstName)
+                    .and(tCustomer.lastName.equals(customerSearch.lastName))
+            )
+            .select({
+                id: tCustomer.id,
+                firstName: tCustomer.firstName,
+                lastName: tCustomer.lastName,
+            })
+            .executeSelectMany()
+        assertEquals(matchedCustomers, [])
+
+        // Oracle does not allow `update ... from` / `delete ... using`, so the
+        // Values feature can be combined with select queries (joins, subqueries)
+        // but not with update/delete statements.
 
         i = await connection
             .insertInto(tBoolean)

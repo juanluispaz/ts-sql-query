@@ -264,7 +264,7 @@ class ValuesOf</*in|out*/ SOURCE extends NValues<any, any>> implements IValues<S
     }
 }
 
-export class Values</*in|out*/ CONNECTION extends IConnection<NDBWithType<'postgreSql' | 'sqlite' | 'sqlServer' | 'noopDB'>>, /*in|out*/ NAME extends string> extends ValuesOf<NValues<CONNECTION[typeof connection], NAME>> {
+export class Values</*in|out*/ CONNECTION extends IConnection<NDBWithType<'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle' | 'noopDB'>>, /*in|out*/ NAME extends string> extends ValuesOf<NValues<CONNECTION[typeof connection], NAME>> {
     constructor(name: NAME, values: OpaqueValues) {
         super(name, values as any)
     }

@@ -1,13 +1,19 @@
 {
   "permissions": {
+    "defaultMode": "auto",
     "allow": [
       "Bash(npm run build *)",
+      "Bash(npm run build:tsgo *)",
       "Bash(npm run validate *)",
+      "Bash(npm run validate:tsgo *)",
       "Bash(npm run no-docker-examples *)",
       "Bash(bun run build *)",
+      "Bash(bun run build:tsgo *)",
       "Bash(bun run validate *)",
+      "Bash(bun run validate:tsgo *)",
       "Bash(bun run bun:no-docker-examples *)",
-      "Bash(bun run bun:all-examples *)"
+      "Bash(bun run bun:all-examples *)",
+      "Bash(npm view *)"
     ]
   }
 }

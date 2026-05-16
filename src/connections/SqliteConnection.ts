@@ -20,13 +20,21 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
      * Defaults to `Number.POSITIVE_INFINITY` (latest).
      *
      * Recognised breakpoints:
+     * - `>= 3_042`: the `'subsec'` modifier (added in SQLite 3.42) is used with
+     *   `unixepoch()` to obtain Unix-milliseconds values without going through
+     *   `julianday()` arithmetic.
+     * - `>= 3_038`: the `unixepoch()` function (added in SQLite 3.38) is used
+     *   instead of `cast(strftime('%s', ...) as integer)` to obtain Unix-seconds
+     *   values.
      * - `>= 3_035`: the `RETURNING` clause (added in SQLite 3.35 for `DELETE`,
      *   `INSERT` and `UPDATE`) is emitted on `INSERT` to retrieve the last
      *   inserted id directly from the statement.
      * - `>= 3_030`: native `NULLS FIRST` / `NULLS LAST` syntax in `ORDER BY` is
      *   emitted (added in SQLite 3.30).
      * - below those breakpoints, `NULLS FIRST` / `NULLS LAST` ordering is
-     *   emulated and `last_insert_rowid()` is used to retrieve the inserted id.
+     *   emulated, `last_insert_rowid()` is used to retrieve the inserted id,
+     *   and `strftime('%s', ...)` / `julianday()` arithmetic is used to obtain
+     *   Unix timestamps.
      */
     protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 

@@ -24,6 +24,21 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     _getUuidStrategy(): 'string' | 'uuid-extension' {
         return this._connectionConfiguration.uuidStrategy as any || 'uuid-extension'
     }
+    _unixEpochSeconds(timeValue: string): string {
+        // unixepoch() was added in SQLite 3.38; falls back to strftime('%s', ...) on older versions
+        if (this._connectionConfiguration.compatibilityVersion >= 3_038) {
+            return 'unixepoch(' + timeValue + ')'
+        }
+        return "cast(strftime('%s', " + timeValue + ') as integer)'
+    }
+    _unixEpochMilliseconds(timeValue: string): string {
+        // The 'subsec' modifier on unixepoch() was added in SQLite 3.42; older versions
+        // need to go through julianday() arithmetic to preserve sub-second precision
+        if (this._connectionConfiguration.compatibilityVersion >= 3_042) {
+            return 'cast(unixepoch(' + timeValue + ", 'subsec') * 1000 as integer)"
+        }
+        return 'cast((julianday(' + timeValue + ') - 2440587.5) * 86400000.0 as integer)'
+    }
     _getValueSourceDateTimeFormat(valueSource: ToSql): SqliteDateTimeFormat {
         if (isValueSource(valueSource)) {
             const valueSourcePrivate = __getValueSourcePrivate(valueSource)
@@ -199,9 +214,10 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             case 'Julian day as real number':
                 return "julianday(date('now'))"
             case 'Unix time seconds as integer':
-                return "cast(strftime('%s', date('now')) as integer)"
+                return this._unixEpochSeconds("date('now')")
             case 'Unix time milliseconds as integer':
-                return "(cast(strftime('%s', date('now')) as integer) * 1000)"
+                // The date has no sub-second component, so seconds * 1000 is exact
+                return '(' + this._unixEpochSeconds("date('now')") + ' * 1000)'
             default:
                 throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
         }
@@ -221,9 +237,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             case 'Julian day as real number':
                 return "(julianday(strftime('1970-01-01 %H:%M:%f', 'now')) - julianday('1970-01-01'))"
             case 'Unix time seconds as integer':
-                return "cast(strftime('%s', strftime('1970-01-01 %H:%M:%S', 'now')) as integer)"
+                return this._unixEpochSeconds("strftime('1970-01-01 %H:%M:%S', 'now')")
             case 'Unix time milliseconds as integer':
-                return "cast((julianday(strftime('1970-01-01 %H:%M:%f', 'now')) - 2440587.5) * 86400000.0 as integer)"
+                return this._unixEpochMilliseconds("strftime('1970-01-01 %H:%M:%f', 'now')")
             default:
                 throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
         }
@@ -246,9 +262,9 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
             case 'Julian day as real number':
                 return "julianday('now')"
             case 'Unix time seconds as integer':
-                return "cast(strftime('%s', 'now') as integer)"
+                return this._unixEpochSeconds("'now'")
             case 'Unix time milliseconds as integer':
-                return "cast((julianday('now') - 2440587.5) * 86400000.0 as integer)"
+                return this._unixEpochMilliseconds("'now'")
             default:
                 throw new TsSqlProcessingError({ reason: 'INVALID_CONFIGURATION', name: 'dataTimeFormat', value: dateTimeFormat }, 'Invalid sqlite date time format: ' + dateTimeFormat)
         }
@@ -291,7 +307,13 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         } else if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time milliseconds as integer') {
             return this._appendSql(valueSource, params, false)
         }
-        return "round((julianday(" + this._appendSql(valueSource, params, false) + ") - 2440587.5) * 86400000.0)"
+        const v = this._appendSql(valueSource, params, false)
+        // The 'subsec' modifier on unixepoch() was added in SQLite 3.42; older versions
+        // need to go through julianday() arithmetic to preserve sub-second precision
+        if (this._connectionConfiguration.compatibilityVersion >= 3_042) {
+            return 'round(unixepoch(' + v + ", 'subsec') * 1000)"
+        }
+        return 'round((julianday(' + v + ') - 2440587.5) * 86400000.0)'
     }
     override _getFullYear(params: any[], valueSource: ToSql): string {
         if (this._getValueSourceDateTimeFormat(valueSource) === 'Unix time seconds as integer') {

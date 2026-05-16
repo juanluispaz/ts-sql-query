@@ -42,14 +42,14 @@ export class MariaDBSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         // release (MDEV-12172). The legacy VALUES() name still works inside
         // ON DUPLICATE KEY UPDATE but VALUE() is the preferred form on every
         // version that recognises it.
-        if (this._connectionConfiguration.compatibilityVersion >= 10_003) {
+        if (this._connectionConfiguration.compatibilityVersion >= 10_003_003) {
             const columnPrivate = __getColumnPrivate(column)
             return 'value(' + this._escape(columnPrivate.__name, true) + ')'
         }
         return super._appendRawColumnNameForValuesForInsert(column, _params)
     }
     override _buildInsertReturning(query: InsertData, params: any[]): string {
-        if (this._connectionConfiguration.compatibilityVersion >= 10_005 || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
+        if (this._connectionConfiguration.compatibilityVersion >= 10_005_000 || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
             return super._buildInsertReturning(query, params)
         }
         this._setContainsInsertReturningClause(params, false)

@@ -32,7 +32,7 @@ class DBConnection extends OracleConnection<'DBConnection'> { }
 
 ## Compatibility version
 
-The `compatibilityVersion` property declares the minimum Oracle Database version the generated SQL must support, encoded as the integer `major * 1000 + minor` — e.g. `23_009` for Oracle Database 23.9. The default is `Number.POSITIVE_INFINITY` (latest).
+The `compatibilityVersion` property declares the minimum Oracle Database version the generated SQL must support, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `23_009_000` for Oracle Database 23.9. The default is `Number.POSITIVE_INFINITY` (latest).
 
 No dialect features depend on this setting today, so leaving it unset is fine. It is reserved for forward compatibility — set it to your real database version so future ts-sql-query releases that gate features on it pick the right behavior automatically.
 
@@ -40,7 +40,7 @@ No dialect features depend on this setting today, so leaving it unset is fine. I
 import { OracleConnection } from "ts-sql-query/connections/OracleConnection";
 
 class DBConnection extends OracleConnection<'DBConnection'> {
-    protected override compatibilityVersion = 23_009
+    protected override compatibilityVersion = 23_009_000
 }
 ```
 

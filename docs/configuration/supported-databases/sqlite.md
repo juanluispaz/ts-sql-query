@@ -153,22 +153,22 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
 
 ## Compatibility version
 
-The `compatibilityVersion` property declares the minimum SQLite version the generated SQL must support, encoded as the integer `major * 1000 + minor` — e.g. `3_035` for SQLite 3.35, `3_029` for SQLite 3.29. The numeric separator `_` is for readability only (`3_035 === 3035`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
+The `compatibilityVersion` property declares the minimum SQLite version the generated SQL must support, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `3_035_000` for SQLite 3.35.0, `3_029_000` for SQLite 3.29.0. The numeric separator `_` is for readability only (`3_035_000 === 3035000`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
 
 You can set this to your real database version (whatever it is) regardless of whether ts-sql-query currently uses it — extra granularity is harmless and future-proof.
 
 Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakpoint below is enabled — the list reads as the bar you need to clear to keep each feature):
 
-- `>= 3_042`: target SQLite 3.42+ (released *2023-05-16*). The `'subsec'` modifier (added in SQLite 3.42) is used with `unixepoch()` to obtain Unix-milliseconds values directly, instead of going through `julianday()` arithmetic.
-- `>= 3_038`: target SQLite 3.38+ (released *2022-02-22*). The `unixepoch()` function (added in SQLite 3.38) is used to obtain Unix-seconds values, instead of `cast(strftime('%s', ...) as integer)`.
-- `>= 3_035`: target SQLite 3.35+ (released *2021-03-12*). Uses native `NULLS FIRST` / `NULLS LAST` syntax in `ORDER BY`, and the `RETURNING` clause (added in SQLite 3.35 for `DELETE`, `INSERT` and `UPDATE`) on `INSERT` to retrieve the last inserted ID directly from the statement.
-- `>= 3_030`: target SQLite 3.30 to 3.34 (3.30 released *2019-10-04*). Uses native `NULLS FIRST` / `NULLS LAST` syntax in `ORDER BY`. The `RETURNING` clause is not emitted on `INSERT`; `last_insert_rowid()` is used to retrieve the inserted ID instead.
-- `< 3_030`: target SQLite 3.29 or older. `NULLS FIRST` / `NULLS LAST` ordering is emulated. The `RETURNING` clause is not emitted on `INSERT`; `last_insert_rowid()` is used to retrieve the inserted ID instead.
+- `>= 3_042_000`: target SQLite 3.42+ (released *2023-05-16*). The `'subsec'` modifier (added in SQLite 3.42) is used with `unixepoch()` to obtain Unix-milliseconds values directly, instead of going through `julianday()` arithmetic.
+- `>= 3_038_000`: target SQLite 3.38+ (released *2022-02-22*). The `unixepoch()` function (added in SQLite 3.38) is used to obtain Unix-seconds values, instead of `cast(strftime('%s', ...) as integer)`.
+- `>= 3_035_000`: target SQLite 3.35+ (released *2021-03-12*). Uses native `NULLS FIRST` / `NULLS LAST` syntax in `ORDER BY`, and the `RETURNING` clause (added in SQLite 3.35 for `DELETE`, `INSERT` and `UPDATE`) on `INSERT` to retrieve the last inserted ID directly from the statement.
+- `>= 3_030_000`: target SQLite 3.30 to 3.34 (3.30 released *2019-10-04*). Uses native `NULLS FIRST` / `NULLS LAST` syntax in `ORDER BY`. The `RETURNING` clause is not emitted on `INSERT`; `last_insert_rowid()` is used to retrieve the inserted ID instead.
+- `< 3_030_000`: target SQLite 3.29 or older. `NULLS FIRST` / `NULLS LAST` ordering is emulated. The `RETURNING` clause is not emitted on `INSERT`; `last_insert_rowid()` is used to retrieve the inserted ID instead.
 
 ```ts
 import { SqliteConnection } from "ts-sql-query/connections/SqliteConnection";
 
 class DBConnection extends SqliteConnection<'DBConnection'> {
-    protected override compatibilityVersion = 3_029
+    protected override compatibilityVersion = 3_029_000
 }
 ```

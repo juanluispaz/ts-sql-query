@@ -41,10 +41,12 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     protected insensitiveCollation?: string | undefined
     /**
      * Minimum database version the generated SQL must support, encoded as a single
-     * integer that packs `major.minor` using three digits for the minor part
-     * (zero-padded on the left): `major * 1000 + minor`. The numeric separator
-     * underscore is recommended for readability — e.g. `10_005` for MariaDB 10.5,
-     * `3_029` for SQLite 3.29, `8_000` for MySQL 8.
+     * integer that packs `major.minor.patch` using three digits for each part
+     * (zero-padded on the left): `major * 1_000_000 + minor * 1_000 + patch`. The
+     * numeric separator underscore is recommended for readability — e.g.
+     * `10_005_000` for MariaDB 10.5, `3_029_000` for SQLite 3.29, `8_000_019` for
+     * MySQL 8.0.19. Patch precision matters because some engines (notably MySQL
+     * before 8.0.34) added new dialect features in patch releases.
      *
      * The default `Number.POSITIVE_INFINITY` means "latest" — every supported
      * dialect feature is emitted. Lower values progressively turn off features

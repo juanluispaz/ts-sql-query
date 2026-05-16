@@ -8,11 +8,12 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
 
     /**
      * Minimum SQL Server version the generated SQL must support, encoded as
-     * `major * 1000 + minor` (e.g. `16_000` for SQL Server 2022, whose internal
-     * version is 16.0). Defaults to `Number.POSITIVE_INFINITY` (latest). No
-     * dialect features depend on this setting today; reserved for forward
-     * compatibility — set it to your real version so future ts-sql-query releases
-     * that gate features on it pick the right behavior automatically.
+     * `major * 1_000_000 + minor * 1_000 + patch` (e.g. `16_000_000` for SQL
+     * Server 2022, whose internal version is 16.0). Defaults to
+     * `Number.POSITIVE_INFINITY` (latest). No dialect features depend on this
+     * setting today; reserved for forward compatibility — set it to your real
+     * version so future ts-sql-query releases that gate features on it pick the
+     * right behavior automatically.
      */
     protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 

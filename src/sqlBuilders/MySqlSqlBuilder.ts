@@ -27,7 +27,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         // deprecated the previous VALUES(col) function reference in favour of it.
         // ts-sql-query uses its canonical alias name '_new_' (see _updateNewAlias),
         // matching the convention used elsewhere in the library.
-        if (this._connectionConfiguration.compatibilityVersion >= 8_000) {
+        if (this._connectionConfiguration.compatibilityVersion >= 8_000_019) {
             const columnPrivate = __getColumnPrivate(column)
             return this._escape(this._updateNewAlias, true) + '.' + this._escape(columnPrivate.__name, true)
         }
@@ -35,7 +35,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     }
     override _buildInsertOnConflictBeforeReturning(query: InsertData, params: any[]): string {
         const result = super._buildInsertOnConflictBeforeReturning(query, params)
-        if (result && this._connectionConfiguration.compatibilityVersion >= 8_000) {
+        if (result && this._connectionConfiguration.compatibilityVersion >= 8_000_019) {
             // The row alias must sit between the VALUES clause and ON DUPLICATE KEY UPDATE
             return ' as ' + this._escape(this._updateNewAlias, true) + result
         }
@@ -120,14 +120,14 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
     }
 
     override _buildWith(withData: WithQueryData, params: any[]): string {
-        if (this._connectionConfiguration.compatibilityVersion < 8_000) {
+        if (this._connectionConfiguration.compatibilityVersion < 8_000_000) {
             // No with should be generated
             return ''
         }
         return super._buildWith(withData, params)
     }
     override _appendTableOrViewNameForFrom(table: AnyTableOrView, params: any[]): string {
-        if (this._connectionConfiguration.compatibilityVersion < 8_000) {
+        if (this._connectionConfiguration.compatibilityVersion < 8_000_000) {
             // The with clause must be expanded inline when it is required
             if (hasWithData(table)) {
                 if (table.__type === 'with') {
@@ -143,7 +143,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         return super._appendTableOrViewNameForFrom(table, params)
     }
     override _appendTableOrViewNoAliasForFrom(table: AnyTableOrView, params: any[]): string {
-        if (this._connectionConfiguration.compatibilityVersion < 8_000) {
+        if (this._connectionConfiguration.compatibilityVersion < 8_000_000) {
             // The with name must be used as alias
             if (hasWithData(table)) {
                 return table.__name
@@ -153,7 +153,7 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         return super._appendTableOrViewNoAliasForFrom(table, params)
     }
     override _setSafeTableOrView(params: any[], tableOrView: AnyTableOrView | undefined): void {
-        if (this._connectionConfiguration.compatibilityVersion < 8_000) {
+        if (this._connectionConfiguration.compatibilityVersion < 8_000_000) {
             // The inline query alias (from the with) always requires explicit name
             if (hasWithData(tableOrView)) {
                 super._setSafeTableOrView(params, undefined)

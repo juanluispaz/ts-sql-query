@@ -49,18 +49,22 @@ class DBConnection extends MySqlConnection<'DBConnection'> {
 
 ## Compatibility version
 
-The `compatibilityVersion` property declares the minimum MySQL version the generated SQL must support, encoded as the integer `major * 1000 + minor` — e.g. `8_000` for MySQL 8.0, `5_007` for MySQL 5.7. The numeric separator `_` is for readability only (`8_000 === 8000`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
+The `compatibilityVersion` property declares the minimum MySQL version the generated SQL must support, encoded as the integer `major * 1_000_000 + minor * 1_000 + patch` — e.g. `8_000_019` for MySQL 8.0.19, `5_007_000` for MySQL 5.7. The numeric separator `_` is for readability only (`8_000_019 === 8000019`). The default is `Number.POSITIVE_INFINITY` (latest), so every supported feature is emitted.
+
+Patch precision matters here because MySQL 8.0 has a continuous-delivery history: from 8.0.0 (April 2018) through 8.0.34 (July 2023), patch releases added new dialect features (CTE, `LATERAL`, the row alias for `ON DUPLICATE KEY UPDATE`, `INTERSECT`/`EXCEPT`, etc.). The Innovation Release model that started with 8.1.0 is cumulative with these features.
 
 You can set this to your real database version (whatever it is) regardless of whether ts-sql-query currently uses it — extra granularity is harmless and future-proof.
 
 Recognised breakpoints (with the default `Number.POSITIVE_INFINITY` every breakpoint below is enabled — the list reads as the bar you need to clear to keep each feature):
 
-- `>= 8_000`: target MySQL 8+. The `WITH` clause is used (recursive queries supported), and the row alias syntax `INSERT ... AS _new_ ON DUPLICATE KEY UPDATE col = _new_.col` is emitted to reference values being inserted (added in MySQL 8.0.19, with the legacy `VALUES(col)` function reference deprecated in 8.0.20). Below this breakpoint the `WITH` clause is not emitted — the inner query is inlined in the `FROM` instead — recursive queries throw at query-build time, and the legacy `VALUES(col)` reference is used inside `ON DUPLICATE KEY UPDATE`.
+- `>= 8_000_019`: target MySQL 8.0.19+. The row alias syntax `INSERT ... AS _new_ ON DUPLICATE KEY UPDATE col = _new_.col` is emitted to reference values being inserted (added in 8.0.19; the legacy `VALUES(col)` function reference was deprecated in 8.0.20).
+- `>= 8_000_000`: target MySQL 8.0+. The `WITH` clause is used and recursive queries are supported.
+- `< 8_000_000`: target MySQL 5. The `WITH` clause is not emitted — the inner query is inlined in the `FROM` instead — recursive queries throw at query-build time, and the legacy `VALUES(col)` reference is used inside `ON DUPLICATE KEY UPDATE`.
 
 ```ts
 import { MySqlConnection } from "ts-sql-query/connections/MySqlConnection";
 
 class DBConnection extends MySqlConnection<'DBConnection'> {
-    protected override compatibilityVersion = 5_007
+    protected override compatibilityVersion = 5_007_000
 }
 ```

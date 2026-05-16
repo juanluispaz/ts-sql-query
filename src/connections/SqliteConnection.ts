@@ -16,21 +16,22 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
 
     /**
      * Minimum SQLite version the generated SQL must support, encoded as
-     * `major * 1000 + minor` (e.g. `3_035` for SQLite 3.35, `3_029` for SQLite 3.29).
-     * Defaults to `Number.POSITIVE_INFINITY` (latest).
+     * `major * 1_000_000 + minor * 1_000 + patch` (e.g. `3_035_000` for
+     * SQLite 3.35.0, `3_029_000` for SQLite 3.29.0). Defaults to
+     * `Number.POSITIVE_INFINITY` (latest).
      *
      * Recognised breakpoints:
-     * - `>= 3_042`: the `'subsec'` modifier (added in SQLite 3.42) is used with
-     *   `unixepoch()` to obtain Unix-milliseconds values without going through
-     *   `julianday()` arithmetic.
-     * - `>= 3_038`: the `unixepoch()` function (added in SQLite 3.38) is used
-     *   instead of `cast(strftime('%s', ...) as integer)` to obtain Unix-seconds
-     *   values.
-     * - `>= 3_035`: the `RETURNING` clause (added in SQLite 3.35 for `DELETE`,
-     *   `INSERT` and `UPDATE`) is emitted on `INSERT` to retrieve the last
-     *   inserted id directly from the statement.
-     * - `>= 3_030`: native `NULLS FIRST` / `NULLS LAST` syntax in `ORDER BY` is
-     *   emitted (added in SQLite 3.30).
+     * - `>= 3_042_000`: the `'subsec'` modifier (added in SQLite 3.42) is used
+     *   with `unixepoch()` to obtain Unix-milliseconds values without going
+     *   through `julianday()` arithmetic.
+     * - `>= 3_038_000`: the `unixepoch()` function (added in SQLite 3.38) is
+     *   used instead of `cast(strftime('%s', ...) as integer)` to obtain
+     *   Unix-seconds values.
+     * - `>= 3_035_000`: the `RETURNING` clause (added in SQLite 3.35 for
+     *   `DELETE`, `INSERT` and `UPDATE`) is emitted on `INSERT` to retrieve the
+     *   last inserted id directly from the statement.
+     * - `>= 3_030_000`: native `NULLS FIRST` / `NULLS LAST` syntax in
+     *   `ORDER BY` is emitted (added in SQLite 3.30).
      * - below those breakpoints, `NULLS FIRST` / `NULLS LAST` ordering is
      *   emulated, `last_insert_rowid()` is used to retrieve the inserted id,
      *   and `strftime('%s', ...)` / `julianday()` arithmetic is used to obtain

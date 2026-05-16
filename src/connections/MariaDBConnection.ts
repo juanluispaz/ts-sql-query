@@ -10,21 +10,23 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
 
     /**
      * Minimum MariaDB version the generated SQL must support, encoded as
-     * `major * 1000 + minor` (e.g. `10_005` for MariaDB 10.5, `10_004` for
-     * MariaDB 10.4). Defaults to `Number.POSITIVE_INFINITY` (latest).
+     * `major * 1_000_000 + minor * 1_000 + patch` (e.g. `10_005_000` for
+     * MariaDB 10.5.0, `10_003_003` for MariaDB 10.3.3). Defaults to
+     * `Number.POSITIVE_INFINITY` (latest).
      *
      * Recognised breakpoints:
-     * - `>= 10_005`: the `RETURNING` clause (supported on `INSERT` and `DELETE`
-     *   since MariaDB 10.5) is emitted on `INSERT` to retrieve the last inserted
-     *   id directly from the statement. Below this breakpoint, the last inserted
-     *   id reported by the underlying connector after the query execution is
-     *   used instead.
-     * - `>= 10_003`: the `VALUE(col)` function (added in MariaDB 10.3 as part
-     *   of MDEV-12172, renaming `VALUES(col)` to avoid the clash with the
+     * - `>= 10_005_000`: the `RETURNING` clause (supported on `INSERT` and
+     *   `DELETE` since MariaDB 10.5) is emitted on `INSERT` to retrieve the
+     *   last inserted id directly from the statement. Below this breakpoint,
+     *   the last inserted id reported by the underlying connector after the
+     *   query execution is used instead.
+     * - `>= 10_003_003`: the `VALUE(col)` function (added in MariaDB 10.3.3 as
+     *   part of MDEV-12172, renaming `VALUES(col)` to avoid the clash with the
      *   standard Table Value Constructors syntax introduced in the same
      *   release) is emitted inside `ON DUPLICATE KEY UPDATE` to reference the
      *   values being inserted. Below this breakpoint the legacy `VALUES(col)`
-     *   name is emitted instead.
+     *   name is emitted instead. The 10.3 line went GA at 10.3.7, so every
+     *   stable 10.3 release is past this breakpoint.
      */
     protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 

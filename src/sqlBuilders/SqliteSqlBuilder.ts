@@ -26,7 +26,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     }
     _unixEpochSeconds(timeValue: string): string {
         // unixepoch() was added in SQLite 3.38; falls back to strftime('%s', ...) on older versions
-        if (this._connectionConfiguration.compatibilityVersion >= 3_038) {
+        if (this._connectionConfiguration.compatibilityVersion >= 3_038_000) {
             return 'unixepoch(' + timeValue + ')'
         }
         return "cast(strftime('%s', " + timeValue + ') as integer)'
@@ -34,7 +34,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
     _unixEpochMilliseconds(timeValue: string): string {
         // The 'subsec' modifier on unixepoch() was added in SQLite 3.42; older versions
         // need to go through julianday() arithmetic to preserve sub-second precision
-        if (this._connectionConfiguration.compatibilityVersion >= 3_042) {
+        if (this._connectionConfiguration.compatibilityVersion >= 3_042_000) {
             return 'cast(unixepoch(' + timeValue + ", 'subsec') * 1000 as integer)"
         }
         return 'cast((julianday(' + timeValue + ') - 2440587.5) * 86400000.0 as integer)'
@@ -65,7 +65,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return result
     }
     override _buildSelectOrderBy(query: SelectData, params: any[]): string {
-        if (this._connectionConfiguration.compatibilityVersion >= 3_030) {
+        if (this._connectionConfiguration.compatibilityVersion >= 3_030_000) {
             return super._buildSelectOrderBy(query, params)
         }
         const orderBy = query.__orderBy
@@ -182,7 +182,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return ''
     }
     override _buildInsertReturning(query: InsertData, params: any[]): string {
-        if (this._connectionConfiguration.compatibilityVersion >= 3_035 || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
+        if (this._connectionConfiguration.compatibilityVersion >= 3_035_000 || query.__from || query.__multiple || query.__columns || query.__onConflictUpdateSets) {
             return super._buildInsertReturning(query, params)
         }
         this._setContainsInsertReturningClause(params, false)
@@ -310,7 +310,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         const v = this._appendSql(valueSource, params, false)
         // The 'subsec' modifier on unixepoch() was added in SQLite 3.42; older versions
         // need to go through julianday() arithmetic to preserve sub-second precision
-        if (this._connectionConfiguration.compatibilityVersion >= 3_042) {
+        if (this._connectionConfiguration.compatibilityVersion >= 3_042_000) {
             return 'round(unixepoch(' + v + ", 'subsec') * 1000)"
         }
         return 'round((julianday(' + v + ') - 2440587.5) * 86400000.0)'

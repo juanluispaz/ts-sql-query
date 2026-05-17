@@ -12,6 +12,18 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { isRealDbEnabled } from '../../lib/backends.js'
+import {
+    BASE_WORKER_DB_NAME,
+    createContainerHandle,
+    hashSqlFiles,
+    memoizeSharedRunner,
+    META_DB_NAME,
+    reuseEnabled,
+    SCHEMA_HASH_META_TABLE,
+    VALIDATE_LOCK_NAME,
+    workerName,
+    workerNameLikePattern,
+} from '../../lib/containerLifecycle.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
 import { DBConnection } from './domain/connection.js'
 
@@ -26,40 +38,129 @@ const SEED_PATH = resolve(__dirname, './domain/seed.sql')
 // relies on via a portable raw SQL fragment.
 const MSSQL_IMAGE = 'mcr.microsoft.com/mssql/server:2025-latest'
 const SA_PASSWORD = 'StrongPass1!Sqlsrv'
-const DB_NAME = 'tssqlquery'
 
 type StartedContainer = {
     getHost(): string
     getMappedPort(p: number): number
-    stop(): Promise<void>
+    stop(): Promise<unknown>
 }
 
-let containerPromise: Promise<StartedContainer> | null = null
-let refCount = 0
+// Container is started lazily on the first acquire and kept alive for the
+// entire test process — see `test/lib/containerLifecycle.ts`. With the
+// `TESTCONTAINERS_REUSE_ENABLE=true` env var the container also survives
+// across separate `bun test` invocations (the SQL Server image is heavy
+// enough that the difference is very visible during iterative work).
+const container = createContainerHandle<StartedContainer>(async () => {
+    const { GenericContainer, Wait } = await import('testcontainers')
+    const builder = new GenericContainer(MSSQL_IMAGE)
+        .withEnvironment({
+            ACCEPT_EULA: 'Y',
+            MSSQL_SA_PASSWORD: SA_PASSWORD,
+            MSSQL_PID: 'Developer',
+        })
+        .withExposedPorts(1433)
+        .withWaitStrategy(Wait.forLogMessage(/SQL Server is now ready for client connections/, 1))
+    if (reuseEnabled()) builder.withReuse()
+    const started = (await builder.start()) as unknown as StartedContainer
+    // Runs once per process. Validates the schema/seed hash against the
+    // meta DB and, when stale, drops every per-worker test DB so they
+    // get rebuilt cleanly. `sp_getapplock` serialises this across
+    // workers running in parallel processes.
+    await validateOrResetForReuse(started.getHost(), started.getMappedPort(1433))
+    return started
+})
+const acquireContainer = container.acquire
+const releaseContainer = container.release
 
-async function acquireContainer(): Promise<StartedContainer> {
-    if (containerPromise === null) {
-        const { GenericContainer, Wait } = await import('testcontainers')
-        containerPromise = new GenericContainer(MSSQL_IMAGE)
-            .withEnvironment({
-                ACCEPT_EULA: 'Y',
-                MSSQL_SA_PASSWORD: SA_PASSWORD,
-                MSSQL_PID: 'Developer',
-            })
-            .withExposedPorts(1433)
-            .withWaitStrategy(Wait.forLogMessage(/SQL Server is now ready for client connections/, 1))
-            .start() as unknown as Promise<StartedContainer>
-    }
-    refCount++
-    return await containerPromise
-}
+async function validateOrResetForReuse(host: string, port: number): Promise<void> {
+    const [schemaSql, seedSql] = await Promise.all([
+        readFile(SCHEMA_PATH, 'utf8'),
+        readFile(SEED_PATH, 'utf8'),
+    ])
+    const currentHash = await hashSqlFiles(schemaSql, seedSql)
 
-async function releaseContainer(): Promise<void> {
-    refCount--
-    if (refCount === 0 && containerPromise) {
-        const c = await containerPromise
-        containerPromise = null
-        await c.stop()
+    // Single connection scoped to `master`. `sp_getapplock` with
+    // session lock owner is connection-scoped, so we hold one pool
+    // (max=1) for the entire validate-and-maybe-reset sequence.
+    const sql = await import('mssql')
+    const masterPool = await connectWithRetry(sql, {
+        server: host, port,
+        user: 'sa', password: SA_PASSWORD,
+        database: 'master',
+        options: { encrypt: false, trustServerCertificate: true },
+        pool: { max: 1, min: 1, idleTimeoutMillis: 30_000 },
+    })
+    try {
+        const lockRes = await masterPool.request()
+            .input('Resource', sql.NVarChar, VALIDATE_LOCK_NAME)
+            .input('LockMode', sql.NVarChar, 'Exclusive')
+            .input('LockOwner', sql.NVarChar, 'Session')
+            .input('LockTimeout', sql.Int, 60_000)
+            .execute('sp_getapplock')
+        // sp_getapplock returns >= 0 on success (0 = granted immediately,
+        // 1 = granted after wait), < 0 on failure.
+        const lockResult = lockRes.returnValue
+        if (typeof lockResult !== 'number' || lockResult < 0) {
+            throw new Error(`sqlserver validator: sp_getapplock returned ${lockResult}`)
+        }
+        try {
+            let storedHash: string | null = null
+            try {
+                const res = await masterPool.request().query<{ hash: string }>(
+                    `SELECT TOP 1 hash FROM ${META_DB_NAME}.dbo.${SCHEMA_HASH_META_TABLE}`,
+                )
+                storedHash = res.recordset[0]?.hash ?? null
+            } catch {
+                // Meta DB / table missing — fresh container.
+            }
+
+            if (storedHash === currentHash) return
+
+            // Enumerate and drop every existing worker DB — both the
+            // parallel-on pattern (`tssqlquery_w%`) and the
+            // parallel-off bare name (`tssqlquery`) — so a switch
+            // between modes leaves no stragglers behind.
+            // SINGLE_USER kicks every other client off the database so
+            // the DROP can proceed even when a previous test process
+            // left lingering pool sockets behind.
+            const workerDbs = await masterPool.request()
+                .input('base', sql.NVarChar, BASE_WORKER_DB_NAME)
+                .input('like', sql.NVarChar, workerNameLikePattern(BASE_WORKER_DB_NAME))
+                .query<{ name: string }>(
+                    `SELECT name FROM sys.databases
+                      WHERE name = @base OR name LIKE @like ESCAPE '\\'`,
+                )
+            for (const { name } of workerDbs.recordset) {
+                await masterPool.request().batch(`
+                    IF DB_ID('${name}') IS NOT NULL BEGIN
+                        ALTER DATABASE [${name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+                        DROP DATABASE [${name}];
+                    END
+                `)
+            }
+            await masterPool.request().batch(`
+                IF DB_ID('${META_DB_NAME}') IS NOT NULL BEGIN
+                    ALTER DATABASE [${META_DB_NAME}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+                    DROP DATABASE [${META_DB_NAME}];
+                END
+                CREATE DATABASE [${META_DB_NAME}]
+            `)
+            await masterPool.request().batch(
+                `USE [${META_DB_NAME}]; CREATE TABLE ${SCHEMA_HASH_META_TABLE} (hash NVARCHAR(64) NOT NULL)`,
+            )
+            await masterPool.request()
+                .input('h', sql.NVarChar, currentHash)
+                .query(
+                    `INSERT INTO ${META_DB_NAME}.dbo.${SCHEMA_HASH_META_TABLE} (hash) VALUES (@h)`,
+                )
+        } finally {
+            await masterPool.request()
+                .input('Resource', sql.NVarChar, VALIDATE_LOCK_NAME)
+                .input('LockOwner', sql.NVarChar, 'Session')
+                .execute('sp_releaseapplock')
+        }
+    } finally {
+        await masterPool.close()
     }
 }
 
@@ -93,31 +194,59 @@ function splitBatch(sql: string): string[] {
         .filter(s => s.length > 0)
 }
 
-async function applySchemaAndSeed(host: string, port: number): Promise<void> {
+// Once-per-process flag: the worker DB only needs creating the first
+// time the runner starts inside a given process. Subsequent
+// `applySchemaAndSeedToWorkerDb` calls skip the master pool entirely.
+let workerDbEnsured = false
+
+async function applySchemaAndSeedToWorkerDb(host: string, port: number): Promise<string> {
+    const workerDb = workerName(BASE_WORKER_DB_NAME)
     const sql = await import('mssql')
-    // SQL Server logs "ready for client connections" before the SA login is
-    // actually usable (the SA password is materialised a little later as the
-    // entrypoint script finishes). Retry the initial connect for a few
-    // seconds so the test isn't racing the container's last init step and
-    // intermittently failing with ELOGIN.
-    const masterPool = await connectWithRetry(sql, {
-        server: host, port,
-        user: 'sa', password: SA_PASSWORD,
-        database: 'master',
-        options: { encrypt: false, trustServerCertificate: true },
-    })
-    try {
-        await masterPool.request().query(
-            `IF DB_ID('${DB_NAME}') IS NULL CREATE DATABASE ${DB_NAME}`,
-        )
-    } finally {
-        await masterPool.close()
+    if (!workerDbEnsured) {
+        // SQL Server logs "ready for client connections" before the SA
+        // login is actually usable (the SA password is materialised a
+        // little later as the entrypoint script finishes). Retry the
+        // initial connect for a few seconds so the test isn't racing
+        // the container's last init step and intermittently failing
+        // with ELOGIN. Pin the pool to a single connection so the
+        // sp_getapplock and the CREATE DATABASE that follows it run
+        // on the same backend — sp_getapplock's `LockOwner='Session'`
+        // scope is per-connection.
+        const masterPool = await connectWithRetry(sql, {
+            server: host, port,
+            user: 'sa', password: SA_PASSWORD,
+            database: 'master',
+            options: { encrypt: false, trustServerCertificate: true },
+            pool: { max: 1, min: 1, idleTimeoutMillis: 30_000 },
+        })
+        try {
+            // SQL Server can't handle N concurrent `CREATE DATABASE`
+            // calls cleanly — under 12 parallel workers it returns
+            // 1802 ("Some file names listed could not be created")
+            // and 5170 because the file slots collide while a peer
+            // is mid-create. Serialise the creation step across
+            // workers via the same named lock the validator already
+            // uses; sp_getapplock with `LockOwner='Session'` is
+            // released when the connection closes.
+            await masterPool.request()
+                .input('Resource', sql.NVarChar, VALIDATE_LOCK_NAME)
+                .input('LockMode', sql.NVarChar, 'Exclusive')
+                .input('LockOwner', sql.NVarChar, 'Session')
+                .input('LockTimeout', sql.Int, 60_000)
+                .execute('sp_getapplock')
+            await masterPool.request().query(
+                `IF DB_ID('${workerDb}') IS NULL CREATE DATABASE [${workerDb}]`,
+            )
+        } finally {
+            await masterPool.close()
+        }
+        workerDbEnsured = true
     }
 
     const pool = new sql.ConnectionPool({
         server: host, port,
         user: 'sa', password: SA_PASSWORD,
-        database: DB_NAME,
+        database: workerDb,
         options: { encrypt: false, trustServerCertificate: true },
     })
     await pool.connect()
@@ -131,6 +260,7 @@ async function applySchemaAndSeed(host: string, port: number): Promise<void> {
     } finally {
         await pool.close()
     }
+    return workerDb
 }
 
 // ---- Real sqlserver (docker) test context -------------------------------
@@ -143,7 +273,25 @@ export interface MssqlTestSpec {
 
 export function createMssqlPoolTestContext(spec: MssqlTestSpec): TestContext<DBConnection> {
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true)
-    let cleanup: (() => Promise<void>) | null = null
+    const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerDb: string }) => {
+        const sql = await import('mssql')
+        const { MssqlPoolQueryRunner } = await import('../../../src/queryRunners/MssqlPoolQueryRunner.js')
+        // Use the same retry helper that already guards the
+        // admin/master pool — under 12-worker parallelism several
+        // workers can hit the container's pool simultaneously and
+        // the first connect occasionally times out with no log
+        // line, leaving the test as an unnamed beforeAll failure.
+        const pool = await connectWithRetry(sql, {
+            server: params.host, port: params.port,
+            user: 'sa', password: SA_PASSWORD,
+            database: params.workerDb,
+            options: { encrypt: false, trustServerCertificate: true },
+        })
+        return {
+            runner: new MssqlPoolQueryRunner(pool),
+            shutdown: async () => { await pool.close() },
+        }
+    })
 
     return createTestContext<DBConnection>({
         label: spec.label,
@@ -155,27 +303,12 @@ export function createMssqlPoolTestContext(spec: MssqlTestSpec): TestContext<DBC
             const container = await acquireContainer()
             const host = container.getHost()
             const port = container.getMappedPort(1433)
-            await applySchemaAndSeed(host, port)
-
-            const sql = await import('mssql')
-            const { MssqlPoolQueryRunner } = await import('../../../src/queryRunners/MssqlPoolQueryRunner.js')
-            const pool = new sql.ConnectionPool({
-                server: host, port,
-                user: 'sa', password: SA_PASSWORD,
-                database: DB_NAME,
-                options: { encrypt: false, trustServerCertificate: true },
-            })
-            await pool.connect()
-            cleanup = async () => { await pool.close() }
-            return {
-                runner: new MssqlPoolQueryRunner(pool),
-                shutdown: async () => { if (cleanup) await cleanup(); cleanup = null },
-            }
+            const workerDb = await applySchemaAndSeedToWorkerDb(host, port)
+            return await buildRunner({ host, port, workerDb })
         },
         async onReseed() {
-            if (!containerPromise) return
-            const c = await containerPromise
-            await applySchemaAndSeed(c.getHost(), c.getMappedPort(1433))
+            const c = await acquireContainer()
+            await applySchemaAndSeedToWorkerDb(c.getHost(), c.getMappedPort(1433))
         },
         async onDown() {
             await releaseContainer()

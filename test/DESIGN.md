@@ -152,7 +152,15 @@ Tests never import anything from `src/internal/`, `src/queryBuilders/`,
    gets one testcontainers container at the highest supported image,
    shared across every `<compatibilityVersion>/<connector>/` cell
    underneath. Older `compatibilityVersion` cells emit legacy SQL that
-   the modern server still accepts — see §5 for the trade-off.
+   the modern server still accepts — see §5 for the trade-off. Inside
+   the shared container, every test runner worker process gets its
+   own database (`tssqlquery_w<N>` — Oracle: user `tsapp_w<N>`) so
+   parallel runs (vitest's default pool, `bun test --parallel`) cannot
+   collide on each other's data. The control hash that gates
+   schema/seed revalidation lives in a separate `tssqlquery_meta`
+   database. The opt-out is `TSSQLQUERY_PARALLEL_DBS=false`. Full
+   contract in
+   [`README.md` § Per-worker test databases](./README.md#per-worker-test-databases-parallelism).
 
 9. **Connector ↔ version compatibility is per-cell.** Not every
    `<compatibilityVersion>/<connector>/` combination is valid. For
@@ -333,10 +341,36 @@ The query is written once. `ctx.lastSql` and `ctx.lastParams` come from the
 interceptor and work in both modes. `expected` is what the seed contains
 AND what `mockNext` queued, so the value assertion is a single line.
 
+Transaction control (`beginTransaction`, `commit`, `rollback`) and a
+small set of side-effecty ops reach the interceptor with an empty SQL
+string — the driver emits nothing meaningful for them. The capture
+falls back to the query type in that case, so a snapshot of `"commit"`
+(say) is more informative than `""`. Anything that asserts SQL *after*
+a transaction should read `ctx.lastNoTransactionSql` /
+`ctx.lastNoTransactionParams` instead of the regular `ctx.lastSql` —
+that pair skips the transaction-control entries (gated by query type,
+not by "is the SQL empty?") so the assertion lands on the real query
+in both mock and real-DB mode, regardless of whether the driver's
+`executeInTransaction` re-enters the interceptor for COMMIT.
+
+`ctx.history` is still the right tool when a single operation emits
+several queries (paginated selects via `executeSelectPage`, for
+example) and the test needs to assert each in order.
+
 For mutating tests (`INSERT` / `UPDATE` / `DELETE`) wrap the body in
 `ctx.withRollback(async () => { … })`: it opens a transaction and rolls
-back when the real DB is on, and is a plain `await fn()` when the mock
-is on. Either way the seed is intact for the next test.
+back regardless of how the body ended. Tests that genuinely need their
+mutations to commit (DDL on engines without transactional DDL,
+post-commit visibility, sequence counters that must persist their
+advance) use `ctx.withCommit(async () => { … })` instead — same
+wrapping shape, but the transaction commits and the infra reseeds the
+declared schema in a `finally` so the next test starts from baseline.
+Any schema objects the body created outside the declared seed must be
+torn down inside the callback itself.
+
+The full mutation-safety contract — including the table of when to
+reach for each primitive and the read-only "no wrapper needed" path —
+lives in [`README.md` § Data-mutation safety](./README.md#data-mutation-safety-cooperative-contract).
 
 ### 3.1 Updating snapshots
 
@@ -596,8 +630,11 @@ test('postgres-negative-types', () => {
    `expect(ctx.lastSql).toMatchInlineSnapshot()` and
    `expect(ctx.lastParams).toMatchInlineSnapshot()` (empty arguments —
    the runner will fill them).
-3. Run `bun test test/path/to/file --update-snapshots` (or
-   `bun run bun:focus-tests <database>/<version>/<connector> --update-snapshots`)
+3. Run `bun test test/path/to/file --update-snapshots` (or, preferred,
+   `bun run bun:focus-tests-reuse <database>/<version>/<connector> --update-snapshots`
+   — the `-reuse` variant reuses the docker container across
+   invocations, see the "Container reuse" section of
+   [`test/README.md`](./README.md#container-reuse-speeding-up-docker-backed-runs))
    to bake the SQL and params into the file.
 4. Port the same `describe` + `test` name to the rest. SQL differs when
    it must (the snapshot in each cell records its own version); comment

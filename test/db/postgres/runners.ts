@@ -15,6 +15,18 @@ import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testconta
 import { Pool } from 'pg'
 
 import { isRealDbEnabled } from '../../lib/backends.js'
+import {
+    BASE_WORKER_DB_NAME,
+    createContainerHandle,
+    hashSqlFiles,
+    memoizeSharedRunner,
+    META_DB_NAME,
+    reuseEnabled,
+    SCHEMA_HASH_META_TABLE,
+    VALIDATE_LOCK_KEY_BIGINT,
+    workerName,
+    workerNameLikePattern,
+} from '../../lib/containerLifecycle.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
 import { DBConnection } from './domain/connection.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
@@ -28,39 +40,180 @@ const SEED_PATH = resolve(__dirname, './domain/seed.sql')
 const POSTGRES_IMAGE = 'postgres:18-alpine'
 
 // ---- Shared testcontainers postgres -------------------------------------
+//
+// The container is started lazily on the first acquire and kept alive for
+// the entire test process — see `test/lib/containerLifecycle.ts` for why.
+// `.withReuse()` is opted into via `TESTCONTAINERS_REUSE_ENABLE=true`, which
+// also keeps the container alive across separate `bun test` invocations.
 
-let containerPromise: Promise<StartedPostgreSqlContainer> | null = null
-let refCount = 0
+const container = createContainerHandle<StartedPostgreSqlContainer>(async () => {
+    const builder = new PostgreSqlContainer(POSTGRES_IMAGE)
+    if (reuseEnabled()) builder.withReuse()
+    const started = await builder.start()
+    // Runs once per process (the factory is memoized by
+    // `createContainerHandle`). Validates the schema/seed hash against
+    // the meta DB and, when stale, drops every per-worker test DB so
+    // they get rebuilt cleanly. The advisory lock serialises this
+    // across workers running in parallel processes.
+    await validateOrResetForReuse(started.getConnectionUri())
+    return started
+})
+const acquireContainer = container.acquire
+const releaseContainer = container.release
 
-async function acquireContainer(): Promise<StartedPostgreSqlContainer> {
-    if (containerPromise === null) {
-        containerPromise = new PostgreSqlContainer(POSTGRES_IMAGE).start()
-    }
-    refCount++
-    return await containerPromise
+/** Replace the database segment of a postgres connection URI. */
+function uriForDb(uri: string, dbName: string): string {
+    const u = new URL(uri)
+    u.pathname = '/' + dbName
+    return u.toString()
 }
 
-async function releaseContainer(): Promise<void> {
-    refCount--
-    if (refCount === 0 && containerPromise) {
-        const c = await containerPromise
-        containerPromise = null
-        await c.stop()
-    }
-}
+async function validateOrResetForReuse(uri: string): Promise<void> {
+    const [schemaSql, seedSql] = await Promise.all([
+        readFile(SCHEMA_PATH, 'utf8'),
+        readFile(SEED_PATH, 'utf8'),
+    ])
+    const currentHash = await hashSqlFiles(schemaSql, seedSql)
 
-async function applySchemaAndSeedToPool(uri: string): Promise<void> {
-    const pool = new Pool({ connectionString: uri })
+    // Maintenance client against the default `postgres` DB: from here
+    // we take the advisory lock, enumerate / drop worker DBs, and
+    // create the dedicated meta DB. CREATE/DROP DATABASE cannot run
+    // in a tx, so each statement is issued individually.
+    //
+    // The advisory lock is session-scoped, so the entire validate +
+    // potentially-reset sequence must execute on the SAME backend
+    // connection — a Pool that hands out a fresh client per query
+    // would silently release the lock between statements. We use
+    // `pool.connect()` to pin one client for the duration.
+    const adminPool = new Pool({ connectionString: uri, max: 1 })
     try {
-        const [schemaSql, seedSql] = await Promise.all([
+        const admin = await adminPool.connect()
+        try {
+            await admin.query('SELECT pg_advisory_lock($1)', [VALIDATE_LOCK_KEY_BIGINT.toString()])
+            try {
+                const storedHash = await readStoredHash(uri, admin)
+                if (storedHash === currentHash) return
+
+                // Drop every existing worker DB — both the
+                // parallel-on pattern (`tssqlquery_w%`) and the
+                // parallel-off bare name (`tssqlquery`) — so a
+                // switch between modes leaves no stragglers behind.
+                // WITH (FORCE) terminates lingering backends so a
+                // previous test process that died mid-run doesn't
+                // block the drop.
+                const workerDbs = await admin.query<{ datname: string }>(
+                    `SELECT datname FROM pg_database
+                      WHERE datname = $1 OR datname LIKE $2`,
+                    [BASE_WORKER_DB_NAME, workerNameLikePattern(BASE_WORKER_DB_NAME)],
+                )
+                for (const { datname } of workerDbs.rows) {
+                    await admin.query(`DROP DATABASE IF EXISTS "${datname}" WITH (FORCE)`)
+                }
+                await admin.query(`DROP DATABASE IF EXISTS "${META_DB_NAME}" WITH (FORCE)`)
+                await admin.query(`CREATE DATABASE "${META_DB_NAME}"`)
+
+                const metaPool = new Pool({ connectionString: uriForDb(uri, META_DB_NAME) })
+                try {
+                    await metaPool.query(
+                        `CREATE TABLE ${SCHEMA_HASH_META_TABLE} (hash TEXT NOT NULL)`,
+                    )
+                    await metaPool.query(
+                        `INSERT INTO ${SCHEMA_HASH_META_TABLE} (hash) VALUES ($1)`,
+                        [currentHash],
+                    )
+                } finally {
+                    await metaPool.end()
+                }
+            } finally {
+                await admin.query('SELECT pg_advisory_unlock($1)', [VALIDATE_LOCK_KEY_BIGINT.toString()])
+            }
+        } finally {
+            admin.release()
+        }
+    } finally {
+        await adminPool.end()
+    }
+}
+
+async function readStoredHash(uri: string, admin: import('pg').PoolClient): Promise<string | null> {
+    // Postgres queries are scoped to the connected DB — we can't read
+    // from the meta DB without opening a connection against it. Probe
+    // the catalog first to avoid the cost of an extra pool when the
+    // meta DB is missing on a fresh container.
+    const exists = await admin.query<{ exists: boolean }>(
+        `SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = $1) AS exists`,
+        [META_DB_NAME],
+    )
+    if (!exists.rows[0]?.exists) return null
+
+    const metaPool = new Pool({ connectionString: uriForDb(uri, META_DB_NAME) })
+    try {
+        const res = await metaPool.query<{ hash: string }>(
+            `SELECT hash FROM ${SCHEMA_HASH_META_TABLE} LIMIT 1`,
+        )
+        return res.rows[0]?.hash ?? null
+    } catch {
+        // Meta DB exists but the table is missing — treat as mismatch.
+        return null
+    } finally {
+        await metaPool.end()
+    }
+}
+
+// Once-per-process: the worker DB only needs creating on the first call.
+// The schema/seed SQL is read from disk once and the dedicated admin
+// pool used to apply it is also long-lived — opening and closing a
+// Pool per test file dominates the suite's wall time otherwise (~5-9 s
+// on postgres's 178-file matrix). Both leak by design: the process
+// exits at the end of `bun test`, the kernel reclaims the sockets.
+let workerDbEnsured = false
+let schemaSeedPool: Pool | null = null
+let schemaSql: string | null = null
+let seedSql: string | null = null
+
+/**
+ * Create the worker DB if it doesn't exist (once per process), then
+ * apply schema + seed inside it. Returns the worker DB URI so the
+ * runner can open its pool against it.
+ */
+async function applySchemaAndSeedToWorkerDb(uri: string): Promise<string> {
+    const workerDb = workerName(BASE_WORKER_DB_NAME)
+    const workerUri = uriForDb(uri, workerDb)
+    if (!workerDbEnsured) {
+        const adminPool = new Pool({ connectionString: uri })
+        try {
+            const exists = await adminPool.query<{ exists: boolean }>(
+                `SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = $1) AS exists`,
+                [workerDb],
+            )
+            if (!exists.rows[0]?.exists) {
+                // Two workers racing to CREATE DATABASE the first
+                // time would otherwise crash with 23505. Catch the
+                // duplicate and treat it as success.
+                try {
+                    await adminPool.query(`CREATE DATABASE "${workerDb}"`)
+                } catch (err: any) {
+                    if (err?.code !== '42P04') throw err
+                }
+            }
+        } finally {
+            await adminPool.end()
+        }
+        workerDbEnsured = true
+    }
+
+    if (schemaSql === null || seedSql === null) {
+        [schemaSql, seedSql] = await Promise.all([
             readFile(SCHEMA_PATH, 'utf8'),
             readFile(SEED_PATH, 'utf8'),
         ])
-        await pool.query(schemaSql)
-        await pool.query(seedSql)
-    } finally {
-        await pool.end()
     }
+    if (schemaSeedPool === null) {
+        schemaSeedPool = new Pool({ connectionString: workerUri })
+    }
+    await schemaSeedPool.query(schemaSql)
+    await schemaSeedPool.query(seedSql)
+    return workerUri
 }
 
 // ---- Real-postgres (docker) test context --------------------------------
@@ -75,7 +228,11 @@ export interface PgTestSpec {
 
 export function createPgTestContext(spec: PgTestSpec): TestContext<DBConnection> {
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true)
-    let containerUri: string | null = null
+    let workerUri: string | null = null
+    // Memoise the spec's pool/connection so it lives for the worker
+    // process, not per test file. The `setup.ts` factories don't have
+    // to know about this — they just build a runner from a URI.
+    const buildRunner = memoizeSharedRunner(spec.createRealRunner)
 
     return createTestContext<DBConnection>({
         label: spec.label,
@@ -85,15 +242,16 @@ export function createPgTestContext(spec: PgTestSpec): TestContext<DBConnection>
         realDbEnabled,
         async createRealRunner() {
             const container = await acquireContainer()
-            containerUri = container.getConnectionUri()
-            await applySchemaAndSeedToPool(containerUri)
-            return await spec.createRealRunner(containerUri)
+            const adminUri = container.getConnectionUri()
+            workerUri = await applySchemaAndSeedToWorkerDb(adminUri)
+            return await buildRunner(workerUri)
         },
         async onReseed() {
-            if (containerUri) await applySchemaAndSeedToPool(containerUri)
+            const container = await acquireContainer()
+            workerUri = await applySchemaAndSeedToWorkerDb(container.getConnectionUri())
         },
         async onDown() {
-            containerUri = null
+            workerUri = null
             await releaseContainer()
         },
         buildConnection(interceptor, compatibilityVersion) {
@@ -110,11 +268,55 @@ export interface PgLiteTestSpec {
     compatibilityVersion: number
 }
 
+// Per-process PGlite instance. Bootstrapping PGlite (`PGlite.create(...)`)
+// is the expensive step — it spins up a full WASM-hosted PostgreSQL —
+// and was previously paid once per test file (44 pglite cells × ~300 ms
+// dominated the postgres matrix wall time). Memoising it across files
+// inside one worker drops that to a single startup; per-file `up()` just
+// re-applies the schema + seed, which is cheap.
+//
+// We never explicitly close it: it's tied to the process lifetime, and
+// `bun test` exits when the matrix is done so the WASM heap goes away
+// with it. Same pattern as the docker `createContainerHandle` keep-alive.
+let pgliteSharedDb: import('@electric-sql/pglite').PGlite | null = null
+let pgliteSharedSchemaSql: string | null = null
+let pgliteSharedSeedSql: string | null = null
+
+async function getOrCreatePglite(): Promise<import('@electric-sql/pglite').PGlite> {
+    if (pgliteSharedDb === null) {
+        const { PGlite } = await import('@electric-sql/pglite')
+        pgliteSharedDb = await PGlite.create('memory://')
+        // bun:test exits with code 99 when a test process leaves
+        // background work pending at exit (e.g. the PGlite worker
+        // thread it spawned internally). Close the shared instance on
+        // `beforeExit` so bun sees a clean shutdown.
+        process.on('beforeExit', () => {
+            if (pgliteSharedDb !== null) {
+                const toClose = pgliteSharedDb
+                pgliteSharedDb = null
+                void toClose.close()
+            }
+        })
+    }
+    return pgliteSharedDb
+}
+
+async function applyPgliteSchemaAndSeed(db: import('@electric-sql/pglite').PGlite): Promise<void> {
+    if (pgliteSharedSchemaSql === null || pgliteSharedSeedSql === null) {
+        [pgliteSharedSchemaSql, pgliteSharedSeedSql] = await Promise.all([
+            readFile(SCHEMA_PATH, 'utf8'),
+            readFile(SEED_PATH, 'utf8'),
+        ])
+    }
+    await db.exec(pgliteSharedSchemaSql)
+    await db.exec(pgliteSharedSeedSql)
+}
+
 export function createPgLiteTestContext(spec: PgLiteTestSpec): TestContext<DBConnection> {
-    // PgLite is in-process — its real-DB branch fires whenever this
-    // database is in scope, regardless of the Docker flag.
-    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ false)
-    let db: import('@electric-sql/pglite').PGlite | null = null
+    // PgLite is in-process WASM — gated by `TS_SQL_QUERY_WASM` so
+    // `no-wasm-tests` can route this connector through the mock
+    // without paying the per-worker WASM bootstrap cost.
+    const realDbEnabled = isRealDbEnabled(DATABASE, 'wasm')
 
     return createTestContext<DBConnection>({
         label: spec.label,
@@ -124,31 +326,20 @@ export function createPgLiteTestContext(spec: PgLiteTestSpec): TestContext<DBCon
         realDbEnabled,
         timeoutMs: 30_000,
         async createRealRunner() {
-            const { PGlite } = await import('@electric-sql/pglite')
             const { PgLiteQueryRunner } = await import('../../../src/queryRunners/PgLiteQueryRunner.js')
-            db = await PGlite.create('memory://')
-            const [schemaSql, seedSql] = await Promise.all([
-                readFile(SCHEMA_PATH, 'utf8'),
-                readFile(SEED_PATH, 'utf8'),
-            ])
-            await db.exec(schemaSql)
-            await db.exec(seedSql)
+            const db = await getOrCreatePglite()
+            await applyPgliteSchemaAndSeed(db)
             return {
                 runner: new PgLiteQueryRunner(db),
-                shutdown: async () => {
-                    if (db) await db.close()
-                    db = null
-                },
+                // Don't close the db — the shared instance survives
+                // until the worker process exits (see comment on
+                // pgliteSharedDb).
+                shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
         async onReseed() {
-            if (!db) return
-            const [schemaSql, seedSql] = await Promise.all([
-                readFile(SCHEMA_PATH, 'utf8'),
-                readFile(SEED_PATH, 'utf8'),
-            ])
-            await db.exec(schemaSql)
-            await db.exec(seedSql)
+            if (pgliteSharedDb === null) return
+            await applyPgliteSchemaAndSeed(pgliteSharedDb)
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
@@ -170,7 +361,8 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): TestContext<D
     // branch entirely; under bun we still depend on docker for the
     // postgres engine.
     const realDbEnabled = isBun && isRealDbEnabled(DATABASE, /* needsDocker */ true)
-    let containerUri: string | null = null
+    let workerUri: string | null = null
+    const buildRunner = memoizeSharedRunner(spec.createRealRunner)
 
     return createTestContext<DBConnection>({
         label: spec.label,
@@ -180,15 +372,15 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): TestContext<D
         realDbEnabled,
         async createRealRunner() {
             const container = await acquireContainer()
-            containerUri = container.getConnectionUri()
-            await applySchemaAndSeedToPool(containerUri)
-            return await spec.createRealRunner(containerUri)
+            workerUri = await applySchemaAndSeedToWorkerDb(container.getConnectionUri())
+            return await buildRunner(workerUri)
         },
         async onReseed() {
-            if (containerUri) await applySchemaAndSeedToPool(containerUri)
+            const container = await acquireContainer()
+            workerUri = await applySchemaAndSeedToWorkerDb(container.getConnectionUri())
         },
         async onDown() {
-            containerUri = null
+            workerUri = null
             await releaseContainer()
         },
         buildConnection(interceptor, compatibilityVersion) {

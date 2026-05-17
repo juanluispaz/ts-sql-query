@@ -31,6 +31,16 @@ export interface TestContext<CONN> {
     readonly lastSql: string
     readonly lastParams: unknown[]
     readonly lastType: string
+    /**
+     * Last SQL ignoring transaction-control ops (begin / commit /
+     * rollback). Use it when the interceptor would otherwise surface a
+     * synthetic `"commit"` / `"rollback"` entry — typically right
+     * after a `connection.transaction(...)` block — and the test wants
+     * to assert the real query that ran inside.
+     */
+    readonly lastNoTransactionSql: string
+    readonly lastNoTransactionParams: unknown[]
+    readonly lastNoTransactionType: string
     readonly history: ReadonlyArray<{ type: string; sql: string; params: unknown[] }>
 
     /** Queue a value the mock will return for the NEXT data query. */
@@ -50,8 +60,50 @@ export interface TestContext<CONN> {
      * configured to NOT classify our signal as a SQL error, the same code
      * path works in mock mode without wrapping the signal in a
      * `TsSqlQueryExecutionError`.
+     *
+     * Default cooperation primitive for any test that mutates state: it
+     * leaves zero trace on the next test (or the next process, with
+     * container reuse).
      */
     withRollback(fn: () => Promise<void>): Promise<void>
+
+    /**
+     * Escape hatch for tests that genuinely need their mutations to
+     * commit — DDL on engines without transactional DDL
+     * (MySQL/MariaDB/Oracle/SQL Server), assertions that read committed
+     * state from a second connection, sequence-counter behaviour that
+     * survives rollback, etc.
+     *
+     * Runs `fn` inside an `ctx.conn.transaction(...)` that commits
+     * normally (no rollback signal). On exit — success OR failure —
+     * `ctx.reseed()` runs to restore the baseline schema + seed, so the
+     * next test starts from the same shape as if `withRollback` had
+     * been used. Any schema objects the test created outside the
+     * declared seed remain (the reseed only resets what the seed
+     * declares); the test should drop those itself before the
+     * `withCommit` body returns so the cleanup is self-contained.
+     *
+     * Prefer `withRollback` for plain DML. Reach for `withCommit` only
+     * when the mutation genuinely cannot be rolled back, or when the
+     * test must observe post-commit visibility semantics.
+     */
+    withCommit(fn: () => Promise<void>): Promise<void>
+
+    /**
+     * Like `withCommit` but does NOT open an outer transaction. Use
+     * when the test body itself manages a transaction
+     * (`connection.transaction(...)`) — wrapping that body in another
+     * tx would nest, and most engines reject nested transactions.
+     *
+     * The body runs as-is; on exit — success OR failure — `ctx.reseed()`
+     * runs in real-DB mode to restore the baseline so the next test
+     * starts clean.
+     *
+     * This is the primitive to use for tests that document
+     * `connection.transaction(...)` behaviour: the body opens its own
+     * tx and commits or rolls back, `withReseed` does the cleanup.
+     */
+    withReseed(fn: () => Promise<void>): Promise<void>
 }
 
 export interface TestContextOptions<CONN> {
@@ -137,6 +189,15 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
         get lastType(): string {
             return capture?.lastType ?? ''
         },
+        get lastNoTransactionSql(): string {
+            return capture?.lastNoTransactionSql ?? ''
+        },
+        get lastNoTransactionParams(): unknown[] {
+            return capture?.lastNoTransactionParams ?? []
+        },
+        get lastNoTransactionType(): string {
+            return capture?.lastNoTransactionType ?? ''
+        },
         get history() {
             return capture?.history ?? []
         },
@@ -200,6 +261,42 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
             } catch (e) {
                 if (e instanceof RollbackSignal) return
                 throw e
+            }
+        },
+
+        async withCommit(fn) {
+            // Run inside a real (committing) transaction. The body's
+            // changes persist; we then call `reseed()` (which only runs
+            // when the real DB is enabled) to restore the seeded
+            // baseline so the next test starts from the same state as
+            // it would after a `withRollback`. The reseed runs from a
+            // `finally` so a failing body still triggers it — leaving
+            // committed garbage behind would defeat the point.
+            const c = conn as unknown as {
+                transaction(inner: () => Promise<void>): Promise<void>
+            }
+            try {
+                await c.transaction(async () => { await fn() })
+            } finally {
+                if (opts.realDbEnabled && opts.onReseed) {
+                    await opts.onReseed()
+                }
+            }
+        },
+
+        async withReseed(fn) {
+            // No outer transaction — the body is responsible for its
+            // own transactional behaviour (typically a
+            // `connection.transaction(...)` block, which is exactly the
+            // API these tests document). Either way the reseed in the
+            // `finally` restores the baseline so the next test starts
+            // clean.
+            try {
+                await fn()
+            } finally {
+                if (opts.realDbEnabled && opts.onReseed) {
+                    await opts.onReseed()
+                }
             }
         },
     }

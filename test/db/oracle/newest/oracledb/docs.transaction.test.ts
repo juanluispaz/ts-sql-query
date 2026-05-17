@@ -14,60 +14,70 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:transaction/commit-on-success', async () => {
-        // Nested transactions are not supported by most engines, so we
-        // cannot wrap this in `ctx.withRollback` — it already opens a
-        // transaction. We only run the test in mock mode (which does not
-        // mutate any real DB) and reseed in real-DB mode.
-        if (ctx.realDbEnabled) {
-            await ctx.reseed()
-            return
-        }
-        ctx.mockNext(99)  // value returned by returningLastInsertedId
+        ctx.mockNext(99)  // value returned by returningLastInsertedId in mock mode
 
         const connection = ctx.conn
 
-        // doc-start
-        const id = await connection.transaction(async () => {
-            return await connection.insertInto(tOrganization)
-                .values({ name: 'Inside-tx Co', plan: 'free' })
-                .returningLastInsertedId()
-                .executeInsert()
-        })
-        // doc-end
+        // `ctx.withReseed` runs the body without an outer transaction
+        // (the body opens its own via `connection.transaction(...)`)
+        // and reseeds in real-DB mode on exit so the committed insert
+        // doesn't leak into the next test.
+        await ctx.withReseed(async () => {
+            // doc-start
+            const id = await connection.transaction(async () => {
+                return await connection.insertInto(tOrganization)
+                    .values({ name: 'Inside-tx Co', plan: 'free' })
+                    .returningLastInsertedId()
+                    .executeInsert()
+            })
+            // doc-end
 
-        // ctx.lastSql captures the most recent data query — the insert.
-        expect(ctx.lastSql).toMatchInlineSnapshot(`""`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        assertType<Exact<typeof id, number>>()
-        expect(id).toBe(99)
+            // After a `connection.transaction(...)` block `ctx.lastSql`
+            // would show `"commit"` (the synthetic entry the interceptor
+            // emits via the empty-query fallback). `lastNoTransactionSql`
+            // skips transaction-control ops so the assertion lands on the
+            // insert in both mock and real-DB mode.
+            expect(ctx.lastNoTransactionSql).toMatchInlineSnapshot(`"insert into "organization" (name, "plan") values (:0, :1) returning id into :2"`)
+            expect(ctx.lastNoTransactionParams).toMatchInlineSnapshot(`
+              [
+                "Inside-tx Co",
+                "free",
+                {
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+            // Mock mode: returns the primed 99. Real-DB mode: the seed
+            // reserves ids 1 and 2, so the new row's id is > 2.
+            if (ctx.realDbEnabled) expect(id).toBeGreaterThan(2)
+            else expect(id).toBe(99)
+        })
     })
 
     test('docs:transaction/rollback-on-throw', async () => {
-        // Same nested-transaction constraint as above.
-        if (ctx.realDbEnabled) {
-            await ctx.reseed()
-            return
-        }
-
         class SentinelError extends Error {}
         const connection = ctx.conn
 
-        // doc-start
-        let caught: unknown = null
-        try {
-            await connection.transaction(async () => {
-                // Throw before any work; transaction must roll back.
-                throw new SentinelError('aborted')
-            })
-        } catch (e) {
-            caught = e
-        }
-        // doc-end
+        // The body throws before any work — the library rolls back the
+        // transaction automatically. `withReseed` still resets the
+        // baseline on the way out, mirroring `commit-on-success` for
+        // symmetry (and protecting against any side-effect a future
+        // edit of this test might introduce).
+        await ctx.withReseed(async () => {
+            // doc-start
+            let caught: unknown = null
+            try {
+                await connection.transaction(async () => {
+                    // Throw before any work; transaction must roll back.
+                    throw new SentinelError('aborted')
+                })
+            } catch (e) {
+                caught = e
+            }
+            // doc-end
 
-        // The sentinel propagates as itself — the MockQueryRunner
-        // configuration classifies any error as a SQL error by default,
-        // which causes the connection to wrap thrown values. Either way
-        // the catch sees something non-null.
-        expect(caught).not.toBeNull()
+            expect(caught).not.toBeNull()
+        })
     })
 })

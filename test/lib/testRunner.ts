@@ -7,33 +7,31 @@
 //   - You asked explicitly for `bun:test` under Bun and `vitest` under Node.
 //   - It keeps the suite neutral to ecosystem churn (DESIGN §1.9).
 //
-// Why top-level `await`?
-//   - Both `bun:test` and `vitest` are ESM and resolve dynamically. A static
-//     `import 'bun:test'` would fail under Node and vice-versa; dynamic
-//     import keeps each runtime resolving only what it actually has.
+// Why the `#test-runtime` indirection instead of dynamic `import()`?
+//   - A previous version used `await import('bun:test')` / `await
+//     import('vitest')` inside a top-level await, then re-exported each
+//     binding. Under `bun test --parallel=N`, worker processes evaluate the
+//     importing test files before this module's top-level await resolves,
+//     producing `ReferenceError: Cannot access 'describe' before
+//     initialization` on every test. Static re-exports gated by the
+//     `imports` map in `package.json` resolve at parse time, so there is
+//     no top-level await and no TDZ window.
 
-import type * as VitestTypes from 'vitest'
+export {
+    describe,
+    test,
+    it,
+    expect,
+    beforeAll,
+    afterAll,
+    beforeEach,
+    afterEach,
+} from '#test-runtime'
 
 declare global {
     // eslint-disable-next-line no-var
     var Bun: { version: string } | undefined
 }
 
-const isBun = typeof globalThis.Bun !== 'undefined'
-
-// Both modules expose the same shape we care about; we type the result as
-// vitest's API (a superset of what bun:test guarantees).
-const runtime = isBun
-    ? ((await import('bun:test')) as unknown as typeof VitestTypes)
-    : await import('vitest')
-
-export const describe = runtime.describe
-export const test = runtime.test
-export const it = runtime.it
-export const expect = runtime.expect
-export const beforeAll = runtime.beforeAll
-export const afterAll = runtime.afterAll
-export const beforeEach = runtime.beforeEach
-export const afterEach = runtime.afterEach
-
-export const TEST_RUNTIME: 'bun' | 'vitest' = isBun ? 'bun' : 'vitest'
+export const TEST_RUNTIME: 'bun' | 'vitest' =
+    typeof globalThis.Bun !== 'undefined' ? 'bun' : 'vitest'

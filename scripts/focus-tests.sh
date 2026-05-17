@@ -48,4 +48,14 @@ if [ -d "$target" ]; then
 fi
 
 shift
-exec vitest run "$target" "$@"
+
+# Vitest's default pool runs files in parallel; single mode
+# (`TSSQLQUERY_PARALLEL_DBS=false`) forces a serial run by adding
+# `--no-file-parallelism`, collapsing the per-worker DB infra to a
+# single shared database — useful for debugging one cell in isolation.
+SERIAL_FLAG=
+if [ "${TSSQLQUERY_PARALLEL_DBS:-true}" = "false" ]; then
+    SERIAL_FLAG="--no-file-parallelism"
+fi
+
+exec vitest run $SERIAL_FLAG "$target" "$@"

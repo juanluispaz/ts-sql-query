@@ -59,11 +59,25 @@ export interface BunSqliteTestSpec {
     compatibilityVersion?: number
 }
 
+// Per-process in-process sqlite instance, memoised across files in
+// the same worker — same one-process-one-db pattern as the docker
+// engines: `createXxx` constructs the DB once, every test file's
+// `up()` just re-applies schema + seed (cheap), `down()` is a no-op
+// and the kernel reclaims the in-memory DB at process exit.
+let sharedBunSqliteDb: import('bun:sqlite').Database | null = null
+
+async function getOrCreateBunSqliteDb(): Promise<import('bun:sqlite').Database> {
+    if (sharedBunSqliteDb === null) {
+        const { Database } = await import('bun:sqlite')
+        sharedBunSqliteDb = new Database(':memory:')
+    }
+    return sharedBunSqliteDb
+}
+
 export function createBunSqliteTestContext(spec: BunSqliteTestSpec): TestContext<DBConnection> {
     // In-process, but the connector module itself can only load under Bun.
     // Under node+vitest we keep the mock branch and never touch bun:sqlite.
     const realDbEnabled = isBun && isRealDbEnabled(DATABASE, /* needsDocker */ false)
-    let db: { close(): void; exec(sql: string): unknown } | null = null
 
     return createTestContext<DBConnection>({
         label: spec.label,
@@ -72,26 +86,21 @@ export function createBunSqliteTestContext(spec: BunSqliteTestSpec): TestContext
         database: 'sqlite',
         realDbEnabled,
         async createRealRunner() {
-            const { Database } = await import('bun:sqlite')
             const { BunSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqliteQueryRunner.js')
-            const conn = new Database(':memory:')
-            db = conn
+            const conn = await getOrCreateBunSqliteDb()
             const { schema, seed } = await readSchemaAndSeed()
             for (const stmt of splitStatements(schema)) conn.exec(stmt)
             for (const stmt of splitStatements(seed)) conn.exec(stmt)
             return {
                 runner: new BunSqliteQueryRunner(conn),
-                shutdown: async () => {
-                    if (db) db.close()
-                    db = null
-                },
+                shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
         async onReseed() {
-            if (!db) return
+            if (sharedBunSqliteDb === null) return
             const { schema, seed } = await readSchemaAndSeed()
-            for (const stmt of splitStatements(schema)) db.exec(stmt)
-            for (const stmt of splitStatements(seed)) db.exec(stmt)
+            for (const stmt of splitStatements(schema)) sharedBunSqliteDb.exec(stmt)
+            for (const stmt of splitStatements(seed)) sharedBunSqliteDb.exec(stmt)
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
@@ -107,11 +116,20 @@ export interface SqliteTestSpec {
     compatibilityVersion?: number
 }
 
+let sharedBetterSqlite3Db: import('better-sqlite3').Database | null = null
+
+async function getOrCreateBetterSqlite3Db(): Promise<import('better-sqlite3').Database> {
+    if (sharedBetterSqlite3Db === null) {
+        const Database = (await import('better-sqlite3')).default
+        sharedBetterSqlite3Db = new Database(':memory:')
+    }
+    return sharedBetterSqlite3Db
+}
+
 export function createBetterSqlite3TestContext(spec: SqliteTestSpec): TestContext<DBConnection> {
     // better-sqlite3 has a native binding that fails to load under Bun's
     // Node API shim. We only fire the real branch outside Bun.
     const realDbEnabled = !isBun && isRealDbEnabled(DATABASE, /* needsDocker */ false)
-    let db: { close(): void; exec(sql: string): unknown } | null = null
 
     return createTestContext<DBConnection>({
         label: spec.label,
@@ -120,26 +138,21 @@ export function createBetterSqlite3TestContext(spec: SqliteTestSpec): TestContex
         database: 'sqlite',
         realDbEnabled,
         async createRealRunner() {
-            const Database = (await import('better-sqlite3')).default
             const { BetterSqlite3QueryRunner } = await import('../../../src/queryRunners/BetterSqlite3QueryRunner.js')
-            const conn = new Database(':memory:')
-            db = conn
+            const conn = await getOrCreateBetterSqlite3Db()
             const { schema, seed } = await readSchemaAndSeed()
             conn.exec(schema)
             conn.exec(seed)
             return {
                 runner: new BetterSqlite3QueryRunner(conn),
-                shutdown: async () => {
-                    if (db) db.close()
-                    db = null
-                },
+                shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
         async onReseed() {
-            if (!db) return
+            if (sharedBetterSqlite3Db === null) return
             const { schema, seed } = await readSchemaAndSeed()
-            db.exec(schema)
-            db.exec(seed)
+            sharedBetterSqlite3Db.exec(schema)
+            sharedBetterSqlite3Db.exec(seed)
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
@@ -168,7 +181,6 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec): TestContext<D
         return resolvedRealDb
     }
     const realDbEnabled = isNodeSqliteAvailable() && isRealDbEnabled(DATABASE, /* needsDocker */ false)
-    let db: { close(): void; exec(sql: string): unknown } | null = null
 
     return createTestContext<DBConnection>({
         label: spec.label,
@@ -177,26 +189,21 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec): TestContext<D
         database: 'sqlite',
         realDbEnabled,
         async createRealRunner() {
-            const { DatabaseSync } = await import('node:sqlite')
             const { NodeSqliteQueryRunner } = await import('../../../src/queryRunners/NodeSqliteQueryRunner.js')
-            const conn = new DatabaseSync(':memory:')
-            db = conn
+            const conn = await getOrCreateNodeSqliteDb()
             const { schema, seed } = await readSchemaAndSeed()
             conn.exec(schema)
             conn.exec(seed)
             return {
                 runner: new NodeSqliteQueryRunner(conn),
-                shutdown: async () => {
-                    if (db) db.close()
-                    db = null
-                },
+                shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
         async onReseed() {
-            if (!db) return
+            if (sharedNodeSqliteDb === null) return
             const { schema, seed } = await readSchemaAndSeed()
-            db.exec(schema)
-            db.exec(seed)
+            sharedNodeSqliteDb.exec(schema)
+            sharedNodeSqliteDb.exec(seed)
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
@@ -204,15 +211,34 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec): TestContext<D
     })
 }
 
+let sharedNodeSqliteDb: import('node:sqlite').DatabaseSync | null = null
+
+async function getOrCreateNodeSqliteDb(): Promise<import('node:sqlite').DatabaseSync> {
+    if (sharedNodeSqliteDb === null) {
+        const { DatabaseSync } = await import('node:sqlite')
+        sharedNodeSqliteDb = new DatabaseSync(':memory:')
+    }
+    return sharedNodeSqliteDb
+}
+
 // ---- sqlite3 (in-process, async, universal) -----------------------------
+
+let sharedSqlite3Db: import('sqlite3').Database | null = null
+
+async function getOrCreateSqlite3Db(): Promise<import('sqlite3').Database> {
+    if (sharedSqlite3Db === null) {
+        const sqlite3 = (await import('sqlite3')).default
+        sharedSqlite3Db = new sqlite3.Database(':memory:')
+    }
+    return sharedSqlite3Db
+}
+
+function sqlite3Exec(database: import('sqlite3').Database, sql: string): Promise<void> {
+    return new Promise((res, rej) => database.exec(sql, e => e ? rej(e) : res()))
+}
 
 export function createSqlite3TestContext(spec: SqliteTestSpec): TestContext<DBConnection> {
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ false)
-    let db: import('sqlite3').Database | null = null
-
-    function exec(database: import('sqlite3').Database, sql: string): Promise<void> {
-        return new Promise((res, rej) => database.exec(sql, e => e ? rej(e) : res()))
-    }
 
     return createTestContext<DBConnection>({
         label: spec.label,
@@ -221,26 +247,21 @@ export function createSqlite3TestContext(spec: SqliteTestSpec): TestContext<DBCo
         database: 'sqlite',
         realDbEnabled,
         async createRealRunner() {
-            const sqlite3 = (await import('sqlite3')).default
             const { Sqlite3QueryRunner } = await import('../../../src/queryRunners/Sqlite3QueryRunner.js')
-            const conn = new sqlite3.Database(':memory:')
-            db = conn
+            const conn = await getOrCreateSqlite3Db()
             const { schema, seed } = await readSchemaAndSeed()
-            await exec(conn, schema)
-            await exec(conn, seed)
+            await sqlite3Exec(conn, schema)
+            await sqlite3Exec(conn, seed)
             return {
                 runner: new Sqlite3QueryRunner(conn),
-                shutdown: async () => {
-                    if (db) await new Promise<void>(res => db!.close(() => res()))
-                    db = null
-                },
+                shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
         async onReseed() {
-            if (!db) return
+            if (sharedSqlite3Db === null) return
             const { schema, seed } = await readSchemaAndSeed()
-            await exec(db, schema)
-            await exec(db, seed)
+            await sqlite3Exec(sharedSqlite3Db, schema)
+            await sqlite3Exec(sharedSqlite3Db, seed)
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
@@ -250,9 +271,27 @@ export function createSqlite3TestContext(spec: SqliteTestSpec): TestContext<DBCo
 
 // ---- @sqlite.org/sqlite-wasm OO1 API (in-process, universal) ------------
 
+// Per-process sqlite-wasm instance. Initialising `@sqlite.org/sqlite-wasm`
+// (loading the WASM module + constructing the OO1 wrapper) is the
+// expensive step; memoising it once per worker makes the per-file `up()`
+// just re-apply the schema + seed. See the parallel pglite comment in
+// the postgres runner for the same pattern.
+let sqliteWasmSharedDb: import('@sqlite.org/sqlite-wasm').Database | null = null
+
+async function getOrCreateSqliteWasm(): Promise<import('@sqlite.org/sqlite-wasm').Database> {
+    if (sqliteWasmSharedDb === null) {
+        const sqlite3InitModule = (await import('@sqlite.org/sqlite-wasm')).default
+        const sqlite3 = await sqlite3InitModule()
+        sqliteWasmSharedDb = new sqlite3.oo1.DB(':memory:', 'c')
+    }
+    return sqliteWasmSharedDb
+}
+
 export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec): TestContext<DBConnection> {
-    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ false)
-    let db: { close(): void; exec(opts: { sql: string }): unknown } | null = null
+    // sqlite-wasm-OO1 is in-process WASM — gated by `TS_SQL_QUERY_WASM`
+    // so `no-wasm-tests` can route this connector through the mock
+    // without paying the per-worker WASM bootstrap cost.
+    const realDbEnabled = isRealDbEnabled(DATABASE, 'wasm')
 
     return createTestContext<DBConnection>({
         label: spec.label,
@@ -262,27 +301,23 @@ export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec): TestContex
         realDbEnabled,
         timeoutMs: 30_000,
         async createRealRunner() {
-            const sqlite3InitModule = (await import('@sqlite.org/sqlite-wasm')).default
             const { Sqlite3WasmOO1QueryRunner } = await import('../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js')
-            const sqlite3 = await sqlite3InitModule()
-            const conn = new sqlite3.oo1.DB(':memory:', 'c')
-            db = conn
+            const conn = await getOrCreateSqliteWasm()
             const { schema, seed } = await readSchemaAndSeed()
             conn.exec({ sql: schema })
             conn.exec({ sql: seed })
             return {
                 runner: new Sqlite3WasmOO1QueryRunner(conn),
-                shutdown: async () => {
-                    if (db) db.close()
-                    db = null
-                },
+                // Don't close — the shared instance survives until
+                // the worker process exits.
+                shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
         async onReseed() {
-            if (!db) return
+            if (sqliteWasmSharedDb === null) return
             const { schema, seed } = await readSchemaAndSeed()
-            db.exec({ sql: schema })
-            db.exec({ sql: seed })
+            sqliteWasmSharedDb.exec({ sql: schema })
+            sqliteWasmSharedDb.exec({ sql: seed })
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)

@@ -1,0 +1,32 @@
+// Oracle does NOT support `INSERT … ON CONFLICT` syntax. The library
+// excludes Oracle from the on-conflict family at compile time. Kept
+// here as commented stubs so the symmetry audit reports the same
+// test names per cell; see the postgres/sqlite cells for the active
+// implementation.
+
+import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { ctx } from './setup.js'
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    /*
+    test('on-conflict-do-nothing', async () => {
+        // Not supported by Oracle.
+    })
+    */
+
+    /*
+    test('on-conflict-do-update', async () => {
+        // Not supported by Oracle.
+    })
+    */
+
+    /*
+    test('on-conflict-on-columns-do-update', async () => {
+        // Not supported by Oracle.
+    })
+    */
+})

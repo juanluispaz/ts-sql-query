@@ -194,6 +194,23 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     override _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + '::float / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + '::float'
     }
+    override _round(params: any[], valueSource: ToSql): string {
+        // PostgreSQL has two overloads of `round`: `round(numeric)` breaks ties
+        // by rounding away from zero (the rule every other dialect the library
+        // supports follows), while `round(double precision)` defers to libm and
+        // is "platform dependent" per the PG manual — most platforms use
+        // round-to-nearest-even, which makes `round(0.5)` evaluate to `0`
+        // instead of `1`. Any operand that flows through `_divide` is already
+        // cast to `::float`, so without this wrapper the user-facing `.round()`
+        // would silently switch tie-breaking modes depending on what came
+        // before it in the chain. Cast to numeric so the behavior is portable;
+        // applications that want the platform-dependent behavior can opt in via
+        // `usePlatformDependentRound` on the connection.
+        if (this._connectionConfiguration.usePlatformDependentRound) {
+            return 'round(' + this._appendSql(valueSource, params, false) + ')'
+        }
+        return 'round((' + this._appendSql(valueSource, params, false) + ')::numeric)'
+    }
     override _equalsInsensitive(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         const collation = this._connectionConfiguration.insensitiveCollation
         if (collation) {

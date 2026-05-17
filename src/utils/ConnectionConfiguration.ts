@@ -5,4 +5,5 @@ export interface ConnectionConfiguration {
     getDateTimeFormat?(type: string): string
     compatibilityVersion: number
     uuidStrategy?: string
+    usePlatformDependentRound?: boolean
 }

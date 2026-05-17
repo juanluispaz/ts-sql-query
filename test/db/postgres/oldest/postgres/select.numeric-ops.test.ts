@@ -140,6 +140,12 @@ describe(ctx.label, () => {
     })
 
     test('round', async () => {
+        // priority(id=2) is 1 → 1/2 = 0.5 → round(0.5) = 1.
+        // The PostgreSQL builder wraps the operand of `.round()` in
+        // `::numeric` so ties break away from zero, matching every other
+        // supported dialect. Set `usePlatformDependentRound = true`
+        // on the connection to opt into PostgreSQL's native
+        // `round(double precision)` (platform-dependent / round-to-even).
         const expected = [{ id: 2, r: 1 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -149,7 +155,7 @@ describe(ctx.label, () => {
                 r:  tIssue.priority.divide(2).round(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(priority::float / $1::float) as "r" from issue where id = $2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float / $1::float)::numeric) as "r" from issue where id = $2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

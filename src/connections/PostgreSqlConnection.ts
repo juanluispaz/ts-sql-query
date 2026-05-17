@@ -22,6 +22,31 @@ export abstract class PostgreSqlConnection<NAME extends string> extends Abstract
      */
     protected override compatibilityVersion: number = Number.POSITIVE_INFINITY
 
+    /**
+     * Use PostgreSQL's native, platform-dependent `round(double precision)`
+     * when applying `.round()` to a `double precision` expression (most
+     * commonly anything that flows through `.divide(...)`, which the
+     * SqlBuilder always casts to `::float`).
+     *
+     * Per the PostgreSQL manual, `round(numeric)` breaks ties by rounding
+     * **away from zero** (so `round(0.5) → 1`), while `round(double
+     * precision)` defers to libm — *"the tie-breaking behavior is platform
+     * dependent, but 'round to nearest even' is the most common rule"* (so
+     * `round(0.5) → 0` on most systems). Every other dialect ts-sql-query
+     * supports rounds away from zero, so by default the library casts the
+     * operand of `.round()` to `numeric` on PostgreSQL to make the behavior
+     * portable and predictable across dialects.
+     *
+     * Setting this flag to `true` opts out of the cast: the result of
+     * `.round()` then follows whatever `round(double precision)` does on the
+     * underlying libm. Use it when you want PostgreSQL's native
+     * `round(double precision)` semantics — typically because the
+     * application is single-dialect and prefers the IEEE 754 round-to-even
+     * tie-breaking common on modern systems, or because existing queries
+     * depend on it.
+     */
+    protected usePlatformDependentRound: boolean = false
+
     constructor(queryRunner: QueryRunner, sqlBuilder = new PostgreSqlSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('postgreSql')

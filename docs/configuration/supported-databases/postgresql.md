@@ -45,6 +45,30 @@ class DBConnection extends PostgreSqlConnection<'DBConnection'> {
 }
 ```
 
+## Rounding behavior
+
+PostgreSQL has two overloads of its native `round` function — `round(numeric)` and `round(double precision)` — with **different tie-breaking rules**. Per the [PostgreSQL manual](https://www.postgresql.org/docs/current/functions-math.html#FUNCTIONS-MATH-FUNC-TABLE):
+
+> `round(numeric)` → rounds to nearest integer; ties are broken by rounding **away from zero** (so `round(0.5) → 1`).
+>
+> `round(double precision)` → rounds to nearest integer; the tie-breaking behavior is **platform dependent**, but *"round to nearest even"* is the most common rule (so `round(0.5) → 0` on most systems).
+
+Every other dialect ts-sql-query supports (MariaDB, MySQL, Oracle, SQL Server, SQLite) breaks ties away from zero, matching JavaScript's `Math.round` for positive `.5` values. To keep `.round()` predictable and portable, **the PostgreSQL connection casts the operand to `numeric` before applying `round`**, so `value.round()` always rounds ties away from zero regardless of the operand's type.
+
+For example, `tIssue.priority.divide(2).round()` (where `priority = 1`) yields `round(0.5) = 1` on every dialect, including PostgreSQL.
+
+If you prefer PostgreSQL's native `round(double precision)` semantics — typically because your application is single-dialect and you want the IEEE 754 round-to-even tie-breaking common on modern systems, or because existing queries depend on that result — set `usePlatformDependentRound = true` on your connection:
+
+```ts
+import { PostgreSqlConnection } from "ts-sql-query/connections/PostgreSqlConnection";
+
+class DBConnection extends PostgreSqlConnection<'DBConnection'> {
+    protected override usePlatformDependentRound = true
+}
+```
+
+With the flag on, `value.round()` emits `round(x)` directly: when `x` is a `numeric` expression you still get away-from-zero, but when `x` is a `double precision` expression (the type produced by `.divide(...)`, `.asDouble()`, and many other arithmetic chains) the tie-breaking follows PostgreSQL's `round(double precision)` rules.
+
 ## Explicit typing
 
 In some situations, PostgreSQL may be unable to infer the correct type of a parameter in a query. This often happens with untyped `NULL` values or when using generic placeholders. To ensure type safety and proper execution, you can explicitly cast the parameter type in the generated SQL.

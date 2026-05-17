@@ -66,6 +66,8 @@ describe(ctx.label, () => {
     // SQL emission still gets validated. This guards the runtime
     // contract while the typing weakness is documented above.
     test('helper-pattern/runtime-sql-emission', async () => {
+        ctx.mockNext({ id: 1, name: 'Marketing site', issueCount: 2 })
+
         const project = tProject.as('project')
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

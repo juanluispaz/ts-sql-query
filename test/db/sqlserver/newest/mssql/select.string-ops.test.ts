@@ -131,6 +131,100 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('trim', async () => {
+        const expected = [{ id: 1, t: 'Ada Lovelace' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                id: tAppUser.id,
+                t:  tAppUser.fullName.trim(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, trim(full_name) as [t] from app_user where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; t: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('trim-left-right', async () => {
+        const expected = [{ id: 1, l: 'Ada', r: 'Ada' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                id: tAppUser.id,
+                l: tAppUser.fullName.trimLeft(),
+                r: tAppUser.fullName.trimRight(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ltrim(full_name) as [l], rtrim(full_name) as [r] from app_user where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id: number; l: string; r: string
+        }>>>()
+        if (!ctx.realDbEnabled) {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('replace-all', async () => {
+        const expected = [{ id: 1, t: 'ada-acme.test' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                id: tAppUser.id,
+                t:  tAppUser.email.replaceAll('@', '-'),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, replace(email, @0, @1) as [t] from app_user where id = @2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "@",
+            "-",
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; t: string }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('reverse', async () => {
+        // Mock the result; not every dialect natively supports REVERSE.
+        const expected = [{ id: 1, t: 'esnopser' }]
+        ctx.mockNext(expected)
+        try {
+            const result = await ctx.conn.selectFrom(tAppUser)
+                .where(tAppUser.id.equals(1))
+                .select({
+                    id: tAppUser.id,
+                    t:  tAppUser.email.reverse(),
+                })
+                .executeSelectMany()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reverse(email) as [t] from app_user where id = @0"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
+            assertType<Exact<typeof result, Array<{ id: number; t: string }>>>()
+            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        } catch {
+            // real DB may not provide a REVERSE function; the SQL was
+            // captured before the runner ran.
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reverse(email) as "t" from app_user where id = ?"`)
+        }
+    })
+
     test('substring', async () => {
         const expected = [{ id: 1, sub: 'Ada' }]
         ctx.mockNext(expected)

@@ -21,6 +21,8 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('extract-columns/select-all', async () => {
+        ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'pro', createdAt: new Date() })
+
         // doc-start
         const cols = extractColumnsFrom(tOrganization)
         const row = await ctx.conn.selectFrom(tOrganization)
@@ -29,7 +31,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, "plan" as "plan", created_at as createdAt from organization where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, plan as plan, created_at as createdAt from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

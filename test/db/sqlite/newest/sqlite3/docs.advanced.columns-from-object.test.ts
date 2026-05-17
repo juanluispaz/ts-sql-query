@@ -21,6 +21,8 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('extract-columns/select-all', async () => {
+        ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'pro', createdAt: new Date() })
+
         // doc-start
         const cols = extractColumnsFrom(tOrganization)
         const row = await ctx.conn.selectFrom(tOrganization)

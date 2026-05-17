@@ -62,4 +62,54 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })
+
+    test('intersect', async () => {
+        // status values appearing in both opened-issues and id<=2-issues:
+        // both sets contain 'open' (id 1 has status open and is ≤ 2).
+        const expected = [{ status: 'open' }]
+        ctx.mockNext(expected)
+        const left = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.status.equals('open'))
+            .select({ status: tIssue.status })
+        const right = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.lessOrEqual(2))
+            .select({ status: tIssue.status })
+        const result = await left.intersect(right).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue where status = $1 intersect select status as status from issue where id <= $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ status: string }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result.map(r => r.status).sort()).toEqual(['open'])
+        }
+    })
+
+    test('except', async () => {
+        // statuses present in issues but NOT under id <= 2.
+        // id<=2 contains: open (id=1), in_progress (id=2)
+        // all issues: open (1), in_progress (2), open (3), closed (4)
+        // except → { closed }
+        const expected = [{ status: 'closed' }]
+        ctx.mockNext(expected)
+        const all = ctx.conn.selectFrom(tIssue)
+            .select({ status: tIssue.status })
+        const small = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.lessOrEqual(2))
+            .select({ status: tIssue.status })
+        const result = await all.except(small).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as status from issue except select status as status from issue where id <= $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ status: string }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result.map(r => r.status).sort()).toEqual(['closed'])
+        }
+    })
 })

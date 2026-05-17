@@ -62,4 +62,38 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ label: string }>>>()
         expect(result).toEqual(expected)
     })
+
+    // MySQL is intentionally excluded from `intersect` / `except` in the
+    // library's type signatures (see src/expressions/select.ts) — although
+    // MySQL 8+ supports the syntax at runtime, ts-sql-query refuses it at
+    // compile time. Kept commented for symmetry.
+    /*
+    test('intersect', async () => {
+        const expected = [{ status: 'open' }]
+        ctx.mockNext(expected)
+        const left = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.status.equals('open'))
+            .select({ status: tIssue.status })
+        const right = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.lessOrEqual(2))
+            .select({ status: tIssue.status })
+        const result = await left.intersect(right).executeSelectMany()
+        // ... see other cells for the full body.
+    })
+    */
+
+    // Same as above — `except` excluded for mysql in the library's types.
+    /*
+    test('except', async () => {
+        const expected = [{ status: 'closed' }]
+        ctx.mockNext(expected)
+        const all = ctx.conn.selectFrom(tIssue)
+            .select({ status: tIssue.status })
+        const small = ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.lessOrEqual(2))
+            .select({ status: tIssue.status })
+        const result = await all.except(small).executeSelectMany()
+        // ... see other cells for the full body.
+    })
+    */
 })

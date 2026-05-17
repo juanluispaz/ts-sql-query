@@ -1,0 +1,74 @@
+// Two orthogonal flags drive what a test does at runtime:
+//
+//   TS_SQL_QUERY_DBS    — comma list of database folder names under
+//                         `test/db/` (e.g. `pilot-postgres,mariadb,sqlite`).
+//                         Special values: `all` (default) and `none`. This
+//                         only narrows the SCOPE of the run — which tests
+//                         participate — it does not change what any
+//                         individual test does.
+//
+//   TS_SQL_QUERY_DOCKER — `on` or `off` (default `off`). Gates whether the
+//                         real-DB branch of a docker-backed connector
+//                         actually runs. Every test executes regardless of
+//                         this flag — when the real branch is gated off,
+//                         it transparently falls back to the mock. There
+//                         is no duplicated code path: the same body
+//                         describes both modes.
+//
+// The point of the split is that the `no-docker-tests` script can still
+// exercise the whole suite — mariadb, sql server, etc. all run their
+// SQL + params + type + mock-round-trip assertions without Docker, and the
+// in-process connectors (pglite, sqlite, …) keep running their real DB.
+
+export type DockerMode = 'on' | 'off'
+
+/** True iff this database folder is in scope for the current run. */
+export function isBackendEnabled(database: string): boolean {
+    return ENABLED_DBS === 'all' || ENABLED_DBS.has(database)
+}
+
+/** True iff docker-backed real-DB branches should fire. */
+export function isDockerEnabled(): boolean {
+    return DOCKER_MODE === 'on'
+}
+
+/**
+ * Convenience for connector setups: a docker-backed connector's real-DB
+ * branch fires iff its database is in scope AND docker is on. An
+ * in-process connector should call `isBackendEnabled(database)` directly.
+ */
+export function isRealDbEnabled(database: string, needsDocker: boolean): boolean {
+    if (!isBackendEnabled(database)) return false
+    if (needsDocker && !isDockerEnabled()) return false
+    return true
+}
+
+// ---- parsing ------------------------------------------------------------
+
+const ENABLED_DBS: 'all' | ReadonlySet<string> = parseDbsFlag()
+const DOCKER_MODE: DockerMode = parseDockerFlag()
+
+function parseDbsFlag(): 'all' | ReadonlySet<string> {
+    const raw = readEnv('TS_SQL_QUERY_DBS')
+    if (raw === undefined || raw === '' || raw === 'all') return 'all'
+    if (raw === 'none') return new Set()
+    const out = new Set<string>()
+    for (const part of raw.split(',')) {
+        const t = part.trim()
+        if (t !== '') out.add(t)
+    }
+    return out
+}
+
+function parseDockerFlag(): DockerMode {
+    const raw = readEnv('TS_SQL_QUERY_DOCKER')
+    if (raw === undefined || raw === '') return 'off'
+    if (raw === 'on' || raw === 'off') return raw
+    throw new Error(`TS_SQL_QUERY_DOCKER must be "on" or "off" (got: ${raw})`)
+}
+
+function readEnv(name: string): string | undefined {
+    if (typeof process === 'undefined') return undefined
+    const v = process.env[name]
+    return v === undefined ? undefined : v.trim()
+}

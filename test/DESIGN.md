@@ -66,7 +66,7 @@ Tests never import anything from `src/internal/`, `src/queryBuilders/`,
    wildcard escape hatch is **not** part of the public surface for the
    tests: if a test needs something only reachable through `unsupported/`,
    the right answer is to open up the API, not to import via that
-   escape. Concretely, the imports the pilot uses (`src/Table.ts`,
+   escape. Concretely, the imports the suite uses (`src/Table.ts`,
    `src/connections/PostgreSqlConnection.ts`, `src/queryRunners/*.ts`,
    `src/TypeAdapter.ts`, `src/dynamicCondition.ts`, …) all match
    entries enumerated in `exports`. If you have to write a path that
@@ -107,7 +107,7 @@ Tests never import anything from `src/internal/`, `src/queryBuilders/`,
    run `bun:all-tests` (Bun) or `all-tests` (Node + vitest) and get genuine
    coverage of every (database × version × connector) cell. There is no
    per-script carve-up; focused runs work via direct invocation
-   (`bun test test/db/pilot-postgres/newest/pg/select.basic.test.ts`).
+   (`bun test test/db/postgres/newest/pg/select.basic.test.ts`).
 
 6. **Three dimensions, all encoded in the folder layout.**
 
@@ -117,9 +117,7 @@ Tests never import anything from `src/internal/`, `src/queryBuilders/`,
 
    - `<database>` is one of the files under
      `docs/configuration/supported-databases/`: `mariadb`, `mysql`,
-     `oracle`, `postgres`, `sqlite`, `sqlserver`. The current pilot uses
-     `pilot-postgres` so the `postgres` name stays free for the real
-     postgres test set when it lands.
+     `oracle`, `postgres`, `sqlite`, `sqlserver`.
    - `<compatibilityVersion>` is the literal value pinned on the
      connection. Each subfolder represents one zone of the compatibility
      ladder documented in
@@ -132,7 +130,7 @@ Tests never import anything from `src/internal/`, `src/queryBuilders/`,
          `compatibilityVersion` to that value.
        - `oldest` — the `<` zone below the lowest documented breakpoint.
          Pinned to a representative value below the lowest breakpoint
-         (e.g. `17_000_000` for the pilot, anything `< 18_000_000`).
+         (e.g. `17_000_000`, anything `< 18_000_000`).
    - `<connector>` is one of the files under
      `docs/configuration/query-runners/recommended/` for that database.
      For postgres today: `pg`, `pglite`, `postgres`, `bun_sql_postgres`.
@@ -158,8 +156,8 @@ Tests never import anything from `src/internal/`, `src/queryBuilders/`,
 
 9. **Connector ↔ version compatibility is per-cell.** Not every
    `<compatibilityVersion>/<connector>/` combination is valid. For
-   example, `pilot-postgres/oldest/pglite/` exists but
-   `pilot-postgres/newest/pglite/` does **not** — PgLite bundles
+   example, `postgres/oldest/pglite/` exists but
+   `postgres/newest/pglite/` does **not** — PgLite bundles
    PostgreSQL 17 and would fail to execute SQL emitted at the latest
    compatibility settings. When a cell makes no sense, the folder simply
    is not created.
@@ -246,7 +244,7 @@ test/
 │   ├── captureInterceptor.ts       ← wraps any QueryRunner and records SQL+params
 │   └── testContext.ts              ← createTestContext factory + TestContext type
 └── db/
-    ├── pilot-postgres/             ← the pilot. Uses `pilot-postgres` so the
+    ├── postgres/             ← the real postgres tree, with one cell per (version × connector)
     │                                 `postgres` name stays free for the real
     │                                 set when it lands.
     │   ├── domain/                 ← dialect domain, scoped to this database
@@ -279,7 +277,7 @@ test/
 ```
 
 Pending, deliberately:
-- `pilot-postgres/<*>/bun_sql_postgres/` — the bun:sql connector is
+- `postgres/<*>/bun_sql_postgres/` — the bun:sql connector is
   bun-only and needs runtime gating.
 - `prisma/` and `sync/` trees.
 
@@ -454,7 +452,7 @@ is found, so the script slots into pre-merge automation. Sample
 output:
 
 ```text
-✗ pilot-postgres (5 cells):
+✗ postgres (5 cells):
   [insert.returning.test.ts] newest/pg vs oldest/pglite:
       missing in oldest/pglite: "insert-many-organizations"
 ```
@@ -609,34 +607,35 @@ test('postgres-negative-types', () => {
 
 ---
 
-## 10. Pilot scope (current state)
+## 10. Current state
 
-The repository currently contains the pilot — just enough to exercise
-the patterns end-to-end without the cost of porting every example:
+The pilot phase is closed. The suite now grows breadth-first along the
+strategy "build the base in the minimum dialect, duplicate to the
+maximum, then sweep the other databases":
 
-- database: **`pilot-postgres`** (the `postgres` name is held in
-  reserve for the real port).
-- version folders:
-  - `newest/` (`Number.POSITIVE_INFINITY`).
-  - `oldest/` (pinned to `17_000_000`, representative of the
-    `< 18_000_000` zone documented in
-    `docs/configuration/supported-databases/postgresql.md`).
-- connectors per version:
-  - `newest/` → `pg`, `postgres` (against `postgres:18-alpine`
-    container).
-  - `oldest/` → `pg`, `postgres`, `pglite`.
-- per-cell test files: `select.basic` (5 tests), `insert.returning` (3
-  tests), `docs.select` (1 `docs:` test). All SQL + params assertions
-  are inline snapshots.
-- per-database: `types.negative/select.test.ts` and
-  `types.negative/insert.test.ts` (compile-time only).
-- shared infrastructure under `test/lib/`; the dialect domain lives in
-  `test/db/pilot-postgres/domain/`.
+1. **Minimum baseline** — `sqlite/newest/bun_sqlite/` (in-process,
+   bun-only). First full set of tests lives here.
+2. **Maximum baseline** — `postgres/newest/pg/` (testcontainers).
+   Duplicate of (1) with regenerated dialect snapshots; this is the
+   first symmetry pair.
+3. **Other databases** (`mariadb`, `mysql`, `oracle`, `sqlserver`) at
+   `newest/` with one connector each — to land next.
+4. **Other connectors per (database × newest)** — `pg` / `postgres` /
+   `pglite` / `bun_sql_postgres` for postgres; `better-sqlite3` /
+   `node_sqlite` / `sqlite3` / `sqlite-wasm-OO1` for sqlite; etc.
+5. **Other compatibility versions** — `oldest/` and the literal
+   breakpoint values documented in
+   `docs/configuration/supported-databases/<database>.md`.
 
-What the pilot intentionally does NOT do:
-- add the `bun_sql_postgres` connector (bun-only, runtime gating to
-  design).
-- add the other databases (`mariadb`, `mysql`, `oracle`, `sqlite`,
-  `sqlserver`) or the `prisma` / `sync` trees.
-- wire a new CI matrix.
-- modify or retire any file under `src/examples/`.
+Permanently excluded from the main matrix (separate sub-trees if added
+later):
+- `bun_sql_sqlite`, `bun_sql_mysql` — experimental bun connectors with
+  known bugs.
+- `prisma`, synchronous query runners — different runtime semantics;
+  light mirror coverage at most.
+
+What this phase does NOT do:
+- modify or retire any file under `src/examples/`. The legacy suite is
+  authoritative until the new suite reaches parity.
+- wire a new CI matrix. Existing `bun:no-docker-tests` / `bun:all-tests`
+  scripts already cover the new cells under both runtimes.

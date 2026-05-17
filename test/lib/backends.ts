@@ -1,7 +1,7 @@
 // Two orthogonal flags drive what a test does at runtime:
 //
 //   TS_SQL_QUERY_DBS    — comma list of database folder names under
-//                         `test/db/` (e.g. `pilot-postgres,mariadb,sqlite`).
+//                         `test/db/` (e.g. `postgres,mariadb,sqlite`).
 //                         Special values: `all` (default) and `none`. This
 //                         only narrows the SCOPE of the run — which tests
 //                         participate — it does not change what any

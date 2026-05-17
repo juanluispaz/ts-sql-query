@@ -38,8 +38,6 @@ test/db/<database>/types.negative/        ← compile-time negatives, multi-file
 
 - `<database>` = one of `docs/configuration/supported-databases/*.md`
   (`mariadb`, `mysql`, `oracle`, `postgres`, `sqlite`, `sqlserver`).
-  The current pilot uses `pilot-postgres` so the `postgres` name stays
-  free for the real set when it lands.
 - `<compatibilityVersion>` = `newest` (default,
   `Number.POSITIVE_INFINITY`), the literal numeric value of any
   documented breakpoint (e.g. `13_000_001`, `10_005_000`), or `oldest`
@@ -93,32 +91,32 @@ is the `database[/version[/connector]]` path under `test/db/`:
 
 ```bash
 # Single (database × version × connector) cell
-bun run bun:focus-tests pilot-postgres/newest/pg   # bun:test (preferred)
-npm run focus-tests pilot-postgres/newest/pg       # vitest / Node
+bun run bun:focus-tests postgres/newest/pg   # bun:test (preferred)
+npm run focus-tests postgres/newest/pg       # vitest / Node
 
 # Whole version (every connector)
-bun run bun:focus-tests pilot-postgres/oldest
+bun run bun:focus-tests postgres/oldest
 
 # Whole database
-bun run bun:focus-tests pilot-postgres
+bun run bun:focus-tests postgres
 
 # Pass extra args through (snapshot update, etc.)
-bun run bun:focus-tests pilot-postgres/newest/pg --update-snapshots
-npm run focus-tests pilot-postgres/newest/pg -- -u
+bun run bun:focus-tests postgres/newest/pg --update-snapshots
+npm run focus-tests postgres/newest/pg -- -u
 ```
 
 Direct invocation works too if you want to scope to a single file or
 prefer not to go through the script:
 
 ```bash
-bun test test/db/pilot-postgres/newest/pg/select.basic.test.ts
-npx vitest run test/db/pilot-postgres/newest/pg/select.basic.test.ts
+bun test test/db/postgres/newest/pg/select.basic.test.ts
+npx vitest run test/db/postgres/newest/pg/select.basic.test.ts
 ```
 
 Pass the flags explicitly if you need to override the script defaults:
 
 ```bash
-TS_SQL_QUERY_DOCKER=on bun run bun:focus-tests pilot-postgres/newest/pg  # focus pilot, real DB on
+TS_SQL_QUERY_DOCKER=on bun run bun:focus-tests postgres/newest/pg  # focus this cell, real DB on
 TS_SQL_QUERY_DBS=mariadb bun run bun:no-docker-tests                     # focus mariadb only
 ```
 
@@ -144,7 +142,7 @@ with one leaves the suite green under the other.
 For a focused refresh, narrow the path:
 
 ```bash
-bun test test/db/pilot-postgres/newest/ --update-snapshots
+bun test test/db/postgres/newest/ --update-snapshots
 ```
 
 Review the diff before committing — a snapshot change is real signal
@@ -220,15 +218,15 @@ Short version. The full procedure is [`DESIGN.md` §9](./DESIGN.md#9-adding-a-ne
 
 ## Adding a database
 
-Mirror the existing `test/db/pilot-postgres/` folder. See
+Mirror the existing `test/db/postgres/` folder. See
 [`DESIGN.md` §8](./DESIGN.md#8-adding-a-new-database) for the
 step-by-step.
 
 ## Why the duplication between cells?
 
 Because symmetry is the whole point and it is treated as a hard rule.
-The test file for `pilot-postgres/newest/pg/` should diff cleanly
-against `pilot-postgres/oldest/pg/` and against the mysql equivalent,
+The test file for `postgres/newest/pg/` should diff cleanly
+against `postgres/oldest/pg/` and against the mysql equivalent,
 leaving only the real behavioural differences. Hiding the duplication
 behind a shared abstraction hides the divergences as well, and
 divergences are what these tests are here to catch.

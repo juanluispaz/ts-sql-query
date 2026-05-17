@@ -1,0 +1,142 @@
+// INSERT scenarios with RETURNING. Each mutating block runs inside
+// `ctx.withRollback(...)` so any rows written to a real DB are reverted at
+// the end of the test (no-op in mock mode).
+//
+// SQL and params use `toMatchInlineSnapshot(...)` so they can be refreshed
+// with `bun test --update-snapshots` (or `bunx vitest run -u`).
+//
+// Auto-generated columns (PK ids) are mock-primed for predictable mock-mode
+// equality. In real-DB mode the actual id is whatever sqlite assigns next;
+// the test then asserts a structural invariant (`id > <max-seed-id>`).
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tOrganization, tProject } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('insert-organization-returning-id', async () => {
+        ctx.mockNext(99)
+
+        await ctx.withRollback(async () => {
+            const id = await ctx.conn.insertInto(tOrganization)
+                .values({
+                    name: 'Initech',
+                    plan: 'free',
+                })
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into "organization" (name, "plan") values (:0, :1) returning id into :2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Initech",
+                "free",
+                {
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+
+            expect(typeof id).toBe('number')
+            if (ctx.realDbEnabled) {
+                expect(id).toBeGreaterThan(2) // seed reserves ids 1, 2
+            } else {
+                expect(id).toBe(99)
+            }
+        })
+    })
+
+    test('insert-project-returning-row', async () => {
+        const expectedMock = { id: 100, name: 'Mobile app', slug: 'mobile' }
+        ctx.mockNext(expectedMock)
+
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tProject)
+                .values({
+                    organizationId: 1,
+                    name: 'Mobile app',
+                    slug: 'mobile',
+                })
+                .returning({
+                    id:   tProject.id,
+                    name: tProject.name,
+                    slug: tProject.slug,
+                })
+                .executeInsertOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (:0, :1, :2) returning id, name, slug into :3, :4, :5"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "Mobile app",
+                "mobile",
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+                {
+                  "as": "name",
+                  "dir": 3003,
+                },
+                {
+                  "as": "slug",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof inserted, {
+                id: number
+                name: string
+                slug: string
+            }>>()
+
+            expect(inserted.name).toBe('Mobile app')
+            expect(inserted.slug).toBe('mobile')
+            expect(typeof inserted.id).toBe('number')
+            if (!ctx.realDbEnabled) expect(inserted.id).toBe(100)
+        })
+    })
+
+    test('insert-many-organizations', async () => {
+        const expectedMock = [{ id: 100 }, { id: 101 }]
+        ctx.mockNext(expectedMock)
+
+        await ctx.withRollback(async () => {
+            const ids = await ctx.conn.insertInto(tOrganization)
+                .values([
+                    { name: 'Acme East', plan: 'free' },
+                    { name: 'Acme West', plan: 'pro' },
+                ])
+                .returning({ id: tOrganization.id })
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into "organization" (name, "plan") values (:0, :1) returning id into :2; insert into "organization" (name, "plan") values (:3, :4) returning id into :5; end;"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Acme East",
+                "free",
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+                "Acme West",
+                "pro",
+                {
+                  "as": "id",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            assertType<Exact<typeof ids, Array<{ id: number }>>>()
+
+            expect(ids).toHaveLength(2)
+            if (!ctx.realDbEnabled) expect(ids).toEqual(expectedMock)
+        })
+    })
+})

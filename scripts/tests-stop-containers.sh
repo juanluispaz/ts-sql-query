@@ -1,18 +1,37 @@
 #!/bin/bash
-# Stop and remove the docker containers spun up by the ts-sql-query test
-# suite. Safe to call any time; matches by image so it never touches
-# containers from other testcontainers projects running on the same host.
-#
-# When `TESTCONTAINERS_REUSE_ENABLE=true` is set during a test run, the
-# containers survive process exit (Ryuk leaves reused containers alone) so
-# the next `bun test` invocation can attach to the warm container. Run this
-# script when you want to start fresh — for example after editing one of
-# the `test/db/<database>/domain/schema.sql` files, or to free RAM at the
-# end of the day.
-#
-# Usage:
-#   bun run stop-test-containers
-#   bash scripts/stop-test-containers.sh
+# Stop and remove the docker containers spun up by the ts-sql-query
+# test suite. See `tests:stop-containers --help`.
+
+print_help() {
+    cat <<'EOF'
+Usage:
+  tests:stop-containers [--help]
+
+Stops and removes every running docker container started by the
+ts-sql-query test runners (matched by image prefix), plus the
+testcontainers Ryuk sidecar. Safe to call any time — never touches
+containers from other testcontainers projects on the same host.
+
+When `tests --docker --docker-mode reuse` (or `tests:focus … --docker`
+with the default reuse) is used, the containers survive process exit
+so the next invocation can attach to a warm container. Run this
+script when you want to start fresh — for example after editing one
+of the test/db/<database>/domain/schema.sql files, or to free RAM at
+the end of the day.
+
+Images matched:
+  postgres:*
+  mariadb*
+  mysql:*
+  gvenzl/oracle-free*
+  mcr.microsoft.com/mssql/server*
+  testcontainers/ryuk*
+EOF
+}
+
+case "${1:-}" in
+    -h|--help) print_help; exit 0 ;;
+esac
 
 set -e
 
@@ -32,7 +51,6 @@ image_prefixes=(
 # prefixes above. Using `docker ps --format` lets us match the image tag
 # directly without spawning a `docker inspect` per container.
 running=$(docker ps --format '{{.ID}} {{.Image}}' 2>/dev/null)
-ids=""
 echo "$running" | while IFS= read -r row; do
     [ -z "$row" ] && continue
     cid=$(printf '%s' "$row" | awk '{print $1}')

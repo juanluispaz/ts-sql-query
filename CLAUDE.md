@@ -19,6 +19,16 @@ The project supports both Node and Bun. **Day-to-day development prefers Bun** (
 - **Coverage**: `npm run coverage` (wraps `all-examples` with `nyc`; HTML report in `coverage/index.html`). Node-only; the script pins `npm_config_user_agent` so it always takes the tsx branch — don't invoke it via `bun run`.
 - **Publish**: `npm run dist` / `dist-alpha` / `dist-beta` (Node only — pipeline expectation).
 - **Docs preview**: `npm run docs` (requires `mkdocs` from the `.venv`).
+- **The new `test/` matrix** (separate from the legacy `src/examples/` suite above): use the `tests:*` CLI family. Each has `--help`.
+    - `bun run tests` — full matrix, parallel, mocked (no docker, no real WASM). ~1.5 s for 1281 tests; the default fast loop.
+    - `bun run tests --docker` — same matrix, docker-backed connectors hit their real DB (container reuse on by default). ~17 s.
+    - `bun run tests --docker --wasm` — full real coverage (parallel main pass + sequential real-WASM second pass). ~21 s.
+    - `bun run tests:focus <coord>` — one coordinate (e.g. `postgres/newest/pg`, optionally `…/file.test.ts`). Same flags as `tests`.
+    - `bun run tests:wasm` — just the WASM cells (pglite, sqlite-wasm-OO1), serially.
+    - `bun run tests:audit` — symmetry audit across every `(db × version × connector)` cell. Pre-merge check.
+    - `bun run tests:stop-containers` — stop the warm docker containers `--docker --docker-mode reuse` left running.
+
+**Reserved names** — `test` and any `test:*` in `package.json` are **user-only aliases**. The agent must use the canonical `tests` / `tests:focus` / `tests:wasm` / `tests:audit` / `tests:stop-containers` instead. If you see `test` / `test:foo` in `package.json`, assume the user added it as a personal shortcut and **do not run it** unless explicitly instructed; treat it as opaque.
 
 ## Testing strategy
 

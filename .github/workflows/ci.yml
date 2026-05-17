@@ -35,6 +35,10 @@ jobs:
       - name: Light tests
         run: npm run no-docker-examples
 
+      # New test suite — full matrix mocked + real WASM phase (no docker).
+      - name: New test suite
+        run: npm run test:no-docker
+
   bun:
     name: bun examples
     runs-on: ubuntu-latest
@@ -61,3 +65,7 @@ jobs:
       # Light tests (docker tests not supported yet)
       - name: Bun light tests
         run: bun run no-docker-examples
+
+      # New test suite — full matrix mocked + real WASM phase (no docker).
+      - name: Bun new test suite
+        run: bun run test:no-docker

@@ -11,7 +11,7 @@
 // counts as a structural element of the cell.
 //
 // Usage:
-//   bun run audit-tests
+//   bun run tests:audit
 //
 // Exit code 0 if the matrix is symmetric, 1 if any divergence is found.
 

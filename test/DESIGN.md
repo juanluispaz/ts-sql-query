@@ -103,10 +103,11 @@ Tests never import anything from `src/internal/`, `src/queryBuilders/`,
    resolve any ambiguity by reading them. The test suite documents
    behaviour; the library docs declare it.
 
-5. **One test runner execution covers the whole suite.** The agent and CI
-   run `all-tests` (Bun) or `all-tests` (Node + vitest) and get genuine
-   coverage of every (database × version × connector) cell. There is no
-   per-script carve-up; focused runs work via direct invocation
+5. **One test runner execution covers the whole suite.** The agent
+   and CI run `bun run tests --docker --wasm` (Bun) or
+   `npm run tests --docker --wasm` (Node + vitest) and get genuine
+   coverage of every (database × version × connector) cell. Focused
+   runs work via `bun run tests:focus <coord>` or direct invocation
    (`bun test test/db/postgres/newest/pg/select.basic.test.ts`).
 
 6. **Three dimensions, all encoded in the folder layout.**
@@ -204,18 +205,20 @@ Tests never import anything from `src/internal/`, `src/queryBuilders/`,
     connectors (pglite, sqlite, …) ignore the Docker flag and always
     run their real DB when their database is in scope.
 
-    This means `no-docker-tests` still exercises every test in the
-    suite, including mariadb / sqlserver / oracle / mysql ones — only
-    their real-DB branches are skipped, their SQL + params + type +
-    mock-round-trip assertions all run.
+    This means `bun run tests` (no `--docker`) still exercises every
+    test in the suite, including mariadb / sqlserver / oracle / mysql
+    ones — only their real-DB branches are skipped, their SQL +
+    params + type + mock-round-trip assertions all run.
 
 14. **Two test runners, both first-class: `bun:test` and `vitest`.**
-    Files import from `test/lib/testRunner.ts`, a shim that resolves to
-    the right module per runtime. Every npm script has a **single
-    entry**: the shell script behind it detects whether `bun run` or
-    `npm run` invoked it (via `npm_config_user_agent`) and dispatches
-    to `bun test` or `vitest run` accordingly. `bun run all-tests` and
-    `npm run all-tests` therefore call the same `package.json` entry —
+    Files import from `test/lib/testRunner.ts`, a shim that resolves
+    to the right module per runtime. The three test CLIs
+    (`tests`, `tests:focus`, `tests:wasm`, `tests:audit`,
+    `tests:stop-containers`) each have a **single
+    package.json entry**: the shell script behind it detects whether
+    `bun run` or `npm run` invoked it (via `npm_config_user_agent`)
+    and dispatches to `bun test` or `vitest run` accordingly.
+    `bun run tests` and `npm run tests` therefore call the same entry —
     only the runner underneath switches. Both runners produce
     compatible inline snapshot format, so updating snapshots with
     either leaves the suite green under the other.
@@ -472,7 +475,7 @@ non-applicability case.
 
 ### 4.4 Auditing symmetry
 
-Run `bun run audit-tests` (or `npm run audit-tests`) to verify the
+Run `bun run tests:audit` (or `npm run tests:audit`) to verify the
 symmetry rule mechanically. The script walks every
 `test/db/<database>/`, lists the `(version × connector)` cells,
 extracts the `test(...)` / `it(...)` names from each `.test.ts` file
@@ -606,9 +609,10 @@ test('postgres-negative-types', () => {
    …) — same file names, same `describe`/`test` names.
 7. Run `bun test test/db/<database> --update-snapshots` to fill the
    inline snapshots for the new cells.
-8. Run `bun run no-docker-tests` first, then `bun run all-tests`
-   (Docker required). Re-run both with `npm run` to exercise the
-   vitest path — same script entries, runner switches based on
+8. Run `bun run tests` first (no docker, fast sanity check), then
+   `bun run tests --docker --wasm` (Docker required, full real
+   matrix). Re-run both with `npm run` to exercise the vitest path —
+   same script entries, runner switches based on
    `npm_config_user_agent`. All four runs must be green.
 
 ---
@@ -634,7 +638,7 @@ test('postgres-negative-types', () => {
    `expect(ctx.lastParams).toMatchInlineSnapshot()` (empty arguments —
    the runner will fill them).
 3. Run `bun test test/path/to/file --update-snapshots` (or, preferred,
-   `bun run focus-tests-reuse <database>/<version>/<connector> --update-snapshots`
+   `bun run tests:focus <database>/<version>/<connector> --docker -- --update-snapshots`
    — the `-reuse` variant reuses the docker container across
    invocations, see the "Container reuse" section of
    [`test/README.md`](./README.md#container-reuse-speeding-up-docker-backed-runs))
@@ -677,5 +681,5 @@ later):
 What this phase does NOT do:
 - modify or retire any file under `src/examples/`. The legacy suite is
   authoritative until the new suite reaches parity.
-- wire a new CI matrix. Existing `no-docker-tests` / `all-tests`
+- wire a new CI matrix. Existing `tests` / `tests --docker --wasm`
   scripts already cover the new cells under both runtimes.

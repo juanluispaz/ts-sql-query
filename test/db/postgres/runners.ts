@@ -314,7 +314,7 @@ async function applyPgliteSchemaAndSeed(db: import('@electric-sql/pglite').PGlit
 
 export function createPgLiteTestContext(spec: PgLiteTestSpec): TestContext<DBConnection> {
     // PgLite is in-process WASM — gated by `TS_SQL_QUERY_WASM` so
-    // `no-wasm-tests` can route this connector through the mock
+    // `tests` (no --wasm) can route this connector through the mock
     // without paying the per-worker WASM bootstrap cost.
     const realDbEnabled = isRealDbEnabled(DATABASE, 'wasm')
 

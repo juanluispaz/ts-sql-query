@@ -289,7 +289,7 @@ async function getOrCreateSqliteWasm(): Promise<import('@sqlite.org/sqlite-wasm'
 
 export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec): TestContext<DBConnection> {
     // sqlite-wasm-OO1 is in-process WASM — gated by `TS_SQL_QUERY_WASM`
-    // so `no-wasm-tests` can route this connector through the mock
+    // so `tests` (no --wasm) can route this connector through the mock
     // without paying the per-worker WASM bootstrap cost.
     const realDbEnabled = isRealDbEnabled(DATABASE, 'wasm')
 

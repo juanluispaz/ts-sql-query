@@ -52,70 +52,91 @@ cells simply do not exist.
 
 ## Running
 
-Three orthogonal flags control any run:
+There are exactly **three CLIs**:
+
+| CLI | What it runs |
+|---|---|
+| `tests` | The full matrix under `test/`. Defaults: parallel, no docker, no real WASM. Add flags to widen scope. `--help` for all options. |
+| `tests:focus <coord>` | One coordinate — `<db>/<version>/<connector>/<file>` at any depth. Same flags as `tests`. |
+| `tests:wasm` | Just the in-process WASM cells (pglite, sqlite-wasm-OO1), serially, with real WASM. No flags. |
+| `tests:audit` | Symmetry audit — verifies every cell of a database declares the same test files and test names. Pre-merge check. |
+| `tests:stop-containers` | Stops the warm docker containers `--docker --docker-mode reuse` left running. |
+
+Each CLI has `--help`. Each is a single shell script that detects
+runtime via `npm_config_user_agent` — `bun run X` dispatches to
+`bun test`, `npm run X` to `vitest run`. Same entry under either
+runtime.
+
+Two orthogonal flags scope what the runner sees:
+
+| Flag | What it does | Default |
+|---|---|---|
+| `--docker` | Docker-backed connectors hit their real DB. Without it they fall through to the mock. | off (mock) |
+| `--wasm` | After the main pass, runs a second sequential pass over the WASM cells against real pglite / sqlite-wasm-OO1. Without it, **the WASM modules are not even imported**. | off (mock) |
+
+The split keeps the parallel main pass fast — WASM is CPU-bound and
+tanks parallel throughput. When you do need real WASM, the two-phase
+split runs it once at the end, sequentially, in ~1.5 s.
+
+There's also a third env-level knob:
 
 | Flag | What it does | Default |
 |---|---|---|
 | `TS_SQL_QUERY_DBS` | Comma list of database folder names under `test/db/` (or `all` / `none`). Narrows the SCOPE of the run. | `all` |
-| `TS_SQL_QUERY_DOCKER` | `on` / `off`. Gates whether docker-backed connectors fire their real-DB branch. | `off` |
-| `TS_SQL_QUERY_WASM` | `on` / `off`. Same idea for the in-process WASM connectors (pglite, sqlite-wasm-OO1). The `no-wasm-tests` scripts set this to `off` so WASM falls through to the mock — see [§ Per-worker test databases](#per-worker-test-databases-parallelism). | `on` |
 
-Crucially, **every test runs in both modes**. With Docker off, a
+Crucially, **every test runs in both modes**. With `--docker` off, a
 docker-backed connector's real-DB branch is skipped but its SQL,
-params, type and mock round-trip assertions still execute. With WASM
-off, the same applies to pglite / sqlite-wasm-OO1. The native
-in-process connectors (better-sqlite3, bun:sqlite, node:sqlite,
+params, type and mock round-trip assertions still execute. With
+`--wasm` off, the same applies to pglite / sqlite-wasm-OO1. The
+native in-process connectors (better-sqlite3, bun:sqlite, node:sqlite,
 sqlite3) ignore both flags and keep running their real DB. No code
 duplication.
 
-Each test script has a **single name** — no `bun:`-prefixed twin.
-The underlying shell script detects whether `bun run` or `npm run`
-invoked it (via `npm_config_user_agent`) and dispatches to
-`bun test` or `vitest run` accordingly. So `bun run all-tests` and
-`npm run all-tests` are the same script entry; only the runner
-underneath differs.
-
 ```bash
-# Default development loop: Docker off (mocked real-DB for docker
-# backends; in-process backends still hit their real engine).
-# Bun is the preferred local runtime; npm is what CI runs.
-bun run no-docker-tests
-npm run no-docker-tests
+# Daily loop: no docker, no real WASM. ~1.5 s for 1281 tests.
+bun run tests
 
-# Full matrix, Docker on — prefer the `-reuse` variant locally so the
-# docker containers stay warm between invocations (see
-# § Container reuse below). `all-tests` without `-reuse` is the
-# hermetic baseline (CI runs it).
-bun run all-tests-reuse          # preferred for local dev
-bun run all-tests                # baseline (cold container)
+# + real docker backends.
+bun run tests --docker
 
-# Hard off-switch: nothing is in scope, no real-DB branch fires; SQL +
-# params + type + mock-round-trip assertions still run
-TS_SQL_QUERY_DBS=none bun run no-docker-tests
+# Full matrix (docker + real WASM second phase). ~21 s.
+bun run tests --docker --wasm
+
+# Hermetic — fresh containers every run. CI baseline.
+bun run tests --docker --docker-mode no-reuse
+
+# Sequential for debugging. Single shared DB, no parallel noise.
+bun run tests --mode sequential
+
+# Narrow to one database.
+TS_SQL_QUERY_DBS=mariadb bun run tests --docker
+
+# Hard off-switch: nothing in scope, no real-DB branch anywhere.
+TS_SQL_QUERY_DBS=none bun run tests
 ```
 
 ### Focused runs
 
 When you are iterating on a single change and do not want to wait for
-the full matrix, run a single coordinate via `focus-tests`. The first
+the full matrix, run a single coordinate via `tests:focus`. The first
 argument is a path under `test/db/`; it can resolve to any of the four
 levels — database, version, connector, or a single test file.
 
-!!! tip "Default to the `-reuse` variants"
+!!! tip "Container reuse is the default"
 
-    For any iterative work — agent or human — prefer
-    `focus-tests-reuse` over `focus-tests` (and
-    `all-tests-reuse` over `all-tests`). The `-reuse` variants
-    set `TESTCONTAINERS_REUSE_ENABLE=true`, which keeps the docker
-    containers running across `bun test` invocations and collapses the
-    feedback loop from ~6 s per focused run to ~1.4 s on the mysql
-    cell. Same effect on every docker-backed cell.
+    Both `tests` and `tests:focus` default to `--docker-mode reuse`,
+    which keeps docker containers alive between invocations
+    (`TESTCONTAINERS_REUSE_ENABLE=true`) and collapses the feedback
+    loop from ~6 s per focused run to ~1.4 s on the mysql cell. Same
+    effect on every docker-backed cell.
 
-    The containers will stay alive on the host between runs. That is
+    The containers stay alive on the host between runs. That is
     intentional and acceptable: the time saved on every iteration is
     worth the residual `docker ps`. There is no need to call
-    `stop-test-containers` between runs — only when you actually want to
-    start clean (see [§ Stopping the reused containers](#stopping-the-reused-containers)).
+    `tests:stop-containers` between runs — only when you actually
+    want to start clean (see [§ Stopping the reused containers](#stopping-the-reused-containers)).
+    Override with `--docker-mode no-reuse` when you need a hermetic
+    container.
 
 Examples use `bun run` (preferred); swap in `npm run` for the vitest
 path — the script entry is the same, the underlying runner switches.
@@ -123,98 +144,80 @@ When forwarding extra args under `npm run`, prefix them with `--`
 (npm strips its own arg parser without it).
 
 ```bash
-# Recommended for iteration — reuses the container across invocations
-bun run focus-tests-reuse postgres/newest/pg
+# Default: parallel, no docker, no real WASM, reuse (if --docker is added).
+bun run tests:focus postgres/newest/pg
 
-# Plain variant — same args, but every run starts a fresh container
-bun run focus-tests postgres/newest/pg
+# + real docker. Container is reused across runs by default.
+bun run tests:focus postgres/newest/pg --docker
 
 # Whole version (every connector)
-bun run focus-tests-reuse postgres/oldest
+bun run tests:focus postgres/oldest --docker
 
 # Whole database
-bun run focus-tests-reuse postgres
+bun run tests:focus postgres --docker
 
 # Single test file
-bun run focus-tests-reuse postgres/newest/pg/select.basic.test.ts
+bun run tests:focus postgres/newest/pg/select.basic.test.ts
 
-# Pass extra args through (snapshot update, etc.)
-bun run focus-tests-reuse postgres/newest/pg --update-snapshots
-npm run focus-tests-reuse postgres/newest/pg -- -u    # vitest uses -u
+# Pass extra args through to the runner (snapshot update, etc.).
+bun run tests:focus postgres/newest/pg --docker -- --update-snapshots
+npm  run tests:focus postgres/newest/pg --docker -- -- -u    # vitest
+
+# Real WASM on a wasm cell — single pass (no two-phase split here).
+bun run tests:focus postgres/oldest/pglite --wasm --mode sequential
 ```
 
 #### Narrowing inside a coordinate
 
 Both runners accept a test-name regex (`-t` / `--test-name-pattern` on
-`bun:test`, `-t` / `--testNamePattern` on vitest) which composes with the
-path filter, so you can run a single test or a single file without
-leaving the script:
+`bun:test`, `-t` / `--testNamePattern` on vitest) which composes with
+the path filter. Pass it after `--`:
 
 ```bash
 # Run only the test(s) whose name matches the regex in this cell
-bun run focus-tests-reuse postgres/newest/pg -t inner-join
+bun run tests:focus postgres/newest/pg --docker -- -t inner-join
 
 # File + test-name regex
-bun run focus-tests-reuse postgres/newest/pg/select.basic.test.ts -t inner-join
+bun run tests:focus postgres/newest/pg/select.basic.test.ts --docker -- -t inner-join
 
 # File + test-name regex + snapshot refresh — the canonical
 # "update one test's snapshot" recipe
-bun run focus-tests-reuse postgres/newest/pg/select.basic.test.ts -t inner-join --update-snapshots
+bun run tests:focus postgres/newest/pg/select.basic.test.ts --docker -- -t inner-join --update-snapshots
 
-# Same recipe under vitest (use `-u`, prefix extras with `--`):
-npm run focus-tests-reuse postgres/newest/pg/select.basic.test.ts -- -t inner-join -u
+# Same recipe under vitest (use `-u`, prefix extras with `-- --`):
+npm run tests:focus postgres/newest/pg/select.basic.test.ts --docker -- -- -t inner-join -u
 ```
 
-`--update-snapshots` (or `-u`) only refreshes the snapshots of the tests
-the runner actually executed, so combining it with `-t <regex>` is a
-safe way to fix one test's inline snapshot without churning every other
-snapshot in the file or in the cell.
+`--update-snapshots` (or `-u`) only refreshes the snapshots of the
+tests the runner actually executed, so combining it with `-t <regex>`
+is a safe way to fix one test's inline snapshot without churning
+every other snapshot in the file or in the cell.
 
-#### Toggling docker / database scope
-
-Pass the flags explicitly if you need to override the script defaults:
-
-```bash
-TS_SQL_QUERY_DOCKER=on bun run focus-tests-reuse postgres/newest/pg  # focus this cell, real DB on
-TS_SQL_QUERY_DBS=mariadb bun run no-docker-tests                     # focus mariadb only
-```
-
-The focused run is the primary tool for an agent iterating on a single
-cell. The standard recipe is `focus-tests-reuse <coord>` (or with
-a narrower `<coord>/<file>.test.ts` + `-t <regex>`), optionally with
-`--update-snapshots` to refresh just what changed, followed by
-`all-tests-reuse` at the end to catch cross-cell regressions.
+The focused run is the primary tool for an agent iterating on a
+single cell. Standard recipe: `tests:focus <coord> --docker` (or
+narrower with `<coord>/<file>.test.ts` + `-t <regex>`), optionally
+with `--update-snapshots` to refresh just what changed, followed by
+`test --docker --wasm` at the end to catch cross-cell regressions.
 
 ## Updating snapshots
 
-SQL and params are kept in inline snapshots so they can be refreshed in
-bulk whenever the SqlBuilder reshapes its output. Both runners support
-auto-update:
-
-```bash
-bun test --update-snapshots          # bun:test (preferred)
-npx vitest run -u                    # vitest / Node
-```
-
-Either runner produces compatible inline snapshot format, so updating
-with one leaves the suite green under the other.
-
-For a focused refresh, prefer the `focus-tests-reuse` scripts — they
-accept the same path / `-t <regex>` narrowing as a normal focused run,
-`--update-snapshots` (bun) / `-u` (vitest) is just another extra arg,
-and the `-reuse` variant keeps the docker container warm for the next
-update cycle:
+SQL and params are kept in inline snapshots so they can be refreshed
+in bulk whenever the SqlBuilder reshapes its output. Pass the runner's
+update flag after `--`:
 
 ```bash
 # Whole version
-bun run focus-tests-reuse postgres/newest --update-snapshots
+bun run tests:focus postgres/newest --docker -- --update-snapshots
 
 # One file
-bun run focus-tests-reuse postgres/newest/pg/select.basic.test.ts --update-snapshots
+bun run tests:focus postgres/newest/pg/select.basic.test.ts --docker -- --update-snapshots
 
 # One test inside one file
-bun run focus-tests-reuse postgres/newest/pg/select.basic.test.ts -t inner-join --update-snapshots
+bun run tests:focus postgres/newest/pg/select.basic.test.ts --docker -- -t inner-join --update-snapshots
 ```
+
+Either runner produces compatible inline snapshot format, so updating
+under one leaves the suite green under the other.
 
 Direct invocation also works if you do not want to go through the
 script (`bun test test/db/postgres/newest/ --update-snapshots`,
@@ -238,43 +241,28 @@ via testcontainers' standard `TESTCONTAINERS_REUSE_ENABLE` flag. The
 opt-in lives in explicit `*-reuse` siblings of every docker-backed
 script:
 
-| Script | `TESTCONTAINERS_REUSE_ENABLE` | When to use |
-|---|---|---|
-| `all-tests` | unset (off) | hermetic matrix run, CI baseline |
-| **`all-tests-reuse`** | `true` | **preferred for any local matrix run** |
-| `focus-tests` | unset (off) | one-shot focused run from a clean container |
-| **`focus-tests-reuse`** | `true` | **preferred for any iteration — agent or human** |
-| `no-docker-tests` | unset (off) | docker-free runs, nothing to reuse |
-| CI | unset (off) | every job runs in a fresh sandbox |
-
-**Rule of thumb: locally, always prefer the `-reuse` variant.** The
-plain scripts exist for the few situations where you genuinely need a
-fresh container (hermetic CI behaviour, debugging a startup-side bug,
-confirming a fix in cold conditions). Leaving the containers running
-between invocations is intentional and acceptable — the time saved on
-every iteration is much larger than the cost of a few residual
-`docker ps` entries.
-
-The `-reuse` entries simply set `TESTCONTAINERS_REUSE_ENABLE=true`
-alongside the same shell script the base entry calls, so all other
-flags / args / env vars compose identically:
+`--docker-mode reuse` (the default for `tests` and `tests:focus`) sets
+`TESTCONTAINERS_REUSE_ENABLE=true`. `--docker-mode no-reuse` clears it,
+giving the hermetic behaviour CI wants. CI itself just adds the flag
+explicitly:
 
 ```bash
-bun run focus-tests-reuse postgres/newest/pg/select.basic.test.ts -t inner-join --update-snapshots
-TS_SQL_QUERY_DBS=mariadb bun run all-tests-reuse
+# Local iterative loop (default — reuse).
+bun run tests --docker
+bun run tests:focus postgres/newest/pg --docker
+
+# Hermetic — fresh containers every run.
+bun run tests --docker --docker-mode no-reuse
 ```
 
-You can also flip the flag manually on any script if you prefer:
+**Rule of thumb: locally, leave the default.** The hermetic mode is for
+the few situations where you genuinely need a fresh container
+(debugging a startup-side bug, confirming a fix in cold conditions).
+Leaving the containers running between invocations is intentional and
+acceptable — the time saved on every iteration is much larger than the
+cost of a few residual `docker ps` entries.
 
-```bash
-# Force-on a single all-tests invocation
-TESTCONTAINERS_REUSE_ENABLE=true bun run all-tests
-
-# Force-off a `*-reuse` script (rarely useful — easier to call the base)
-TESTCONTAINERS_REUSE_ENABLE=false bun run focus-tests-reuse mysql/newest/mysql2
-```
-
-On the mysql cell, the warm `*-reuse` path drops from ~6 s (cold,
+On the mysql cell, the warm reuse path drops from ~6 s (cold,
 in-process keep-alive only) to ~1.4 s (cross-process reuse). The
 pre-keep-alive behaviour for comparison was ~228 s per run.
 
@@ -342,12 +330,12 @@ should drop them before returning. Keep that local cleanup to a single
 block at the bottom of the callback so it is impossible to miss when
 reading the test.
 
-**When in doubt** → fall back to a fresh container by running the
-plain script once (`bun run focus-tests …` without `-reuse`) or by
-stopping the warm containers (`bun run stop-test-containers`). A
-run against a fresh container is ground truth; if a test passes there
-and fails under reuse, that is the signal some test in the suite is
-leaking state through a path the contract above does not cover.
+**When in doubt** → fall back to a fresh container by passing
+`--docker-mode no-reuse` once, or by stopping the warm containers
+(`bun run tests:stop-containers`). A run against a fresh container is
+ground truth; if a test passes there and fails under reuse, that is
+the signal some test in the suite is leaking state through a path the
+contract above does not cover.
 
 The current suite stays inside `withRollback` — every test exercises
 the fluent API against the seeded tables. The contract above is what
@@ -412,57 +400,27 @@ so the cooperation contract above (`withRollback` / `withCommit` /
 `withReseed`) stays intra-worker and parallel test runs are safe by
 default.
 
-The model is **parallel by default**; the opt-out is the explicit
-`-single` suffix on every relevant script (the wrapper sets
-`TSSQLQUERY_PARALLEL_DBS=false`, the runner adapter then forces a
-serial pool and the per-worker DB infra collapses to a single shared
-`tssqlquery` / `tsapp`). The base scripts already pass `--parallel`
-to `bun test` (vitest is parallel out of the box), so "no suffix"
-means full parallel:
+The model is **parallel by default**; the opt-out is `--mode sequential`
+on `tests` / `tests:focus` (the script sets `TSSQLQUERY_PARALLEL_DBS=false`,
+the runner adapter then forces a serial pool and the per-worker DB infra
+collapses to a single shared `tssqlquery` / `tsapp`). The CLI handles the
+runner-specific flag — `--parallel` for `bun test` (serial out of the
+box), `--no-file-parallelism` for vitest (parallel out of the box).
+`tests:wasm` is always sequential; WASM is CPU-bound and parallel buys
+nothing.
 
-| Script | What changes | When to use |
-|---|---|---|
-| `all-tests` | parallel runner + per-worker dbs | the default |
-| `all-tests-reuse` | same + container reuse | iterative work |
-| `all-tests-single` | serial runner + single shared db | debug a single failing matrix |
-| `all-tests-reuse-single` | same with container reuse | same, warm container |
-| `focus-tests-single` | serial runner + single shared db on one coord | focused debug of a single cell |
-| `focus-tests-reuse-single` | same with container reuse | same, warm container |
-| `no-docker-tests` | docker-free run, parallel runner | quick local iteration without docker |
-| `no-docker-tests-single` | docker-free run, serial runner + single shared db | debug a docker-free failure |
-| **`no-wasm-tests`** | **parallel + per-worker dbs, WASM as mock** | **recommended daily loop — fast** |
-| `no-wasm-tests-reuse` | same + container reuse | iterative loop, warm containers |
-| `no-wasm-tests-single` | serial runner, WASM as mock | debug a failure without parallel noise |
-| `no-wasm-tests-reuse-single` | same with reuse | same, warm container |
-| `wasm-tests` | serial run, only the WASM cells | verify pglite / sqlite-wasm-OO1 in isolation |
+`--wasm` controls the WASM second phase: off (default) leaves the
+WASM modules unimported and the cells run against the mock; on adds a
+sequential pass over the WASM cells with real pglite / sqlite-wasm-OO1
+after the main pass succeeds.
 
-The `-single` entries set `TSSQLQUERY_PARALLEL_DBS=false` alongside
-the same shell script the base entry calls, so all other flags compose
-identically. You can also flip the flag inline on any script:
-`TSSQLQUERY_PARALLEL_DBS=false bun run all-tests-reuse`.
-
-`no-wasm-tests` sets `TS_SQL_QUERY_WASM=off` — the symmetric
-counterpart of `TS_SQL_QUERY_DOCKER=off`. Both run the *full* test
-suite; what changes is whether the gated connectors hit their real
-backend or fall through to the mock. With WASM as mock, parallel
-becomes a clear win again across the matrix (see the table below).
-
-#### Parallel test runners
-
-Per-worker databases only buy something when the test runner actually
-spawns multiple workers, so the base scripts make sure that happens:
-
-- **`bun test`** is serial out of the box, so the `all-tests` /
-  `focus-tests` wrappers pass `--parallel` automatically (defaults
-  to CPU count). The `-single` variants drop the flag.
-- **vitest** is parallel by default; the `all-tests` / `focus-tests`
-  wrappers add `--no-file-parallelism` only for `-single`.
+#### Parallel timings
 
 Per-engine and per-script timings on a warm container after the
 one-process-one-db memoisation, with `--parallel` defaulting to CPU
 count (12 on the reference machine):
 
-| Engine / script | Serial reuse | Parallel reuse | Notes |
+| Engine / scenario | Serial reuse | Parallel reuse | Notes |
 |---|---|---|---|
 | mariadb (24 files) | ~0.9 s | ~0.9 s | already fast either way |
 | mysql (24 files) | ~1.3 s | ~1.0 s | small parallel win |
@@ -470,9 +428,10 @@ count (12 on the reference machine):
 | sqlserver (24 files) | ~11 s | ~7 s | parallel ~1.5× |
 | postgres docker-backed (132 files) | ~3.6 s | ~6 s | parallel slightly worse (workers too cheap to amortise startup) |
 | postgres including pglite (178 files) | ~19 s | ~30 s | parallel much worse — pglite WASM contention |
-| **`all-tests-reuse` (full, WASM real)** | **~20 s** | **~42 s** | **parallel worse** (pglite drags the whole matrix) |
-| **`no-wasm-tests-reuse` (full, WASM mock)** | **~20 s** | **~17 s** | **parallel ~1.2× — the recommended daily path** |
-| `wasm-tests` (66 WASM files only) | ~1.5 s | — | always serial; parallel adds CPU contention |
+| **`test --docker --wasm` (full)** | **~20 s** | **~21 s** | **parallel ~= serial.** Phase 1 runs the matrix WASM-mocked in parallel; phase 2 runs WASM cells sequentially in ~1.5 s. |
+| **`test --docker` (WASM mocked)** | **~20 s** | **~17 s** | **parallel ~1.2× — the recommended daily path** |
+| **`tests` (no docker, no WASM)** | **~1.5 s** | **~1.5 s** | **default; mock-only, blazing fast** |
+| `tests:wasm` (66 WASM files only) | ~1.5 s | — | always serial; parallel adds CPU contention |
 
 Reading the table:
 
@@ -484,40 +443,39 @@ Reading the table:
   startup cost of `bun test --parallel` (forking N processes,
   re-importing the dependency tree) exceeds the savings on a few
   seconds of test work.
-- **The full matrix is the headline number.** With WASM real-DB on,
-  parallel is *worse* than serial: pglite's per-worker WebAssembly
-  bootstrap serialises 12 workers behind CPU contention and dominates
-  the wall time. Routing WASM through the mock with
-  `no-wasm-tests-reuse` flips parallel back into its expected
-  role — the heavy engines run alongside the light ones and the
-  matrix finishes in ~17 s.
+- **The full matrix is the headline number.** Without the two-phase
+  WASM split, parallel would be *worse* than serial because pglite's
+  per-worker WebAssembly bootstrap serialises 12 workers behind CPU
+  contention. The split runs WASM as a single sequential pass at the
+  end, leaving the parallel main pass unencumbered.
 
 The practical workflow:
 
-- **Daily iteration**: `no-wasm-tests-reuse` covers every test in
+- **Daily iteration**: `bun run tests --docker` covers every test in
   the matrix in ~17 s. WASM connectors run their assertions against
   the mock; the real WASM path is verified separately.
-- **Targeted WASM check**: `wasm-tests` runs the 66 WASM files
+- **Targeted WASM check**: `bun run tests:wasm` runs the 66 WASM files
   in ~1.5 s. Use after touching anything that affects pglite /
   sqlite-wasm-OO1 specifically.
-- **Pre-merge / CI**: run `no-wasm-tests` and `wasm-tests`
-  as two jobs (parallel or sequential — both add up to ~19 s total)
-  to cover everything `all-tests` does, faster. Or use
-  `all-tests-reuse` as a single ~42 s job.
+- **Pre-merge / CI**: `bun run tests --docker --wasm` covers
+  everything in ~21 s (parallel main pass + sequential WASM pass).
+  CI splits naturally: `test --docker --docker-mode no-reuse` and
+  `tests:wasm` as two jobs if you prefer.
 
 If you are iterating on a single light engine (mariadb / mysql /
-postgres without pglite), `focus-tests-reuse-single` is the
-fastest path. For broader scopes, the `no-wasm` variants are the
-better default.
+postgres without pglite), `bun run tests:focus <coord> --docker
+--mode sequential` is the fastest path. For broader scopes, plain
+`bun run tests --docker` (WASM mocked) is the better default.
 
 ### Stopping the reused containers
 
 There is **no obligation** to stop the reused containers between runs
 — that is the whole point. They consume some RAM in the background
-while you iterate, and the next `bun run *-reuse` invocation
-attaches to them in ~1 s instead of paying the full container
-start-up. Agents in particular should not bother calling
-`stop-test-containers` as a clean-up step; the manual cleanup is
+while you iterate, and the next `bun run tests --docker` (or
+`tests:focus --docker`) invocation attaches to them in ~1 s instead of
+paying the full container start-up. Agents in particular should not
+bother calling
+`tests:stop-containers` as a clean-up step; the manual cleanup is
 cheap, the per-iteration savings are not.
 
 Stop them explicitly only when you actually want to start clean — to
@@ -527,10 +485,10 @@ container, or rebuild from scratch after editing a
 ways the reused container hasn't yet picked up:
 
 ```bash
-bun run stop-test-containers
+bun run tests:stop-containers
 ```
 
-(`npm run stop-test-containers` works the same — it's the same shell
+(`npm run tests:stop-containers` works the same — it's the same shell
 script under the hood.)
 
 The helper matches by image, so it only touches containers from this
@@ -550,7 +508,7 @@ or `npm run`, the entry is the same and runs the same compiler.
 ## Auditing symmetry
 
 ```bash
-bun run audit-tests
+bun run tests:audit
 ```
 
 The script runs under `tsx` so it works identically under `bun run` or
@@ -597,7 +555,7 @@ Short version. The full procedure is [`DESIGN.md` §9](./DESIGN.md#9-adding-a-ne
 3. Write the SQL + params assertions with empty
    `toMatchInlineSnapshot()` and let
    `bun test … --update-snapshots` bake the actual values in
-   (`bun run focus-tests <db>/<version>/<connector> --update-snapshots`
+   (`bun run tests:focus <db>/<version>/<connector> --docker -- --update-snapshots`
    is the focused variant).
 4. Mutating tests wrap the body in
    `ctx.withRollback(async () => { … })` so the seed survives.

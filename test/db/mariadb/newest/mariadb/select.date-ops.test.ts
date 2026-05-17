@@ -115,15 +115,19 @@ describe(ctx.label, () => {
     })
 
     test('compare-date-with-current', async () => {
-        // Find rows whose created_at is before "now".
+        // Find rows whose created_at is at or before "now". Uses `<=`
+        // rather than `<` because some dialects' default CURRENT_TIMESTAMP
+        // (notably MySQL/MariaDB) has second-level precision, so a `<`
+        // comparison taken within the same second as the seed insert would
+        // return no rows.
         const expected = [{ id: 1 }, { id: 2 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tOrganization)
-            .where(tOrganization.createdAt.lessThan(ctx.conn.currentDateTime()))
+            .where(tOrganization.createdAt.lessOrEqual(ctx.conn.currentDateTime()))
             .select({ id: tOrganization.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at < current_timestamp order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from organization where created_at <= current_timestamp order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         if (ctx.realDbEnabled) {

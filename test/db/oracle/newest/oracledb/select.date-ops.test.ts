@@ -119,11 +119,11 @@ describe(ctx.label, () => {
         const expected = [{ id: 1 }, { id: 2 }]
         ctx.mockNext(expected)
         const rows = await ctx.conn.selectFrom(tOrganization)
-            .where(tOrganization.createdAt.lessThan(ctx.conn.currentDateTime()))
+            .where(tOrganization.createdAt.lessOrEqual(ctx.conn.currentDateTime()))
             .select({ id: tOrganization.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from "organization" where created_at < current_timestamp order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from "organization" where created_at <= current_timestamp order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ id: number }>>>()
         if (ctx.realDbEnabled) {

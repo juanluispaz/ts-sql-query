@@ -6,6 +6,15 @@ export type MockQueryExecutor = (type: QueryType | 'isTransactionActive', query:
 export interface MockQueryRunnerConfig {
     database?: DatabaseType
     promise?: PromiseProvider
+    /**
+     * Customize how thrown errors are classified as SQL errors. Returning
+     * `false` makes the connection skip wrapping the error inside a
+     * `TsSqlQueryExecutionError` in transaction handling, so the original
+     * error bubbles up to your `catch` clause unchanged. Useful for
+     * test-only sentinels like rollback signals. Default: every error is
+     * treated as a SQL error (preserves the previous behavior).
+     */
+    isSqlError?: (error: unknown) => boolean
 }
 
 export class MockQueryRunner implements QueryRunner {
@@ -13,6 +22,7 @@ export class MockQueryRunner implements QueryRunner {
     readonly queryExecutor: MockQueryExecutor
     readonly database: DatabaseType
     readonly promise: PromiseProvider
+    private readonly isSqlErrorFn: (error: unknown) => boolean
 
     constructor(queryExecutor: MockQueryExecutor, databaseOrConfig: DatabaseType | MockQueryRunnerConfig = 'noopDB') {
         this.queryExecutor = queryExecutor
@@ -21,6 +31,17 @@ export class MockQueryRunner implements QueryRunner {
         }
         this.database = databaseOrConfig.database || 'noopDB'
         this.promise = databaseOrConfig.promise || Promise
+        this.isSqlErrorFn = databaseOrConfig.isSqlError || (() => true)
+    }
+
+    /**
+     * Reset the internal index used to call `queryExecutor`. The next query
+     * dispatched through this runner will be passed `index = 0`. Useful
+     * when reusing a single `MockQueryRunner` across many test cases that
+     * each prime their own sequence of responses keyed by index.
+     */
+    reset(): void {
+        this.count = 0
     }
 
     useDatabase(database: DatabaseType): void {
@@ -508,8 +529,8 @@ export class MockQueryRunner implements QueryRunner {
         }
         return { reason: 'UNKNOWN'}
     }
-    isSqlError(_error: unknown): boolean {
-        return true
+    isSqlError(error: unknown): boolean {
+        return this.isSqlErrorFn(error)
     }
 }
 

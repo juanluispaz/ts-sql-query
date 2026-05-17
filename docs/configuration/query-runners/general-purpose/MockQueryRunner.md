@@ -108,3 +108,53 @@ test('my test', async () => {
     expect(testCompany).toEqual({ id: 12, name: 'ACME' });
 });
 ```
+
+## Configuration options
+
+The second constructor argument accepts either a `DatabaseType` string (shown above) or a configuration object with the following fields:
+
+```ts
+interface MockQueryRunnerConfig {
+    database?: DatabaseType
+    promise?: PromiseProvider
+    isSqlError?: (error: unknown) => boolean
+}
+```
+
+- **`database`**: dialect name used to format placeholders (`$1`, `?`, `:0`, …). Defaults to `'noopDB'`. Must match the connection class you wrap the runner with.
+- **`promise`**: alternative `Promise` provider, used by [synchronous query runners](../../../advanced/synchronous-query-runners.md) (e.g. `synchronous-promise`). Defaults to the native `Promise`.
+- **`isSqlError`**: customizes how the connection classifies a thrown value as a SQL error. The default classifies everything as a SQL error, which causes the connection's transaction handling to wrap your thrown value inside a `TsSqlQueryExecutionError`. Returning `false` for a thrown value makes the connection propagate it as-is instead — useful when test code uses a sentinel error to roll back a transaction and wants the sentinel to bubble up to the surrounding `try`/`catch` unchanged.
+
+```ts
+class Rollback extends Error {}
+
+const runner = new MockQueryRunner(executor, {
+    database: 'postgreSql',
+    isSqlError: (e) => !(e instanceof Rollback),
+})
+
+// inside a test:
+try {
+    await connection.transaction(async () => {
+        // ...do the thing under test...
+        throw new Rollback() // propagates as Rollback, not as TsSqlQueryExecutionError
+    })
+} catch (e) {
+    if (!(e instanceof Rollback)) throw e
+}
+```
+
+## Resetting between test cases
+
+`MockQueryRunner` keeps an internal counter that increments on every executor call and is what gets passed as the `index` argument (`0` for the first query of the runner's lifetime, then `1`, `2`, …). When you reuse a single `MockQueryRunner` instance across many test cases — each priming its own sequence of responses keyed by `index` — call `runner.reset()` between cases to bring the counter back to `0`:
+
+```ts
+const runner = new MockQueryRunner(executor, 'postgreSql')
+const connection = new DBConnection(runner)
+
+beforeEach(() => {
+    runner.reset()
+})
+```
+
+If you create a fresh `MockQueryRunner` per test case (and therefore a fresh connection too), `reset()` is unnecessary — the counter is per-instance.

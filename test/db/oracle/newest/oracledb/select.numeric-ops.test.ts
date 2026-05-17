@@ -87,7 +87,7 @@ describe(ctx.label, () => {
             })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", priority % :0 as "m" from issue order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", mod(priority, :0) as "m" from issue order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

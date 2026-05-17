@@ -560,10 +560,20 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return new SqlOperationStaticBooleanValueSource('_false')
     }
     exists<SOURCE extends NSource>(select: IExecutableSelectQuery<SOURCE, any, any> & SameDB<DB>): BooleanValueSource<SOURCE, 'required'> {
-        return new SqlOperationStatic1ValueSource('_exists', select, 'boolean', 'boolean', 'required', undefined)
+        // `EXISTS(...)` / `NOT EXISTS(...)` are already SQL predicates in
+        // every dialect — they don't need the boolean-to-int wrapping that
+        // Oracle/SQL Server otherwise apply to boolean value sources
+        // (e.g. `(exists(...) = 1)`, which SQL Server rejects as a syntax
+        // error). Marking the result as a condition-only boolean keeps the
+        // wrap from kicking in inside `where`/`and`/`or`.
+        const vs = new SqlOperationStatic1ValueSource('_exists', select, 'boolean', 'boolean', 'required', undefined)
+        vs.__isBooleanForCondition = true
+        return vs
     }
     notExists<SOURCE extends NSource>(select: IExecutableSelectQuery<SOURCE, any, any> & SameDB<DB>): BooleanValueSource<SOURCE, 'required'> {
-        return new SqlOperationStatic1ValueSource('_notExists', select, 'boolean', 'boolean', 'required', undefined)
+        const vs = new SqlOperationStatic1ValueSource('_notExists', select, 'boolean', 'boolean', 'required', undefined)
+        vs.__isBooleanForCondition = true
+        return vs
     }
 
     protected executeProcedure(procedureName: string, params: ValueSourceOf<NNoTableOrViewRequired<DB>>[]): Promise<void> {

@@ -16,7 +16,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:sql-fragments/fragment-with-type', async () => {
-        const expected = [{ id: 1, fullNameLength: 12 }]
+        const expected = [{ id: 1, idDoubled: 2 }]
         ctx.mockNext(expected)
         const connection = ctx.conn
 
@@ -25,14 +25,14 @@ describe(ctx.label, () => {
             .where(tAppUser.email.equals('ada@acme.test'))
             .select({
                 id:             tAppUser.id,
-                fullNameLength: connection
+                idDoubled: connection
                     .fragmentWithType('int', 'required')
-                    .sql`length(${tAppUser.fullName})`,
+                    .sql`abs(${tAppUser.id} + ${tAppUser.id})`,
             })
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", length(full_name) as "fullNameLength" from app_user where email = :0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", abs(id + id) as "idDoubled" from app_user where email = :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "ada@acme.test",
@@ -40,7 +40,7 @@ describe(ctx.label, () => {
         `)
         assertType<Exact<typeof rows, Array<{
             id:             number
-            fullNameLength: number
+            idDoubled:      number
         }>>>()
         expect(rows).toEqual(expected)
     })

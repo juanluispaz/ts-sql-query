@@ -126,9 +126,9 @@ export interface CompoundableExecutableSelectExpression</*in|out*/ FROM extends 
     minus: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
 
-    recursiveUnion<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnion: RecursiveUnionFn<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     recursiveUnionAll<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
-    recursiveUnionOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionOn: RecursiveUnionOnFn<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     recursiveUnionAllOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
 }
 
@@ -142,9 +142,9 @@ export interface CompoundableExecutableSelectExpressionWithoutWhere</*in|out*/ F
     minus: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql' | 'sqlite' | 'sqlServer' | 'oracle', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
     minusAll: CompoundFunction<'noopDB' | 'mariaDB' | 'postgreSql', FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'compound'>
 
-    recursiveUnion<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnion: RecursiveUnionFn<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     recursiveUnionAll<SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
-    recursiveUnionOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+    recursiveUnionOn: RecursiveUnionOnFn<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     recursiveUnionAllOn(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>): OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
 }
 
@@ -489,10 +489,28 @@ type ForUseAsInlineAggregatedArrayValueFn<_FROM extends HasSource<any>, REQUIRED
     ? () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<COLUMNS[typeof valueType]>, 'required'>
     : () => AggregatedArrayValueSource<REQUIRED[typeof source], Array<{ [P in keyof ResultObjectValues<COLUMNS>]: ResultObjectValues<COLUMNS>[P] }>, 'required'>
 
-type CompoundFunction<SUPPORTED_DB extends NDbType, FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, RESULT, FEATURES> = 
+type CompoundFunction<SUPPORTED_DB extends NDbType, FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, RESULT, FEATURES> =
     [REQUIRED] extends [OfDB<SUPPORTED_DB>]
     ? <SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(select: SELECT) => CompoundedExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES>
     : never
+
+// `RECURSIVE_UNION_DBS` is the set of databases that accept `UNION` as the
+// compound operator between the anchor and recursive members of a recursive
+// CTE. Oracle and SQL Server only allow `UNION ALL` there (ORA-32040 /
+// "Incorrect syntax near 'UNION'") so `.recursiveUnion` and
+// `.recursiveUnionOn` are typed as `never` against those dialects — the
+// user must reach for `.recursiveUnionAll` / `.recursiveUnionAllOn` instead.
+type RECURSIVE_UNION_DBS = 'noopDB' | 'mariaDB' | 'mySql' | 'postgreSql' | 'sqlite'
+
+type RecursiveUnionFn<FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, RESULT, FEATURES> =
+    [REQUIRED] extends [OfDB<RECURSIVE_UNION_DBS>]
+        ? <SELECT extends ICompoundableSelect<REQUIRED, COLUMNS, RESULT>>(fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => SELECT) => OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+        : never
+
+type RecursiveUnionOnFn<FROM extends HasSource<any>, REQUIRED extends HasSource<any>, COLUMNS, RESULT, FEATURES> =
+    [REQUIRED] extends [OfDB<RECURSIVE_UNION_DBS>]
+        ? (fn: (view: WithView<NRecursiveFrom<REQUIRED[typeof source]>, ColumnsForWithView<NRecursiveFrom<REQUIRED[typeof source]>, COLUMNS>>) => IBooleanValueSource<NRecursiveFrom<REQUIRED[typeof source]> | FROM[typeof source], any>) => OrderByExecutableSelectExpression<FROM, REQUIRED, COLUMNS, RESULT, FEATURES | 'recursive'>
+        : never
 
 type StartWithFnType<FROM extends HasSource<any>, REQUIRED extends HasSource<any>, NEXT> =
     [REQUIRED] extends [OfDB<'noopDB' | 'oracle'>]

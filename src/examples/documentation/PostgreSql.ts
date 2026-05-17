@@ -1198,7 +1198,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`with recursive recursive_select_1 as (select id as id, name as name, parent_id as parentId from company where id = $1 union select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.parentId = company.id) select id as id, name as name, parentId as "parentId" from recursive_select_1`)
+    expectedQuery.push(`with recursive recursive_select_1 as (select id as id, name as name, parent_id as parentId from company where id = $1 union all select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.parentId = company.id) select id as id, name as name, parentId as "parentId" from recursive_select_1`)
     expectedParams.push(`[10]`)
     expectedType.push(`selectManyRows`)
     
@@ -1210,7 +1210,7 @@ async function main() {
             id: tCompany.id,
             name: tCompany.name,
             parentId: tCompany.parentId
-        }).recursiveUnion((child) => {
+        }).recursiveUnionAll((child) => {
             return connection.selectFrom(tCompany)
             .join(child).on(child.parentId.equals(tCompany.id))
             .select({
@@ -1226,7 +1226,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`with recursive recursive_select_1 as (select id as id, name as name, parent_id as parentId from company where id = $1 union select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.parentId = company.id) select id as id, name as name, parentId as "parentId" from recursive_select_1`)
+    expectedQuery.push(`with recursive recursive_select_1 as (select id as id, name as name, parent_id as parentId from company where id = $1 union all select company.id as id, company.name as name, company.parent_id as parentId from company join recursive_select_1 on recursive_select_1.parentId = company.id) select id as id, name as name, parentId as "parentId" from recursive_select_1`)
     expectedParams.push(`[10]`)
     expectedType.push(`selectManyRows`)
     
@@ -1238,7 +1238,7 @@ async function main() {
             id: tCompany.id,
             name: tCompany.name,
             parentId: tCompany.parentId
-        }).recursiveUnionOn((child) => {
+        }).recursiveUnionAllOn((child) => {
             return child.parentId.equals(tCompany.id)
         }).executeSelectMany()
     

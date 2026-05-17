@@ -91,7 +91,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", name as "name" from project where (exists(select id as "result" from issue where project_id = project.id) = 1) order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", name as "name" from project where exists(select id as "result" from issue where project_id = project.id) order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{
             id:   number
@@ -113,7 +113,7 @@ describe(ctx.label, () => {
             .select({ id: tProject.id, name: tProject.name })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", name as "name" from project where (not exists(select id as "result" from issue where project_id = project.id) = 1) order by "id""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", name as "name" from project where not exists(select id as "result" from issue where project_id = project.id) order by "id""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{
             id:   number

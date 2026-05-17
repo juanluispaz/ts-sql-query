@@ -15,7 +15,7 @@ const recursiveParentCompany = connection.selectFrom(tCompany)
         id: tCompany.id,
         name: tCompany.name,
         parentId: tCompany.parentId
-    }).recursiveUnion((child) => { // Or: recursiveUnionAll
+    }).recursiveUnionAll((child) => { // Or, where supported: recursiveUnion
         return connection.selectFrom(tCompany)
         .join(child).on(child.parentId.equals(tCompany.id))
         .select({
@@ -35,7 +35,7 @@ const recursiveParentCompany = connection.selectFrom(tCompany)
         id: tCompany.id,
         name: tCompany.name,
         parentId: tCompany.parentId
-    }).recursiveUnionOn((child) => { // Or: recursiveUnionAllOn
+    }).recursiveUnionAllOn((child) => { // Or, where supported: recursiveUnionOn
         return child.parentId.equals(tCompany.id)
     }).executeSelectMany()
 ```
@@ -53,7 +53,7 @@ The executed query is:
             from company 
             where id = ? 
             
-            union 
+            union all 
             
             select 
                 company.id as id, 
@@ -79,7 +79,7 @@ The executed query is:
             from company 
             where id = ? 
             
-            union 
+            union all 
             
             select 
                 company.id as id, 
@@ -105,7 +105,7 @@ The executed query is:
             from company 
             where id = :0 
             
-            union 
+            union all 
             
             select 
                 company.id as id, 
@@ -131,7 +131,7 @@ The executed query is:
             from company 
             where id = $1 
             
-            union 
+            union all 
             
             select 
                 company.id as id, 
@@ -157,7 +157,7 @@ The executed query is:
             from company 
             where id = ? 
             
-            union 
+            union all 
             
             select 
                 company.id as id, 
@@ -183,7 +183,7 @@ The executed query is:
             from company 
             where id = @0 
             
-            union 
+            union all 
             
             select 
                 company.id as id, 
@@ -513,3 +513,13 @@ const recursiveParentCompany: Promise<{
     parentId?: number;
 }[]>
 ```
+
+## `UNION` vs `UNION ALL` inside a recursive CTE
+
+The examples on this page use `recursiveUnionAll` / `recursiveUnionAllOn` because every supported database accepts `UNION ALL` between the anchor and recursive members of a recursive CTE — the same TypeScript code runs on every backend.
+
+The shorter `recursiveUnion` / `recursiveUnionOn` variants emit a plain `UNION` (deduplicating each iteration's output). Use them when you actually need per-iteration deduplication; `UNION ALL` is usually the right default for traversal queries because the join condition already prevents revisiting the same row.
+
+!!! warning "Limitation"
+
+    [Oracle](../configuration/supported-databases/oracle.md) and [SQL Server](../configuration/supported-databases/sqlserver.md) only accept `UNION ALL` between the anchor and recursive members of a recursive CTE (Oracle raises `ORA-32040 — missing UNION ALL in recursive WITH clause element`; SQL Server raises `Incorrect syntax near 'UNION'`). To prevent emitting SQL the engine will reject at runtime, `ts-sql-query` types `recursiveUnion` / `recursiveUnionOn` as `never` on those connections, so calling them is a TypeScript error — the compiler steers you to `recursiveUnionAll` / `recursiveUnionAllOn`. The plain `recursiveUnion` / `recursiveUnionOn` variants remain available on [MariaDB](../configuration/supported-databases/mariadb.md), [MySQL](../configuration/supported-databases/mysql.md), [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md).

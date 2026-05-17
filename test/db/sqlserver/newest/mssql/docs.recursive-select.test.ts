@@ -34,13 +34,13 @@ describe(ctx.label, () => {
                 title:    tIssue.title,
                 parentId: tIssue.parentId,
             })
-            .recursiveUnionOn((parent) =>
+            .recursiveUnionAllOn((parent) =>
                 tIssue.id.equals(parent.parentId)
             )
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = @0 union select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId) select id as id, title as title, parentId as parentId from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = @0 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId) select id as id, title as title, parentId as parentId from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

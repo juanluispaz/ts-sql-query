@@ -21,7 +21,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const SCHEMA_PATH = resolve(__dirname, './domain/schema.sql')
 const SEED_PATH = resolve(__dirname, './domain/seed.sql')
 
-const MARIADB_IMAGE = 'mariadb:11'
+// `mariadb` (no tag) tracks the latest stable image, matching what the
+// `bun:all-examples` script uses for the `newest` cell.
+const MARIADB_IMAGE = 'mariadb'
 const ROOT_PASSWORD = 'mariadb-test-pass'
 const DB_NAME = 'tssqlquery'
 

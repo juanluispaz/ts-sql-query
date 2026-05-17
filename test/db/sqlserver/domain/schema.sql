@@ -10,7 +10,9 @@ IF OBJECT_ID('organization', 'U') IS NOT NULL DROP TABLE organization;
 CREATE TABLE organization (
     id INT IDENTITY(1,1) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
-    plan VARCHAR(32) NOT NULL,
+    -- `plan` is a T-SQL reserved keyword, so the column must be
+    -- bracket-quoted both in the DDL and in any DML that names it.
+    [plan] VARCHAR(32) NOT NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

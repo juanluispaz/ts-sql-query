@@ -68,7 +68,12 @@ function splitStatements(sql: string): string[] {
 
 async function applySchemaAndSeed(host: string, port: number): Promise<void> {
     const mysql2 = await import('mysql2/promise')
-    const conn = await mysql2.createConnection({
+    // mysql:9 logs "ready for connections" during its initial bootstrap and
+    // again after the real restart; even gating on the second occurrence,
+    // the server occasionally drops the first client connection mid-handshake
+    // (PROTOCOL_CONNECTION_LOST). Retry the initial connect for a few seconds
+    // so the test doesn't race the container's last init step.
+    const conn = await connectWithRetry(mysql2, {
         host, port,
         user: 'root', password: ROOT_PASSWORD,
         database: DB_NAME,
@@ -84,6 +89,20 @@ async function applySchemaAndSeed(host: string, port: number): Promise<void> {
     } finally {
         await conn.end()
     }
+}
+
+async function connectWithRetry(mysql2: typeof import('mysql2/promise'), config: any): Promise<import('mysql2/promise').Connection> {
+    const deadline = Date.now() + 30_000
+    let lastError: unknown
+    while (Date.now() < deadline) {
+        try {
+            return await mysql2.createConnection(config)
+        } catch (err) {
+            lastError = err
+            await new Promise(r => setTimeout(r, 500))
+        }
+    }
+    throw lastError
 }
 
 // ---- Real mysql (docker) test context -----------------------------------

@@ -2,7 +2,7 @@
 -- columns ignore explicit inserts unless IDENTITY_INSERT is enabled.
 
 SET IDENTITY_INSERT organization ON;
-INSERT INTO organization (id, name, plan) VALUES
+INSERT INTO organization (id, name, [plan]) VALUES
     (1, 'Acme Corp', 'pro'),
     (2, 'Globex Ltd', 'free');
 SET IDENTITY_INSERT organization OFF;

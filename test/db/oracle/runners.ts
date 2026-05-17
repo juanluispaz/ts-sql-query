@@ -64,12 +64,31 @@ async function releaseContainer(): Promise<void> {
 // (`BEGIN ... END;`). Naively splitting on `;` would break those. The
 // schema/seed files keep one PL/SQL block per line so we can split on
 // blank-line boundaries, fall back to `;` at end-of-line otherwise.
+//
+// `oracledb.execute()` expects DDL/DML without a trailing `;` but PL/SQL
+// anonymous blocks require the closing `END;` to be syntactically valid,
+// so the split re-adds the `;` for blocks that begin with `BEGIN`/`DECLARE`.
 function splitStatements(sql: string): string[] {
-    return sql
-        .split(/^\s*$/m)
-        .flatMap(b => b.split(/;\s*(?:\n|$)/))
-        .map(s => s.trim())
-        .filter(s => s.length > 0)
+    const out: string[] = []
+    for (const block of sql.split(/^\s*$/m)) {
+        for (const piece of block.split(/;\s*(?:\n|$)/)) {
+            const stmt = stripSqlLineComments(piece).trim()
+            if (stmt.length === 0) continue
+            if (/^(?:begin|declare)\b/i.test(stmt)) {
+                out.push(stmt + ';')
+            } else {
+                out.push(stmt)
+            }
+        }
+    }
+    return out
+}
+
+// Strip `-- …` single-line comments before checking for emptiness so a block
+// containing only header comments doesn't reach Oracle as a bare statement
+// (which fails with ORA-00900).
+function stripSqlLineComments(sql: string): string {
+    return sql.replace(/--[^\n]*/g, '')
 }
 
 async function applySchemaAndSeed(host: string, port: number): Promise<void> {

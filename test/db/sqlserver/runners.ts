@@ -21,7 +21,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const SCHEMA_PATH = resolve(__dirname, './domain/schema.sql')
 const SEED_PATH = resolve(__dirname, './domain/seed.sql')
 
-const MSSQL_IMAGE = 'mcr.microsoft.com/mssql/server:2022-latest'
+// Pin to 2025-latest to align with `bun:all-examples`. SQL Server 2025
+// adds ANSI-compliant `LENGTH`, which the `docs.sql-fragments` test
+// relies on via a portable raw SQL fragment.
+const MSSQL_IMAGE = 'mcr.microsoft.com/mssql/server:2025-latest'
 const SA_PASSWORD = 'StrongPass1!Sqlsrv'
 const DB_NAME = 'tssqlquery'
 
@@ -60,25 +63,49 @@ async function releaseContainer(): Promise<void> {
     }
 }
 
+async function connectWithRetry(sql: typeof import('mssql'), config: any): Promise<import('mssql').ConnectionPool> {
+    const deadline = Date.now() + 30_000
+    let lastError: unknown
+    while (Date.now() < deadline) {
+        const pool = new sql.ConnectionPool(config)
+        try {
+            await pool.connect()
+            return pool
+        } catch (err) {
+            lastError = err
+            try { await pool.close() } catch { /* ignore */ }
+            await new Promise(r => setTimeout(r, 500))
+        }
+    }
+    throw lastError
+}
+
+// SQL Server batches are separated by a `GO` line, NOT by `;`. Splitting on
+// `;` would also break session-scoped settings (e.g. `SET IDENTITY_INSERT
+// foo ON;` followed by an `INSERT` in a separate request would lose the
+// setting because mssql's connection pool picks a fresh connection per
+// `request().query()` call). One batch per `GO` keeps related statements on
+// the same connection.
 function splitBatch(sql: string): string[] {
     return sql
         .split(/^\s*GO\s*$/mi)
-        .flatMap(b => b.split(/;\s*(?:\n|$)/))
         .map(s => s.trim())
         .filter(s => s.length > 0)
 }
 
 async function applySchemaAndSeed(host: string, port: number): Promise<void> {
     const sql = await import('mssql')
-    // First connect to the default database to create our DB; then reconnect
-    // pointing at it.
-    const masterPool = new sql.ConnectionPool({
+    // SQL Server logs "ready for client connections" before the SA login is
+    // actually usable (the SA password is materialised a little later as the
+    // entrypoint script finishes). Retry the initial connect for a few
+    // seconds so the test isn't racing the container's last init step and
+    // intermittently failing with ELOGIN.
+    const masterPool = await connectWithRetry(sql, {
         server: host, port,
         user: 'sa', password: SA_PASSWORD,
         database: 'master',
         options: { encrypt: false, trustServerCertificate: true },
     })
-    await masterPool.connect()
     try {
         await masterPool.request().query(
             `IF DB_ID('${DB_NAME}') IS NULL CREATE DATABASE ${DB_NAME}`,

@@ -86,8 +86,9 @@ TS_SQL_QUERY_DBS=none bun run bun:no-docker-tests
 ### Focused runs
 
 When you are iterating on a single change and do not want to wait for
-the full matrix, run a single coordinate via `focus-tests`. The argument
-is the `database[/version[/connector]]` path under `test/db/`:
+the full matrix, run a single coordinate via `focus-tests`. The first
+argument is a path under `test/db/`; it can resolve to any of the four
+levels — database, version, connector, or a single test file:
 
 ```bash
 # Single (database × version × connector) cell
@@ -100,30 +101,54 @@ bun run bun:focus-tests postgres/oldest
 # Whole database
 bun run bun:focus-tests postgres
 
+# Single test file
+bun run bun:focus-tests postgres/newest/pg/select.basic.test.ts
+
 # Pass extra args through (snapshot update, etc.)
 bun run bun:focus-tests postgres/newest/pg --update-snapshots
 npm run focus-tests postgres/newest/pg -- -u
 ```
 
-Direct invocation works too if you want to scope to a single file or
-prefer not to go through the script:
+#### Narrowing inside a coordinate
+
+Both runners accept a test-name regex (`-t` / `--test-name-pattern` on
+`bun:test`, `-t` / `--testNamePattern` on vitest) which composes with the
+path filter, so you can run a single test or a single file without
+leaving the script:
 
 ```bash
-bun test test/db/postgres/newest/pg/select.basic.test.ts
-npx vitest run test/db/postgres/newest/pg/select.basic.test.ts
+# Run only the test(s) whose name matches the regex in this cell
+bun run bun:focus-tests postgres/newest/pg -t inner-join
+npm run focus-tests postgres/newest/pg -- -t inner-join
+
+# File + test-name regex
+bun run bun:focus-tests postgres/newest/pg/select.basic.test.ts -t inner-join
+
+# File + test-name regex + snapshot refresh — the canonical
+# "update one test's snapshot" recipe
+bun run bun:focus-tests postgres/newest/pg/select.basic.test.ts -t inner-join --update-snapshots
+npm run focus-tests postgres/newest/pg/select.basic.test.ts -- -t inner-join -u
 ```
+
+`--update-snapshots` (or `-u`) only refreshes the snapshots of the tests
+the runner actually executed, so combining it with `-t <regex>` is a
+safe way to fix one test's inline snapshot without churning every other
+snapshot in the file or in the cell.
+
+#### Toggling docker / database scope
 
 Pass the flags explicitly if you need to override the script defaults:
 
 ```bash
 TS_SQL_QUERY_DOCKER=on bun run bun:focus-tests postgres/newest/pg  # focus this cell, real DB on
-TS_SQL_QUERY_DBS=mariadb bun run bun:no-docker-tests                     # focus mariadb only
+TS_SQL_QUERY_DBS=mariadb bun run bun:no-docker-tests               # focus mariadb only
 ```
 
 The focused run is the primary tool for an agent iterating on a single
 cell. After fixing emitted SQL or params, run `--update-snapshots` on
-the focused coordinate to refresh just that cell's snapshots, then run
-the full matrix once at the end to catch cross-cell regressions.
+the focused coordinate (optionally narrowed with `-t <regex>` or a
+specific `.test.ts` path) to refresh just what changed, then run the
+full matrix once at the end to catch cross-cell regressions.
 
 ## Updating snapshots
 
@@ -139,11 +164,24 @@ npx vitest run -u                    # vitest / Node
 Either runner produces compatible inline snapshot format, so updating
 with one leaves the suite green under the other.
 
-For a focused refresh, narrow the path:
+For a focused refresh, prefer the `focus-tests` scripts — they accept
+the same path / `-t <regex>` narrowing as a normal focused run, and
+`--update-snapshots` (bun) / `-u` (vitest) is just another extra arg:
 
 ```bash
-bun test test/db/postgres/newest/ --update-snapshots
+# Whole version
+bun run bun:focus-tests postgres/newest --update-snapshots
+
+# One file
+bun run bun:focus-tests postgres/newest/pg/select.basic.test.ts --update-snapshots
+
+# One test inside one file
+bun run bun:focus-tests postgres/newest/pg/select.basic.test.ts -t inner-join --update-snapshots
 ```
+
+Direct invocation also works if you do not want to go through the
+script (`bun test test/db/postgres/newest/ --update-snapshots`,
+`npx vitest run test/db/postgres/newest/ -u`).
 
 Review the diff before committing — a snapshot change is real signal
 that the emitted SQL has changed.

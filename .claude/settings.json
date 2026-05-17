@@ -2,18 +2,23 @@
   "permissions": {
     "defaultMode": "auto",
     "allow": [
-      "Bash(npm run build *)",
-      "Bash(npm run build:tsgo *)",
-      "Bash(npm run validate *)",
-      "Bash(npm run validate:tsgo *)",
-      "Bash(npm run no-docker-examples *)",
-      "Bash(bun run build *)",
-      "Bash(bun run build:tsgo *)",
-      "Bash(bun run validate *)",
-      "Bash(bun run validate:tsgo *)",
-      "Bash(bun run bun:no-docker-examples *)",
-      "Bash(bun run bun:all-examples *)",
+      "Bash(npm run *)",
+      "Bash(bun run *)",
       "Bash(npm view *)"
+    ],
+    "deny": [
+      "Bash(npm run dist *)",
+      "Bash(npm run dist-alpha *)",
+      "Bash(npm run dist-beta *)",
+      "Bash(bun run dist *)",
+      "Bash(bun run dist-alpha *)",
+      "Bash(bun run dist-beta *)",
+      "Bash(npm run dist)",
+      "Bash(npm run dist-alpha)",
+      "Bash(npm run dist-beta)",
+      "Bash(bun run dist)",
+      "Bash(bun run dist-alpha)",
+      "Bash(bun run dist-beta)"
     ]
   }
 }

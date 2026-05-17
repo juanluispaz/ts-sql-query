@@ -8,15 +8,15 @@ ts-sql-query is a type-safe SQL query builder (not an ORM) for TypeScript that s
 
 ## Commands
 
-The project supports both Node and Bun. **Day-to-day development prefers Bun** (faster, native SQLite, no compile step for examples); the **publish pipeline and CI stay on npm/Node** — keep both paths working but reach for `bun` first when running things locally. Commands below list the preferred form, with the Node equivalent in parentheses where it differs.
+The project supports both Node and Bun. **Day-to-day development prefers Bun** (faster, native SQLite, no compile step for examples); the **publish pipeline and CI stay on npm/Node** — keep both paths working but reach for `bun` first when running things locally. Each script in `package.json` has a **single name** (no `bun:`-prefixed twin): the underlying shell script detects whether `bun run` or `npm run` invoked it (via `npm_config_user_agent`) and dispatches to `bun test`/`bun run` or `vitest`/`tsx` accordingly.
 
 - **Typecheck only** (closest thing to a lint): prefer `bun run validate:tsgo` (or `npm run validate:tsgo`) — runs `tsgo --noEmit` (TypeScript 7 Go-based compiler, ~6× faster). Fall back to `bun run validate` / `npm run validate` (`tsc --noEmit`) for the authoritative TS 6 check when diagnosing a discrepancy or before pushing to CI.
 - **Build the publishable artifact**: prefer `bun run build:tsgo` (or `npm run build:tsgo`) for fast local sanity checks of the build output — wipes `dist/`, runs `tsgo -p tsconfig.build.json`. The publish flow (`npm run dist*`) still runs `npm run build` (`tsc -p tsconfig.build.json`) intentionally — `tsgo` is preview, so the artifact that actually ships is the one `tsc` emits. Don't switch the publish path to bun or tsgo.
 - **First-time setup** (after clone or after pulling Prisma schema changes): `bun install && bun run generate-prisma` (or the `npm` equivalents). Examples that use Prisma will fail without this.
-- **Run the full test suite** (requires Docker + Oracle Instant Client, ~13 min): `bun run bun:all-examples` for the Bun-native path, or `npm run all-examples` for the Node path. See [test/README.md](test/README.md) for the Oracle Instant Client setup and disk requirements (~89 GB total).
-- **Run docker-free tests**: `bun run bun:no-docker-examples` locally; `npm run no-docker-examples` is what CI runs. Both cover documentation examples plus SQLite/PgLite backends. **Note:** the `bun:` prefix matters — `bun run no-docker-examples` (without the prefix) would invoke the tsx-based npm script, not the Bun-native one.
+- **Run the full example matrix** (requires Docker + Oracle Instant Client, ~13 min): `bun run all-examples` (Bun-native) or `npm run all-examples` (Node/tsx). Same script name, runtime is detected. See [test/README.md](test/README.md) for the Oracle Instant Client setup and disk requirements (~89 GB total).
+- **Run docker-free examples**: `bun run no-docker-examples` locally; `npm run no-docker-examples` is what CI runs. Both cover documentation examples plus SQLite/PgLite backends.
 - **Run a single example/test**: `bun ./src/examples/<File>.ts` (or `tsx ./src/examples/<File>.ts`). Each example is a self-contained script with its own `main()`.
-- **Coverage**: `npm run coverage` (wraps `all-examples` with `nyc`; HTML report in `coverage/index.html`). Node-only; `nyc` isn't run under Bun.
+- **Coverage**: `npm run coverage` (wraps `all-examples` with `nyc`; HTML report in `coverage/index.html`). Node-only; the script pins `npm_config_user_agent` so it always takes the tsx branch — don't invoke it via `bun run`.
 - **Publish**: `npm run dist` / `dist-alpha` / `dist-beta` (Node only — pipeline expectation).
 - **Docs preview**: `npm run docs` (requires `mkdocs` from the `.venv`).
 
@@ -28,7 +28,7 @@ Tests are intentionally structured as runnable example scripts in [src/examples/
 - The same scenario is implemented per database (`PgExample.ts`, `MySql2Example.ts`, `MariaDBExample.ts`, `OracleDBExample.ts`, `MssqlTediousExample.ts`, multiple SQLite variants) and per query runner / driver combination (better-sqlite3, mariadb, mssql, mysql2, oracledb, pg, postgres, prisma, Bun's built-ins, etc.).
 - [src/examples/documentation/](src/examples/documentation/) holds per-database scripts whose output is what the docs render — keep these in sync when changing public behavior.
 - The docker-backed tests run against real database servers; mocks are avoided. When adding a feature, add coverage to every applicable per-database example, not just one.
-- Some examples are guarded by Node-version checks inside [scripts/run-no-docker-examples.sh](scripts/run-no-docker-examples.sh) and [scripts/run-all-examples.sh](scripts/run-all-examples.sh). Today `NodeSqliteExample.ts` and `NodeSqliteSynchronousExample.ts` are skipped on Node 22 (they use `DatabaseSync.function()`, which is only available from Node 24) and run with `NODE_OPTIONS='--experimental-sqlite'` on Node 24+ (required on 24, no-op on 26). When adding an example that depends on a Node feature introduced in a specific version, follow the same `if [ "$NODE_MAJOR" -ge N ]; then … else echo "Skipping …"; fi` pattern instead of failing the whole script.
+- Some examples are guarded by Node-version checks inside [scripts/no-docker-examples.sh](scripts/no-docker-examples.sh) and [scripts/all-examples.sh](scripts/all-examples.sh) (inside the `else` branch — `$runtime = "bun"` skips them). Today `NodeSqliteExample.ts` and `NodeSqliteSynchronousExample.ts` are skipped on Node 22 (they use `DatabaseSync.function()`, which is only available from Node 24) and run with `NODE_OPTIONS='--experimental-sqlite'` on Node 24+ (required on 24, no-op on 26). When adding an example that depends on a Node feature introduced in a specific version, follow the same `if [ "$NODE_MAJOR" -ge N ]; then … else echo "Skipping …"; fi` pattern instead of failing the whole script.
 
 ## Architecture
 
@@ -56,7 +56,7 @@ The library is layered. Read top-down when tracing a query through the system:
 1. Implement in the relevant layer (`SqlBuilder` for dialect-specific SQL emission; `QueryBuilder` / `expressions` for the fluent API).
 2. Add the scenario to the corresponding script in [src/examples/documentation/](src/examples/documentation/) for **every** supported database (the docs render their output).
 3. If it affects driver-level execution, also touch the relevant per-driver example in [src/examples/](src/examples/).
-4. Run `bun run validate` and at minimum `bun run bun:no-docker-examples` before pushing; CI runs both on Node 22/24/26 and Bun.
+4. Run `bun run validate` and at minimum `bun run no-docker-examples` before pushing; CI runs both on Node 22/24/26 and Bun.
 5. **Adding a public symbol or file**:
     - The public surface is **enumerated** in the `exports` map in [package.json](package.json) — wildcards are only used for the `unsupported/*` escape hatch. A new file is *not* publicly importable until you add an explicit entry there.
     - If the new symbol is **cross-database**, also re-export it from [src/index.ts](src/index.ts) (the aggregated root entry consumers reach via `import 'ts-sql-query'`). Use `export type` / `export` correctly because of `verbatimModuleSyntax`.

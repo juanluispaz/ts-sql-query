@@ -33,7 +33,7 @@ jobs:
 
       # Light tests (docker tests not supported yet)
       - name: Bun light tests
-        run: bun run bun:no-docker-examples
+        run: bun run no-docker-examples
 
   build:
     needs: bun

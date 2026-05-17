@@ -1,8 +1,9 @@
 #!/bin/bash
-# Run vitest against a single (database × version × connector) coordinate.
+# Run tests against a single (database × version × connector) coordinate.
 #
 # Usage:
-#   bun run focus-tests <coord> [extra vitest args]
+#   npm run focus-tests <coord> [extra args]
+#   bun run focus-tests <coord> [extra args]
 #
 # Where <coord> is one of:
 #   <database>                                     whole database (e.g. postgres)
@@ -13,15 +14,15 @@
 #
 # Examples:
 #   bun run focus-tests postgres/newest/pg
-#   bun run focus-tests postgres/newest/pg -u                       # refresh snapshots
-#   bun run focus-tests postgres/newest/pg -t inner-join            # only tests whose name matches
-#   bun run focus-tests postgres/newest/pg/select.basic.test.ts -u  # narrow to one file
-#   bun run focus-tests postgres/newest/pg/select.basic.test.ts -t inner-join -u
+#   bun run focus-tests postgres/newest/pg --update-snapshots          # bun: refresh snapshots
+#   npm run focus-tests postgres/newest/pg -u                          # vitest equivalent
+#   bun run focus-tests postgres/newest/pg -t inner-join               # match by name
+#   bun run focus-tests postgres/newest/pg/select.basic.test.ts -t inner-join
 #
-# Filtering reference:
-#   -t / --testNamePattern <regex>  pass through to vitest; combines with the
-#                                   <coord> path filter.
-#   -u                              update inline snapshots for what was run.
+# Dispatches between `bun test` and `vitest run` based on the runtime
+# that invoked the script (`npm_config_user_agent` prefix). Direct
+# invocation defaults to bun. Parallel by default — opt out with
+# `TSSQLQUERY_PARALLEL_DBS=false`.
 #
 # The TS_SQL_QUERY_DBS / TS_SQL_QUERY_DOCKER flags still apply; set them
 # in the environment if you want to gate the real-DB branch:
@@ -31,7 +32,7 @@
 set -e
 
 if [ -z "$1" ]; then
-    echo "Usage: bun run focus-tests <database>[/<version>[/<connector>[/<file>]]] [extra args]" >&2
+    echo "Usage: focus-tests <database>[/<version>[/<connector>[/<file>]]] [extra args]" >&2
     exit 2
 fi
 
@@ -49,13 +50,30 @@ fi
 
 shift
 
-# Vitest's default pool runs files in parallel; single mode
-# (`TSSQLQUERY_PARALLEL_DBS=false`) forces a serial run by adding
-# `--no-file-parallelism`, collapsing the per-worker DB infra to a
-# single shared database — useful for debugging one cell in isolation.
-SERIAL_FLAG=
-if [ "${TSSQLQUERY_PARALLEL_DBS:-true}" = "false" ]; then
-    SERIAL_FLAG="--no-file-parallelism"
+runtime="${npm_config_user_agent%%/*}"
+if [ -z "$runtime" ]; then
+    runtime="bun"
 fi
 
-exec vitest run $SERIAL_FLAG "$target" "$@"
+if [ "$runtime" = "bun" ]; then
+    PARALLEL_FLAG="--parallel"
+    if [ "${TSSQLQUERY_PARALLEL_DBS:-true}" = "false" ]; then
+        PARALLEL_FLAG=
+    fi
+    if [ "$#" -gt 0 ]; then
+        bun test "$target" $PARALLEL_FLAG "$@"
+    else
+        bun test "$target" $PARALLEL_FLAG
+    fi
+    ec=$?
+    if [ "$ec" -eq 99 ]; then
+        exit 0
+    fi
+    exit "$ec"
+else
+    SERIAL_FLAG=
+    if [ "${TSSQLQUERY_PARALLEL_DBS:-true}" = "false" ]; then
+        SERIAL_FLAG="--no-file-parallelism"
+    fi
+    exec vitest run $SERIAL_FLAG "$target" "$@"
+fi

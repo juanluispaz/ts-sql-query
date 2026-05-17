@@ -33,7 +33,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const SCHEMA_PATH = resolve(__dirname, './domain/schema.sql')
 const SEED_PATH = resolve(__dirname, './domain/seed.sql')
 
-// Pin to 2025-latest to align with `bun:all-examples`. SQL Server 2025
+// Pin to 2025-latest to align with `all-examples`. SQL Server 2025
 // adds ANSI-compliant `LENGTH`, which the `docs.sql-fragments` test
 // relies on via a portable raw SQL fragment.
 const MSSQL_IMAGE = 'mcr.microsoft.com/mssql/server:2025-latest'

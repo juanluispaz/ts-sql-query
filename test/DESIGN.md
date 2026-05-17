@@ -104,7 +104,7 @@ Tests never import anything from `src/internal/`, `src/queryBuilders/`,
    behaviour; the library docs declare it.
 
 5. **One test runner execution covers the whole suite.** The agent and CI
-   run `bun:all-tests` (Bun) or `all-tests` (Node + vitest) and get genuine
+   run `all-tests` (Bun) or `all-tests` (Node + vitest) and get genuine
    coverage of every (database × version × connector) cell. There is no
    per-script carve-up; focused runs work via direct invocation
    (`bun test test/db/postgres/newest/pg/select.basic.test.ts`).
@@ -211,12 +211,14 @@ Tests never import anything from `src/internal/`, `src/queryBuilders/`,
 
 14. **Two test runners, both first-class: `bun:test` and `vitest`.**
     Files import from `test/lib/testRunner.ts`, a shim that resolves to
-    the right module per runtime. Every npm script follows the
-    `bun:`-prefix convention: `all-tests` runs vitest, `bun:all-tests`
-    runs `bun:test`; same for `no-docker-tests` /
-    `bun:no-docker-tests`. Both runners produce compatible inline
-    snapshot format — updating snapshots with either runner leaves the
-    suite green under the other.
+    the right module per runtime. Every npm script has a **single
+    entry**: the shell script behind it detects whether `bun run` or
+    `npm run` invoked it (via `npm_config_user_agent`) and dispatches
+    to `bun test` or `vitest run` accordingly. `bun run all-tests` and
+    `npm run all-tests` therefore call the same `package.json` entry —
+    only the runner underneath switches. Both runners produce
+    compatible inline snapshot format, so updating snapshots with
+    either leaves the suite green under the other.
 
 15. **Prisma is a special case with minimum viable coverage.** Prisma
     support in ts-sql-query is experimental; treating it like any other
@@ -470,7 +472,7 @@ non-applicability case.
 
 ### 4.4 Auditing symmetry
 
-Run `bun run bun:audit-tests` (or `npm run audit-tests`) to verify the
+Run `bun run audit-tests` (or `npm run audit-tests`) to verify the
 symmetry rule mechanically. The script walks every
 `test/db/<database>/`, lists the `(version × connector)` cells,
 extracts the `test(...)` / `it(...)` names from each `.test.ts` file
@@ -604,9 +606,10 @@ test('postgres-negative-types', () => {
    …) — same file names, same `describe`/`test` names.
 7. Run `bun test test/db/<database> --update-snapshots` to fill the
    inline snapshots for the new cells.
-8. Run `bun run bun:no-docker-tests` and `npm run no-docker-tests`
-   first, then `bun run bun:all-tests` and `npm run all-tests` (Docker
-   required). Keep all four green.
+8. Run `bun run no-docker-tests` first, then `bun run all-tests`
+   (Docker required). Re-run both with `npm run` to exercise the
+   vitest path — same script entries, runner switches based on
+   `npm_config_user_agent`. All four runs must be green.
 
 ---
 
@@ -631,7 +634,7 @@ test('postgres-negative-types', () => {
    `expect(ctx.lastParams).toMatchInlineSnapshot()` (empty arguments —
    the runner will fill them).
 3. Run `bun test test/path/to/file --update-snapshots` (or, preferred,
-   `bun run bun:focus-tests-reuse <database>/<version>/<connector> --update-snapshots`
+   `bun run focus-tests-reuse <database>/<version>/<connector> --update-snapshots`
    — the `-reuse` variant reuses the docker container across
    invocations, see the "Container reuse" section of
    [`test/README.md`](./README.md#container-reuse-speeding-up-docker-backed-runs))
@@ -674,5 +677,5 @@ later):
 What this phase does NOT do:
 - modify or retire any file under `src/examples/`. The legacy suite is
   authoritative until the new suite reaches parity.
-- wire a new CI matrix. Existing `bun:no-docker-tests` / `bun:all-tests`
+- wire a new CI matrix. Existing `no-docker-tests` / `all-tests`
   scripts already cover the new cells under both runtimes.

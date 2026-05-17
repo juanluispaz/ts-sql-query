@@ -34,7 +34,7 @@ const SCHEMA_PATH = resolve(__dirname, './domain/schema.sql')
 const SEED_PATH = resolve(__dirname, './domain/seed.sql')
 
 // `mariadb` (no tag) tracks the latest stable image, matching what the
-// `bun:all-examples` script uses for the `newest` cell.
+// `all-examples` script uses for the `newest` cell.
 const MARIADB_IMAGE = 'mariadb'
 const ROOT_PASSWORD = 'mariadb-test-pass'
 

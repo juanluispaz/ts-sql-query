@@ -316,6 +316,11 @@ describe(ctx.label, () => {
     })
 
     test('logn', async () => {
+        // The PostgreSQL builder casts both arguments of `log(b, x)` to
+        // `numeric` so the two-argument logarithm overload resolves: PG only
+        // defines `log(numeric, numeric)` and the implicit numeric → double
+        // cast does not apply to the base parameter (which is emitted as an
+        // unbound `unknown`).
         const expected = [{ id: 1, l: 3 }]
         ctx.mockNext(expected)
         // log base 2 of 8 = 3
@@ -326,7 +331,7 @@ describe(ctx.label, () => {
                 l:  tIssue.priority.power(3).logn(2), // log_2(2^3) = 3
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, log($1, power(priority, $2)) as "l" from issue where id = $3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, log(($1)::numeric, (power(priority, $2))::numeric) as "l" from issue where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

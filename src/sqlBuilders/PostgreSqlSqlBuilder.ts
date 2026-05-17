@@ -194,6 +194,32 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
     override _divide(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return this._appendSqlParenthesis(valueSource, params, false) + '::float / ' + this._appendValueParenthesis(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + '::float'
     }
+    override _logn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // PostgreSQL only defines the two-argument logarithm for `numeric`:
+        // `log(b numeric, x numeric) → numeric`. There is no
+        // `log(double precision, double precision)` overload, and the
+        // implicit numeric → double cast that helps trig functions does not
+        // apply in the other direction. Moreover, the `b` argument we emit
+        // is an unbound query parameter that PG types as `unknown`, which
+        // does not resolve through the implicit cast — so the un-cast form
+        // fails at runtime with `function log(unknown, double precision)
+        // does not exist`. Cast both operands to numeric so the overload
+        // resolves regardless of how the chain was built.
+        return 'log((' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')::numeric, (' + this._appendSql(valueSource, params, false) + ')::numeric)'
+    }
+    override _roundn(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
+        // PostgreSQL only has the `round(numeric, integer)` overload — there is
+        // no `round(double precision, integer)` (the engine errors with
+        // `function round(double precision, integer) does not exist`). Any
+        // operand that flows through `_divide` is already cast to `::float`, so
+        // without this wrapper `.roundn(n)` would fail at runtime for the
+        // common `.divide(...).roundn(n)` pattern. Cast to numeric so the
+        // overload resolves; `usePlatformDependentRound` does NOT opt out
+        // here because the alternative is invalid SQL, not a different
+        // tie-breaking rule. `round(numeric, s)` breaks ties away from zero
+        // (the rule every other dialect ts-sql-query supports follows).
+        return 'round((' + this._appendSql(valueSource, params, false) + ')::numeric, ' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ')'
+    }
     override _round(params: any[], valueSource: ToSql): string {
         // PostgreSQL has two overloads of `round`: `round(numeric)` breaks ties
         // by rounding away from zero (the rule every other dialect the library

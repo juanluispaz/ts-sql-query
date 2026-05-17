@@ -145,8 +145,16 @@ async function validateOrResetForReuse(host: string, port: number): Promise<void
                 END
                 CREATE DATABASE [${META_DB_NAME}]
             `)
+            // The CREATE TABLE has to run inside the target database, so
+            // we briefly USE [${META_DB_NAME}] — and switch back to master
+            // immediately. SQL Server application locks are placed in the
+            // database in which sp_getapplock was called (master here);
+            // calling sp_releaseapplock from a different database context
+            // raises 1223 ("Cannot release the application lock … because
+            // it is not currently held"). The INSERT below is
+            // fully-qualified so it works from master context.
             await masterPool.request().batch(
-                `USE [${META_DB_NAME}]; CREATE TABLE ${SCHEMA_HASH_META_TABLE} (hash NVARCHAR(64) NOT NULL)`,
+                `USE [${META_DB_NAME}]; CREATE TABLE ${SCHEMA_HASH_META_TABLE} (hash NVARCHAR(64) NOT NULL); USE [master]`,
             )
             await masterPool.request()
                 .input('h', sql.NVarChar, currentHash)

@@ -920,24 +920,96 @@ const insertReturningCustomerData: Promise<{
 
 ## Insert on conflict do update ("upsert")
 
-If you are using [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md), [MariaDB](../configuration/supported-databases/mariadb.md) or [MySQL](../configuration/supported-databases/mysql.md) you can specify the insert must do an update in case of conflict. (This is also known as an "upsert".)
+[PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md), [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) support specifying that an `INSERT` must do an update in case of conflict (also known as an "upsert"). The shape of the call depends on the engine:
 
-```ts
-const insertReturningCustomerData = connection.insertInto(tCustomer).set({
-        firstName: 'John',
-        lastName: 'Smith',
-        companyId: 1
-    })
-    .onConflictDoUpdateSet({
-        companyId: 1
-    })
-    .returning({
-        id: tCustomer.id,
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName
-    })
-    .executeInsertOne()
-```
+- On **MariaDB** and **MySQL** the update fires on any unique-key violation; you don't specify which one. Use the bare `.onConflictDoUpdateSet({...})`.
+- On **PostgreSQL** you must say which unique-key column or constraint triggers the update. Use `.onConflictOn(...)` (or `.onConflictOnConstraint(...)`) chained with `.doUpdateSet({...})`.
+- **SQLite** accepts both forms.
+- **Oracle** and **SQL Server** don't support this syntax.
+
+=== "MariaDB"
+    ```ts
+    const insertReturningCustomerData = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        })
+        .onConflictDoUpdateSet({    // any unique-key violation triggers the update
+            companyId: 1
+        })
+        .returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertOne()
+    ```
+=== "MySQL"
+    ```ts
+    //
+    //
+    // MySQL doesn't support inserting returning values
+    // use .executeInsert() (returns the affected-row count) instead
+    // in similar way as MariaDB.
+    //
+    //
+    ```
+=== "Oracle"
+    ```ts
+    //
+    //
+    //
+    // Oracle doesn't support insert on conflict do update.
+    //
+    //
+    //
+    ```
+===+ "PostgreSQL"
+    ```ts
+    const insertReturningCustomerData = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        })
+        .onConflictOn(tCustomer.id) // PostgreSQL requires an explicit conflict target
+        .doUpdateSet({
+            companyId: 1
+        })
+        .returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertOne()
+    ```
+=== "SQLite"
+    ```ts
+    const insertReturningCustomerData = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        })
+        .onConflictOn(tCustomer.id) // both forms accepted; the targeted form ports to PostgreSQL
+        .doUpdateSet({
+            companyId: 1
+        })
+        .returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertOne()
+    ```
+=== "SQL Server"
+    ```ts
+    //
+    //
+    //
+    // SQL Server doesn't support insert on conflict do update.
+    //
+    //
+    //
+    ```
 
 The executed query is:
 
@@ -975,7 +1047,7 @@ The executed query is:
     ```postgresql
     insert into customer (first_name, last_name, company_id) 
     values ($1, $2, $3) 
-    on conflict do update set company_id = $4 
+    on conflict (id) do update set company_id = $4 
     returning 
         id as id, 
         first_name as "firstName", 
@@ -985,7 +1057,7 @@ The executed query is:
     ```sqlite
     insert into customer (first_name, last_name, company_id) 
     values (?, ?, ?) 
-    on conflict do update set company_id = ? 
+    on conflict (id) do update set company_id = ? 
     returning 
         id as id, 
         first_name as firstName, 
@@ -1015,24 +1087,95 @@ const insertReturningCustomerData: Promise<{
 
 If you want to use in the update the values to insert you can call them method `valuesForInsert()` over the table to get access to the table representation of the values to insert.
 
-```ts
-const tCustomerForInsert = tCustomer.valuesForInsert()
-const insertReturningCustomerData = await connection.insertInto(tCustomer).set({
-        firstName: 'John',
-        lastName: 'Smith',
-        companyId: 1
-    })
-    .onConflictDoUpdateSet({
-        firstName: tCustomer.firstName.concat(' - ').concat(tCustomerForInsert.firstName),
-        lastName: tCustomer.lastName.concat(' - ').concat(tCustomerForInsert.lastName)
-    })
-    .returning({
-        id: tCustomer.id,
-        firstName: tCustomer.firstName,
-        lastName: tCustomer.lastName
-    })
-    .executeInsertOne()
-```
+=== "MariaDB"
+    ```ts
+    const tCustomerForInsert = tCustomer.valuesForInsert()
+    const insertReturningCustomerData = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        })
+        .onConflictDoUpdateSet({    // any unique-key violation triggers the update
+            firstName: tCustomer.firstName.concat(' - ').concat(tCustomerForInsert.firstName),
+            lastName:  tCustomer.lastName.concat(' - ').concat(tCustomerForInsert.lastName)
+        })
+        .returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertOne()
+    ```
+=== "MySQL"
+    ```ts
+    //
+    //
+    // MySQL doesn't support inserting returning values
+    // use .executeInsert() (returns the affected-row count) instead
+    // in similar way as MariaDB.
+    //
+    //
+    ```
+=== "Oracle"
+    ```ts
+    //
+    //
+    //
+    // Oracle doesn't support insert on conflict do update.
+    //
+    //
+    //
+    ```
+===+ "PostgreSQL"
+    ```ts
+    const tCustomerForInsert = tCustomer.valuesForInsert()
+    const insertReturningCustomerData = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        })
+        .onConflictOn(tCustomer.id) // PostgreSQL requires an explicit conflict target
+        .doUpdateSet({
+            firstName: tCustomer.firstName.concat(' - ').concat(tCustomerForInsert.firstName),
+            lastName:  tCustomer.lastName.concat(' - ').concat(tCustomerForInsert.lastName)
+        })
+        .returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertOne()
+    ```
+=== "SQLite"
+    ```ts
+    const tCustomerForInsert = tCustomer.valuesForInsert()
+    const insertReturningCustomerData = await connection.insertInto(tCustomer).set({
+            firstName: 'John',
+            lastName: 'Smith',
+            companyId: 1
+        })
+        .onConflictOn(tCustomer.id) // both forms accepted; the targeted form ports to PostgreSQL
+        .doUpdateSet({
+            firstName: tCustomer.firstName.concat(' - ').concat(tCustomerForInsert.firstName),
+            lastName:  tCustomer.lastName.concat(' - ').concat(tCustomerForInsert.lastName)
+        })
+        .returning({
+            id: tCustomer.id,
+            firstName: tCustomer.firstName,
+            lastName: tCustomer.lastName
+        })
+        .executeInsertOne()
+    ```
+=== "SQL Server"
+    ```ts
+    //
+    //
+    //
+    // SQL Server doesn't support insert on conflict do update.
+    //
+    //
+    //
+    ```
 
 The executed query is:
 
@@ -1076,7 +1219,7 @@ The executed query is:
     ```postgresql
     insert into customer (first_name, last_name, company_id) 
     values ($1, $2, $3) 
-    on conflict do update set 
+    on conflict (id) do update set 
         first_name = customer.first_name || $4 || excluded.first_name, 
         last_name = customer.last_name || $5 || excluded.last_name 
     returning 
@@ -1088,7 +1231,7 @@ The executed query is:
     ```sqlite
     insert into customer (first_name, last_name, company_id) 
     values (?, ?, ?) 
-    on conflict do update set 
+    on conflict (id) do update set 
         first_name = customer.first_name || ? || excluded.first_name, 
         last_name = customer.last_name || ? || excluded.last_name 
     returning 
@@ -1122,7 +1265,6 @@ const insertReturningCustomerData: Promise<{
 
 !!! note
 
-    - On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md), you can specify a `where` clause that idicates when the update must be permormed.
-    - On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md), you can specify the columns that can create the conflict (including a `where` clause for that columns).
-    - On [PostgreSQL](../configuration/supported-databases/postgresql.md) you can specify the constraint name that raise the conflict.
-    - You can combine this with other insert's features, e.g. return some columns.
+    - On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md), the targeted form additionally accepts a `where` clause that restricts when the update must be performed.
+    - On [PostgreSQL](../configuration/supported-databases/postgresql.md) you can also identify the conflict by constraint name with `.onConflictOnConstraint('...')`.
+    - You can combine any of these forms with other insert features, e.g. return some columns.

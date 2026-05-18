@@ -18,6 +18,11 @@ import { fileURLToPath } from 'node:url'
 
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
+import { MockBetterSqlite3QueryRunner } from '../../lib/mockRunners/MockBetterSqlite3QueryRunner.js'
+import { MockBunSqliteQueryRunner } from '../../lib/mockRunners/MockBunSqliteQueryRunner.js'
+import { MockNodeSqliteQueryRunner } from '../../lib/mockRunners/MockNodeSqliteQueryRunner.js'
+import { MockSqlite3QueryRunner } from '../../lib/mockRunners/MockSqlite3QueryRunner.js'
+import { MockSqlite3WasmOO1QueryRunner } from '../../lib/mockRunners/MockSqlite3WasmOO1QueryRunner.js'
 import { DBConnection } from './domain/connection.js'
 
 const DATABASE = 'sqlite'
@@ -85,6 +90,7 @@ export function createBunSqliteTestContext(spec: BunSqliteTestSpec): TestContext
         compatibilityVersion: spec.compatibilityVersion,
         database: 'sqlite',
         realDbEnabled,
+        mockRunnerClass: MockBunSqliteQueryRunner,
         async createRealRunner() {
             const { BunSqliteQueryRunner } = await import('../../../src/queryRunners/BunSqliteQueryRunner.js')
             const conn = await getOrCreateBunSqliteDb()
@@ -137,6 +143,7 @@ export function createBetterSqlite3TestContext(spec: SqliteTestSpec): TestContex
         compatibilityVersion: spec.compatibilityVersion,
         database: 'sqlite',
         realDbEnabled,
+        mockRunnerClass: MockBetterSqlite3QueryRunner,
         async createRealRunner() {
             const { BetterSqlite3QueryRunner } = await import('../../../src/queryRunners/BetterSqlite3QueryRunner.js')
             const conn = await getOrCreateBetterSqlite3Db()
@@ -188,6 +195,7 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec): TestContext<D
         compatibilityVersion: spec.compatibilityVersion,
         database: 'sqlite',
         realDbEnabled,
+        mockRunnerClass: MockNodeSqliteQueryRunner,
         async createRealRunner() {
             const { NodeSqliteQueryRunner } = await import('../../../src/queryRunners/NodeSqliteQueryRunner.js')
             const conn = await getOrCreateNodeSqliteDb()
@@ -246,6 +254,7 @@ export function createSqlite3TestContext(spec: SqliteTestSpec): TestContext<DBCo
         compatibilityVersion: spec.compatibilityVersion,
         database: 'sqlite',
         realDbEnabled,
+        mockRunnerClass: MockSqlite3QueryRunner,
         async createRealRunner() {
             const { Sqlite3QueryRunner } = await import('../../../src/queryRunners/Sqlite3QueryRunner.js')
             const conn = await getOrCreateSqlite3Db()
@@ -299,6 +308,7 @@ export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec): TestContex
         compatibilityVersion: spec.compatibilityVersion,
         database: 'sqlite',
         realDbEnabled,
+        mockRunnerClass: MockSqlite3WasmOO1QueryRunner,
         timeoutMs: 30_000,
         async createRealRunner() {
             const { Sqlite3WasmOO1QueryRunner } = await import('../../../src/queryRunners/Sqlite3WasmOO1QueryRunner.js')

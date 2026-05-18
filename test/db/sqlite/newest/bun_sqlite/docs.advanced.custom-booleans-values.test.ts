@@ -46,8 +46,11 @@ describe(ctx.label, () => {
         }
         // doc-end
 
-        // SQL is captured by the interceptor before the runner executes,
-        // so the snapshot is reliable in both modes.
+        // Captured by the interceptor before the runner sends to the DB.
+        // The connector's `addParam` coerces boolean to 0/1 (its driver
+        // rejects JS booleans); the matching mock subclass in
+        // test/lib/mockRunners/ does the same coercion, so the snapshot
+        // is identical in both modes.
         expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into flag_table_only_for_sql_test (name, active) values (?, case when ? then 'Y' else 'N' end) returning id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [

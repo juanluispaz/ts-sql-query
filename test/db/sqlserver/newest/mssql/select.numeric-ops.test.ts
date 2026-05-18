@@ -261,11 +261,6 @@ describe(ctx.label, () => {
 
     test('exp-and-ln', async () => {
         // exp + ln are inverses; ln(exp(2)) should be 2.
-        // TODO[BUG] sqlite: SqliteSqlBuilder._ln emits `log(x)` which is
-        // base-10 in SQLite, so real-DB returns log10(e^2) ≈ 0.868
-        // instead of 2. We still assert SQL/params/type to catch future
-        // SQL-emission regressions; the data assertion only runs in mock
-        // mode and on dialects whose `ln(x)` actually means natural log.
         const expected = [{ id: 1, lnExp: 2 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tIssue)
@@ -282,7 +277,9 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; lnExp: number }>>>()
-        if (!ctx.realDbEnabled) {
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.lnExp).toBeCloseTo(2, 5)
+        } else {
             expect(result).toEqual(expected)
         }
     })

@@ -210,8 +210,12 @@ describe(ctx.label, () => {
                     t:  tAppUser.email.reverse(),
                 })
                 .executeSelectMany()
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, reverse(email) as "t" from app_user where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+              ]
+            `)
             assertType<Exact<typeof result, Array<{ id: number; t: string }>>>()
             if (!ctx.realDbEnabled) expect(result).toEqual(expected)
         } catch {

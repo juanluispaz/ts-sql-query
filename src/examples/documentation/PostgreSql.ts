@@ -5081,7 +5081,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select cbrt(id) as "idCubeRoot", log(id) as "idLog10", log($1, id) as "idLogBase2" from customer where id = $2`)
+    expectedQuery.push(`select cbrt(id) as "idCubeRoot", log(id) as "idLog10", log(($1)::numeric, (id)::numeric) as "idLogBase2" from customer where id = $2`)
     expectedParams.push(`[2,8]`)
     expectedType.push(`selectManyRows`)
 

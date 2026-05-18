@@ -4003,7 +4003,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as "id", company.name as "name", favouriteCustomer.first_name || :0 || favouriteCustomer.last_name as "favouriteCustomer.name" from company left outer join customer favouriteCustomer on company.parent_id = favouriteCustomer.id where (exists(select id as "result" from customer where lower(first_name || :1 || last_name) like lower('%' || :2 || '%') escape '\\') = 1) and company.parent_id = :3`)
+    expectedQuery.push(`select company.id as "id", company.name as "name", favouriteCustomer.first_name || :0 || favouriteCustomer.last_name as "favouriteCustomer.name" from company left outer join customer favouriteCustomer on company.parent_id = favouriteCustomer.id where exists(select id as "result" from customer where lower(first_name || :1 || last_name) like lower('%' || :2 || '%') escape '\\') and company.parent_id = :3`)
     expectedParams.push(`[" "," ","smith",23]`)
     expectedType.push(`selectManyRows`)
 
@@ -4033,7 +4033,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as "id", name as "name" from company where ((exists(select id as "result" from customer where lower(first_name || :0 || last_name) like lower('%' || :1 || '%') escape '\\') = 1) or (exists(select id as "result" from customer where birthday = :2) = 1)) and parent_id = :3`)
+    expectedQuery.push(`select id as "id", name as "name" from company where (exists(select id as "result" from customer where lower(first_name || :0 || last_name) like lower('%' || :1 || '%') escape '\\') or exists(select id as "result" from customer where birthday = :2)) and parent_id = :3`)
     expectedParams.push(`[" ","John","2000-03-01T00:00:00.000Z",23]`)
     expectedType.push(`selectManyRows`)
 

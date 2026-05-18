@@ -266,7 +266,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name + @0 + last_name as name, birthday as birthday from customer where first_name like ('%' + @1 + '%') order by lower(name), iif(birthday is null, 1, 0), birthday asc`)
+    expectedQuery.push(`select id as id, first_name + @0 + last_name as name, birthday as birthday from customer where first_name like ('%' + @1 + '%') order by lower(name), iif(customer.birthday is null, 1, 0), birthday asc`)
     expectedParams.push(`[" ","ohn"]`)
     expectedType.push(`selectManyRows`)
 
@@ -298,7 +298,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name + @0 + last_name as name, birthday as birthday from customer where first_name like ('%' + @1 + '%') order by lower(name), iif(birthday is null, 1, 0), birthday asc`)
+    expectedQuery.push(`select id as id, first_name + @0 + last_name as name, birthday as birthday from customer where first_name like ('%' + @1 + '%') order by lower(name), iif(customer.birthday is null, 1, 0), birthday asc`)
     expectedParams.push(`[" ","ohn"]`)
     expectedType.push(`selectManyRows`)
 
@@ -331,7 +331,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, first_name + @0 + last_name as name, birthday as birthday from customer where first_name like ('%' + @1 + '%') order by lower(name), iif(birthday is null, 1, 0), birthday asc`)
+    expectedQuery.push(`select id as id, first_name + @0 + last_name as name, birthday as birthday from customer where first_name like ('%' + @1 + '%') order by lower(name), iif(customer.birthday is null, 1, 0), birthday asc`)
     expectedParams.push(`[" ","ohn"]`)
     expectedType.push(`selectManyRows`)
 
@@ -4102,7 +4102,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select company.id as id, company.name as name, favouriteCustomer.first_name + @0 + favouriteCustomer.last_name as [favouriteCustomer.name] from company left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id where (exists(select id as [result] from customer where lower(first_name + @1 + last_name) like lower('%' + @2 + '%')) = 1) and company.parent_id = @3`)
+    expectedQuery.push(`select company.id as id, company.name as name, favouriteCustomer.first_name + @0 + favouriteCustomer.last_name as [favouriteCustomer.name] from company left outer join customer as favouriteCustomer on company.parent_id = favouriteCustomer.id where exists(select id as [result] from customer where lower(first_name + @1 + last_name) like lower('%' + @2 + '%')) and company.parent_id = @3`)
     expectedParams.push(`[" "," ","smith",23]`)
     expectedType.push(`selectManyRows`)
 
@@ -4132,7 +4132,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select id as id, name as name from company where ((exists(select id as [result] from customer where lower(first_name + @0 + last_name) like lower('%' + @1 + '%')) = 1) or (exists(select id as [result] from customer where birthday = @2) = 1)) and parent_id = @3`)
+    expectedQuery.push(`select id as id, name as name from company where (exists(select id as [result] from customer where lower(first_name + @0 + last_name) like lower('%' + @1 + '%')) or exists(select id as [result] from customer where birthday = @2)) and parent_id = @3`)
     expectedParams.push(`[" ","John","2000-03-01T00:00:00.000Z",23]`)
     expectedType.push(`selectManyRows`)
 
@@ -4747,7 +4747,7 @@ async function main() {
 
     result = []
     expectedResult.push(result)
-    expectedQuery.push(`select sign(id) * power(abs(id), 1.0 / 3.0) as idCubeRoot, log10(id) as idLog10, log(id, @0) as idLogBase2 from customer where id = @1`)
+    expectedQuery.push(`select sign(id) * power(cast(abs(id) as float), 1.0 / 3.0) as idCubeRoot, log10(id) as idLog10, log(id, @0) as idLogBase2 from customer where id = @1`)
     expectedParams.push(`[2,8]`)
     expectedType.push(`selectManyRows`)
 

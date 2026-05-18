@@ -128,7 +128,7 @@ describe(ctx.label, () => {
                 c:  tIssue.priority.divide(3).ceil(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceil(cast(priority as float) / cast(@0 as float)) as [c] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, ceiling(cast(priority as float) / cast(@0 as float)) as [c] from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -149,7 +149,7 @@ describe(ctx.label, () => {
                 r:  tIssue.priority.divide(2).round(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(cast(priority as float) / cast(@0 as float)) as [r] from issue where id = @1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(cast(priority as float) / cast(@0 as float), 0) as [r] from issue where id = @1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -193,7 +193,7 @@ describe(ctx.label, () => {
                 c:  tIssue.priority.multiply(4).cbrt(),
             })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sign(priority * @0) * power(abs(priority * @1), 1.0 / 3.0) as [c] from issue where id = @2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, sign(priority * @0) * power(cast(abs(priority * @1) as float), 1.0 / 3.0) as [c] from issue where id = @2"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -202,7 +202,11 @@ describe(ctx.label, () => {
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number; c: number }>>>()
-        expect(result).toEqual(expected)
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.c).toBeCloseTo(2, 4)
+        } else {
+            expect(result).toEqual(expected)
+        }
     })
 
     test('sign', async () => {

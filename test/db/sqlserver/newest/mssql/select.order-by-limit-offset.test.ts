@@ -48,7 +48,7 @@ describe(ctx.label, () => {
             .orderBy('assigneeId', 'asc nulls last')
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, assignee_id as assigneeId from issue order by iif(assigneeId is null, 1, 0), assigneeId asc, id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, assignee_id as assigneeId from issue order by iif(issue.assignee_id is null, 1, 0), assigneeId asc, id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         if (ctx.realDbEnabled) {
             // Issue 3 (assignee_id null) goes last.

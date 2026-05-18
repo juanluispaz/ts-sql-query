@@ -338,6 +338,20 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
+    _appendOrderByColumnExpression(entry: OrderByEntry, query: SelectData, params: any[]): string {
+        // T-SQL does not resolve SELECT aliases inside scalar functions in
+        // ORDER BY (only as bare references). When the entry is an alias
+        // name, emit the underlying column expression instead.
+        const expression = entry.expression
+        if (typeof expression === 'string') {
+            const column = getQueryColumn(query.__columns, expression)
+            if (!column) {
+                return this._appendOrderByColumnAlias(entry, query, params)
+            }
+            return this._appendSql(column, params, false)
+        }
+        return this._appendOrderByColumnAlias(entry, query, params)
+    }
     override _buildInsertOutput(query: InsertData, params: any[]): string {
         const idColumn = query.__idColumn
         if (idColumn) {
@@ -700,6 +714,21 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
     }
     override _length(params: any[], valueSource: ToSql): string {
         return 'len(' + this._appendSql(valueSource, params, false) + ')'
+    }
+    override _ceil(params: any[], valueSource: ToSql): string {
+        // T-SQL spells the ceiling function `CEILING`, not `CEIL`.
+        return 'ceiling(' + this._appendSql(valueSource, params, false) + ')'
+    }
+    override _round(params: any[], valueSource: ToSql): string {
+        // T-SQL's ROUND requires the length (decimals) argument; the
+        // single-arg form `round(x)` is rejected.
+        return 'round(' + this._appendSql(valueSource, params, false) + ', 0)'
+    }
+    override _cbrt(params: any[], valueSource: ToSql): string {
+        // T-SQL's POWER returns the data type of the first argument, so
+        // `power(int, float)` truncates to int. Cast the operand to float
+        // so the cube-root emulation returns a fractional result.
+        return 'sign(' + this._appendSql(valueSource, params, false) + ') * power(cast(abs(' + this._appendSql(valueSource, params, false) + ') as float), 1.0 / 3.0)'
     }
     override _ln(params: any[], valueSource: ToSql): string {
         return 'log(' + this._appendSql(valueSource, params, false) + ')'

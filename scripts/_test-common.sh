@@ -95,22 +95,37 @@ coverage_runner_flags() {
     local runtime="$1"; shift
     case "$runtime" in
         bun)
+            # `monocart` is the third "html-emitting" format alongside
+            # the istanbul-html post-render. Both consume bun's
+            # lcov.info, so the only extra step we ask bun for is
+            # the lcov emission. The post-render itself happens in
+            # finalize_report → render_coverage_monocart_bun.
             local emit_lcov=off
+            local has_monocart=off
+            local has_html=off
             for fmt in "$@"; do
                 case "$fmt" in
                     text)
                         printf -- '--coverage-reporter=text\n' ;;
-                    lcov|html)
-                        # `lcov` and `html` share the same upstream
-                        # flag (bun emits lcov.info; we render html
-                        # from it). De-dupe so two flags pointing
-                        # at the same reporter don't go to bun.
+                    lcov)
                         emit_lcov=on ;;
+                    html)
+                        emit_lcov=on; has_html=on ;;
+                    monocart)
+                        emit_lcov=on; has_monocart=on ;;
                     *)
-                        echo "coverage_runner_flags: bun does not support --coverage-format=$fmt — supported under bun: text|lcov|html (use --use-vitest for others)" >&2
+                        echo "coverage_runner_flags: bun does not support --coverage-format=$fmt — supported under bun: text|lcov|html|monocart (use --use-vitest for others)" >&2
                         return 1 ;;
                 esac
             done
+            # Both html and monocart write to
+            # .test-report/coverage/index.html; one would clobber
+            # the other. Force the user to pick. text + lcov stay
+            # composable with either.
+            if [ "$has_monocart" = "on" ] && [ "$has_html" = "on" ]; then
+                echo "coverage_runner_flags: --coverage-format=monocart and =html both write to .test-report/coverage/index.html; pick one. (text and lcov can coexist with either.)" >&2
+                return 1
+            fi
             if [ "$emit_lcov" = "on" ]; then
                 # Match vitest's `coverage.reportsDirectory` layout
                 # (.test-report/coverage/) so both runners land
@@ -121,9 +136,29 @@ coverage_runner_flags() {
                 printf -- '--coverage-dir=./.test-report/coverage\n'
             fi ;;
         npm)
+            # `monocart` under vitest swaps the coverage provider
+            # entirely (vitest-monocart-coverage as a custom
+            # provider, V8 raw data → MCR). It can't be combined
+            # with other --coverage-format values because the V8
+            # provider that emits istanbul-style reports isn't
+            # running. Errors out instead of silently dropping the
+            # other formats.
+            local has_monocart=off
             for fmt in "$@"; do
-                printf -- '--coverage.reporter=%s\n' "$fmt"
-            done ;;
+                if [ "$fmt" = "monocart" ]; then has_monocart=on; break; fi
+            done
+            if [ "$has_monocart" = "on" ]; then
+                if [ "$#" -gt 1 ]; then
+                    echo "coverage_runner_flags: --coverage-format=monocart under vitest replaces the coverage provider — it can't be combined with other --coverage-format values. Pass monocart on its own; configure additional MCR reports in mcr.config.ts." >&2
+                    return 1
+                fi
+                printf -- '--coverage.provider=custom\n'
+                printf -- '--coverage.customProviderModule=vitest-monocart-coverage\n'
+            else
+                for fmt in "$@"; do
+                    printf -- '--coverage.reporter=%s\n' "$fmt"
+                done
+            fi ;;
         *)
             echo "coverage_runner_flags: unsupported runtime=$runtime" >&2
             return 1 ;;
@@ -227,6 +262,20 @@ render_coverage_html_bun() {
     bun test/lib/coverage/lcovToHtml.ts .test-report/coverage/lcov.info .test-report/coverage
 }
 
+# Render .test-report/coverage/lcov.info as monocart-coverage-reports
+# under bun. Same pipeline shape as render_coverage_html_bun, but the
+# entry point uses MCR (html-spa + console-summary) instead of plain
+# istanbul-reports. Validation in coverage_runner_flags already
+# guarantees this isn't called alongside the istanbul-html renderer
+# (they'd both write index.html into the same dir).
+render_coverage_monocart_bun() {
+    if [ ! -f .test-report/coverage/lcov.info ]; then
+        echo "Warning: .test-report/coverage/lcov.info not produced; cannot render monocart report." >&2
+        return 1
+    fi
+    bun test/lib/coverage/lcovToMonocart.ts .test-report/coverage/lcov.info .test-report/coverage
+}
+
 # Open the most useful HTML report in the default browser. The two
 # possible locations correspond to the two kinds of report and need
 # DIFFERENT delivery mechanisms:
@@ -293,11 +342,22 @@ finalize_report() {
     local runtime="$1" open_after="$2"
     shift 2
     local has_html_coverage=off
+    local has_monocart_coverage=off
     for fmt in "$@"; do
-        if [ "$fmt" = "html" ]; then has_html_coverage=on; break; fi
+        case "$fmt" in
+            html)     has_html_coverage=on ;;
+            monocart) has_monocart_coverage=on ;;
+        esac
     done
+    # Bun post-render: the two html-producing formats run their own
+    # converters against the lcov.info bun emitted. Validation in
+    # coverage_runner_flags guarantees they're mutually exclusive,
+    # so at most one of these branches executes per run.
     if [ "$runtime" = "bun" ] && [ "$has_html_coverage" = "on" ]; then
         render_coverage_html_bun || return 1
+    fi
+    if [ "$runtime" = "bun" ] && [ "$has_monocart_coverage" = "on" ]; then
+        render_coverage_monocart_bun || return 1
     fi
     if [ "$open_after" = "on" ]; then
         open_report_in_browser || return 1

@@ -555,7 +555,7 @@ runners honour both flags — the artifacts just differ.
 | `--report` | Emit test-execution report under `.test-report/`: vitest writes the html SPA (`index.html`); bun writes `junit.xml`. | off |
 | `--report-format <name>` | Repeatable. Default depends on runtime — `html` under vitest, `junit` under bun. Setting it implies `--report`. Under vitest: pass-through (`html`, `default`, `verbose`, `dot`, `tap`, `junit`, `json`, etc.). Under bun: only `junit` (file) and `dots` (terminal); other formats error. | `html`/`junit` |
 | `--coverage` | Emit coverage report under `.test-report/coverage/`. | off |
-| `--coverage-format <name>` | Repeatable. Default `html` when `--coverage` is on. Under vitest: any `@vitest/coverage-v8` reporter. Under bun: `html\|text\|lcov` (multiple values honoured natively); other formats error. | `html` |
+| `--coverage-format <name>` | Repeatable. Default `html` when `--coverage` is on. Under vitest: any `@vitest/coverage-v8` reporter, plus `monocart` (switches provider to `vitest-monocart-coverage` for native V8 byte-range coverage). Under bun: `html\|text\|lcov\|monocart` (multiple values honoured natively, except `monocart + html` which both write `index.html`); other formats error. | `html` |
 | `--open` | After a green run, open the richest available HTML report — vitest's `.test-report/index.html` (served via `bunx vite preview`, blocks until Ctrl+C — page is a SPA that needs HTTP) if present, else `.test-report/coverage/index.html` (plain static, `file://`). Requires `html` in `--report-format` or `--coverage-format`. Under bun, html lives only in coverage, so `--open` pairs with `--coverage-format=html`. | off |
 
 Example invocations:
@@ -585,6 +585,12 @@ bun run tests --use-vitest --report-format=verbose
 
 # Bun + multi-format coverage (text terminal + html browseable):
 bun run tests --coverage --coverage-format=text --coverage-format=html
+
+# Monocart under bun (html-spa from lcov):
+bun run tests --coverage --coverage-format=monocart --open
+
+# Monocart under vitest (native V8 byte-range, MCR's v8 SPA):
+bun run tests --use-vitest --coverage --coverage-format=monocart --open
 
 # Focused report+coverage on one cell:
 bun run tests:focus postgres/newest/pg --use-vitest --report --coverage --open
@@ -621,15 +627,154 @@ no-ops.
   [`test/lib/coverage/lcovToHtml.ts`](lib/coverage/lcovToHtml.ts)
   (uses `lcov-parse` + transitive `istanbul-reports`, all under
   bun, no node spawned). Lands at `.test-report/coverage/index.html`.
+- `--coverage-format=monocart` → lcov + a post-render via
+  [`test/lib/coverage/lcovToMonocart.ts`](lib/coverage/lcovToMonocart.ts),
+  which feeds `monocart-coverage-reports` an istanbul-shaped
+  coverage map and asks for `html-spa` + `console-summary`.
+  Lands at `.test-report/coverage/index.html` (the SPA) with
+  per-file `*.ts.html` drill-down pages alongside. Mutually
+  exclusive with `--coverage-format=html` (both target the same
+  filename). MCR's loader calls `v8.setFlagsFromString` at
+  import time, which bun has not implemented; we side-step that
+  by shimming `globalThis.gc` to a no-op before a dynamic
+  import (see the comment block in `lcovToMonocart.ts`).
+
+  The bun+monocart output is structurally **different** from the
+  vitest+monocart output — the SPA itself is at index.html in
+  both cases, but the bun path also emits per-file static .html
+  pages because MCR's `html-spa` report bundles them as
+  drill-downs. We do NOT use MCR's premium `v8` report under bun
+  because that report renders byte-range coverage and would need
+  V8 raw coverage data (with byte offsets + sourcemaps) that
+  bun's lcov simply doesn't expose. Trying to fabricate it from
+  line-only data either inflates or zeroes the percentages
+  depending on how the V8 range tree is shaped — there's no
+  honest middle ground. The percentages you see under bun
+  monocart match exactly what bun's lcov reports natively.
 - Other vitest reporters (`cobertura`, `json-summary`, etc.) → ERROR.
 - Multiple values ARE supported natively (bun's
-  `--coverage-reporter` is repeatable). `text + html` is a
-  common pairing.
+  `--coverage-reporter` is repeatable). `text + html` and
+  `text + monocart` are common pairings.
+
+### Monocart under vitest (V8 byte-range)
+
+When `--coverage-format=monocart` is paired with `--use-vitest`,
+the run swaps the @vitest/coverage-v8 provider for
+[`vitest-monocart-coverage`](https://github.com/cenfun/vitest-monocart-coverage)
+— a custom vitest coverage provider that captures native V8
+byte-range coverage and hands it to MCR for rendering. The
+output landing under `.test-report/coverage/` includes:
+
+- `index.html` — MCR's V8 SPA (token-level coverage; the
+  showcase MCR report).
+- `coverage-data.js` + `assets/` — bundle the SPA depends on.
+- `lcov.info` — additional lcov export (toggled by the
+  `lcov: true` option in `mcr.config.mjs`).
+
+MCR options come from
+[`mcr.config.mjs`](../mcr.config.mjs) at the repo root. The
+file is `.mjs` (not `.ts`) because MCR's config loader uses
+Node's native `require/import` chain — it has no TypeScript
+transformer in scope — but is JSDoc-typed against
+`CoverageReportOptions`. Adjust `reports`, `name`, watermarks
+etc. there.
+
+Importantly, `mcr.config.mjs` is also where the source-file
+filter lives (`sourceFilter` + `entryFilter`). MCR does **not**
+read vitest's `coverage.exclude` when used as a custom
+provider — its own filtering is the only path. The patterns in
+`mcr.config.mjs` are kept in sync with `vitest.config.ts`
+(`test.coverage.exclude`) and `bunfig.toml`
+(`coveragePathIgnorePatterns`) so all three entry points
+produce coverage for the same set of files: the library's public
+source surface, excluding `src/examples/**` (the documentation
+suite) and `test/**` (the test matrix itself).
+
+Caveats:
+- `--coverage-format=monocart` under vitest is mutually
+  exclusive with every other `--coverage-format` value (the
+  provider isn't running, so no other reporter wires up).
+- vitest-monocart-coverage 4.0.x still imports a deprecated
+  `vitest/coverage` re-export; you'll see one deprecation
+  warning at startup. Upstream issue.
 
 For any real coverage work, reach for `--use-vitest`: vitest's
 V8 coverage is byte-range accurate (token-level highlighting in
 the SPA), exposes branch and function maps, and every
-`@vitest/coverage-v8` reporter is available.
+`@vitest/coverage-v8` reporter is available. `--coverage-format=monocart`
+is the richest variant of that path.
+
+### `html` vs `monocart` under vitest
+
+Both vitest paths consume the same source of truth — V8 byte-
+range coverage collected by `@vitest/coverage-v8`. They differ in
+what they do with it.
+
+**Data granularity**
+
+- `html` (istanbul-reports): projects bytes back to lines, paints
+  each whole line green/red. Same UI lineage as nyc/jest from a
+  decade ago — instantly familiar.
+- `monocart` (MCR `v8` SPA): keeps the byte-range data and
+  paints **tokens** inside a line. Adds a `Bytes` metric the
+  istanbul path doesn't have. Inside `a ?? b ? c : d` you can
+  literally see which sub-expression fired.
+
+**Output shape**
+
+| | `--coverage-format=html` | `--coverage-format=monocart` |
+|---|---|---|
+| Files | `index.html` + one `*.ts.html` per source file + istanbul assets | `index.html` + `coverage-data.js` + `assets/monocart-coverage-app.js` |
+| Footprint | grows linearly with the source tree | compact; the data is one minified `.js` |
+| Browser delivery | static pages, `file://` works | single SPA loading `coverage-data.js` via a `<script>` tag, `file://` works |
+
+Both open straight from `file://`; neither needs `vite preview`
+(the `bunx vite preview` dance is only for the test-execution
+SPA at `.test-report/index.html`, which is a different report).
+
+**UI/UX**
+
+- `html`: tabular file list → click → per-file source view with
+  green/red gutters. Zero learning curve, same as every other
+  istanbul-driven coverage report.
+- `monocart`: tree + filters + a file view with token-level
+  highlighting. Pays off on branchy expressions (`??`, `&&`,
+  ternaries, switch arms) where istanbul's line-level paint
+  hides which branch fired. Overkill for "which files have no
+  tests at all" surveys.
+
+**Operational friction**
+
+- `html` honours `coverage.exclude` from `vitest.config.ts`. One
+  source of truth for the filter.
+- `monocart` ignores vitest's exclude (it's running as a custom
+  provider) and reads `sourceFilter` / `entryFilter` from
+  [`mcr.config.mjs`](../mcr.config.mjs). The patterns there are
+  kept in sync with `vitest.config.ts` and `bunfig.toml` by
+  hand. Drift = `test/**` or `node_modules/**` quietly creeping
+  into the report.
+- vitest-monocart-coverage 4.0.x still imports a deprecated
+  `vitest/coverage` re-export — one deprecation warning per
+  run. Upstream issue; harmless.
+
+**When to pick which**
+
+- **Day-to-day coverage / CI green-red gate** → `html`. Battle-
+  tested, every external tool understands the output (the
+  `lcov.info` it can also emit, the per-file pages, etc.). It's
+  the default of `--coverage-format` for a reason.
+- **Investigating a specific gap** ("why is this branch
+  reported uncovered?", "which token of this builder method
+  never runs?") → `monocart`. The byte-level paint will show
+  you exactly what istanbul's line summary hides.
+- **CI emitting several formats in one pass** (codecov +
+  cobertura + html + json-summary together) → either works
+  under vitest, but monocart centralises everything in
+  `mcr.config.mjs` (vs. listing every reporter on the CLI for
+  the istanbul path).
+
+The two are complementary tools, not substitutes — they live
+in `.test-report/coverage/` and can be re-run on demand.
 
 ### Scope (which source files end up in the report)
 

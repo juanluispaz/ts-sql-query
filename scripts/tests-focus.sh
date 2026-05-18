@@ -66,10 +66,20 @@ Flags
   --coverage-format <name>              repeatable; default html when
                                         --coverage is on. Under
                                         vitest, any @vitest/coverage-v8
-                                        reporter. Under bun, restricted
-                                        to html|text|lcov (multiple
-                                        values are honoured). Scope set
-                                        in bunfig.toml + vitest.config.ts.
+                                        reporter, plus the special
+                                        `monocart` value (switches
+                                        provider to
+                                        vitest-monocart-coverage).
+                                        Under bun, restricted to
+                                        html|text|lcov|monocart
+                                        (monocart post-renders the
+                                        lcov via MCR; multiple values
+                                        are honoured but
+                                        monocart + html error since
+                                        both write index.html).
+                                        Scope set in bunfig.toml +
+                                        vitest.config.ts; MCR options
+                                        live in mcr.config.mjs.
   --open                                open the most useful report
                                         (test-exec SPA via vite preview
                                         if present, else coverage html
@@ -215,15 +225,20 @@ if [ "$OPEN_AFTER" = "on" ]; then
         done
     fi
     if [ "$HAS_HTML" = "off" ] && [ "$COVERAGE" = "on" ]; then
+        # `monocart` also writes an index.html (MCR's html-spa under
+        # bun, MCR's `v8` SPA under vitest), so it satisfies --open
+        # the same way `html` does.
         for fmt in "${COVERAGE_FORMAT[@]}"; do
-            if [ "$fmt" = "html" ]; then HAS_HTML=on; break; fi
+            case "$fmt" in
+                html|monocart) HAS_HTML=on; break ;;
+            esac
         done
     fi
     if [ "$HAS_HTML" = "off" ]; then
         if [ "$runtime" = "bun" ]; then
-            echo "Error: --open requires html among the requested formats. Under bun, html is only available for coverage — pass --coverage-format=html, or add --use-vitest for the html test-execution SPA." >&2
+            echo "Error: --open requires html among the requested formats. Under bun, html is only available for coverage — pass --coverage-format=html (or =monocart), or add --use-vitest for the html test-execution SPA." >&2
         else
-            echo "Error: --open requires html among the requested formats — pass --report-format=html or --coverage-format=html." >&2
+            echo "Error: --open requires html among the requested formats — pass --report-format=html, --coverage-format=html, or --coverage-format=monocart." >&2
         fi
         exit 2
     fi

@@ -35,13 +35,31 @@ Runner trade-off
                            is junit when --report is on. html is
                            rejected with an error — pass
                            --use-vitest for the SPA.
-    --coverage-format      text | lcov | html (html is rendered from
-                           lcov by test/lib/coverage/lcovToHtml.ts).
-                           Other vitest reporters are rejected.
+    --coverage-format      text | lcov | html | monocart. html is
+                           rendered from lcov by
+                           test/lib/coverage/lcovToHtml.ts. monocart
+                           pipes the same lcov through
+                           test/lib/coverage/lcovToMonocart.ts to
+                           produce MCR's html-spa (richer UI; line-
+                           level data only — bun's lcov is line-
+                           collapsed). Other vitest reporters are
+                           rejected.
     Passing multiple       --coverage-format values is supported
                            natively; multiple --report-format values
                            warn and keep the first (bun's --reporter
-                           is single-valued).
+                           is single-valued). monocart and html are
+                           mutually exclusive (both write
+                           index.html); text and lcov stay
+                           composable with either.
+  Under vitest:
+    --coverage-format=monocart switches the coverage provider to
+                           vitest-monocart-coverage, which captures
+                           native V8 byte-range coverage and renders
+                           MCR's v8 SPA. It's mutually exclusive
+                           with the other --coverage-format values
+                           because the @vitest/coverage-v8 provider
+                           isn't running. MCR options live in
+                           mcr.config.mjs at the repo root.
   Pass --use-vitest from a `bun run` invocation to switch.
 
 Defaults
@@ -126,9 +144,16 @@ Coverage flags
         vitest, every @vitest/coverage-v8 reporter is supported
         (html, text, text-summary, lcov, lcovonly, clover,
         cobertura, json, json-summary, teamcity). Under bun,
-        restricted to `html|text|lcov` (multiple values are
-        honoured — bun's --coverage-reporter is repeatable). Other
-        formats error out.
+        restricted to `html|text|lcov|monocart` (multiple values
+        are honoured — bun's --coverage-reporter is repeatable).
+        Other formats error out. The special `monocart` value
+        opts into monocart-coverage-reports — under vitest it
+        switches the provider to vitest-monocart-coverage for
+        native V8 byte-range coverage; under bun it post-renders
+        bun's lcov.info through MCR for an html-spa.
+        Mutually-exclusive pairings (monocart + html under bun,
+        monocart + anything else under vitest) error out so
+        you don't get a half-rendered report.
 
         Scope (which source files end up in the report) is set in
         bunfig.toml and vitest.config.ts — both exclude
@@ -178,6 +203,10 @@ Examples
                 --coverage-format=json-summary             # multi-format
   bun run tests --use-vitest --ui --coverage --docker      # interactive UI
   bun run tests --use-vitest --report-format=verbose       # verbose test output
+  bun run tests --coverage --coverage-format=monocart --open
+                                                           # bun → MCR html-spa
+  bun run tests --use-vitest --coverage \
+                --coverage-format=monocart --open          # vitest → MCR v8 SPA
 EOF
 }
 
@@ -287,15 +316,20 @@ if [ "$OPEN_AFTER" = "on" ]; then
         done
     fi
     if [ "$HAS_HTML" = "off" ] && [ "$COVERAGE" = "on" ]; then
+        # `monocart` also writes an index.html (MCR's html-spa under
+        # bun, MCR's `v8` SPA under vitest), so it satisfies --open
+        # the same way `html` does.
         for fmt in "${COVERAGE_FORMAT[@]}"; do
-            if [ "$fmt" = "html" ]; then HAS_HTML=on; break; fi
+            case "$fmt" in
+                html|monocart) HAS_HTML=on; break ;;
+            esac
         done
     fi
     if [ "$HAS_HTML" = "off" ]; then
         if [ "$runtime" = "bun" ]; then
-            echo "Error: --open requires html among the requested formats. Under bun, html is only available for coverage — pass --coverage-format=html, or add --use-vitest to get the html test-execution SPA." >&2
+            echo "Error: --open requires html among the requested formats. Under bun, html is only available for coverage — pass --coverage-format=html (or =monocart), or add --use-vitest for the html test-execution SPA." >&2
         else
-            echo "Error: --open requires html among the requested formats — pass --report-format=html or --coverage-format=html." >&2
+            echo "Error: --open requires html among the requested formats — pass --report-format=html, --coverage-format=html, or --coverage-format=monocart." >&2
         fi
         exit 2
     fi

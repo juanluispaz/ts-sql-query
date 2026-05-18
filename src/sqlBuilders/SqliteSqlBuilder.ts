@@ -279,7 +279,7 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return 'cast(' + this._appendSql(valueSource, params, false) + 'as real)'
     }
     override _ln(params: any[], valueSource: ToSql): string {
-        return 'log(' + this._appendSql(valueSource, params, false) + ')'
+        return 'ln(' + this._appendSql(valueSource, params, false) + ')'
     }
     override _log10(params: any[], valueSource: ToSql): string {
         return 'log10(' + this._appendSql(valueSource, params, false) + ')'

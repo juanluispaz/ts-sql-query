@@ -1019,12 +1019,6 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     aggregateAsArrayOfOneColumn<VALUE extends IValueSource<any, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof source], Array<VALUE[typeof valueType]>, 'required'> {
         return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required', false)
     }
-    aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
-        return new AggregateValueAsArrayValueSource(columns as QueryColumns, 'InnerResultObject', 'required', true)
-    }
-    aggregateAsArrayOfOneColumnDistinct<VALUE extends IValueSource<any, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof source], Array<VALUE[typeof valueType]>, 'required'> {
-        return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required', true)
-    }
 
     dynamicConditionFor<DEFINITION extends Filterable>(definition: DEFINITION): DynamicConditionExpression<DEFINITION, never>
     dynamicConditionFor<DEFINITION extends Filterable, EXTENSION extends DinamicConditionExtension>(definition: DEFINITION, extension: EXTENSION): DynamicConditionExpression<DEFINITION, EXTENSION>
@@ -1367,5 +1361,10 @@ export interface TransactionIsolationLevel {
     [transactionIsolationLevel]: 'transactionIsolationLevel'
 }
 
-type AggregatedArrayColumns<DB extends NDB> = DataToProject<NWithDB<DB>>
-type SourceOfAggregatedArray<TYPE> = GetDataToProjectSource<TYPE>
+// Exposed for use by the concrete connection subclasses whose dialect
+// accepts DISTINCT inside JSON-array aggregates (PG, MariaDB, SQLite,
+// NoopDB) — they declare `aggregateAsArrayDistinct` /
+// `aggregateAsArrayOfOneColumnDistinct` themselves so the property is
+// absent on MySQL / Oracle / SQL Server connections.
+export type AggregatedArrayColumns<DB extends NDB> = DataToProject<NWithDB<DB>>
+export type SourceOfAggregatedArray<TYPE> = GetDataToProjectSource<TYPE>

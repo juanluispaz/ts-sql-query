@@ -1,9 +1,16 @@
 import type { NConnection } from '../utils/sourceName.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { SqliteSqlBuilder } from '../sqlBuilders/SqliteSqlBuilder.js'
+import type { AggregatedArrayColumns, SourceOfAggregatedArray } from './AbstractConnection.js'
 import { AbstractConnection } from './AbstractConnection.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from './SqliteConfiguration.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
+import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IValueSource } from '../expressions/values.js'
+import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
+import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
+import { source, valueType } from '../utils/symbols.js'
+import { AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
+import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 
 export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<NConnection<'sqlite', NAME>> {
 
@@ -12,6 +19,13 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     constructor(queryRunner: QueryRunner, sqlBuilder = new SqliteSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('sqlite')
+    }
+
+    aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<NConnection<'sqlite', NAME>>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
+        return new AggregateValueAsArrayValueSource(columns as QueryColumns, 'InnerResultObject', 'required', true)
+    }
+    aggregateAsArrayOfOneColumnDistinct<VALUE extends IValueSource<any, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof source], Array<VALUE[typeof valueType]>, 'required'> {
+        return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required', true)
     }
 
     /**

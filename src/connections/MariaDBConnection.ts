@@ -1,8 +1,14 @@
 import type { NConnection } from '../utils/sourceName.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { MariaDBSqlBuilder } from '../sqlBuilders/MariaDBSqlBuilder.js'
-import type { TransactionIsolationLevel } from './AbstractConnection.js'
+import type { AggregatedArrayColumns, SourceOfAggregatedArray, TransactionIsolationLevel } from './AbstractConnection.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
+import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IValueSource } from '../expressions/values.js'
+import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
+import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
+import { source, valueType } from '../utils/symbols.js'
+import { AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
+import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
 
 export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends AbstractAdvancedConnection<NConnection<'mariaDB', NAME>> {
  
@@ -45,6 +51,13 @@ export abstract class MariaDBConnection</*in|out*/ NAME extends string> extends 
     constructor(queryRunner: QueryRunner, sqlBuilder = new MariaDBSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('mariaDB')
+    }
+
+    aggregateAsArrayDistinct<COLUMNS extends AggregatedArrayColumns<NConnection<'mariaDB', NAME>>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
+        return new AggregateValueAsArrayValueSource(columns as QueryColumns, 'InnerResultObject', 'required', true)
+    }
+    aggregateAsArrayOfOneColumnDistinct<VALUE extends IValueSource<any, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof source], Array<VALUE[typeof valueType]>, 'required'> {
+        return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required', true)
     }
 
     isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable', accessMode?: 'read write' | 'read only'): TransactionIsolationLevel

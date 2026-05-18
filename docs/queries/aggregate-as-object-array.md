@@ -259,6 +259,10 @@ const acmeCompanyWithCustomers: Promise<{
 }>
 ```
 
+!!! warning "Limitation"
+
+    [MySQL](../configuration/supported-databases/mysql.md), [Oracle](../configuration/supported-databases/oracle.md), and [SQL Server](../configuration/supported-databases/sqlserver.md) don't accept the `DISTINCT` quantifier inside their JSON-array aggregation function. If you try to use `aggregateAsArrayDistinct` or `aggregateAsArrayOfOneColumnDistinct` on any of these databases, you will get a compilation error. A workaround is to pre-deduplicate the values inside a subquery using `subSelectUsing(...).distinct().select(...).forUseAsInlineAggregatedArrayValue()` (shown below).
+
 ## Query as an inline array of objects
 
 ```ts

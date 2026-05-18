@@ -946,6 +946,15 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
             }
             return 'json_arrayagg(json_object(' + jsonObject + '))'
         }
+        // T-SQL's STRING_AGG and JSON_ARRAYAGG do not accept the DISTINCT
+        // quantifier in any version, so the SQL emitted below for the
+        // distinct branch (`string_agg(distinct ...)` / `json_arrayagg(distinct ...)`)
+        // is rejected by the engine at execution time. We deliberately
+        // keep emitting it and let the database surface the error rather
+        // than failing in the builder: the library does not perform
+        // dialect-specific syntactic validation. Consumers needing
+        // distinct aggregation on SQL Server should pre-deduplicate via
+        // a subquery (`subSelectUsing(...).distinct().select(...).forUseAsInlineAggregatedArrayValue()`).
         const distict = aggregatedArrayDistinct ? 'distinct ' : ''
         if (isValueSource(aggregatedArrayColumns)) {
             return "concat('[', string_agg(" + distict + this._appendJsonValueForAggregate(aggregatedArrayColumns, params) + ", ','), ']')"

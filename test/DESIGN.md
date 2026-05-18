@@ -29,9 +29,8 @@ things are now actively missing:
    emitted SQL.
 
 The new suite addresses all six without abandoning the property that made the
-examples valuable in the first place: **only the public surface is touched**.
-Tests never import anything from `src/internal/`, `src/queryBuilders/`,
-`src/sqlBuilders/`, `src/complexProjections/` or `src/utils/`.
+examples valuable in the first place: **only the public surface is touched** —
+see [§1.3](#1-principles) for the precise rule.
 
 ---
 
@@ -640,8 +639,8 @@ test('postgres-negative-types', () => {
 3. Run `bun test test/path/to/file --update-snapshots` (or, preferred,
    `bun run tests:focus <database>/<version>/<connector> --docker -- --update-snapshots`
    — the `-reuse` variant reuses the docker container across
-   invocations, see the "Container reuse" section of
-   [`test/README.md`](./README.md#container-reuse-speeding-up-docker-backed-runs))
+   invocations, see
+   [`CONTAINERS.md` § Container reuse](./CONTAINERS.md#container-reuse-speeding-up-docker-backed-runs))
    to bake the SQL and params into the file.
 4. Port the same `describe` + `test` name to the rest. SQL differs when
    it must (the snapshot in each cell records its own version); comment

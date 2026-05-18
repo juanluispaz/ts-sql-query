@@ -29,7 +29,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('TableOrViewOf/accepts-aliased-table', () => {
+    test('docs:tables-views-as-parameter/table-or-view-of-accepts-aliased-table', () => {
         // doc-start
         const project = tProject.as('project')
         const ref: TableOrViewOf<typeof tProject, 'project'> = project
@@ -39,7 +39,7 @@ describe(ctx.label, () => {
         void ref
     })
 
-    test('TableOrViewLeftJoinOf/typing', () => {
+    test('docs:tables-views-as-parameter/table-or-view-left-join-of-typing', () => {
         // doc-start
         const issueLJ = tIssue.forUseInLeftJoinAs('issue')
         const ref: TableOrViewLeftJoinOf<typeof tIssue, 'issue'> = issueLJ
@@ -49,7 +49,7 @@ describe(ctx.label, () => {
         void ref
     })
 
-    test('fromRef/recovers-columns-from-a-ref', () => {
+    test('docs:tables-views-as-parameter/from-ref-recovers-columns-from-a-ref', () => {
         // doc-start
         const project = tProject.as('project')
         const ref: TableOrViewOf<typeof tProject, 'project'> = project
@@ -65,7 +65,7 @@ describe(ctx.label, () => {
     // we keep the inner subquery untyped (cast helper away) so the
     // SQL emission still gets validated. This guards the runtime
     // contract while the typing weakness is documented above.
-    test('helper-pattern/runtime-sql-emission', async () => {
+    test('docs-extra:tables-views-as-parameter/helper-pattern-runtime-sql-emission', async () => {
         ctx.mockNext({ id: 1, name: 'Marketing site', issueCount: 2 })
 
         const project = tProject.as('project')

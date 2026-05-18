@@ -29,7 +29,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('custom-boolean/insert-maps-true-false-to-Y-N', async () => {
+    test('docs:custom-booleans-values/insert-maps-true-false-to-Y-N', async () => {
         ctx.mockNext(99)
 
         // doc-start
@@ -63,7 +63,7 @@ describe(ctx.label, () => {
         }
     })
 
-    test('custom-boolean/select-maps-Y-N-to-true-false', async () => {
+    test('docs:custom-booleans-values/select-maps-Y-N-to-true-false', async () => {
         ctx.mockNext([{ id: 1, name: 'demo', active: true }])
 
         // doc-start

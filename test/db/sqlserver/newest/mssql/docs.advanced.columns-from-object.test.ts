@@ -20,7 +20,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('extract-columns/select-all', async () => {
+    test('docs:columns-from-object/extract-columns-select-all', async () => {
         ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'pro', createdAt: new Date() })
 
         // doc-start
@@ -50,7 +50,7 @@ describe(ctx.label, () => {
         }
     })
 
-    test('extract-columns/exclude-keys', async () => {
+    test('docs:columns-from-object/extract-columns-exclude-keys', async () => {
         // doc-start
         const cols = extractColumnsFrom(tOrganization, ['createdAt'])
         // doc-end
@@ -64,7 +64,7 @@ describe(ctx.label, () => {
         expect(k).not.toContain('createdAt')
     })
 
-    test('extract-column-names', () => {
+    test('docs:columns-from-object/extract-column-names', () => {
         // doc-start
         const names = extractColumnNamesFrom(tOrganization)
         // doc-end
@@ -72,7 +72,7 @@ describe(ctx.label, () => {
         expect(names.sort()).toEqual(['createdAt', 'id', 'name', 'plan'])
     })
 
-    test('extract-writable-columns', async () => {
+    test('docs:columns-from-object/extract-writable-columns', async () => {
         // doc-start
         const cols = extractWritableColumnsFrom(tIssue)
         // doc-end
@@ -97,7 +97,7 @@ describe(ctx.label, () => {
         ])
     })
 
-    test('extract-id-columns', () => {
+    test('docs:columns-from-object/extract-id-columns', () => {
         // doc-start
         const cols = extractIdColumnsFrom(tOrganization)
         // doc-end
@@ -105,7 +105,7 @@ describe(ctx.label, () => {
         expect(Object.keys(cols)).toEqual(['id'])
     })
 
-    test('extract-writable-shape', () => {
+    test('docs:columns-from-object/extract-writable-shape', () => {
         // doc-start
         const shape = extractWritableShapeFrom(tOrganization)
         // doc-end

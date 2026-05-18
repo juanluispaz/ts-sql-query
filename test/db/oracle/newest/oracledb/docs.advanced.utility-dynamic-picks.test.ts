@@ -26,19 +26,19 @@ describe(ctx.label, () => {
         slug: tProject.slug,
     }
 
-    test('DynamicPickPaths/type', () => {
+    test('docs-extra:utility-dynamic-picks/dynamic-pick-paths-type', () => {
         type Paths = DynamicPickPaths<typeof availableFields>
         // All three top-level paths are exposed by the helper.
         assertType<Exact<Paths, 'id' | 'name' | 'slug'>>()
     })
 
-    test('PickValuesPath/type', () => {
+    test('docs-extra:utility-dynamic-picks/pick-values-path-type', () => {
         type Result = PickValuesPath<typeof availableFields, 'id' | 'name'>
         // Only the picked fields appear in the result, as required.
         assertType<Exact<Result, { id: number; name: string }>>()
     })
 
-    test('typed-helper/business-type-pattern', async () => {
+    test('docs-extra:utility-dynamic-picks/typed-helper-business-type-pattern', async () => {
         interface ProjectInformation {
             id:   number
             name: string

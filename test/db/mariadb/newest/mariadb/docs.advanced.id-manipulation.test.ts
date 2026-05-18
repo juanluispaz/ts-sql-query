@@ -16,7 +16,7 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    test('IDEncrypter/round-trip', () => {
+    test('docs:id-manipulation/encrypter-round-trip', () => {
         // doc-start: same passwords as in the docs page.
         const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
         const encrypted = enc.encrypt(1n)
@@ -27,7 +27,7 @@ describe(ctx.label, () => {
         expect(decrypted).toBe(1n)
     })
 
-    test('IDEncrypter/different-ids-different-output', () => {
+    test('docs-extra:id-manipulation/encrypter-different-ids-different-output', () => {
         const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
         const e1 = enc.encrypt(1n)
         const e2 = enc.encrypt(2n)
@@ -39,7 +39,7 @@ describe(ctx.label, () => {
         expect(enc.decrypt(e3)).toBe(99999n)
     })
 
-    test('IDEncrypter/large-bigint', () => {
+    test('docs-extra:id-manipulation/encrypter-large-bigint', () => {
         const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
         const large = 9007199254740993n  // > Number.MAX_SAFE_INTEGER
         const e = enc.encrypt(large)

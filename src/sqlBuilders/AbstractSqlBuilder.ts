@@ -1,4 +1,4 @@
-import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry } from './SqlBuilder.js'
+import type { ToSql, SqlBuilder, DeleteData, InsertData, UpdateData, SelectData, PlainSelectData, SqlOperation, WithQueryData, CompoundOperator, JoinData, QueryColumns, FlatQueryColumns, WithSelectData, WithValuesData, OrderByEntry } from './SqlBuilder.js'
 import { flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { AnyTableOrView, __ITableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
@@ -710,6 +710,20 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         return fromJoins
     }
+    _buildSelectGroupBy(query: PlainSelectData, params: any[], isOutermostQuery: boolean): string {
+        const groupBy = query.__groupBy
+        if (groupBy.length <= 0) {
+            return ''
+        }
+        let result = ' group by '
+        for (let i = 0, length = groupBy.length; i < length; i++) {
+            if (i > 0) {
+                result += ', '
+            }
+            result += this._appendSelectColumn(groupBy[i]!, params, undefined, isOutermostQuery)
+        }
+        return result
+    }
     _buildSelectWithColumnsInfo(query: SelectData, params: any[], columnsForInsert: { [name: string]: DBColumn | undefined }, isOutermostQuery: boolean): string {
         const oldSafeTableOrView = this._getSafeTableOrView(params)
         const oldWithGenerated = this._isWithGenerated(params)
@@ -901,17 +915,7 @@ export class AbstractSqlBuilder implements SqlBuilder {
             }
         }
 
-        let requireComma = false
-        const groupBy = query.__groupBy
-        for (let i = 0, length = groupBy.length; i < length; i++) {
-            if (requireComma) {
-                selectQuery += ', '
-            } else {
-                selectQuery += ' group by '
-            }
-            selectQuery += this._appendSelectColumn(groupBy[i]!, params, undefined, isOutermostQuery)
-            requireComma = true
-        }
+        selectQuery += this._buildSelectGroupBy(query, params, isOutermostQuery)
 
         const having = query.__having
         if (having) {

@@ -45,11 +45,11 @@ describe(ctx.label, () => {
                     name: tProjectLeftJoin.name,
                 }).asOptionalNonEmptyArray(),
             })
-            .groupBy('id')
+            .groupBy('id', 'name')
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_agg(json_build_object('id', project.id, 'name', project.name)) as projects from organization left join project on project.organization_id = organization.id and project.archived_at is null where organization.id = $1 group by organization.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_agg(json_build_object('id', project.id, 'name', project.name)) as projects from organization left join project on project.organization_id = organization.id and project.archived_at is null where organization.id = $1 group by organization.id, organization.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -84,11 +84,11 @@ describe(ctx.label, () => {
                 name:         tOrganization.name,
                 projectNames: connection.aggregateAsArrayOfOneColumn(tProjectLeftJoin.name),
             })
-            .groupBy('id')
+            .groupBy('id', 'name')
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_agg(project.name) as "projectNames" from organization left join project on project.organization_id = organization.id where organization.id = $1 group by organization.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_agg(project.name) as "projectNames" from organization left join project on project.organization_id = organization.id where organization.id = $1 group by organization.id, organization.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -215,11 +215,11 @@ describe(ctx.label, () => {
                 name:       tProject.name,
                 priorities: connection.aggregateAsArrayOfOneColumnDistinct(tIssueLeftJoin.priority),
             })
-            .groupBy('id')
+            .groupBy('id', 'name')
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, json_agg(distinct issue.priority) as priorities from project left join issue on issue.project_id = project.id where project.id = $1 group by project.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.name as name, json_agg(distinct issue.priority) as priorities from project left join issue on issue.project_id = project.id where project.id = $1 group by project.id, project.name"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,

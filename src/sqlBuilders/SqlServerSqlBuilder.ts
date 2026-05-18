@@ -1,5 +1,5 @@
-import type { ToSql, SelectData, InsertData, DeleteData, UpdateData, FlatQueryColumns, QueryColumns, WithValuesData } from './SqlBuilder.js'
-import { hasToSql, flattenQueryColumns } from './SqlBuilder.js'
+import type { ToSql, SelectData, InsertData, DeleteData, UpdateData, FlatQueryColumns, QueryColumns, WithValuesData, OrderByEntry } from './SqlBuilder.js'
+import { hasToSql, flattenQueryColumns, getQueryColumn } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, IExecutableSelectQuery, __AggregatedArrayColumns, ValueType, NativeValueType } from '../expressions/values.js'
@@ -277,10 +277,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += this._appendOrderByColumnAlias(entry, query, params) + ' desc'
                     break
                 case 'asc nulls last':
-                    orderByColumns += 'iif(' + this._appendOrderByColumnAlias(entry, query, params) + ' is null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, params) + ' asc'
+                    orderByColumns += 'iif(' + this._appendOrderByColumnExpression(entry, query, params) + ' is null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, params) + ' asc'
                     break
                 case 'desc nulls first':
-                    orderByColumns += 'iif(' + this._appendOrderByColumnAlias(entry, query, params) + ' is not null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, params) + ' desc'
+                    orderByColumns += 'iif(' + this._appendOrderByColumnExpression(entry, query, params) + ' is not null, 1, 0), ' + this._appendOrderByColumnAlias(entry, query, params) + ' desc'
                     break
                 case 'insensitive':
                     orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params)
@@ -294,10 +294,10 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
                     orderByColumns += this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
                     break
                 case 'asc nulls last insensitive':
-                    orderByColumns += 'iif(' + this._appendOrderByColumnAlias(entry, query, params) + ' is null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' asc'
+                    orderByColumns += 'iif(' + this._appendOrderByColumnExpression(entry, query, params) + ' is null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' asc'
                     break
                 case 'desc nulls first insensitive':
-                    orderByColumns += 'iif(' + this._appendOrderByColumnAlias(entry, query, params) + ' is not null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
+                    orderByColumns += 'iif(' + this._appendOrderByColumnExpression(entry, query, params) + ' is not null, 1, 0), ' + this._appendOrderByColumnAliasInsensitive(entry, query, params) + ' desc'
                     break
                 default:
                     throw new TsSqlProcessingError({ reason: 'INVALID_ORDER_BY_ORDERING', column: this._appendOrderByColumnAlias(entry, query, params), ordering: order }, 'Invalid order by: ' + order)
@@ -338,6 +338,240 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return result
     }
+    // -------------------------------------------------------------------
+    // Planned-but-not-shipped: PK-aware GROUP BY auto-expansion.
+    //
+    // === Why dialects diverge on GROUP BY ===========================
+    //
+    // SQL:1999 requires every non-aggregated column in the SELECT list
+    // to appear in the GROUP BY clause. The engines differ in how
+    // strictly they enforce that rule:
+    //
+    //  - SQL Server (T-SQL): strict. The optimizer does not look at
+    //    declared primary or unique keys when validating the SELECT
+    //    list, so `select t.id, t.name, count(...) from t group by t.id`
+    //    is always rejected with
+    //    `Column 't.name' is invalid in the select list because it is
+    //    not contained in either an aggregate function or the GROUP BY
+    //    clause`.
+    //  - Oracle: strict. Same rule; raises
+    //    `ORA-00979: not a GROUP BY expression`. Identical behaviour
+    //    in practice to SQL Server for these queries.
+    //  - PostgreSQL: relaxed via functional dependency (SQL:2003
+    //    optional feature T301). When the GROUP BY contains the
+    //    primary key of a table, every other column from THAT table is
+    //    considered functionally dependent on the key and may be
+    //    selected ungrouped — PG accepts it without warning. This is
+    //    documented in https://www.postgresql.org/docs/current/sql-select.html#SQL-GROUPBY
+    //    ("When GROUP BY is present, [...] every column referenced [...]
+    //    must either appear in the grouping list or be used inside an
+    //    aggregate function [...] OR the SELECT list column be
+    //    functionally dependent on the grouping columns."). PG does
+    //    NOT extend the relaxation across joins.
+    //  - MySQL: lenient by default — non-aggregated columns are
+    //    accepted regardless of functional dependency, and the engine
+    //    picks an arbitrary value per group. Strict behaviour is opt-in
+    //    via the `ONLY_FULL_GROUP_BY` SQL mode, which has been on by
+    //    default since MySQL 5.7.5. With strict mode on, MySQL applies
+    //    the functional-dependency rule similarly to PostgreSQL but
+    //    with broader reach (it also considers unique/not-null
+    //    constraints and JOIN equality, see
+    //    https://dev.mysql.com/doc/refman/8.0/en/group-by-handling.html).
+    //  - MariaDB: lenient by default, same as MySQL's pre-5.7
+    //    behaviour. ONLY_FULL_GROUP_BY can be enabled.
+    //  - SQLite: lenient — silently accepts non-aggregated columns and
+    //    picks an arbitrary row per group.
+    //
+    // For the docs example `select { id, name, agg } group by id`,
+    // PostgreSQL accepts it because `id` is the PK of the only
+    // ungrouped-column source table; MySQL / MariaDB / SQLite accept it
+    // unconditionally; SQL Server and Oracle reject it.
+    //
+    // === The implemented (but commented-out) solution ===============
+    //
+    // The override `_buildSelectGroupBy` below closes the gap by
+    // emulating PostgreSQL's functional-dependency rule on SQL Server:
+    //
+    //  1. Emit every user-supplied GROUP BY item as today. While doing
+    //     so, identify each item that is a `Column` flagged as a
+    //     primary key (`__isPrimaryKey === true`); record its owning
+    //     `__tableOrView` in a "PK-grouped tables" set.
+    //  2. If at least one PK-grouped table was recorded, walk the
+    //     flattened SELECT columns. For every column-typed value source
+    //     whose owning table is in the PK-grouped set AND that is not
+    //     itself an aggregate, append it to the GROUP BY (deduping by
+    //     emitted SQL text).
+    //  3. The aggregate detector `_isAggregateValueSource` returns true
+    //     for the `aggregatedArray` value-type family (used by
+    //     `aggregateAsArray*`) and for the eleven aggregate operations
+    //     enumerated by `AggregateFunctions0|1|1or2`: `_countAll`,
+    //     `_count`, `_countDistinct`, `_max`, `_min`, `_sum`,
+    //     `_sumDistinct`, `_average`, `_averageDistinct`,
+    //     `_stringConcat`, `_stringConcatDistinct`.
+    //
+    // === What this would cover ======================================
+    //
+    //  - The exact PostgreSQL semantics: when grouping by a PK,
+    //    same-table non-aggregated columns become valid on T-SQL too.
+    //  - The common docs pattern `select { id, name, aggregateAsArray }
+    //    .groupBy('id')` works portably without dialect-specific
+    //    `.groupBy(...)` changes.
+    //  - Composite PKs work transparently — if the user groups by all
+    //    columns of a composite PK, only that table is PK-grouped and
+    //    its other columns are pulled in.
+    //  - Window functions are correctly left ungrouped because the
+    //    detector does not classify them as aggregates AND the
+    //    aggregator gets called on the inner expression only (this
+    //    matches strict ANSI semantics where the window function's
+    //    OVER clause expression is what governs the row grouping).
+    //
+    // === What this would NOT cover ==================================
+    //
+    //  - Columns from joined tables not functionally dependent on the
+    //    PK that was grouped (e.g. `.groupBy(tA.id)` with a SELECT
+    //    that projects `tB.name` from a many-to-many join). SQL Server
+    //    would still raise — and that matches PostgreSQL, which would
+    //    also reject the same query, so the gap is intentional.
+    //  - Computed expressions and `rawFragment`s in the SELECT — the
+    //    detector cannot tell whether an arbitrary fragment is an
+    //    aggregate, so it conservatively treats them as non-aggregate.
+    //    A fragment like `\`avg(t.x)\`` would therefore be added to
+    //    the GROUP BY, producing wrong results. Users that mix
+    //    aggregate-bearing rawFragments with `.groupBy(...)` would
+    //    need to declare every non-aggregated column explicitly anyway.
+    //  - Grouping by a non-PK column (a unique-not-null constraint,
+    //    or an expression). PG also rejects most of these, so again
+    //    the gap matches PG.
+    //  - MySQL's broader functional-dependency reach (it tracks
+    //    unique/not-null/JOIN equality). We only emulate PG's PK rule.
+    //
+    // === Problems this could introduce ==============================
+    //
+    //  - **Semantic surprise on broken queries**: if a user's query is
+    //    actually buggy (selecting `tB.col` with `.groupBy(tA.pk)` and
+    //    a non-functional join), PG flags it as a SQL error; with this
+    //    override active, T-SQL would still raise too — so on shipped
+    //    code paths the user-visible behavior is the same. But the
+    //    error text from SQL Server may now blame a column we
+    //    auto-added (the user didn't write it in `.groupBy(...)`),
+    //    making the diagnostic confusing.
+    //  - **Snapshot churn**: every existing MSSQL test snapshot that
+    //    covers a `GROUP BY` becomes longer, because columns are
+    //    enumerated explicitly in the emitted SQL even where the user
+    //    only wrote `.groupBy('pk')`. The test suite would need to
+    //    re-record every affected snapshot at deploy time.
+    //  - **Detector blind spots**: an aggregate exposed via a custom
+    //    user-defined operation (uncommon, but possible through
+    //    `_appendCustomBooleanRemapForColumnIfNeeded`-style extension
+    //    points) wouldn't be in the enumerated case list above and
+    //    would be misclassified as non-aggregate, then auto-added to
+    //    GROUP BY, producing wrong SQL.
+    //  - **Performance**: negligible — the walk is O(N * M) on the
+    //    flattened SELECT columns plus the user groupBy list, both
+    //    typically small. No DB-side change either since the columns
+    //    we add are functionally dependent.
+    //  - **Cross-database consistency cost**: shipping this on SQL
+    //    Server but not on Oracle leaves the gap on Oracle, where the
+    //    same code would still fail. Oracle has the matching note in
+    //    `OracleSqlBuilder.ts` so the implementation can be lifted
+    //    later when desired.
+    //
+    // === Why we did not ship it =====================================
+    //
+    //  - The library deliberately does not perform dialect-specific
+    //    syntactic validation — when emitted SQL is invalid for an
+    //    engine, the engine raises at execution time. Adding silent
+    //    auto-expansion on SQL Server breaks that principle (we'd be
+    //    rewriting the user's `.groupBy(...)`, not just emitting their
+    //    intent verbatim).
+    //  - The docs example was updated to spell out every non-aggregated
+    //    column in `.groupBy(...)` (`.groupBy('id', 'name')`), so the
+    //    same TypeScript now works portably without library magic.
+    //  - The same machinery (`_isAggregateValueSource` + walking the
+    //    SELECT) is the obvious building block for a future
+    //    `.groupBy()`-with-no-args ergonomic API: a single explicit
+    //    user opt-in that means "infer the GROUP BY by listing every
+    //    non-aggregated SELECT column", portable across every dialect.
+    //    The extension point on `AbstractSqlBuilder._buildSelectGroupBy`
+    //    is kept so that work can land later without another refactor.
+    //
+    // Oracle has the same strictness gap; see the matching note in
+    // `OracleSqlBuilder.ts`.
+    //
+    // override _buildSelectGroupBy(query: PlainSelectData, params: any[], isOutermostQuery: boolean): string {
+    //     const groupBy = query.__groupBy
+    //     if (groupBy.length <= 0) {
+    //         return ''
+    //     }
+    //
+    //     const pkGroupedTables = new Set<AnyTableOrView>()
+    //     const seen = new Set<string>()
+    //     let result = ' group by '
+    //     for (let i = 0, length = groupBy.length; i < length; i++) {
+    //         if (i > 0) {
+    //             result += ', '
+    //         }
+    //         const entry = groupBy[i]!
+    //         const sql = this._appendSelectColumn(entry, params, undefined, isOutermostQuery)
+    //         seen.add(sql)
+    //         result += sql
+    //         if (isColumn(entry) && __getColumnPrivate(entry).__isPrimaryKey) {
+    //             pkGroupedTables.add(__getColumnPrivate(entry).__tableOrView)
+    //         }
+    //     }
+    //
+    //     if (pkGroupedTables.size > 0) {
+    //         const flat: FlatQueryColumns = {}
+    //         flattenQueryColumns(query.__columns, flat, '')
+    //         for (const property in flat) {
+    //             const column = flat[property]!
+    //             if (!isColumn(column)) {
+    //                 continue
+    //             }
+    //             const columnPrivate = __getColumnPrivate(column)
+    //             if (!pkGroupedTables.has(columnPrivate.__tableOrView)) {
+    //                 continue
+    //             }
+    //             if (this._isAggregateValueSource(column)) {
+    //                 continue
+    //             }
+    //             const sql = this._appendSelectColumn(column, params, undefined, isOutermostQuery)
+    //             if (seen.has(sql)) {
+    //                 continue
+    //             }
+    //             seen.add(sql)
+    //             result += ', ' + sql
+    //         }
+    //     }
+    //
+    //     return result
+    // }
+    //
+    // _isAggregateValueSource(value: any): boolean {
+    //     if (!isValueSource(value)) {
+    //         return false
+    //     }
+    //     if (__getValueSourcePrivate(value).__valueType === 'aggregatedArray') {
+    //         return true
+    //     }
+    //     switch (operationOf(value)) {
+    //         case '_countAll':
+    //         case '_count':
+    //         case '_countDistinct':
+    //         case '_max':
+    //         case '_min':
+    //         case '_sum':
+    //         case '_sumDistinct':
+    //         case '_average':
+    //         case '_averageDistinct':
+    //         case '_stringConcat':
+    //         case '_stringConcatDistinct':
+    //             return true
+    //         default:
+    //             return false
+    //     }
+    // }
+    // -------------------------------------------------------------------
     _appendOrderByColumnExpression(entry: OrderByEntry, query: SelectData, params: any[]): string {
         // T-SQL does not resolve SELECT aliases inside scalar functions in
         // ORDER BY (only as bare references). When the entry is an alias

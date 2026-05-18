@@ -43,7 +43,7 @@ const acmeCompanyWithCustomers = connection.selectFrom(tCompany)
             lastName: tCustomerLeftJoin.lastName
         }).asOptionalNonEmptyArray()
     })
-    .groupBy('id')
+    .groupBy('id', 'name')
     .executeSelectOne();
 ```
 
@@ -62,7 +62,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id
+    group by company.id, company.name
     ```
 === "MySQL"
     ```mysql
@@ -77,7 +77,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id
+    group by company.id, company.name
     ```
 === "Oracle"
     ```oracle
@@ -92,7 +92,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = :0 
-    group by company.id
+    group by company.id, company.name
     ```
 ===+ "PostgreSQL"
     ```postgresql
@@ -107,7 +107,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = $1 
-    group by company.id
+    group by company.id, company.name
     ```
 === "SQLite"
     ```sqlite
@@ -122,7 +122,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id
+    group by company.id, company.name
     ```
 === "SQL Server"
     ```sqlserver
@@ -137,7 +137,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = @0 
-    group by company.id
+    group by company.id, company.name
     ```
 
 The parameters are: `[ 1 ]`
@@ -175,7 +175,7 @@ const acmeCompanyWithCustomers = connection.selectFrom(tCompany).leftJoin(tCusto
         name: tCompany.name,
         customers: connection.aggregateAsArrayOfOneColumn(tCustomerLeftJoin.firstName.concat(' ').concat(tCustomerLeftJoin.lastName))
     })
-    .groupBy('id')
+    .groupBy('id', 'name')
     .executeSelectOne();
 ```
 
@@ -190,7 +190,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id
+    group by company.id, company.name
     ```
 === "MySQL"
     ```mysql
@@ -201,7 +201,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id
+    group by company.id, company.name
     ```
 === "Oracle"
     ```oracle
@@ -212,7 +212,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = :1 
-    group by company.id
+    group by company.id, company.name
     ```
 ===+ "PostgreSQL"
     ```postgresql
@@ -223,7 +223,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = $2 
-    group by company.id
+    group by company.id, company.name
     ```
 === "SQLite"
     ```sqlite
@@ -234,7 +234,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = ? 
-    group by company.id
+    group by company.id, company.name
     ```
 === "SQL Server"
     ```sqlserver
@@ -245,7 +245,7 @@ The executed query is:
     from company 
     left join customer on customer.company_id = company.id 
     where company.id = @1 
-    group by company.id
+    group by company.id, company.name
     ```
 
 The parameters are: `[ " ", 1 ]`

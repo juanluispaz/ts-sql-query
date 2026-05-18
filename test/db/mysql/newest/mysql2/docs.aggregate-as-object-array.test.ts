@@ -6,7 +6,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
+import { tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -45,11 +45,11 @@ describe(ctx.label, () => {
                     name: tProjectLeftJoin.name,
                 }).asOptionalNonEmptyArray(),
             })
-            .groupBy('id')
+            .groupBy('id', 'name')
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as id, \`organization\`.\`name\` as \`name\`, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id and project.archived_at is null where \`organization\`.id = ? group by \`organization\`.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as id, \`organization\`.\`name\` as \`name\`, json_arrayagg(json_object('id', project.id, 'name', project.\`name\`)) as projects from \`organization\` left join project on project.organization_id = \`organization\`.id and project.archived_at is null where \`organization\`.id = ? group by \`organization\`.id, \`organization\`.\`name\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -84,11 +84,11 @@ describe(ctx.label, () => {
                 name:         tOrganization.name,
                 projectNames: connection.aggregateAsArrayOfOneColumn(tProjectLeftJoin.name),
             })
-            .groupBy('id')
+            .groupBy('id', 'name')
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as id, \`organization\`.\`name\` as \`name\`, json_arrayagg(project.\`name\`) as projectNames from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select \`organization\`.id as id, \`organization\`.\`name\` as \`name\`, json_arrayagg(project.\`name\`) as projectNames from \`organization\` left join project on project.organization_id = \`organization\`.id where \`organization\`.id = ? group by \`organization\`.id, \`organization\`.\`name\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -197,8 +197,19 @@ describe(ctx.label, () => {
         expect(row).toEqual(expected)
     })
 
+    // `aggregateAsArrayOfOneColumnDistinct` is not exposed on
+    // `MySqlConnection` — MySQL's `JSON_ARRAYAGG` does not accept the
+    // DISTINCT quantifier (`ER_PARSE_ERROR: syntax error near 'distinct …'`)
+    // and the same-query emulation is not portable (it would require
+    // restructuring the outer SELECT). The method is therefore only
+    // declared on PostgreSqlConnection, MariaDBConnection,
+    // SqliteConnection and NoopDBConnection, so calling it on a
+    // MySqlConnection is a TypeScript compile error. The test body is
+    // kept commented out for cross-cell symmetry. Documented workaround
+    // for users:
+    // `subSelectUsing(...).distinct().select(...).forUseAsInlineAggregatedArrayValue()`.
+    /*
     test('docs:aggregate-as-object-array/aggregate-as-array-distinct', async () => {
-        // Per-issue counts of priorities, distinct list.
         ctx.mockNext({
             id: 1, name: 'Marketing site',
             priorities: JSON.stringify([1, 2]),
@@ -215,21 +226,11 @@ describe(ctx.label, () => {
                 name:       tProject.name,
                 priorities: connection.aggregateAsArrayOfOneColumnDistinct(tIssueLeftJoin.priority),
             })
-            .groupBy('id')
+            .groupBy('id', 'name')
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select project.id as id, project.\`name\` as \`name\`, json_arrayagg(distinct issue.priority) as priorities from project left join issue on issue.project_id = project.id where project.id = ? group by project.id"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-          ]
-        `)
-        assertType<Exact<typeof row, {
-            id:         number
-            name:       string
-            priorities: number[]
-        }>>()
         expect(row?.priorities).toEqual(expect.arrayContaining([1, 2]))
     })
+    */
 })

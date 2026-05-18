@@ -20,6 +20,23 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         this._operationsThatNeedParenthesis._negate = true
     }
 
+    // Oracle is strict ANSI about GROUP BY: every non-aggregated SELECT
+    // column must appear in the GROUP BY clause, otherwise it raises
+    // `ORA-00979: not a GROUP BY expression`. PostgreSQL relaxes this via
+    // functional dependency when grouping by a primary key. The library
+    // could close the gap by overriding `_buildSelectGroupBy` here with a
+    // PK-aware auto-expansion, equivalent to the same approach planned
+    // for SQL Server. See the commented-out `_buildSelectGroupBy` /
+    // `_isAggregateValueSource` block in
+    // [src/sqlBuilders/SqlServerSqlBuilder.ts] for the reference
+    // implementation and the rationale for not shipping it yet — the
+    // chosen path is to require consumers to spell out every
+    // non-aggregated column in `.groupBy(...)`, so the same TypeScript
+    // works on every dialect without dialect-specific auto-expansion.
+    // The hook on `AbstractSqlBuilder._buildSelectGroupBy` is kept so
+    // this (and the future `.groupBy()`-no-args ergonomic API) can land
+    // later without another refactor.
+
     override _useInsertSupportWith(): boolean {
         return false
     }

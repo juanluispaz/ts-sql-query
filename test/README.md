@@ -17,6 +17,7 @@ below are the minimum you need to run and extend the suite.
 > | Docker container reuse, mutation safety, per-worker DBs, parallel timings, bun-vs-vitest cost | [`CONTAINERS.md`](./CONTAINERS.md) |
 > | Coverage flags, report flags, monocart, scope, aliases | [`COVERAGE.md`](./COVERAGE.md) |
 > | Typecheck, symmetry audit, adding a test, adding a database, prisma + sync | [`MAINTAINING.md`](./MAINTAINING.md) |
+> | Tests derived from `docs/queries/*` and `docs/advanced/*` (`docs.*.test.ts` files, `docs:` / `docs-extra:` prefixes) | [`DOCS.md`](./DOCS.md) |
 > | Architecture decisions and rationale | [`DESIGN.md`](./DESIGN.md) |
 > | Known issues | [`BUGS.md`](./BUGS.md) |
 

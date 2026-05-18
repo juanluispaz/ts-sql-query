@@ -246,7 +246,7 @@ const updatedLastNames: Promise<{
 
 ## Update using other tables or views
 
-Sometimes you want to include in the update query other tables or views to process the update instruction, you can add the `from` clause that is like a `from` clasue in a select. This is supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md), [SQL Server](../configuration/supported-databases/sqlserver.md), [MariaDB](../configuration/supported-databases/mariadb.md) or [MySQL](../configuration/supported-databases/mysql.md).
+Sometimes you want to include in the update query other tables or views to process the update instruction, you can add the `from` clause that is like a `from` clasue in a select. This is supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md), [SQL Server](../configuration/supported-databases/sqlserver.md), [MariaDB](../configuration/supported-databases/mariadb.md), [MySQL](../configuration/supported-databases/mysql.md) and [Oracle](../configuration/supported-databases/oracle.md) (Oracle Database 23ai or newer).
 
 ```ts
 const addACMECompanyNameToLastName = connection.update(tCustomer)
@@ -282,11 +282,11 @@ The executed query is:
 === "Oracle"
     ```oracle
     update customer 
-    set last_name = customer.last_name || $1 || company.name 
+    set customer.last_name = customer.last_name || :0 || company.name 
     from company 
     where 
             customer.company_id = company.id 
-        and company.name ilike ('%' || $2 || '%')
+        and lower(company.name) like lower('%' || :1 || '%') escape '\'
     ```
 ===+ "PostgreSQL"
     ```postgresql
@@ -325,7 +325,7 @@ const addACMECompanyNameToLastName: Promise<number>
 
 ## Bulk update
 
-Sometimes you want to do several updates in a single query, where each one have their own data; for this cases you can [map the constant values as view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the update. This is only supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQL Server](../configuration/supported-databases/sqlserver.md) and [SQLite](../configuration/supported-databases/sqlite.md). On [Oracle](../configuration/supported-databases/oracle.md) the `Values` view itself is supported, but combining it with `update.from(...)` is rejected at compile time because Oracle's SQL has no `UPDATE ... FROM` clause; use a `MERGE` or a correlated subquery for the bulk-update use case instead.
+Sometimes you want to do several updates in a single query, where each one have their own data; for this cases you can [map the constant values as view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the update. This is only supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQL Server](../configuration/supported-databases/sqlserver.md) and [SQLite](../configuration/supported-databases/sqlite.md). On [Oracle](../configuration/supported-databases/oracle.md) — even on Oracle 23ai, where `update.from(...)` itself is accepted — combining a `Values` view with `update.from(...)` would emit `WITH name AS (VALUES …) UPDATE … FROM name`, which the Oracle parser rejects with `ORA-00928: SELECT keyword missing` because it does not allow a `WITH` clause to precede an `UPDATE … FROM` statement; use a `MERGE` or a correlated subquery for the bulk-update use case instead.
 
 ```ts
 class VCustomerForUpdate extends Values<DBConnection, 'customerForUpdate'> {

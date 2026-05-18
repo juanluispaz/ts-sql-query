@@ -434,7 +434,7 @@ export interface UpdateFromExpression</*in|out*/ TABLE extends HasSource<any>, /
 }
 
 type FromFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
-    TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'sqlite' | 'mariaDB' | 'mySql'>
+    TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'sqlite' | 'mariaDB' | 'mySql' | 'oracle'>
     ? <T2 extends ITableOrView<any>>(table: T2 & OfSameDB<TABLE>) => UpdateFromExpression<TABLE, USING | T2>
     : never
 
@@ -478,7 +478,7 @@ export interface UpdateFromExpressionAllowingNoWhere</*in|out*/ TABLE extends Ha
 }
 
 type FromFnTypeAllowingNoWhere<TABLE extends HasSource<any>, USING extends HasSource<any>> =
-    TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'sqlite' | 'mariaDB' | 'mySql'>
+    TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'sqlite' | 'mariaDB' | 'mySql' | 'oracle'>
     ? <T2 extends ITableOrView<any>>(table: T2 & OfSameDB<TABLE>) => UpdateFromExpressionAllowingNoWhere<TABLE, USING | T2>
     : never
 

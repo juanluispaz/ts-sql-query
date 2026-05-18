@@ -7,6 +7,7 @@ import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isBoolean
 import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
+import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
 
@@ -39,6 +40,32 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
     override _useInsertSupportWith(): boolean {
         return false
+    }
+    // Oracle Database 23ai added support for the ANSI `UPDATE … FROM`
+    // form (and `DELETE … USING`). Earlier versions reject the clause
+    // at the parser. When the library emits the FROM clause and the
+    // LHS of a SET assignment refers to a column whose name also
+    // exists in one of the FROM-side tables, Oracle raises
+    // `ORA-00918: column ambiguously specified` — PostgreSQL / SQL
+    // Server / SQLite / MariaDB / MySQL all resolve the bare LHS to
+    // the target table, but Oracle requires it to be explicitly
+    // qualified. The override below qualifies the SET LHS with the
+    // target table (or its alias) whenever a FROM/JOIN is present,
+    // matching the `_setSafeTableOrView(params, undefined)` branch in
+    // `_buildUpdate`. Plain `UPDATE … SET col = … WHERE …` (no FROM,
+    // no JOIN) keeps the unqualified form for backwards compatibility
+    // with existing snapshots and to stay close to what users write.
+    override _appendColumnNameForUpdate(column: DBColumn, params: any[]) {
+        const columnPrivate = __getColumnPrivate(column)
+        if (this._getSafeTableOrView(params) === undefined) {
+            const tableOrView = columnPrivate.__tableOrView
+            const tablePrivate = __getTableOrViewPrivate(tableOrView)
+            const qualifier = tablePrivate.__as
+                ? this._escape(tablePrivate.__as, true)
+                : this._escape(tablePrivate.__name, false)
+            return qualifier + '.' + this._escape(columnPrivate.__name, true)
+        }
+        return this._escape(columnPrivate.__name, true)
     }
     _getUuidStrategy(): 'string' | 'custom-functions' | 'built-in' {
         return this._connectionConfiguration.uuidStrategy as any || 'built-in'

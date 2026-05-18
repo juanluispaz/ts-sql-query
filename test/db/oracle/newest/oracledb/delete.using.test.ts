@@ -1,8 +1,11 @@
-// Coverage of `DELETE … USING other-table`. Oracle doesn't support
-// this syntax (use MERGE or a correlated subquery instead). The
-// library type-excludes Oracle. Kept commented for symmetry.
+// Coverage of `DELETE … USING other-table`. Oracle Database 23ai
+// (23.1+) added support for the ANSI form; ts-sql-query exposes it
+// on `OracleConnection` alongside the other dialects that have always
+// accepted it (PostgreSQL, SQL Server, MariaDB, MySQL).
 
-import { afterAll, beforeAll, beforeEach, describe } from '../../../../lib/testRunner.js'
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -10,9 +13,31 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    /*
     test('delete-using-other-table', async () => {
-        // See postgres/mariadb/mysql/sqlserver cells for the active body.
+        ctx.mockNext(2)
+
+        await ctx.withRollback(async () => {
+            // Delete issues whose project's name contains 'Marketing'.
+            const affected = await ctx.conn.deleteFrom(tIssue)
+                .using(tProject)
+                .where(tIssue.projectId.equals(tProject.id))
+                .and(tProject.name.containsInsensitive('Marketing'))
+                .executeDelete()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue using project where issue.project_id = project.id and lower(project.name) like lower('%' || :0 || '%') escape '\\'"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (ctx.realDbEnabled) {
+                expect(typeof affected).toBe('number')
+                // Project 1 = 'Marketing site' → had 2 issues (1, 2)
+                expect(affected).toBe(2)
+            } else {
+                expect(affected).toBe(2)
+            }
+        })
     })
-    */
 })

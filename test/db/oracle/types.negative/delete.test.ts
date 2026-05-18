@@ -1,9 +1,9 @@
-// Compile-time negative tests for DELETE-shaped APIs on the sqlite
+// Compile-time negative tests for DELETE-shaped APIs on the oracle
 // dialect. See `select.test.ts` for the conventions.
 
 import { test, expect } from '../../../lib/testRunner.js'
 import { MockQueryRunner } from '../../../../src/queryRunners/MockQueryRunner.js'
-import { DBConnection, tIssue, tProject } from '../domain/connection.js'
+import { DBConnection, tIssue } from '../domain/connection.js'
 
 const connection = new DBConnection(new MockQueryRunner(() => undefined, 'oracle'))
 
@@ -17,12 +17,6 @@ function _typeNegatives() {
     // not compile.
     // @ts-expect-error 1 is not a table reference
     void connection.deleteFrom(1)
-
-    // Rule: sqlite does NOT support DELETE … USING (covered explicitly
-    // in test/db/sqlite/.../delete.using.test.ts). Calling using() on a
-    // sqlite connection must not typecheck.
-    // @ts-expect-error oracle has no DELETE … USING — using() is excluded
-    void connection.deleteFrom(tIssue).using(tProject)
 }
 
 test('delete-negative-types', () => {

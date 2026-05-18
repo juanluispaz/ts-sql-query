@@ -1,4 +1,4 @@
-// Compile-time negative tests for UPDATE-shaped APIs on the sqlite
+// Compile-time negative tests for UPDATE-shaped APIs on the oracle
 // dialect. See `select.test.ts` for the conventions.
 
 import { test, expect } from '../../../lib/testRunner.js'

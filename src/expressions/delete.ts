@@ -90,7 +90,7 @@ export interface DeleteUsingExpression</*in|out*/ TABLE extends HasSource<any>, 
 }
 
 type UsingFnType<TABLE extends HasSource<any>, USING extends HasSource<any>> =
-    TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'mariaDB' | 'mySql'> 
+    TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'mariaDB' | 'mySql' | 'oracle'>
     ? <T2 extends ITableOrView<any>>(table: T2 & OfSameDB<TABLE>) => DeleteUsingExpression<TABLE, USING | T2>
     : never
 
@@ -134,7 +134,7 @@ export interface DeleteUsingExpressionAllowingNoWhere</*in|out*/ TABLE extends H
 }
 
 type UsingFnTypeAllowingNoWhere<TABLE extends HasSource<any>, USING extends HasSource<any>> =
-    TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'mariaDB' | 'mySql'>
+    TABLE extends OfDB<'noopDB' | 'postgreSql' | 'sqlServer' | 'mariaDB' | 'mySql' | 'oracle'>
     ? <T2 extends ITableOrView<any>>(table: T2 & OfSameDB<TABLE>) => DeleteUsingExpressionAllowingNoWhere<TABLE, USING | T2>
     : never
 

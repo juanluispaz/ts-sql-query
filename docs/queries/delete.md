@@ -148,7 +148,7 @@ Aditionally, if you want to return the value of a single column, you can use `re
 
 ## Delete using other tables or views
 
-Sometimes you want to include in the delete query other tables or views to process the delete instruction, you can add the `using` clause that is like a `from` clause in a select statement. This is supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQL Server](../configuration/supported-databases/sqlserver.md), [MariaDB](../configuration/supported-databases/mariadb.md) or [MySQL](../configuration/supported-databases/mysql.md).
+Sometimes you want to include in the delete query other tables or views to process the delete instruction, you can add the `using` clause that is like a `from` clause in a select statement. This is supported by [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQL Server](../configuration/supported-databases/sqlserver.md), [MariaDB](../configuration/supported-databases/mariadb.md), [MySQL](../configuration/supported-databases/mysql.md) and [Oracle](../configuration/supported-databases/oracle.md) (Oracle Database 23ai or newer).
 
 ```ts
 const deleteACMECustomers = connection.deleteFrom(tCustomer)
@@ -180,11 +180,11 @@ The executed query is:
     ```
 === "Oracle"
     ```oracle
-    --
-    --
-    -- Oracle doesn't support delete using other tables or views
-    --
-    --
+    delete from customer 
+    using company 
+    where 
+            customer.company_id = company.id 
+        and lower(company.name) like lower('%' || :0 || '%') escape '\'
     ```
 ===+ "PostgreSQL"
     ```postgresql
@@ -220,7 +220,7 @@ const deleteACMECustomers: Promise<number>
 
 ## Bulk delete
 
-Sometimes you need to delete multiple rows in a single query, where each condition depends on different data. For these cases, you can [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the deletion. This is only supported by [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQL Server](../configuration/supported-databases/sqlserver.md). On [Oracle](../configuration/supported-databases/oracle.md) the `Values` view itself is supported, but combining it with `deleteFrom.using(...)` is rejected at compile time because Oracle's SQL has no `DELETE ... USING` clause; use a `MERGE` or a correlated subquery for the bulk-delete use case instead.
+Sometimes you need to delete multiple rows in a single query, where each condition depends on different data. For these cases, you can [map the constant values as a view](../configuration/mapping.md#mapping-constant-values-as-view) and perform the deletion. This is only supported by [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQL Server](../configuration/supported-databases/sqlserver.md). On [Oracle](../configuration/supported-databases/oracle.md) — even on Oracle 23ai, where `deleteFrom.using(...)` itself is accepted — combining a `Values` view with `deleteFrom.using(...)` would emit `WITH name AS (VALUES …) DELETE … USING name`, which the Oracle parser rejects with `ORA-00928: SELECT keyword missing` because it does not allow a `WITH` clause to precede a `DELETE … USING` statement; use a `MERGE` or a correlated subquery for the bulk-delete use case instead.
 
 ```ts
 class VCustomerForDelete extends Values<DBConnection, 'customerForDelete'> {

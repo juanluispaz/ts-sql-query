@@ -17,10 +17,12 @@ Opens the previously generated test report without running any
 tests. Picks (in order):
 
   1. .test-report/index.html
-        Vitest's test-execution SPA (from `--report`). Served via
-        `bunx vite preview` because the page fetches metadata and
-        browsers block that under file://; the server blocks until
-        Ctrl+C.
+        Vitest's test-execution SPA (from `--use-vitest --report
+        --report-format=html`). Served via `bunx vite preview`
+        because the page fetches metadata and browsers block that
+        under file://; the server blocks until Ctrl+C. The bun
+        path doesn't produce this file — bun's `--report` writes
+        junit.xml instead, which has no browser viewer.
 
   2. .test-report/coverage/index.html
         Plain istanbul coverage report — emitted by vitest when
@@ -29,8 +31,8 @@ tests. Picks (in order):
         returns immediately.
 
 Exits 1 if neither report exists yet; generate one first with
-`tests --report` and/or `tests --coverage` (or any of the
-coverage:* aliases).
+`tests --use-vitest --report` and/or `tests --coverage` (or any
+of the coverage:* aliases).
 
 Aliased to `tests:reopen` in package.json. User-facing aliases
 (coverage:reopen, etc.) may also chain to this script.

@@ -20,17 +20,29 @@ Usage:
 
 Runs every test under test/. Dispatches to `bun test` when invoked via
 `bun run`, and to `vitest run` when invoked via `npm run`. Direct
-invocation (`sh scripts/tests.sh`) defaults to bun. `--use-vitest`,
-`--ui` and `--report` force the vitest path regardless of how the
-script was invoked.
+invocation (`sh scripts/tests.sh`) defaults to bun. `--use-vitest`
+and `--ui` force the vitest path regardless of how the script was
+invoked; `--report` works under both runtimes (formats differ —
+see below).
 
 Runner trade-off
-  Bun is fast and is the default for the daily test loop.
-  Vitest is the RECOMMENDED path for the rich report stack:
-  bun's coverage is text/lcov only and line-level (no column info)
-  and bun:test has no equivalent to vitest's --reporter machinery,
-  so the test-execution report (`--report`) is vitest-only. Pass
-  --use-vitest from a `bun run` invocation to switch.
+  Bun is fast and is the default for the daily test loop. Vitest is
+  the RECOMMENDED path for the rich report stack — its coverage is
+  V8-based (column-level) vs bun's lcov collapse, and the html
+  test-execution SPA is vitest-only.
+  Under bun:
+    --report-format        junit (file) | dots (terminal). Default
+                           is junit when --report is on. html is
+                           rejected with an error — pass
+                           --use-vitest for the SPA.
+    --coverage-format      text | lcov | html (html is rendered from
+                           lcov by test/lib/coverage/lcovToHtml.ts).
+                           Other vitest reporters are rejected.
+    Passing multiple       --coverage-format values is supported
+                           natively; multiple --report-format values
+                           warn and keep the first (bun's --reporter
+                           is single-valued).
+  Pass --use-vitest from a `bun run` invocation to switch.
 
 Defaults
   --mode             parallel
@@ -41,8 +53,8 @@ Defaults
                      by nothing)
   --use-vitest       off (runtime detected from npm_config_user_agent)
   --ui               off (implies --use-vitest)
-  --report           off (test-execution report; vitest-only)
-  --report-format    html (when --report is on)
+  --report           off (test-execution report)
+  --report-format    html under vitest, junit under bun
   --coverage         off
   --coverage-format  html (when --coverage is on)
   --open             off
@@ -80,20 +92,26 @@ Runner flags
         meaningful interactively; vitest keeps the UI server alive
         until you Ctrl+C.
 
-Report flags (test-execution report — vitest only)
+Report flags (test-execution report)
   --report
         Emit a test-execution report. Output lands under
-        .test-report/ (HTML report at .test-report/index.html when
-        --report-format=html; see vitest.config.ts's
-        `outputFile.html`). Implies --use-vitest. Independent from
-        --coverage: you can have either, both, or neither.
+        .test-report/: under vitest the html SPA lives at
+        .test-report/index.html (see vitest.config.ts's
+        `outputFile.html`); under bun the junit XML lives at
+        .test-report/junit.xml. Independent from --coverage: you
+        can have either, both, or neither.
   --report-format <name>
-        Repeatable. Default `html` when --report is on. Pass-through
-        to vitest's `--reporter`. Common values: html (browseable
-        SPA at .test-report/index.html — needs `bunx vite preview`
-        because the page fetches metadata), default, verbose, dot,
-        tap, tap-flat, junit, json, tree, github-actions. Setting
-        any --report-format implies --report.
+        Repeatable. Default depends on runtime — `html` under
+        vitest, `junit` under bun. Setting any --report-format
+        implies --report.
+        Under vitest, pass-through to `--reporter`. Common values:
+        html (browseable SPA at .test-report/index.html — needs
+        `bunx vite preview` because the page fetches metadata),
+        default, verbose, dot, tap, tap-flat, junit, json, tree,
+        github-actions.
+        Under bun, only `junit` (file at .test-report/junit.xml)
+        and `dots` (terminal-only) are supported. Other values —
+        including `html` — error out and prompt for --use-vitest.
 
 Coverage flags
   --coverage
@@ -108,8 +126,9 @@ Coverage flags
         vitest, every @vitest/coverage-v8 reporter is supported
         (html, text, text-summary, lcov, lcovonly, clover,
         cobertura, json, json-summary, teamcity). Under bun,
-        restricted to `html|text|lcov` and only one value per run
-        (more requires --use-vitest).
+        restricted to `html|text|lcov` (multiple values are
+        honoured — bun's --coverage-reporter is repeatable). Other
+        formats error out.
 
         Scope (which source files end up in the report) is set in
         bunfig.toml and vitest.config.ts — both exclude
@@ -149,8 +168,10 @@ Examples
   bun run tests                                            # fast loop
   bun run tests --docker                                   # + docker
   bun run tests --docker --wasm                            # full matrix
-  bun run tests --report --open                            # test-exec html
-  bun run tests --use-vitest --coverage --open             # coverage html
+  bun run tests --report                                   # bun → junit.xml
+  bun run tests --coverage --coverage-format=html --open   # bun coverage html
+  bun run tests --use-vitest --report --open               # vitest html SPA
+  bun run tests --use-vitest --coverage --open             # vitest coverage html
   bun run tests --use-vitest --report --coverage --open    # both, vite preview
   bun run tests --use-vitest --coverage \
                 --coverage-format=html --coverage-format=lcov \
@@ -183,9 +204,9 @@ while [ $# -gt 0 ]; do
         --wasm)                 WASM=on; shift ;;
         --use-vitest)           USE_VITEST=on; shift ;;
         --ui)                   UI=on; USE_VITEST=on; shift ;;
-        --report)               REPORT=on; USE_VITEST=on; shift ;;
-        --report-format)        REPORT=on; USE_VITEST=on; REPORT_FORMAT+=("$2"); shift 2 ;;
-        --report-format=*)      REPORT=on; USE_VITEST=on; REPORT_FORMAT+=("${1#--report-format=}"); shift ;;
+        --report)               REPORT=on; shift ;;
+        --report-format)        REPORT=on; REPORT_FORMAT+=("$2"); shift 2 ;;
+        --report-format=*)      REPORT=on; REPORT_FORMAT+=("${1#--report-format=}"); shift ;;
         --coverage)             COVERAGE=on; shift ;;
         --coverage-format)      COVERAGE_FORMAT+=("$2"); shift 2 ;;
         --coverage-format=*)    COVERAGE_FORMAT+=("${1#--coverage-format=}"); shift ;;
@@ -203,9 +224,25 @@ case "$DOCKER_MODE" in reuse|no-reuse) ;; *)
     echo "Invalid --docker-mode: $DOCKER_MODE (expected reuse|no-reuse)" >&2; exit 2 ;;
 esac
 
-# Defaults for format arrays when their parent flag is on.
+runtime="$(detect_runtime)"
+if [ "$USE_VITEST" = "on" ]; then runtime="npm"; fi
+export TS_SQL_QUERY_DOCKER="$DOCKER"
+if [ "$DOCKER_MODE" = "reuse" ]; then export TESTCONTAINERS_REUSE_ENABLE=true; fi
+
+# Defaults for the format arrays. The choice depends on the runtime
+# because bun and vitest don't share a usable format: vitest's html
+# is the SPA viewer (default for the recommended path), while bun
+# can't emit html for test-execution — junit is the only file it
+# produces, so that's what we default to under bun. The user can
+# always override with --report-format / --coverage-format; the
+# helpers in _test-common.sh validate per runtime and error if
+# something asked for isn't supportable.
 if [ "$REPORT" = "on" ] && [ "${#REPORT_FORMAT[@]}" -eq 0 ]; then
-    REPORT_FORMAT=("html")
+    if [ "$runtime" = "bun" ]; then
+        REPORT_FORMAT=("junit")
+    else
+        REPORT_FORMAT=("html")
+    fi
 fi
 if [ "$COVERAGE" = "on" ] && [ "${#COVERAGE_FORMAT[@]}" -eq 0 ]; then
     COVERAGE_FORMAT=("html")
@@ -217,8 +254,10 @@ fi
 # the ONLY reporter the user is left staring at a frozen prompt while
 # `bunx vite preview` boots (5–10 s), which reads as "the script
 # exited without doing anything". Inject `default` so a terminal
-# reporter is always present alongside html.
-if [ "$REPORT" = "on" ]; then
+# reporter is always present alongside html. Bun-side reporters
+# (junit, dots) all print something to the terminal natively, so
+# this injection only applies to the vitest path.
+if [ "$REPORT" = "on" ] && [ "$runtime" = "npm" ]; then
     HAS_TERMINAL_REPORTER=off
     for fmt in "${REPORT_FORMAT[@]}"; do
         case "$fmt" in
@@ -232,7 +271,11 @@ if [ "$REPORT" = "on" ]; then
 fi
 
 # --open needs html among the requested formats (either report or
-# coverage), and at least one of --report / --coverage on.
+# coverage), and at least one of --report / --coverage on. Under bun
+# this is the only path to html — bun's --report-format never
+# resolves to html, so users typically pair --open with
+# --coverage-format=html and let our lcovToHtml.ts render it. For
+# the test-exec SPA they need --use-vitest.
 if [ "$OPEN_AFTER" = "on" ]; then
     if [ "$REPORT" = "off" ] && [ "$COVERAGE" = "off" ]; then
         echo "Error: --open requires --report or --coverage." >&2; exit 2
@@ -249,7 +292,12 @@ if [ "$OPEN_AFTER" = "on" ]; then
         done
     fi
     if [ "$HAS_HTML" = "off" ]; then
-        echo "Error: --open requires html among the requested formats — pass --report-format=html or --coverage-format=html." >&2; exit 2
+        if [ "$runtime" = "bun" ]; then
+            echo "Error: --open requires html among the requested formats. Under bun, html is only available for coverage — pass --coverage-format=html, or add --use-vitest to get the html test-execution SPA." >&2
+        else
+            echo "Error: --open requires html among the requested formats — pass --report-format=html or --coverage-format=html." >&2
+        fi
+        exit 2
     fi
 fi
 
@@ -265,19 +313,6 @@ if [ "$COVERAGE" = "on" ] && [ "$WASM" = "on" ] && [ "$MODE" = "parallel" ]; the
     echo "  sequential + main parallel mocked), and the two coverage outputs" >&2
     echo "  can't be merged reliably." >&2
     echo "  Fix: pass --mode sequential, drop --wasm, or drop --coverage." >&2
-    exit 2
-fi
-
-runtime="$(detect_runtime)"
-if [ "$USE_VITEST" = "on" ]; then runtime="npm"; fi
-export TS_SQL_QUERY_DOCKER="$DOCKER"
-if [ "$DOCKER_MODE" = "reuse" ]; then export TESTCONTAINERS_REUSE_ENABLE=true; fi
-
-# --report is vitest-only (bun:test has no --reporter machinery).
-# Error early under bun without --use-vitest so the user sees what
-# happened rather than a silent no-op.
-if [ "$REPORT" = "on" ] && [ "$runtime" = "bun" ]; then
-    echo "Error: --report (test-execution report) requires vitest; add --use-vitest." >&2
     exit 2
 fi
 
@@ -306,12 +341,13 @@ if [ "$COVERAGE" = "on" ]; then
     COV_FLAGS=()
     COV_RUNNER_OUT="$(coverage_runner_flags "$runtime" "${COVERAGE_FORMAT[@]}")" || exit 2
     while IFS= read -r flag; do COV_FLAGS+=("$flag"); done <<<"$COV_RUNNER_OUT"
-    if [ "$runtime" = "npm" ]; then
-        if [ "$REPORT" = "on" ]; then
-            for fmt in "${REPORT_FORMAT[@]}"; do COV_FLAGS+=("--reporter=$fmt"); done
-        fi
-        if [ "$UI" = "on" ]; then COV_FLAGS+=(--ui); fi
+    if [ "$REPORT" = "on" ]; then
+        REP_RUNNER_OUT="$(report_runner_flags "$runtime" "${REPORT_FORMAT[@]}")" || exit 2
+        while IFS= read -r flag; do
+            if [ -n "$flag" ]; then COV_FLAGS+=("$flag"); fi
+        done <<<"$REP_RUNNER_OUT"
     fi
+    if [ "$runtime" = "npm" ] && [ "$UI" = "on" ]; then COV_FLAGS+=(--ui); fi
 
     run_phase "$runtime" "$MODE" test/ --coverage "${COV_FLAGS[@]}" "${EXTRA_ARGS[@]}"
     ec=$?
@@ -322,15 +358,26 @@ if [ "$COVERAGE" = "on" ]; then
 fi
 
 # Non-coverage flow: optional WASM phase + main pass. Build the
-# vitest-only flag tail once (UI / report) so both phases get the
-# same shape.
-VITEST_TAIL=()
-if [ "$runtime" = "npm" ]; then
-    if [ "$REPORT" = "on" ]; then
-        for fmt in "${REPORT_FORMAT[@]}"; do VITEST_TAIL+=("--reporter=$fmt"); done
-    fi
-    if [ "$UI" = "on" ]; then VITEST_TAIL+=(--ui); fi
+# runner flag tail once (report + UI) so both phases get the same
+# shape. The tail is no longer vitest-only — bun honours --report
+# natively via report_runner_flags (junit / dots).
+#
+# NOTE: when --report and --wasm are both on the two phases share
+# the same --reporter-outfile / html outputFile path, so the WASM
+# phase's report artifact is overwritten by the main pass. The
+# terminal output for both phases still scrolls past (and the WASM
+# summary is re-emitted at the end), but the on-disk SPA / junit
+# only reflects the final phase. Pair --report with --coverage if
+# you need a single-pass report that covers everything (the
+# coverage branch above already forces single-pass).
+RUNNER_TAIL=()
+if [ "$REPORT" = "on" ]; then
+    REP_RUNNER_OUT="$(report_runner_flags "$runtime" "${REPORT_FORMAT[@]}")" || exit 2
+    while IFS= read -r flag; do
+        if [ -n "$flag" ]; then RUNNER_TAIL+=("$flag"); fi
+    done <<<"$REP_RUNNER_OUT"
 fi
+if [ "$runtime" = "npm" ] && [ "$UI" = "on" ]; then RUNNER_TAIL+=(--ui); fi
 
 # Optional real-WASM phase (when --wasm is set). Runs FIRST so its
 # output stays close to the top of the scrollback; the parallel main
@@ -357,7 +404,7 @@ if [ "$WASM" = "on" ]; then
         export FORCE_COLOR=1
         export CLICOLOR_FORCE=1
     fi
-    run_phase "$runtime" sequential "${WASM_PATHS[@]}" "${VITEST_TAIL[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$WASM_LOG"
+    run_phase "$runtime" sequential "${WASM_PATHS[@]}" "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$WASM_LOG"
     ec=${PIPESTATUS[0]}
     if [ "$ec" -ne 0 ]; then exit "$ec"; fi
 fi
@@ -369,7 +416,7 @@ if [ "$MODE" = "sequential" ]; then
 else
     unset TSSQLQUERY_PARALLEL_DBS
 fi
-run_phase "$runtime" "$MODE" test/ "${VITEST_TAIL[@]}" "${EXTRA_ARGS[@]}"
+run_phase "$runtime" "$MODE" test/ "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}"
 ec=$?
 
 # Re-emit the saved WASM summary so the user sees both phases'

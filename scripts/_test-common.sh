@@ -73,14 +73,19 @@ WASM_PATHS=(
 
 # Map the user-facing coverage format(s) to runner-specific flags.
 # Echoes flags one per line so callers can `while IFS= read` them
-# into an array.
+# into an array. Errors go to stderr; return non-zero on unsupported
+# formats so the caller can short-circuit.
 #
 # Args: <runtime> <format1> [<format2> ...]
 #
-# Bun (second-class for coverage — its lcov.info is the only data
-# source we get): single format only, restricted to text|html|lcov.
-# `html` and `lcov` both ask bun to emit lcov.info; html is then
-# rendered by scripts/lcov-to-html.mjs (lcov-parse + istanbul-reports).
+# Bun (second-class for coverage — its V8 profile is collapsed to
+# lcov.info before we ever see it, so column-level data is lost):
+# native --coverage-reporter accepts repeated flags. Supported
+# values are `text` (terminal) and `lcov` (file). `html` is
+# synthesised by asking bun for lcov and post-processing the
+# resulting lcov.info via test/lib/coverage/lcovToHtml.ts (lcov-parse +
+# istanbul-reports). Any other format is vitest-only and triggers
+# an error — the user must drop the format or pass --use-vitest.
 #
 # Vitest (the recommended path for coverage — V8-rich data, all
 # reporters native via @vitest/coverage-v8): pass each format
@@ -90,32 +95,84 @@ coverage_runner_flags() {
     local runtime="$1"; shift
     case "$runtime" in
         bun)
-            if [ "$#" -gt 1 ]; then
-                echo "coverage_runner_flags: bun supports only one --coverage-format; got $* (use --use-vitest for multiple)" >&2
-                return 1
-            fi
-            case "$1" in
-                text)
-                    printf -- '--coverage-reporter=text\n' ;;
-                html|lcov)
-                    # Match vitest's `coverage.reportsDirectory`
-                    # layout (.test-report/coverage/) so both
-                    # runners land coverage artifacts in the same
-                    # subdirectory — only .test-report/index.html
-                    # itself (vitest's test-execution SPA) lives
-                    # one level up.
-                    printf -- '--coverage-reporter=lcov\n'
-                    printf -- '--coverage-dir=./.test-report/coverage\n' ;;
-                *)
-                    echo "coverage_runner_flags: bun supports text|html|lcov; got $1 (use --use-vitest for $1)" >&2
-                    return 1 ;;
-            esac ;;
+            local emit_lcov=off
+            for fmt in "$@"; do
+                case "$fmt" in
+                    text)
+                        printf -- '--coverage-reporter=text\n' ;;
+                    lcov|html)
+                        # `lcov` and `html` share the same upstream
+                        # flag (bun emits lcov.info; we render html
+                        # from it). De-dupe so two flags pointing
+                        # at the same reporter don't go to bun.
+                        emit_lcov=on ;;
+                    *)
+                        echo "coverage_runner_flags: bun does not support --coverage-format=$fmt — supported under bun: text|lcov|html (use --use-vitest for others)" >&2
+                        return 1 ;;
+                esac
+            done
+            if [ "$emit_lcov" = "on" ]; then
+                # Match vitest's `coverage.reportsDirectory` layout
+                # (.test-report/coverage/) so both runners land
+                # coverage artifacts under the same subdirectory —
+                # only .test-report/index.html itself (vitest's
+                # test-execution SPA) lives one level up.
+                printf -- '--coverage-reporter=lcov\n'
+                printf -- '--coverage-dir=./.test-report/coverage\n'
+            fi ;;
         npm)
             for fmt in "$@"; do
                 printf -- '--coverage.reporter=%s\n' "$fmt"
             done ;;
         *)
             echo "coverage_runner_flags: unsupported runtime=$runtime" >&2
+            return 1 ;;
+    esac
+}
+
+# Map the user-facing test-execution report format(s) to runner-
+# specific flags. Echoes flags one per line, mirroring
+# coverage_runner_flags.
+#
+# Args: <runtime> <format1> [<format2> ...]
+#
+# Bun is single-valued for `--reporter` (the last value wins inside
+# bun's parser, so passing two would silently lose one). We honour
+# the first format and warn loudly that the rest were dropped — the
+# user still gets an artifact, which matches the "warn-not-error
+# when something usable remains" rule. Supported under bun:
+#   junit  → bun's JUnit XML reporter, written to
+#            .test-report/junit.xml. No browser viewer comes with
+#            it; pair with --use-vitest if you want the html SPA.
+#   dots   → terminal-only progress dots; produces no file.
+# Any other value (notably `html`) is vitest-only and errors.
+#
+# Vitest accepts any number of `--reporter=<name>` flags and
+# validates the names itself.
+report_runner_flags() {
+    local runtime="$1"; shift
+    case "$runtime" in
+        bun)
+            if [ "$#" -eq 0 ]; then return 0; fi
+            if [ "$#" -gt 1 ]; then
+                echo "Warning: bun's --reporter is single-valued; keeping --report-format=$1 and dropping: ${*:2}" >&2
+            fi
+            case "$1" in
+                junit)
+                    printf -- '--reporter=junit\n'
+                    printf -- '--reporter-outfile=./.test-report/junit.xml\n' ;;
+                dots)
+                    printf -- '--reporter=dots\n' ;;
+                *)
+                    echo "report_runner_flags: bun does not support --report-format=$1 — supported under bun: junit|dots (use --use-vitest for html and the rest)" >&2
+                    return 1 ;;
+            esac ;;
+        npm)
+            for fmt in "$@"; do
+                printf -- '--reporter=%s\n' "$fmt"
+            done ;;
+        *)
+            echo "report_runner_flags: unsupported runtime=$runtime" >&2
             return 1 ;;
     esac
 }
@@ -131,23 +188,33 @@ coverage_runner_flags() {
 # `tests:focus <coord>` which already restricts to a single cell.
 
 # Wipe ./.test-report/ so previous artifacts don't contaminate the
-# next run. All test-report output lives under this single root:
+# next run, then recreate it empty. All test-report output lives
+# under this single root:
 #   .test-report/index.html       — vitest test-execution SPA
 #                                   (`--report-format=html`)
+#   .test-report/junit.xml        — bun JUnit report
+#                                   (`--report-format=junit`)
 #   .test-report/coverage/        — coverage report (any format)
 #                                   from either runner
 # The legacy ./coverage/ is also wiped so an old checkout doesn't
-# leak stale files into the new layout. Idempotent.
+# leak stale files into the new layout. We mkdir -p .test-report
+# eagerly because bun's --reporter-outfile and --coverage-dir don't
+# create parent directories themselves; vitest creates them, so the
+# eager mkdir is purely for the bun path's benefit but is harmless
+# under vitest. Idempotent.
 clean_report_dir() {
     rm -rf .test-report coverage
+    mkdir -p .test-report
 }
 
 # Render .test-report/coverage/lcov.info → .test-report/coverage/
 # (so it sits next to vitest's coverage output, same layout). Glue
-# lives in scripts/lcov-to-html.mjs — runs UNDER BUN (not node) so
-# the bun path stays bun-only. The script wires lcov-parse and
-# istanbul-reports (transitive via @vitest/coverage-v8); each does
-# one job, our glue is only the format adapter.
+# lives in test/lib/coverage/lcovToHtml.ts — runs UNDER BUN (not
+# node) so the bun path stays bun-only. The file lives under test/
+# rather than scripts/ so `validate:tests` typechecks its
+# assumptions about LCOV and istanbul shapes. It wires lcov-parse
+# and istanbul-reports (transitive via @vitest/coverage-v8); each
+# does one job, our glue is only the format adapter.
 #
 # The lcov is already filtered by bun via bunfig.toml's
 # coveragePathIgnorePatterns, so rendering reflects the project's
@@ -157,7 +224,7 @@ render_coverage_html_bun() {
         echo "Warning: .test-report/coverage/lcov.info not produced; cannot render coverage HTML." >&2
         return 1
     fi
-    bun scripts/lcov-to-html.mjs .test-report/coverage/lcov.info .test-report/coverage
+    bun test/lib/coverage/lcovToHtml.ts .test-report/coverage/lcov.info .test-report/coverage
 }
 
 # Open the most useful HTML report in the default browser. The two
@@ -212,7 +279,7 @@ open_report_in_browser() {
 # after a successful run. Two things happen here:
 #
 #   1. Bun coverage post-render: when bun emitted lcov and html was
-#      among the requested COVERAGE formats, we run lcov-to-html.mjs
+#      among the requested COVERAGE formats, we run lcovToHtml.ts
 #      so .test-report/coverage/index.html exists. Vitest writes
 #      its own HTML natively, so this is a no-op there.
 #

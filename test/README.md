@@ -520,9 +520,10 @@ npm run tests -- --coverage
 ### Vitest is the recommended path for coverage
 
 Bun ships a minimal coverage facility today — lcov/text only,
-line-level data with no column or branch info — so the HTML report
-under bun is a best-effort rendering on top of that lossy data, and
-agents can only ask for one format at a time. **Vitest is the
+line-level data with no column or branch info — and its test-exec
+reporter is limited to `junit` and `dots`. The html test-execution
+SPA is vitest-only. Bun handles both `--report` and `--coverage`
+in the test CLI, but the artifacts are leaner. **Vitest is the
 recommended path for coverage and rich reporting**:
 
 - V8-collected coverage with column-level statement, branch and
@@ -543,31 +544,31 @@ faster daily test loop and still get vitest's coverage stack), pass
 ### Report and coverage flags
 
 The CLI carries two INDEPENDENT outputs you can opt into:
-**`--report`** (test-execution report; vitest-only) and **`--coverage`**
-(coverage report; both runners). Either, both or neither. `--open`
-covers either.
+**`--report`** (test-execution report) and **`--coverage`** (coverage
+report). Either, both or neither. `--open` covers either. Both
+runners honour both flags — the artifacts just differ.
 
 | Flag | Effect | Default |
 |---|---|---|
 | `--use-vitest` | Force vitest runtime even under `bun run`. | off |
 | `--ui` | Launch `@vitest/ui` (implies `--use-vitest`). | off |
-| `--report` | Emit test-execution report under `.test-report/`. Implies `--use-vitest` (bun has no equivalent). | off |
-| `--report-format <name>` | Repeatable. Default `html` when `--report` is on. Setting it implies `--report`. Common values: `html`, `default`, `verbose`, `dot`, `tap`, `junit`, `json`. | `html` |
+| `--report` | Emit test-execution report under `.test-report/`: vitest writes the html SPA (`index.html`); bun writes `junit.xml`. | off |
+| `--report-format <name>` | Repeatable. Default depends on runtime — `html` under vitest, `junit` under bun. Setting it implies `--report`. Under vitest: pass-through (`html`, `default`, `verbose`, `dot`, `tap`, `junit`, `json`, etc.). Under bun: only `junit` (file) and `dots` (terminal); other formats error. | `html`/`junit` |
 | `--coverage` | Emit coverage report under `.test-report/coverage/`. | off |
-| `--coverage-format <name>` | Repeatable. Default `html` when `--coverage` is on. Under vitest, any `@vitest/coverage-v8` reporter. Under bun, restricted to `html\|text\|lcov` and only one value per run. | `html` |
-| `--open` | After a green run, open the richest available HTML report — vitest's `.test-report/index.html` (served via `bunx vite preview`, blocks until Ctrl+C — page is a SPA that needs HTTP) if present, else `.test-report/coverage/index.html` (plain static, `file://`). Requires `html` in `--report-format` or `--coverage-format`. | off |
+| `--coverage-format <name>` | Repeatable. Default `html` when `--coverage` is on. Under vitest: any `@vitest/coverage-v8` reporter. Under bun: `html\|text\|lcov` (multiple values honoured natively); other formats error. | `html` |
+| `--open` | After a green run, open the richest available HTML report — vitest's `.test-report/index.html` (served via `bunx vite preview`, blocks until Ctrl+C — page is a SPA that needs HTTP) if present, else `.test-report/coverage/index.html` (plain static, `file://`). Requires `html` in `--report-format` or `--coverage-format`. Under bun, html lives only in coverage, so `--open` pairs with `--coverage-format=html`. | off |
 
 Example invocations:
 
 ```bash
-# Test-execution report only:
-bun run tests --report --open
+# Bun: test-execution junit + coverage html, opened via file://:
+bun run tests --report --coverage --open
+
+# Vitest: full SPA (test-exec html + coverage html), opened via vite preview:
+bun run tests --use-vitest --report --coverage --open
 
 # Coverage only (html, vitest):
 bun run tests --use-vitest --coverage --open
-
-# Both reports + open the richer test-execution SPA:
-bun run tests --report --coverage --open
 
 # Several coverage formats at once (vitest only):
 bun run tests --use-vitest --coverage \
@@ -582,26 +583,53 @@ bun run tests --ui --coverage --docker
 # Verbose test execution output (no html):
 bun run tests --use-vitest --report-format=verbose
 
+# Bun + multi-format coverage (text terminal + html browseable):
+bun run tests --coverage --coverage-format=text --coverage-format=html
+
 # Focused report+coverage on one cell:
-bun run tests:focus postgres/newest/pg --report --coverage --open
+bun run tests:focus postgres/newest/pg --use-vitest --report --coverage --open
 ```
 
-### Bun coverage (best-effort)
+### Bun reports (best-effort)
 
-Without `--use-vitest`, `bun run tests --coverage` uses bun's native
-`--coverage` and writes to `.test-report/coverage/`:
+The bun path honours `--report` and `--coverage` natively. The
+artifacts are leaner than vitest's (no html SPA for test execution,
+line-level coverage instead of V8 byte ranges), but everything you
+ask for either lands on disk or errors out cleanly — no silent
+no-ops.
+
+**Test-execution report under bun (`--report`)** lands under
+`.test-report/`:
+
+- `--report-format=junit` (default) → `.test-report/junit.xml`.
+  Standard JUnit XML, consumable by CI systems and report
+  aggregators.
+- `--report-format=dots` → terminal-only progress dots; produces
+  no file.
+- `--report-format=html` and the other vitest reporters → ERROR.
+  Pass `--use-vitest` for the html SPA.
+- Multiple `--report-format` values are not supported (bun's
+  `--reporter` is single-valued) — the first one wins and a
+  warning is printed about the dropped ones.
+
+**Coverage report under bun (`--coverage`)** lands under
+`.test-report/coverage/`:
 
 - `--coverage-format=text` → bun's stdout table.
 - `--coverage-format=lcov` → `.test-report/coverage/lcov.info`.
-- `--coverage-format=html` → lcov + a post-render via
-  [`scripts/lcov-to-html.mjs`](../scripts/lcov-to-html.mjs) (uses
-  `lcov-parse` + transitive `istanbul-reports`, all under bun, no
-  node spawned). Lands at `.test-report/coverage/index.html`.
+- `--coverage-format=html` (default) → lcov + a post-render via
+  [`test/lib/coverage/lcovToHtml.ts`](lib/coverage/lcovToHtml.ts)
+  (uses `lcov-parse` + transitive `istanbul-reports`, all under
+  bun, no node spawned). Lands at `.test-report/coverage/index.html`.
+- Other vitest reporters (`cobertura`, `json-summary`, etc.) → ERROR.
+- Multiple values ARE supported natively (bun's
+  `--coverage-reporter` is repeatable). `text + html` is a
+  common pairing.
 
-Only one format per run, and the data is lossy compared to vitest's
-V8 coverage. Bun's HTML lights up which lines ran, not which tokens —
-acceptable for a quick eyeball, but for any real coverage work,
-reach for `--use-vitest`. `--report` is vitest-only entirely.
+For any real coverage work, reach for `--use-vitest`: vitest's
+V8 coverage is byte-range accurate (token-level highlighting in
+the SPA), exposes branch and function maps, and every
+`@vitest/coverage-v8` reporter is available.
 
 ### Scope (which source files end up in the report)
 

@@ -28,10 +28,12 @@ Defaults
 
 WASM semantics
   The main pass ALWAYS runs WASM connectors (pglite, sqlite-wasm-OO1)
-  as mocks. When --wasm is set, a second sequential pass runs only
-  the WASM cells against the real module. Both passes must succeed
-  for the script to exit 0. This split keeps the parallel main pass
-  fast — WASM is CPU-bound and tanks parallel throughput.
+  as mocks. When --wasm is set, a sequential pass runs the WASM cells
+  against the real module FIRST, then the parallel main pass runs;
+  the WASM summary is re-emitted at the end so both phase summaries
+  stay visible after the main pass scrolls. WASM failures short-
+  circuit the main pass. This split keeps the parallel main pass fast
+  — WASM is CPU-bound and tanks parallel throughput.
 
 Flags
   --mode <parallel|sequential>
@@ -99,19 +101,55 @@ esac
 runtime="$(detect_runtime)"
 export TS_SQL_QUERY_DOCKER="$DOCKER"
 if [ "$DOCKER_MODE" = "reuse" ]; then export TESTCONTAINERS_REUSE_ENABLE=true; fi
-if [ "$MODE" = "sequential" ]; then export TSSQLQUERY_PARALLEL_DBS=false; fi
 
-# Main pass: full matrix, WASM as mock (no module import).
-export TS_SQL_QUERY_WASM=off
-run_phase "$runtime" "$MODE" test/ "${EXTRA_ARGS[@]}"
-ec=$?
-if [ "$ec" -ne 0 ]; then exit "$ec"; fi
-
-# Optional real-WASM pass: only the WASM cells, always sequential.
+# Optional real-WASM phase (when --wasm is set). Runs FIRST so its
+# output stays close to the top of the scrollback; the parallel main
+# pass below would otherwise push it off-screen. We `tee` into a temp
+# file so the summary can be re-emitted after the main pass completes,
+# keeping both phase summaries visible. Failures here short-circuit
+# the main pass.
+#
+# Colors: bun:test and vitest both strip ANSI codes when stdout isn't
+# a TTY (our `tee` pipe is one such case). We only re-inject
+# FORCE_COLOR / CLICOLOR_FORCE when the PARENT stdout is a TTY — i.e.
+# when the user is running interactively and the only reason colors
+# would be lost is our internal pipe. In non-TTY contexts (CI, log
+# capture, redirects) we leave the env as the caller had it, so the
+# replayed summary stays plain-text rather than seeding ANSI escapes
+# into a log file.
+WASM_LOG=
 if [ "$WASM" = "on" ]; then
+    WASM_LOG="$(mktemp)"
+    trap 'rm -f "$WASM_LOG"' EXIT
     export TS_SQL_QUERY_WASM=on
     export TSSQLQUERY_PARALLEL_DBS=false
-    run_phase "$runtime" sequential "${WASM_PATHS[@]}" "${EXTRA_ARGS[@]}"
-    ec=$?
+    if [ -t 1 ]; then
+        export FORCE_COLOR=1
+        export CLICOLOR_FORCE=1
+    fi
+    run_phase "$runtime" sequential "${WASM_PATHS[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$WASM_LOG"
+    ec=${PIPESTATUS[0]}
+    if [ "$ec" -ne 0 ]; then exit "$ec"; fi
+fi
+
+# Main pass: full matrix, WASM as mock (modules never imported).
+export TS_SQL_QUERY_WASM=off
+if [ "$MODE" = "sequential" ]; then
+    export TSSQLQUERY_PARALLEL_DBS=false
+else
+    unset TSSQLQUERY_PARALLEL_DBS
+fi
+run_phase "$runtime" "$MODE" test/ "${EXTRA_ARGS[@]}"
+ec=$?
+
+# Re-emit the saved WASM summary so the user sees both phases'
+# headline numbers without having to scroll up. Last 4 lines covers
+# the runner summary for both bun:test and vitest. The label says
+# explicitly which phase the block belongs to — otherwise two
+# back-to-back summary blocks look like the same run repeated.
+if [ -n "$WASM_LOG" ] && [ -s "$WASM_LOG" ]; then
+    echo ""
+    echo "WASM phase results (ran first, replayed for visibility):"
+    tail -n 4 "$WASM_LOG"
 fi
 exit "$ec"

@@ -25,9 +25,16 @@ detect_runtime() {
 #   <paths…>  = paths/files to pass to the runner, plus any
 #               extra pass-through args.
 #
-# Returns the runner's exit code. bun:test's exit 99 (handle leak on
-# a fully green run — PGlite's worker threads keep the loop alive) is
-# remapped to 0 so "0 fail" stays the contract.
+# Returns the runner's exit code. bun:test's exit codes 99 and 100
+# both indicate "fully green run + spurious shutdown signal":
+#   - 99  : leaked handles on a green run (PGlite's worker threads
+#           keep the loop alive even after all tests pass).
+#   - 100 : same shape, raised when stdout is not a TTY (which is the
+#           default under CI, under `tee`, or under any kind of
+#           output redirect). Empirical: with 0 failures, a TTY run
+#           returns 0 and a piped run returns 100 — bun's exit-time
+#           handle accounting flips signal based on output mode.
+# Remapping both to 0 keeps "0 fail" the contract.
 run_phase() {
     local runtime="$1" mode="$2"
     shift 2
@@ -43,7 +50,7 @@ run_phase() {
             bun test $parallel_flag
         fi
         ec=$?
-        if [ "$ec" -eq 99 ]; then ec=0; fi
+        if [ "$ec" -eq 99 ] || [ "$ec" -eq 100 ]; then ec=0; fi
     else
         local serial_flag=
         if [ "$mode" = "sequential" ]; then serial_flag="--no-file-parallelism"; fi

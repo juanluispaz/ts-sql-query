@@ -31,11 +31,11 @@ export class DBColumnImpl extends ValueSourceImpl implements DBColumn, WritableD
     }
 
     __toSql(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
-        return sqlBuilder._appendColumnName(this.__asColumn(), params)
+        return sqlBuilder._appendColumnName(this, params)
     }
 
     override __toSqlForCondition(sqlBuilder: SqlBuilder, params: any[], _forceTypeCast: boolean): string {
-        return sqlBuilder._appendColumnNameForCondition(this.__asColumn(), params)
+        return sqlBuilder._appendColumnNameForCondition(this, params)
     }
 
     __asColumn(): this & Column {
@@ -47,6 +47,17 @@ export class DBColumnImpl extends ValueSourceImpl implements DBColumn, WritableD
         this.__writable = true
         this.__optionalType = 'optional'
         return (this as this & Column)
+    }
+
+    __asOptional(): this {
+        // View counterpart to `__asOptionalColumn`: marks the optional
+        // type without flipping `__writable`. Views are read-only, so
+        // their columns must not be treated as writable internally
+        // (the `extras/utils` helpers also filter by table type, but
+        // this keeps the column's runtime state coherent with its
+        // public type).
+        this.__optionalType = 'optional'
+        return this
     }
 
     __asColumnWithDefaultValue(): this & ColumnWithDefaultValue {

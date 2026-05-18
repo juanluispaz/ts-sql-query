@@ -112,9 +112,9 @@ class ViewOf</*in|out*/ SOURCE extends NView<any, any>> implements IView<SOURCE>
     protected optionalColumn<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, T, 'optional'>
     protected optionalColumn(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'optional'> */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return (new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)).__asOptionalColumn()
+            return (new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)).__asOptional()
         }
-        return (new DBColumnImpl(this, name, type as ValueType, type, adapter)).__asOptionalColumn()
+        return (new DBColumnImpl(this, name, type as ValueType, type, adapter)).__asOptional()
     }
 
     protected virtualColumnFromFragment(type: 'boolean', fn: (fragment: BooleanFragmentExpression<NNoTableOrViewRequiredFrom<SOURCE>, 'required'>) => IBooleanValueSource<SOURCE, 'required'>, adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'required'>

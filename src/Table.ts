@@ -109,9 +109,9 @@ class TableOf</*in|out*/ SOURCE extends NTable<any, any>> implements ITable<SOUR
     protected column<T>(name: string, type: 'customComparable', typeName: string, adapter?: TypeAdapter): ComparableValueSource<SOURCE, T, T, 'required'> & Column
     protected column(name: string, type: string, adapter?: TypeAdapter | string, adapter2?: TypeAdapter): any /* EqualableValueSource<SOURCE, T, TYPE_NAME, 'required'> & Column */ { // Returns any to avoid: Type instantiation is excessively deep and possibly infinite.ts(2589)
         if (typeof adapter === 'string') {
-            return new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)
+            return (new DBColumnImpl(this, name, type as ValueType, adapter, adapter2)).__asColumn()
         }
-        return new DBColumnImpl(this, name, type as ValueType, type, adapter)
+        return (new DBColumnImpl(this, name, type as ValueType, type, adapter)).__asColumn()
     }
 
     protected optionalColumn(name: string, type: 'boolean', adapter?: TypeAdapter): BooleanValueSource<SOURCE, 'optional'> & Column

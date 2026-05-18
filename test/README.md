@@ -495,6 +495,168 @@ The helper matches by image, so it only touches containers from this
 project — it leaves unrelated testcontainers projects on your host
 alone.
 
+## Code coverage
+
+Pass `--coverage` to any of the test CLIs; output lands in `./coverage/`:
+
+```bash
+# Whole matrix, mock-only, parallel — fastest coverage pass.
+bun run tests --coverage
+
+# Full real coverage (docker + WASM). Sequential because --wasm +
+# parallel + coverage is forbidden — see below.
+bun run tests --coverage --docker --wasm --mode sequential
+
+# One cell.
+bun run tests:focus postgres/newest/pg --coverage
+
+# Just the WASM cells.
+bun run tests:wasm --coverage
+
+# Under npm/vitest, prefix flags with `--`:
+npm run tests -- --coverage
+```
+
+### Vitest is the recommended path for coverage
+
+Bun ships a minimal coverage facility today — lcov/text only,
+line-level data with no column or branch info — so the HTML report
+under bun is a best-effort rendering on top of that lossy data, and
+agents can only ask for one format at a time. **Vitest is the
+recommended path for coverage and rich reporting**:
+
+- V8-collected coverage with column-level statement, branch and
+  function maps.
+- Every `@vitest/coverage-v8` reporter native: `html`, `text`,
+  `text-summary`, `lcov`, `lcovonly`, `clover`, `cobertura`, `json`,
+  `json-summary`, `teamcity`. All composable in one run.
+- Pass-through to vitest's test-execution reporters (`default`,
+  `verbose`, `dot`, `tap`, `tap-flat`, `junit`, `json`, `tree`,
+  `github-actions`, etc.) via `--report-format`.
+- **`@vitest/ui`**: a browser-based interactive UI for navigating
+  tests AND coverage. Add `--ui` to any test CLI.
+
+To force vitest even when invoking via `bun run` (so you keep bun's
+faster daily test loop and still get vitest's coverage stack), pass
+`--use-vitest`. `--ui` implies it.
+
+### Report and coverage flags
+
+The CLI carries two INDEPENDENT outputs you can opt into:
+**`--report`** (test-execution report; vitest-only) and **`--coverage`**
+(coverage report; both runners). Either, both or neither. `--open`
+covers either.
+
+| Flag | Effect | Default |
+|---|---|---|
+| `--use-vitest` | Force vitest runtime even under `bun run`. | off |
+| `--ui` | Launch `@vitest/ui` (implies `--use-vitest`). | off |
+| `--report` | Emit test-execution report under `.test-report/`. Implies `--use-vitest` (bun has no equivalent). | off |
+| `--report-format <name>` | Repeatable. Default `html` when `--report` is on. Setting it implies `--report`. Common values: `html`, `default`, `verbose`, `dot`, `tap`, `junit`, `json`. | `html` |
+| `--coverage` | Emit coverage report under `.test-report/coverage/`. | off |
+| `--coverage-format <name>` | Repeatable. Default `html` when `--coverage` is on. Under vitest, any `@vitest/coverage-v8` reporter. Under bun, restricted to `html\|text\|lcov` and only one value per run. | `html` |
+| `--open` | After a green run, open the richest available HTML report — vitest's `.test-report/index.html` (served via `bunx vite preview`, blocks until Ctrl+C — page is a SPA that needs HTTP) if present, else `.test-report/coverage/index.html` (plain static, `file://`). Requires `html` in `--report-format` or `--coverage-format`. | off |
+
+Example invocations:
+
+```bash
+# Test-execution report only:
+bun run tests --report --open
+
+# Coverage only (html, vitest):
+bun run tests --use-vitest --coverage --open
+
+# Both reports + open the richer test-execution SPA:
+bun run tests --report --coverage --open
+
+# Several coverage formats at once (vitest only):
+bun run tests --use-vitest --coverage \
+    --coverage-format=html \
+    --coverage-format=lcov \
+    --coverage-format=cobertura \
+    --coverage-format=json-summary
+
+# Live interactive UI (Ctrl+C to stop the server):
+bun run tests --ui --coverage --docker
+
+# Verbose test execution output (no html):
+bun run tests --use-vitest --report-format=verbose
+
+# Focused report+coverage on one cell:
+bun run tests:focus postgres/newest/pg --report --coverage --open
+```
+
+### Bun coverage (best-effort)
+
+Without `--use-vitest`, `bun run tests --coverage` uses bun's native
+`--coverage` and writes to `.test-report/coverage/`:
+
+- `--coverage-format=text` → bun's stdout table.
+- `--coverage-format=lcov` → `.test-report/coverage/lcov.info`.
+- `--coverage-format=html` → lcov + a post-render via
+  [`scripts/lcov-to-html.mjs`](../scripts/lcov-to-html.mjs) (uses
+  `lcov-parse` + transitive `istanbul-reports`, all under bun, no
+  node spawned). Lands at `.test-report/coverage/index.html`.
+
+Only one format per run, and the data is lossy compared to vitest's
+V8 coverage. Bun's HTML lights up which lines ran, not which tokens —
+acceptable for a quick eyeball, but for any real coverage work,
+reach for `--use-vitest`. `--report` is vitest-only entirely.
+
+### Scope (which source files end up in the report)
+
+Defaults live in the project's two config files (kept in sync):
+
+- [`bunfig.toml`](../bunfig.toml): `coveragePathIgnorePatterns`
+- [`vitest.config.ts`](../vitest.config.ts): `test.coverage.exclude`
+
+Both exclude `src/examples/**` (legacy examples) and `test/**` (the
+test suite itself) so the report focuses on the library's public
+surface.
+
+There's no CLI flag to override the scope at run time. To narrow the
+report for a specific cell, use `tests:focus <coord>` — coverage
+then only sees files imported by that cell's tests. To change the
+project-wide scope, edit the two config files.
+
+`.test-report/` is wiped at the start of every run with `--report`
+or `--coverage`, so older reports or different-format artifacts
+never seed the next one.
+
+### Aliases
+
+Canonical (project-level):
+
+| Alias | Equivalent |
+|---|---|
+| `tests:reopen` | Opens the previously generated report without re-running tests. Errors out clearly if neither `.test-report/index.html` nor `.test-report/coverage/index.html` exists. |
+
+User-level shortcuts (personal — feel free to adjust). They wrap
+`--report --coverage --open` under vitest:
+
+| Alias | Equivalent |
+|---|---|
+| `coverage:fast` | `tests --report --coverage --open` |
+| `coverage:no-docker` | `tests --report --wasm --coverage --mode sequential --open` |
+| `coverage:complete` | `tests --report --docker --wasm --coverage --mode sequential --open` |
+| `coverage:reopen` | Same script as `tests:reopen`. |
+
+### Forbidden combo
+
+`--coverage --wasm --mode parallel` is rejected with exit 2.
+Coverage requires a single runner invocation, but `--wasm` in
+parallel mode splits the matrix into two phases (real WASM
+sequential + main parallel mocked) and merging the two coverage
+shards is fragile. Pass `--mode sequential`, drop `--wasm`, or
+drop `--coverage`.
+
+When `--coverage` is set, `tests --wasm` bypasses the two-phase
+split entirely and runs everything in one invocation with WASM real
+(sequential is implied). The single-pass coverage report ends up
+cleaner than two separately-collected shards would be.
+
+`coverage/` is `.gitignored`.
+
 ## Typechecking
 
 ```bash

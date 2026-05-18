@@ -13,64 +13,207 @@
         "README.md"
     ],
     "exports": {
-        ".":                  { "types": "./index.d.ts",            "default": "./index.js" },
-        "./Connection":       { "types": "./Connection.d.ts",       "default": "./Connection.js" },
-        "./Table":            { "types": "./Table.d.ts",            "default": "./Table.js" },
-        "./View":             { "types": "./View.d.ts",             "default": "./View.js" },
-        "./TypeAdapter":      { "types": "./TypeAdapter.d.ts",      "default": "./TypeAdapter.js" },
-        "./Values":           { "types": "./Values.d.ts",           "default": "./Values.js" },
-        "./TsSqlError":       { "types": "./TsSqlError.d.ts",       "default": "./TsSqlError.js" },
-        "./dynamicCondition": { "types": "./dynamicCondition.d.ts", "default": "./dynamicCondition.js" },
-
-        "./connections/MariaDBConnection":     { "types": "./connections/MariaDBConnection.d.ts",     "default": "./connections/MariaDBConnection.js" },
-        "./connections/MySqlConnection":       { "types": "./connections/MySqlConnection.d.ts",       "default": "./connections/MySqlConnection.js" },
-        "./connections/OracleConnection":      { "types": "./connections/OracleConnection.d.ts",      "default": "./connections/OracleConnection.js" },
-        "./connections/PostgreSqlConnection":  { "types": "./connections/PostgreSqlConnection.d.ts",  "default": "./connections/PostgreSqlConnection.js" },
-        "./connections/SqlServerConnection":   { "types": "./connections/SqlServerConnection.d.ts",   "default": "./connections/SqlServerConnection.js" },
-        "./connections/SqliteConfiguration":   { "types": "./connections/SqliteConfiguration.d.ts",   "default": "./connections/SqliteConfiguration.js" },
-        "./connections/SqliteConnection":      { "types": "./connections/SqliteConnection.d.ts",      "default": "./connections/SqliteConnection.js" },
-
-        "./queryRunners/BetterSqlite3QueryRunner":       { "types": "./queryRunners/BetterSqlite3QueryRunner.d.ts",       "default": "./queryRunners/BetterSqlite3QueryRunner.js" },
-        "./queryRunners/BunSqlMySqlQueryRunner":         { "types": "./queryRunners/BunSqlMySqlQueryRunner.d.ts",         "default": "./queryRunners/BunSqlMySqlQueryRunner.js" },
-        "./queryRunners/BunSqlPostgresQueryRunner":      { "types": "./queryRunners/BunSqlPostgresQueryRunner.d.ts",      "default": "./queryRunners/BunSqlPostgresQueryRunner.js" },
-        "./queryRunners/BunSqlSqliteQueryRunner":        { "types": "./queryRunners/BunSqlSqliteQueryRunner.d.ts",        "default": "./queryRunners/BunSqlSqliteQueryRunner.js" },
-        "./queryRunners/BunSqliteQueryRunner":           { "types": "./queryRunners/BunSqliteQueryRunner.d.ts",           "default": "./queryRunners/BunSqliteQueryRunner.js" },
-        "./queryRunners/ConsoleLogNoopQueryRunner":      { "types": "./queryRunners/ConsoleLogNoopQueryRunner.d.ts",      "default": "./queryRunners/ConsoleLogNoopQueryRunner.js" },
-        "./queryRunners/ConsoleLogQueryRunner":          { "types": "./queryRunners/ConsoleLogQueryRunner.d.ts",          "default": "./queryRunners/ConsoleLogQueryRunner.js" },
-        "./queryRunners/InterceptorQueryRunner":         { "types": "./queryRunners/InterceptorQueryRunner.d.ts",         "default": "./queryRunners/InterceptorQueryRunner.js" },
-        "./queryRunners/LoggingQueryRunner":             { "types": "./queryRunners/LoggingQueryRunner.d.ts",             "default": "./queryRunners/LoggingQueryRunner.js" },
-        "./queryRunners/MariaDBPoolQueryRunner":         { "types": "./queryRunners/MariaDBPoolQueryRunner.d.ts",         "default": "./queryRunners/MariaDBPoolQueryRunner.js" },
-        "./queryRunners/MariaDBQueryRunner":             { "types": "./queryRunners/MariaDBQueryRunner.d.ts",             "default": "./queryRunners/MariaDBQueryRunner.js" },
-        "./queryRunners/MockQueryRunner":                { "types": "./queryRunners/MockQueryRunner.d.ts",                "default": "./queryRunners/MockQueryRunner.js" },
-        "./queryRunners/MssqlPoolPromiseQueryRunner":    { "types": "./queryRunners/MssqlPoolPromiseQueryRunner.d.ts",    "default": "./queryRunners/MssqlPoolPromiseQueryRunner.js" },
-        "./queryRunners/MssqlPoolQueryRunner":           { "types": "./queryRunners/MssqlPoolQueryRunner.d.ts",           "default": "./queryRunners/MssqlPoolQueryRunner.js" },
-        "./queryRunners/MySql2PoolQueryRunner":          { "types": "./queryRunners/MySql2PoolQueryRunner.d.ts",          "default": "./queryRunners/MySql2PoolQueryRunner.js" },
-        "./queryRunners/MySql2QueryRunner":              { "types": "./queryRunners/MySql2QueryRunner.d.ts",              "default": "./queryRunners/MySql2QueryRunner.js" },
-        "./queryRunners/NodeSqliteQueryRunner":          { "types": "./queryRunners/NodeSqliteQueryRunner.d.ts",          "default": "./queryRunners/NodeSqliteQueryRunner.js" },
-        "./queryRunners/NoopQueryRunner":                { "types": "./queryRunners/NoopQueryRunner.d.ts",                "default": "./queryRunners/NoopQueryRunner.js" },
-        "./queryRunners/OracleDBPoolPromiseQueryRunner": { "types": "./queryRunners/OracleDBPoolPromiseQueryRunner.d.ts", "default": "./queryRunners/OracleDBPoolPromiseQueryRunner.js" },
-        "./queryRunners/OracleDBPoolQueryRunner":        { "types": "./queryRunners/OracleDBPoolQueryRunner.d.ts",        "default": "./queryRunners/OracleDBPoolQueryRunner.js" },
-        "./queryRunners/OracleDBQueryRunner":            { "types": "./queryRunners/OracleDBQueryRunner.d.ts",            "default": "./queryRunners/OracleDBQueryRunner.js" },
-        "./queryRunners/PgLiteQueryRunner":              { "types": "./queryRunners/PgLiteQueryRunner.d.ts",              "default": "./queryRunners/PgLiteQueryRunner.js" },
-        "./queryRunners/PgPoolQueryRunner":              { "types": "./queryRunners/PgPoolQueryRunner.d.ts",              "default": "./queryRunners/PgPoolQueryRunner.js" },
-        "./queryRunners/PgQueryRunner":                  { "types": "./queryRunners/PgQueryRunner.d.ts",                  "default": "./queryRunners/PgQueryRunner.js" },
-        "./queryRunners/PostgresQueryRunner":            { "types": "./queryRunners/PostgresQueryRunner.d.ts",            "default": "./queryRunners/PostgresQueryRunner.js" },
-        "./queryRunners/PrismaQueryRunner":              { "types": "./queryRunners/PrismaQueryRunner.d.ts",              "default": "./queryRunners/PrismaQueryRunner.js" },
-        "./queryRunners/QueryRunner":                    { "types": "./queryRunners/QueryRunner.d.ts",                    "default": "./queryRunners/QueryRunner.js" },
-        "./queryRunners/Sqlite3QueryRunner":             { "types": "./queryRunners/Sqlite3QueryRunner.d.ts",             "default": "./queryRunners/Sqlite3QueryRunner.js" },
-        "./queryRunners/Sqlite3WasmOO1QueryRunner":      { "types": "./queryRunners/Sqlite3WasmOO1QueryRunner.d.ts",      "default": "./queryRunners/Sqlite3WasmOO1QueryRunner.js" },
-
-        "./extras/IDEncrypter": { "types": "./extras/IDEncrypter.d.ts", "default": "./extras/IDEncrypter.js" },
-        "./extras/sync":        { "types": "./extras/sync.d.ts",        "default": "./extras/sync.js" },
-        "./extras/types":       { "types": "./extras/types.d.ts",       "default": "./extras/types.js" },
-        "./extras/utils":       { "types": "./extras/utils.d.ts",       "default": "./extras/utils.js" },
-
-        "./unsupported/*":    { "types": "./*.d.ts",                "default": "./*.js" },
+        ".": {
+            "types": "./index.d.ts",
+            "default": "./index.js"
+        },
+        "./Connection": {
+            "types": "./Connection.d.ts",
+            "default": "./Connection.js"
+        },
+        "./Table": {
+            "types": "./Table.d.ts",
+            "default": "./Table.js"
+        },
+        "./View": {
+            "types": "./View.d.ts",
+            "default": "./View.js"
+        },
+        "./TypeAdapter": {
+            "types": "./TypeAdapter.d.ts",
+            "default": "./TypeAdapter.js"
+        },
+        "./Values": {
+            "types": "./Values.d.ts",
+            "default": "./Values.js"
+        },
+        "./TsSqlError": {
+            "types": "./TsSqlError.d.ts",
+            "default": "./TsSqlError.js"
+        },
+        "./dynamicCondition": {
+            "types": "./dynamicCondition.d.ts",
+            "default": "./dynamicCondition.js"
+        },
+        "./connections/MariaDBConnection": {
+            "types": "./connections/MariaDBConnection.d.ts",
+            "default": "./connections/MariaDBConnection.js"
+        },
+        "./connections/MySqlConnection": {
+            "types": "./connections/MySqlConnection.d.ts",
+            "default": "./connections/MySqlConnection.js"
+        },
+        "./connections/OracleConnection": {
+            "types": "./connections/OracleConnection.d.ts",
+            "default": "./connections/OracleConnection.js"
+        },
+        "./connections/PostgreSqlConnection": {
+            "types": "./connections/PostgreSqlConnection.d.ts",
+            "default": "./connections/PostgreSqlConnection.js"
+        },
+        "./connections/SqlServerConnection": {
+            "types": "./connections/SqlServerConnection.d.ts",
+            "default": "./connections/SqlServerConnection.js"
+        },
+        "./connections/SqliteConfiguration": {
+            "types": "./connections/SqliteConfiguration.d.ts",
+            "default": "./connections/SqliteConfiguration.js"
+        },
+        "./connections/SqliteConnection": {
+            "types": "./connections/SqliteConnection.d.ts",
+            "default": "./connections/SqliteConnection.js"
+        },
+        "./queryRunners/BetterSqlite3QueryRunner": {
+            "types": "./queryRunners/BetterSqlite3QueryRunner.d.ts",
+            "default": "./queryRunners/BetterSqlite3QueryRunner.js"
+        },
+        "./queryRunners/BunSqlMySqlQueryRunner": {
+            "types": "./queryRunners/BunSqlMySqlQueryRunner.d.ts",
+            "default": "./queryRunners/BunSqlMySqlQueryRunner.js"
+        },
+        "./queryRunners/BunSqlPostgresQueryRunner": {
+            "types": "./queryRunners/BunSqlPostgresQueryRunner.d.ts",
+            "default": "./queryRunners/BunSqlPostgresQueryRunner.js"
+        },
+        "./queryRunners/BunSqlSqliteQueryRunner": {
+            "types": "./queryRunners/BunSqlSqliteQueryRunner.d.ts",
+            "default": "./queryRunners/BunSqlSqliteQueryRunner.js"
+        },
+        "./queryRunners/BunSqliteQueryRunner": {
+            "types": "./queryRunners/BunSqliteQueryRunner.d.ts",
+            "default": "./queryRunners/BunSqliteQueryRunner.js"
+        },
+        "./queryRunners/ConsoleLogNoopQueryRunner": {
+            "types": "./queryRunners/ConsoleLogNoopQueryRunner.d.ts",
+            "default": "./queryRunners/ConsoleLogNoopQueryRunner.js"
+        },
+        "./queryRunners/ConsoleLogQueryRunner": {
+            "types": "./queryRunners/ConsoleLogQueryRunner.d.ts",
+            "default": "./queryRunners/ConsoleLogQueryRunner.js"
+        },
+        "./queryRunners/InterceptorQueryRunner": {
+            "types": "./queryRunners/InterceptorQueryRunner.d.ts",
+            "default": "./queryRunners/InterceptorQueryRunner.js"
+        },
+        "./queryRunners/LoggingQueryRunner": {
+            "types": "./queryRunners/LoggingQueryRunner.d.ts",
+            "default": "./queryRunners/LoggingQueryRunner.js"
+        },
+        "./queryRunners/MariaDBPoolQueryRunner": {
+            "types": "./queryRunners/MariaDBPoolQueryRunner.d.ts",
+            "default": "./queryRunners/MariaDBPoolQueryRunner.js"
+        },
+        "./queryRunners/MariaDBQueryRunner": {
+            "types": "./queryRunners/MariaDBQueryRunner.d.ts",
+            "default": "./queryRunners/MariaDBQueryRunner.js"
+        },
+        "./queryRunners/MockQueryRunner": {
+            "types": "./queryRunners/MockQueryRunner.d.ts",
+            "default": "./queryRunners/MockQueryRunner.js"
+        },
+        "./queryRunners/MssqlPoolPromiseQueryRunner": {
+            "types": "./queryRunners/MssqlPoolPromiseQueryRunner.d.ts",
+            "default": "./queryRunners/MssqlPoolPromiseQueryRunner.js"
+        },
+        "./queryRunners/MssqlPoolQueryRunner": {
+            "types": "./queryRunners/MssqlPoolQueryRunner.d.ts",
+            "default": "./queryRunners/MssqlPoolQueryRunner.js"
+        },
+        "./queryRunners/MySql2PoolQueryRunner": {
+            "types": "./queryRunners/MySql2PoolQueryRunner.d.ts",
+            "default": "./queryRunners/MySql2PoolQueryRunner.js"
+        },
+        "./queryRunners/MySql2QueryRunner": {
+            "types": "./queryRunners/MySql2QueryRunner.d.ts",
+            "default": "./queryRunners/MySql2QueryRunner.js"
+        },
+        "./queryRunners/NodeSqliteQueryRunner": {
+            "types": "./queryRunners/NodeSqliteQueryRunner.d.ts",
+            "default": "./queryRunners/NodeSqliteQueryRunner.js"
+        },
+        "./queryRunners/NoopQueryRunner": {
+            "types": "./queryRunners/NoopQueryRunner.d.ts",
+            "default": "./queryRunners/NoopQueryRunner.js"
+        },
+        "./queryRunners/OracleDBPoolPromiseQueryRunner": {
+            "types": "./queryRunners/OracleDBPoolPromiseQueryRunner.d.ts",
+            "default": "./queryRunners/OracleDBPoolPromiseQueryRunner.js"
+        },
+        "./queryRunners/OracleDBPoolQueryRunner": {
+            "types": "./queryRunners/OracleDBPoolQueryRunner.d.ts",
+            "default": "./queryRunners/OracleDBPoolQueryRunner.js"
+        },
+        "./queryRunners/OracleDBQueryRunner": {
+            "types": "./queryRunners/OracleDBQueryRunner.d.ts",
+            "default": "./queryRunners/OracleDBQueryRunner.js"
+        },
+        "./queryRunners/PgLiteQueryRunner": {
+            "types": "./queryRunners/PgLiteQueryRunner.d.ts",
+            "default": "./queryRunners/PgLiteQueryRunner.js"
+        },
+        "./queryRunners/PgPoolQueryRunner": {
+            "types": "./queryRunners/PgPoolQueryRunner.d.ts",
+            "default": "./queryRunners/PgPoolQueryRunner.js"
+        },
+        "./queryRunners/PgQueryRunner": {
+            "types": "./queryRunners/PgQueryRunner.d.ts",
+            "default": "./queryRunners/PgQueryRunner.js"
+        },
+        "./queryRunners/PostgresQueryRunner": {
+            "types": "./queryRunners/PostgresQueryRunner.d.ts",
+            "default": "./queryRunners/PostgresQueryRunner.js"
+        },
+        "./queryRunners/PrismaQueryRunner": {
+            "types": "./queryRunners/PrismaQueryRunner.d.ts",
+            "default": "./queryRunners/PrismaQueryRunner.js"
+        },
+        "./queryRunners/QueryRunner": {
+            "types": "./queryRunners/QueryRunner.d.ts",
+            "default": "./queryRunners/QueryRunner.js"
+        },
+        "./queryRunners/Sqlite3QueryRunner": {
+            "types": "./queryRunners/Sqlite3QueryRunner.d.ts",
+            "default": "./queryRunners/Sqlite3QueryRunner.js"
+        },
+        "./queryRunners/Sqlite3WasmOO1QueryRunner": {
+            "types": "./queryRunners/Sqlite3WasmOO1QueryRunner.d.ts",
+            "default": "./queryRunners/Sqlite3WasmOO1QueryRunner.js"
+        },
+        "./extras/IDEncrypter": {
+            "types": "./extras/IDEncrypter.d.ts",
+            "default": "./extras/IDEncrypter.js"
+        },
+        "./extras/sync": {
+            "types": "./extras/sync.d.ts",
+            "default": "./extras/sync.js"
+        },
+        "./extras/types": {
+            "types": "./extras/types.d.ts",
+            "default": "./extras/types.js"
+        },
+        "./extras/utils": {
+            "types": "./extras/utils.d.ts",
+            "default": "./extras/utils.js"
+        },
+        "./unsupported/*": {
+            "types": "./*.d.ts",
+            "default": "./*.js"
+        },
         "./package.json": "./package.json"
     },
     "imports": {
         "#test-runtime": {
-            "bun":     "./test/lib/testRuntime.bun.ts",
+            "bun": "./test/lib/testRuntime.bun.ts",
             "default": "./test/lib/testRuntime.vitest.ts"
         }
     },
@@ -113,10 +256,15 @@
         "tests:wasm": "bash scripts/tests-wasm.sh",
         "tests:audit": "bash scripts/tests-audit.sh",
         "tests:stop-containers": "bash scripts/tests-stop-containers.sh",
+        "tests:reopen": "bash scripts/tests-reopen.sh",
         "test:fast": "bash scripts/tests.sh",
         "test:no-docker": "bash scripts/tests.sh --wasm",
         "test:complete:fast": "bash scripts/tests.sh --docker",
         "test:complete": "bash scripts/tests.sh --docker --wasm",
+        "coverage:fast": "bash scripts/tests.sh --use-vitest --report --coverage --open",
+        "coverage:no-docker": "bash scripts/tests.sh --use-vitest --report --wasm --coverage --mode sequential --open",
+        "coverage:complete": "bash scripts/tests.sh --use-vitest --report --docker --wasm --coverage --mode sequential --open",
+        "coverage:reopen": "bash scripts/tests-reopen.sh",
         "build": "rm -rf dist/*; tsc --version && tsc -p tsconfig.build.json",
         "build:tsgo": "rm -rf dist/*; tsgo --version && tsgo -p tsconfig.build.json",
         "dist": "npm run build && cp LICENSE.md package.json README.md dist && cd dist && npm publish",
@@ -135,21 +283,25 @@
     },
     "homepage": "https://ts-sql-query.readthedocs.io/",
     "devDependencies": {
-        "@types/bun": "^1.3.13",
         "@electric-sql/pglite": "^0.4.4",
-        "@prisma/client": "^7.8.0",
         "@prisma/adapter-better-sqlite3": "^7.8.0",
         "@prisma/adapter-mariadb": "^7.8.0",
         "@prisma/adapter-mssql": "^7.8.0",
         "@prisma/adapter-pg": "^7.8.0",
+        "@prisma/client": "^7.8.0",
         "@sqlite.org/sqlite-wasm": "^3.53.0-build1",
+        "@testcontainers/postgresql": "^11.10.0",
         "@types/better-sqlite3": "^7.6.13",
+        "@types/bun": "^1.3.13",
         "@types/mssql": "^12.3.0",
         "@types/oracledb": "^6.10.3",
         "@types/pg": "^8.20.0",
         "@types/sqlite3": "^3.1.11",
         "@typescript/native-preview": "^7.0.0-dev.20260516.1",
+        "@vitest/coverage-v8": "^4.0.0",
+        "@vitest/ui": "^4.1.6",
         "better-sqlite3": "^12.9.0",
+        "lcov-parse": "^1.0.0",
         "mariadb": "^3.5.2",
         "mssql": "^12.5.0",
         "mysql2": "^3.22.2",
@@ -161,7 +313,6 @@
         "sqlite3": "^6.0.1",
         "synchronous-promise": "^2.0.17",
         "testcontainers": "^11.10.0",
-        "@testcontainers/postgresql": "^11.10.0",
         "tsx": "^4.21.0",
         "typescript": "^6.0.3",
         "uuid": "^14.0.0",

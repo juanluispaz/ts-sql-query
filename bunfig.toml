@@ -1,0 +1,12 @@
+# Defaults for bun:test coverage. Mirrored as the array
+# COVERAGE_DEFAULT_EXCLUDE in scripts/_test-common.sh so the
+# `--coverage-exclude` CLI flag can extend (rather than replace) these
+# when it generates a temp bunfig.toml.
+#
+# The list scopes coverage to the public library surface:
+#   * src/examples/**  — legacy executable examples; not the test/
+#     suite's target.
+#   * test/**          — test infrastructure and the test files
+#                        themselves.
+[test]
+coveragePathIgnorePatterns = ["src/examples/**", "test/**"]

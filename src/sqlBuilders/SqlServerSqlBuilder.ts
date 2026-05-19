@@ -1029,12 +1029,18 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         return result
     }
     override _stringConcat(params: any[], separator: string | undefined, value: any): string {
+        // SQL Server's STRING_AGG rejects NVARCHAR(MAX) for the separator
+        // argument, and the mssql driver sends string parameters as
+        // NVARCHAR(MAX) by default. Inlining the separator as a SQL literal
+        // sidesteps the issue: SQL Server sees a bounded-length string and
+        // accepts it. The separator comes from a runtime API argument, so
+        // `_appendUnsafeLiteralValue` is used to escape embedded `'`.
         if (separator === undefined || separator === null) {
             return 'string_agg(' + this._appendSqlMaybeUuid(value, params) + ", ',')"
         } else if (separator === '') {
             return 'string_agg(' + this._appendSqlMaybeUuid(value, params) + ", '')"
         } else {
-            return 'string_agg(' + this._appendSqlMaybeUuid(value, params) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
+            return 'string_agg(' + this._appendSqlMaybeUuid(value, params) + ', ' + this._appendUnsafeLiteralValue(separator, params) + ')'
         }
     }
     override _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string {
@@ -1043,7 +1049,7 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         } else if (separator === '') {
             return 'string_agg(distinct ' + this._appendSqlMaybeUuid(value, params) + ", '')"
         } else {
-            return 'string_agg(distinct ' + this._appendSqlMaybeUuid(value, params) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
+            return 'string_agg(distinct ' + this._appendSqlMaybeUuid(value, params) + ', ' + this._appendUnsafeLiteralValue(separator, params) + ')'
         }
     }
     override _in(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {

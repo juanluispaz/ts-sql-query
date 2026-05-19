@@ -32,7 +32,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tAppUser)
             .selectOneColumn(ctx.conn.stringConcat(tAppUser.fullName))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select listagg(full_name, ',') within group (order byfull_name) as "result" from app_user"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select listagg(full_name, ',') within group (order by full_name) as "result" from app_user"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         if (ctx.realDbEnabled) {
             expect(row).not.toBeNull()
@@ -46,7 +46,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tAppUser)
             .selectOneColumn(ctx.conn.stringConcat(tAppUser.fullName, ''))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select listagg(full_name) within group (order byfull_name) as "result" from app_user"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select listagg(full_name) within group (order by full_name) as "result" from app_user"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         if (ctx.realDbEnabled) {
             expect(typeof row).toBe('string')
@@ -58,7 +58,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tAppUser)
             .selectOneColumn(ctx.conn.stringConcat(tAppUser.fullName, ' | '))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select listagg(full_name, :0) within group (order byfull_name) as "result" from app_user"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select listagg(full_name, :0) within group (order by full_name) as "result" from app_user"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             " | ",
@@ -78,7 +78,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select listagg(distinct status, ',') within group (order bystatus) as "result" from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select listagg(distinct status, ',') within group (order by status) as "result" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         if (ctx.realDbEnabled) {
             expect(row).not.toBeNull()
@@ -92,7 +92,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status, '|'))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select listagg(distinct status, :0) within group (order bystatus) as "result" from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select listagg(distinct status, :0) within group (order by status) as "result" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "|",
@@ -113,7 +113,7 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status, ''))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select listagg(distinct status) within group (order bystatus) as "result" from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select listagg(distinct status) within group (order by status) as "result" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         if (ctx.realDbEnabled) {
             expect(typeof row).toBe('string')

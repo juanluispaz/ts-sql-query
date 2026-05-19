@@ -2,6 +2,7 @@ import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../exp
 import { isValueSource, __getValueSourcePrivate, __isUuidValueSource, __isUuidValueType } from '../expressions/values.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import type { AnyTableOrView } from '../utils/ITableOrView.js'
+import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import { AbstractMySqlMariaDBSqlBuilder } from './AbstractMySqlMariaBDSqlBuilder.js'
 import type { FlatQueryColumns, InsertData, SelectData, ToSql, WithQueryData } from './SqlBuilder.js'
 import { flattenQueryColumns, hasWithData } from './SqlBuilder.js'
@@ -34,12 +35,32 @@ export class MySqlSqlBuilder extends AbstractMySqlMariaDBSqlBuilder {
         return super._appendRawColumnNameForValuesForInsert(column, params)
     }
     override _buildInsertOnConflictBeforeReturning(query: InsertData, params: any[]): string {
-        const result = super._buildInsertOnConflictBeforeReturning(query, params)
-        if (result && this._connectionConfiguration.compatibilityVersion >= 8_000_019) {
-            // The row alias must sit between the VALUES clause and ON DUPLICATE KEY UPDATE
-            return ' as ' + this._escape(this._updateNewAlias, true) + result
+        if (this._connectionConfiguration.compatibilityVersion < 8_000_019) {
+            return super._buildInsertOnConflictBeforeReturning(query, params)
         }
-        return result
+
+        // With the row alias `_new_` in scope on MySQL 8.0.19+, both the target
+        // table and `_new_` are visible inside the SET clause. Unqualified
+        // column references to the target table therefore become ambiguous and
+        // MySQL rejects them with `ER_NON_UNIQ_ERROR (1052): Column '<col>' in
+        // field list is ambiguous`. We use the existing force-alias mechanism
+        // (the same one `_buildUpdate` uses to emulate `oldValues`) to qualify
+        // column references to the target table with the table's own name. The
+        // `_appendRawColumnNameForValuesForInsert` override handles references
+        // through `tTable.valuesForInsert()` separately, emitting `_new_.col`.
+        const oldForceAliasFor = this._getForceAliasFor(params)
+        const oldForceAliasAs = this._getForceAliasAs(params)
+        this._setForceAliasFor(params, query.__table)
+        this._setForceAliasAs(params, __getTableOrViewPrivate(query.__table).__name)
+        const result = super._buildInsertOnConflictBeforeReturning(query, params)
+        this._setForceAliasFor(params, oldForceAliasFor)
+        this._setForceAliasAs(params, oldForceAliasAs)
+
+        if (!result) {
+            return result
+        }
+        // The row alias must sit between the VALUES clause and ON DUPLICATE KEY UPDATE
+        return ' as ' + this._escape(this._updateNewAlias, true) + result
     }
     override _appendParam(value: any, params: any[], columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {
         if (__isUuidValueType(columnType) && this._getUuidStrategy() === 'binary') {

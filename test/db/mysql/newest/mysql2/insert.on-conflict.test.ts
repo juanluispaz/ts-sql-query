@@ -53,7 +53,7 @@ describe(ctx.label, () => {
                 .onConflictDoUpdateSet({ name: 'Marketing site v2' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) as _new_ on duplicate key update \`name\` = ?"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) as _new_ on duplicate key update project.\`name\` = ?"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -122,7 +122,7 @@ describe(ctx.label, () => {
                 .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
                 .onConflictDoUpdateSet({ name: tProject.name.concat(' v2') })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) as _new_ on duplicate key update \`name\` = concat(\`name\`, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) as _new_ on duplicate key update project.\`name\` = concat(project.\`name\`, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -159,7 +159,7 @@ describe(ctx.label, () => {
                     name: tProject.name.concat(' / ').concat(tProjectForInsert.name),
                 })
                 .executeInsert()
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) as _new_ on duplicate key update \`name\` = concat(\`name\`, ?, _new_.\`name\`)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, \`name\`) values (?, ?, ?) as _new_ on duplicate key update project.\`name\` = concat(project.\`name\`, ?, _new_.\`name\`)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

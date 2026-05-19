@@ -92,6 +92,19 @@ function _typeNegatives() {
     // match the column's underlying type.
     // @ts-expect-error string passed where number | null | undefined expected
     void tIssue.priority.equalsIfValue('high')
+
+    // Rule: `stringConcatDistinct(...)` is not exposed on SqlServerConnection
+    // because SQL Server's `STRING_AGG` does not accept the `DISTINCT`
+    // quantifier in any of its argument forms — the parser fails with
+    // `Msg 102, Level 15: Incorrect syntax near ','` (verified against
+    // SQL Server 2025). The non-distinct `stringConcat(...)` remains
+    // available; for distinct aggregation use a pre-deduplicated subquery
+    // via `subSelectUsing(...).distinct().select(...)`.
+    void connection.stringConcat(tAppUser.fullName)
+    // @ts-expect-error stringConcatDistinct is removed on SqlServerConnection
+    void connection.stringConcatDistinct(tAppUser.fullName)
+    // @ts-expect-error stringConcatDistinct is removed on SqlServerConnection
+    void connection.stringConcatDistinct(tAppUser.fullName, '|')
 }
 
 test('select-negative-types', () => {

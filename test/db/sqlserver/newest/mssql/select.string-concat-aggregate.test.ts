@@ -16,7 +16,7 @@
 // so real-DB assertions split-and-sort rather than comparing strings.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { tAppUser, tIssue } from '../../domain/connection.js'
+import { tAppUser } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -58,12 +58,8 @@ describe(ctx.label, () => {
         const row = await ctx.conn.selectFrom(tAppUser)
             .selectOneColumn(ctx.conn.stringConcat(tAppUser.fullName, ' | '))
             .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select string_agg(full_name, @0) as [result] from app_user"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            " | ",
-          ]
-        `)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select string_agg(full_name, ' | ') as [result] from app_user"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         if (ctx.realDbEnabled) {
             expect(row).not.toBeNull()
             const parts = row!.split(' | ').sort()
@@ -71,52 +67,11 @@ describe(ctx.label, () => {
         }
     })
 
-    test('string-concat-distinct-no-separator', async () => {
-        // Issue statuses in the seed: open, in_progress, open, closed —
-        // three distinct values.
-        ctx.mockNext('open,in_progress,closed')
-        const row = await ctx.conn.selectFrom(tIssue)
-            .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status))
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select string_agg(distinct status, ',') as [result] from issue"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        if (ctx.realDbEnabled) {
-            expect(row).not.toBeNull()
-            const parts = row!.split(',').sort()
-            expect(parts).toEqual(['closed', 'in_progress', 'open'])
-        }
-    })
-
-    test('string-concat-distinct-string-separator', async () => {
-        ctx.mockNext('open|in_progress|closed')
-        const row = await ctx.conn.selectFrom(tIssue)
-            .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status, '|'))
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select string_agg(distinct status, @0) as [result] from issue"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "|",
-          ]
-        `)
-        if (ctx.realDbEnabled) {
-            expect(row).not.toBeNull()
-            const parts = row!.split('|').sort()
-            expect(parts).toEqual(['closed', 'in_progress', 'open'])
-        }
-    })
-
-    test('string-concat-distinct-empty-separator', async () => {
-        // Edge case for the third separator branch of _stringConcatDistinct.
-        // On MySQL/MariaDB this currently surfaces a bug (the emitter
-        // drops the `distinct` keyword); see test/BUGS.md.
-        ctx.mockNext('openin_progressclosed')
-        const row = await ctx.conn.selectFrom(tIssue)
-            .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status, ''))
-            .executeSelectOne()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select string_agg(distinct status, '') as [result] from issue"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        if (ctx.realDbEnabled) {
-            expect(typeof row).toBe('string')
-        }
-    })
+    // Not applicable on SQL Server: SQL Server's STRING_AGG does not accept
+    // the DISTINCT quantifier (parser fails with `Msg 102: Incorrect syntax
+    // near ','`). `stringConcatDistinct` is therefore not typed on
+    // SqlServerConnection. The portable workaround is a pre-deduplicated
+    // subquery: `subSelectUsing(...).distinct().select(...).forUseAsInlineQueryValue()`.
+    // See test/db/sqlserver/types.negative/select.test.ts for the compile-time
+    // negative that locks this contract.
 })

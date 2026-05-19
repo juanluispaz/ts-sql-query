@@ -882,8 +882,19 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     override _random(_params: any): string {
         return '(select dbms_random.value from dual)'
     }
+    override _pi(_params: any): string {
+        // Oracle has no `PI()` function; `ACOS(-1)` yields the mathematical
+        // constant π via the inverse cosine identity.
+        return 'acos(-1)'
+    }
     override _currentDate(_params: any): string {
         return 'trunc(current_timestamp)'
+    }
+    override _currentTime(_params: any): string {
+        // Oracle has no `CURRENT_TIME` keyword. `LOCALTIMESTAMP` is the
+        // closest portable equivalent that yields a session-local moment
+        // the oracledb driver materialises as a JS `Date`.
+        return 'localtimestamp'
     }
     override _valueWhenNull(params: any[], valueSource: ToSql, value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined): string {
         return 'nvl(' + this._appendSql(valueSource, params, false) + ', ' + this._appendValue(value, params, columnType, columnTypeName, typeAdapter, false) + ')'
@@ -957,20 +968,20 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
     }
     override _stringConcat(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
-            return 'listagg(' + this._appendSql(value, params, false) + ", ',') within group (order by" + this._appendSql(value, params, false) + ')'
+            return 'listagg(' + this._appendSql(value, params, false) + ", ',') within group (order by " + this._appendSql(value, params, false) + ')'
         } else if (separator === '') {
-            return 'listagg(' + this._appendSql(value, params, false) + ') within group (order by' +  this._appendSql(value, params, false) + ')'
+            return 'listagg(' + this._appendSql(value, params, false) + ') within group (order by ' +  this._appendSql(value, params, false) + ')'
         } else {
-            return 'listagg(' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ') within group (order by' +  this._appendSql(value, params, false) + ')'
+            return 'listagg(' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ') within group (order by ' +  this._appendSql(value, params, false) + ')'
         }
     }
     override _stringConcatDistinct(params: any[], separator: string | undefined, value: any): string {
         if (separator === undefined || separator === null) {
-            return 'listagg(distinct ' + this._appendSql(value, params, false) + ", ',') within group (order by" +  this._appendSql(value, params, false) + ')'
+            return 'listagg(distinct ' + this._appendSql(value, params, false) + ", ',') within group (order by " +  this._appendSql(value, params, false) + ')'
         } else if (separator === '') {
-            return 'listagg(distinct ' + this._appendSql(value, params, false) + ') within group (order by' +  this._appendSql(value, params, false) + ')'
+            return 'listagg(distinct ' + this._appendSql(value, params, false) + ') within group (order by ' +  this._appendSql(value, params, false) + ')'
         } else {
-            return 'listagg(distinct ' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ') within group (order by' +  this._appendSql(value, params, false) + ')'
+            return 'listagg(distinct ' + this._appendSql(value, params, false) + ', ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ') within group (order by ' +  this._appendSql(value, params, false) + ')'
         }
     }
     override _escapeLikeWildcard(params: any[], value: any, columnType: ValueType, columnTypeName: string, typeAdapter: TypeAdapter | undefined, forceTypeCast: boolean): string {

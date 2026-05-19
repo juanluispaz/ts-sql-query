@@ -21,7 +21,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ p: ctx.conn.pi() })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select pi() as "p" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select acos(-1) as "p" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ p: number }>>>()
         if (ctx.realDbEnabled) {
@@ -58,7 +58,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ t: ctx.conn.currentTime() })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select current_time as "t" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select localtimestamp as "t" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         expect(rows[0]!.t).toBeDefined()
     })

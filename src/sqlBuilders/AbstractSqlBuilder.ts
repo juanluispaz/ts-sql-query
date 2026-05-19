@@ -302,12 +302,43 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const columnPrivate = __getColumnPrivate(column)
         return 'excluded.' + this._escape(columnPrivate.__name, true)
     }
+    /**
+     * Emits a number or string as an inline SQL literal **without escaping**.
+     * The caller is responsible for guaranteeing the string is safe to embed
+     * verbatim (i.e. it contains no `'` and does not come from user input).
+     *
+     * This method is intentionally fast: it skips the per-character scan that
+     * full SQL-injection-safe escaping requires. It is the right choice when
+     * the value is library-internal or comes from a trusted, build-time
+     * source — notably `CustomBooleanTypeAdapter.trueValue` /
+     * `CustomBooleanTypeAdapter.falseValue`, which are programmer-supplied at
+     * table-declaration time and consistently use identifier-like strings
+     * (`'T'`, `'Y'`, `'yes'`, etc.).
+     *
+     * For any value that may contain `'` — in particular, anything that
+     * propagates from a runtime API argument such as a `stringConcat`
+     * separator — use {@link _appendUnsafeLiteralValue} instead.
+     */
     _appendLiteralValue(value: number | string, _params: any[]) {
         if (typeof value === 'number') {
             return '' + value
         } else {
             return "'" + value + "'"
         }
+    }
+    /**
+     * Emits a string as an inline SQL literal with SQL-92 single-quote
+     * escaping (`'` → `''`). Use this when the value may have been influenced
+     * by an API consumer at runtime — for example, the `separator` argument
+     * of `stringConcat(value, separator)`. Every supported dialect (Postgres,
+     * MySQL, MariaDB, SQLite, Oracle, SQL Server) accepts this form.
+     *
+     * For known-safe library-internal values, prefer {@link _appendLiteralValue}
+     * — it skips the per-character scan and is byte-identical for strings
+     * with no embedded `'`.
+     */
+    _appendUnsafeLiteralValue(value: string, _params: any[]) {
+        return "'" + value.replace(/'/g, "''") + "'"
     }
     _getTableOrViewVisibleName(table: AnyTableOrView): string {
         const t = __getTableOrViewPrivate(table)

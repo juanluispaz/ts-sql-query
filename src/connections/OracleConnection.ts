@@ -1,8 +1,12 @@
-import type { NConnection } from '../utils/sourceName.js'
+import type { NConnection, NSource } from '../utils/sourceName.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { OracleSqlBuilder } from '../sqlBuilders/OracleSqlBuilder.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
+import type { IStringValueSource, StringValueSource, ValueSourceOf } from '../expressions/values.js'
+import { __getValueSourcePrivate } from '../expressions/values.js'
+import { AggregateFunctions1or2ValueSource } from '../internal/ValueSourceImpl.js'
+import type { SameDB } from '../utils/ITableOrView.js'
 
 export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'oracle', NAME>> {
 
@@ -28,6 +32,13 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
     constructor(queryRunner: QueryRunner, sqlBuilder = new OracleSqlBuilder()) {
         super(queryRunner, sqlBuilder)
         queryRunner.useDatabase('oracle')
+    }
+
+    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'oracle', NAME>>): StringValueSource<SOURCE, 'optional'>
+    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'oracle', NAME>>, separator: string): StringValueSource<SOURCE, 'optional'>
+    stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
+        const valuePrivate = __getValueSourcePrivate(value)
+        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
 
     isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable'): TransactionIsolationLevel

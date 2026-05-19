@@ -1006,12 +1006,11 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcat', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB>): StringValueSource<SOURCE, 'optional'>
-    stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB>, separator: string): StringValueSource<SOURCE, 'optional'>
-    stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
-        const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
-    }
+    // `stringConcatDistinct` is declared on each concrete connection whose
+    // dialect accepts DISTINCT inside its string-aggregation function (PG,
+    // MariaDB, MySQL, SQLite, Oracle, NoopDB) so the property is absent on
+    // SqlServerConnection, whose STRING_AGG rejects DISTINCT entirely. See
+    // each `<DB>Connection.ts` for the per-dialect declaration.
 
     aggregateAsArray<COLUMNS extends AggregatedArrayColumns<DB>>(columns: COLUMNS): AggregatedArrayValueSourceProjectableAsNullable<SourceOfAggregatedArray<COLUMNS>, Array<{ [P in keyof ResultObjectValuesForAggregatedArray<COLUMNS>]: ResultObjectValuesForAggregatedArray<COLUMNS>[P] }>, Array<{ [P in keyof ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>]: ResultObjectValuesProjectedAsNullableForAggregatedArray<COLUMNS>[P] }>, 'required'> {
         return new AggregateValueAsArrayValueSource(columns as QueryColumns, 'InnerResultObject', 'required', false)

@@ -113,7 +113,6 @@ nav:
       - pg: configuration/query-runners/recommended/pg.md
       - postgres: configuration/query-runners/recommended/postgres.md
       - pglite: configuration/query-runners/recommended/pglite.md
-      - sqlite3: configuration/query-runners/recommended/sqlite3.md
       - sqlite-wasm OO1: configuration/query-runners/recommended/sqlite-wasm-OO1.md
     - Bun's recommended query runners:
       - Bun Sqlite: configuration/query-runners/recommended/bun_sqlite.md
@@ -128,8 +127,9 @@ nav:
         - ConsoleLogQueryRunner: configuration/query-runners/general-purpose/ConsoleLogQueryRunner.md
         - ConsoleLogNoopQueryRunner: configuration/query-runners/general-purpose/ConsoleLogNoopQueryRunner.md
         - NoopQueryRunner: configuration/query-runners/general-purpose/NoopQueryRunner.md
-    - Additional query runners: 
+    - Additional query runners:
       - prisma: configuration/query-runners/additional/prisma.md
+      - sqlite3: configuration/query-runners/additional/sqlite3.md
   - API: 
     - API Introduction: api/introduction.md
     - Connection API: api/connection.md

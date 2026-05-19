@@ -4,6 +4,15 @@ import { SqlTransactionQueryRunner } from './SqlTransactionQueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlDatabaseErrorCode, type TsSqlDatabaseErrorNumber, type TsSqlErrorReason } from '../TsSqlError.js'
 import { getSqliteEngineErrorReason, getSqliteErrorCodeName, getSqliteErrorCodeNumber } from './databaseErrorMappers/SqliteErrorMapper.js'
 
+/**
+ * @deprecated The [sqlite3](https://www.npmjs.com/package/sqlite3) driver was deprecated by its
+ * maintainers on 2025-12-11; consequently, `Sqlite3QueryRunner` is deprecated as well. Existing
+ * code keeps working — runtime behavior is unchanged and the runner will continue to ship for
+ * the time being — but new projects should pick another SQLite runner: `BetterSqlite3QueryRunner`
+ * (fast synchronous driver, the default choice for Node), `NodeSqliteQueryRunner` (Node 22+'s
+ * built-in `node:sqlite`, zero dependencies), `BunSqliteQueryRunner` (when running on Bun), or
+ * `Sqlite3WasmOO1QueryRunner` (for environments without native bindings).
+ */
 export class Sqlite3QueryRunner extends SqlTransactionQueryRunner {
     readonly database: DatabaseType
     readonly connection: Database

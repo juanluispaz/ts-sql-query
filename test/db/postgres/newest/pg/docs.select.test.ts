@@ -460,6 +460,108 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('docs-extra:select/clauses-where-after-select', async () => {
+        // Section "Select clauses order" — alternative ordering where
+        // WHERE comes AFTER select(): from/groupBy/having/select/where.
+        const expected = [
+            { organizationId: 1, projectCount: 2 },
+            { organizationId: 2, projectCount: 1 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tProject)
+            .groupBy(tProject.organizationId)
+            .having(connection.count(tProject.id).greaterThan(0))
+            .select({
+                organizationId: tProject.organizationId,
+                projectCount:   connection.count(tProject.id),
+            })
+            .where(tProject.archivedAt.isNull())
+            .orderBy('organizationId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as "organizationId", count(id) as "projectCount" from project where archived_at is null group by organization_id having count(id) > $1 order by "organizationId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            organizationId: number
+            projectCount:   number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('docs-extra:select/clauses-where-after-orderby', async () => {
+        // Section "Select clauses order" — WHERE may come AFTER orderBy():
+        // from/groupBy/having/select/orderBy/where/limit/offset.
+        const expected = [
+            { organizationId: 1, projectCount: 2 },
+            { organizationId: 2, projectCount: 1 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tProject)
+            .groupBy(tProject.organizationId)
+            .having(connection.count(tProject.id).greaterThan(0))
+            .select({
+                organizationId: tProject.organizationId,
+                projectCount:   connection.count(tProject.id),
+            })
+            .orderBy('organizationId')
+            .where(tProject.archivedAt.isNull())
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as "organizationId", count(id) as "projectCount" from project where archived_at is null group by organization_id having count(id) > $1 order by "organizationId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            organizationId: number
+            projectCount:   number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('docs-extra:select/clauses-select-before-where', async () => {
+        // Section "Select clauses order" — the "Alternative order 1" branch
+        // allows select() before where(): from/select/where/groupBy/having.
+        const expected = [
+            { organizationId: 1, projectCount: 2 },
+            { organizationId: 2, projectCount: 1 },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tProject)
+            .select({
+                organizationId: tProject.organizationId,
+                projectCount:   connection.count(tProject.id),
+            })
+            .where(tProject.archivedAt.isNull())
+            .groupBy('organizationId')
+            .having(connection.count(tProject.id).greaterThan(0))
+            .orderBy('organizationId')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization_id as "organizationId", count(id) as "projectCount" from project where archived_at is null group by organization_id having count(id) > $1 order by "organizationId""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            0,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            organizationId: number
+            projectCount:   number
+        }>>>()
+        expect(result).toEqual(expected)
+    })
+
     test('docs-extra:select/find-by-email', async () => {
         // Page-derived: a baseline `selectFrom(...).where(...).select({...}).executeSelectOne()`
         // demonstrating an indexed single-row fetch.

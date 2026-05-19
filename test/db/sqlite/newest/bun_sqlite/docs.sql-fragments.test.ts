@@ -7,7 +7,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tAppUser } from '../../domain/connection.js'
+import { tAppUser, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -122,6 +122,62 @@ describe(ctx.label, () => {
               ]
             `)
             assertType<Exact<typeof id, number>>()
+        })
+    })
+
+    test('docs:sql-fragments/customize-query-update', async () => {
+        // Section "Customizing an update" — `afterUpdateKeyword` and
+        // `afterQuery` extension points on the UPDATE customizeQuery.
+        ctx.mockNext(1)
+        const connection = ctx.conn
+
+        await ctx.withRollback(async () => {
+            // doc-start
+            const affected = await connection.update(tProject)
+                .set({ name: 'Marketing site (v2)' })
+                .where(tProject.id.equals(1))
+                .customizeQuery({
+                    afterUpdateKeyword: connection.rawFragment`/*+ some hints */`,
+                    afterQuery:         connection.rawFragment`/* trailing comment */`,
+                })
+                .executeUpdate()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /*+ some hints */ project set name = ? where id = ? /* trailing comment */"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Marketing site (v2)",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+        })
+    })
+
+    test('docs:sql-fragments/customize-query-delete', async () => {
+        // Section "Customizing a delete" — `afterDeleteKeyword` and
+        // `afterQuery` extension points on the DELETE customizeQuery.
+        ctx.mockNext(0)
+        const connection = ctx.conn
+
+        await ctx.withRollback(async () => {
+            // doc-start
+            const affected = await connection.deleteFrom(tProject)
+                .where(tProject.id.equals(9999))
+                .customizeQuery({
+                    afterDeleteKeyword: connection.rawFragment`/*+ some hints */`,
+                    afterQuery:         connection.rawFragment`/* trailing comment */`,
+                })
+                .executeDelete()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete /*+ some hints */ from project where id = ? /* trailing comment */"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                9999,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
         })
     })
 

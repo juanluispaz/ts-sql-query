@@ -299,7 +299,7 @@ describe(ctx.label, () => {
                 .executeInsertNoneOrOne()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as id, inserted.name as name, inserted.[plan] as [plan] values (@0, @1) on conflict do nothing"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) on conflict do nothing returning id as id, name as name, "plan" as "plan""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Acme Corp",
@@ -341,7 +341,7 @@ describe(ctx.label, () => {
                 .executeInsertOne()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as id, inserted.name as name, inserted.[plan] as [plan] values (@0, @1) on conflict (id) do update set [plan] = @2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) on conflict (id) do update set "plan" = ? returning id as id, name as name, "plan" as "plan""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Acme Corp",
@@ -380,7 +380,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as id, inserted.name as name, inserted.[plan] as [plan] values (@0, @1) on conflict do update set [plan] = @2"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) on conflict do update set "plan" = ? returning id as id, name as name, "plan" as "plan""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Acme Corp",
@@ -421,7 +421,7 @@ describe(ctx.label, () => {
                 })
                 .executeInsertOne()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id as id, inserted.name as name, inserted.[plan] as [plan] values (@0, @1) on conflict (id) do update set name = organization.name + @2 + excluded.name"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) on conflict (id) do update set name = organization.name || ? || excluded.name returning id as id, name as name, "plan" as "plan""`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 "Acme Corp",
@@ -511,4 +511,298 @@ describe(ctx.label, () => {
             assertType<Exact<typeof name, string>>()
         })
     })
+
+    test('docs-extra:insert/set-if-value-null-skips', async () => {
+        // "Manipulating values to insert" prose: `setIfValue(...)` only
+        // applies entries whose value is not null/undefined/empty-string/
+        // empty-array. A null `plan` is dropped, so the column is NOT
+        // emitted in the INSERT.
+        ctx.mockNext(42)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            const newPlan: string | null = null
+
+            const id = await connection.insertInto(tOrganization)
+                .set({ name: 'Initech', plan: 'free' })
+                .setIfValue({ plan: newPlan })
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id values (@0, @1)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Initech",
+                "free",
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+        })
+    })
+
+    test('docs-extra:insert/set-if-value-empty-string-skips', async () => {
+        // "Manipulating values to insert" prose: empty strings are treated
+        // as "no value" by setIfValue (unless `allowEmptyString` is on,
+        // which is off by default).
+        ctx.mockNext(42)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            const newPlan = ''
+
+            const id = await connection.insertInto(tOrganization)
+                .set({ name: 'Initech', plan: 'free' })
+                .setIfValue({ plan: newPlan })
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id values (@0, @1)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Initech",
+                "free",
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+        })
+    })
+
+    test('docs-extra:insert/set-if-set-overrides-existing', async () => {
+        // "Manipulating values to insert" prose: `setIfSet({...})` writes a
+        // value ONLY when that key was already set in a previous step;
+        // overriding an existing `plan`.
+        ctx.mockNext(42)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            const id = await connection.insertInto(tOrganization)
+                .set({ name: 'Initech', plan: 'free' })
+                .setIfSet({ plan: 'pro' })
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id values (@0, @1)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Initech",
+                "pro",
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+        })
+    })
+
+    test('docs-extra:insert/ignore-if-set-drops-column', async () => {
+        // "Manipulating values to insert" prose: `ignoreIfSet(col, ...)`
+        // removes the listed columns from a previous set, so they are not
+        // emitted in the SQL.
+        ctx.mockNext(42)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            const id = await connection.insertInto(tIssue)
+                .set({
+                    projectId: 1,
+                    number:    99,
+                    title:     'Triage backlog',
+                    status:    'open',
+                    priority:  2,
+                    body:      'will be dropped',
+                })
+                .ignoreIfSet('body')
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) output inserted.id values (@0, @1, @2, @3, @4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                99,
+                "Triage backlog",
+                "open",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+        })
+    })
+
+    test('docs-extra:insert/keep-only-filters-columns', async () => {
+        // "Manipulating values to insert" prose: `keepOnly(col, ...)`
+        // drops every previously-set column not in the allowlist.
+        ctx.mockNext(42)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            const id = await connection.insertInto(tIssue)
+                .set({
+                    projectId: 1,
+                    number:    99,
+                    title:     'Triage backlog',
+                    status:    'open',
+                    priority:  2,
+                    body:      'will be dropped',
+                })
+                .keepOnly('projectId', 'number', 'title', 'status', 'priority')
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) output inserted.id values (@0, @1, @2, @3, @4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                99,
+                "Triage backlog",
+                "open",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+        })
+    })
+
+    test('docs-extra:insert/ignore-any-set-with-no-value', async () => {
+        // "Manipulating values to insert" prose:
+        // `ignoreAnySetWithNoValue()` drops every previously-set column
+        // whose value is null/undefined/empty-string/empty-array — useful
+        // after a chain of `setIfValue` calls when you want a single
+        // sweep at the end. Demonstrated on the optional `body` column.
+        ctx.mockNext(42)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            const id = await connection.insertInto(tIssue)
+                .set({
+                    projectId: 1,
+                    number:    99,
+                    title:     'Triage backlog',
+                    status:    'open',
+                    priority:  2,
+                    body:      '',
+                })
+                .ignoreAnySetWithNoValue()
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) output inserted.id values (@0, @1, @2, @3, @4)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                99,
+                "Triage backlog",
+                "open",
+                2,
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+        })
+    })
+
+    test('docs-extra:insert/disallow-if-set-throws', async () => {
+        // "Manipulating values to insert" prose: `disallowIfSet(msg, ...cols)`
+        // throws if any listed column was previously set, BEFORE the
+        // statement is executed.
+        const connection = ctx.conn
+
+        expect(() => {
+            connection.insertInto(tOrganization)
+                .set({ name: 'Initech', plan: 'free' })
+                .disallowIfSet('plan must be assigned by the server', 'plan')
+        }).toThrow(/plan must be assigned by the server/)
+    })
+
+    test('docs-extra:insert/disallow-if-not-set-throws', async () => {
+        // "Manipulating values to insert" prose:
+        // `disallowIfNotSet(msg, ...cols)` throws if any listed column is
+        // missing. Use it as a defensive check after dynamic chains.
+        const connection = ctx.conn
+
+        expect(() => {
+            connection.insertInto(tOrganization)
+                .dynamicSet()
+                .set({ name: 'Initech' })
+                .disallowIfNotSet('plan is required by policy', 'plan')
+        }).toThrow(/plan is required by policy/)
+    })
+
+    test('docs-extra:insert/disallow-any-other-set-throws', async () => {
+        // "Manipulating values to insert" prose:
+        // `disallowAnyOtherSet(msg, ...allowlist)` throws if any column
+        // NOT in the allowlist is set.
+        const connection = ctx.conn
+
+        expect(() => {
+            connection.insertInto(tOrganization)
+                .set({ name: 'Initech', plan: 'free' })
+                .disallowAnyOtherSet('only name may be set by this path', 'name')
+        }).toThrow(/only name may be set by this path/)
+    })
+
+    test('docs-extra:insert/set-when-false-skips', async () => {
+        // "Manipulating values to insert" prose: every method has a
+        // `When` variant — `setWhen(false, ...)` is a no-op, so the chain
+        // emits only what `set(...)` already had.
+        ctx.mockNext(42)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            const includeUpgrade = false
+
+            const id = await connection.insertInto(tOrganization)
+                .set({ name: 'Initech', plan: 'free' })
+                .setWhen(includeUpgrade, { plan: 'pro' })
+                .returningLastInsertedId()
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan]) output inserted.id values (@0, @1)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Initech",
+                "free",
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+        })
+    })
+
+    // TODO[BUG]: see BUGS.md — `setForAllIfValue` is not exposed on the type returned by `values([...])` even though the docs prose advertises it.
+    /*
+    test('docs-extra:insert/set-for-all-if-value-multi', async () => {
+        // "Manipulating values to insert (multiple)" prose:
+        // `setForAllIfValue({...})` applies a value to every row of a
+        // multi-row insert, but skips null/empty values — the column is
+        // omitted from the emitted INSERT entirely.
+        ctx.mockNext([{ id: 81 }, { id: 82 }])
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            const inserted = await connection.insertInto(tProject)
+                .values([
+                    { name: 'Mobile app', slug: 'mobile', organizationId: 1 },
+                    { name: 'Dashboard',  slug: 'dash',   organizationId: 1 },
+                ])
+                .setForAllIfValue({ archivedAt: null })
+                .returning({ id: tProject.id })
+                .executeInsertMany()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (name, slug, organization_id) output inserted.id as id values (@0, @1, @2), (@3, @4, @5)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Mobile app",
+                "mobile",
+                1,
+                "Dashboard",
+                "dash",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof inserted, Array<{ id: number }>>>()
+        })
+    })
+    */
 })

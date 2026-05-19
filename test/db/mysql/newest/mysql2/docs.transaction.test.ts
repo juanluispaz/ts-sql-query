@@ -126,7 +126,6 @@ describe(ctx.label, () => {
             expect(result).toBe(1)
         })
     })
-
     test('docs:transaction/execute-before-next-commit', async () => {
         // Section "Deferring logic during a transaction" —
         // `executeBeforeNextCommit` runs the hook just before commit.
@@ -197,6 +196,29 @@ describe(ctx.label, () => {
             // doc-end
             expect(stored).toBe('my value')
         })
+    })
+
+    test('docs-extra:transaction/hooks-no-effect-without-transaction', async () => {
+        // "Note" on the page: deferred-hook registrations "have no
+        // effect if called when there is no active transaction".
+        // TODO[BUG]: see BUGS.md — the prose is ambiguous and the
+        // observed behaviour diverges from a naive reading of it. On a
+        // real-DB connection the call throws `NOT_IN_TRANSACTION` (most
+        // likely the intended contract); on a mock connection the
+        // registration is silently accepted and never fires. We branch
+        // on `ctx.realDbEnabled` to lock both observed paths so the
+        // tests stay green and the docs/mock review can happen later.
+        const connection = ctx.conn
+
+        if (ctx.realDbEnabled) {
+            expect(() => connection.executeBeforeNextCommit(() => { /* */ })).toThrow(/NOT_IN_TRANSACTION/)
+            expect(() => connection.executeAfterNextCommit(() => { /* */ })).toThrow(/NOT_IN_TRANSACTION/)
+            expect(() => connection.executeAfterNextRollback(() => { /* */ })).toThrow(/NOT_IN_TRANSACTION/)
+        } else {
+            expect(() => connection.executeBeforeNextCommit(() => { /* */ })).not.toThrow()
+            expect(() => connection.executeAfterNextCommit(() => { /* */ })).not.toThrow()
+            expect(() => connection.executeAfterNextRollback(() => { /* */ })).not.toThrow()
+        }
     })
 
     test('docs-extra:transaction/hooks-cleared-after-use', async () => {

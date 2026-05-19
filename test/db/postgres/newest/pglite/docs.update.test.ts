@@ -99,7 +99,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[LIMITATION]: see LIMITATIONS.md — pglite ships PostgreSQL 17, but 'update returning old values' uses the RETURNING old.<col> syntax that requires PostgreSQL 18+. Uncomment when pglite catches up.
+    // TODO[LIMITATION]: see LIMITATIONS.md — pglite ships PostgreSQL 17 and the SqlBuilder emits `RETURNING old.<col>` at `newest`, which requires PostgreSQL 18+. The `oldest` cell uses the pre-PG18 emulation and is unaffected.
     /*
     test('docs:update/update-returning-old-values', async () => {
         // Section "Update returning old values" — `tTable.oldValues()`
@@ -123,18 +123,12 @@ describe(ctx.label, () => {
                 .executeUpdateOne()
             // doc-end
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"update project set name = $1 where id = $2 returning old.name as "oldName", name as "newName""`)
-            expect(ctx.lastParams).toMatchInlineSnapshot(`
-              [
-                "Marketing site (v2)",
-                1,
-              ]
-            `)
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
             assertType<Exact<typeof updated, { oldName: string; newName: string }>>()
         })
     })
     */
-
     test('docs:update/update-from-other-table', async () => {
         // Section "Update using other tables or views" — `.from(other)`
         // joins the other table for use in the SET / WHERE expressions.
@@ -287,5 +281,181 @@ describe(ctx.label, () => {
             `)
             assertType<Exact<typeof affected, number>>()
         })
+    })
+
+    test('docs-extra:update/set-if-set-overrides-existing', async () => {
+        // "Manipulating values to update" prose: `setIfSet({...})` only
+        // writes when the same column was already set in a previous step.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            const affected = await connection.update(tIssue)
+                .set({ title: 'Triage', priority: 2 })
+                .setIfSet({ priority: 1 })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = $1, priority = $2 where id = $3"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Triage",
+                1,
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+        })
+    })
+
+    test('docs-extra:update/set-if-not-set-skips-when-already-set', async () => {
+        // "Manipulating values to update" prose: `setIfNotSet({...})`
+        // assigns only the columns that were NOT previously set; existing
+        // entries are left untouched.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            const affected = await connection.update(tIssue)
+                .set({ title: 'Triage', priority: 2 })
+                .setIfNotSet({ priority: 1, status: 'closed' })
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = $1, priority = $2, status = $3 where id = $4"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Triage",
+                2,
+                "closed",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+        })
+    })
+
+    test('docs-extra:update/ignore-if-set-drops-column', async () => {
+        // "Manipulating values to update" prose: `ignoreIfSet(col, ...)`
+        // removes the listed columns from the previous set so they are
+        // not emitted in the UPDATE statement.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            const affected = await connection.update(tIssue)
+                .set({ title: 'Triage', priority: 1 })
+                .ignoreIfSet('priority')
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = $1 where id = $2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Triage",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+        })
+    })
+
+    test('docs-extra:update/keep-only-filters-columns', async () => {
+        // "Manipulating values to update" prose: `keepOnly(col, ...)`
+        // drops every previously-set column not in the allowlist.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            const affected = await connection.update(tIssue)
+                .set({ title: 'Triage', priority: 1, status: 'open' })
+                .keepOnly('title')
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = $1 where id = $2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Triage",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+        })
+    })
+
+    test('docs-extra:update/ignore-any-set-with-no-value', async () => {
+        // "Manipulating values to update" prose:
+        // `ignoreAnySetWithNoValue()` sweeps every previously-set column
+        // whose value is null/undefined/empty-string/empty-array — handy
+        // after a chain of `setIfValue` calls.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            const affected = await connection.update(tIssue)
+                .set({ title: 'Triage' })
+                .set({ body: '' })
+                .ignoreAnySetWithNoValue()
+                .where(tIssue.id.equals(1))
+                .executeUpdate()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = $1 where id = $2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Triage",
+                1,
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+        })
+    })
+
+    test('docs-extra:update/disallow-if-set-throws', async () => {
+        // "Manipulating values to update" prose:
+        // `disallowIfSet(msg, ...cols)` throws BEFORE execute if any
+        // listed column was set — defensive policy check.
+        const connection = ctx.conn
+
+        expect(() => {
+            connection.update(tIssue)
+                .set({ title: 'Triage', status: 'closed' })
+                .disallowIfSet('status is managed by the workflow', 'status')
+                .where(tIssue.id.equals(1))
+        }).toThrow(/status is managed by the workflow/)
+    })
+
+    test('docs-extra:update/disallow-if-not-set-throws', async () => {
+        // "Manipulating values to update" prose:
+        // `disallowIfNotSet(msg, ...cols)` throws if any listed column is
+        // missing — defensive check for required-by-policy columns.
+        const connection = ctx.conn
+
+        expect(() => {
+            connection.update(tIssue)
+                .dynamicSet()
+                .set({ title: 'Triage' })
+                .disallowIfNotSet('priority must always be set', 'priority')
+                .where(tIssue.id.equals(1))
+        }).toThrow(/priority must always be set/)
+    })
+
+    test('docs-extra:update/disallow-any-other-set-throws', async () => {
+        // "Manipulating values to update" prose:
+        // `disallowAnyOtherSet(msg, ...allowlist)` throws if any column
+        // not in the allowlist was set.
+        const connection = ctx.conn
+
+        expect(() => {
+            connection.update(tIssue)
+                .set({ title: 'Triage', status: 'closed' })
+                .disallowAnyOtherSet('only title may be updated by this path', 'title')
+                .where(tIssue.id.equals(1))
+        }).toThrow(/only title may be updated by this path/)
     })
 })

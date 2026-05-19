@@ -316,4 +316,55 @@ describe(ctx.label, () => {
         // SQL/params/types and the mock-mode value round-trip.
         if (!ctx.realDbEnabled) expect(result).toEqual(expected)
     })
+
+    test('substring-to-end', async () => {
+        // `.substringToEnd(start)` reaches the `_substringToEnd` branch
+        // (no length argument). Each builder picks a slightly different
+        // SQL — SQLite/Oracle drop the length argument from `substr`,
+        // PostgreSQL uses `substring(x from start+1)`, SqlServer uses
+        // `substring(x, start+1, len(x))`.
+        const expected = [{ id: 1, sub: 'auth bug' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                sub: tIssue.title.substringToEnd(3),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(title, ?) as sub from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            4,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
+        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+    })
+
+    test('substr-to-end', async () => {
+        // `.substrToEnd(start)` — the JS-style sibling of
+        // substringToEnd(start). The emitted SQL is identical on
+        // most dialects (both fall back to `substr(x, start+1)` on
+        // SQLite/Oracle); the test still pins the param shape per cell.
+        const expected = [{ id: 1, sub: 'auth bug' }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:  tIssue.id,
+                sub: tIssue.title.substrToEnd(3),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substr(title, ?) as sub from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            4,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
+        if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+    })
 })

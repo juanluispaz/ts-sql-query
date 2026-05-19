@@ -114,6 +114,86 @@ describe(ctx.label, () => {
         }
     })
 
+    test('getDay-day-of-week', async () => {
+        // `.getDay()` returns the day-of-week (0..6 / 1..7 depending on
+        // the dialect). Each builder picks a different SQL form —
+        // `strftime('%w', …)` for SQLite, `extract(dow from …)` for PG,
+        // `to_char(…, 'D')` for Oracle, `datepart(weekday, …)` for
+        // SqlServer, `dayofweek(…)` for MySQL/MariaDB.
+        const expected = [{ id: 1, dow: 6 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id:  tOrganization.id,
+                dow: tOrganization.createdAt.getDay(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, dayofweek(created_at) - 1 as dow from \`organization\` where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; dow: number }>>>()
+        if (ctx.realDbEnabled) {
+            // JS Date.getDay() returns 0..6 (Sunday=0). SQLite's
+            // strftime('%w') also returns 0..6.
+            expect(rows[0]?.dow).toBeGreaterThanOrEqual(0)
+            expect(rows[0]?.dow).toBeLessThanOrEqual(6)
+        }
+    })
+
+    test('getTime-epoch-millis', async () => {
+        // `.getTime()` returns the JS-style epoch milliseconds — every
+        // dialect emits a different conversion to integer.
+        const expected = [{ id: 1, t: 1718454645000 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tOrganization)
+            .where(tOrganization.id.equals(1))
+            .select({
+                id: tOrganization.id,
+                t:  tOrganization.createdAt.getTime(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(unix_timestamp(created_at) * 1000) as \`t\` from \`organization\` where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; t: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(rows[0]?.t).toBeGreaterThan(0)
+        }
+    })
+
+    test('getMilliseconds', async () => {
+        // `.getMilliseconds()` returns the millisecond component (0..999).
+        // Every dialect uses a different expression — strftime+modulo on
+        // SQLite, extract on PG, to_char on Oracle, datepart on SqlServer.
+        const expected = [{ id: 1, ms: 0 }]
+        ctx.mockNext(expected)
+        const rows = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                ms: tIssue.createdAt.getMilliseconds(),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round(microsecond(created_at) / 1000) as ms from issue where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; ms: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(rows[0]?.ms).toBeGreaterThanOrEqual(0)
+            expect(rows[0]?.ms).toBeLessThan(1000)
+        }
+    })
+
     test('compare-date-with-current', async () => {
         // Find rows whose created_at is before "now".
         const expected = [{ id: 1 }, { id: 2 }]

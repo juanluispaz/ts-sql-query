@@ -344,6 +344,135 @@ describe(ctx.label, () => {
         }
     })
 
+    test('roundn-decimals', async () => {
+        // `.roundn(n)` rounds to n decimal places. Each dialect
+        // delegates to `round(x, n)` or the equivalent.
+        const expected = [{ id: 1, r: 0.67 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                // priority(id=1)=2 → 2/3 = 0.6666… → roundn(2) → 0.67
+                r:  tIssue.priority.divide(3).roundn(2),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, round((priority::float / $1::float)::numeric, $2) as "r" from issue where id = $3"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; r: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.r).toBeCloseTo(0.67, 2)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('atan2', async () => {
+        // atan2(y, x) — the public form is `y.atan2(x)`. We pick
+        // priority(id=1)=2 and atan2(2, 2) = π/4 ≈ 0.7854.
+        const expected = [{ id: 1, a: Math.PI / 4 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                a:  tIssue.priority.atan2(2),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, atan2(priority, $1) as "a" from issue where id = $2"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number; a: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result[0]!.a).toBeCloseTo(Math.PI / 4, 3)
+        } else {
+            expect(result).toEqual(expected)
+        }
+    })
+
+    test('asDouble', async () => {
+        // TODO[BUG] SqliteSqlBuilder._asDouble and SqlServerSqlBuilder._asDouble
+        // both forget the space before `as`, emitting `cast(priorityas real)` /
+        // `cast(priorityas float)` instead of `cast(priority as real)`. The
+        // snapshot below pins the buggy SQL on SQLite so the fix breaks it
+        // and alerts the agent. We wrap the execute call in try/catch
+        // because the buggy SQL is rejected by sqlite3 / sqlite-wasm and
+        // would otherwise crash the test before the SQL snapshot is
+        // asserted. See test/BUGS.md →
+        // "SqliteSqlBuilder/SqlServerSqlBuilder `_asDouble` missing space".
+        const expected = [{ id: 1, d: 2.0 }]
+        ctx.mockNext(expected)
+        try {
+            const result = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({
+                    id: tIssue.id,
+                    d:  tIssue.priority.asDouble(),
+                })
+                .executeSelectMany()
+            assertType<Exact<typeof result, Array<{ id: number; d: number }>>>()
+            if (!ctx.realDbEnabled) {
+                expect(result).toEqual(expected)
+            }
+        } catch (e) {
+            if (!ctx.realDbEnabled) throw e
+            // Real DB engines reject the buggy SQL; the snapshot is still
+            // captured before the runner runs.
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority::float as "d" from issue where id = $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+    })
+
+    test('nullIfValue', async () => {
+        // `.nullIfValue(v)` becomes `nullif(col, v)` — emits NULL when
+        // the column equals v. Issue priority(id=3)=3, so nullIfValue(3)
+        // collapses that row's value to absent under the default
+        // optional-as-undefined projection.
+        ctx.mockNext([
+            { id: 1, p: 2 },
+            { id: 2, p: 1 },
+            { id: 3, p: null },
+            { id: 4, p: 2 },
+        ])
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({
+                id: tIssue.id,
+                p:  tIssue.priority.nullIfValue(3),
+            })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, nullif(priority, $1) as "p" from issue order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            3,
+          ]
+        `)
+        // The `optional` widening of `.nullIfValue` makes the column
+        // surface as `p?: number` and null rows come back as the
+        // property simply being absent.
+        assertType<Exact<typeof result, Array<{ id: number; p?: number }>>>()
+        expect(result).toEqual([
+            { id: 1, p: 2 },
+            { id: 2, p: 1 },
+            { id: 3 },
+            { id: 4, p: 2 },
+        ])
+    })
+
     test('abs-and-arithmetic-negation', async () => {
         // The library exposes `.abs()` directly. Arithmetic negation has no
         // dedicated method on numeric value sources (`.negate()` is logical

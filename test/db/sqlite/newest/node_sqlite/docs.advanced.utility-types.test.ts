@@ -11,6 +11,7 @@ import type {
     InsertableValues, InsertableRow,
     UpdatableValues, UpdatableRow,
     SelectedValues, SelectedRow,
+    UpdatableOnInsertConflictValues, UpdatableOnInsertConflictRow,
 } from '../../../../../src/extras/types.js'
 import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -124,5 +125,26 @@ describe(ctx.label, () => {
         type A = SelectedRow<typeof tOrganization>
         type B = SelectedValues<typeof tOrganization>
         assertType<Exact<A, B>>()
+    })
+
+    test('docs:utility-types/updatable-on-insert-conflict-values', () => {
+        // Section "Updatable values in case of conflict on insert" — the
+        // type of the object accepted by `.onConflictDoUpdateSet({...})`
+        // when no value-sources are supplied.
+        // doc-start
+        type OrgUpsert = UpdatableOnInsertConflictValues<typeof tOrganization>
+        // doc-end
+        const probe: OrgUpsert = { plan: 'enterprise' }
+        void probe
+    })
+
+    test('docs:utility-types/updatable-on-insert-conflict-row', () => {
+        // Section "Updatable row in case of conflict on insert" — same
+        // intent as the *Values type but also accepts SQL value-sources.
+        // doc-start
+        type OrgUpsertRow = UpdatableOnInsertConflictRow<typeof tOrganization>
+        // doc-end
+        const probe: OrgUpsertRow = { plan: 'enterprise' }
+        void probe
     })
 })

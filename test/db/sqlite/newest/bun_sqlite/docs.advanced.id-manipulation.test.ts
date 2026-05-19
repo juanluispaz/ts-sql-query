@@ -45,4 +45,28 @@ describe(ctx.label, () => {
         const e = enc.encrypt(large)
         expect(enc.decrypt(e)).toBe(large)
     })
+
+    test('docs:id-manipulation/encrypter-with-prefix', () => {
+        // Section "Globally Encrypted ID" — `encrypt(id, prefix)` adds a
+        // table-scoped prefix to the encrypted output so two tables with
+        // overlapping numeric ids serialise to distinct strings.
+        const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
+        // doc-start
+        const companyEnc = enc.encrypt(1n, 'co')
+        const decrypted  = enc.decrypt(companyEnc, 'co')
+        // doc-end
+        expect(decrypted).toBe(1n)
+        // The encrypted value carries the prefix literally as its head.
+        expect(companyEnc.startsWith('co')).toBe(true)
+    })
+
+    test('docs-extra:id-manipulation/encrypter-prefix-disambiguates-tables', () => {
+        // Same id under two different prefixes encodes differently.
+        const enc = new IDEncrypter('3zTvzr3p67VC61jm', '60iP0h6vJoEaJo8c')
+        const companyEnc  = enc.encrypt(1n, 'co')
+        const customerEnc = enc.encrypt(1n, 'cu')
+        expect(companyEnc).not.toBe(customerEnc)
+        expect(enc.decrypt(companyEnc,  'co')).toBe(1n)
+        expect(enc.decrypt(customerEnc, 'cu')).toBe(1n)
+    })
 })

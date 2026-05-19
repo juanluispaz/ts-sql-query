@@ -6,10 +6,13 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact, type Extends } from '../../../../lib/assertType.js'
 import {
+    dynamicPick,
     dynamicPickPaths,
     expandTypeFromDynamicPickPaths,
+    type DynamicPick,
     type DynamicPickPaths,
     type PickValuesPath,
+    type PickValuesPathWitAllProperties,
 } from '../../../../../src/dynamicCondition.js'
 import { tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
@@ -36,6 +39,54 @@ describe(ctx.label, () => {
         type Result = PickValuesPath<typeof availableFields, 'id' | 'name'>
         // Only the picked fields appear in the result, as required.
         assertType<Exact<Result, { id: number; name: string }>>()
+    })
+
+    test('docs:utility-dynamic-picks/dynamic-pick-runtime', async () => {
+        // Section "Functions to select fields dynamically — dynamicPick"
+        // — call the helper with a `{ field: true }` shape; only the
+        // marked fields and any `alwaysIncluded` keys make it into the
+        // projected object.
+        ctx.mockNext([{ id: 1, name: 'Marketing site' }])
+
+        // doc-start
+        const fieldsToPick = { name: true } as const
+
+        const pickedFields = dynamicPick(availableFields, fieldsToPick, ['id'])
+        const rows = await ctx.conn.selectFrom(tProject)
+            .select(pickedFields)
+            .orderBy('id')
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id", name as "name" from project order by "id""`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Extends<typeof rows, Array<{ id: number; name?: string }>>>()
+    })
+
+    test('docs:utility-dynamic-picks/dynamic-pick-type', () => {
+        // Section "Types to define dynamic pick inputs and outputs —
+        // DynamicPick" — the type describes the legal shape of a
+        // `fieldsToPick` input. The second generic argument lists the
+        // ALWAYS-included keys; those keys are REMOVED from the picker
+        // shape because the caller doesn't need to choose them.
+        // doc-start
+        type FieldsToPick = DynamicPick<typeof availableFields, 'id'>
+        // doc-end
+        // 'id' is mandatory, so it's not part of FieldsToPick — only
+        // optional `name`/`slug` remain.
+        const probe: FieldsToPick = { name: true }
+        expect(probe.name).toBe(true)
+    })
+
+    test('docs:utility-dynamic-picks/pick-values-path-with-all-properties', () => {
+        // Section "PickValuesPathWitAllProperties" — like
+        // `PickValuesPath` but every property of the source appears in
+        // the result (picked ones required, unpicked ones optional).
+        // doc-start
+        type Result = PickValuesPathWitAllProperties<typeof availableFields, 'id' | 'name'>
+        // doc-end
+        // id and name are required, slug is optional.
+        assertType<Exact<Result, { id: number; name: string; slug?: string }>>()
     })
 
     test('docs-extra:utility-dynamic-picks/typed-helper-business-type-pattern', async () => {

@@ -362,4 +362,90 @@ describe(ctx.label, () => {
             }
         }
     })
+
+    test('docs-extra:extreme-dynamic-queries/dynamic-condition-nested-and-or', async () => {
+        // Page sections "Complex dynamic boolean expressions" + "Select
+        // using a dynamic filter" — the filter object accepts nested
+        // `and`/`or` arrays for arbitrarily complex predicates.
+        const expected = [{ id: 1, name: 'Marketing site' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const selectFields = {
+            id:   tProject.id,
+            name: tProject.name,
+            slug: tProject.slug,
+        }
+
+        const filter: DynamicCondition<{
+            id:   'int',
+            name: 'string',
+            slug: 'string',
+        }> = {
+            and: [
+                { name: { containsInsensitive: 'mark' } },
+                { or: [
+                    { slug: { startsWith: 'mktg' } },
+                    { slug: { startsWith: 'tools' } },
+                ] },
+            ],
+        }
+
+        const where = connection.dynamicConditionFor(selectFields).withValues(filter)
+
+        const rows = await connection.selectFrom(tProject)
+            .where(where)
+            .select({ id: tProject.id, name: tProject.name })
+            .orderBy('id')
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where lower(\`name\`) like concat('%', lower(?), '%') and (slug like concat(?, '%') or slug like concat(?, '%')) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "mark",
+            "mktg",
+            "tools",
+          ]
+        `)
+        assertType<Exact<typeof rows, Array<{ id: number; name: string }>>>()
+    })
+
+    test('docs-extra:extreme-dynamic-queries/dynamic-pick-with-required-keys', async () => {
+        // Section "Select dynamically picking columns" — `dynamicPick`
+        // accepts a third argument with always-included keys. These
+        // appear in the projected shape even when the user didn't pick
+        // them.
+        const expected = [{ id: 1, name: 'Marketing site' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const availableFields = {
+            name: tProject.name,
+            slug: tProject.slug,
+        }
+        // User picked only `name`; 'id' is always included because it's
+        // passed as the always-required key.
+        const picked = dynamicPick(availableFields, { name: true }, [
+            'id' as keyof typeof availableFields,
+        ])
+        const idCol = { id: tProject.id } as const
+        const fields = { ...idCol, ...picked }
+
+        const rows = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select(fields)
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\` from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        // Used to keep imports active.
+        void tAppUser
+        void tOrganization
+        void dynamicPickPaths
+        void rows
+    })
 })

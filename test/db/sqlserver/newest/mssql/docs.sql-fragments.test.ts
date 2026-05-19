@@ -55,4 +55,109 @@ describe(ctx.label, () => {
      *
      * test('docs:sql-fragments/build-fragment-with-args', async () => { ... })
      */
+
+    test('docs:sql-fragments/customize-query-select', async () => {
+        // Section "Customizing a select" — `customizeQuery` accepts
+        // raw-fragment hooks at well-defined extension points. Here we
+        // inject `afterSelectKeyword` and `afterQuery`.
+        const expected = { id: 1, email: 'ada@acme.test', fullName: 'Ada Lovelace' }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const row = await connection.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                id:       tAppUser.id,
+                email:    tAppUser.email,
+                fullName: tAppUser.fullName,
+            }).customizeQuery({
+                afterSelectKeyword: connection.rawFragment`/*+ some hints */`,
+                afterQuery:         connection.rawFragment`/* trailing comment */`,
+            })
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select /*+ some hints */ id as id, email as email, full_name as fullName from app_user where id = @0 /* trailing comment */"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:       number
+            email:    string
+            fullName: string
+        }>>()
+        expect(row).toEqual(expected)
+    })
+
+    test('docs:sql-fragments/customize-query-insert', async () => {
+        // Section "Customizing an insert" — `afterInsertKeyword` and
+        // `afterQuery` extension points; the rest of the chain is just a
+        // normal insert.
+        ctx.mockNext(99)
+        const connection = ctx.conn
+
+        await ctx.withRollback(async () => {
+            // doc-start
+            const id = await connection.insertInto(tAppUser)
+                .set({
+                    email:    'new@acme.test',
+                    fullName: 'New User',
+                })
+                .returningLastInsertedId()
+                .customizeQuery({
+                    afterInsertKeyword: connection.rawFragment`/*+ some hints */`,
+                    afterQuery:         connection.rawFragment`/* trailing comment */`,
+                })
+                .executeInsert()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /*+ some hints */ into app_user (email, full_name) output inserted.id values (@0, @1) /* trailing comment */"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "new@acme.test",
+                "New User",
+              ]
+            `)
+            assertType<Exact<typeof id, number>>()
+        })
+    })
+
+    test('docs-extra:sql-fragments/raw-fragment-as-where', async () => {
+        // `rawFragment` is the typeless escape hatch but cannot itself
+        // sit in a WHERE (which demands a boolean expression). The
+        // documented portable pattern is to wrap raw SQL in
+        // `fragmentWithType('boolean', 'required').sql\`…\`` — `rawFragment`
+        // composes naturally INSIDE that wrapper or alongside it as a
+        // customization hook.
+        ctx.mockNext({ id: 1, email: 'ada@acme.test', fullName: 'Ada Lovelace' })
+        const connection = ctx.conn
+
+        const row = await connection.selectFrom(tAppUser)
+            .where(
+                connection.fragmentWithType('boolean', 'required')
+                    .sql`${tAppUser.id} = ${connection.const(1, 'int')}`,
+            )
+            .select({
+                id:       tAppUser.id,
+                email:    tAppUser.email,
+                fullName: tAppUser.fullName,
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, email as email, full_name as fullName from app_user where id = @0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:       number
+            email:    string
+            fullName: string
+        }>>()
+        expect(row.id).toBe(1)
+    })
 })

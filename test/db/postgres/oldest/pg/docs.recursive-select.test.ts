@@ -34,13 +34,13 @@ describe(ctx.label, () => {
                 title:    tIssue.title,
                 parentId: tIssue.parentId,
             })
-            .recursiveUnionOn((parent) =>
+            .recursiveUnionAllOn((parent) =>
                 tIssue.id.equals(parent.parentId)
             )
             .executeSelectMany()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = $1 union select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId) select id as id, title as title, parentId as "parentId" from recursive_select_1"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = $1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId) select id as id, title as title, parentId as "parentId" from recursive_select_1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,
@@ -52,5 +52,119 @@ describe(ctx.label, () => {
             parentId?: number
         }>>>()
         if (!ctx.realDbEnabled) expect(ancestors).toEqual(expected)
+    })
+
+    test('docs:recursive/parents-chain-full-inner', async () => {
+        // Section "Recursive select looking for parents" — first snippet,
+        // where the recursive arm is spelled out as a full `selectFrom(...).join(child).on(...).select({...})`
+        // instead of the shortcut `recursiveUnionAllOn`.
+        const expected = [
+            { id: 2, title: 'Redesign navbar' },
+            { id: 1, title: 'Update hero copy' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const ancestors = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(2))
+            .select({
+                id:       tIssue.id,
+                title:    tIssue.title,
+                parentId: tIssue.parentId,
+            })
+            .recursiveUnionAll((child) => {
+                return connection.selectFrom(tIssue)
+                    .join(child).on(child.parentId.equals(tIssue.id))
+                    .select({
+                        id:       tIssue.id,
+                        title:    tIssue.title,
+                        parentId: tIssue.parentId,
+                    })
+            })
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = $1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on recursive_select_1.parentId = issue.id) select id as id, title as title, parentId as "parentId" from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof ancestors, Array<{
+            id:        number
+            title:     string
+            parentId?: number
+        }>>>()
+        if (!ctx.realDbEnabled) expect(ancestors).toEqual(expected)
+    })
+
+    test('docs:recursive/children-tree', async () => {
+        // Section "Recursive select looking for children" — same shape
+        // as "parents" but the JOIN direction is flipped so we walk down
+        // the tree from a root.
+        const expected = [{ id: 1, title: 'Update hero copy' }]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const descendants = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:       tIssue.id,
+                title:    tIssue.title,
+                parentId: tIssue.parentId,
+            })
+            .recursiveUnionAllOn((parent) =>
+                tIssue.parentId.equals(parent.id),
+            )
+            .executeSelectMany()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = $1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on issue.parent_id = recursive_select_1.id) select id as id, title as title, parentId as "parentId" from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof descendants, Array<{
+            id:        number
+            title:     string
+            parentId?: number
+        }>>>()
+    })
+
+    test('docs-extra:recursive/union-vs-union-all', async () => {
+        // Section "UNION vs UNION ALL inside a recursive CTE" — both
+        // `recursiveUnion` and `recursiveUnionAll` exist where the
+        // dialect supports the operator. The deduplicating variant
+        // (`recursiveUnion`) is only available on the dialects that
+        // accept `UNION` (not `UNION ALL`) in a recursive CTE.
+        ctx.mockNext([{ id: 1, title: 'Root', parentId: undefined }])
+        const connection = ctx.conn
+
+        const result = await connection.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id:       tIssue.id,
+                title:    tIssue.title,
+                parentId: tIssue.parentId,
+            })
+            .recursiveUnionAllOn((parent) =>
+                tIssue.id.equals(parent.parentId),
+            )
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with recursive recursive_select_1 as (select id as id, title as title, parent_id as parentId from issue where id = $1 union all select issue.id as id, issue.title as title, issue.parent_id as parentId from issue join recursive_select_1 on issue.id = recursive_select_1.parentId) select id as id, title as title, parentId as "parentId" from recursive_select_1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{
+            id:        number
+            title:     string
+            parentId?: number
+        }>>>()
     })
 })

@@ -58,4 +58,95 @@ describe(ctx.label, () => {
         expect(page.count).toBe(4)
         expect(page.data).toHaveLength(4)
     })
+
+    test('docs-extra:select-page/extras-with-count-skips-count-query', async () => {
+        // basic-query-structure.md / select-page.md prose: if the EXTRAS
+        // argument provides `count`, the count query is NOT executed —
+        // the supplied value is used.
+        ctx.mockNext([
+            { id: 1, name: 'Marketing site', slug: 'mktg-site' },
+            { id: 2, name: 'Internal tools', slug: 'tools' },
+            { id: 3, name: 'Public API',     slug: 'public-api' },
+            { id: 4, name: 'Legacy app',     slug: 'legacy' },
+        ])
+
+        const page = await ctx.conn.selectFrom(tProject)
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+                slug: tProject.slug,
+            })
+            .orderBy('id')
+            .limit(10)
+            .offset(0)
+            .executeSelectPage({ count: 42 })
+
+        // Only the data query was fired.
+        expect(ctx.history.length).toBe(1)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select id as "id", name as "name", slug as "slug" from project order by "id" offset :0 rows fetch next :1 rows only"`)
+        assertType<Exact<typeof page, {
+            data:  Array<{ id: number; name: string; slug: string }>
+            count: number
+        }>>()
+        expect(page.count).toBe(42)
+    })
+
+    test('docs-extra:select-page/extras-with-data-skips-data-query', async () => {
+        // basic-query-structure.md / select-page.md prose: if EXTRAS
+        // provides `data`, the data query is NOT executed.
+        // Real DB returns whatever count(*) yields; the mock value is
+        // ignored when realDbEnabled. Either way the count query was the
+        // one that ran (the data query was skipped).
+        ctx.mockNext(99)
+
+        const cached = [
+            { id: 1, name: 'Marketing site', slug: 'mktg-site' },
+        ]
+        const page = await ctx.conn.selectFrom(tProject)
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+                slug: tProject.slug,
+            })
+            .orderBy('id')
+            .limit(10)
+            .offset(0)
+            .executeSelectPage({ data: cached })
+
+        // Only the count query was fired.
+        expect(ctx.history.length).toBe(1)
+        expect(ctx.history[0]!.sql).toMatchInlineSnapshot(`"select count(*) from project"`)
+        expect(page.data).toBe(cached)
+        // Mock path returns 99; real path returns the actual count.
+        if (ctx.realDbEnabled) {
+            expect(typeof page.count).toBe('number')
+        } else {
+            expect(page.count).toBe(99)
+        }
+    })
+
+    test('docs-extra:select-page/extras-preserved-on-result', async () => {
+        // basic-query-structure.md prose: arbitrary EXTRAS appear on the
+        // returned object as additional properties.
+        ctx.mockNext([])
+        ctx.mockNext(0)
+
+        const page = await ctx.conn.selectFrom(tProject)
+            .select({
+                id:   tProject.id,
+                name: tProject.name,
+                slug: tProject.slug,
+            })
+            .orderBy('id')
+            .limit(10)
+            .offset(0)
+            .executeSelectPage({ generatedAt: 'now' as const })
+
+        assertType<Exact<typeof page, {
+            data:        Array<{ id: number; name: string; slug: string }>
+            count:       number
+            generatedAt: 'now'
+        }>>()
+        expect(page.generatedAt).toBe('now')
+    })
 })

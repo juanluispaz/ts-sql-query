@@ -105,4 +105,80 @@ describe(ctx.label, () => {
         } | null>>()
         expect(maybe).toBeNull()
     })
+
+    test('docs:basic/projecting-optional-values-as-nullable', async () => {
+        // The page promises that `projectingOptionalValuesAsNullable()`
+        // switches an optional projected field from `T?` to `T | null`.
+        // tProject.archivedAt is optional in the seed; use it as the
+        // documentation does with tCustomer.birthday.
+        const expected = { id: 1, name: 'Marketing site', archivedAt: null }
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        // doc-start
+        const project = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .select({
+                id:         tProject.id,
+                name:       tProject.name,
+                archivedAt: tProject.archivedAt,
+            })
+            .projectingOptionalValuesAsNullable()
+            .executeSelectOne()
+        // doc-end
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, name as name, archived_at as archivedAt from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        // archivedAt MUST appear in the type AND allow null (instead of
+        // the default `archivedAt?: Date` shape without the helper).
+        assertType<Exact<typeof project, {
+            id:         number
+            name:       string
+            archivedAt: Date | null
+        }>>()
+        expect(project).toEqual(expected)
+    })
+
+    test('docs-extra:basic/select-one-column', async () => {
+        // The page lists `selectOneColumn(column)` as the single-column
+        // counterpart of `select({...})`. Same fluent shape; result is
+        // the bare column value.
+        const expected = 'Marketing site'
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+
+        const name = await connection.selectFrom(tProject)
+            .where(tProject.id.equals(1))
+            .selectOneColumn(tProject.name)
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select name as result from project where id = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof name, string>>()
+        expect(name).toBe(expected)
+    })
+
+    test('docs-extra:basic/select-count-all', async () => {
+        // The page lists `selectCountAll()` as a shortcut for
+        // `count(*)`. Result is a plain int.
+        ctx.mockNext(4)
+        const connection = ctx.conn
+
+        const total = await connection.selectFrom(tProject)
+            .selectCountAll()
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select count(*) as result from project"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof total, number>>()
+        expect(total).toBe(4)
+    })
 })

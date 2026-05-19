@@ -2,8 +2,12 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue } from '../../domain/connection.js'
+import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
+
+// tProject is referenced by the commented-out `docs:delete/delete-using`
+// test below; the cells where that test is uncommented use it for real.
+void tProject
 
 describe(ctx.label, () => {
     beforeAll(() => ctx.up(), ctx.timeoutMs)
@@ -83,6 +87,55 @@ describe(ctx.label, () => {
                 title: string
             }>>()
             expect(removed.id).toBe(4)
+        })
+    })
+
+    // Not applicable on SQLite: `deleteFrom(...).using(...)` is only typed on PostgreSqlConnection, SqlServerConnection, MariaDBConnection, MySqlConnection and OracleConnection (23ai+). SQLite does not support it. Body kept verbatim for cross-cell diff parity per the symmetry rule.
+    /*
+    test('docs:delete/delete-using', async () => {
+        // Section "Delete using other tables or views" — `.using(other)`
+        // brings another table into the delete so the WHERE can reference
+        // its columns.
+        ctx.mockNext(1)
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            // doc-start
+            const affected = await connection.deleteFrom(tIssue)
+                .using(tProject)
+                .where(tIssue.projectId.equals(tProject.id))
+                .and(tProject.name.containsInsensitive('Legacy'))
+                .executeDelete()
+            // doc-end
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            assertType<Exact<typeof affected, number>>()
+        })
+    })
+    */
+
+    test('docs-extra:delete/returning-one-column', async () => {
+        // "Delete returning" prose: `returningOneColumn(col)` is the
+        // single-column counterpart of `returning({...})`.
+        ctx.mockNext('Document /v2/users')
+
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+
+            const removedTitle = await connection.deleteFrom(tIssue)
+                .where(tIssue.id.equals(4))
+                .returningOneColumn(tIssue.title)
+                .executeDeleteOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ? returning title as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                4,
+              ]
+            `)
+            assertType<Exact<typeof removedTitle, string>>()
         })
     })
 })

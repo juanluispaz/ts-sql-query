@@ -202,15 +202,12 @@ describe(ctx.label, () => {
     })
 
     test('docs-extra:transaction/hooks-no-effect-without-transaction', async () => {
-        // "Note" on the page: deferred-hook registrations "have no
-        // effect if called when there is no active transaction".
-        // TODO[BUG]: see BUGS.md — the prose is ambiguous and the
-        // observed behaviour diverges from a naive reading of it. On a
-        // real-DB connection the call throws `NOT_IN_TRANSACTION` (most
-        // likely the intended contract); on a mock connection the
-        // registration is silently accepted and never fires. We branch
-        // on `ctx.realDbEnabled` to lock both observed paths so the
-        // tests stay green and the docs/mock review can happen later.
+        // "Note" on the page: calling a deferred-hook registration
+        // outside a transaction throws `NOT_IN_TRANSACTION` on a real
+        // connection, and is silently accepted on a mock connection
+        // (matching the mock-skips-transaction-active-check pattern
+        // used across `AbstractConnection`). Branch on `ctx.realDbEnabled`
+        // to lock both observed paths.
         const connection = ctx.conn
 
         if (ctx.realDbEnabled) {

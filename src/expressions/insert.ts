@@ -611,7 +611,7 @@ export interface InsertExpression</*in|out*/ TABLE extends HasSource<any>, /*in|
     dynamicSet<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<RequiredColumnsForSetOf<TABLE>, NonOptionalKeys<COLUMNS>>>
     set(columns: MandatoryInsertSets<TABLE, USING, undefined>): ExecutableInsertExpression<TABLE, USING>
     setIfValue(columns: MandatoryOptionalInsertSets<TABLE, USING, undefined>): ExecutableInsertExpression<TABLE, USING>
-    values(columns: Array<MandatoryInsertSets<TABLE, USING, undefined>>): CustomizableExecutableMultipleInsert<TABLE, USING, undefined>
+    values(columns: Array<MandatoryInsertSets<TABLE, USING, undefined>>): ExecutableMultipleInsertExpression<TABLE, USING>
     values(columns: MandatoryInsertSets<TABLE, USING, undefined>): ExecutableInsertExpression<TABLE, USING>
     dynamicValues<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: Array<COLUMNS>): MaybeExecutableMultipleInsertExpression<TABLE, USING, Exclude<RequiredColumnsForSetOf<TABLE>, NonOptionalKeys<COLUMNS>>>
     dynamicValues<COLUMNS extends OptionalInsertSets<TABLE, USING, undefined>>(columns: COLUMNS): MaybeExecutableInsertExpression<TABLE, USING, Exclude<RequiredColumnsForSetOf<TABLE>, NonOptionalKeys<COLUMNS>>>

@@ -127,7 +127,7 @@ connection.executeAfterNextRollback(() => {
 !!! note
 
     - These functions are registered only for the **next** transaction event, and are cleared after use.  
-    - They have no effect if called when there is no active transaction.
+    - Calling them when there is no active transaction throws a `TsSqlProcessingError` with reason `'NOT_IN_TRANSACTION'`. The mock query runner skips that check and silently accepts the registration (the hook is never fired).
 
 ## Transaction metadata
 

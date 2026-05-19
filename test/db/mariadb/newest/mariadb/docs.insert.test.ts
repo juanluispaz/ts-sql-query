@@ -763,8 +763,6 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[BUG]: see BUGS.md — `setForAllIfValue` is not exposed on the type returned by `values([...])` even though the docs prose advertises it.
-    /*
     test('docs-extra:insert/set-for-all-if-value-multi', async () => {
         // "Manipulating values to insert (multiple)" prose:
         // `setForAllIfValue({...})` applies a value to every row of a
@@ -798,5 +796,4 @@ describe(ctx.label, () => {
             assertType<Exact<typeof inserted, Array<{ id: number }>>>()
         })
     })
-    */
 })

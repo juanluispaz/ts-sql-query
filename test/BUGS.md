@@ -31,17 +31,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ---
 
-## `setForAllIfValue` (and sibling `setForAllIf*` methods) missing on the post-`values([...])` builder type
-
-**Where**: [`docs/queries/insert.md` § Manipulating values to insert (multiple)](../docs/queries/insert.md#manipulating-values-to-insert-multiple). The interface listed on the page advertises `setForAll`, `setForAllIfValue`, `setForAllIfSet`, `setForAllIfNotSet`, …, `setForAllIfHasValue`, `setForAllIfHasNoValue`, plus `When` variants. The builder type returned by `.values([...])` — `CustomizableExecutableMultipleInsert<TABLE, USING, undefined>` from [`src/expressions/insert.ts:121`](../src/expressions/insert.ts) — does NOT expose them. Only the shaped (`shapedAs`) variants and the missing-keys (`dynamicValues`) variants reach a builder type that surfaces them (`ShapedExecutableMultipleInsertExpression` at line 432, `MissingKeysMultipleInsertExpression` at line 491).
-**Reproduction**: `connection.insertInto(tProject).values([{...}, {...}]).setForAllIfValue({ archivedAt: null })` errors with `TS2339: Property 'setForAllIfValue' does not exist on type 'CustomizableExecutableMultipleInsert<…>'`. The same chain works at runtime — the underlying object has the methods, the type surface just hides them.
-**Current workaround in the suite**: `docs-extra:insert/set-for-all-if-value-multi` in `test/db/sqlite/newest/bun_sqlite/docs.insert.test.ts` (mirrored to every cell) is commented out per the symmetry rule with a `TODO[BUG]: see BUGS.md` reason. Uncomment when the typed surface on `CustomizableExecutableMultipleInsert` is widened to match the prose.
-
-## Docs prose for deferred-hook registrations says "have no effect" — runtime throws `NOT_IN_TRANSACTION`
-
-**Where**: [`docs/queries/transaction.md` § Deferring logic during a transaction](../docs/queries/transaction.md#deferring-logic-during-a-transaction) — the page note states "They have no effect if called when there is no active transaction." for `executeBeforeNextCommit` / `executeAfterNextCommit` / `executeAfterNextRollback`. The runtime on a real-DB connection throws `TsSqlProcessingError { reason: 'NOT_IN_TRANSACTION' }` from [`src/connections/AbstractConnection.ts`](../src/connections/AbstractConnection.ts) (~line 148 and the matching sibling entry points). Throwing is plausibly the intended behaviour — registering a deferred hook with no transaction to defer to has no meaningful semantics — so the most likely fix is to **rewrite the docs prose** rather than soften the runtime check. A reviewer should still confirm: is `NOT_IN_TRANSACTION` the documented contract, or is "no effect" load-bearing somewhere else?
-**Reproduction**: call `connection.executeBeforeNextCommit(() => {})` (or either sibling) outside any open transaction on a real-DB connection — it throws synchronously. The check is also short-circuited for mocked runners by `if (!this.queryRunner.isMocked() && !this.isTransactionActive())`, so a mock connection silently accepts the registration and never fires the hook. That mock/real divergence is a second, smaller question worth resolving with the same review.
-**Current workaround in the suite**: `docs-extra:transaction/hooks-no-effect-without-transaction` in `test/db/sqlite/newest/bun_sqlite/docs.transaction.test.ts` (mirrored to every cell) branches on `ctx.realDbEnabled` — asserts the throw in real-DB mode, asserts no-throw in mock mode — and carries a `// TODO[BUG]` note pointing here so it surfaces when the docs page is rewritten (or, less likely, the runtime check is dropped).
+_No open entries._
 
 ---
 

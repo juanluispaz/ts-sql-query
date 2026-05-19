@@ -348,7 +348,7 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[BUG]: see BUGS.md — PostgreSqlConnection accepts .onConflictDoUpdateSet({...}) (bare form) but PostgreSQL requires a conflict target. The lib types should narrow.
+    // Not applicable on PostgreSQL: PostgreSQL requires onConflictOn(col).doUpdateSet({...}) or onConflictOnConstraint(name).doUpdateSet({...}). The bare-form onConflictDoUpdateSet is typed only on MariaDB / MySQL / SQLite; see test/db/postgres/types.negative/insert.test.ts for the compile-time negative.
     /*
     test('docs-extra:insert/insert-on-conflict-do-update-bare', async () => {
         // MariaDB/MySQL variant of upsert — `.onConflictDoUpdateSet({...})`

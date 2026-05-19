@@ -19,16 +19,17 @@ export abstract class DelegatedSetTransactionQueryRunner extends ManagedTransact
             return this.createRejectedPromise(error)
         }
 
-        return this.doBeginTransaction(opts).then(() => {
+        // `SET TRANSACTION` must be the statement that opens the next transaction, so it
+        // is issued on the connection before `BEGIN`.
+        const afterSetTransaction = sql
+            ? this.doSetTransaction(sql, opts).then(() => this.doBeginTransaction(opts))
+            : this.doBeginTransaction(opts)
+        return afterSetTransaction.then(() => {
             this.transactionLevel++
             if (this.transactionLevel !== transactionLevel + 1) {
                 throw new TsSqlProcessingError({ reason: 'FORBIDDEN_CONCURRENT_USAGE' }, 'Forbidden concurrent usage of the query runner was detected when it tried to start a transaction.')
             }
-            if (!sql) {
-                return undefined
-            } else {
-                return this.doSetTransaction(sql, opts)
-            }
+            return undefined
         })
     }
     abstract doBeginTransaction(opts: BeginTransactionOpts): Promise<void>

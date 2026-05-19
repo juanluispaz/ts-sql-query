@@ -137,6 +137,41 @@ When pglite catches up with PostgreSQL 18+, walk
 `grep -rn "TODO\[LIMITATION\]" test/db/postgres/*/pglite/` and
 uncomment each match.
 
+## MariaDB UPDATE ... RETURNING requires MariaDB 13.0.1+ — `mariadb:latest` still ships 12.x
+
+[MariaDB added `UPDATE ... RETURNING` (and the matching `OLD_VALUE(col)` helper) in MariaDB 13.0.1](https://jira.mariadb.org/browse/MDEV-5092). The
+library tracks that via the `>= 13_000_001` `compatibilityVersion`
+breakpoint documented in
+[`docs/configuration/supported-databases/mariadb.md`](../docs/configuration/supported-databases/mariadb.md);
+at `newest` (the default `Number.POSITIVE_INFINITY`) the
+`MariaDBSqlBuilder` emits the new syntax, including
+`returning old_value(col)` for `tTable.oldValues()` references.
+
+The Docker image used by the test matrix (`mariadb`, no tag → `mariadb:latest`) currently resolves to **MariaDB 12.2.2** (LTS is older, 12.3 is in RC, 13.x is not yet GA). Real MariaDB 12.x rejects every `UPDATE ... RETURNING` with `ER_PARSE_ERROR (1064, SQLSTATE 42000)`:
+
+```text
+You have an error in your SQL syntax; check the manual that corresponds
+to your MariaDB server version for the right syntax to use near
+'returning id as id, name as name, slug as slug' at line 1
+```
+
+**What this means for tests** — the wrap is **per
+`compatibilityVersion` cell**, not per connector. At `newest`, every
+`docs:update/update-returning*` and `docs-extra:update/returning-one-column`
+test against MariaDB is commented out with `TODO[LIMITATION]: see
+LIMITATIONS.md`. The SQL builder is correct; the limitation is purely
+the unreleased server version. When `mariadb:latest` catches up to
+13.0.1+, walk:
+
+```bash
+grep -rn "TODO\[LIMITATION\]" test/db/mariadb/
+```
+
+and uncomment each match. If older `MariaDB` `compatibilityVersion`
+cells (`13_000_001`, `10_005_000`, `oldest`, …) are ever added, the
+`< 13_000_001` cells emit a legacy form that real MariaDB 12.x
+accepts and do **not** need the wrap.
+
 ## Window functions are not supported through the fluent API
 
 This is also documented in [`docs/about/limimitations.md` § Does ts-sql-query

@@ -124,7 +124,16 @@ the runner-divergence option is in
 
 The agent does **not** touch `src/` while writing or porting tests —
 the test suite's job is to characterise current behaviour, not to fix
-it. When a test surfaces what looks like a bug:
+it.
+
+Before treating something as a bug, check
+[`LIMITATIONS.md`](./LIMITATIONS.md): some unexpected library
+behaviours are declared limitations (no GROUP BY validation, no
+aggregate-vs-scalar distinction, no window functions in the fluent
+API, pglite's older PostgreSQL bundle, …). Limitations get a
+`// TODO[LIMITATION]` marker; only true bugs get `// TODO[BUG]`.
+
+When a test surfaces what looks like a bug:
 
 1. Mark the offending assertion with a `// TODO[BUG]` comment that
    names the symptom in one line. When the whole test is commented

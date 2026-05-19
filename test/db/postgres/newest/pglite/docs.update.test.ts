@@ -99,6 +99,8 @@ describe(ctx.label, () => {
         })
     })
 
+    // TODO[LIMITATION]: see LIMITATIONS.md — pglite ships PostgreSQL 17, but 'update returning old values' uses the RETURNING old.<col> syntax that requires PostgreSQL 18+. Uncomment when pglite catches up.
+    /*
     test('docs:update/update-returning-old-values', async () => {
         // Section "Update returning old values" — `tTable.oldValues()`
         // yields a reference whose columns resolve to the PRE-update row.
@@ -131,6 +133,7 @@ describe(ctx.label, () => {
             assertType<Exact<typeof updated, { oldName: string; newName: string }>>()
         })
     })
+    */
 
     test('docs:update/update-from-other-table', async () => {
         // Section "Update using other tables or views" — `.from(other)`

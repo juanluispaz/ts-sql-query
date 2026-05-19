@@ -20,7 +20,8 @@ below are the minimum you need to run and extend the suite.
 > | Tests derived from `docs/queries/*` and `docs/advanced/*` (`docs.*.test.ts` files, `docs:` / `docs-extra:` prefixes) | [`DOCS.md`](./DOCS.md) |
 > | Notes for adding new connectors / compatibility versions (dialect commented-outs, deferred connector subtrees) | [`FUTURE_CONNECTORS.md`](./FUTURE_CONNECTORS.md) |
 > | Architecture decisions and rationale | [`DESIGN.md`](./DESIGN.md) |
-> | Known issues | [`BUGS.md`](./BUGS.md) |
+> | Known library limitations that affect tests (only the project author can add entries) | [`LIMITATIONS.md`](./LIMITATIONS.md) |
+> | Known issues / bugs the suite has surfaced (anyone can add entries) | [`BUGS.md`](./BUGS.md) |
 
 ## What the suite guarantees, per test
 

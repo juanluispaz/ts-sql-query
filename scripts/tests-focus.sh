@@ -274,8 +274,29 @@ if [ "$REPORT" = "on" ]; then
 fi
 if [ "$runtime" = "npm" ] && [ "$UI" = "on" ]; then RUNNER_FLAGS+=(--ui); fi
 
-run_phase "$runtime" "$MODE" "$target" "${RUNNER_FLAGS[@]}" "${EXTRA_ARGS[@]}"
-ec=$?
+RUN_LOG=
+if [ "$runtime" = "bun" ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+    RUN_LOG="$(mktemp)"
+    trap 'rm -f "$RUN_LOG"' EXIT
+fi
+
+PHASE_LABEL="Focused run: $COORD"
+if [ -n "$RUN_LOG" ]; then
+    run_phase "$runtime" "$MODE" "$target" "${RUNNER_FLAGS[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$RUN_LOG"
+    ec=${PIPESTATUS[0]}
+    emit_bun_github_summary "$PHASE_LABEL" "$RUN_LOG"
+else
+    run_phase "$runtime" "$MODE" "$target" "${RUNNER_FLAGS[@]}" "${EXTRA_ARGS[@]}"
+    ec=$?
+fi
+# In focused mode --wasm is a single-pass override (real WASM for the
+# coord), not a separate phase. Pass that through to the legend so the
+# Actions UI distinguishes a focused real-WASM run from a focused
+# mocked one — same coord, different scope.
+WASM_SCOPE=off
+if [ "$WASM" = "on" ]; then WASM_SCOPE=on; fi
+emit_phase_legend "$PHASE_LABEL" "$MODE" "$WASM_SCOPE" "$runtime" "$target"
+
 if [ "$ec" -eq 0 ]; then
     if [ "$COVERAGE" = "on" ]; then
         finalize_report "$runtime" "$OPEN_AFTER" "${COVERAGE_FORMAT[@]}" || true

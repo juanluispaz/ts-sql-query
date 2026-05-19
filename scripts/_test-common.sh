@@ -242,6 +242,107 @@ clean_report_dir() {
     mkdir -p .test-report
 }
 
+# Append a "Round details" markdown block to $GITHUB_STEP_SUMMARY
+# describing what the phase actually covered. Sits next to vitest's
+# auto-injected summary (under npm) and our own bun summary block
+# (under bun), so the Actions UI distinguishes back-to-back reports
+# that look identical otherwise. Driven by the flags/paths the caller
+# passes in — does not hard-code phase order.
+#
+# Args: <phase-label> <mode> <wasm-real> <runtime> [<path>…]
+#   <phase-label>  free-form, e.g. "WASM phase", "Main phase", "Coverage run"
+#   <mode>         "parallel" | "sequential"
+#   <wasm-real>    "on"  → real WASM modules loaded, non-WASM cells excluded
+#                  "off" → WASM connectors fall through to mocks
+#                  "mixed" → real WASM inside a single full-matrix pass
+#                            (the coverage-mode flow when --wasm is set)
+#   <runtime>      "bun" | "npm" (for the runner line)
+#   <path>…        paths the runner was invoked with; verbatim in the
+#                  rendered "Cells" list so the legend reflects the
+#                  actual invocation rather than an inferred shape.
+#
+# Silently no-ops when $GITHUB_STEP_SUMMARY is unset (local runs).
+emit_phase_legend() {
+    local label="$1" mode="$2" wasm_real="$3" runtime="$4"; shift 4
+    if [ -z "${GITHUB_STEP_SUMMARY:-}" ]; then return 0; fi
+
+    local scope runner
+    case "$wasm_real" in
+        on)    scope='real WASM modules loaded; non-WASM cells excluded from this round' ;;
+        off)   scope='WASM connectors fall through to mocks' ;;
+        mixed) scope='real WASM modules loaded inside a single full-matrix pass' ;;
+        *)     scope="$wasm_real" ;;
+    esac
+    case "$runtime" in
+        bun) runner='bun test' ;;
+        npm) runner='vitest' ;;
+        *)   runner="$runtime" ;;
+    esac
+
+    {
+        printf '### Round details\n\n'
+        printf -- '- **Phase:** %s\n' "$label"
+        printf -- '- **Runner:** %s\n' "$runner"
+        printf -- '- **Mode:** %s\n' "$mode"
+        printf -- '- **Scope:** %s\n' "$scope"
+        if [ "$#" -gt 0 ]; then
+            printf -- '- **Cells:**\n'
+            for p in "$@"; do
+                printf -- '  - `%s`\n' "$p"
+            done
+        fi
+        printf '\n'
+    } >> "$GITHUB_STEP_SUMMARY"
+}
+
+# Parse a captured bun-test log and append a markdown block to
+# $GITHUB_STEP_SUMMARY that mirrors the auto-injected vitest
+# `github-actions` reporter. Bun ships no equivalent reporter, so
+# CI summaries would otherwise be empty on the bun job while the
+# node matrix shows full per-phase numbers (`tests.sh --wasm`
+# invokes the runner twice, so vitest emits two summary blocks).
+# This keeps both runtimes visually symmetric in the Actions UI.
+#
+# Args: <phase-label> <captured-log-file>
+#
+# Silently no-ops when $GITHUB_STEP_SUMMARY is unset (local runs)
+# or the log file is empty / missing.
+emit_bun_github_summary() {
+    local label="$1" logfile="$2"
+    if [ -z "${GITHUB_STEP_SUMMARY:-}" ] || [ ! -s "$logfile" ]; then return 0; fi
+
+    # bun's end-of-run summary looks like:
+    #     N pass
+    #     M fail
+    #     K skip          (only when skips > 0)
+    #     ...
+    #   Ran T tests across F files. [D]
+    local pass fail skip total files duration summary
+    pass=$(grep -Eo '^[[:space:]]*[0-9]+ pass([[:space:]]|$)' "$logfile" | tail -1 | grep -Eo '[0-9]+' || true)
+    fail=$(grep -Eo '^[[:space:]]*[0-9]+ fail([[:space:]]|$)' "$logfile" | tail -1 | grep -Eo '[0-9]+' || true)
+    skip=$(grep -Eo '^[[:space:]]*[0-9]+ skip([[:space:]]|$)' "$logfile" | tail -1 | grep -Eo '[0-9]+' || true)
+    summary=$(grep -E 'Ran [0-9]+ tests? across [0-9]+ files?' "$logfile" | tail -1)
+    total=$(printf '%s' "$summary" | grep -Eo 'Ran [0-9]+' | grep -Eo '[0-9]+' || true)
+    files=$(printf '%s' "$summary" | grep -Eo 'across [0-9]+' | grep -Eo '[0-9]+' || true)
+    duration=$(printf '%s' "$summary" | grep -Eo '\[[^]]+\]' || true)
+
+    local icon="✅"
+    if [ "${fail:-0}" -gt 0 ]; then icon="❌"; fi
+    local results="${icon} ${pass:-0} passes"
+    if [ "${fail:-0}" -gt 0 ]; then results="${results} · ❌ ${fail} fails"; fi
+    if [ -n "${skip:-}" ] && [ "$skip" -gt 0 ]; then results="${results} · ⏭️ ${skip} skipped"; fi
+    results="${results} · ${total:-0} total"
+
+    {
+        printf '## Bun Test Report — %s\n\n' "$label"
+        printf '### Summary\n\n'
+        printf -- '- Test Files: %s %s total\n' "$icon" "${files:-0}"
+        printf -- '- Test Results: %s\n' "$results"
+        if [ -n "$duration" ]; then printf -- '- Duration: %s\n' "$duration"; fi
+        printf '\n'
+    } >> "$GITHUB_STEP_SUMMARY"
+}
+
 # Render .test-report/coverage/lcov.info → .test-report/coverage/
 # (so it sits next to vitest's coverage output, same layout). Glue
 # lives in test/lib/coverage/lcovToHtml.ts — runs UNDER BUN (not

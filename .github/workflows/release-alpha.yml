@@ -35,6 +35,10 @@ jobs:
       - name: Bun validate tests
         run: bun run validate:tests
 
+      # Symmetry audit (DESIGN §4) — structural check of test/db/.
+      - name: Bun audit test symmetry
+        run: bun run tests:audit
+
       # Light tests (docker tests not supported yet)
       - name: Bun light tests
         run: bun run no-docker-examples
@@ -75,6 +79,10 @@ jobs:
       # Type-check the test/ tree against the published library types.
       - name: Validate tests
         run: npm run validate:tests
+
+      # Symmetry audit (DESIGN §4) — structural check of test/db/.
+      - name: Audit test symmetry
+        run: npm run tests:audit
 
       # Light tests (docker tests not supported yet)
       - name: Light tests

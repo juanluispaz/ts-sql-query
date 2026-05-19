@@ -15,7 +15,7 @@
 //
 // Exit code 0 if the matrix is symmetric, 1 if any divergence is found.
 
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { appendFileSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 const TEST_DB_DIR = 'test/db'
@@ -140,6 +140,45 @@ function describeSymmetric(cells: Cell[]): string {
     return `${cells.length} cells, ${fileNames.length} test files, ${total} tests per cell`
 }
 
+// Markdown row emitted to $GITHUB_STEP_SUMMARY for one database.
+// Mirrors the stdout marker (✓ / · / ✗) and free-form detail so the
+// CI summary tells the same story as the terminal output. Detail
+// for failures pre-joins issues with <br/> so the table cell renders
+// the breakdown directly.
+interface DbReportRow {
+    marker: string
+    database: string
+    detail: string
+}
+
+function emitGithubSummary(rows: DbReportRow[], passed: boolean): void {
+    const summaryFile = process.env['GITHUB_STEP_SUMMARY']
+    if (!summaryFile) return
+
+    const lines: string[] = []
+    lines.push('## Test Symmetry Audit')
+    lines.push('')
+    if (passed) {
+        lines.push('✅ Audit passed')
+    } else {
+        lines.push('❌ Audit FAILED — every cell of a database must contain the same files with the same test names in the same order (DESIGN §4). Comment out non-applicable tests rather than deleting them.')
+    }
+    lines.push('')
+    lines.push('| | Database | Detail |')
+    lines.push('| :-: | :-- | :-- |')
+    for (const r of rows) {
+        lines.push(`| ${r.marker} | \`${r.database}\` | ${r.detail} |`)
+    }
+    lines.push('')
+    lines.push('### Round details')
+    lines.push('')
+    lines.push('- **Phase:** Symmetry audit')
+    lines.push('- **Runner:** tsx')
+    lines.push('- **Scope:** structural check of `test/db/` (no tests executed)')
+    lines.push('')
+    appendFileSync(summaryFile, lines.join('\n'))
+}
+
 function main(): number {
     if (!isDir(TEST_DB_DIR)) {
         console.log(`No ${TEST_DB_DIR}/ folder found; nothing to audit.`)
@@ -157,6 +196,7 @@ function main(): number {
     console.log()
 
     let failed = false
+    const rows: DbReportRow[] = []
     for (const database of databases) {
         const dbDir = join(TEST_DB_DIR, database)
         const cells = loadCells(dbDir)
@@ -167,16 +207,26 @@ function main(): number {
             console.log(`✗ ${database} (${cells.length} cells):`)
             for (const m of issues) console.log(m)
             console.log()
+            rows.push({
+                marker: '❌',
+                database,
+                detail: `${cells.length} cells, ${issues.length} issue(s):<br/>` + issues.map(s => s.trim().replace(/\|/g, '\\|')).join('<br/>'),
+            })
         } else if (cells.length === 0) {
             console.log(`· ${database}: no cells to compare`)
+            rows.push({ marker: '·', database, detail: 'no cells to compare' })
         } else if (cells.length === 1) {
             console.log(`· ${database}: 1 cell only (${cells[0]!.label}), nothing to compare`)
+            rows.push({ marker: '·', database, detail: `1 cell only (\`${cells[0]!.label}\`), nothing to compare` })
         } else {
             console.log(`✓ ${database}: ${describeSymmetric(cells)}`)
+            rows.push({ marker: '✅', database, detail: describeSymmetric(cells) })
         }
     }
 
     console.log()
+    const passed = !failed
+    emitGithubSummary(rows, passed)
     if (failed) {
         console.log('Symmetry audit FAILED.')
         console.log('Apply DESIGN §4: every cell of a database must contain the same files with the same test names in the same order. Comment out non-applicable tests, do not delete them.')

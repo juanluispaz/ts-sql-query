@@ -388,6 +388,11 @@ if [ "$COVERAGE" = "on" ]; then
     if [ "$ec" -eq 0 ]; then
         finalize_report "$runtime" "$OPEN_AFTER" "${COVERAGE_FORMAT[@]}" || true
     fi
+    if [ "$WASM" = "on" ]; then
+        emit_phase_legend "Coverage run" "$MODE" mixed "$runtime" test/
+    else
+        emit_phase_legend "Coverage run" "$MODE" off "$runtime" test/
+    fi
     exit "$ec"
 fi
 
@@ -429,9 +434,19 @@ if [ "$runtime" = "npm" ] && [ "$UI" = "on" ]; then RUNNER_TAIL+=(--ui); fi
 # replayed summary stays plain-text rather than seeding ANSI escapes
 # into a log file.
 WASM_LOG=
+MAIN_LOG=
+# When running on GitHub Actions under bun, capture both phases so we
+# can synthesise a job summary (bun ships no `github-actions` reporter;
+# vitest auto-injects one). Outside Actions we only need WASM_LOG for
+# the in-terminal replay.
+__cleanup_test_logs() {
+    [ -n "${WASM_LOG:-}" ] && rm -f "$WASM_LOG"
+    [ -n "${MAIN_LOG:-}" ] && rm -f "$MAIN_LOG"
+}
+trap __cleanup_test_logs EXIT
+
 if [ "$WASM" = "on" ]; then
     WASM_LOG="$(mktemp)"
-    trap 'rm -f "$WASM_LOG"' EXIT
     export TS_SQL_QUERY_WASM=on
     export TSSQLQUERY_PARALLEL_DBS=false
     if [ -t 1 ]; then
@@ -440,6 +455,10 @@ if [ "$WASM" = "on" ]; then
     fi
     run_phase "$runtime" sequential "${WASM_PATHS[@]}" "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$WASM_LOG"
     ec=${PIPESTATUS[0]}
+    if [ "$runtime" = "bun" ]; then
+        emit_bun_github_summary "WASM phase" "$WASM_LOG"
+    fi
+    emit_phase_legend "WASM phase" sequential on "$runtime" "${WASM_PATHS[@]}"
     if [ "$ec" -ne 0 ]; then exit "$ec"; fi
 fi
 
@@ -450,8 +469,16 @@ if [ "$MODE" = "sequential" ]; then
 else
     unset TSSQLQUERY_PARALLEL_DBS
 fi
-run_phase "$runtime" "$MODE" test/ "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}"
-ec=$?
+if [ "$runtime" = "bun" ] && [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+    MAIN_LOG="$(mktemp)"
+    run_phase "$runtime" "$MODE" test/ "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}" 2>&1 | tee "$MAIN_LOG"
+    ec=${PIPESTATUS[0]}
+    emit_bun_github_summary "Main phase" "$MAIN_LOG"
+else
+    run_phase "$runtime" "$MODE" test/ "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}"
+    ec=$?
+fi
+emit_phase_legend "Main phase" "$MODE" off "$runtime" test/
 
 # Re-emit the saved WASM summary so the user sees both phases'
 # headline numbers without having to scroll up. Last 4 lines covers

@@ -1,4 +1,4 @@
-import type { IExecutableSelectQuery, RemapIValueSourceType, ValueSourceValueType, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapIValueSourceTypeWithOptionalType, IExecutableInsertQuery, IAnyBooleanValueSource, IStringValueSource } from './values.js'
+import type { IExecutableSelectQuery, RemapIValueSourceType, ValueSourceValueType, AnyValueSource, ValueSourceOf, ValueSourceValueTypeForResult, RemapIValueSourceTypeWithOptionalType, IExecutableInsertQuery, IAnyBooleanValueSource } from './values.js'
 import type { HasSource, IRawFragment, OfDB, ResolvedShape } from '../utils/ITableOrView.js'
 import type { from, source, using } from '../utils/symbols.js'
 import type { WritableDBColumnWithDefaultValue } from '../utils/Column.js'
@@ -973,8 +973,6 @@ type OnConflictOnConstraintFnType<TABLE extends HasSource<any>, USING extends Ha
     : never
 
 interface OnConflictOnConstraintFnTypeInterface</*in|out*/ TABLE extends HasSource<any>, /*in|out*/ _USING extends HasSource<any>, NEXT> {
-    (constraint: string): NEXT
-    (constraint: IStringValueSource<NNoTableOrViewRequiredFrom<TABLE[typeof source]>, 'required'>): NEXT
     (constraint: RawFragment<NNoTableOrViewRequiredFrom<TABLE[typeof source]>>): NEXT
 }
 

@@ -1,5 +1,5 @@
 import type { ITable, IWithView, HasIsValue, AnyTableOrView } from '../utils/ITableOrView.js'
-import type { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, IStringValueSource, ValueType } from '../expressions/values.js'
+import type { IExecutableSelectQuery, AnyValueSource, AlwaysIfValueSource, INumberValueSource, IAggregatedArrayValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, ValueType } from '../expressions/values.js'
 import { isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
 import type { DefaultTypeAdapter, TypeAdapter } from '../TypeAdapter.js'
 import type { OrderByMode, SelectCustomization } from '../expressions/select.js'
@@ -199,7 +199,7 @@ export interface InsertData extends WithQueryData {
     __from?: SelectData | undefined
     __customization?: InsertCustomization<any, any> | undefined
     __columns?: QueryColumns | undefined
-    __onConflictOnConstraint?: string | IStringValueSource<any, any> | RawFragment<any> | undefined
+    __onConflictOnConstraint?: RawFragment<any> | undefined
     __onConflictOnColumns?: AnyValueSource[] | undefined
     __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any> | undefined
     __onConflictDoNothing?: boolean | undefined

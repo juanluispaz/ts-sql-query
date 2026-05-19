@@ -3402,8 +3402,8 @@ async function main() {
 
     // result = 1
     // expectedResult.push(result)
-    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict on constraint $3 do nothing`)
-    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","title_constraint"]`)
+    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict on constraint title_constraint do nothing`)
+    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo"]`)
     // expectedType.push(`insert`)
 
     /* *** Example ****************************************************************/
@@ -3413,7 +3413,7 @@ async function main() {
     //         id: '89bf68fc-7002-11ec-90d6-0242ac120003',
     //         title: 'My voice memo'
     //     })
-    //     .onConflictOnConstraint('title_constraint')
+    //     .onConflictOnConstraint(connection.rawFragment`title_constraint`)
     //     .doNothing()
     //     .executeInsert()
     // assertEquals(insertUuid, result)
@@ -3484,8 +3484,8 @@ async function main() {
 
     // result = 1
     // expectedResult.push(result)
-    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict on constraint $3 do update set title = $4`)
-    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","title_constraint","My voice memo 2"]`)
+    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict on constraint title_constraint do update set title = $3`)
+    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","My voice memo 2"]`)
     // expectedType.push(`insert`)
 
     /* *** Example ****************************************************************/
@@ -3495,7 +3495,7 @@ async function main() {
     //         id: '89bf68fc-7002-11ec-90d6-0242ac120003',
     //         title: 'My voice memo'
     //     })
-    //     .onConflictOnConstraint('title_constraint')
+    //     .onConflictOnConstraint(connection.rawFragment`title_constraint`)
     //     .doUpdateSet({
     //         title: 'My voice memo 2'
     //     })
@@ -3573,8 +3573,8 @@ async function main() {
 
     // result = 1
     // expectedResult.push(result)
-    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict on constraint $3 do update set title = $4 where record.title ilike ('%' || $5 || '%')`)
-    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","title_constraint","My voice memo 2","My"]`)
+    // expectedQuery.push(`insert into record (id, title) values ($1, $2) on conflict on constraint title_constraint do update set title = $3 where record.title ilike ('%' || $4 || '%')`)
+    // expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","My voice memo 2","My"]`)
     // expectedType.push(`insert`)
 
     /* *** Example ****************************************************************/
@@ -3584,7 +3584,7 @@ async function main() {
     //         id: '89bf68fc-7002-11ec-90d6-0242ac120003',
     //         title: 'My voice memo'
     //     })
-    //     .onConflictOnConstraint('title_constraint')
+    //     .onConflictOnConstraint(connection.rawFragment`title_constraint`)
     //     .doUpdateSet({
     //         title: 'My voice memo 2'
     //     })

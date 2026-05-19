@@ -923,7 +923,7 @@ const insertReturningCustomerData: Promise<{
 [PostgreSQL](../configuration/supported-databases/postgresql.md), [SQLite](../configuration/supported-databases/sqlite.md), [MariaDB](../configuration/supported-databases/mariadb.md) and [MySQL](../configuration/supported-databases/mysql.md) support specifying that an `INSERT` must do an update in case of conflict (also known as an "upsert"). The shape of the call depends on the engine:
 
 - On **MariaDB** and **MySQL** the update fires on any unique-key violation; you don't specify which one. Use the bare `.onConflictDoUpdateSet({...})`.
-- On **PostgreSQL** you must say which unique-key column or constraint triggers the update. Use `.onConflictOn(...)` (or `.onConflictOnConstraint(...)`) chained with `.doUpdateSet({...})`.
+- On **PostgreSQL** you must say which unique-key column or constraint triggers the update. Use `.onConflictOn(...)` (or `.onConflictOnConstraint(connection.rawFragment\`...\`)`) chained with `.doUpdateSet({...})`.
 - **SQLite** accepts both forms.
 - **Oracle** and **SQL Server** don't support this syntax.
 
@@ -1266,5 +1266,5 @@ const insertReturningCustomerData: Promise<{
 !!! note
 
     - On [PostgreSQL](../configuration/supported-databases/postgresql.md) and [SQLite](../configuration/supported-databases/sqlite.md), the targeted form additionally accepts a `where` clause that restricts when the update must be performed.
-    - On [PostgreSQL](../configuration/supported-databases/postgresql.md) you can also identify the conflict by constraint name with `.onConflictOnConstraint('...')`.
+    - On [PostgreSQL](../configuration/supported-databases/postgresql.md) you can also identify the conflict by constraint name with `.onConflictOnConstraint(connection.rawFragment\`my_constraint\`)`. The constraint name is a SQL identifier, not a runtime value, so it must be supplied as a [raw SQL fragment](sql-fragments.md) — the caller is expected to assemble it from database introspection rather than from a user-influenced string.
     - You can combine any of these forms with other insert features, e.g. return some columns.

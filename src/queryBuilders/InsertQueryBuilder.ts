@@ -8,7 +8,7 @@ import { isColumn } from '../utils/Column.js'
 import { __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import { TsSqlError, TsSqlQueryExecutionError, QueryExecutionSource, TsSqlProcessingError } from '../TsSqlError.js'
 import { from, resultType, source, type, using } from '../utils/symbols.js'
-import type { AlwaysIfValueSource, AnyValueSource, IExecutableSelectQuery, IAnyBooleanValueSource, IStringValueSource } from '../expressions/values.js'
+import type { AlwaysIfValueSource, AnyValueSource, IExecutableSelectQuery, IAnyBooleanValueSource } from '../expressions/values.js'
 import { asAlwaysIfValueSource, isValueSource, __getValueSourcePrivate } from '../expressions/values.js'
 import { __addWiths } from '../utils/ITableOrView.js'
 import { AbstractQueryBuilder, __setQueryMetadata } from './AbstractQueryBuilder.js'
@@ -34,7 +34,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     __withs: Array<IWithView<any>> = []
     __customization?: InsertCustomization<any, any> | undefined
     //__columns?: QueryColumns // declared at AbstractQueryBuilder
-    __onConflictOnConstraint?: string | IStringValueSource<any, any> | RawFragment<any> | undefined
+    __onConflictOnConstraint?: RawFragment<any> | undefined
     __onConflictOnColumns?: AnyValueSource[] | undefined
     __onConflictOnColumnsWhere?: AlwaysIfValueSource<any, any> | undefined
     __onConflictDoNothing?: boolean | undefined
@@ -1745,7 +1745,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
         }
         return this
     }
-    onConflictOnConstraint(constraint: string | IStringValueSource<any, any> | RawFragment<any>): this {
+    onConflictOnConstraint(constraint: RawFragment<any>): this {
         this.__query = ''
         if (this.__onConflictOnConstraint) {
             throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'illegal state' }, 'Illegal state')

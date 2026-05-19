@@ -1816,8 +1816,14 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         const constraint = query.__onConflictOnConstraint
         if (constraint) {
+            // The conflict target is a constraint **name** — a SQL identifier, not
+            // a scalar value. Binding it as a parameter (`$N`) is rejected by the
+            // server (`ERROR: syntax error at or near "$N"` on PostgreSQL). We
+            // emit the raw fragment verbatim; the API only accepts `RawFragment`
+            // for this argument precisely because the caller has to assemble it
+            // from database introspection rather than from a runtime value.
             result += ' on constraint '
-            result += this._appendValue(constraint, params, 'string', 'string', undefined, false)
+            result += this._appendRawFragment(constraint, params)
         }
 
         if (query.__onConflictDoNothing) {

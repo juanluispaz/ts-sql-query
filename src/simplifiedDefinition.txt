@@ -1516,10 +1516,6 @@ interface InsertExpression {
     /**Allow to specify the "on conflict" clasue indicating the index column expected by this clause */
     onConflictOn(column: AnyValueSource, ...columns: AnyValueSource[]): this
     /**Allow to specify the "on conflict on constraint" clasue indicating the index name expected by this clause */
-    onConflictOnConstraint(constraint: string): this
-    /**Allow to specify the "on conflict on constraint" clasue indicating the index name expected by this clause */
-    onConflictOnConstraint(constraint: StringValueSource): this
-    /**Allow to specify the "on conflict on constraint" clasue indicating the index name expected by this clause */
     onConflictOnConstraint(constraint: RawFragment): this
 
     // Methods available when previously is called onConflictOn or onConflictOnConstraint

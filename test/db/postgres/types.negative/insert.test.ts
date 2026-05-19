@@ -71,6 +71,19 @@ function _typeNegatives() {
     void connection.insertInto(tOrganization).set({ name: 'x', plan: 'pro' }).onConflictDoUpdateSetIfValue({ plan: 'enterprise' })
     // @ts-expect-error bare onConflictDoUpdateDynamicSet on PG via .set(...) — needs onConflictOn(col)
     void connection.insertInto(tOrganization).set({ name: 'x', plan: 'pro' }).onConflictDoUpdateDynamicSet()
+
+    // Rule: `onConflictOnConstraint(...)` accepts only a `RawFragment`. A
+    // constraint name is a SQL identifier, not a runtime value: binding it
+    // as a parameter (`$N`) used to be silently accepted by the type but
+    // rejected by real PostgreSQL with `ERROR: syntax error at or near
+    // "$N"`. The string and `IStringValueSource` overloads have been
+    // removed so the only way to supply a constraint name is via raw SQL
+    // assembled from database introspection.
+    void connection.insertInto(tOrganization).set({ name: 'x', plan: 'pro' }).onConflictOnConstraint(connection.rawFragment`organization_name_uniq`).doNothing()
+    // @ts-expect-error plain string is no longer accepted — use connection.rawFragment`...`
+    void connection.insertInto(tOrganization).set({ name: 'x', plan: 'pro' }).onConflictOnConstraint('organization_name_uniq')
+    // @ts-expect-error IStringValueSource is no longer accepted — use connection.rawFragment`...`
+    void connection.insertInto(tOrganization).set({ name: 'x', plan: 'pro' }).onConflictOnConstraint(connection.const('organization_name_uniq', 'string'))
 }
 
 test('insert-negative-types', () => {

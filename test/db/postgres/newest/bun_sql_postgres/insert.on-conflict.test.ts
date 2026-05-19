@@ -5,7 +5,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tOrganization, tProject } from '../../domain/connection.js'
+import { tAppUser, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -130,4 +130,35 @@ describe(ctx.label, () => {
         // and the active `on-conflict-on-columns-do-update` test above.
     })
     */
+
+    test('on-conflict-on-constraint-do-nothing', async () => {
+        // `.onConflictOnConstraint(rawFragment`name`)` — PostgreSQL accepts
+        // both `(cols)` and `ON CONSTRAINT name` as conflict targets. The
+        // constraint name is supplied as a raw SQL fragment because it is a
+        // SQL identifier (must come from DB introspection, not from runtime
+        // values). The unique constraint `app_user_email_key` is the
+        // PostgreSQL default name for the inline `email VARCHAR(255) NOT
+        // NULL UNIQUE` declaration in domain/schema.sql.
+        ctx.mockNext(0)
+        await ctx.withRollback(async () => {
+            const inserted = await ctx.conn.insertInto(tAppUser)
+                .values({ email: 'ada@acme.test', fullName: 'Ada Lovelace v2' })  // collides with seed
+                .onConflictOnConstraint(ctx.conn.rawFragment`app_user_email_key`)
+                .doNothing()
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into app_user (email, full_name) values ($1, $2) on conflict on constraint app_user_email_key do nothing"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "ada@acme.test",
+                "Ada Lovelace v2",
+              ]
+            `)
+            assertType<Exact<typeof inserted, number>>()
+            if (ctx.realDbEnabled) {
+                expect(typeof inserted).toBe('number')
+            } else {
+                expect(inserted).toBe(0)
+            }
+        })
+    })
 })

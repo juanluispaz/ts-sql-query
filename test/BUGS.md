@@ -31,7 +31,56 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ---
 
-_No open entries._
+## Row-shape mismatch from a mock surfaces as MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE deep in the projector
+
+**Where**: row transform in
+[`src/queryBuilders/AbstractQueryBuilder.ts:59`](../src/queryBuilders/AbstractQueryBuilder.ts#L59)
+(`__transformValueFromDB`), reached from every `execute*` path in
+`SelectQueryBuilder.ts` etc. — surfaced via `MockQueryRunner` because
+the runner just hands the queued value through unchanged.
+**Reproduction**: in any mock-mode cell, queue a partial row and
+select more columns than the mock provides:
+
+```ts
+ctx.mockNext([{ id: 1 }])            // missing `title`
+await ctx.conn.selectFrom(tIssue)
+    .select({ id: tIssue.id, title: tIssue.title })  // title required
+    .executeSelectMany()
+// throws:
+// TsSqlProcessingError { reason: 'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE',
+//   columnPath: 'title', rowIndex: 0, ... }
+```
+
+The error message says "Expected a value as result of the column
+`title` at index `0`, but null or undefined value was found" — true to
+fact, but the only hint that the *mock* is the source is the
+`MockQueryRunner` frame in the stack, which is easy to miss; nothing
+in the message says "your mock did not return the requested shape".
+The mock surface is part of the public API (per `CLAUDE.md`), so the
+question is whether to:
+
+1. Validate the mock-returned row shape against the projector at the
+   mock-runner boundary, with a dedicated `INVALID_MOCKED_VALUE`
+   reason naming the mock and the missing keys — symmetric with the
+   `isPlainObject` validation already there.
+2. Tighten the projector's error message to mention "or a mock that
+   didn't return this column" — minimal change, no behaviour shift.
+3. Leave it (defend the invariant "the data layer returns a complete
+   row").
+
+Not sure if it's a bug or a docs/UX gap. Flagging because the user
+asked to review public-surface oddities in deeper detail.
+
+**Current workaround in the suite**: tests that only assert SQL/params
+seed the mock with `ctx.mockNext([])` so the projector skips
+transformation entirely; tests that assert the result body provide a
+mock row whose keys match the `select({...})` shape 1:1. The pattern
+is documented in
+[`MAINTAINING.md` § Test-context surface](./MAINTAINING.md#test-context-surface).
+
+---
+
+_No other open entries._
 
 ---
 

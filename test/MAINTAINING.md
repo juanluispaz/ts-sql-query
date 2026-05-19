@@ -8,6 +8,8 @@ audit, or touching the prisma / sync sub-trees.
 - [Auditing symmetry](#auditing-symmetry)
 - [Adding a test](#adding-a-test)
   - [Test-context surface](#test-context-surface)
+  - [Testing a runtime guard that is also typed at compile time](#testing-a-runtime-guard-that-is-also-typed-at-compile-time)
+  - [When the shared domain is missing what your test needs](#when-the-shared-domain-is-missing-what-your-test-needs)
   - [If a new test surfaces a bug in `src/`](#if-a-new-test-surfaces-a-bug-in-src)
 - [Adding a database](#adding-a-database)
 - [Why the duplication between cells?](#why-the-duplication-between-cells)
@@ -161,6 +163,149 @@ real and mock runners. Mutation primitives are documented end-to-end
 in [`CONTAINERS.md` § Data-mutation safety](./CONTAINERS.md#data-mutation-safety-cooperative-contract);
 the runner-divergence option is in
 [`test/lib/mockRunners/README.md`](./lib/mockRunners/README.md).
+
+### Testing a runtime guard that is also typed at compile time
+
+A handful of `TsSqlProcessingError` paths fire from inside the SQL
+builders when the user misuses the API. The typer is built to catch
+the same misuses at compile time, so writing the offending code
+directly does not compile:
+
+```ts
+// ✗ does not compile — `.executeDelete` is not on `DeleteExpression`
+//   until `.where(...)` has been called.
+connection.deleteFrom(tIssue).executeDelete()
+
+// ✗ does not compile — `set(...)` returns `NotExecutableUpdateExpression`,
+//   which lacks `executeUpdate`.
+connection.update(tIssue).set({ title: 'x' }).executeUpdate()
+
+// ✗ does not compile — the orderBy literal must be a selected alias.
+connection.selectFrom(tProject).select({ id: tProject.id })
+    .orderBy('notSelected')
+    .executeSelectMany()
+
+// ✗ does not compile on some dialects — `defaultValues()` resolves to
+//   `never` when `RequiredColumnsForSetOf<TABLE>` is not `never`.
+connection.insertInto(tDefaultsOnly).defaultValues()
+```
+
+These compile-time guards are deliberate (see
+[`DESIGN.md`](./DESIGN.md)) and the typer does many contortions to
+arrive at the `never` that fails the call site. The runtime
+implementation is still there; the test of the runtime guard needs
+to reach it.
+
+**Rule for writing the test**: cast through `any` precisely at the
+fluent step the typer blocks, and document why the cast is there.
+Casting the whole chain to `any` hides too much; cast the narrowest
+edge that escapes the type, then let the rest of the chain be
+typed normally so a future regression (e.g. a method being removed
+at runtime) still surfaces.
+
+```ts
+test('delete without where throws MISSING_WHERE', () => {
+    let caught: unknown
+    try {
+        // Cast bypasses the compile-time guard so we can reach the
+        // runtime guard. The typer rejects `.executeDelete` here on
+        // purpose — see DeleteExpression in src/expressions/delete.ts.
+        (ctx.conn.deleteFrom(tIssue) as any).executeDelete()
+    } catch (e) {
+        caught = e
+    }
+    expect(e instanceof TsSqlError ? e.errorReason.reason : undefined)
+        .toBe('MISSING_WHERE')
+})
+```
+
+Worked examples: see `test/db/*/*/*/errors.processing.test.ts` and
+`test/db/*/*/*/insert.default-values.test.ts`.
+
+Two anti-patterns to avoid:
+
+- **Calling `.where(...)` first to satisfy the typer**: now the
+  fluent chain compiles but the runtime never sees the guard you
+  wanted to test. The test asserts something else.
+- **Wrapping the whole chain in `as any`**: future runtime regressions
+  (a method being renamed, a builder returning a different shape) go
+  undetected. Cast at the smallest possible spot.
+
+### When the shared domain is missing what your test needs
+
+The shared "project management" domain
+([`test/db/<db>/domain/connection.ts`](./db/sqlite/domain/connection.ts)
++ the matching `schema.sql` / `seed.sql`) is small on purpose. When a
+new test needs a column, a column type, or even a whole table the
+domain doesn't currently expose, **extending the shared domain is the
+preferred path** over declaring a local stub `class TFoo extends
+Table<...>` inside the test file. Tests should look like real
+project-management queries; a local `TFlagA` / `TFlagB` reads as
+"contrived test scaffolding" and the assertion stops landing on
+something a reader can hold in their head.
+
+Local stubs are still legitimate in two narrow cases:
+
+- The feature being exercised has no natural home in
+  organization/app_user/project/issue and a manufactured table is
+  what reads best (e.g. the `TFlag` in
+  `docs.advanced.custom-booleans-values.test.ts` exists to demonstrate
+  the adapter in isolation, mirroring the docs page that uses the
+  same name).
+- The test is purely type-level and never executes against a real
+  DB. The table name doesn't matter then; readability is what does.
+
+Whenever a runtime assertion is involved — `expect(rows).toEqual(...)`,
+`executeInsert()` returning a real id, a real-DB cell asserting
+visibility after commit — the table needs to exist in the seed.
+Reach for the shared-domain extension.
+
+**Extending the shared domain — checklist**:
+
+1. **Pick a name that fits the domain semantically.** "verified",
+   "published", "archived", "billing_status", … not "flag1" / "col_x".
+   The test reads better and the column actually says something about
+   the entity.
+2. **Default-friendly column.** Add a `DEFAULT` clause in the DDL and
+   declare it as `columnWithDefaultValue(...)` (or
+   `optionalColumn(...)`) in `connection.ts`. Existing INSERT tests
+   that didn't enumerate the new column then keep working without
+   surgery.
+3. **Update every dialect in lockstep.** All six pairs need touching
+   together — the symmetry audit walks the test files, not the
+   schemas, so a missed dialect surfaces later as a real-DB failure
+   in that cell. Files to touch per dialect:
+   - `test/db/<db>/domain/schema.sql` — add the column with the
+     dialect-appropriate type and `DEFAULT`.
+   - `test/db/<db>/domain/seed.sql` — set explicit values per row so
+     the test has something concrete to assert.
+   - `test/db/<db>/domain/connection.ts` — declare the column on the
+     `Table` subclass (and add the `CustomBooleanTypeAdapter` import
+     etc. as needed).
+4. **Fix the shape-asserting doc-tests.** Adding a column ripples to:
+   - `docs.advanced.utility-types.test.ts` — `ColumnKeys`,
+     `WritableColumnKeys`, `WritableShapeFor`,
+     `AutogeneratedIdColumnKeys` unions need the new key.
+   - `docs.advanced.columns-from-object.test.ts` —
+     `extractColumnsFrom`, `extractColumnNamesFrom`,
+     `extractWritableShapeFrom`, `extractWritableColumnNamesFrom`
+     hardcoded shapes and `Object.keys(...).toEqual([...])` arrays.
+   Update the canonical (`sqlite/newest/bun_sqlite/`) once, copy to
+   the other 16 cells, re-bake the snapshot for
+   `extract-columns-select-all` (it lists the full select clause).
+5. **Re-run** `bun run tests:audit && bun run validate:tests:tsc &&
+   bun run tests` end to end. If the new column has a
+   `CustomBooleanTypeAdapter`, the select snapshot will surface as
+   `(<col> = '<true-value>') as <col>` — sanity-check that, the
+   adapter mapping was your call.
+
+Worked example: the `verified` (organization, app_user) and
+`published` (project) `CustomBooleanTypeAdapter` columns were added
+this way to give `select.custom-boolean-remap.test.ts` real-domain
+column-vs-column comparisons (same adapter and deliberately
+different adapter) instead of three throwaway `TFlagA` / `TFlagB` /
+`TFlagC` stubs. The diff against the prior schema is the template
+for future extensions.
 
 ### If a new test surfaces a bug in `src/`
 

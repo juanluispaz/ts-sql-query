@@ -27,7 +27,7 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('docs:columns-from-object/extract-columns-select-all', async () => {
-        ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'pro', createdAt: new Date() })
+        ctx.mockNext({ id: 1, name: 'Acme Corp', plan: 'pro', verified: true, createdAt: new Date() })
 
         // doc-start
         const cols = extractColumnsFrom(tOrganization)
@@ -37,7 +37,7 @@ describe(ctx.label, () => {
             .executeSelectOne()
         // doc-end
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, plan as plan, created_at as createdAt from \`organization\` where id = ?"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, \`name\` as \`name\`, plan as plan, (verified = 'Y') as verified, created_at as createdAt from \`organization\` where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -48,6 +48,7 @@ describe(ctx.label, () => {
             id:        number
             name:      string
             plan:      string
+            verified:  boolean
             createdAt: Date
         }>>()
         if (ctx.realDbEnabled) {
@@ -61,12 +62,13 @@ describe(ctx.label, () => {
         const cols = extractColumnsFrom(tOrganization, ['createdAt'])
         // doc-end
         // The excluded key is removed from the value type.
-        assertType<Extends<typeof cols, { id: unknown; name: unknown; plan: unknown }>>()
+        assertType<Extends<typeof cols, { id: unknown; name: unknown; plan: unknown; verified: unknown }>>()
         // And no `createdAt` key on the picked object.
         const k = Object.keys(cols)
         expect(k).toContain('id')
         expect(k).toContain('name')
         expect(k).toContain('plan')
+        expect(k).toContain('verified')
         expect(k).not.toContain('createdAt')
     })
 
@@ -75,7 +77,7 @@ describe(ctx.label, () => {
         const names = extractColumnNamesFrom(tOrganization)
         // doc-end
         assertType<Extends<typeof names, string[]>>()
-        expect(names.sort()).toEqual(['createdAt', 'id', 'name', 'plan'])
+        expect(names.sort()).toEqual(['createdAt', 'id', 'name', 'plan', 'verified'])
     })
 
     test('docs:columns-from-object/extract-writable-columns', async () => {
@@ -120,12 +122,14 @@ describe(ctx.label, () => {
             id:        'id'
             name:      'name'
             plan:      'plan'
+            verified:  'verified'
             createdAt: 'createdAt'
         }>>()
         expect(shape).toEqual({
             id:        'id',
             name:      'name',
             plan:      'plan',
+            verified:  'verified',
             createdAt: 'createdAt',
         })
     })
@@ -135,7 +139,7 @@ describe(ctx.label, () => {
         const names = extractWritableColumnNamesFrom(tOrganization)
         // doc-end
         assertType<Extends<typeof names, string[]>>()
-        expect(names.sort()).toEqual(['createdAt', 'id', 'name', 'plan'])
+        expect(names.sort()).toEqual(['createdAt', 'id', 'name', 'plan', 'verified'])
     })
 
     test('docs:columns-from-object/extract-id-column-names', () => {

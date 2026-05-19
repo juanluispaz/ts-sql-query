@@ -122,53 +122,58 @@ the runner-divergence option is in
 
 ### If a new test surfaces a bug in `src/`
 
-The agent does **not** touch `src/` while writing or porting tests —
-the test suite's job is to characterise current behaviour, not to fix
-it.
+**Division of labor.** The agent writing or porting tests detects
+bugs and hands them off; a separate fixing agent diagnoses and
+patches `src/`. Mixing both roles breaks the test agent's
+breadth-first momentum and produces shallow analysis. This split is
+not optional — it is how the project author wants the work organised.
 
-Before treating something as a bug, check
-[`LIMITATIONS.md`](./LIMITATIONS.md): some unexpected library
-behaviours are declared limitations (no GROUP BY validation, no
-aggregate-vs-scalar distinction, no window functions in the fluent
-API, pglite's older PostgreSQL bundle, …). Limitations get a
-`// TODO[LIMITATION]` marker; only true bugs get `// TODO[BUG]`.
+**Test author's checklist** (this is all you do when you find a
+suspect):
 
-When a test surfaces what looks like a bug:
+1. Two-minute triage — three buckets:
+   - **Dialect-specific limitation already documented** → comment-out
+     the test on the affected cell with `// Not applicable on <DB>:
+     <reason>` and, if the constraint is new, add an entry to
+     [`FUTURE_CONNECTORS.md`](./FUTURE_CONNECTORS.md).
+   - **Known library limitation per the author** →
+     [`LIMITATIONS.md`](./LIMITATIONS.md) already covers it; wrap with
+     `// TODO[LIMITATION]: see LIMITATIONS.md — <one-line>` and move
+     on.
+   - **Anything else** → `// TODO[BUG]` (on the assertion if the test
+     stays live, or as the comment-out reason if you wrap the whole
+     test). Add ONE paragraph in [`BUGS.md`](./BUGS.md) — enough to
+     reproduce, no deeper.
+2. Leave the suite green (assert current wrong behaviour, or
+   block-comment per the symmetry rule).
+3. Keep going with the next test. **Do not pause to read `src/`.**
 
-1. Mark the offending assertion with a `// TODO[BUG]` comment that
-   names the symptom in one line. When the whole test is commented
-   out instead of the single assertion (e.g. the SQL the lib emits
-   is invalid for the dialect, so even mock-mode can't keep the
-   test), make the comment-out reason a `TODO[BUG]: see BUGS.md`
-   line so a `grep -rn "TODO\[BUG\]" test/db/` finds the case.
-2. Leave the test in a passing state — usually by asserting the
-   current (wrong) behaviour, sometimes by commenting the failing
-   assertion out per the symmetry rule.
-3. Log the issue in [`BUGS.md`](./BUGS.md) with enough context to
-   reproduce. The maintainer fixing `src/` will read that file,
-   remove the `TODO[BUG]` and rewrite the assertion to the correct
-   value as part of the fix PR.
+**Not the test author's job — delegated to the fixing agent:**
 
-Be explicit in `BUGS.md` about which of the common shapes the bug
-takes — the fixing agent uses that to know where to look first:
+- Root-cause diagnosis (reading `src/queryBuilders/...`, `src/sqlBuilders/...`, …).
+- Categorising the bug shape (the common shapes are listed in
+  [`BUGS.md` § Common bug shapes](./BUGS.md#common-bug-shapes-for-the-fixing-agent)
+  as a template for the fixing agent — not as a triage form to fill
+  in here).
+- Writing the fix in `src/`.
+- Writing the matching negative-type test under
+  `test/db/<db>/types.negative/` that locks the new (narrower) public
+  contract.
+- Closing the `BUGS.md` entry.
+- Rewriting the `// TODO[BUG]` comment to its final form (point to
+  the negative test, or convert to "Not applicable" with citation).
+- Deciding whether the wrapped test gets uncommented after the fix.
 
-- **TS accepts something runtime rejects** — a method typed on a
-  connection class whose dialect refuses the SQL it emits. Mock
-  cells silently pass (the SQL is never executed); only the real-DB
-  cell surfaces the rejection. Treat as a typing gap: the type
-  should narrow.
-- **TS rejects something the docs page describes** — a method shown
-  in a docs snippet that doesn't typecheck on the connection that
-  snippet is supposed to demonstrate. Either the docs are stale or
-  the lib types are too tight.
-- **Two equivalent forms documented but only one is typed** — the
-  docs page describes two interchangeable forms per dialect (e.g.
-  "MariaDB/MySQL use bare `.onConflictDoUpdateSet({...})`;
-  PostgreSQL/SQLite use `.onConflictOn(col).doUpdateSet({...})`")
-  and the lib types let you use the wrong form on a given dialect.
-- **A snippet references a public symbol that no longer exists** in
-  the current `exports` map of [`package.json`](../package.json) —
-  the page is stale or the symbol was removed.
+**Worked example.** Commit `9b5ab1c` shows the full cycle: this suite
+flagged `PostgreSqlConnection.onConflictDoUpdateSet` accepting the
+bare upsert form that PostgreSQL rejects → entry in `BUGS.md` plus
+`TODO[BUG]` in the 8 postgres cells. The fixing agent removed the
+methods from `PostgreSqlConnection` typing, added 5 negative-type
+tests in `test/db/postgres/types.negative/insert.test.ts`, closed the
+`BUGS.md` entry, and converted the wrap reasons in this suite to
+"Not applicable … see test/db/postgres/types.negative/insert.test.ts
+for the compile-time negative". The detect side did none of that
+work; the fix side did none of the breadth-first test porting.
 
 ## Adding a database
 

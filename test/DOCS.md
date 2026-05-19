@@ -413,14 +413,16 @@ framing.
   `noUnusedLocals` rejects. The fix is the `void identifier` sentinel
   documented in
   [`MAINTAINING.md` § Imports used only from commented-out blocks](./MAINTAINING.md#imports-used-only-from-commented-out-blocks).
-- **You suspect a library bug.** Don't fix `src/` from a test PR;
-  mark the assertion or test with `// TODO[BUG]: see BUGS.md` and
-  log the case in [`BUGS.md`](./BUGS.md) per
-  [`MAINTAINING.md` § If a new test surfaces a bug in `src/`](./MAINTAINING.md#if-a-new-test-surfaces-a-bug-in-src).
-  The four common shapes the bug takes (TS too loose, TS too strict,
-  two forms typed asymmetrically, stale public symbol) are listed in
-  that section — be explicit about which one in `BUGS.md` so the
-  fixing agent knows where to look first.
+- **You suspect a library bug.** Two-minute triage, one paragraph in
+  [`BUGS.md`](./BUGS.md), and **move on**. Don't read `src/`, don't
+  categorise the bug shape, don't sketch a fix, don't write the
+  matching negative-type test — that is the fixing agent's work, not
+  yours. The hand-off contract and the worked example from commit
+  `9b5ab1c` live in
+  [`MAINTAINING.md` § If a new test surfaces a bug in `src/`](./MAINTAINING.md#if-a-new-test-surfaces-a-bug-in-src);
+  the `BUGS.md` entry template is at the top of that file. Keeping
+  this discipline is what protects breadth-first coverage from
+  bleeding into ad-hoc deep diagnosis.
 
 ## What does NOT belong here
 

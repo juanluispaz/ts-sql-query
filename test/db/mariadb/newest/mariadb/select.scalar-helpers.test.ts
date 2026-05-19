@@ -40,7 +40,7 @@ describe(ctx.label, () => {
         const rows = await ctx.conn.selectFromNoTable()
             .select({ r: ctx.conn.random() })
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select random() as \`r\`"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select rand() as \`r\`"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof rows, Array<{ r: number }>>>()
         if (ctx.realDbEnabled) {

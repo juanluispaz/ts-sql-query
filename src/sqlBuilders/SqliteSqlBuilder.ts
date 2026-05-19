@@ -276,7 +276,15 @@ export class SqliteSqlBuilder extends AbstractSqlBuilder {
         return 'cast(' + this._appendSql(valueSource, params, false) + ' as real) / cast(' + this._appendValue(value, params, this._getMathArgumentType(columnType, columnTypeName, value), this._getMathArgumentTypeName(columnType, columnTypeName, value), typeAdapter, false) + ' as real)'
     }
     override _asDouble(params: any[], valueSource: ToSql): string {
-        return 'cast(' + this._appendSql(valueSource, params, false) + 'as real)'
+        return 'cast(' + this._appendSql(valueSource, params, false) + ' as real)'
+    }
+    override _random(_params: any): string {
+        // SQLite's `random()` returns a uniform 64-bit signed integer
+        // (-2^63..2^63-1), not a [0, 1) float like every other dialect.
+        // Normalise to a double in [0, 1) so the public `connection.random()`
+        // contract is uniform across engines and survives strict i64 → JS
+        // number drivers (notably `node:sqlite`).
+        return '(random() / 18446744073709551616.0 + 0.5)'
     }
     override _ln(params: any[], valueSource: ToSql): string {
         return 'ln(' + this._appendSql(valueSource, params, false) + ')'

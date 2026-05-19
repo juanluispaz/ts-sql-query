@@ -75,12 +75,6 @@ describe(ctx.label, () => {
     })
 
     test('not-ends-with', async () => {
-        // TODO[BUG] MySQL/MariaDB `_notEndsWith` emits `like` instead of
-        // `not like`, so the snapshot below is the buggy SQL. The fix
-        // will flip it to `not like` and break this snapshot — that's
-        // the signal for the fixing agent. Value assertion is skipped
-        // because the buggy SQL returns the wrong rows on a real DB.
-        // See test/BUGS.md → "MySQL/MariaDB `_notEndsWith` emits `like`".
         const expected = [{ id: 3 }]
         ctx.mockNext(expected)
         const result = await ctx.conn.selectFrom(tAppUser)
@@ -88,16 +82,14 @@ describe(ctx.label, () => {
             .select({ id: tAppUser.id })
             .orderBy('id')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email like concat('%', ?) order by id"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where email not like concat('%', ?) order by id"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "@acme.test",
           ]
         `)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
-        if (!ctx.realDbEnabled) {
-            expect(result).toEqual(expected)
-        }
+        expect(result).toEqual(expected)
     })
 
     test('not-contains', async () => {

@@ -398,40 +398,23 @@ describe(ctx.label, () => {
     })
 
     test('asDouble', async () => {
-        // TODO[BUG] SqliteSqlBuilder._asDouble and SqlServerSqlBuilder._asDouble
-        // both forget the space before `as`, emitting `cast(priorityas real)` /
-        // `cast(priorityas float)` instead of `cast(priority as real)`. The
-        // snapshot below pins the buggy SQL on SQLite so the fix breaks it
-        // and alerts the agent. We wrap the execute call in try/catch
-        // because the buggy SQL is rejected by sqlite3 / sqlite-wasm and
-        // would otherwise crash the test before the SQL snapshot is
-        // asserted. See test/BUGS.md →
-        // "SqliteSqlBuilder/SqlServerSqlBuilder `_asDouble` missing space".
         const expected = [{ id: 1, d: 2.0 }]
         ctx.mockNext(expected)
-        try {
-            const result = await ctx.conn.selectFrom(tIssue)
-                .where(tIssue.id.equals(1))
-                .select({
-                    id: tIssue.id,
-                    d:  tIssue.priority.asDouble(),
-                })
-                .executeSelectMany()
-            assertType<Exact<typeof result, Array<{ id: number; d: number }>>>()
-            if (!ctx.realDbEnabled) {
-                expect(result).toEqual(expected)
-            }
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-            // Real DB engines reject the buggy SQL; the snapshot is still
-            // captured before the runner runs.
-        }
+        const result = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.id.equals(1))
+            .select({
+                id: tIssue.id,
+                d:  tIssue.priority.asDouble(),
+            })
+            .executeSelectMany()
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, priority * 1.0 as \`d\` from issue where id = ?"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
           ]
         `)
+        assertType<Exact<typeof result, Array<{ id: number; d: number }>>>()
+        expect(result).toEqual(expected)
     })
 
     test('nullIfValue', async () => {

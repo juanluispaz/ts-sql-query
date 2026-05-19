@@ -104,4 +104,76 @@ describe(ctx.label, () => {
             }
         })
     })
+
+    test('on-conflict-do-update-with-expression', async () => {
+        // The SET clause receives a value-source RHS (not a plain literal),
+        // exercising the value-source branch of `_appendValueForColumn` in
+        // `_buildInsertOnConflictBeforeReturning`. The dialects emit very
+        // different SQL here:
+        //   - sqlite / postgres → `name = name || ?`
+        //   - mariadb / mysql   → `name = concat(name, ?)`
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictDoUpdateSet({ name: tProject.name.concat(' v2') })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict do update set name = project.name || ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                " v2",
+              ]
+            `)
+            if (ctx.realDbEnabled) {
+                expect(typeof affected).toBe('number')
+                const project = await ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(1))
+                    .selectOneColumn(tProject.name)
+                    .executeSelectOne()
+                expect(project).toBe('Marketing site v2')
+            } else {
+                expect(affected).toBe(1)
+            }
+        })
+    })
+
+    test('on-conflict-do-update-with-inserted-row-ref', async () => {
+        // `tProject.valuesForInsert()` exposes a table-like reference to
+        // the row that was attempted to be inserted. Each dialect emits
+        // a different identifier for it:
+        //   - sqlite / postgres → `excluded.<col>`
+        //   - mariadb / mysql   → `values(<col>)`
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const tProjectForInsert = tProject.valuesForInsert()
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'Marketing v3' })
+                .onConflictDoUpdateSet({
+                    name: tProject.name.concat(' / ').concat(tProjectForInsert.name),
+                })
+                .executeInsert()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on conflict do update set name = project.name || ? || excluded.name"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "Marketing v3",
+                " / ",
+              ]
+            `)
+            if (ctx.realDbEnabled) {
+                expect(typeof affected).toBe('number')
+                const project = await ctx.conn.selectFrom(tProject)
+                    .where(tProject.id.equals(1))
+                    .selectOneColumn(tProject.name)
+                    .executeSelectOne()
+                expect(project).toBe('Marketing site / Marketing v3')
+            } else {
+                expect(affected).toBe(1)
+            }
+        })
+    })
 })

@@ -112,4 +112,22 @@ describe(ctx.label, () => {
             }
         })
     })
+
+    /*
+    test('on-conflict-do-update-with-expression', async () => {
+        // Not applicable on PostgreSQL: the bare `.onConflictDoUpdateSet({...})`
+        // form is blocked at compile time on PG (needs `.onConflictOn(col)` /
+        // `.onConflictOnConstraint(name)`). See `test/db/postgres/types.negative/insert.test.ts`
+        // and the active `on-conflict-on-columns-do-update` test above.
+    })
+    */
+
+    /*
+    test('on-conflict-do-update-with-inserted-row-ref', async () => {
+        // Not applicable on PostgreSQL: the bare `.onConflictDoUpdateSet({...})`
+        // form is blocked at compile time on PG (needs `.onConflictOn(col)` /
+        // `.onConflictOnConstraint(name)`). See `test/db/postgres/types.negative/insert.test.ts`
+        // and the active `on-conflict-on-columns-do-update` test above.
+    })
+    */
 })

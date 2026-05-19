@@ -100,4 +100,31 @@ describe(ctx.label, () => {
             expect(result).toEqual([{ id: 2 }, { id: 3 }])
         }
     })
+    test('offset-without-limit', async () => {
+        // `.offset(n)` without a preceding `.limit(n)` exercises the
+        // dialect-specific workaround in the SQL builder:
+        //   - sqlite / mariadb / mysql emit `limit 2147483647 offset N`
+        //     because their grammar requires `LIMIT` before `OFFSET`.
+        //   - postgres accepts a bare `offset N`.
+        //   - sqlserver uses `OFFSET N ROWS` (FETCH is optional in TS).
+        //   - oracle uses `OFFSET N ROWS`.
+        const expected = [{ id: 2 }, { id: 3 }, { id: 4 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .limitIfValue(undefined)
+            .offset(1)
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by id offset $1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        if (ctx.realDbEnabled) {
+            expect(result).toEqual([{ id: 2 }, { id: 3 }, { id: 4 }])
+        }
+    })
 })

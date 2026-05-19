@@ -29,4 +29,15 @@ describe(ctx.label, () => {
         // Not supported by SQL Server.
     })
     */
+    /*
+    test('on-conflict-do-update-with-expression', async () => {
+        // Not supported by this dialect: see active variant in sqlite / mariadb / mysql cells.
+    })
+    */
+
+    /*
+    test('on-conflict-do-update-with-inserted-row-ref', async () => {
+        // Not supported by this dialect: see active variant in sqlite / mariadb / mysql cells.
+    })
+    */
 })

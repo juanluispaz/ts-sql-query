@@ -33,6 +33,74 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
+    test('concat-chain-with-conditional-flattens', async () => {
+        // Chains `.concat(...)` and `.concatIfValue(...)` together. With
+        // every ifValue argument present, all segments are included.
+        // MySQL/MariaDB's `_appendMaybeInnerConcat` collapses the chain
+        // into a single `concat(a, b, c, …)` call instead of nesting,
+        // taking the `SqlOperation1ValueSourceIfValueOrIgnore` branch.
+        // SQLite / PostgreSQL emit the chain through `||`.
+        const expected = [{ label: 'ada@acme.test (verified) [main]' }]
+        ctx.mockNext(expected)
+        const tag: string | undefined = 'verified'
+        const suffix: string | undefined = ' [main]'
+        const rows = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                label: tAppUser.email
+                    .concat(' (')
+                    .concatIfValue(tag)
+                    .concat(')')
+                    .concatIfValue(suffix),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select email + @0 + @1 + @2 + @3 as [label] from app_user where id = @4"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            " (",
+            "verified",
+            ")",
+            " [main]",
+            1,
+          ]
+        `)
+        if (ctx.realDbEnabled) {
+            expect(rows).toEqual(expected)
+        }
+    })
+
+    test('concat-chain-conditional-skip-undefined', async () => {
+        // `.concatIfValue(undefined)` drops the segment, so the chain
+        // collapses to `email || ' (' || ')'`. The flatten branch in
+        // MySQL/MariaDB skips the optional segment as well.
+        const expected = [{ label: 'ada@acme.test (verified)' }]
+        ctx.mockNext(expected)
+        const tag: string | undefined = 'verified'
+        const suffix: string | undefined = undefined
+        const rows = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.id.equals(1))
+            .select({
+                label: tAppUser.email
+                    .concat(' (')
+                    .concatIfValue(tag)
+                    .concat(')')
+                    .concatIfValue(suffix),
+            })
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select email + @0 + @1 + @2 as [label] from app_user where id = @3"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            " (",
+            "verified",
+            ")",
+            1,
+          ]
+        `)
+        if (ctx.realDbEnabled) {
+            expect(rows).toEqual(expected)
+        }
+    })
+
     test('contains', async () => {
         const expected = [{ id: 1 }, { id: 2 }]
         ctx.mockNext(expected)

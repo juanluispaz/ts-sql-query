@@ -17,6 +17,24 @@ export interface MockQueryRunnerConfig {
     isSqlError?: (error: unknown) => boolean
 }
 
+/**
+ * `MockQueryRunner` impersonates a database driver for tests. Each `execute*` method
+ * acts as a **shape gate**: the value returned by the user-supplied `queryExecutor`
+ * is checked against the rough shape a real driver would produce for that query
+ * type (plain object, array of plain objects, number, `null`/`undefined`, etc.), and
+ * a non-conforming value is rejected with reason `'INVALID_MOCKED_VALUE'` naming the
+ * `queryType` and `index` so the bad mock is easy to locate.
+ *
+ * Past that gate, the value flows through the **same** result-projection pipeline a
+ * real driver's response would: type adapters convert each field, mandatory columns
+ * are checked for `null`/`undefined`, and aggregated-array JSON is parsed and
+ * validated. The mock is impersonating a database, so projector-level errors fire
+ * identically to real-DB mode — most commonly `'MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE'`
+ * when a mocked row is a structurally valid plain object that simply omits a column
+ * the `select({...})` projects as required. That is the documented invariant, not a
+ * bug: the fix in test code is to include every projected column in the mocked row
+ * (or to seed `[]` / `undefined` when the test only asserts the emitted SQL).
+ */
 export class MockQueryRunner implements QueryRunner {
     private count = 0
     readonly queryExecutor: MockQueryExecutor

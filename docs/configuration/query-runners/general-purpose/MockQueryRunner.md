@@ -109,6 +109,20 @@ test('my test', async () => {
 });
 ```
 
+## What the runner validates
+
+The value your executor returns goes through two stages before it reaches the calling code.
+
+The first stage is a **shape gate** inside the runner. For each `queryType`, the runner checks that the value matches the rough shape a real driver would produce — a plain object for a single-row select, an array of plain objects for a many-row select, a number for affected-row counts, and so on. A non-conforming value is rejected with a `TsSqlProcessingError` whose `reason` is `INVALID_MOCKED_VALUE` and that carries the offending `queryType` and `index`, so the bad executor branch is easy to locate.
+
+Past that gate the value flows through the **same result-projection pipeline** a real driver's response would: type adapters convert each field, mandatory columns are checked for `null`/`undefined`, and aggregated-array JSON is parsed and validated. The mock is impersonating a database response from then on, so projector-level errors fire identically to real-DB mode:
+
+- A structurally valid row that omits a column the `select({...})` projects as required surfaces `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE`.
+- A value whose runtime type does not match the declared column type surfaces `INVALID_VALUE_RECEIVED_FROM_DATABASE`.
+- A non-array or unparseable JSON string for a JSON-aggregated column surfaces `INVALID_JSON_RECEIVED_FROM_DATABASE`.
+
+These are the same errors a real driver would trigger against the same payload — that is the documented invariant, not a separate mock-specific error. The fix in test code is to include every projected column in the mocked row (or, when the test only asserts the emitted SQL, to return `[]` or `undefined` so the projector has nothing to walk).
+
 ## Configuration options
 
 The second constructor argument accepts either a `DatabaseType` string (shown above) or a configuration object with the following fields:

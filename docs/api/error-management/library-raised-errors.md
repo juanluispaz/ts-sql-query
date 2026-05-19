@@ -61,6 +61,10 @@ Some reasons in this page can also be produced by query runners when a driver re
 | Synchronous execution | `SYNCHRONOUS_PROSIME_EXPECTED` | **Meaning**<br>A real async promise was produced inside a synchronous database flow.<br><br>**Typical source**<br>Synchronous query execution helpers. | - |
 | Fallback | `UNKNOWN` | **Meaning**<br>A query runner caught a value it does not recognize as a SQL error or a library error.<br>Inspect the original `cause` for the raw thrown value.<br><br>**Typical source**<br>Query runner fallback paths. | - |
 
+!!! note "Mocking and the projector pipeline"
+
+    `INVALID_MOCKED_VALUE` is a **shape gate** on the value the user-supplied `queryExecutor` returns to `MockQueryRunner` for the given `queryType` (e.g. a plain object for a single-row select, an array of plain objects for a many-row select, a number for affected-row counts). Past that gate the value flows through the same result-projection pipeline a real driver's response would, so the mock is impersonating a database response from then on. A structurally valid row that omits a column the `select({...})` projects as required produces `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE`, a value with the wrong runtime type produces `INVALID_VALUE_RECEIVED_FROM_DATABASE`, and an unparseable JSON-aggregated column produces `INVALID_JSON_RECEIVED_FROM_DATABASE` — the same reasons that would fire against a real driver returning the same payload. That is the documented invariant; the fix in test code is to include every projected column in the mocked row (or to seed `[]` / `undefined` when the test only asserts the emitted SQL).
+
 ## Internal invariant errors
 
 `INTERNAL` means a `ts-sql-query` invariant failed. These errors normally point to a library bug, an impossible state, an advanced integration implemented incorrectly, or unexpected internal data. They are not intended to be handled as ordinary user input or database failures.

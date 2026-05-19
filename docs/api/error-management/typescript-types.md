@@ -336,7 +336,14 @@ export type TsSqlErrorReason =
     /* ********************************************************************************************
      * Testing errors
      */
-    | /** Invalid mocked value */
+    | /** Invalid mocked value. Raised by `MockQueryRunner` as a shape gate: the value returned by
+        the user-supplied `queryExecutor` does not match the rough shape a real driver would
+        produce for that `queryType` (e.g. a plain object for a single-row select, an array of
+        plain objects for a many-row select, a number for affected-row counts). Past this gate the
+        value flows through the same result-projection pipeline a real driver's response would, so
+        a structurally valid row that omits a required column still produces
+        `MANDATORY_VALUE_NOT_RECEIVED_FROM_DATABASE` (and analogous reasons for type-mismatch or
+        bad JSON) — that is the documented invariant, not a separate mock error. */
       { reason: 'INVALID_MOCKED_VALUE', value: unknown, queryType: string, index: number }
 
     /* ********************************************************************************************

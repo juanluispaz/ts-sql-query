@@ -92,6 +92,16 @@ function _typeNegatives() {
     // match the column's underlying type.
     // @ts-expect-error string passed where number | null | undefined expected
     void tIssue.priority.equalsIfValue('high')
+
+    // Rule: `stringConcatDistinct(value, separator)` is not exposed on
+    // SqliteConnection because SQLite always rejects
+    // `group_concat(distinct X, sep)` with `DISTINCT aggregates must have
+    // exactly one argument`. The 1-arg form is the only supported overload.
+    void connection.stringConcatDistinct(tAppUser.fullName)
+    // @ts-expect-error 2-arg stringConcatDistinct overload is removed on SqliteConnection
+    void connection.stringConcatDistinct(tAppUser.fullName, '|')
+    // @ts-expect-error 2-arg stringConcatDistinct overload is removed on SqliteConnection (even with empty separator)
+    void connection.stringConcatDistinct(tAppUser.fullName, '')
 }
 
 test('select-negative-types', () => {

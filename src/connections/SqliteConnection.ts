@@ -1,16 +1,17 @@
-import type { NConnection } from '../utils/sourceName.js'
+import type { NConnection, NSource } from '../utils/sourceName.js'
 import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { SqliteSqlBuilder } from '../sqlBuilders/SqliteSqlBuilder.js'
 import type { AggregatedArrayColumns, SourceOfAggregatedArray } from './AbstractConnection.js'
 import { AbstractConnection } from './AbstractConnection.js'
 import type { SqliteDateTimeFormat, SqliteDateTimeFormatType } from './SqliteConfiguration.js'
 import { TsSqlProcessingError } from '../TsSqlError.js'
-import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IValueSource } from '../expressions/values.js'
+import type { AggregatedArrayValueSource, AggregatedArrayValueSourceProjectableAsNullable, IStringValueSource, IValueSource, StringValueSource } from '../expressions/values.js'
 import type { ResultObjectValuesForAggregatedArray } from '../complexProjections/resultWithOptionalsAsUndefined.js'
 import type { ResultObjectValuesProjectedAsNullableForAggregatedArray } from '../complexProjections/resultWithOptionalsAsNull.js'
 import { source, valueType } from '../utils/symbols.js'
 import { AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
 import type { QueryColumns } from '../sqlBuilders/SqlBuilder.js'
+import type { SameDB } from '../utils/ITableOrView.js'
 
 export abstract class SqliteConnection<NAME extends string> extends AbstractConnection<NConnection<'sqlite', NAME>> {
 
@@ -26,6 +27,20 @@ export abstract class SqliteConnection<NAME extends string> extends AbstractConn
     }
     aggregateAsArrayOfOneColumnDistinct<VALUE extends IValueSource<any, any, any, any>>(value: VALUE): AggregatedArrayValueSource<VALUE[typeof source], Array<VALUE[typeof valueType]>, 'required'> {
         return new AggregateValueAsArrayValueSource(value, 'InnerResultObject', 'required', true)
+    }
+    /**
+     * SQLite's `GROUP_CONCAT` rejects `DISTINCT` together with a separator
+     * argument: the engine raises `DISTINCT aggregates must have exactly one
+     * argument`. This is a hard SQLite restriction (see
+     * https://www.sqlite.org/lang_aggfunc.html#groupconcat), not a version
+     * quirk, so the `(value, separator)` overload of `stringConcatDistinct` is
+     * not exposed on `SqliteConnection`. Use `stringConcatDistinct(value)` (the
+     * default separator is `,`) or `stringConcat(value, separator)` if you do
+     * not need distinct.
+     */
+    override stringConcatDistinct<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<NConnection<'sqlite', NAME>>): StringValueSource<SOURCE, 'optional'>
+    override stringConcatDistinct(value: IStringValueSource<any, any>): StringValueSource<any, 'optional'> {
+        return super.stringConcatDistinct(value as any)
     }
 
     /**

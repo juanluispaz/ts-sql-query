@@ -1,6 +1,6 @@
 # `test/` — known library limitations that affect tests
 
-Extends [`docs/about/limimitations.md`](../docs/about/limimitations.md)
+Extends [`docs/about/limitations.md`](../docs/about/limitations.md)
 with limitations that **only the project author can declare as such**.
 These are deliberate gaps in the library — not bugs to fix, not docs to
 update — that an agent writing tests needs to know about so it doesn't
@@ -174,8 +174,8 @@ accepts and do **not** need the wrap.
 
 ## Window functions are not supported through the fluent API
 
-This is also documented in [`docs/about/limimitations.md` § Does ts-sql-query
-support window functions?](../docs/about/limimitations.md#does-ts-sql-query-support-window-functions),
+This is also documented in [`docs/about/limitations.md` § Does ts-sql-query
+support window functions?](../docs/about/limitations.md#does-ts-sql-query-support-window-functions),
 restated here because it affects test authoring:
 
 - The library does not type `OVER (...)`, `PARTITION BY`, `ROW_NUMBER()`,

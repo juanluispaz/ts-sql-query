@@ -31,29 +31,7 @@ of that. Two minutes of triage and one paragraph is the bar.
 
 ---
 
-## `.in([])` / `.notIn([])` emit non-portable `in ()` on SQLite instead of short-circuiting
-
-**Where**: [`src/sqlBuilders/SqliteSqlBuilder.ts`](../src/sqlBuilders/SqliteSqlBuilder.ts) — SQLite is the only dialect that does NOT override `_in` / `_notIn` from `AbstractSqlBuilder.ts`. The other dialects detect an empty array and short-circuit to a constant predicate: `where false` (PostgreSqlSqlBuilder, AbstractMySqlMariaBDSqlBuilder), `where (0=1)` (SqlServerSqlBuilder, OracleSqlBuilder), with the symmetric `true` / `(1=1)` for `_notIn`.
-**Reproduction**: `tIssue.id.in([])` emits `where id in ()`, and `tIssue.id.notIn([])` emits `where id not in ()`. SQLite 3.51 (bun:sqlite) and 3.52 (sqlite3 npm) both *accept* this syntax (empty-list `in` / `not in` is a SQLite extension, not standard SQL), so the canonical `bun_sqlite` cell passes — but the SQL is non-portable (any dialect parser that follows the standard rejects it) and emits a parameterless `in ()` instead of the constant predicate the rest of the library produces. The library's consistency contract is broken for SQLite alone.
-**Current workaround in the suite**: the two snapshot tests in `select.where.empty-in.test.ts` (every sqlite cell) wrap the `executeSelectMany()` call in `try { … } catch (e) { if (!ctx.realDbEnabled) throw e }` defensively in case a future SQLite build tightens the rule, and the SQL snapshot is marked with a `TODO[BUG]` so it gets regenerated to a constant predicate when SQLite adopts the short-circuit.
-
-## `stringConcatDistinct(col, separator)` emits SQL that SQLite always rejects
-
-**Where**: [`src/sqlBuilders/SqliteSqlBuilder.ts`](../src/sqlBuilders/SqliteSqlBuilder.ts), `_stringConcatDistinct` (around lines 484–492). The method emits `group_concat(distinct <col>, <sep>)` for any non-`undefined` separator argument.
-**Reproduction**: `connection.stringConcatDistinct(tIssue.status, '|')` and `connection.stringConcatDistinct(tIssue.status, '')` both raise `SQLITE_ERROR: DISTINCT aggregates must have exactly one argument` against the real DB. Confirmed on SQLite 3.51.0 (bun:sqlite) and 3.52.0 (sqlite3 npm) — it is a fundamental SQLite restriction (see [SQLite aggregate functions docs](https://www.sqlite.org/lang_aggfunc.html#groupconcat)), not a version-bundled quirk. The `separator: undefined` form (`stringConcatDistinct(col)`) works fine and emits `group_concat(distinct col)`. There is a precedent for this kind of dialect note in [`docs/configuration/supported-databases/oracle.md`](../docs/configuration/supported-databases/oracle.md) (the `LISTAGG(DISTINCT …)` requires-19c info block) — the SQLite analogue is missing both from the docs and from the type surface; the fixing agent decides whether the right fix is a doc note, a runtime guard, a type-level rejection of the separator overload on SQLite, or a SQL rewrite (e.g. wrap in a `SELECT DISTINCT` subquery before applying `group_concat(col, sep)`).
-**Current workaround in the suite**: in every sqlite cell, `string-concat-distinct-string-separator` and `string-concat-distinct-empty-separator` in `select.string-concat-aggregate.test.ts` wrap the `executeSelectOne()` call in `try { … } catch (e) { if (!ctx.realDbEnabled) throw e }` so the SQL snapshot still asserts.
-
-## `stringConcatDistinct` drops `distinct` on MySQL/MariaDB when separator is `''`
-
-**Where**: [`src/sqlBuilders/AbstractMySqlMariaBDSqlBuilder.ts`](../src/sqlBuilders/AbstractMySqlMariaBDSqlBuilder.ts), `_stringConcatDistinct`, the `separator === ''` branch (around lines 549–557).
-**Reproduction**: `conn.stringConcatDistinct(col, '')` emits `group_concat(col separator '')` — the `distinct` keyword is missing. Compare the same branch above it (separator `undefined`) which correctly emits `group_concat(distinct col)`, and the `else` below it which correctly emits `group_concat(distinct col separator ?)`. The empty-string branch was clearly meant to read `group_concat(distinct col separator '')`.
-**Current workaround in the suite**: snapshot test `string-concat-distinct-empty-separator` in `select.string-concat-aggregate.test.ts` (mysql/mysql2 + mariadb/mariadb cells) captures the buggy SQL verbatim and is marked with a `TODO[BUG]` next to the inline snapshot so the snapshot gets updated when the keyword is restored.
-
-## `docs/about/limimitations.md` is misspelled (should be `limitations.md`)
-
-**Where**: [`docs/about/limimitations.md`](../docs/about/limimitations.md) — the filename has a duplicated `mi` (`limimitations` instead of `limitations`). Every cross-link in the repository carries the typo verbatim (e.g. [`test/LIMITATIONS.md`](./LIMITATIONS.md) references it, the page's own anchor URLs propagate it).
-**Reproduction**: `ls docs/about/` lists `limimitations.md`. `grep -r limimitations docs/ test/` returns multiple hits — the typo has propagated through the repo because every link was copy-pasted from the original filename.
-**Current workaround in the suite**: none — purely a documentation/file-naming bug. The fixing agent must rename the file (`git mv`) and update every relative link in `docs/`, `test/` and `README.md`. The `mkdocs` build also needs to be checked (the file is served from `docs/`, so the public URL changes and a redirect or release note may be appropriate).
+_No open entries._
 
 ---
 

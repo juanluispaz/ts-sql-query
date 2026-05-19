@@ -107,14 +107,11 @@ describe(ctx.label, () => {
 
     test('string-concat-distinct-empty-separator', async () => {
         // Edge case for the third separator branch of _stringConcatDistinct.
-        // On MySQL/MariaDB this currently surfaces a bug (the emitter
-        // drops the `distinct` keyword); see test/BUGS.md.
         ctx.mockNext('openin_progressclosed')
         const row = await ctx.conn.selectFrom(tIssue)
             .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status, ''))
             .executeSelectOne()
-        // TODO[BUG] expected `group_concat(distinct status separator '')`.
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(status separator '') as result from issue"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(distinct status separator '') as result from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         if (ctx.realDbEnabled) {
             expect(typeof row).toBe('string')

@@ -87,47 +87,9 @@ describe(ctx.label, () => {
         }
     })
 
-    test('string-concat-distinct-string-separator', async () => {
-        // TODO[BUG] SQLite always rejects `group_concat(distinct X, sep)`
-        // with `DISTINCT aggregates must have exactly one argument` —
-        // verified on bun:sqlite 3.51.0 and sqlite3 npm 3.52.0; it is
-        // a fundamental SQLite restriction, not a version quirk. The
-        // library emits the SQL anyway. The snapshot still asserts
-        // what the builder produces; the execution error is swallowed
-        // so the snapshot assertion can run. See test/BUGS.md
-        // "stringConcatDistinct(col, separator) emits SQL that SQLite
-        // always rejects".
-        ctx.mockNext('open|in_progress|closed')
-        try {
-            await ctx.conn.selectFrom(tIssue)
-                .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status, '|'))
-                .executeSelectOne()
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(distinct status, ?) as result from issue"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "|",
-          ]
-        `)
-    })
-
-    test('string-concat-distinct-empty-separator', async () => {
-        // TODO[BUG] Third separator branch of _stringConcatDistinct.
-        // Same SQLite constraint as `string-concat-distinct-string-separator`
-        // applies — the engine rejects DISTINCT + separator. On
-        // MySQL/MariaDB this also surfaces a separate bug (the
-        // emitter drops the `distinct` keyword); see test/BUGS.md.
-        ctx.mockNext('openin_progressclosed')
-        try {
-            await ctx.conn.selectFrom(tIssue)
-                .selectOneColumn(ctx.conn.stringConcatDistinct(tIssue.status, ''))
-                .executeSelectOne()
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select group_concat(distinct status, '') as result from issue"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-    })
+    // Note: `stringConcatDistinct(col, separator)` is NOT exposed on
+    // SqliteConnection because SQLite always rejects
+    // `group_concat(distinct X, sep)` with `DISTINCT aggregates must have
+    // exactly one argument`. The compile-time rejection is locked by
+    // `test/db/sqlite/types.negative/select.test.ts`.
 })

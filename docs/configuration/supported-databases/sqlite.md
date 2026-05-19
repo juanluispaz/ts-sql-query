@@ -172,3 +172,7 @@ class DBConnection extends SqliteConnection<'DBConnection'> {
     protected override compatibilityVersion = 3_029_000
 }
 ```
+
+!!! warning "Limitation"
+
+    [SQLite](https://www.sqlite.org/lang_aggfunc.html#groupconcat)'s `GROUP_CONCAT` rejects `DISTINCT` together with a separator argument (the engine raises `DISTINCT aggregates must have exactly one argument`). This is a hard SQLite restriction, not a version-bundled quirk. To prevent emitting SQL the engine will always reject, `ts-sql-query` does not expose the `stringConcatDistinct(value, separator)` overload on [SqliteConnection](sqlite.md) — only the no-separator form `stringConcatDistinct(value)` (default separator `,`) is typed. Use `stringConcat(value, separator)` if you need a custom separator and do not need distinct.

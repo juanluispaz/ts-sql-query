@@ -550,7 +550,7 @@ export class AbstractMySqlMariaDBSqlBuilder extends AbstractSqlBuilder {
         if (separator === undefined || separator === null) {
             return 'group_concat(distinct ' + this._appendSql(value, params, false) + ')'
         } else if (separator === '') {
-            return 'group_concat(' + this._appendSql(value, params, false) + " separator '')"
+            return 'group_concat(distinct ' + this._appendSql(value, params, false) + " separator '')"
         } else {
             return 'group_concat(distinct ' + this._appendSql(value, params, false) + ' separator ' + this._appendValue(separator, params, 'string', 'string', undefined, false) + ')'
         }

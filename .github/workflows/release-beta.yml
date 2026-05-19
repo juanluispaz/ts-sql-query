@@ -28,12 +28,20 @@ jobs:
       # Build
       - name: Prepare
         run: bun run generate-prisma
-      - name: Bun build
+      - name: Bun build (tsc)
         run: bun run validate
+      # Same src check with tsgo (preview TS 7 compiler).
+      - name: Bun build (tsgo)
+        run: bun run validate:tsgo
 
       # Type-check the test/ tree against the published library types.
-      - name: Bun validate tests
+      # tsgo is authoritative for the test matrix; tsc runs as the
+      # sub-experience right after, covering the few files excluded
+      # from the tsc config (see test/MAINTAINING.md).
+      - name: Bun validate tests (tsgo, authoritative)
         run: bun run validate:tests
+      - name: Bun validate tests (tsc, sub-experience)
+        run: bun run validate:tests:tsc
 
       # Symmetry audit (DESIGN §4) — structural check of test/db/.
       - name: Bun audit test symmetry
@@ -75,10 +83,19 @@ jobs:
         run: npm run generate-prisma
       - name: Build
         run: npm run build
+      # Type-check src with tsgo (preview TS 7 compiler) in addition to
+      # the tsc check already covered by `npm run build` above.
+      - name: Validate src (tsgo)
+        run: npm run validate:tsgo
 
       # Type-check the test/ tree against the published library types.
-      - name: Validate tests
+      # tsgo is authoritative for the test matrix; tsc runs as the
+      # sub-experience right after, covering the few files excluded
+      # from the tsc config (see test/MAINTAINING.md).
+      - name: Validate tests (tsgo, authoritative)
         run: npm run validate:tests
+      - name: Validate tests (tsc, sub-experience)
+        run: npm run validate:tests:tsc
 
       # Symmetry audit (DESIGN §4) — structural check of test/db/.
       - name: Audit test symmetry

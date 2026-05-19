@@ -18,16 +18,21 @@ audit, or touching the prisma / sync sub-trees.
 ## Typechecking
 
 ```bash
-bun run validate:tests:tsgo      # tsgo -p test/tsconfig.json --noEmit (preferred for dev)
-bun run validate:tests           # tsc equivalent — authoritative check used by CI
+bun run validate:tests           # tsgo -p test/tsconfig.json --noEmit (authoritative)
+bun run validate:tests:tsc       # tsc -p test/tsconfig.tsc.json --noEmit (sub-experience)
 ```
 
-`tsgo` is the Go-based TypeScript 7 compiler. It is roughly **~6× faster**
-than `tsc` on this project, which makes it the right tool for the inner
-edit-typecheck loop. Reach for the `tsc` variant before pushing — that
-is the compiler CI runs and the one whose diagnostics are the ground
-truth if `tsgo` and `tsc` ever disagree (today they don't, but `tsgo` is
-still officially preview).
+**`tsgo` is the authoritative compiler for the test matrix**, and the
+canonical `validate:tests` command runs it against the full
+[`test/tsconfig.json`](./tsconfig.json). tsgo is the Go-based
+TypeScript 7 rewrite, roughly **~6× faster** than `tsc` on this
+project, fast enough to live in the inner edit-typecheck loop. The
+rationale for making it authoritative *only here* (`src/` still
+treats `tsc` as authoritative because the published typings must
+keep compiling for downstream consumers) is that tests do not ship,
+so there is no tsc-compat obligation. The sub-experience
+`validate:tests:tsc` exists as a secondary safety net while `tsgo`
+is still officially preview. Both run in CI.
 
 `tsc` / `tsgo` are runtime-independent — invoke with either `bun run`
 or `npm run`, the entry is the same and runs the same compiler.
@@ -35,8 +40,45 @@ or `npm run`, the entry is the same and runs the same compiler.
 `validate:tests` is also where the negative type tests
 (`test/db/<database>/types.negative/`) are actually checked. If a
 library change unintentionally weakens an API restriction, an
-`@ts-expect-error` becomes "unused" and `tsc` fails the build —
-exactly the signal we want.
+`@ts-expect-error` becomes "unused" and the compiler fails the
+build — exactly the signal we want.
+
+### Handling tsgo / tsc divergences
+
+Negative type tests are written **in tsgo style** — directives placed
+where tsgo reports the error. When that placement also satisfies
+`tsc` (the common case: single-statement assertions and call-site
+errors), nothing else is needed.
+
+Occasionally the two compilers disagree on where the error span
+lands and a directive that works in tsgo looks "unused" to tsc (or
+vice versa). The TypeScript core team explicitly leaves this
+unspecified — see [microsoft/typescript-go#1088](https://github.com/microsoft/typescript-go/issues/1088)
+(closed *not planned*): *"we don't provide any guarantees on error
+spans when either error is valid"*. The two spans are equally valid
+and neither compiler will rebase its choice.
+
+When a divergence makes a file fail under `validate:tests:tsc` but
+not under `validate:tests`, the recipe is:
+
+1. Confirm the placement that tsgo wants is the one with semantic
+   precision (the narrower span — what a future tsc release is most
+   likely to converge towards).
+2. Keep the directive in that position.
+3. Add the file to the `exclude` list in
+   [`test/tsconfig.tsc.json`](./tsconfig.tsc.json) so the
+   sub-experience stops trying to validate it. The exclusion is
+   per-file (not per-directive), so add the smallest path that
+   isolates the divergence.
+4. The file is still covered by the authoritative `validate:tests`
+   (tsgo), so the negative remains protected.
+
+When `tsc` aligns with `tsgo` in a future release — or when those
+negatives are rewritten as type-level assertions per Ryan
+Cavanaugh's recommendation — empty the `exclude` list and the two
+compilers cover the same surface again. Eventually
+`test/tsconfig.tsc.json` can disappear entirely and
+`validate:tests:tsc` can point back at `test/tsconfig.json`.
 
 ## Auditing symmetry
 

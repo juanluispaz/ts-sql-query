@@ -20,22 +20,26 @@ function _typeNegatives() {
     })
 
     // Rule: column value types must match. `priority` is `int`; passing a
-    // string must not compile. The error surfaces at the values() call.
-    // @ts-expect-error priority is int, not string
+    // string must not compile. tsgo reports the error at the offending
+    // property, not at the values() call site, so the directive sits on
+    // the property — see test/MAINTAINING.md for why this asymmetry exists.
     void connection.insertInto(tIssue).values({
         projectId: 1,
         number:    1,
         title:     'x',
         status:    'open',
+        // @ts-expect-error priority is int, not string
         priority:  'high',
     })
 
-    // Rule: cannot insert columns that don't exist on the table.
-    // @ts-expect-error 'nonExistentColumn' is not a column of tProject
+    // Rule: cannot insert columns that don't exist on the table. tsgo
+    // reports the excess-property error at the property line itself —
+    // directive placement matches.
     void connection.insertInto(tProject).values({
         organizationId:    1,
         name:              'x',
         slug:              'x',
+        // @ts-expect-error 'nonExistentColumn' is not a column of tProject
         nonExistentColumn: 'x',
     })
 

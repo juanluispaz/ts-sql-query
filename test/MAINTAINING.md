@@ -11,6 +11,8 @@ audit, or touching the prisma / sync sub-trees.
   - [If a new test surfaces a bug in `src/`](#if-a-new-test-surfaces-a-bug-in-src)
 - [Adding a database](#adding-a-database)
 - [Why the duplication between cells?](#why-the-duplication-between-cells)
+  - [When the canonical cell can't compile the body](#when-the-canonical-cell-cant-compile-the-body)
+  - [Imports used only from commented-out blocks](#imports-used-only-from-commented-out-blocks)
 - [Prisma and sync runners](#prisma-and-sync-runners)
 
 ## Typechecking
@@ -125,7 +127,11 @@ the test suite's job is to characterise current behaviour, not to fix
 it. When a test surfaces what looks like a bug:
 
 1. Mark the offending assertion with a `// TODO[BUG]` comment that
-   names the symptom in one line.
+   names the symptom in one line. When the whole test is commented
+   out instead of the single assertion (e.g. the SQL the lib emits
+   is invalid for the dialect, so even mock-mode can't keep the
+   test), make the comment-out reason a `TODO[BUG]: see BUGS.md`
+   line so a `grep -rn "TODO\[BUG\]" test/db/` finds the case.
 2. Leave the test in a passing state — usually by asserting the
    current (wrong) behaviour, sometimes by commenting the failing
    assertion out per the symmetry rule.
@@ -133,6 +139,27 @@ it. When a test surfaces what looks like a bug:
    reproduce. The maintainer fixing `src/` will read that file,
    remove the `TODO[BUG]` and rewrite the assertion to the correct
    value as part of the fix PR.
+
+Be explicit in `BUGS.md` about which of the common shapes the bug
+takes — the fixing agent uses that to know where to look first:
+
+- **TS accepts something runtime rejects** — a method typed on a
+  connection class whose dialect refuses the SQL it emits. Mock
+  cells silently pass (the SQL is never executed); only the real-DB
+  cell surfaces the rejection. Treat as a typing gap: the type
+  should narrow.
+- **TS rejects something the docs page describes** — a method shown
+  in a docs snippet that doesn't typecheck on the connection that
+  snippet is supposed to demonstrate. Either the docs are stale or
+  the lib types are too tight.
+- **Two equivalent forms documented but only one is typed** — the
+  docs page describes two interchangeable forms per dialect (e.g.
+  "MariaDB/MySQL use bare `.onConflictDoUpdateSet({...})`;
+  PostgreSQL/SQLite use `.onConflictOn(col).doUpdateSet({...})`")
+  and the lib types let you use the wrong form on a given dialect.
+- **A snippet references a public symbol that no longer exists** in
+  the current `exports` map of [`package.json`](../package.json) —
+  the page is stale or the symbol was removed.
 
 ## Adding a database
 
@@ -191,6 +218,76 @@ When a test does not apply to a cell, **do not delete it and do not
 `/* … */` and put a one-line reason above it. The body of the
 commented test is documentation and does not need to compile against
 the target cell's connection. Full rule: [`DESIGN.md` §4](./DESIGN.md#4-symmetry-rules--critical-maintainability-property).
+
+### When the canonical cell can't compile the body
+
+A test is normally developed in the cell with the fastest iteration
+loop — `sqlite/newest/bun_sqlite/` for the docs.* files (it's also
+`canonicalForDocs: true`), the closest equivalent for any other test
+family. Sometimes the canonical can't compile the test body because
+the feature is only typed on other dialects. Today's examples in the
+docs.* tree: `tTable.oldValues()` is only typed on
+PostgreSqlConnection, MariaDBConnection and SqlServerConnection;
+`deleteFrom(...).using(...)` is not exposed on SqliteConnection;
+`SqliteConnection` has no `isolationLevel(...)` method.
+
+Recipe when the canonical can't host the body:
+
+1. **Write the test directly into the canonical as a comment-out
+   block** with a one-line reason on the line above, exactly like a
+   regular not-applicable test:
+
+   ```ts
+   // Not applicable on SQLite: tTable.oldValues() is only typed on
+   // PostgreSqlConnection, MariaDBConnection and SqlServerConnection.
+   /*
+   test('docs:update/update-returning-old-values', async () => {
+       // … verbatim body the SUPPORTING dialect would run …
+   })
+   */
+   ```
+
+2. **Mirror via `cp`** to every other cell.
+3. **Uncomment in the cells where the feature IS available.** The
+   `tests:audit` walks comment blocks too, so the test name still
+   counts toward symmetry; runtime executes only where uncommented.
+   A small helper script is the easiest way to flip the comment in
+   the supporting cells without re-typing:
+
+   ```python
+   # /tmp/uncomment-test.py — replaces "// reason\n/*\ntest('NAME', …)\n})\n*/\n"
+   # with the bare test block, keeping all snapshots and bodies as-is.
+   ```
+
+4. **Bake snapshots** for the uncommented cells and run the audit.
+
+Pattern applies to any test file, not just docs.* — the recipe is the
+same when, for example, a `select.*.test.ts` exercises a feature only
+typed on certain dialects.
+
+### Imports used only from commented-out blocks
+
+`noUnusedLocals` rejects an import that has no live use. When the only
+use is inside a `/* … */` block (the regular not-applicable case OR
+the canonical-can't-host case above), the cell where the test is
+commented fails to compile unless you add a sentinel reference:
+
+```ts
+import { tIssue, tProject } from '../../domain/connection.js'
+
+// tProject is referenced by the commented-out `docs:delete/delete-using`
+// test below; the cells where that test is uncommented use it for real.
+void tProject
+
+describe(ctx.label, () => {
+    // …
+})
+```
+
+The `void identifier` is a zero-cost expression statement that
+satisfies the unused-locals rule without affecting runtime. Drop it
+when the test gets uncommented in that cell, or leave it — it is
+harmless either way.
 
 ## Prisma and sync runners
 

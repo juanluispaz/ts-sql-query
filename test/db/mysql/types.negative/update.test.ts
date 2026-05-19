@@ -1,9 +1,9 @@
-// Compile-time negative tests for UPDATE-shaped APIs on the sqlite
+// Compile-time negative tests for UPDATE-shaped APIs on the mysql
 // dialect. See `select.test.ts` for the conventions.
 
 import { test, expect } from '../../../lib/testRunner.js'
 import { MockQueryRunner } from '../../../../src/queryRunners/MockQueryRunner.js'
-import { DBConnection, tIssue } from '../domain/connection.js'
+import { DBConnection, tIssue, tProject } from '../domain/connection.js'
 
 const connection = new DBConnection(new MockQueryRunner(() => undefined, 'mySql'))
 
@@ -17,14 +17,42 @@ function _typeNegatives() {
     // @ts-expect-error 'nonExistent' is not a column of tIssue
     void connection.update(tIssue).set({ nonExistent: 1 })
 
-    // Rule: the where clause must take an IfValueSource — passing a plain
-    // number or string is rejected.
+    // Rule: setIfValue() carries the same column-type constraint as set()
+    // — only the value is widened to allow null/undefined to skip the
+    // assignment.
+    // @ts-expect-error priority is int, not string (setIfValue keeps the type)
+    void connection.update(tIssue).setIfValue({ priority: 'high' })
+
+    // Rule: the where clause must take a boolean value source — passing a
+    // plain string is rejected.
     // @ts-expect-error string is not a boolean value source
     void connection.update(tIssue).set({ title: 'x' }).where('not-a-condition')
 
-    // Rule: update without a where clause requires explicit
-    // `.executeUpdateNoReturning()` opt-out … wait, not implemented as a
-    // negative — covered at runtime only. Skip.
+    // Rule: where(...) must take a BooleanValueSource. A non-boolean
+    // value source (e.g. an int column reference) is rejected.
+    // @ts-expect-error int column is not a boolean value source
+    void connection.update(tIssue).set({ title: 'x' }).where(tIssue.priority)
+
+    // Rule: equalsIfValue keeps the column's underlying type — passing a
+    // string where int is expected is rejected.
+    // @ts-expect-error string passed where number | null | undefined expected
+    void connection.update(tIssue).set({ title: 'x' }).where(tIssue.priority.equalsIfValue('high'))
+
+    // Rule: MySQL does not support `UPDATE ... RETURNING`. The
+    // `.returning({...})` method is typed only on postgres, sqlite,
+    // mariadb, oracle, sqlserver, and the noop dialect; on the mysql
+    // dialect it resolves to `never` and the call must not typecheck.
+    // @ts-expect-error returning() is not typed on the mysql dialect (UPDATE ... RETURNING unsupported)
+    void connection.update(tProject).set({ name: 'x' }).where(tProject.id.equals(1)).returning({
+        id: tProject.id,
+    })
+
+    // Rule: `tTable.oldValues()` is typed only on PostgreSqlConnection,
+    // MariaDBConnection, SqlServerConnection (and the noop dialect).
+    // MySQL tables don't expose it — calling .oldValues() must not
+    // typecheck. (Documented in test/LIMITATIONS.md / docs/queries/update.md.)
+    // @ts-expect-error oldValues() is not typed on the mysql dialect
+    void tProject.oldValues()
 }
 
 test('update-negative-types', () => {

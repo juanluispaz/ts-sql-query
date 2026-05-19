@@ -1,9 +1,9 @@
-// Compile-time negative tests for UPDATE-shaped APIs on the sqlite
+// Compile-time negative tests for UPDATE-shaped APIs on the mariadb
 // dialect. See `select.test.ts` for the conventions.
 
 import { test, expect } from '../../../lib/testRunner.js'
 import { MockQueryRunner } from '../../../../src/queryRunners/MockQueryRunner.js'
-import { DBConnection, tIssue } from '../domain/connection.js'
+import { DBConnection, tIssue, tProject } from '../domain/connection.js'
 
 const connection = new DBConnection(new MockQueryRunner(() => undefined, 'mariaDB'))
 
@@ -17,14 +17,38 @@ function _typeNegatives() {
     // @ts-expect-error 'nonExistent' is not a column of tIssue
     void connection.update(tIssue).set({ nonExistent: 1 })
 
-    // Rule: the where clause must take an IfValueSource — passing a plain
-    // number or string is rejected.
+    // Rule: setIfValue() carries the same column-type constraint as set()
+    // — only the value is widened to allow null/undefined to skip the
+    // assignment.
+    // @ts-expect-error priority is int, not string (setIfValue keeps the type)
+    void connection.update(tIssue).setIfValue({ priority: 'high' })
+
+    // Rule: the where clause must take a boolean value source — passing a
+    // plain string is rejected.
     // @ts-expect-error string is not a boolean value source
     void connection.update(tIssue).set({ title: 'x' }).where('not-a-condition')
 
-    // Rule: update without a where clause requires explicit
-    // `.executeUpdateNoReturning()` opt-out … wait, not implemented as a
-    // negative — covered at runtime only. Skip.
+    // Rule: where(...) must take a BooleanValueSource. A non-boolean
+    // value source (e.g. an int column reference) is rejected.
+    // @ts-expect-error int column is not a boolean value source
+    void connection.update(tIssue).set({ title: 'x' }).where(tIssue.priority)
+
+    // Rule: equalsIfValue keeps the column's underlying type — passing a
+    // string where int is expected is rejected.
+    // @ts-expect-error string passed where number | null | undefined expected
+    void connection.update(tIssue).set({ title: 'x' }).where(tIssue.priority.equalsIfValue('high'))
+
+    // Rule: the columns map passed to returning({...}) cannot reference
+    // properties that don't exist on the table.
+    void connection.update(tProject).set({ name: 'x' }).where(tProject.id.equals(1)).returning({
+        id:   tProject.id,
+        // @ts-expect-error 'nonExistent' is not a column of tProject
+        bad:  tProject.nonExistent,
+    })
+
+    // Note: `tTable.oldValues()` IS typed on MariaDBConnection (the
+    // current dialect) — see test/db/sqlite/types.negative/update.test.ts
+    // for the compile-time negative on dialects that don't expose it.
 }
 
 test('update-negative-types', () => {

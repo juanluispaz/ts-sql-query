@@ -367,4 +367,39 @@ describe(ctx.label, () => {
         if (!ctx.realDbEnabled) expect(result).toEqual(expected)
     })
 
+    test('substring-with-value-source-start', async () => {
+        // `.substring(valueSource, end)` — `start` is a column ref
+        // rather than a number literal. Reaches SqlServer's non-numeric
+        // branch in `_substr` (the `else` arm). Other dialects already
+        // pass `start` through the same path so the snapshot is just
+        // recorded for documentation.
+        //
+        // The runtime result depends on column values and dialect
+        // semantics (length may be 0 → null on some engines), so the
+        // value assertion is mock-only and the runner is wrapped to
+        // still capture the SQL on real-DB failure.
+        const expected = [{ id: 1, sub: 'X' }]
+        ctx.mockNext(expected)
+        try {
+            const result = await ctx.conn.selectFrom(tIssue)
+                .where(tIssue.id.equals(1))
+                .select({
+                    id:  tIssue.id,
+                    sub: tIssue.title.substring(tIssue.priority, 5),
+                })
+                .executeSelectMany()
+            assertType<Exact<typeof result, Array<{ id: number; sub: string }>>>()
+            if (!ctx.realDbEnabled) expect(result).toEqual(expected)
+        } catch (e) {
+            if (!ctx.realDbEnabled) throw e
+        }
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, substring(title, priority + 1, @0 - priority) as sub from issue where id = @1"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            5,
+            1,
+          ]
+        `)
+    })
+
 })

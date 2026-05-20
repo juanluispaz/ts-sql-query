@@ -141,4 +141,66 @@ describe(ctx.label, () => {
         assertType<Exact<typeof result, Array<{ id: number }>>>()
         expect(result).toEqual(expected)
     })
+    test('starts-with-insensitive', async () => {
+        // Positive `startsWithInsensitive` — distinct dialect override from
+        // the `not` form (different SqlBuilder method), so the negative-only
+        // tests above never exercise this branch.
+        const expected = [{ id: 1 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.email.startsWithInsensitive('ADA'))
+            .select({ id: tAppUser.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) like concat(lower(?), '%') order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "ADA",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('ends-with-insensitive', async () => {
+        // Positive `endsWithInsensitive` — every dialect override is dead
+        // code today (coverage report flagged all 5 builders).
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.email.endsWithInsensitive('@ACME.TEST'))
+            .select({ id: tAppUser.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) like concat('%', lower(?)) order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "@ACME.TEST",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
+    test('contains-insensitive', async () => {
+        // Positive `containsInsensitive` on a column — docs.delete /
+        // docs.select touch this with a literal, but the dedicated
+        // operator suite never asserted the rendering here.
+        const expected = [{ id: 1 }, { id: 2 }]
+        ctx.mockNext(expected)
+        const result = await ctx.conn.selectFrom(tAppUser)
+            .where(tAppUser.email.containsInsensitive('ACME'))
+            .select({ id: tAppUser.id })
+            .orderBy('id')
+            .executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from app_user where lower(email) like concat('%', lower(?), '%') order by id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "ACME",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+        expect(result).toEqual(expected)
+    })
+
 })

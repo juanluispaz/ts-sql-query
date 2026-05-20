@@ -3,7 +3,6 @@ import type { InsertExpression } from '../expressions/insert.js'
 import type { UpdateExpression, UpdateExpressionAllowingNoWhere } from '../expressions/update.js'
 import type { DeleteExpression, DeleteExpressionAllowingNoWhere } from '../expressions/delete.js'
 import type { BooleanValueSource, NumberValueSource, StringValueSource, LocalDateValueSource, LocalTimeValueSource, LocalDateTimeValueSource, EqualableValueSource, ComparableValueSource, IfValueSource, IComparableValueSource, INumberValueSource, IStringValueSource, IExecutableSelectQuery, BigintValueSource, IBigintValueSource, AlwaysIfValueSource, ValueSourceOf, RemapValueSourceTypeWithOptionalType, IValueSource, UuidValueSource, IExecutableInsertQuery, IExecutableUpdateQuery, IExecutableDeleteQuery, AggregatedArrayValueSourceProjectableAsNullable, AggregatedArrayValueSource, ValueType, CustomIntValueSource, CustomDoubleValueSource, CustomUuidValueSource, CustomLocalDateValueSource, CustomLocalTimeValueSource, CustomLocalDateTimeValueSource, ICustomIntValueSource, ICustomDoubleValueSource, AnyValueSource } from '../expressions/values.js'
-import type { Default } from '../expressions/Default.js'
 import type { NoTableOrViewRequired, ITableOrView, ITable, SameDB, HasSource, ForUseInLeftJoin } from '../utils/ITableOrView.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 import type { SelectExpression, SelectExpressionFromNoTable, SelectExpressionSubquery } from '../expressions/select.js'
@@ -16,7 +15,6 @@ import { UpdateQueryBuilder } from '../queryBuilders/UpdateQueryBuilder.js'
 import { DeleteQueryBuilder } from '../queryBuilders/DeleteQueryBuilder.js'
 import { __getValueSourcePrivate, Argument } from '../expressions/values.js'
 import { SqlOperationStatic0ValueSource, SqlOperationStatic1ValueSource, AggregateFunctions0ValueSource, AggregateFunctions1ValueSource, AggregateFunctions1or2ValueSource, SqlOperationConstValueSource, SqlOperationValueSourceIfValueAlwaysNoop, SqlOperationStaticBooleanValueSource, TableOrViewRawFragmentValueSource, AggregateValueAsArrayValueSource } from '../internal/ValueSourceImpl.js'
-import { DefaultImpl } from '../expressions/Default.js'
 import { SelectQueryBuilder } from '../queryBuilders/SelectQueryBuilder.js'
 import { TsSqlError, TsSqlProcessingError, TsSqlQueryExecutionError, QueryExecutionSource } from '../TsSqlError.js'
 import { FragmentQueryBuilder, FragmentFunctionBuilder, FragmentFunctionBuilderIfValue, FragmentFunctionBuilderMaybeOptional } from '../queryBuilders/FragmentQueryBuilder.js'
@@ -457,9 +455,19 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         return result as any // cast to any to improve typescript performace
     }
 
-    default(): Default {
-        return new DefaultImpl()
-    }
+    // `default()` is declared on each concrete connection whose dialect
+    // accepts the DEFAULT keyword as a value expression in INSERT VALUES /
+    // UPDATE SET / ON CONFLICT DO UPDATE SET (PostgreSQL, MariaDB, MySQL,
+    // Oracle, SQL Server, NoopDB). It is absent on SqliteConnection:
+    // SQLite's grammar rejects DEFAULT in those positions (it is only
+    // allowed in CREATE TABLE / ALTER TABLE column definitions — see
+    // https://www.sqlite.org/lang_insert.html). Omit the column from the
+    // insert/update instead; SQLite will apply the DDL default
+    // automatically. The implementation is duplicated rather than declared
+    // here as `protected` so that on SqliteConnection callers get a clean
+    // "Property 'default' does not exist on type ..." TS error instead of
+    // the confusing "Property 'default' is protected ..." that a
+    // visibility-narrowed inherited method would produce.
     pi(): NumberValueSource<NNoTableOrViewRequired<DB>, 'required'>
     pi(): any {
         return new SqlOperationStatic0ValueSource('_pi', 'double', 'double', 'required', undefined)

@@ -3,6 +3,8 @@ import type { QueryRunner } from '../queryRunners/QueryRunner.js'
 import { SqlServerSqlBuilder } from '../sqlBuilders/SqlServerSqlBuilder.js'
 import { AbstractAdvancedConnection } from './AbstractAdvancedConnection.js'
 import type { TransactionIsolationLevel } from './AbstractConnection.js'
+import type { Default } from '../expressions/Default.js'
+import { DefaultImpl } from '../expressions/Default.js'
 
 export abstract class SqlServerConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'sqlServer', NAME>> {
 
@@ -33,5 +35,9 @@ export abstract class SqlServerConnection<NAME extends string> extends AbstractA
 
     isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'snapshot' | 'serializable'): TransactionIsolationLevel {
         return [level] as any
+    }
+
+    default(): Default {
+        return new DefaultImpl()
     }
 }

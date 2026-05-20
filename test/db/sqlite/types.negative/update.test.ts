@@ -53,6 +53,15 @@ function _typeNegatives() {
     // typecheck. (Documented in test/LIMITATIONS.md / docs/queries/update.md.)
     // @ts-expect-error oldValues() is not typed on the sqlite dialect
     void tProject.oldValues()
+
+    // Rule: SQLite rejects DEFAULT as a value expression in INSERT VALUES /
+    // UPDATE SET / ON CONFLICT DO UPDATE SET. SqliteConnection does NOT
+    // expose `default()`, so referencing it from UPDATE set must not
+    // compile. Omit the column instead.
+    void connection.update(tProject).set({
+        // @ts-expect-error SQLite does not expose connection.default() — omit the column instead
+        createdAt: connection.default(),
+    })
 }
 
 test('update-negative-types', () => {

@@ -6,6 +6,7 @@ import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
 import type { AnyValueSource, ValueType } from '../expressions/values.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '../expressions/values.js'
+import { isDefault } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
 
 export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
@@ -125,6 +126,10 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
 
         if (!__isBooleanValueSource(columnPrivate)) {
             return null // non-boolean
+        }
+
+        if (isDefault(value)) {
+            return null // the DEFAULT sentinel is a column-level keyword, not a boolean value — let _appendValue emit it via _default(...)
         }
 
         if (columnTypeAdapter instanceof CustomBooleanTypeAdapter) {

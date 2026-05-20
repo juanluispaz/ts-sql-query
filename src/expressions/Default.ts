@@ -14,3 +14,7 @@ export class DefaultImpl implements Default, ToSql {
         return SqlBuilder._default(params)
     }
 }
+
+export function isDefault(value: any): value is Default {
+    return value instanceof DefaultImpl
+}

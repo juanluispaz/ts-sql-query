@@ -7,19 +7,17 @@
 // `Default` branch in [src/expressions/insert.ts](../../../../../src/expressions/insert.ts)
 // and `src/expressions/update.ts`.
 //
-// Every case targets `createdAt` (`localDateTime`) so the assertions
-// bypass `CustomBooleanTypeAdapter` remap on `verified` / `published` —
-// see `test/BUGS.md` entry "Default keyword wrapped by
-// CustomBooleanTypeAdapter remap" for why exercising `default()` on a
-// custom-boolean column emits invalid SQL today.
-//
-// TODO[BUG] Not applicable on `SQLite`: the SQLite grammar rejects
-// `DEFAULT` as a value expression in INSERT VALUES / UPDATE SET /
-// ON CONFLICT DO UPDATE SET. See `test/BUGS.md` entry "Default keyword
-// not supported by SQLite". Every test is wrapped in `/* … */` on
-// every sqlite cell (file kept for cross-cell symmetry per DESIGN §4);
-// the non-sqlite cells (postgres / mariadb / mysql / oracle /
-// sqlserver) exercise the keyword normally.
+// Not applicable on `SQLite`: `SqliteConnection` does not expose
+// `default()` — SQLite's grammar rejects `DEFAULT` as a value expression
+// in INSERT VALUES / UPDATE SET / ON CONFLICT DO UPDATE SET (the keyword
+// is only accepted in CREATE TABLE / ALTER TABLE column definitions,
+// see https://www.sqlite.org/lang_insert.html). Omit the column
+// instead; SQLite applies the DDL default automatically. The
+// compile-time negative lives at
+// [test/db/sqlite/types.negative/insert.test.ts](../../../types.negative/insert.test.ts)
+// and [update.test.ts](../../../types.negative/update.test.ts); this file
+// is kept here only for cross-cell symmetry per DESIGN §4 — every test
+// is wrapped in `/* … */`.
 
 import { afterAll, beforeAll, describe } from '../../../../lib/testRunner.js'
 import { ctx } from './setup.js'

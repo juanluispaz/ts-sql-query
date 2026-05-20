@@ -7,16 +7,20 @@
 // `Default` branch in [src/expressions/insert.ts](../../../../../src/expressions/insert.ts)
 // and `src/expressions/update.ts`.
 //
-// Every case targets `createdAt` (`localDateTime`) so the assertions
-// bypass `CustomBooleanTypeAdapter` remap on `verified` / `published` —
-// see `test/BUGS.md` entry "Default keyword wrapped by
-// CustomBooleanTypeAdapter remap" for why exercising `default()` on a
-// custom-boolean column emits invalid SQL today.
+// `default-on-custom-boolean-column` covers the boolean-remap
+// short-circuit: the SqlBuilder detects the `Default` sentinel inside
+// `_appendCustomBooleanRemapForColumnIfRequired` and emits the bare
+// `default` keyword instead of wrapping it in
+// `case when default then 'Y' else 'N' end` (which every dialect
+// rejects at execution time).
 //
-// SQLite is not exercised here — the SQLite grammar rejects `DEFAULT`
-// as a value expression. See `test/BUGS.md` entry "Default keyword not
-// supported by SQLite"; the sqlite cells keep this file present (for
-// symmetry per DESIGN §4) with every test commented out.
+// SQLite is not exercised here — `SqliteConnection` does not expose
+// `default()` (SQLite's grammar rejects DEFAULT as a value expression
+// in INSERT VALUES / UPDATE SET / ON CONFLICT DO UPDATE SET). The
+// compile-time negative lives at
+// [test/db/sqlite/types.negative/insert.test.ts](../../../../sqlite/types.negative/insert.test.ts);
+// the sqlite cells keep `insert.default-keyword.test.ts` for cross-cell
+// symmetry per DESIGN §4 with every test commented out.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -135,4 +139,33 @@ describe(ctx.label, () => {
             `)
         })
     })
+    test('default-on-custom-boolean-column', async () => {
+        // Regression: `verified` carries a `CustomBooleanTypeAdapter`,
+        // so `_appendCustomBooleanRemapForColumnIfRequired` used to
+        // wrap `connection.default()` in
+        // `case when default then 'Y' else 'N' end` — invalid SQL. The
+        // builder now detects the `Default` sentinel and short-circuits
+        // the remap, emitting the bare `default` keyword (the DDL
+        // default `'N'` wins at runtime).
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            await connection.insertInto(tOrganization)
+                .values({
+                    name:     'CustomBoolDefault',
+                    plan:     'free',
+                    verified: connection.default(),
+                })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into \`organization\` (\`name\`, plan, verified) values (?, ?, default)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "CustomBoolDefault",
+                "free",
+              ]
+            `)
+        })
+    })
+
 })

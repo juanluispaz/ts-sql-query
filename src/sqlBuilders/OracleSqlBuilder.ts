@@ -4,6 +4,7 @@ import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import type { AnyValueSource, __AggregatedArrayColumns, ValueType } from '../expressions/values.js'
 import { isValueSource, __isUuidValueSource, __isBooleanValueSource, __isBooleanValueType, __isUuidValueType } from '../expressions/values.js'
+import { isDefault } from '../expressions/Default.js'
 import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
@@ -182,6 +183,10 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
 
         if (!__isBooleanValueSource(columnPrivate)) {
             return null // non-boolean
+        }
+
+        if (isDefault(value)) {
+            return null // the DEFAULT sentinel is a column-level keyword, not a boolean value — let _appendValue emit it via _default(...)
         }
 
         if (columnTypeAdapter instanceof CustomBooleanTypeAdapter) {

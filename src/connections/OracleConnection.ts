@@ -7,6 +7,8 @@ import type { IStringValueSource, StringValueSource, ValueSourceOf } from '../ex
 import { __getValueSourcePrivate } from '../expressions/values.js'
 import { AggregateFunctions1or2ValueSource } from '../internal/ValueSourceImpl.js'
 import type { SameDB } from '../utils/ITableOrView.js'
+import type { Default } from '../expressions/Default.js'
+import { DefaultImpl } from '../expressions/Default.js'
 
 export abstract class OracleConnection<NAME extends string> extends AbstractAdvancedConnection<NConnection<'oracle', NAME>> {
 
@@ -39,6 +41,10 @@ export abstract class OracleConnection<NAME extends string> extends AbstractAdva
     stringConcatDistinct(value: ValueSourceOf<any>, separator?: string): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1or2ValueSource('_stringConcatDistinct', separator, value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
+    }
+
+    default(): Default {
+        return new DefaultImpl()
     }
 
     isolationLevel(level: 'read uncommitted' | 'read committed' | 'repeatable read' | 'serializable'): TransactionIsolationLevel

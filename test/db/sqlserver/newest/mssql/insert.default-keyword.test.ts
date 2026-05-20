@@ -11,6 +11,13 @@
 // `MERGE` instead) — the `on-conflict-do-update-with-default-keyword`
 // test is commented out here for parity with the postgres/mariadb/
 // mysql cells.
+//
+// `default-on-custom-boolean-column` covers the boolean-remap
+// short-circuit: the SqlBuilder detects the `Default` sentinel inside
+// `_appendCustomBooleanRemapForColumnIfRequired` and emits the bare
+// `default` keyword instead of wrapping it in
+// `case when default then 'Y' else 'N' end` (which every dialect
+// rejects at execution time).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -106,4 +113,33 @@ describe(ctx.label, () => {
             `)
         })
     })
+    test('default-on-custom-boolean-column', async () => {
+        // Regression: `verified` carries a `CustomBooleanTypeAdapter`,
+        // so `_appendCustomBooleanRemapForColumnIfRequired` used to
+        // wrap `connection.default()` in
+        // `case when default then 'Y' else 'N' end` — invalid SQL. The
+        // builder now detects the `Default` sentinel and short-circuits
+        // the remap, emitting the bare `default` keyword (the DDL
+        // default `'N'` wins at runtime).
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const connection = ctx.conn
+            await connection.insertInto(tOrganization)
+                .values({
+                    name:     'CustomBoolDefault',
+                    plan:     'free',
+                    verified: connection.default(),
+                })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, [plan], verified) values (@0, @1, default)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "CustomBoolDefault",
+                "free",
+              ]
+            `)
+        })
+    })
+
 })

@@ -4,6 +4,7 @@ import type { AnyTableOrView, __ITableOrViewPrivate } from '../utils/ITableOrVie
 import { __registerRequiredColumn, __registerTableOrView } from '../utils/ITableOrView.js'
 import type { AnyValueSource, BooleanValueSource, EqualableValueSource, IAggregatedArrayValueSource, IAnyBooleanValueSource, IExecutableDeleteQuery, IExecutableInsertQuery, IExecutableSelectQuery, IExecutableUpdateQuery, __AggregatedArrayColumns, __ValueSourcePrivate, ValueType } from '../expressions/values.js'
 import { isValueSource, __getValueSourceOfObject, __isStringValueSource, __isBooleanValueSource } from '../expressions/values.js'
+import { isDefault } from '../expressions/Default.js'
 import type { __ColumnPrivate, DBColumn } from '../utils/Column.js'
 import { isColumn } from '../utils/Column.js'
 import type { DefaultTypeAdapter, TypeAdapter } from '../TypeAdapter.js'
@@ -1345,6 +1346,10 @@ export class AbstractSqlBuilder implements SqlBuilder {
 
         if (!__isBooleanValueSource(columnPrivate)) {
             return null // non-boolean
+        }
+
+        if (isDefault(value)) {
+            return null // the DEFAULT sentinel is a column-level keyword, not a boolean value — let _appendValue emit it via _default(...)
         }
 
         if (columnTypeAdapter instanceof CustomBooleanTypeAdapter) {

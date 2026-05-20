@@ -29,7 +29,11 @@ That's the contract. Do **not** spend time diagnosing the root cause,
 choosing a category, or proposing a fix — the fixing agent owns all
 of that. Two minutes of triage and one paragraph is the bar.
 
-_No open entries._
+## `customizeQuery.beforeOrderByItems` emits a stray leading comma
+
+**Where**: `customizeQuery({ beforeOrderByItems: ... })` on `select(...)` — `AbstractSqlBuilder._buildSelectOrderBy` (or equivalent).
+**Reproduction**: `.orderBy('id').customizeQuery({ beforeOrderByItems: connection.rawFragment\`/* hint */ \`)` emits `order by /* hint */ , id` — sqlite/postgres reject this with `near ",": syntax error`. The hook should splice the raw fragment *before* the items without the comma separator that's meant to live *between* items.
+**Current workaround in the suite**: `test/db/sqlite/newest/bun_sqlite/fragments.test.ts > raw-fragment-as-orderBy-extension` is commented out across all 17 cells with a `TODO[BUG]` note.
 
 ---
 

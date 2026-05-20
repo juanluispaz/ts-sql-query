@@ -452,7 +452,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     subSelectDistinctUsing<T1 extends ITableOrView<any> | ForUseInLeftJoin<any>, T2 extends ITableOrView<any> | ForUseInLeftJoin<any>, T3 extends ITableOrView<any> | ForUseInLeftJoin<any>, T4 extends ITableOrView<any> | ForUseInLeftJoin<any>>(table1: T1 & SameDB<DB>, table2: T2 & SameDB<DB>, table3: T3 & SameDB<DB>, table4: T4 & SameDB<DB>): SelectExpressionSubquery<T1 | T2 | T3 | T4 | NoTableOrViewRequired<DB>, T1 | T2 | T3 | T4 | NoTableOrViewRequired<DB>, 'distinct'>
     subSelectDistinctUsing<T1 extends ITableOrView<any> | ForUseInLeftJoin<any>, T2 extends ITableOrView<any> | ForUseInLeftJoin<any>, T3 extends ITableOrView<any> | ForUseInLeftJoin<any>, T4 extends ITableOrView<any> | ForUseInLeftJoin<any>, T5 extends ITableOrView<any> | ForUseInLeftJoin<any>>(table1: T1 & SameDB<DB>, table2: T2 & SameDB<DB>, table3: T3 & SameDB<DB>, table4: T4 & SameDB<DB>, table5: T4 & SameDB<DB>): SelectExpressionSubquery<T1 | T2 | T3 | T4 | T5 | NoTableOrViewRequired<DB>, T1 | T2 | T3 | T4 | T5 | NoTableOrViewRequired<DB>, 'distinct'>
     subSelectDistinctUsing(...tables: any[]): SelectExpressionSubquery<any, any, 'distinct'> {
-        const result = new SelectQueryBuilder(this.__sqlBuilder, [], false)
+        const result = new SelectQueryBuilder(this.__sqlBuilder, [], true)
         result.__subSelectUsing = tables
         return result as any // cast to any to improve typescript performace
     }

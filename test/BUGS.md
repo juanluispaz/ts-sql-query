@@ -29,23 +29,7 @@ That's the contract. Do **not** spend time diagnosing the root cause,
 choosing a category, or proposing a fix — the fixing agent owns all
 of that. Two minutes of triage and one paragraph is the bar.
 
-## `subSelectDistinctUsing(...)` does not actually emit `select distinct`
-
-**Where**: [`src/connections/AbstractConnection.ts:454-458`](../src/connections/AbstractConnection.ts#L454-L458).
-
-**Reproduction**: `subSelectDistinctUsing(tOrganization).from(tProject)...selectOneColumn(...)` emits the same SQL as the non-distinct `subSelectUsing` form — no `distinct` keyword anywhere. The constructor argument is hard-coded to `false`:
-
-```ts
-subSelectDistinctUsing(...tables: any[]): SelectExpressionSubquery<any, any, 'distinct'> {
-    const result = new SelectQueryBuilder(this.__sqlBuilder, [], false) // ← should be true
-    result.__subSelectUsing = tables
-    return result as any
-}
-```
-
-The implementation is byte-for-byte identical to `subSelectUsing(...)` above it. The third constructor arg controls `__distinct` (see [`SelectQueryBuilder.ts:635`](../src/queryBuilders/SelectQueryBuilder.ts#L635)).
-
-**Current workaround in the suite**: `select.aggregate-as-array-inline-wrapped.test.ts` originally planned to use this to force `_needAgggregateArrayWrapper = true`; the test was rewritten to use a `group by` inline aggregate instead, which reliably triggers the wrap on every dialect.
+_No open entries._
 
 ---
 

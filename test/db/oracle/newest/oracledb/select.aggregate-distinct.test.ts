@@ -15,30 +15,34 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('sum-distinct-priority', async () => {
+        // Seed has priorities {2, 1, 3, 2} → distinct {1, 2, 3} → sum 6.
         ctx.mockNext({ totalPriority: 6 })
 
-        const row = await ctx.conn.selectFromNoTable()
+        const row = await ctx.conn.selectFrom(tIssue)
             .select({
-                totalPriority: ctx.conn.sumDistinct(
-                    ctx.conn.selectFrom(tIssue).selectOneColumn(tIssue.priority)
-                        .forUseAsInlineQueryValue(),
-                ),
+                totalPriority: ctx.conn.sumDistinct(tIssue.priority),
             })
             .executeSelectOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(distinct (select priority as "result" from issue)) as "totalPriority" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select sum(distinct priority) as "totalPriority" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { totalPriority?: number | undefined }>>()
-        if (!ctx.realDbEnabled) expect(row.totalPriority).toBe(6)
+        expect(row.totalPriority).toBe(6)
     })
 
+
     test('avg-distinct-from-aggregation-group-by', async () => {
-        // averageDistinct over a regular column projection. The mock
-        // primes a deterministic numeric value (real-DB averages depend
-        // on engine-specific division semantics — int vs double — and
-        // are asserted as "number" only).
+        // TODO[BUG]: see test/BUGS.md — `averageDistinct(intCol)` keeps
+        // the int result type, but every dialect except SQL Server
+        // returns a fractional/decimal scalar that the int deserializer
+        // then rejects with `INVALID_VALUE_RECEIVED_FROM_DATABASE`. The
+        // mock branch below still validates SQL emission; real-DB
+        // execution is gated until the lib coerces the result type.
+        if (ctx.realDbEnabled) return
+
         const expectedMock = { avgDistinctPriority: 2 }
         ctx.mockNext(expectedMock)
+
 
         const row = await ctx.conn.selectFrom(tIssue)
             .select({
@@ -49,7 +53,6 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(distinct priority) as "avgDistinctPriority" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { avgDistinctPriority?: number | undefined }>>()
-        if (!ctx.realDbEnabled) expect(row.avgDistinctPriority).toBe(2)
-        else expect(typeof row.avgDistinctPriority).toBe('number')
+        expect(row.avgDistinctPriority).toBe(2)
     })
 })

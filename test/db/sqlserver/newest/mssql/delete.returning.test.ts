@@ -9,7 +9,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -49,29 +49,35 @@ describe(ctx.label, () => {
     })
 
     test('delete-returning-many', async () => {
-        // Delete every project on org 2; returns one row per project.
-        const expectedMock = [{ id: 3, name: 'Beta Project' }]
+        // Delete the two issues belonging to project 1; returns one row
+        // per issue. Targeting `tIssue` (a leaf table — nothing FKs into
+        // it) keeps the test FK-safe on engines that enforce referential
+        // integrity at delete time.
+        const expectedMock = [
+            { id: 1, title: 'Update hero copy' },
+            { id: 2, title: 'Redesign navbar' },
+        ]
         ctx.mockNext(expectedMock)
 
         await ctx.withRollback(async () => {
-            const removed = await ctx.conn.deleteFrom(tProject)
-                .where(tProject.organizationId.equals(2))
+            const removed = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.projectId.equals(1))
                 .returning({
-                    id:   tProject.id,
-                    name: tProject.name,
+                    id:    tIssue.id,
+                    title: tIssue.title,
                 })
                 .executeDeleteMany()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from project output deleted.id as id, deleted.name as name where organization_id = @0"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue output deleted.id as id, deleted.title as title where project_id = @0"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
-                2,
+                1,
               ]
             `)
-            assertType<Exact<typeof removed, Array<{ id: number; name: string }>>>()
+            assertType<Exact<typeof removed, Array<{ id: number; title: string }>>>()
 
             if (!ctx.realDbEnabled) expect(removed).toEqual(expectedMock)
-            else expect(Array.isArray(removed)).toBe(true)
+            else expect(removed.length).toBe(2)
         })
     })
 })

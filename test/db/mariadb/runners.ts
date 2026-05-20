@@ -145,7 +145,21 @@ function splitStatements(sql: string): string[] {
 // `applySchemaAndSeedToWorkerDb` calls skip the admin connection.
 let workerDbEnsured = false
 
-async function applySchemaAndSeedToWorkerDb(host: string, port: number): Promise<string> {
+async function applySchemaAndSeedOnConnection(conn: import('mariadb').Connection | import('mariadb').PoolConnection): Promise<void> {
+    const [schemaSql, seedSql] = await Promise.all([
+        readFile(SCHEMA_PATH, 'utf8'),
+        readFile(SEED_PATH, 'utf8'),
+    ])
+    for (const stmt of splitStatements(schemaSql)) await conn.query(stmt)
+    for (const stmt of splitStatements(seedSql)) await conn.query(stmt)
+}
+
+// First-time setup: the runner's pool does not exist yet (the worker DB
+// must be created before the pool can authenticate against it). This path
+// opens a one-shot direct connection to bootstrap the worker DB and
+// apply schema+seed. Subsequent reseeds borrow from the runner's pool —
+// see `onReseed` below.
+async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number): Promise<string> {
     const workerDb = workerName(BASE_WORKER_DB_NAME)
     const mariadb = await import('mariadb')
 
@@ -172,12 +186,7 @@ async function applySchemaAndSeedToWorkerDb(host: string, port: number): Promise
         multipleStatements: true,
     })
     try {
-        const [schemaSql, seedSql] = await Promise.all([
-            readFile(SCHEMA_PATH, 'utf8'),
-            readFile(SEED_PATH, 'utf8'),
-        ])
-        for (const stmt of splitStatements(schemaSql)) await conn.query(stmt)
-        for (const stmt of splitStatements(seedSql)) await conn.query(stmt)
+        await applySchemaAndSeedOnConnection(conn)
     } finally {
         await conn.end()
     }
@@ -233,12 +242,19 @@ export function createMariaDBPoolTestContext(spec: MariaDBTestSpec): TestContext
             const container = await acquireContainer()
             const host = container.getHost()
             const port = container.getMappedPort(3306)
-            const workerDb = await applySchemaAndSeedToWorkerDb(host, port)
+            const workerDb = await bootstrapWorkerDbSchemaAndSeed(host, port)
             return await buildRunner({ host, port, workerDb })
         },
-        async onReseed() {
-            const c = await acquireContainer()
-            await applySchemaAndSeedToWorkerDb(c.getHost(), c.getMappedPort(3306))
+        async onReseed(runner) {
+            // Reuse the runner's existing mariadb pool. Borrowing a
+            // connection avoids the auth handshake on every reseed.
+            const pool = runner.getNativeRunner() as import('mariadb').Pool
+            const conn = await pool.getConnection()
+            try {
+                await applySchemaAndSeedOnConnection(conn)
+            } finally {
+                await conn.release()  // releases back to pool
+            }
         },
         async onDown() {
             await releaseContainer()

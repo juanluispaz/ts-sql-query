@@ -229,7 +229,8 @@ function stripSqlLineComments(sql: string): string {
 
 // Once-per-process flag: the worker user only needs creating the first
 // time the runner starts inside a given process. Subsequent
-// `applySchemaAndSeedToWorkerUser` calls skip the system connection.
+// `bootstrapWorkerUserSchemaAndSeed` / `applySchemaAndSeedToOpenedConnection`
+// calls skip the system connection.
 let workerUserEnsured = false
 
 async function ensureWorkerUserExists(host: string, port: number, workerUser: string): Promise<void> {
@@ -265,7 +266,25 @@ async function ensureWorkerUserExists(host: string, port: number, workerUser: st
     workerUserEnsured = true
 }
 
-async function applySchemaAndSeedToWorkerUser(host: string, port: number): Promise<string> {
+async function applySchemaAndSeedToOpenedConnection(conn: import('oracledb').Connection): Promise<void> {
+    const [schemaSql, seedSql] = await Promise.all([
+        readFile(SCHEMA_PATH, 'utf8'),
+        readFile(SEED_PATH, 'utf8'),
+    ])
+    for (const stmt of splitStatements(schemaSql)) {
+        await conn.execute(stmt)
+    }
+    for (const stmt of splitStatements(seedSql)) {
+        await conn.execute(stmt)
+    }
+    await conn.commit()
+}
+
+// First-time setup: the runner's pool does not exist yet because the worker
+// user must be created before the pool can authenticate against it. This
+// path opens a one-shot direct connection to bootstrap the schema/seed.
+// Subsequent reseeds borrow from the runner's pool — see `onReseed` below.
+async function bootstrapWorkerUserSchemaAndSeed(host: string, port: number): Promise<string> {
     const workerUser = workerName(BASE_ORACLE_USER)
     await ensureWorkerUserExists(host, port, workerUser)
 
@@ -276,17 +295,7 @@ async function applySchemaAndSeedToWorkerUser(host: string, port: number): Promi
         connectString: `${host}:${port}/${SERVICE_NAME}`,
     })
     try {
-        const [schemaSql, seedSql] = await Promise.all([
-            readFile(SCHEMA_PATH, 'utf8'),
-            readFile(SEED_PATH, 'utf8'),
-        ])
-        for (const stmt of splitStatements(schemaSql)) {
-            await conn.execute(stmt)
-        }
-        for (const stmt of splitStatements(seedSql)) {
-            await conn.execute(stmt)
-        }
-        await conn.commit()
+        await applySchemaAndSeedToOpenedConnection(conn)
     } finally {
         await conn.close()
     }
@@ -330,12 +339,21 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): TestContext
             const container = await acquireContainer()
             const host = container.getHost()
             const port = container.getMappedPort(1521)
-            const workerUser = await applySchemaAndSeedToWorkerUser(host, port)
+            const workerUser = await bootstrapWorkerUserSchemaAndSeed(host, port)
             return await buildRunner({ host, port, workerUser })
         },
-        async onReseed() {
-            const c = await acquireContainer()
-            await applySchemaAndSeedToWorkerUser(c.getHost(), c.getMappedPort(1521))
+        async onReseed(runner) {
+            // Reuse the runner's existing oracledb pool instead of opening a
+            // fresh driver-level connection (which costs an Oracle auth
+            // handshake on every test that exercises a commit path — a real
+            // bottleneck under the parallel matrix).
+            const pool = runner.getNativeRunner() as import('oracledb').Pool
+            const conn = await pool.getConnection()
+            try {
+                await applySchemaAndSeedToOpenedConnection(conn)
+            } finally {
+                await conn.close()  // releases back to pool
+            }
         },
         async onDown() {
             await releaseContainer()

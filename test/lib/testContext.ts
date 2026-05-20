@@ -139,8 +139,18 @@ export interface TestContextOptions<CONN> {
     mockRunnerClass?: MockRunnerClass | undefined
     /** Optional one-shot seed step run during `up()` after the real runner is created. */
     onUp?: ((realInterceptor: CaptureInterceptor) => Promise<void>) | undefined
-    /** Re-apply schema + seed. Called by `reseed()`. */
-    onReseed?: (() => Promise<void>) | undefined
+    /**
+     * Re-apply schema + seed. Called by `reseed()` between tests when the
+     * real backend is enabled. Receives the **underlying** `QueryRunner`
+     * (the one returned by `createRealRunner` — already unwrapped of the
+     * test-side `CaptureInterceptor`) so the implementation can reuse the
+     * runner's existing connection pool via `runner.getNativeRunner()`.
+     * Borrowing from the pool instead of opening a fresh driver-level
+     * connection per reseed avoids the auth handshake on every test that
+     * exercises a commit path — a real cost on Oracle / SQL Server under
+     * the parallel matrix.
+     */
+    onReseed?: ((runner: QueryRunner) => Promise<void>) | undefined
     /** Tear down anything `onUp` or `createRealRunner` allocated. */
     onDown?: (() => Promise<void>) | undefined
     /** Build the user-facing connection from the capture interceptor + compat version. */
@@ -187,6 +197,9 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
     })
 
     let shutdownReal: (() => Promise<void>) | null = null
+    // Hold the unwrapped runner so `onReseed` can borrow from its pool
+    // instead of opening a fresh driver-level connection per reseed.
+    let realRunner: QueryRunner | null = null
 
     const ctx: TestContext<CONN> = {
         label: opts.label,
@@ -231,8 +244,10 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
                 const created = await opts.createRealRunner()
                 inner = created.runner
                 shutdownReal = created.shutdown
+                realRunner = inner
             } else {
                 inner = mockRunner
+                realRunner = null
             }
             capture = new CaptureInterceptor(inner)
             conn = opts.buildConnection(capture, opts.compatibilityVersion)
@@ -251,6 +266,7 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
             }
             capture = null
             conn = null
+            realRunner = null
         },
 
         reset() {
@@ -260,8 +276,8 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
         },
 
         async reseed() {
-            if (!opts.realDbEnabled || !opts.onReseed) return
-            await opts.onReseed()
+            if (!opts.realDbEnabled || !opts.onReseed || !realRunner) return
+            await opts.onReseed(realRunner)
         },
 
         async withRollback(fn) {
@@ -297,8 +313,8 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
             try {
                 await c.transaction(async () => { await fn() })
             } finally {
-                if (opts.realDbEnabled && opts.onReseed) {
-                    await opts.onReseed()
+                if (opts.realDbEnabled && opts.onReseed && realRunner) {
+                    await opts.onReseed(realRunner)
                 }
             }
         },
@@ -313,8 +329,8 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
             try {
                 await fn()
             } finally {
-                if (opts.realDbEnabled && opts.onReseed) {
-                    await opts.onReseed()
+                if (opts.realDbEnabled && opts.onReseed && realRunner) {
+                    await opts.onReseed(realRunner)
                 }
             }
         },

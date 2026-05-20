@@ -172,11 +172,55 @@ let schemaSql: string | null = null
 let seedSql: string | null = null
 
 /**
- * Create the worker DB if it doesn't exist (once per process), then
- * apply schema + seed inside it. Returns the worker DB URI so the
- * runner can open its pool against it.
+ * Ensure schema+seed SQL strings are loaded into module state.
  */
-async function applySchemaAndSeedToWorkerDb(uri: string): Promise<string> {
+async function ensureSchemaAndSeedLoaded(): Promise<{ schema: string; seed: string }> {
+    if (schemaSql === null || seedSql === null) {
+        [schemaSql, seedSql] = await Promise.all([
+            readFile(SCHEMA_PATH, 'utf8'),
+            readFile(SEED_PATH, 'utf8'),
+        ])
+    }
+    return { schema: schemaSql, seed: seedSql }
+}
+
+/**
+ * Borrow against the runner's native pg/postgres.js/bun:sql/pglite handle
+ * to re-apply schema + seed. Dispatches by feature detection because the
+ * factories below are shared across cells whose underlying driver shape
+ * differs (`pg.Pool` has `.query`; `postgres.js`/`bun:sql` are
+ * tagged-template functions exposing `.unsafe`; PGlite exposes `.exec`).
+ * All four accept multi-statement SQL in a single call.
+ */
+async function reseedAgainstNativePostgresHandle(runner: QueryRunner): Promise<void> {
+    const { schema, seed } = await ensureSchemaAndSeedLoaded()
+    const native = runner.getNativeRunner() as any
+    if (typeof native?.unsafe === 'function') {
+        // postgres.js Sql or bun:sql SQL — tagged-template function with .unsafe()
+        await native.unsafe(schema)
+        await native.unsafe(seed)
+    } else if (typeof native?.query === 'function') {
+        // pg.Pool
+        await native.query(schema)
+        await native.query(seed)
+    } else if (typeof native?.exec === 'function') {
+        // PGlite
+        await native.exec(schema)
+        await native.exec(seed)
+    } else {
+        throw new Error('Unsupported native postgres runner shape; cannot reseed')
+    }
+}
+
+/**
+ * First-time setup: create the worker DB if it doesn't exist (once per
+ * process), then apply schema+seed via a one-shot bootstrap pool. The
+ * runner's pool does not exist yet at this point, so the bootstrap pool
+ * is the only option. Subsequent reseeds borrow from the runner's pool
+ * via `onReseed` and never reach this code path. Returns the worker DB
+ * URI so the runner factory can open its pool against it.
+ */
+async function bootstrapWorkerDbSchemaAndSeed(uri: string): Promise<string> {
     const workerDb = workerName(BASE_WORKER_DB_NAME)
     const workerUri = uriForDb(uri, workerDb)
     if (!workerDbEnsured) {
@@ -202,17 +246,12 @@ async function applySchemaAndSeedToWorkerDb(uri: string): Promise<string> {
         workerDbEnsured = true
     }
 
-    if (schemaSql === null || seedSql === null) {
-        [schemaSql, seedSql] = await Promise.all([
-            readFile(SCHEMA_PATH, 'utf8'),
-            readFile(SEED_PATH, 'utf8'),
-        ])
-    }
+    const { schema, seed } = await ensureSchemaAndSeedLoaded()
     if (schemaSeedPool === null) {
         schemaSeedPool = new Pool({ connectionString: workerUri })
     }
-    await schemaSeedPool.query(schemaSql)
-    await schemaSeedPool.query(seedSql)
+    await schemaSeedPool.query(schema)
+    await schemaSeedPool.query(seed)
     return workerUri
 }
 
@@ -243,13 +282,10 @@ export function createPgTestContext(spec: PgTestSpec): TestContext<DBConnection>
         async createRealRunner() {
             const container = await acquireContainer()
             const adminUri = container.getConnectionUri()
-            workerUri = await applySchemaAndSeedToWorkerDb(adminUri)
+            workerUri = await bootstrapWorkerDbSchemaAndSeed(adminUri)
             return await buildRunner(workerUri)
         },
-        async onReseed() {
-            const container = await acquireContainer()
-            workerUri = await applySchemaAndSeedToWorkerDb(container.getConnectionUri())
-        },
+        onReseed: reseedAgainstNativePostgresHandle,
         async onDown() {
             workerUri = null
             await releaseContainer()
@@ -337,10 +373,7 @@ export function createPgLiteTestContext(spec: PgLiteTestSpec): TestContext<DBCon
                 shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
-        async onReseed() {
-            if (pgliteSharedDb === null) return
-            await applyPgliteSchemaAndSeed(pgliteSharedDb)
-        },
+        onReseed: reseedAgainstNativePostgresHandle,
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
@@ -372,13 +405,10 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): TestContext<D
         realDbEnabled,
         async createRealRunner() {
             const container = await acquireContainer()
-            workerUri = await applySchemaAndSeedToWorkerDb(container.getConnectionUri())
+            workerUri = await bootstrapWorkerDbSchemaAndSeed(container.getConnectionUri())
             return await buildRunner(workerUri)
         },
-        async onReseed() {
-            const container = await acquireContainer()
-            workerUri = await applySchemaAndSeedToWorkerDb(container.getConnectionUri())
-        },
+        onReseed: reseedAgainstNativePostgresHandle,
         async onDown() {
             workerUri = null
             await releaseContainer()

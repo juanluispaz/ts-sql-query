@@ -102,11 +102,14 @@ export function createBunSqliteTestContext(spec: BunSqliteTestSpec): TestContext
                 shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
-        async onReseed() {
-            if (sharedBunSqliteDb === null) return
+        async onReseed(runner) {
+            // bun:sqlite is in-process; the runner already holds the
+            // shared db. Reuse it via the public runner API instead of
+            // reaching for the module-private `sharedBunSqliteDb`.
+            const db = runner.getNativeRunner() as import('bun:sqlite').Database
             const { schema, seed } = await readSchemaAndSeed()
-            for (const stmt of splitStatements(schema)) sharedBunSqliteDb.exec(stmt)
-            for (const stmt of splitStatements(seed)) sharedBunSqliteDb.exec(stmt)
+            for (const stmt of splitStatements(schema)) db.exec(stmt)
+            for (const stmt of splitStatements(seed)) db.exec(stmt)
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
@@ -155,11 +158,11 @@ export function createBetterSqlite3TestContext(spec: SqliteTestSpec): TestContex
                 shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
-        async onReseed() {
-            if (sharedBetterSqlite3Db === null) return
+        async onReseed(runner) {
+            const db = runner.getNativeRunner() as import('better-sqlite3').Database
             const { schema, seed } = await readSchemaAndSeed()
-            sharedBetterSqlite3Db.exec(schema)
-            sharedBetterSqlite3Db.exec(seed)
+            db.exec(schema)
+            db.exec(seed)
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
@@ -207,11 +210,11 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec): TestContext<D
                 shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
-        async onReseed() {
-            if (sharedNodeSqliteDb === null) return
+        async onReseed(runner) {
+            const db = runner.getNativeRunner() as import('node:sqlite').DatabaseSync
             const { schema, seed } = await readSchemaAndSeed()
-            sharedNodeSqliteDb.exec(schema)
-            sharedNodeSqliteDb.exec(seed)
+            db.exec(schema)
+            db.exec(seed)
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
@@ -266,11 +269,11 @@ export function createSqlite3TestContext(spec: SqliteTestSpec): TestContext<DBCo
                 shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
-        async onReseed() {
-            if (sharedSqlite3Db === null) return
+        async onReseed(runner) {
+            const db = runner.getNativeRunner() as import('sqlite3').Database
             const { schema, seed } = await readSchemaAndSeed()
-            await sqlite3Exec(sharedSqlite3Db, schema)
-            await sqlite3Exec(sharedSqlite3Db, seed)
+            await sqlite3Exec(db, schema)
+            await sqlite3Exec(db, seed)
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
@@ -323,11 +326,11 @@ export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec): TestContex
                 shutdown: async () => { /* shared instance, intentional no-op */ },
             }
         },
-        async onReseed() {
-            if (sqliteWasmSharedDb === null) return
+        async onReseed(runner) {
+            const db = runner.getNativeRunner() as import('@sqlite.org/sqlite-wasm').Database
             const { schema, seed } = await readSchemaAndSeed()
-            sqliteWasmSharedDb.exec({ sql: schema })
-            sqliteWasmSharedDb.exec({ sql: seed })
+            db.exec({ sql: schema })
+            db.exec({ sql: seed })
         },
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)

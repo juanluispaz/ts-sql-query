@@ -207,7 +207,20 @@ function splitBatch(sql: string): string[] {
 // `applySchemaAndSeedToWorkerDb` calls skip the master pool entirely.
 let workerDbEnsured = false
 
-async function applySchemaAndSeedToWorkerDb(host: string, port: number): Promise<string> {
+async function applySchemaAndSeedOnPool(pool: import('mssql').ConnectionPool): Promise<void> {
+    const [schemaSql, seedSql] = await Promise.all([
+        readFile(SCHEMA_PATH, 'utf8'),
+        readFile(SEED_PATH, 'utf8'),
+    ])
+    for (const stmt of splitBatch(schemaSql)) await pool.request().query(stmt)
+    for (const stmt of splitBatch(seedSql)) await pool.request().query(stmt)
+}
+
+// First-time setup: the runner's pool does not exist yet (the worker DB
+// must be created first). This path opens a one-shot direct pool to
+// bootstrap the worker DB and apply schema+seed. Subsequent reseeds
+// borrow from the runner's pool — see `onReseed` below.
+async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number): Promise<string> {
     const workerDb = workerName(BASE_WORKER_DB_NAME)
     const sql = await import('mssql')
     if (!workerDbEnsured) {
@@ -259,12 +272,7 @@ async function applySchemaAndSeedToWorkerDb(host: string, port: number): Promise
     })
     await pool.connect()
     try {
-        const [schemaSql, seedSql] = await Promise.all([
-            readFile(SCHEMA_PATH, 'utf8'),
-            readFile(SEED_PATH, 'utf8'),
-        ])
-        for (const stmt of splitBatch(schemaSql)) await pool.request().query(stmt)
-        for (const stmt of splitBatch(seedSql)) await pool.request().query(stmt)
+        await applySchemaAndSeedOnPool(pool)
     } finally {
         await pool.close()
     }
@@ -311,12 +319,15 @@ export function createMssqlPoolTestContext(spec: MssqlTestSpec): TestContext<DBC
             const container = await acquireContainer()
             const host = container.getHost()
             const port = container.getMappedPort(1433)
-            const workerDb = await applySchemaAndSeedToWorkerDb(host, port)
+            const workerDb = await bootstrapWorkerDbSchemaAndSeed(host, port)
             return await buildRunner({ host, port, workerDb })
         },
-        async onReseed() {
-            const c = await acquireContainer()
-            await applySchemaAndSeedToWorkerDb(c.getHost(), c.getMappedPort(1433))
+        async onReseed(runner) {
+            // Reuse the runner's existing mssql connection pool — its
+            // `request()` calls borrow a backend from the pool. Avoids
+            // standing up a brand new ConnectionPool per reseed.
+            const pool = runner.getNativeRunner() as import('mssql').ConnectionPool
+            await applySchemaAndSeedOnPool(pool)
         },
         async onDown() {
             await releaseContainer()

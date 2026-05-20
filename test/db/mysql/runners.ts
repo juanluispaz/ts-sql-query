@@ -142,7 +142,21 @@ function splitStatements(sql: string): string[] {
 // `applySchemaAndSeedToWorkerDb` calls skip the admin connection.
 let workerDbEnsured = false
 
-async function applySchemaAndSeedToWorkerDb(host: string, port: number): Promise<string> {
+async function applySchemaAndSeedOnConnection(conn: import('mysql2/promise').Connection | import('mysql2/promise').PoolConnection): Promise<void> {
+    const [schemaSql, seedSql] = await Promise.all([
+        readFile(SCHEMA_PATH, 'utf8'),
+        readFile(SEED_PATH, 'utf8'),
+    ])
+    for (const stmt of splitStatements(schemaSql)) await conn.query(stmt)
+    for (const stmt of splitStatements(seedSql)) await conn.query(stmt)
+}
+
+// First-time setup: the runner's pool does not exist yet (the worker DB
+// must be created before the pool can authenticate against it). This path
+// opens a one-shot direct connection to bootstrap the worker DB and
+// apply schema+seed. Subsequent reseeds borrow from the runner's pool —
+// see `onReseed` below.
+async function bootstrapWorkerDbSchemaAndSeed(host: string, port: number): Promise<string> {
     const workerDb = workerName(BASE_WORKER_DB_NAME)
     const mysql2 = await import('mysql2/promise')
 
@@ -169,12 +183,7 @@ async function applySchemaAndSeedToWorkerDb(host: string, port: number): Promise
         multipleStatements: true,
     })
     try {
-        const [schemaSql, seedSql] = await Promise.all([
-            readFile(SCHEMA_PATH, 'utf8'),
-            readFile(SEED_PATH, 'utf8'),
-        ])
-        for (const stmt of splitStatements(schemaSql)) await conn.query(stmt)
-        for (const stmt of splitStatements(seedSql)) await conn.query(stmt)
+        await applySchemaAndSeedOnConnection(conn)
     } finally {
         await conn.end()
     }
@@ -232,12 +241,21 @@ export function createMySql2PoolTestContext(spec: MySqlTestSpec): TestContext<DB
             const container = await acquireContainer()
             const host = container.getHost()
             const port = container.getMappedPort(3306)
-            const workerDb = await applySchemaAndSeedToWorkerDb(host, port)
+            const workerDb = await bootstrapWorkerDbSchemaAndSeed(host, port)
             return await buildRunner({ host, port, workerDb })
         },
-        async onReseed() {
-            const c = await acquireContainer()
-            await applySchemaAndSeedToWorkerDb(c.getHost(), c.getMappedPort(3306))
+        async onReseed(runner) {
+            // Reuse the runner's existing mysql2 pool. The runner uses the
+            // callback-style pool; `.promise()` exposes the promise wrapper
+            // so the async borrow flow stays clean. Borrowing avoids the
+            // auth handshake on every reseed.
+            const pool = runner.getNativeRunner() as import('mysql2').Pool
+            const conn = await pool.promise().getConnection()
+            try {
+                await applySchemaAndSeedOnConnection(conn)
+            } finally {
+                conn.release()  // returns to pool synchronously
+            }
         },
         async onDown() {
             await releaseContainer()

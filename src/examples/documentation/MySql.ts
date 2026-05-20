@@ -3149,7 +3149,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`insert into record (id, title) values (uuid_to_bin(?), ?) as _new_ on duplicate key update title = ?`)
+    expectedQuery.push(`insert into record (id, title) values (uuid_to_bin(?), ?) as _new_ on duplicate key update record.title = ?`)
     expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo","My voice memo 2"]`)
     expectedType.push(`insert`)
 
@@ -3170,7 +3170,7 @@ async function main() {
 
     result = 1
     expectedResult.push(result)
-    expectedQuery.push(`insert into record (id, title) values (uuid_to_bin(?), ?) as _new_ on duplicate key update title = concat(title, ?, _new_.title)`)
+    expectedQuery.push(`insert into record (id, title) values (uuid_to_bin(?), ?) as _new_ on duplicate key update record.title = concat(record.title, ?, _new_.title)`)
     expectedParams.push(`["89bf68fc-7002-11ec-90d6-0242ac120003","My voice memo"," - "]`)
     expectedType.push(`insert`)
 

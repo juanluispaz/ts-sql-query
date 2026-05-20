@@ -501,13 +501,10 @@ describe(ctx.label, () => {
         }).toThrow(/body is required/)
     })
 
-    test('ignore-if-has-no-value-when-true-currently-swaps-polarity', async () => {
-        // TODO[BUG]: see test/BUGS.md —
-        // `ignoreIfHasNoValueWhen(true, 'body')` SHOULD drop `body`
-        // because it is null, but the wrapper dispatches to
-        // `ignoreIfHasValue` (opposite polarity), so the null-valued
-        // `body` survives. The assertion below pins the current buggy
-        // SQL so the suite stays green.
+    test('ignore-if-has-no-value-when-true-drops-null-staged-column', async () => {
+        // `ignoreIfHasNoValueWhen(true, 'body')` drops `body` from the
+        // INSERT because it has no value (null). The remaining columns
+        // survive.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tIssue)
@@ -522,13 +519,12 @@ describe(ctx.label, () => {
                 .ignoreIfHasNoValueWhen(true, 'body')
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, \`body\`, status, priority) values (?, ?, ?, ?, ?, ?)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, number, title, status, priority) values (?, ?, ?, ?, ?)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
                 213,
                 "Base",
-                null,
                 "open",
                 1,
               ]

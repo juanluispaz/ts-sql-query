@@ -258,11 +258,9 @@ describe(ctx.label, () => {
     test('ignore-if-set-when-and-ignore-if-has-value-when-toggle-cleanly', async () => {
         // Two `*When` flavours of the ignore family: the false branch
         // leaves staged columns intact, the true branch drops them.
-        // TODO[BUG]: see test/BUGS.md — `ignoreIfHasNoValueWhen(true,
-        // 'body')` SHOULD drop the null-valued `body`, but the wrapper
-        // dispatches to `ignoreIfHasValue` (opposite polarity), so
-        // `body = null` survives in the SET clause. The assertion
-        // below pins the current buggy SQL so the suite stays green.
+        // `ignoreIfHasNoValueWhen(true, 'body')` drops the null-valued
+        // `body` from the SET clause; `ignoreIfHasValueWhen(false, ...)`
+        // is a no-op so `title` survives.
         ctx.mockNext(1)
         await ctx.conn.update(tIssue)
             .set({ title: 'Triage', body: null, priority: 9 })
@@ -273,11 +271,10 @@ describe(ctx.label, () => {
             .where(tIssue.id.equals(1))
             .executeUpdate()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = :0, "body" = :1 where id = :2"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set title = :0 where id = :1"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             "Triage",
-            null,
             1,
           ]
         `)

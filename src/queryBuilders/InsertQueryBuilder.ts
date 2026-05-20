@@ -1473,7 +1473,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     }
     ignoreIfHasNoValueWhen(when: boolean, ...columns: any[]): this {
         if (when) {
-            return this.ignoreIfHasValue(...columns)
+            return this.ignoreIfHasNoValue(...columns)
         }
         return this
     }

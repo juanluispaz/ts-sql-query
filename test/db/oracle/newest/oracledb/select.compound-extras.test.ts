@@ -4,7 +4,8 @@
 // on `_appendCompoundOperator` in
 // [src/sqlBuilders/AbstractSqlBuilder.ts:661](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L661),
 // which is overridden by
-// [`OracleSqlBuilder._appendCompoundOperator`](../../../../../src/sqlBuilders/OracleSqlBuilder.ts#L340).
+// [`OracleSqlBuilder._appendCompoundOperator`](../../../../../src/sqlBuilders/OracleSqlBuilder.ts#L340)
+// (maps both `except` and `minus` to Oracle's native ` minus `).
 //
 // On Oracle only `.minus(...)` is exposed by the fluent API
 // ([src/expressions/select.ts:126](../../../../../src/expressions/select.ts#L126));
@@ -39,16 +40,9 @@ describe(ctx.label, () => {
     */
 
     test('minus-routes-through-the-dialect-alias', async () => {
-        // TODO[BUG]: see test/BUGS.md — on Oracle the fluent
-        // `.minus(...)` method (the user-facing name for Oracle's
-        // NATIVE set-difference operator) emits ` except ` instead of
-        // the expected ` minus `.
-        // [OracleSqlBuilder.ts:354-357](../../../../../src/sqlBuilders/OracleSqlBuilder.ts#L354)
-        // swaps the cases for `minus` and `except`, so the
-        // dialect-native call lands on the non-Oracle keyword. Real
-        // Oracle ≤ 20c rejects `EXCEPT` outright. The snapshot below
-        // pins the current (buggy) emitted SQL so the suite stays
-        // green.
+        // On Oracle the fluent `.minus(...)` method routes through the
+        // dialect override and emits ` minus ` (Oracle's native
+        // set-difference operator). Oracle does not accept `EXCEPT`.
         const expected = [{ status: 'closed' }]
         ctx.mockNext(expected)
         const all = ctx.conn.selectFrom(tIssue)
@@ -56,12 +50,8 @@ describe(ctx.label, () => {
         const small = ctx.conn.selectFrom(tIssue)
             .where(tIssue.id.lessOrEqual(2))
             .select({ status: tIssue.status })
-        try {
-            await all.minus(small).executeSelectMany()
-        } catch (e) {
-            if (!ctx.realDbEnabled) throw e
-        }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as "status" from issue except select status as "status" from issue where id <= :0"`)
+        await all.minus(small).executeSelectMany()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select status as "status" from issue minus select status as "status" from issue where id <= :0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             2,

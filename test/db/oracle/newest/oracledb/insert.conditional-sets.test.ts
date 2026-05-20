@@ -285,7 +285,7 @@ describe(ctx.label, () => {
                 .setForAllIfNotSet({ body: 'triage' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert allinto issue (project_id, "number", title, "body", status, priority) values (:0, :1, :2, :3, :4, :5)into issue (project_id, "number", title, status, priority, "body") values (:6, :7, :8, :9, :10, :11) select 2 from dual"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into issue (project_id, "number", title, "body", status, priority) values (:0, :1, :2, :3, :4, :5); insert into issue (project_id, "number", title, status, priority, "body") values (:6, :7, :8, :9, :10, :11); end;"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -321,7 +321,7 @@ describe(ctx.label, () => {
                 .setForAllIfNotSetIfValue({ body: 'staged-only' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert allinto issue (project_id, "number", title, "body", status, priority) values (:0, :1, :2, :3, :4, :5)into issue (project_id, "number", title, status, priority, "body") values (:6, :7, :8, :9, :10, :11) select 2 from dual"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into issue (project_id, "number", title, "body", status, priority) values (:0, :1, :2, :3, :4, :5); insert into issue (project_id, "number", title, status, priority, "body") values (:6, :7, :8, :9, :10, :11); end;"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -357,7 +357,7 @@ describe(ctx.label, () => {
                 .setForAllIfHasNoValue({ body: 'backfilled' })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert allinto issue (project_id, "number", title, "body", status, priority) values (:0, :1, :2, :3, :4, :5)into issue (project_id, "number", title, "body", status, priority) values (:6, :7, :8, :9, :10, :11) select 2 from dual"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into issue (project_id, "number", title, "body", status, priority) values (:0, :1, :2, :3, :4, :5); insert into issue (project_id, "number", title, "body", status, priority) values (:6, :7, :8, :9, :10, :11); end;"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -394,7 +394,7 @@ describe(ctx.label, () => {
                 .ignoreIfHasValue('body')
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert allinto issue (project_id, "number", title, status, priority) values (:0, :1, :2, :3, :4)into issue (project_id, "number", title, "body", status, priority) values (:5, :6, :7, :8, :9, :10) select 2 from dual"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into issue (project_id, "number", title, status, priority) values (:0, :1, :2, :3, :4); insert into issue (project_id, "number", title, "body", status, priority) values (:5, :6, :7, :8, :9, :10); end;"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -428,7 +428,7 @@ describe(ctx.label, () => {
                 .ignoreAnySetWithNoValue()
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert allinto issue (project_id, "number", title, "body", status, priority) values (:0, :1, :2, :3, :4, :5)into issue (project_id, "number", title, status, priority) values (:6, :7, :8, :9, :10) select 2 from dual"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"begin insert into issue (project_id, "number", title, "body", status, priority) values (:0, :1, :2, :3, :4, :5); insert into issue (project_id, "number", title, status, priority) values (:6, :7, :8, :9, :10); end;"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
@@ -499,13 +499,10 @@ describe(ctx.label, () => {
         }).toThrow(/body is required/)
     })
 
-    test('ignore-if-has-no-value-when-true-currently-swaps-polarity', async () => {
-        // TODO[BUG]: see test/BUGS.md —
-        // `ignoreIfHasNoValueWhen(true, 'body')` SHOULD drop `body`
-        // because it is null, but the wrapper dispatches to
-        // `ignoreIfHasValue` (opposite polarity), so the null-valued
-        // `body` survives. The assertion below pins the current buggy
-        // SQL so the suite stays green.
+    test('ignore-if-has-no-value-when-true-drops-null-staged-column', async () => {
+        // `ignoreIfHasNoValueWhen(true, 'body')` drops `body` from the
+        // INSERT because it has no value (null). The remaining columns
+        // survive.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tIssue)
@@ -520,13 +517,12 @@ describe(ctx.label, () => {
                 .ignoreIfHasNoValueWhen(true, 'body')
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, "number", title, "body", status, priority) values (:0, :1, :2, :3, :4, :5)"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into issue (project_id, "number", title, status, priority) values (:0, :1, :2, :3, :4)"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,
                 213,
                 "Base",
-                null,
                 "open",
                 1,
               ]

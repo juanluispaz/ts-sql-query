@@ -5,7 +5,7 @@
 // [src/sqlBuilders/AbstractSqlBuilder.ts:661](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L661),
 // which is overridden by
 // [`OracleSqlBuilder._appendCompoundOperator`](../../../../../src/sqlBuilders/OracleSqlBuilder.ts#L340)
-// (swaps `except` ↔ `minus`) and
+// (maps both `except` and `minus` to Oracle's native ` minus `) and
 // [`MariaDBSqlBuilder._appendCompoundOperator`](../../../../../src/sqlBuilders/MariaDBSqlBuilder.ts#L16)
 // (preserves `minus` natively).
 //

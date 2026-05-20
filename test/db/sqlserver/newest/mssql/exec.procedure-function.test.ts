@@ -49,7 +49,7 @@ describe(ctx.label, () => {
         // intact for the following tests.
         await ctx.withRollback(async () => {
             await ctx.conn.callArchiveProject(1, 'manual')
-            expect(ctx.lastSql).toMatchInlineSnapshot(`"exec archive_project @0 @1"`)
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"exec archive_project @0, @1"`)
             expect(ctx.lastParams).toMatchInlineSnapshot(`
               [
                 1,

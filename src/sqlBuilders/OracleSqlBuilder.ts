@@ -352,9 +352,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             case 'exceptAll':
                 return ' minus all '
             case 'minus':
-                return ' except '
+                return ' minus '
             case 'minusAll':
-                return ' except all '
+                return ' minus all '
             default:
                 throw new TsSqlProcessingError({ reason: 'INTERNAL', internalErrorType: 'invalid compound operator', operator: compoundOperator }, 'Invalid compound operator: ' + compoundOperator)
         }
@@ -522,21 +522,11 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
         const customization = query.__customization
         this._setSafeTableOrView(params, table)
 
-        const returning = !!query.__idColumn || !!query.__columns
-
         let insertQuery = ''
         if (this._useInsertSupportWith()) {
             insertQuery += this._buildWith(query, params)
         }
-        if (returning) {
-            insertQuery += 'begin '
-        } else {
-            insertQuery = 'insert '
-            if (customization && customization.afterInsertKeyword) {
-                insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
-            }
-            insertQuery += 'all'
-        }
+        insertQuery += 'begin '
 
         const shape = query.__shape
         let columnsInShape: { [columnName: string] : boolean} | undefined
@@ -554,11 +544,9 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             if (customization && customization.beforeQuery) {
                 insertQuery += this._appendRawFragment(customization.beforeQuery, params) + ' '
             }
-            if (returning) {
-                insertQuery += 'insert '
-                if (customization && customization.afterInsertKeyword) {
-                    insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
-                }
+            insertQuery += 'insert '
+            if (customization && customization.afterInsertKeyword) {
+                insertQuery += this._appendRawFragment(customization.afterInsertKeyword, params) + ' '
             }
             insertQuery += this._buildInsertOnConflictBeforeInto(query, params)
             insertQuery += 'into '
@@ -695,20 +683,14 @@ export class OracleSqlBuilder extends AbstractSqlBuilder {
             if (customization && customization.afterQuery) {
                 insertQuery += ' ' + this._appendRawFragment(customization.afterQuery, params)
             }
-            if (returning) {
-                insertQuery += '; '
-            }
+            insertQuery += '; '
         }
 
         this._setSafeTableOrView(params, oldSafeTableOrView)
         this._setFakeNamesOf(params, oldFakeNameOf)
         this._resetRootQuery(query, params)
 
-        if (returning) {
-            insertQuery += 'end;'
-        } else {
-            insertQuery += ' select ' + multiple.length + ' from dual'
-        }
+        insertQuery += 'end;'
 
         return insertQuery
     }

@@ -9,3 +9,7 @@ generated
 .nyc_output
 .venv
 bun.lock
+
+# Claude Code runtime state
+.claude/*.lock
+.claude/settings.local.json

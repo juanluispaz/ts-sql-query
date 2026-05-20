@@ -150,26 +150,28 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[BUG]: `customizeQuery.beforeOrderByItems` splices a stray
-    // leading comma into the rendered SQL — `order by /* hint */ , id`
-    // is a syntax error on sqlite/postgres. See `test/BUGS.md` for the
-    // open entry; re-enable when the SQL builder stops emitting the
-    // separator comma in front of the items.
-    // test('raw-fragment-as-orderBy-extension', async () => {
-    //     ctx.mockNext([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }])
-    //     const connection = ctx.conn
-    //     const result = await connection.selectFrom(tIssue)
-    //         .select({ id: tIssue.id })
-    //         .orderBy('id')
-    //         .customizeQuery({
-    //             beforeOrderByItems: connection.rawFragment`/* ordering hint */ `,
-    //         })
-    //         .executeSelectMany()
-    //
-    //     expect(ctx.lastSql).toMatchInlineSnapshot()
-    //     expect(ctx.lastParams).toMatchInlineSnapshot()
-    //     assertType<Exact<typeof result, Array<{ id: number }>>>()
-    // })
+    test('raw-fragment-as-orderBy-extension', async () => {
+        // `beforeOrderByItems` is documented to splice the raw
+        // fragment as an additional `order by` item, comma-joined
+        // against the explicit items — so the fragment is expected
+        // to render *as an item* (e.g. another column with a
+        // direction), not as a free-form prefix. The SQL builder
+        // also injects the table name to keep the reference clear
+        // of the projection alias.
+        ctx.mockNext([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }])
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .customizeQuery({
+                beforeOrderByItems: connection.rawFragment`${tIssue.priority} desc`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.priority desc, id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+    })
 
     test('fragment-mixes-literal-and-column-interpolations', async () => {
         // A typed fragment that interpolates both a literal (bound)

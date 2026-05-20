@@ -47,9 +47,9 @@ describe(ctx.label, () => {
     })
 
     test('fragment-in-select-with-column-arg', async () => {
-        // A `length(...)` fragment in the projection list. `length`
-        // is portable across every dialect — that's why the docs
-        // page uses it.
+        // A string-length fragment in the projection list. SQL
+        // Server exposes this as `len(...)` (no `length` builtin);
+        // every other dialect uses `length(...)`.
         const expected = [{ id: 1, len: 16 }]
         ctx.mockNext(expected)
         const connection = ctx.conn
@@ -58,11 +58,11 @@ describe(ctx.label, () => {
             .select({
                 id:  tIssue.id,
                 len: connection.fragmentWithType('int', 'required')
-                    .sql`length(${tIssue.title})`,
+                    .sql`len(${tIssue.title})`,
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, length(title) as len from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, len(title) as len from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -73,7 +73,7 @@ describe(ctx.label, () => {
     })
 
     test('fragment-optional-flag-widens-result', async () => {
-        // The same `length(...)` fragment with `'optional'` widens the
+        // The same `len(...)` fragment with `'optional'` widens the
         // projected property to `len?: number`. The SQL is identical,
         // only the result type narrows differently.
         ctx.mockNext([{ id: 1, len: 16 }])
@@ -83,11 +83,11 @@ describe(ctx.label, () => {
             .select({
                 id:  tIssue.id,
                 len: connection.fragmentWithType('int', 'optional')
-                    .sql`length(${tIssue.title})`,
+                    .sql`len(${tIssue.title})`,
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, length(title) as len from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, len(title) as len from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -130,7 +130,7 @@ describe(ctx.label, () => {
         ctx.mockNext(expected)
         const connection = ctx.conn
         const inner = connection.fragmentWithType('int', 'required')
-            .sql`length(${tIssue.title})`
+            .sql`len(${tIssue.title})`
         const result = await connection.selectFrom(tIssue)
             .where(tIssue.id.equals(1))
             .select({
@@ -140,7 +140,7 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, length(title) + length(title) as doubled from issue where id = @0"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, len(title) + len(title) as doubled from issue where id = @0"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             1,
@@ -150,26 +150,28 @@ describe(ctx.label, () => {
         expect(result).toEqual(expected)
     })
 
-    // TODO[BUG]: `customizeQuery.beforeOrderByItems` splices a stray
-    // leading comma into the rendered SQL — `order by /* hint */ , id`
-    // is a syntax error on sqlite/postgres. See `test/BUGS.md` for the
-    // open entry; re-enable when the SQL builder stops emitting the
-    // separator comma in front of the items.
-    // test('raw-fragment-as-orderBy-extension', async () => {
-    //     ctx.mockNext([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }])
-    //     const connection = ctx.conn
-    //     const result = await connection.selectFrom(tIssue)
-    //         .select({ id: tIssue.id })
-    //         .orderBy('id')
-    //         .customizeQuery({
-    //             beforeOrderByItems: connection.rawFragment`/* ordering hint */ `,
-    //         })
-    //         .executeSelectMany()
-    //
-    //     expect(ctx.lastSql).toMatchInlineSnapshot()
-    //     expect(ctx.lastParams).toMatchInlineSnapshot()
-    //     assertType<Exact<typeof result, Array<{ id: number }>>>()
-    // })
+    test('raw-fragment-as-orderBy-extension', async () => {
+        // `beforeOrderByItems` is documented to splice the raw
+        // fragment as an additional `order by` item, comma-joined
+        // against the explicit items — so the fragment is expected
+        // to render *as an item* (e.g. another column with a
+        // direction), not as a free-form prefix. The SQL builder
+        // also injects the table name to keep the reference clear
+        // of the projection alias.
+        ctx.mockNext([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }])
+        const connection = ctx.conn
+        const result = await connection.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .orderBy('id')
+            .customizeQuery({
+                beforeOrderByItems: connection.rawFragment`${tIssue.priority} desc`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id from issue order by issue.priority desc, id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+    })
 
     test('fragment-mixes-literal-and-column-interpolations', async () => {
         // A typed fragment that interpolates both a literal (bound)

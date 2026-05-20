@@ -216,7 +216,8 @@ export interface MariaDBTestSpec {
 }
 
 export function createMariaDBPoolTestContext(spec: MariaDBTestSpec): TestContext<DBConnection> {
-    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true)
+    const version = spec.label.split(' / ')[0] ?? ''
+    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version)
     const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerDb: string }) => {
         const mariadb = await import('mariadb')
         const { MariaDBPoolQueryRunner } = await import('../../../src/queryRunners/MariaDBPoolQueryRunner.js')

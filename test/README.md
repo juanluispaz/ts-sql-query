@@ -82,11 +82,12 @@ runtime via `npm_config_user_agent` — `bun run X` dispatches to
 `bun test`, `npm run X` to `vitest run`. Same entry under either
 runtime.
 
-Two orthogonal flags scope what the runner sees:
+Orthogonal flags scope what the runner sees:
 
 | Flag | What it does | Default |
 |---|---|---|
 | `--docker` | Docker-backed connectors hit their real DB. Without it they fall through to the mock. | off (mock) |
+| `--docker-scope <all\|newest>` | When `newest`, only cells under `<db>/newest/*` keep the real-DB branch; older versions fall back to the mock. No-op without `--docker`. Same shape as `--wasm` (narrower scope), motivation is speed. | `all` |
 | `--wasm` | After the main pass, runs a second sequential pass over the WASM cells against real pglite / sqlite-wasm-OO1. Without it, **the WASM modules are not even imported**. | off (mock) |
 
 The split keeps the parallel main pass fast — WASM is CPU-bound and
@@ -98,6 +99,14 @@ There's also a third env-level knob:
 | Flag | What it does | Default |
 |---|---|---|
 | `TS_SQL_QUERY_DBS` | Comma list of database folder names under `test/db/` (or `all` / `none`). Narrows the SCOPE of the run. | `all` |
+
+The CLI flags above set env vars consumed at runtime by
+[`test/lib/backends.ts`](./lib/backends.ts):
+`TS_SQL_QUERY_DOCKER`, `TS_SQL_QUERY_DOCKER_SCOPE`, `TS_SQL_QUERY_WASM`,
+and `TS_SQL_QUERY_DBS`. The setup files in each cell read those gates
+via `isRealDbEnabled(db, kind, version?)`; if any of the gates says
+"off" the real-DB branch falls back to the mock without duplicating
+the test body.
 
 Crucially, **every test runs in both modes**. With `--docker` off, a
 docker-backed connector's real-DB branch is skipped but its SQL,
@@ -113,6 +122,11 @@ bun run tests
 
 # + real docker backends. ~17 s.
 bun run tests --docker
+
+# Smoke against real DBs but only on the newest version of each engine.
+# Older versions still run (assertions, params, mock round-trip) — they
+# just don't pay the docker cost.
+bun run tests --docker --docker-scope newest
 
 # Full matrix (docker + real WASM second phase). ~21 s.
 bun run tests --docker --wasm

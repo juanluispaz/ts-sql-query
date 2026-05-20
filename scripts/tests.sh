@@ -66,6 +66,7 @@ Defaults
   --mode             parallel
   --docker           off (docker cells fall through to mock)
   --docker-mode      reuse  (containers stay alive between invocations)
+  --docker-scope     all  (every docker cell hits its real DB)
   --wasm             off (WASM cells fall through to mock — modules are
                      never imported, so their bootstrap cost is paid
                      by nothing)
@@ -97,6 +98,13 @@ Runner flags
         reuse:    sets TESTCONTAINERS_REUSE_ENABLE=true. Containers
                   persist across invocations — preferred for local dev.
         no-reuse: fresh containers every run. Hermetic; CI baseline.
+  --docker-scope <all|newest>
+        all:    every docker-backed cell hits its real DB (default).
+        newest: only cells under `<db>/newest/*` hit a real DB; older
+                versions fall back to the mock. Faster smoke run that
+                still catches most regressions. No-op without --docker.
+                Analogous in shape to --wasm (a scope narrower than the
+                full matrix); motivation is speed, not correctness.
   --wasm
         After the main pass, run the WASM cells (sequential) against
         the real pglite / sqlite-wasm-OO1 module.
@@ -213,6 +221,7 @@ EOF
 MODE=parallel
 DOCKER=off
 DOCKER_MODE=reuse
+DOCKER_SCOPE=all
 WASM=off
 USE_VITEST=off
 UI=off
@@ -230,6 +239,8 @@ while [ $# -gt 0 ]; do
         --docker)               DOCKER=on; shift ;;
         --docker-mode)          DOCKER_MODE="$2"; shift 2 ;;
         --docker-mode=*)        DOCKER_MODE="${1#--docker-mode=}"; shift ;;
+        --docker-scope)         DOCKER_SCOPE="$2"; shift 2 ;;
+        --docker-scope=*)       DOCKER_SCOPE="${1#--docker-scope=}"; shift ;;
         --wasm)                 WASM=on; shift ;;
         --use-vitest)           USE_VITEST=on; shift ;;
         --ui)                   UI=on; USE_VITEST=on; shift ;;
@@ -252,11 +263,19 @@ esac
 case "$DOCKER_MODE" in reuse|no-reuse) ;; *)
     echo "Invalid --docker-mode: $DOCKER_MODE (expected reuse|no-reuse)" >&2; exit 2 ;;
 esac
+case "$DOCKER_SCOPE" in all|newest) ;; *)
+    echo "Invalid --docker-scope: $DOCKER_SCOPE (expected all|newest)" >&2; exit 2 ;;
+esac
 
 runtime="$(detect_runtime)"
 if [ "$USE_VITEST" = "on" ]; then runtime="npm"; fi
 export TS_SQL_QUERY_DOCKER="$DOCKER"
 if [ "$DOCKER_MODE" = "reuse" ]; then export TESTCONTAINERS_REUSE_ENABLE=true; fi
+# Only propagate scope when docker is on. With docker off the env var
+# is a no-op (the backends.ts gate short-circuits on docker=off first),
+# but keeping it out of the env when irrelevant avoids the appearance
+# in the legend that this is doing something.
+if [ "$DOCKER" = "on" ]; then export TS_SQL_QUERY_DOCKER_SCOPE="$DOCKER_SCOPE"; fi
 
 # Defaults for the format arrays. The choice depends on the runtime
 # because bun and vitest don't share a usable format: vitest's html
@@ -389,9 +408,9 @@ if [ "$COVERAGE" = "on" ]; then
         finalize_report "$runtime" "$OPEN_AFTER" "${COVERAGE_FORMAT[@]}" || true
     fi
     if [ "$WASM" = "on" ]; then
-        emit_phase_legend "Coverage run" "$MODE" mixed "$runtime" test/
+        emit_phase_legend "Coverage run" "$MODE" mixed "$DOCKER" "$DOCKER_SCOPE" "$runtime" test/
     else
-        emit_phase_legend "Coverage run" "$MODE" off "$runtime" test/
+        emit_phase_legend "Coverage run" "$MODE" off "$DOCKER" "$DOCKER_SCOPE" "$runtime" test/
     fi
     exit "$ec"
 fi
@@ -458,7 +477,7 @@ if [ "$WASM" = "on" ]; then
     if [ "$runtime" = "bun" ]; then
         emit_bun_github_summary "WASM phase" "$WASM_LOG"
     fi
-    emit_phase_legend "WASM phase" sequential on "$runtime" "${WASM_PATHS[@]}"
+    emit_phase_legend "WASM phase" sequential on n/a n/a "$runtime" "${WASM_PATHS[@]}"
     if [ "$ec" -ne 0 ]; then exit "$ec"; fi
 fi
 
@@ -478,7 +497,7 @@ else
     run_phase "$runtime" "$MODE" test/ "${RUNNER_TAIL[@]}" "${EXTRA_ARGS[@]}"
     ec=$?
 fi
-emit_phase_legend "Main phase" "$MODE" off "$runtime" test/
+emit_phase_legend "Main phase" "$MODE" off "$DOCKER" "$DOCKER_SCOPE" "$runtime" test/
 
 # Re-emit the saved WASM summary so the user sees both phases'
 # headline numbers without having to scroll up. Last 4 lines covers

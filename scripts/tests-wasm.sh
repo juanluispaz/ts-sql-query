@@ -192,7 +192,7 @@ else
     run_phase "$runtime" sequential "${WASM_PATHS[@]}" "${RUNNER_FLAGS[@]}" "${EXTRA_ARGS[@]}"
     ec=$?
 fi
-emit_phase_legend "WASM cells" sequential on "$runtime" "${WASM_PATHS[@]}"
+emit_phase_legend "WASM cells" sequential on n/a n/a "$runtime" "${WASM_PATHS[@]}"
 
 if [ "$ec" -eq 0 ]; then
     if [ "$COVERAGE" = "on" ]; then

@@ -24,6 +24,7 @@ The project supports both Node and Bun. **Day-to-day development prefers Bun** (
 - **The new `test/` matrix** (separate from the legacy `src/examples/` suite above): use the `tests:*` CLI family. Each has `--help`. Full guide split for reading-on-demand under [test/](test/): orientation + daily loop in [test/README.md](test/README.md); docker reuse + mutation safety + parallel timings + the bun-vs-vitest cost breakdown in [test/CONTAINERS.md](test/CONTAINERS.md); coverage + report flags + monocart in [test/COVERAGE.md](test/COVERAGE.md); typecheck + symmetry audit + adding tests/databases in [test/MAINTAINING.md](test/MAINTAINING.md).
     - `bun run tests` — full matrix, parallel, mocked (no docker, no real WASM). ~3 s for 1281 tests under bun (~21 s under vitest — see test/CONTAINERS.md for the breakdown); the default fast loop.
     - `bun run tests --docker` — same matrix, docker-backed connectors hit their real DB (container reuse on by default). ~17 s.
+    - `bun run tests --docker --docker-scope newest` — smoke against real DBs but only on `<db>/newest/*` cells; older versions fall back to the mock. Same shape as `--wasm` (narrower scope), motivation is speed.
     - `bun run tests --docker --wasm` — full real coverage (parallel main pass + sequential real-WASM second pass). ~21 s.
     - `bun run tests:focus <coord>` — one coordinate (e.g. `postgres/newest/pg`, optionally `…/file.test.ts`). Same flags as `tests`.
     - `bun run tests:wasm` — just the WASM cells (pglite, sqlite-wasm-OO1), serially.

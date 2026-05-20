@@ -7,6 +7,7 @@ test databases, or comparing wall times across runners and scopes.
 - [Container reuse](#container-reuse-speeding-up-docker-backed-runs)
 - [Cross-invocation reuse](#cross-invocation-reuse)
 - [What "reuse" actually does at process exit](#what-reuse-actually-does-at-process-exit)
+- [Narrowing the docker scope (`--docker-scope newest`)](#narrowing-the-docker-scope---docker-scope-newest)
 - [Data-mutation safety (cooperative contract)](#data-mutation-safety-cooperative-contract)
 - [Schema / seed changes are revalidated automatically](#schema--seed-changes-are-revalidated-automatically)
 - [Per-worker test databases (parallelism)](#per-worker-test-databases-parallelism)
@@ -64,6 +65,57 @@ pre-keep-alive behaviour for comparison was ~228 s per run.
   stale data from a previous run is wiped.
 - **Reuse off**: Ryuk kills containers as soon as the process exits.
   The next run pays the full cold start cost.
+
+### Narrowing the docker scope (`--docker-scope newest`)
+
+Container reuse cuts the *startup* tax. `--docker-scope newest` cuts the
+*matrix* tax: when `--docker` is on, only cells under `<db>/newest/*`
+keep their real-DB branch — older versions transparently fall back to
+the mock for that run.
+
+```bash
+# Real backends only on `newest`; older versions go through the mock.
+bun run tests --docker --docker-scope newest
+```
+
+Same shape as `--wasm` (a narrower scope than the full matrix),
+different motivation:
+
+- `--wasm` exists because real WASM is CPU-bound and dominates wall
+  time when imported under parallel workers.
+- `--docker-scope newest` exists because most regressions surface on
+  any recent version of an engine. Hitting `oldest` is only worth the
+  wall-time cost when you're investigating something
+  version-specific — backward-compatibility shims, deprecated SQL,
+  fall-back code paths, etc.
+
+The CLI flag exports `TS_SQL_QUERY_DOCKER_SCOPE=newest` for the
+runner. The gate sits in [`test/lib/backends.ts`](./lib/backends.ts):
+`isRealDbEnabled(db, 'docker', version)` returns `false` when the
+scope is `newest` and the cell's version is not `newest`. The version
+is derived from the cell's `spec.label` (the `<version> / <connector>`
+prefix); no per-cell changes are needed when a new connector or
+version is added.
+
+Default is `all`, which preserves every existing invocation. The flag
+is a no-op without `--docker`: the env var is not exported when docker
+is off, so the legend in the Actions job summary reflects the real
+behaviour rather than the flag's nominal value.
+
+When mixing flags:
+
+| Combination | What runs |
+|---|---|
+| `--docker` (default scope `all`) | every docker cell hits its real DB |
+| `--docker --docker-scope newest` | only `<db>/newest/*` cells hit real DBs; older versions mock |
+| `--docker-scope newest` (no `--docker`) | all docker cells fall back to mocks (scope is no-op) |
+| `--docker --docker-scope newest --wasm` | newest docker cells real, WASM phase real, older docker cells mock |
+
+`tests:focus` accepts the same flag — handy when you want to debug
+something on `<db>/oldest/<connector>` without the real container
+spinning up (focus the cell, drop the real-DB cost by passing
+`--docker-scope newest`, and the assertions still execute against the
+mock).
 
 ### Data-mutation safety (cooperative contract)
 

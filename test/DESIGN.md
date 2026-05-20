@@ -190,14 +190,22 @@ see [§1.3](#1-principles) for the precise rule.
     verified everywhere; the single setup flagged
     `canonicalForDocs: true` is the one the scraper actually publishes.
 
-13. **`TS_SQL_QUERY_DBS` and `TS_SQL_QUERY_DOCKER` are orthogonal.**
-    Each test must be runnable with or without Docker, without
-    duplicating the test body.
+13. **`TS_SQL_QUERY_DBS`, `TS_SQL_QUERY_DOCKER`, `TS_SQL_QUERY_DOCKER_SCOPE`
+    and `TS_SQL_QUERY_WASM` are orthogonal.** Each test must be runnable
+    with or without any combination of them, without duplicating the
+    test body.
     - `TS_SQL_QUERY_DBS` is a comma list of database folder names under
       `test/db/` (or `all` / `none`); it narrows the SCOPE of the run
       (which tests participate). Default: `all`.
     - `TS_SQL_QUERY_DOCKER` is `on` or `off` (default `off`); it gates
       whether the real-DB branch of a docker-backed connector fires.
+    - `TS_SQL_QUERY_DOCKER_SCOPE` is `all` (default) or `newest`. When
+      `newest`, only cells under `<db>/newest/*` keep their real-DB
+      branch active; older versions fall back to the mock. No-op when
+      `TS_SQL_QUERY_DOCKER` is off. Same shape as the WASM toggle — a
+      narrower scope than the full matrix — motivated by speed
+      (`--docker-scope newest` smoke-tests the recent engine of each
+      DB without paying for the older containers).
     When Docker is off, docker-backed connectors transparently fall
     back to the mock for the real-DB block — the same test body
     describes both modes via `ctx.conn` (see §1.1). In-process

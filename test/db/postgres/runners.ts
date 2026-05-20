@@ -266,7 +266,8 @@ export interface PgTestSpec {
 }
 
 export function createPgTestContext(spec: PgTestSpec): TestContext<DBConnection> {
-    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true)
+    const version = spec.label.split(' / ')[0] ?? ''
+    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version)
     let workerUri: string | null = null
     // Memoise the spec's pool/connection so it lives for the worker
     // process, not per test file. The `setup.ts` factories don't have
@@ -393,7 +394,8 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): TestContext<D
     // bun:sql is bun-only AND docker-backed. Under node we skip the real
     // branch entirely; under bun we still depend on docker for the
     // postgres engine.
-    const realDbEnabled = isBun && isRealDbEnabled(DATABASE, /* needsDocker */ true)
+    const version = spec.label.split(' / ')[0] ?? ''
+    const realDbEnabled = isBun && isRealDbEnabled(DATABASE, /* needsDocker */ true, version)
     let workerUri: string | null = null
     const buildRunner = memoizeSharedRunner(spec.createRealRunner)
 

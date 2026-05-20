@@ -10,6 +10,7 @@ print_help() {
 Usage:
   tests:focus <coord> [--mode <parallel|sequential>]
                       [--docker] [--docker-mode <reuse|no-reuse>]
+                      [--docker-scope <all|newest>]
                       [--wasm]
                       [--use-vitest] [--ui]
                       [--report    [--report-format <name>]…]
@@ -34,6 +35,7 @@ Defaults
   --mode             parallel
   --docker           off
   --docker-mode      reuse
+  --docker-scope     all
   --wasm             off
   --use-vitest       off
   --ui               off (implies --use-vitest)
@@ -47,6 +49,11 @@ Flags
   --mode <parallel|sequential>          default parallel
   --docker                              real docker backends
   --docker-mode <reuse|no-reuse>        default reuse
+  --docker-scope <all|newest>           default all. `newest` narrows
+                                        the real-DB gate to cells
+                                        under `<db>/newest/*`; older
+                                        versions fall back to the mock.
+                                        No-op without --docker.
   --wasm                                real WASM for this run
   --use-vitest                          force vitest runtime
   --ui                                  @vitest/ui (implies --use-vitest)
@@ -108,6 +115,7 @@ COORD=""
 MODE=parallel
 DOCKER=off
 DOCKER_MODE=reuse
+DOCKER_SCOPE=all
 WASM=off
 USE_VITEST=off
 UI=off
@@ -125,6 +133,8 @@ while [ $# -gt 0 ]; do
         --docker)               DOCKER=on; shift ;;
         --docker-mode)          DOCKER_MODE="$2"; shift 2 ;;
         --docker-mode=*)        DOCKER_MODE="${1#--docker-mode=}"; shift ;;
+        --docker-scope)         DOCKER_SCOPE="$2"; shift 2 ;;
+        --docker-scope=*)       DOCKER_SCOPE="${1#--docker-scope=}"; shift ;;
         --wasm)                 WASM=on; shift ;;
         --use-vitest)           USE_VITEST=on; shift ;;
         --ui)                   UI=on; USE_VITEST=on; shift ;;
@@ -160,6 +170,9 @@ esac
 case "$DOCKER_MODE" in reuse|no-reuse) ;; *)
     echo "Invalid --docker-mode: $DOCKER_MODE (expected reuse|no-reuse)" >&2; exit 2 ;;
 esac
+case "$DOCKER_SCOPE" in all|newest) ;; *)
+    echo "Invalid --docker-scope: $DOCKER_SCOPE (expected all|newest)" >&2; exit 2 ;;
+esac
 
 target="test/db/$COORD"
 if [ ! -e "$target" ]; then
@@ -174,6 +187,7 @@ runtime="$(detect_runtime)"
 if [ "$USE_VITEST" = "on" ]; then runtime="npm"; fi
 export TS_SQL_QUERY_DOCKER="$DOCKER"
 if [ "$DOCKER_MODE" = "reuse" ]; then export TESTCONTAINERS_REUSE_ENABLE=true; fi
+if [ "$DOCKER" = "on" ]; then export TS_SQL_QUERY_DOCKER_SCOPE="$DOCKER_SCOPE"; fi
 if [ "$MODE" = "sequential" ]; then export TSSQLQUERY_PARALLEL_DBS=false; fi
 # In focused mode --wasm is a single-pass override. The user gets
 # real WASM for this run; main test still uses the two-phase split.
@@ -295,7 +309,7 @@ fi
 # mocked one — same coord, different scope.
 WASM_SCOPE=off
 if [ "$WASM" = "on" ]; then WASM_SCOPE=on; fi
-emit_phase_legend "$PHASE_LABEL" "$MODE" "$WASM_SCOPE" "$runtime" "$target"
+emit_phase_legend "$PHASE_LABEL" "$MODE" "$WASM_SCOPE" "$DOCKER" "$DOCKER_SCOPE" "$runtime" "$target"
 
 if [ "$ec" -eq 0 ]; then
     if [ "$COVERAGE" = "on" ]; then

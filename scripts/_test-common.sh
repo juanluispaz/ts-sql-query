@@ -249,13 +249,22 @@ clean_report_dir() {
 # that look identical otherwise. Driven by the flags/paths the caller
 # passes in — does not hard-code phase order.
 #
-# Args: <phase-label> <mode> <wasm-real> <runtime> [<path>…]
+# Args: <phase-label> <mode> <wasm-real> <docker> <docker-scope> <runtime> [<path>…]
 #   <phase-label>  free-form, e.g. "WASM phase", "Main phase", "Coverage run"
 #   <mode>         "parallel" | "sequential"
 #   <wasm-real>    "on"  → real WASM modules loaded, non-WASM cells excluded
 #                  "off" → WASM connectors fall through to mocks
 #                  "mixed" → real WASM inside a single full-matrix pass
 #                            (the coverage-mode flow when --wasm is set)
+#   <docker>       "on"  → docker-backed cells hit real DB containers
+#                  "off" → docker-backed cells fall through to mocks
+#                  "n/a" → phase doesn't exercise docker-backed cells
+#                          (e.g. the WASM-only phase / tests-wasm.sh)
+#   <docker-scope> "all"     → every docker cell hits its real DB
+#                  "newest"  → only `<db>/newest/*` cells hit a real DB;
+#                              older versions fall back to the mock
+#                  Free-form values are echoed verbatim. Ignored unless
+#                  <docker> is "on".
 #   <runtime>      "bun" | "npm" (for the runner line)
 #   <path>…        paths the runner was invoked with; verbatim in the
 #                  rendered "Cells" list so the legend reflects the
@@ -263,15 +272,26 @@ clean_report_dir() {
 #
 # Silently no-ops when $GITHUB_STEP_SUMMARY is unset (local runs).
 emit_phase_legend() {
-    local label="$1" mode="$2" wasm_real="$3" runtime="$4"; shift 4
+    local label="$1" mode="$2" wasm_real="$3" docker="$4" docker_scope_val="$5" runtime="$6"; shift 6
     if [ -z "${GITHUB_STEP_SUMMARY:-}" ]; then return 0; fi
 
-    local scope runner
+    local wasm_scope docker_scope runner
     case "$wasm_real" in
-        on)    scope='real WASM modules loaded; non-WASM cells excluded from this round' ;;
-        off)   scope='WASM connectors fall through to mocks' ;;
-        mixed) scope='real WASM modules loaded inside a single full-matrix pass' ;;
-        *)     scope="$wasm_real" ;;
+        on)    wasm_scope='real WASM modules loaded; non-WASM cells excluded from this round' ;;
+        off)   wasm_scope='WASM connectors fall through to mocks' ;;
+        mixed) wasm_scope='real WASM modules loaded inside a single full-matrix pass' ;;
+        *)     wasm_scope="$wasm_real" ;;
+    esac
+    case "$docker" in
+        on)
+            case "$docker_scope_val" in
+                all)    docker_scope='real DB containers — every docker-backed cell hits its real DB' ;;
+                newest) docker_scope='real DB containers — only `<db>/newest/*` cells hit a real DB (older versions fall back to mocks)' ;;
+                *)      docker_scope="real DB containers (scope: $docker_scope_val)" ;;
+            esac ;;
+        off) docker_scope='docker-backed cells fall through to mocks' ;;
+        n/a) docker_scope='not applicable (phase does not exercise docker-backed cells)' ;;
+        *)   docker_scope="$docker" ;;
     esac
     case "$runtime" in
         bun) runner='bun test' ;;
@@ -284,7 +304,8 @@ emit_phase_legend() {
         printf -- '- **Phase:** %s\n' "$label"
         printf -- '- **Runner:** %s\n' "$runner"
         printf -- '- **Mode:** %s\n' "$mode"
-        printf -- '- **Scope:** %s\n' "$scope"
+        printf -- '- **WASM connectors:** %s\n' "$wasm_scope"
+        printf -- '- **Docker backends:** %s\n' "$docker_scope"
         if [ "$#" -gt 0 ]; then
             printf -- '- **Cells:**\n'
             for p in "$@"; do

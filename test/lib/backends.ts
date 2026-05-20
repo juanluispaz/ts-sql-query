@@ -15,6 +15,16 @@
 //                         is no duplicated code path: the same body
 //                         describes both modes.
 //
+//   TS_SQL_QUERY_DOCKER_SCOPE — `all` (default) or `newest`. When `newest`
+//                         only the cells under `<db>/newest/*` keep their
+//                         real-DB branch active; older versions transparently
+//                         fall back to the mock. Same shape as the WASM toggle:
+//                         the test bodies do not change, only the gate.
+//                         Motivation is speed — for most regressions, hitting
+//                         a single recent version per DB catches the issue
+//                         without paying for the full version matrix.
+//                         No-op when TS_SQL_QUERY_DOCKER is off.
+//
 //   TS_SQL_QUERY_WASM   — `on` or `off` (default `on`). Same idea as
 //                         TS_SQL_QUERY_DOCKER but for the in-process WASM
 //                         connectors (pglite, sqlite-wasm-OO1). Those
@@ -35,6 +45,7 @@
 
 export type DockerMode = 'on' | 'off'
 export type WasmMode = 'on' | 'off'
+export type DockerScope = 'all' | 'newest'
 
 /** Tag of which heavyweight backend a connector needs for its real-DB branch. */
 export type RealDbBackend = 'docker' | 'wasm' | 'inprocess'
@@ -54,6 +65,11 @@ export function isWasmEnabled(): boolean {
     return WASM_MODE === 'on'
 }
 
+/** Which docker-backed cells get a real DB. `newest` mocks every other version. */
+export function dockerScope(): DockerScope {
+    return DOCKER_SCOPE
+}
+
 /**
  * Convenience for connector setups: a connector's real-DB branch fires
  * iff its database is in scope AND the kind of heavyweight backend it
@@ -62,14 +78,21 @@ export function isWasmEnabled(): boolean {
  * The legacy boolean overload (`isRealDbEnabled(db, needsDocker)`) is
  * kept for callers that pre-date the WASM toggle: `true` is read as
  * `'docker'`, `false` as `'inprocess'`.
+ *
+ * The optional `version` is the cell's `<version>` folder (e.g. `newest`,
+ * `oldest`). It is only inspected when `requires === 'docker'` and the
+ * scope is narrowed to `newest`: callers that omit it bypass the scope
+ * check (the existing WASM / inprocess paths). Docker-backed
+ * `create*TestContext` factories derive it from `spec.label`.
  */
-export function isRealDbEnabled(database: string, requires: RealDbBackend | boolean): boolean {
+export function isRealDbEnabled(database: string, requires: RealDbBackend | boolean, version?: string): boolean {
     const kind: RealDbBackend = typeof requires === 'boolean'
         ? (requires ? 'docker' : 'inprocess')
         : requires
     if (!isBackendEnabled(database)) return false
     if (kind === 'docker' && !isDockerEnabled()) return false
     if (kind === 'wasm' && !isWasmEnabled()) return false
+    if (kind === 'docker' && DOCKER_SCOPE === 'newest' && version !== undefined && version !== 'newest') return false
     return true
 }
 
@@ -78,6 +101,7 @@ export function isRealDbEnabled(database: string, requires: RealDbBackend | bool
 const ENABLED_DBS: 'all' | ReadonlySet<string> = parseDbsFlag()
 const DOCKER_MODE: DockerMode = parseDockerFlag()
 const WASM_MODE: WasmMode = parseWasmFlag()
+const DOCKER_SCOPE: DockerScope = parseDockerScopeFlag()
 
 function parseDbsFlag(): 'all' | ReadonlySet<string> {
     const raw = readEnv('TS_SQL_QUERY_DBS')
@@ -108,6 +132,13 @@ function parseWasmFlag(): WasmMode {
     if (raw === undefined || raw === '') return 'on'
     if (raw === 'on' || raw === 'off') return raw
     throw new Error(`TS_SQL_QUERY_WASM must be "on" or "off" (got: ${raw})`)
+}
+
+function parseDockerScopeFlag(): DockerScope {
+    const raw = readEnv('TS_SQL_QUERY_DOCKER_SCOPE')
+    if (raw === undefined || raw === '') return 'all'
+    if (raw === 'all' || raw === 'newest') return raw
+    throw new Error(`TS_SQL_QUERY_DOCKER_SCOPE must be "all" or "newest" (got: ${raw})`)
 }
 
 function readEnv(name: string): string | undefined {

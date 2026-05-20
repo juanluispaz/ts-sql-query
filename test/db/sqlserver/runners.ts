@@ -288,7 +288,8 @@ export interface MssqlTestSpec {
 }
 
 export function createMssqlPoolTestContext(spec: MssqlTestSpec): TestContext<DBConnection> {
-    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true)
+    const version = spec.label.split(' / ')[0] ?? ''
+    const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version)
     const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerDb: string }) => {
         const sql = await import('mssql')
         const { MssqlPoolQueryRunner } = await import('../../../src/queryRunners/MssqlPoolQueryRunner.js')

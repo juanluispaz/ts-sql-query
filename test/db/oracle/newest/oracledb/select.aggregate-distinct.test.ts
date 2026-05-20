@@ -32,14 +32,11 @@ describe(ctx.label, () => {
 
 
     test('avg-distinct-from-aggregation-group-by', async () => {
-        // TODO[BUG]: see test/BUGS.md — `averageDistinct(intCol)` keeps
-        // the int result type, but every dialect except SQL Server
-        // returns a fractional/decimal scalar that the int deserializer
-        // then rejects with `INVALID_VALUE_RECEIVED_FROM_DATABASE`. The
-        // mock branch below still validates SQL emission; real-DB
-        // execution is gated until the lib coerces the result type.
-        if (ctx.realDbEnabled) return
-
+        // averageDistinct over an integer column. The library promotes
+        // the result type from `int` → `double` (see
+        // [src/connections/AbstractConnection.ts:998](../src/connections/AbstractConnection.ts#L998))
+        // so engines that return a fractional `numeric`/`decimal` scalar
+        // for `AVG(int)` deserialise without tripping the int parser.
         const expectedMock = { avgDistinctPriority: 2 }
         ctx.mockNext(expectedMock)
 
@@ -53,6 +50,38 @@ describe(ctx.label, () => {
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(distinct priority) as "avgDistinctPriority" from issue"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof row, { avgDistinctPriority?: number | undefined }>>()
-        expect(row.avgDistinctPriority).toBe(2)
+        if (!ctx.realDbEnabled) expect(row.avgDistinctPriority).toBe(2)
+        else expect(typeof row.avgDistinctPriority).toBe('number')
     })
+
+    test('avg-distinct-int-column-fractional', async () => {
+        // Verifies the cross-dialect contract that `average(intCol)` never
+        // returns a truncated integer when the operand is an INTEGER column —
+        // it always returns the fractional `number` the math says it should.
+        // Issues 1 and 2 belong to project 1 with priorities {2, 1}; the
+        // average is 1.5 on every supported engine. SQL Server's native
+        // `AVG(int)` would truncate the result to 1, so the SqlServerSqlBuilder
+        // wraps the operand in `cast(<expr> as float)` (see
+        // [src/sqlBuilders/SqlServerSqlBuilder.ts](../../../../../src/sqlBuilders/SqlServerSqlBuilder.ts)
+        // `_average`); every other dialect produces the fractional result
+        // natively.
+        ctx.mockNext({ avgPriority: 1.5 })
+
+        const row = await ctx.conn.selectFrom(tIssue)
+            .where(tIssue.projectId.equals(1))
+            .select({
+                avgPriority: ctx.conn.averageDistinct(tIssue.priority),
+            })
+            .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select avg(distinct priority) as "avgPriority" from issue where project_id = :0"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof row, { avgPriority?: number | undefined }>>()
+        expect(row.avgPriority).toBe(1.5)
+    })
+
 })

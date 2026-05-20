@@ -10,6 +10,23 @@ won't.
 Treat anything listed here as a **constraint**, not a TODO. If you
 think one of these should change, ask first.
 
+**Library policy on engine feature support.** The library does
+**not** detect whether the target engine supports a feature and does
+**not** throw a pre-emptive error when emitting SQL the deployed
+server will reject. Compatibility-version branches (e.g.
+`compatibilityVersion >= 13_000_001`) only switch between **valid
+forms of the same emitted SQL** — they do not act as version-gate
+exceptions. When a feature only exists on a newer server release and
+the user's deployed engine is older, the database raises its own SQL
+error and that error surfaces verbatim to the caller. This applies
+even when an older release line is still in service and the lib's
+default `compatibilityVersion` (`Number.POSITIVE_INFINITY`) is ahead
+of what is GA: it is the user's responsibility to pin
+`compatibilityVersion` to match their server, and the engine's error
+is the source of truth for what it accepts. Therefore "the lib emits
+SQL my old server rejects" is **never a library bug** — it is either
+a deployment limitation (this file) or a user configuration mistake.
+
 How a limitation differs from a bug:
 
 |  | Limitation | Bug |

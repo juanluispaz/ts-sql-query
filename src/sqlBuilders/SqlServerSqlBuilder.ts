@@ -27,6 +27,27 @@ export class SqlServerSqlBuilder extends AbstractSqlBuilder {
         }
         return super._appendRawColumnName(column, params)
     }
+    override _average(params: any[], value: any): string {
+        return 'avg(' + this._averageOperandSql(value, params) + ')'
+    }
+    override _averageDistinct(params: any[], value: any): string {
+        return 'avg(distinct ' + this._averageOperandSql(value, params) + ')'
+    }
+    private _averageOperandSql(value: any, params: any[]): string {
+        // SQL Server `AVG` truncates integer operands to int (returning 2
+        // for `AVG({1, 2, 4})` instead of 2.333) — historical T-SQL
+        // semantics that diverge from every other supported dialect.
+        // `average(...)` / `averageDistinct(...)` exposes a fractional
+        // `NumberValueSource<..., 'optional'>` on the typed surface for
+        // all dialects, so casting an integer operand to `float` here
+        // homogenises the runtime result without forcing the lib's
+        // caller to wrap the column themselves.
+        const valueType = __getValueSourcePrivate(value).__valueType
+        if (valueType === 'int' || valueType === 'bigint' || valueType === 'customInt') {
+            return 'cast(' + this._appendSql(value, params, false) + ' as float)'
+        }
+        return this._appendSql(value, params, false)
+    }
     override _forceAsIdentifier(identifier: string): string {
         return '[' + identifier + ']'
     }

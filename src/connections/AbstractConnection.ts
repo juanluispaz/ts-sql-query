@@ -984,21 +984,27 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
         const valuePrivate = __getValueSourcePrivate(value)
         return new AggregateFunctions1ValueSource('_sumDistinct', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
     }
-    average<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB>): NumberValueSource<SOURCE, 'optional'>
-    average<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB>): BigintValueSource<SOURCE, 'optional'>
-    average<TYPE extends ICustomIntValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomIntValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
-    average<TYPE extends ICustomDoubleValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomDoubleValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    // `AVG` is conceptually a fractional operation: averaging any set of
+    // numerics may yield a non-integer scalar. Every supported engine
+    // except SQL Server reflects that (PostgreSQL → numeric, MariaDB /
+    // MySQL → decimal, Oracle → NUMBER, SQLite → real); SQL Server is
+    // the lone outlier and truncates `AVG(int)` back to int by
+    // historical SQL convention. The library exposes the conceptual
+    // semantics: `average(...)` / `averageDistinct(...)` always return
+    // `NumberValueSource<..., 'optional'>` (TS `number`, runtime
+    // `'double'`) regardless of the input value-type, and SQL Server
+    // emits a cast inside `_average` / `_averageDistinct` so the engine
+    // also returns a fractional scalar — homogenising behaviour across
+    // every dialect.
+    average<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any>) & SameDB<DB>): NumberValueSource<SOURCE, 'optional'>
     average(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_average', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_average', value, 'double', 'double', 'optional', valuePrivate.__typeAdapter)
     }
-    averageDistinct<SOURCE extends NSource>(value: INumberValueSource<SOURCE, any> & SameDB<DB>): NumberValueSource<SOURCE, 'optional'>
-    averageDistinct<SOURCE extends NSource>(value: IBigintValueSource<SOURCE, any> & SameDB<DB>): BigintValueSource<SOURCE, 'optional'>
-    averageDistinct<TYPE extends ICustomIntValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomIntValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
-    averageDistinct<TYPE extends ICustomDoubleValueSource<any, any, any, any>>(value: TYPE & SameDB<DB>): CustomDoubleValueSource<TYPE[typeof source], TYPE[typeof valueType], TYPE[typeof typeName], 'optional'>
+    averageDistinct<SOURCE extends NSource>(value: (INumberValueSource<SOURCE, any> | IBigintValueSource<SOURCE, any> | ICustomIntValueSource<SOURCE, any, any, any> | ICustomDoubleValueSource<SOURCE, any, any, any>) & SameDB<DB>): NumberValueSource<SOURCE, 'optional'>
     averageDistinct(value: ValueSourceOf<any>): ValueSourceOf<any> {
         const valuePrivate = __getValueSourcePrivate(value)
-        return new AggregateFunctions1ValueSource('_averageDistinct', value, valuePrivate.__valueType, valuePrivate.__valueTypeName, 'optional', valuePrivate.__typeAdapter)
+        return new AggregateFunctions1ValueSource('_averageDistinct', value, 'double', 'double', 'optional', valuePrivate.__typeAdapter)
     }
     stringConcat<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB>): StringValueSource<SOURCE, 'optional'>
     stringConcat<SOURCE extends NSource>(value: IStringValueSource<SOURCE, any> & SameDB<DB>, separator: string): StringValueSource<SOURCE, 'optional'>

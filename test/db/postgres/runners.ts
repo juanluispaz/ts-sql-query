@@ -195,7 +195,19 @@ async function ensureSchemaAndSeedLoaded(): Promise<{ schema: string; seed: stri
 async function reseedAgainstNativePostgresHandle(runner: QueryRunner): Promise<void> {
     const { schema, seed } = await ensureSchemaAndSeedLoaded()
     const native = runner.getNativeRunner() as any
-    if (typeof native?.unsafe === 'function') {
+    // PGlite check must run BEFORE the duck-typed `.query`/`.unsafe` checks:
+    // a PGlite instance also exposes `.query(text, params)` (PostgreSQL
+    // extended protocol — single-statement only, rejects multi-statement
+    // schema with `cannot insert multiple commands into a prepared
+    // statement`). Only `.exec` routes through the simple query protocol
+    // that accepts the multi-statement schema/seed.
+    if (typeof native?.exec === 'function' && typeof native?.execProtocolRaw === 'function') {
+        // PGlite (the extra `execProtocolRaw` check pins the brand —
+        // postgres.js's tagged template also exposes a `.unsafe`, and
+        // some pg drivers expose stray `.exec` methods.)
+        await native.exec(schema)
+        await native.exec(seed)
+    } else if (typeof native?.unsafe === 'function') {
         // postgres.js Sql or bun:sql SQL — tagged-template function with .unsafe()
         await native.unsafe(schema)
         await native.unsafe(seed)
@@ -203,10 +215,6 @@ async function reseedAgainstNativePostgresHandle(runner: QueryRunner): Promise<v
         // pg.Pool
         await native.query(schema)
         await native.query(seed)
-    } else if (typeof native?.exec === 'function') {
-        // PGlite
-        await native.exec(schema)
-        await native.exec(seed)
     } else {
         throw new Error('Unsupported native postgres runner shape; cannot reseed')
     }

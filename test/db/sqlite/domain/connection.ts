@@ -23,6 +23,9 @@ export class DBConnection extends SqliteConnection<'DBConnection'> {
             this.compatibilityVersion = compatibilityVersion
         }
     }
+    // No `callXxx` wrappers here. SQLite has no SQL-side stored
+    // procedures / functions, so the parallel `exec.procedure-function`
+    // test wave keeps every case commented out — see that file.
 }
 
 export const tOrganization = new class TOrganization extends Table<DBConnection, 'TOrganization'> {

@@ -18,6 +18,42 @@ export class DBConnection extends MySqlConnection<'DBConnection'> {
             this.compatibilityVersion = compatibilityVersion
         }
     }
+
+    // Public wrappers around the `protected` `executeProcedure` /
+    // `executeFunction` entry points on `AbstractConnection`. The
+    // documented pattern is to expose one domain method per callable
+    // procedure / function instead of letting tests reach into the
+    // protected surface — the abstract method stays protected so each
+    // app surfaces only what it actually calls.
+    //
+    // The DDL for each procedure / function lives in the dialect's
+    // `domain/schema.sql` so both mock and real-DB cells exercise the
+    // round-trip through `_buildCallProcedure` / `_buildCallFunction`
+    // and the connector's `executeProcedure` / `executeFunction` path.
+    callRefreshStats(): Promise<void> {
+        return this.executeProcedure('refresh_stats', [])
+    }
+    callArchiveProject(id: number, reason: string): Promise<void> {
+        return this.executeProcedure('archive_project', [
+            this.const(id, 'int'),
+            this.const(reason, 'string'),
+        ])
+    }
+    callCountOpenIssues(projectId: number): Promise<number> {
+        return this.executeFunction('count_open_issues', [
+            this.const(projectId, 'int'),
+        ], 'int', 'required')
+    }
+    callProjectName(id: number): Promise<string> {
+        return this.executeFunction('project_name', [
+            this.const(id, 'int'),
+        ], 'string', 'required')
+    }
+    callProjectNameOrNull(id: number): Promise<string | null> {
+        return this.executeFunction('project_name', [
+            this.const(id, 'int'),
+        ], 'string', 'optional')
+    }
 }
 
 export const tOrganization = new class TOrganization extends Table<DBConnection, 'TOrganization'> {

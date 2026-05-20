@@ -67,3 +67,18 @@ CREATE TABLE issue (
     CONSTRAINT fk_issue_parent FOREIGN KEY (parent_id) REFERENCES issue(id),
     CONSTRAINT uk_issue_number UNIQUE (project_id, "number")
 );
+
+-- Stored procedures and functions exercised by
+-- `exec.procedure-function.test.ts`. PL/SQL bodies contain internal
+-- `;` so each block is kept as one statement by the
+-- `CREATE [OR REPLACE] (PROCEDURE|FUNCTION)` branch of `splitStatements`
+-- in `test/db/oracle/runners.ts`. Blank lines act as block delimiters
+-- so each CREATE stays in its own block.
+
+CREATE OR REPLACE PROCEDURE refresh_stats AS BEGIN NULL; END;
+
+CREATE OR REPLACE PROCEDURE archive_project(p_id IN NUMBER, p_reason IN VARCHAR2) AS BEGIN UPDATE project SET archived_at = CURRENT_TIMESTAMP, name = name || ' [archived: ' || p_reason || ']' WHERE id = p_id; END;
+
+CREATE OR REPLACE FUNCTION count_open_issues(p_id IN NUMBER) RETURN NUMBER AS v NUMBER; BEGIN SELECT COUNT(*) INTO v FROM issue WHERE project_id = p_id AND status = 'open'; RETURN v; END;
+
+CREATE OR REPLACE FUNCTION project_name(p_id IN NUMBER) RETURN VARCHAR2 AS v VARCHAR2(255); BEGIN SELECT name INTO v FROM project WHERE id = p_id; RETURN v; END;

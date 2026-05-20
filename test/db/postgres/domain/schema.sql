@@ -55,3 +55,35 @@ CREATE TABLE issue (
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (project_id, number)
 );
+
+-- Stored procedures and functions exercised by
+-- `exec.procedure-function.test.ts`. Each body is intentionally
+-- trivial: the tests only assert on the SQL the SqlBuilder emits and
+-- the round-trip through the driver / `executeProcedure` /
+-- `executeFunction` plumbing.
+
+DROP PROCEDURE IF EXISTS refresh_stats();
+DROP PROCEDURE IF EXISTS archive_project(integer, varchar);
+DROP FUNCTION IF EXISTS count_open_issues(integer);
+DROP FUNCTION IF EXISTS project_name(integer);
+
+CREATE PROCEDURE refresh_stats()
+LANGUAGE plpgsql AS $$ BEGIN NULL; END; $$;
+
+CREATE PROCEDURE archive_project(p_id integer, p_reason varchar)
+LANGUAGE sql AS $$
+    UPDATE project
+       SET archived_at = CURRENT_TIMESTAMP,
+           name        = name || ' [archived: ' || p_reason || ']'
+     WHERE id = p_id
+$$;
+
+CREATE FUNCTION count_open_issues(p_id integer) RETURNS integer
+LANGUAGE sql AS $$
+    SELECT COUNT(*)::int FROM issue WHERE project_id = p_id AND status = 'open'
+$$;
+
+CREATE FUNCTION project_name(p_id integer) RETURNS varchar
+LANGUAGE sql AS $$
+    SELECT name FROM project WHERE id = p_id
+$$;

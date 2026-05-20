@@ -204,9 +204,23 @@ async function validateOrResetForReuse(host: string, port: number): Promise<void
 // `oracledb.execute()` expects DDL/DML without a trailing `;` but PL/SQL
 // anonymous blocks require the closing `END;` to be syntactically valid,
 // so the split re-adds the `;` for blocks that begin with `BEGIN`/`DECLARE`.
+//
+// `CREATE [OR REPLACE] PROCEDURE/FUNCTION/TRIGGER/PACKAGE` blocks
+// contain internal `;` between statements in the body. Treating each
+// such CREATE as one indivisible block (no `;\n` split) keeps the
+// definition intact; the harness then passes it straight through to
+// `oracledb.execute()`, which IS happy to compile PL/SQL bodies as
+// long as the trailing `END;` is preserved (we strip a trailing `;`
+// and re-add exactly one).
 function splitStatements(sql: string): string[] {
     const out: string[] = []
     for (const block of sql.split(/^\s*$/m)) {
+        const blockTrimmed = stripSqlLineComments(block).trim()
+        if (blockTrimmed.length === 0) continue
+        if (/^create\s+(?:or\s+replace\s+)?(?:procedure|function|trigger|package(?:\s+body)?)\b/i.test(blockTrimmed)) {
+            out.push(blockTrimmed.replace(/;?\s*$/, '') + ';')
+            continue
+        }
         for (const piece of block.split(/;\s*(?:\n|$)/)) {
             const stmt = stripSqlLineComments(piece).trim()
             if (stmt.length === 0) continue

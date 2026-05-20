@@ -59,3 +59,19 @@ CREATE TABLE issue (
     FOREIGN KEY (parent_id) REFERENCES issue(id),
     UNIQUE (project_id, `number`)
 );
+
+-- Stored procedures and functions exercised by
+-- `exec.procedure-function.test.ts`. Each body is intentionally
+-- trivial AND single-statement so the `splitStatements` helper (which
+-- splits on `;\n`) ships each CREATE in one piece. Procedures avoid
+-- `BEGIN ... END` by leaning on MariaDB's single-statement body form;
+-- functions use the `RETURN (<scalar subquery>)` shortcut for the
+-- same reason.
+DROP PROCEDURE IF EXISTS refresh_stats;
+DROP PROCEDURE IF EXISTS archive_project;
+DROP FUNCTION IF EXISTS count_open_issues;
+DROP FUNCTION IF EXISTS project_name;
+CREATE PROCEDURE refresh_stats() SELECT 1;
+CREATE PROCEDURE archive_project(IN p_id INT, IN p_reason VARCHAR(255)) UPDATE project SET archived_at = CURRENT_TIMESTAMP, name = CONCAT(name, ' [archived: ', p_reason, ']') WHERE id = p_id;
+CREATE FUNCTION count_open_issues(p_id INT) RETURNS INT DETERMINISTIC RETURN (SELECT COUNT(*) FROM issue WHERE project_id = p_id AND status = 'open');
+CREATE FUNCTION project_name(p_id INT) RETURNS VARCHAR(255) DETERMINISTIC RETURN (SELECT name FROM project WHERE id = p_id);

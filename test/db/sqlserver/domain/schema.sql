@@ -61,3 +61,45 @@ CREATE TABLE issue (
     FOREIGN KEY (parent_id) REFERENCES issue(id),
     CONSTRAINT uk_issue_number UNIQUE (project_id, [number])
 );
+GO
+
+-- Stored procedures and functions exercised by
+-- `exec.procedure-function.test.ts`. SQL Server requires CREATE
+-- PROCEDURE / CREATE FUNCTION to be the only statement in their
+-- batch, so each one is preceded by a `GO` separator that
+-- `splitBatch` (the harness helper) treats as a batch boundary.
+
+IF OBJECT_ID('refresh_stats',     'P')  IS NOT NULL DROP PROCEDURE refresh_stats;
+IF OBJECT_ID('archive_project',   'P')  IS NOT NULL DROP PROCEDURE archive_project;
+IF OBJECT_ID('count_open_issues', 'FN') IS NOT NULL DROP FUNCTION count_open_issues;
+IF OBJECT_ID('project_name',      'FN') IS NOT NULL DROP FUNCTION project_name;
+GO
+
+CREATE PROCEDURE refresh_stats AS BEGIN SET NOCOUNT ON; END;
+GO
+
+CREATE PROCEDURE archive_project @p_id INT, @p_reason VARCHAR(255) AS
+BEGIN
+    SET NOCOUNT ON;
+    UPDATE project
+       SET archived_at = CURRENT_TIMESTAMP,
+           name        = name + ' [archived: ' + @p_reason + ']'
+     WHERE id = @p_id;
+END;
+GO
+
+CREATE FUNCTION count_open_issues(@p_id INT)
+RETURNS INT
+AS
+BEGIN
+    RETURN (SELECT COUNT(*) FROM issue WHERE project_id = @p_id AND status = 'open')
+END;
+GO
+
+CREATE FUNCTION project_name(@p_id INT)
+RETURNS VARCHAR(255)
+AS
+BEGIN
+    RETURN (SELECT name FROM project WHERE id = @p_id)
+END;
+GO

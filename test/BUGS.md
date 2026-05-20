@@ -29,7 +29,40 @@ That's the contract. Do **not** spend time diagnosing the root cause,
 choosing a category, or proposing a fix — the fixing agent owns all
 of that. Two minutes of triage and one paragraph is the bar.
 
-_No open entries._
+## Oracle `.minus(...)` / `.minusAll(...)` emit `EXCEPT [ALL]` (the non-Oracle keyword)
+
+**Where**:
+[`src/sqlBuilders/OracleSqlBuilder.ts:354-357`](../src/sqlBuilders/OracleSqlBuilder.ts#L354).
+**Reproduction**: the `_appendCompoundOperator` override on Oracle
+swaps the `'minus'` / `'minusAll'` cases with the `'except'` /
+`'exceptAll'` cases. So calling `.except(...)` correctly emits
+` minus ` (Oracle's native form) but calling `.minus(...)` — the
+dialect-native fluent helper — emits ` except `, which real Oracle
+≤ 20c rejects with `ORA-00928: missing SELECT keyword` /
+`ORA-00933: SQL command not properly ended`. Reachable from
+`test/db/oracle/newest/oracledb/select.compound-extras.test.ts`
+(`minus-and-minus-all-route-through-the-dialect-alias`).
+**Current workaround in the suite**: the oracle cell of that test
+pins the buggy SQL (`select … except …` / `except all`) with a
+`TODO[BUG]` comment so the suite stays green.
+
+## `ignoreIfHasNoValueWhen` dispatches to `ignoreIfHasValue` instead of `ignoreIfHasNoValue`
+
+**Where**:
+[`src/queryBuilders/UpdateQueryBuilder.ts:751`](../src/queryBuilders/UpdateQueryBuilder.ts#L751)
+and
+[`src/queryBuilders/InsertQueryBuilder.ts:1474`](../src/queryBuilders/InsertQueryBuilder.ts#L1474).
+**Reproduction**: both `*When` wrappers call `this.ignoreIfHasValue(...columns)`
+when the gate is true, so they delete columns whose staged value PASSES
+`_isValue` — the opposite of what the non-When variant
+(`ignoreIfHasNoValue`) does. A column staged as `null` is preserved
+instead of being dropped. Reachable from `update.conditional-sets.test.ts`
+(`ignore-if-set-when-and-ignore-if-has-value-when-toggle-cleanly`) and
+the mirror `insert.conditional-sets.test.ts`.
+**Current workaround in the suite**: the two cases assert the current
+buggy SQL (the `null`-valued column survives) with a
+`TODO[BUG]: see test/BUGS.md — ignoreIfHasNoValueWhen swaps polarity`
+comment so the suite stays green.
 
 ---
 

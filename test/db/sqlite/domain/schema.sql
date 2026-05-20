@@ -55,3 +55,26 @@ CREATE TABLE issue (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE (project_id, number)
 );
+
+-- Stored procedures and functions exercised by
+-- `exec.procedure-function.test.ts` on every other dialect. SQLite
+-- has no SQL-side DDL for either, so the corresponding cell keeps
+-- every test commented out (see test/db/sqlite/<connector>/exec.procedure-function.test.ts).
+-- The DDL stubs below are kept for parity with the other dialect
+-- schemas — i.e. they describe what would live here if SQLite ever
+-- gained `CREATE PROCEDURE` / `CREATE FUNCTION`. Statement
+-- terminators are intentionally omitted because the harness'
+-- `splitStatements` regex doesn't respect SQL comments and would
+-- hand SQLite a comment-only fragment that the engine rejects with
+-- "no valid SQL statement"
+--
+--   CREATE PROCEDURE refresh_stats() ...
+--   CREATE PROCEDURE archive_project(p_id INTEGER, p_reason TEXT)
+--       UPDATE project
+--          SET archived_at = CURRENT_TIMESTAMP,
+--              name        = name || ' [archived: ' || p_reason || ']'
+--        WHERE id = p_id
+--   CREATE FUNCTION count_open_issues(p_id INTEGER) RETURNS INTEGER
+--       SELECT COUNT(*) FROM issue WHERE project_id = p_id AND status = 'open'
+--   CREATE FUNCTION project_name(p_id INTEGER) RETURNS TEXT
+--       SELECT name FROM project WHERE id = p_id

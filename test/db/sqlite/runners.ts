@@ -49,11 +49,17 @@ async function readSchemaAndSeed(): Promise<{ schema: string; seed: string }> {
 // Split a SQL script on semicolons at end-of-statement. SQLite drivers
 // (bun:sqlite included) only execute one statement per `run()`/`prepare()`
 // call, so the seed/schema files need to be chopped up before execution.
+//
+// Trailing tail-comment blocks (e.g. parity stubs for features SQLite
+// doesn't support) survive the `;` split as a comment-only fragment;
+// bun:sqlite rejects those with "no valid SQL statement". Strip
+// `--` line comments before testing for emptiness so we drop those
+// fragments before they reach the driver.
 function splitStatements(sql: string): string[] {
     return sql
         .split(/;\s*(?:\n|$)/)
         .map(s => s.trim())
-        .filter(s => s.length > 0)
+        .filter(s => s.replace(/--[^\n]*/g, '').trim().length > 0)
 }
 
 // ---- bun:sqlite (in-process, Bun-only) ----------------------------------

@@ -10,6 +10,7 @@ audit, or touching the prisma / sync sub-trees.
   - [Test-context surface](#test-context-surface)
   - [Testing a runtime guard that is also typed at compile time](#testing-a-runtime-guard-that-is-also-typed-at-compile-time)
   - [When the shared domain is missing what your test needs](#when-the-shared-domain-is-missing-what-your-test-needs)
+  - [Mock-only is a smell — restructure before reaching for the guard](#mock-only-is-a-smell--restructure-before-reaching-for-the-guard)
   - [If a new test surfaces a bug in `src/`](#if-a-new-test-surfaces-a-bug-in-src)
 - [Adding a database](#adding-a-database)
 - [Why the duplication between cells?](#why-the-duplication-between-cells)
@@ -306,6 +307,62 @@ column-vs-column comparisons (same adapter and deliberately
 different adapter) instead of three throwaway `TFlagA` / `TFlagB` /
 `TFlagC` stubs. The diff against the prior schema is the template
 for future extensions.
+
+### Mock-only is a smell — restructure before reaching for the guard
+
+`if (ctx.realDbEnabled) return` is the escape hatch that says "this
+test only ever runs through the mock". The full normative rule is
+[`DESIGN.md` §1 #18](./DESIGN.md#1-principles); the operational
+summary is: **a test that asserts SQL no real database accepts is
+almost always exercising something that does not make semantic
+sense**. The guard is not just "skip the real DB" — it's a flag that
+the test design probably needs to change.
+
+Two real cases that surfaced in this suite. Both were initially
+"fixed" by adding a per-cell mock-only guard; both should have
+forced a redesign:
+
+- `.orderBy('id').customizeQuery({ afterOrderByItems: rawFragment`${tIssue.id} desc` })`
+  — a "tiebreaker" by the same unique PK that is already the primary
+  sort key. SQL Server rejected it (error 169, "column specified more
+  than once in the order by list"). The actual fix was to make a
+  non-unique column (`priority`) the primary key and use `id` as the
+  real tiebreaker — works on every dialect, real-DB everywhere.
+- A scalar aggregate sub-query (`selectOneColumn(count(...))` → one
+  row) whose customize hook emitted `order by (<scalar sub-query>)`.
+  Oracle rejected it (`ORA-00907`). Ordering one row by a scalar
+  expression is meaningless. The actual fix was to move the embedded
+  sub-query into a comment in the `afterSelectKeyword` slot — a
+  natural position for a tag-style annotation next to an aggregate.
+  That hook position IS mock-only by design (some drivers strip
+  comments and would mis-count placeholders, the same reason
+  `customize-select-hook-fragment-with-bound-param` is mock-only),
+  but the SQL the snapshot now pins is meaningful and the guard
+  documents a real constraint instead of papering over a broken
+  design.
+
+Recipe before adding the guard:
+
+1. **Read the snapshot.** Would you put that SQL in production code?
+   If not, the test is hiding a design problem.
+2. **Try restructuring.** Change the column, hook position or query
+   shape until the emitted SQL is meaningful AND universally
+   accepted. Real-DB coverage is the goal.
+3. **Document the constraint.** Only if (1) and (2) leave you with
+   no path forward — and the test's purpose is genuinely SQL-emission
+   (forwarder behaviour, comment-position assertion, etc.) — reach
+   for the guard with a comment naming the *specific* constraint
+   (which drivers, which engines, what the constraint is). A
+   reviewer reading the guard should learn why this SQL shape is
+   the one the test wants to assert.
+
+Per-cell guards (`if (ctx.realDbEnabled) return` in just the
+dialect that rejects) deserve the same scrutiny. Silencing the real
+DB on one cell of the matrix doesn't fix the design — it just hides
+it from one column. If the SQL is sensible everywhere except one
+engine, the engine's rejection is real signal: prefer restructuring
+the test to a shape every engine accepts over silencing the
+mismatch.
 
 ### If a new test surfaces a bug in `src/`
 

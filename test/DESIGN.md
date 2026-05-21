@@ -248,6 +248,35 @@ see [§1.3](#1-principles) for the precise rule.
     both coexist. When the new suite supersedes them, the examples are
     deleted in one commit, not piecemeal.
 
+18. **Mock-only is a smell — investigate before reaching for
+    `if (ctx.realDbEnabled) return`.** A test guarded that way asserts
+    SQL no real database accepts. That is almost always a sign the test
+    exercises something that does not make semantic sense — a
+    "tiebreaker" on a unique column, an `ORDER BY` on a one-row scalar
+    aggregate, an aggregate predicate in `WHERE`, and so on. The guard
+    is the escape hatch, not the default. Before adding it:
+    - **Check the SQL semantics.** Read the snapshot the assertion
+      would pin. Would a developer write that SQL in production code?
+      If not, the test is hiding a design problem — fix the design,
+      don't paper over it with the guard.
+    - **Try restructuring.** Change the column, hook position or query
+      shape until the emitted SQL is meaningful AND universally
+      accepted. Real-DB coverage is the goal.
+    - **Document the constraint.** Only after both checks should you
+      reach for the guard, and only with a comment naming what forced
+      the choice — a driver that strips comments and mis-counts
+      placeholders, a synthetic SQL that is the test's whole point
+      (forwarder recursion through nested customize hooks, etc.), or
+      a documented dialect-specific limitation. "Mock-only because
+      `<DB>` rejects this" without explaining *why* that SQL exists
+      is not enough.
+
+    The same applies to per-cell guards: silencing
+    `if (ctx.realDbEnabled) return` in a single dialect masks the
+    same design issue and just hides it from one column of the
+    matrix. The operational recipe and worked examples live in
+    [`MAINTAINING.md` § Mock-only is a smell](./MAINTAINING.md#mock-only-is-a-smell--restructure-before-reaching-for-the-guard).
+
 ---
 
 ## 2. Layout

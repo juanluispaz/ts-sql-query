@@ -413,6 +413,16 @@ framing.
   `noUnusedLocals` rejects. The fix is the `void identifier` sentinel
   documented in
   [`MAINTAINING.md` § Imports used only from commented-out blocks](./MAINTAINING.md#imports-used-only-from-commented-out-blocks).
+- **You're about to add `if (ctx.realDbEnabled) return`.** Pause.
+  The full normative rule is
+  [`DESIGN.md` §1 #18](./DESIGN.md#1-principles) and the recipe with
+  worked examples is in
+  [`MAINTAINING.md` § Mock-only is a smell](./MAINTAINING.md#mock-only-is-a-smell--restructure-before-reaching-for-the-guard).
+  Short version: a test that asserts SQL no real database accepts
+  is almost always exercising something that does not make semantic
+  sense. Fix the design first; reach for the guard only when the
+  test's purpose is genuinely SQL-emission and the constraint that
+  forces mock-only is specific and named.
 - **You suspect a library bug.** Two-minute triage, one paragraph in
   [`BUGS.md`](./BUGS.md), and **move on**. Don't read `src/`, don't
   categorise the bug shape, don't sketch a fix, don't write the

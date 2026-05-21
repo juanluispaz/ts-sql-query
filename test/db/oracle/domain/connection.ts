@@ -54,6 +54,32 @@ export class DBConnection extends OracleConnection<'DBConnection'> {
             this.const(id, 'int'),
         ], 'string', 'optional')
     }
+
+    // Reusable typed SQL fragments — exercised by
+    // fragments.with-args.test.ts. One field per `buildFragmentWith*`
+    // factory documented in docs/queries/sql-fragments.md.
+    intLeftShift = this.buildFragmentWithArgs(
+        this.arg('int', 'required'),
+        this.arg('int', 'required')
+    ).as((a, b) => this.fragmentWithType('int', 'required').sql`${a} << ${b}`)
+
+    intEqualsIfValue = this.buildFragmentWithArgsIfValue(
+        this.arg('int', 'required'),
+        this.valueArg('int', 'optional')
+    ).as((a, b) => this.fragmentWithType('boolean', 'required').sql`${a} = ${b}`)
+
+    intPlus = this.buildFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional'),
+        this.arg('int', 'optional')
+    ).as((a, b) => this.fragmentWithType('int', 'optional').sql`${a} + ${b}`)
+
+    // Sequence references — exercised by sequence.next-current-value.test.ts.
+    // Sequences are only typed on AbstractAdvancedConnection-derived
+    // dialects (mariaDB ≥ 10.3, oracle, postgreSql, sqlServer); see
+    // docs/api/connection.md. The matching DDL is not in the seed
+    // because the tests run mock-only.
+    issueIdSeq  = this.sequence('issue_id_seq', 'int')
+    auditTagSeq = this.sequence('audit_tag_seq', 'bigint')
 }
 
 export const tOrganization = new class TOrganization extends Table<DBConnection, 'TOrganization'> {

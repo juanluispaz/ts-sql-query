@@ -29,7 +29,13 @@ That's the contract. Do **not** spend time diagnosing the root cause,
 choosing a category, or proposing a fix — the fixing agent owns all
 of that. Two minutes of triage and one paragraph is the bar.
 
-_No open entries._
+## `executeInsert(min, max)` ignores the engine's row count on plain inserts
+
+**Where**: [`InsertQueryBuilder.executeInsert`](../src/queryBuilders/InsertQueryBuilder.ts#L58) — the `min`/`max` guard around L165–185.
+
+**Reproduction**: a single-row plain insert (`insertInto(t).values({...}).executeInsert(0, 1)`) primed with `ctx.mockNext(10)` does NOT throw `MAXIMUM_ROWS_EXCEEDED`. Multi-row plain insert with `min=2` always throws `MINIMUM_ROWS_NOT_REACHED` regardless of mock. Single-row + `returningLastInsertedId().executeInsert(0, 1)` with `mockNext(42)` throws `MAXIMUM_ROWS_EXCEEDED count=42` (treats the id as a count).
+
+**Current workaround in the suite**: `test/db/<...>/insert.execute-variants.test.ts` (canonical at [`test/db/sqlite/newest/bun_sqlite/insert.execute-variants.test.ts`](db/sqlite/newest/bun_sqlite/insert.execute-variants.test.ts), 16 cell mirrors + the mysql 2-test variant) exercises the working min/max throw path via multi-row + `returningLastInsertedId()` only. The `execute-insert-throws-when-fewer-than-min-on-single-row` test is marked `// TODO[BUG]` because it currently passes for the wrong reason (it asserts a throw that fires regardless of the mocked count).
 
 ---
 

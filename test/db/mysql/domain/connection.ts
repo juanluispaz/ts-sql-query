@@ -54,6 +54,24 @@ export class DBConnection extends MySqlConnection<'DBConnection'> {
             this.const(id, 'int'),
         ], 'string', 'optional')
     }
+
+    // Reusable typed SQL fragments — exercised by
+    // fragments.with-args.test.ts. One field per `buildFragmentWith*`
+    // factory documented in docs/queries/sql-fragments.md.
+    intLeftShift = this.buildFragmentWithArgs(
+        this.arg('int', 'required'),
+        this.arg('int', 'required')
+    ).as((a, b) => this.fragmentWithType('int', 'required').sql`${a} << ${b}`)
+
+    intEqualsIfValue = this.buildFragmentWithArgsIfValue(
+        this.arg('int', 'required'),
+        this.valueArg('int', 'optional')
+    ).as((a, b) => this.fragmentWithType('boolean', 'required').sql`${a} = ${b}`)
+
+    intPlus = this.buildFragmentWithMaybeOptionalArgs(
+        this.arg('int', 'optional'),
+        this.arg('int', 'optional')
+    ).as((a, b) => this.fragmentWithType('int', 'optional').sql`${a} + ${b}`)
 }
 
 export const tOrganization = new class TOrganization extends Table<DBConnection, 'TOrganization'> {

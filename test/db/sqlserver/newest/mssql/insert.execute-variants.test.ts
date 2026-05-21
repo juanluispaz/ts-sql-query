@@ -3,13 +3,10 @@
 //
 //   - `executeInsert(min, max)` — min-/max-row guards in
 //     [InsertQueryBuilder.ts:164](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L164).
-//     Single-row plain inserts clamp `count` to `{0, 1}` regardless of
-//     the engine's reported row count (the `else if (returningLastInsertedId)`
-//     branch at [L169-174](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L169-L174)),
-//     so the interesting min/max throw cases use the multi-row +
-//     `returningLastInsertedId()` path which hits the
-//     `Array.isArray(result)` branch at
-//     [L167](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L167).
+//     Plain inserts (no RETURNING) compare `min`/`max` against the
+//     engine's reported rowCount; the `.returningLastInsertedId()` path
+//     compares against `result.length` (multi-row) or 0/1 based on the
+//     id being null/non-null (single-row).
 //   - `.values([...]).returningLastInsertedId().executeInsert()` — the
 //     multi-row last-inserted-id path
 //     ([InsertQueryBuilder.ts:114](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L114))
@@ -42,8 +39,8 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('execute-insert-with-min-max-passes-for-single-row', async () => {
-        // Single-row plain insert always clamps `count` to 1, so
-        // `executeInsert(1, 5)` is always in range.
+        // Single-row plain insert: count = engine's reported rowCount
+        // (1 here), in range for `executeInsert(1, 5)`.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             const inserted = await ctx.conn.insertInto(tOrganization)
@@ -63,23 +60,17 @@ describe(ctx.label, () => {
     })
 
     test('execute-insert-throws-when-fewer-than-min-on-single-row', async () => {
-        // TODO[BUG]: this test "throws for the right reason but the wrong
-        // count". The min/max guard at InsertQueryBuilder.ts:166-174
-        // clamps `count = 1` for any non-array plain-insert result,
-        // regardless of the engine's actual rowCount. So `min=2` always
-        // throws here; the mock value `1` is decorative. Once the
-        // `returningLastInsertedId = !idColumn` inversion at L66 is fixed
-        // (see test/BUGS.md), rewrite this test to mock a count that
-        // exercises the comparison directly: `ctx.mockNext(0)` and
-        // `executeInsert(1)` should throw based on the engine count, not
-        // the clamp.
+        // Single-row plain insert with the engine reporting 0 rows and
+        // `executeInsert(1)`: count = 0 < min → throws
+        // MINIMUM_ROWS_NOT_REACHED. Mock-only because no real engine
+        // returns 0 for a successful insert.
         if (ctx.realDbEnabled) return
-        ctx.mockNext(1)
+        ctx.mockNext(0)
         let caught: unknown
         try {
             await ctx.conn.insertInto(tOrganization)
                 .values({ name: 'Pied Piper', plan: 'pro' })
-                .executeInsert(2)
+                .executeInsert(1)
         } catch (e) {
             caught = e
         }

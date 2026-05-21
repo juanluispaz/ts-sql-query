@@ -45,7 +45,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.intLeftShift(5, 2) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 << :1 as "r" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 * power(2, :1) as "r" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -65,7 +65,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.intLeftShift(ctx.conn.const(4, 'int'), ctx.conn.const(2, 'int')) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 << :1 as "r" from dual"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select :0 * power(2, :1) as "r" from dual"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,

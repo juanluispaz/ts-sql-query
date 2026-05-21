@@ -58,10 +58,14 @@ export class DBConnection extends OracleConnection<'DBConnection'> {
     // Reusable typed SQL fragments — exercised by
     // fragments.with-args.test.ts. One field per `buildFragmentWith*`
     // factory documented in docs/queries/sql-fragments.md.
+    // Oracle has no native `<<` operator; the equivalent integer
+    // left-shift is `a * 2^b`, computed via `POWER(2, b)`. The fragment
+    // returns an `int`-typed expression so consumers see the same
+    // public surface as on dialects that use the native operator.
     intLeftShift = this.buildFragmentWithArgs(
         this.arg('int', 'required'),
         this.arg('int', 'required')
-    ).as((a, b) => this.fragmentWithType('int', 'required').sql`${a} << ${b}`)
+    ).as((a, b) => this.fragmentWithType('int', 'required').sql`${a} * power(2, ${b})`)
 
     intEqualsIfValue = this.buildFragmentWithArgsIfValue(
         this.arg('int', 'required'),

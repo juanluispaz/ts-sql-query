@@ -63,7 +63,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
             const idColumn = this.__idColumn
             const multiple = this.__multiple
             let result
-            let returningLastInsertedId = !idColumn
+            let returningLastInsertedId = !!idColumn
             if (multiple && multiple.length <= 0) {
                 if (idColumn) {
                     return this.__sqlBuilder._queryRunner.createResolvedPromise([])

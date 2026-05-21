@@ -58,11 +58,20 @@ export class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     // Reusable typed SQL fragments — exercised by
     // fragments.with-args.test.ts. One field per `buildFragmentWith*`
     // factory documented in docs/queries/sql-fragments.md.
+    //
+    // PostgreSQL rejects `$1 OP $2` when both operands are bare
+    // placeholders (`operator is not unique: unknown OP unknown`,
+    // code 42725). Each fragment below casts its operands to `int` so
+    // the operator resolves against `int OP int`. The casts mirror
+    // what `select const(1, 'int')` already emits at the top level.
     intLeftShift = this.buildFragmentWithArgs(
         this.arg('int', 'required'),
         this.arg('int', 'required')
-    ).as((a, b) => this.fragmentWithType('int', 'required').sql`${a} << ${b}`)
+    ).as((a, b) => this.fragmentWithType('int', 'required').sql`${a}::int << ${b}::int`)
 
+    // `=` is well-overloaded in PostgreSQL, so PG resolves `$1 = $2`
+    // even without casts (one operand reaches the call typed via the
+    // `valueArg` declaration). No `::int` casts needed here.
     intEqualsIfValue = this.buildFragmentWithArgsIfValue(
         this.arg('int', 'required'),
         this.valueArg('int', 'optional')
@@ -71,7 +80,7 @@ export class DBConnection extends PostgreSqlConnection<'DBConnection'> {
     intPlus = this.buildFragmentWithMaybeOptionalArgs(
         this.arg('int', 'optional'),
         this.arg('int', 'optional')
-    ).as((a, b) => this.fragmentWithType('int', 'optional').sql`${a} + ${b}`)
+    ).as((a, b) => this.fragmentWithType('int', 'optional').sql`${a}::int + ${b}::int`)
 
     // Sequence references — exercised by sequence.next-current-value.test.ts.
     // Sequences are only typed on AbstractAdvancedConnection-derived

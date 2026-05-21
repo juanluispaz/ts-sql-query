@@ -45,7 +45,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.intLeftShift(5, 2) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 << $2 as "r""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int << $2::int as "r""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             5,
@@ -65,7 +65,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.intLeftShift(ctx.conn.const(4, 'int'), ctx.conn.const(2, 'int')) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 << $2 as "r""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int << $2::int as "r""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             4,
@@ -128,7 +128,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.intPlus(3, 4) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 + $2 as "r""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int + $2::int as "r""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             3,
@@ -148,7 +148,7 @@ describe(ctx.label, () => {
             .select({ r: ctx.conn.intPlus(undefined, 5) })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1 + $2 as "r""`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select $1::int + $2::int as "r""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
             null,

@@ -60,8 +60,13 @@ describe(ctx.label, () => {
                 })
                 .executeDelete()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete /* tenant=? */ from project where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                3,
+                9999,
+              ]
+            `)
             assertType<Exact<typeof affected, number>>()
         })
     })

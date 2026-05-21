@@ -64,8 +64,15 @@ describe(ctx.label, () => {
                 })
                 .executeInsert()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert /* tenant=? */ into project (name, slug, organization_id) values (?, ?, ?)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                7,
+                "Help center",
+                "help-center",
+                1,
+              ]
+            `)
             assertType<Exact<typeof inserted, number>>()
         })
     })

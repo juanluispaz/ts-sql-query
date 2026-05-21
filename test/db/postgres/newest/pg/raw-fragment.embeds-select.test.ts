@@ -6,12 +6,17 @@
 // params is a full sub-query (`IExecutableSelectQuery`) instead of
 // a plain value source.
 //
-// All tests here drive `rawFragment` through `customizeQuery` hooks
-// that land in valid SQL positions: `beforeColumns` (extra
-// projection) and `beforeOrderByItems` / `afterOrderByItems` (extra
-// sort key). That way the embedded sub-query's placeholder sits in
-// real SQL rather than inside a `/* ... */` comment - the lib
-// emits the right SQL and the real DB cell actually executes it.
+// Most tests here drive `rawFragment` through `customizeQuery` hooks
+// that land in non-comment SQL positions (`beforeColumns` as an
+// extra projection, `beforeOrderByItems` / `afterOrderByItems` as
+// an extra sort key) so the embedded sub-query's placeholder sits
+// in real SQL and the real DB cell actually executes it. The one
+// exception is `rawfragment-hook-embeds-nested-subqueries-deeply`
+// which uses `afterSelectKeyword` with a `/* ... */` tag: the
+// scalar-aggregate wrapper has no non-comment hook position that
+// accepts an embedded scalar sub-query universally, so that test is
+// mock-only by design (some drivers strip comments and would
+// mis-count the placeholders).
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -113,10 +118,19 @@ describe(ctx.label, () => {
     })
 
     test('rawfragment-hook-embeds-nested-subqueries-deeply', async () => {
-        // Outer SELECT's hook embeds sub-query A; sub-query A's own
-        // customize hook embeds sub-query B. The forwarder has to
-        // recurse through the embedded query's own customization
-        // tree without dropping B's params.
+        // Outer SELECT's hook embeds scalar sub-query A; A's own
+        // customize hook embeds scalar sub-query B as part of a
+        // metadata comment in the `afterSelectKeyword` slot - a
+        // natural position for tag-style annotations next to a
+        // scalar aggregate. The forwarder has to recurse through
+        // the embedded query's own customization tree without
+        // dropping B's params.
+        //
+        // Mock-only because some drivers strip comments before
+        // counting placeholders and would reject the extra param at
+        // execution (same reason as
+        // `customize-select-hook-fragment-with-bound-param`).
+        if (ctx.realDbEnabled) return
         ctx.mockNext([{ wrapped: 7, id: 1 }])
         const connection = ctx.conn
 
@@ -128,7 +142,7 @@ describe(ctx.label, () => {
             .where(tIssue.priority.greaterOrEqual(2))
             .selectOneColumn(connection.count(tIssue.id))
             .customizeQuery({
-                afterOrderByItems: connection.rawFragment`(${closedCount})`,
+                afterSelectKeyword: connection.rawFragment`/* closed=(${closedCount}) */`,
             })
 
         const result = await connection.selectFrom(tProject)
@@ -139,11 +153,11 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select count(id) as result from issue where priority >= $1 order by (select count(id) as result from issue where status = $2)) as "wrapped",  id as id from project where id = $3"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select /* closed=(select count(id) as result from issue where status = $1) */ count(id) as result from issue where priority >= $2) as "wrapped",  id as id from project where id = $3"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`
           [
-            2,
             "closed",
+            2,
             1,
           ]
         `)

@@ -116,8 +116,12 @@ describe(ctx.label, () => {
             .returningOneColumn(tIssue.status)
             .executeDeleteNoneOrOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = ? returning status as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            9999,
+          ]
+        `)
         expect(result).toBeNull()
     })
 

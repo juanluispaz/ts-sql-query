@@ -128,8 +128,13 @@ describe(ctx.label, () => {
             .returningOneColumn(tIssue.status)
             .executeUpdateNoneOrOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = ? where id = ? returning status as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "reviewed",
+            9999,
+          ]
+        `)
         expect(result).toBeNull()
     })
 

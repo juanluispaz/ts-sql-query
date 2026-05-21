@@ -93,8 +93,15 @@ describe(ctx.label, () => {
             .returningLastInsertedId()
             .executeInsert(2, 5)
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?), (?, ?) returning id"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Stark Industries",
+            "pro",
+            "Wayne Enterprises",
+            "pro",
+          ]
+        `)
         assertType<Exact<typeof ids, number[]>>()
         expect(ids).toEqual([101, 102])
     })
@@ -180,8 +187,13 @@ describe(ctx.label, () => {
             .returningOneColumn(tOrganization.id)
             .executeInsertNoneOrOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?) returning id as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Oscorp",
+            "free",
+          ]
+        `)
         expect(result).toBeNull()
     })
 
@@ -246,8 +258,15 @@ describe(ctx.label, () => {
             .returningOneColumn(tOrganization.id)
             .executeInsertMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, "plan") values (?, ?), (?, ?) returning id as result"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "Initrode",
+            "free",
+            "Gringotts",
+            "pro",
+          ]
+        `)
         assertType<Exact<typeof ids, number[]>>()
         expect(ids).toEqual([201, 202])
     })

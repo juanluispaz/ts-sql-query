@@ -62,8 +62,14 @@ describe(ctx.label, () => {
                 })
                 .executeUpdate()
 
-            expect(ctx.lastSql).toMatchInlineSnapshot()
-            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update /* tenant=? */ project set name = ? where id = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                9,
+                "Pricing page (v2)",
+                1,
+              ]
+            `)
             assertType<Exact<typeof affected, number>>()
         })
     })

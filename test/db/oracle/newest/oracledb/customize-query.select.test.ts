@@ -77,19 +77,21 @@ describe(ctx.label, () => {
 
     test('customize-select-after-order-by-items-trailing-tiebreaker', async () => {
         // `afterOrderByItems` appends a fragment as an additional
-        // ORDER BY entry, comma-joined after the explicit items. A
-        // common pattern is a deterministic tie-breaker by row id.
+        // ORDER BY entry, comma-joined after the explicit items. The
+        // canonical use case is a deterministic tie-breaker by the
+        // unique row id when the primary sort key (here `priority`)
+        // can have ties.
         ctx.mockNext([{ id: 1 }, { id: 2 }])
         const connection = ctx.conn
         const result = await connection.selectFrom(tIssue)
             .select({ id: tIssue.id })
-            .orderBy('id')
+            .orderBy(tIssue.priority)
             .customizeQuery({
                 afterOrderByItems: connection.rawFragment`${tIssue.id} desc`,
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue order by "id", issue.id desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as "id" from issue order by issue.priority, issue.id desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })

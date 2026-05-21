@@ -103,3 +103,16 @@ BEGIN
     RETURN (SELECT name FROM project WHERE id = @p_id)
 END;
 GO
+
+-- Sequences exercised by `sequence.next-current-value.test.ts`.
+-- `auditTagSeq` is typed `'bigint'` on the domain connection, so
+-- created `AS BIGINT` here; `issueIdSeq` defaults to INT.
+
+IF OBJECT_ID('issue_id_seq',  'SO') IS NOT NULL DROP SEQUENCE issue_id_seq;
+IF OBJECT_ID('audit_tag_seq', 'SO') IS NOT NULL DROP SEQUENCE audit_tag_seq;
+GO
+
+CREATE SEQUENCE issue_id_seq  AS INT    START WITH 1;
+GO
+CREATE SEQUENCE audit_tag_seq AS BIGINT START WITH 1;
+GO

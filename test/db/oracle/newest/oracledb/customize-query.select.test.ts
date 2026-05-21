@@ -50,11 +50,6 @@ describe(ctx.label, () => {
         // - the builder always prefixes with the `window ` keyword
         // (see [AbstractSqlBuilder.ts:L960](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L960)),
         // so the fragment supplies just the window definition.
-        // Mock-only: SQLite (and a few other dialects) reject the
-        // WINDOW clause at the engine, so the real DB cell would
-        // surface a SQL_SYNTAX_ERROR. The SQL the lib emits is the
-        // assertion regardless.
-        if (ctx.realDbEnabled) return
         ctx.mockNext([{ id: 1 }])
         const connection = ctx.conn
         const result = await connection.selectFrom(tIssue)
@@ -201,28 +196,28 @@ describe(ctx.label, () => {
     test('customize-select-all-rawfragment-hooks-kitchen-sink', async () => {
         // All seven RawFragment-typed hooks on SELECT applied at once
         // - the snapshot is the documentation of exactly where each
-        // one lands relative to the rest of the SELECT. Mock-only
-        // because `customWindow` always emits the `window ` keyword
-        // and SQLite (among others) rejects the WINDOW clause at
-        // parse time. The SQL the lib emits is the assertion.
-        if (ctx.realDbEnabled) return
+        // one lands relative to the rest of the SELECT. The three
+        // ORDER BY positions use different columns
+        // (`organizationId` / `slug` / `id`) so SQL Server doesn't
+        // trip on its "column specified more than once in the order
+        // by list" check (error 169).
         ctx.mockNext([{ id: 1 }])
         const connection = ctx.conn
         const result = await connection.selectFrom(tProject)
             .select({ id: tProject.id })
-            .orderBy('id')
+            .orderBy(tProject.organizationId)
             .customizeQuery({
                 beforeQuery:        connection.rawFragment`/* head */ `,
                 afterSelectKeyword: connection.rawFragment`/* hint */`,
                 beforeColumns:      connection.rawFragment`/* cols */ `,
                 customWindow:       connection.rawFragment`w1 as (partition by ${tProject.organizationId})`,
-                beforeOrderByItems: connection.rawFragment`${tProject.id} asc`,
+                beforeOrderByItems: connection.rawFragment`${tProject.slug} asc`,
                 afterOrderByItems:  connection.rawFragment`${tProject.id} asc`,
                 afterQuery:         connection.rawFragment` /* tail */`,
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select /* hint */ /* cols */  id as "id" from project window w1 as (partition by organization_id) order by project.id asc, "id", project.id asc  /* tail */"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  select /* hint */ /* cols */  id as "id" from project window w1 as (partition by organization_id) order by project.slug asc, project.organization_id, project.id asc  /* tail */"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
         assertType<Exact<typeof result, Array<{ id: number }>>>()
     })

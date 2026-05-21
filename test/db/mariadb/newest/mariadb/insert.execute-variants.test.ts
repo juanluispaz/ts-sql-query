@@ -60,94 +60,98 @@ describe(ctx.label, () => {
     })
 
     test('execute-insert-throws-when-fewer-than-min-on-single-row', async () => {
-        // Single-row plain insert with the engine reporting 0 rows and
-        // `executeInsert(1)`: count = 0 < min → throws
-        // MINIMUM_ROWS_NOT_REACHED. Mock-only because no real engine
-        // returns 0 for a successful insert.
-        if (ctx.realDbEnabled) return
-        ctx.mockNext(0)
-        let caught: unknown
-        try {
-            await ctx.conn.insertInto(tOrganization)
-                .values({ name: 'Pied Piper', plan: 'pro' })
-                .executeInsert(1)
-        } catch (e) {
-            caught = e
-        }
-        expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't insert the minimum/)
+        // Single-row plain insert with `executeInsert(2)`: real DB
+        // reports rowCount = 1, 1 < min = 2 -> throws
+        // `MINIMUM_ROWS_NOT_REACHED`.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tOrganization)
+                    .values({ name: 'Pied Piper', plan: 'pro' })
+                    .executeInsert(2)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't insert the minimum/)
+        })
     })
 
     test('execute-insert-multi-row-returning-last-inserted-id-passes', async () => {
         // `.values([...]).returningLastInsertedId().executeInsert()`
         // dispatches through `executeInsertReturningMultipleLastInsertedId`
-        // and returns `number[]`. The mock pre-shapes the id array; the
-        // min/max guards then count `result.length` (the
-        // `Array.isArray(result)` branch).
-        if (ctx.realDbEnabled) return
+        // and returns `number[]`. The min/max guards count
+        // `result.length` (the `Array.isArray(result)` branch). Real
+        // DB returns engine-assigned ids; the value assertion is
+        // length-based to avoid pinning specific id values.
         ctx.mockNext([101, 102])
-        const ids = await ctx.conn.insertInto(tOrganization)
-            .values([
-                { name: 'Stark Industries', plan: 'pro' },
-                { name: 'Wayne Enterprises', plan: 'pro' },
-            ])
-            .returningLastInsertedId()
-            .executeInsert(2, 5)
+        await ctx.withRollback(async () => {
+            const ids = await ctx.conn.insertInto(tOrganization)
+                .values([
+                    { name: 'Stark Industries', plan: 'pro' },
+                    { name: 'Wayne Enterprises', plan: 'pro' },
+                ])
+                .returningLastInsertedId()
+                .executeInsert(2, 5)
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?, ?), (?, ?) returning id"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "Stark Industries",
-            "pro",
-            "Wayne Enterprises",
-            "pro",
-          ]
-        `)
-        assertType<Exact<typeof ids, number[]>>()
-        expect(ids).toEqual([101, 102])
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?, ?), (?, ?) returning id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Stark Industries",
+                "pro",
+                "Wayne Enterprises",
+                "pro",
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect(ids.length).toBe(2)
+            if (!ctx.realDbEnabled) expect(ids).toEqual([101, 102])
+        })
     })
 
     test('execute-insert-multi-row-throws-when-too-few-ids', async () => {
-        // Same multi-row path, but the mock returns only 1 id while
-        // `min=3`. `Array.isArray(result)` → `count = 1` → throws
-        // `MINIMUM_ROWS_NOT_REACHED`. Mock-only.
-        if (ctx.realDbEnabled) return
-        ctx.mockNext([101])
-        let caught: unknown
-        try {
-            await ctx.conn.insertInto(tOrganization)
-                .values([
-                    { name: 'Wonka Industries', plan: 'free' },
-                    { name: 'Cyberdyne Systems', plan: 'pro' },
-                    { name: 'Tyrell Corporation', plan: 'free' },
-                ])
-                .returningLastInsertedId()
-                .executeInsert(3)
-        } catch (e) {
-            caught = e
-        }
-        expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't insert the minimum/)
+        // Same multi-row path; insert 3 rows but require min = 4 so
+        // real DB returns 3 ids, 3 < 4 throws
+        // `MINIMUM_ROWS_NOT_REACHED`.
+        ctx.mockNext([101, 102, 103])
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tOrganization)
+                    .values([
+                        { name: 'Wonka Industries', plan: 'free' },
+                        { name: 'Cyberdyne Systems', plan: 'pro' },
+                        { name: 'Tyrell Corporation', plan: 'free' },
+                    ])
+                    .returningLastInsertedId()
+                    .executeInsert(4)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't insert the minimum/)
+        })
     })
 
     test('execute-insert-multi-row-throws-when-too-many-ids', async () => {
-        // Same multi-row path; mock returns 3 ids while `max=1`. The
-        // `Array.isArray(result)` branch sets `count = 3` → throws
-        // `MAXIMUM_ROWS_EXCEEDED`. Mock-only.
-        if (ctx.realDbEnabled) return
+        // Same multi-row path; insert 3 rows with max = 1 so real DB
+        // returns 3 ids, 3 > 1 throws `MAXIMUM_ROWS_EXCEEDED`.
         ctx.mockNext([101, 102, 103])
-        let caught: unknown
-        try {
-            await ctx.conn.insertInto(tOrganization)
-                .values([
-                    { name: 'Vandelay Industries', plan: 'free' },
-                    { name: 'Massive Dynamic', plan: 'pro' },
-                    { name: 'Soylent Corp', plan: 'free' },
-                ])
-                .returningLastInsertedId()
-                .executeInsert(0, 1)
-        } catch (e) {
-            caught = e
-        }
-        expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|insert more that the maximum/)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tOrganization)
+                    .values([
+                        { name: 'Vandelay Industries', plan: 'free' },
+                        { name: 'Massive Dynamic', plan: 'pro' },
+                        { name: 'Soylent Corp', plan: 'free' },
+                    ])
+                    .returningLastInsertedId()
+                    .executeInsert(0, 1)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|insert more that the maximum/)
+        })
     })
 
     test('execute-insert-none-or-one-with-returning-one-column', async () => {
@@ -244,75 +248,84 @@ describe(ctx.label, () => {
     })
 
     test('execute-insert-many-with-returning-one-column', async () => {
-        // `executeInsertMany()` + `returningOneColumn(col)` lands on the
-        // `__oneColumn` branch of the many-returning path
+        // `executeInsertMany()` + `returningOneColumn(col)` lands on
+        // the `__oneColumn` branch of the many-returning path
         // ([InsertQueryBuilder.ts:272](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L272))
-        // and returns an array of the projected column.
-        if (ctx.realDbEnabled) return
+        // and returns an array of the projected column. Real DB
+        // returns engine-assigned ids; the value assertion is
+        // length-based to avoid pinning specific id values.
         ctx.mockNext([201, 202])
-        const ids = await ctx.conn.insertInto(tOrganization)
-            .values([
-                { name: 'Initrode', plan: 'free' },
-                { name: 'Gringotts', plan: 'pro' },
-            ])
-            .returningOneColumn(tOrganization.id)
-            .executeInsertMany()
+        await ctx.withRollback(async () => {
+            const ids = await ctx.conn.insertInto(tOrganization)
+                .values([
+                    { name: 'Initrode', plan: 'free' },
+                    { name: 'Gringotts', plan: 'pro' },
+                ])
+                .returningOneColumn(tOrganization.id)
+                .executeInsertMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?, ?), (?, ?) returning id as result"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "Initrode",
-            "free",
-            "Gringotts",
-            "pro",
-          ]
-        `)
-        assertType<Exact<typeof ids, number[]>>()
-        expect(ids).toEqual([201, 202])
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into organization (name, plan) values (?, ?), (?, ?) returning id as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "Initrode",
+                "free",
+                "Gringotts",
+                "pro",
+              ]
+            `)
+            assertType<Exact<typeof ids, number[]>>()
+            expect(ids.length).toBe(2)
+            if (!ctx.realDbEnabled) expect(ids).toEqual([201, 202])
+        })
     })
 
     test('execute-insert-many-with-min-throws-when-empty', async () => {
-        // `executeInsertMany(min, max)` checks `rows.length` after the
-        // RETURNING result; with 0 rows and `min=2` it raises
-        // `MINIMUM_ROWS_NOT_REACHED`. Mock-only.
-        if (ctx.realDbEnabled) return
-        ctx.mockNext([])
-        let caught: unknown
-        try {
-            await ctx.conn.insertInto(tOrganization)
-                .values([
-                    { name: 'Aperture Science', plan: 'free' },
-                    { name: 'Black Mesa', plan: 'pro' },
-                ])
-                .returning({ id: tOrganization.id })
-                .executeInsertMany(2)
-        } catch (e) {
-            caught = e
-        }
-        expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't insert the minimum/)
+        // `executeInsertMany(min, max)` checks `rows.length` after
+        // the RETURNING result; insert 2 rows but require min = 3 so
+        // real DB returns 2, 2 < 3 throws
+        // `MINIMUM_ROWS_NOT_REACHED`.
+        ctx.mockNext([{ id: 1 }, { id: 2 }])
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tOrganization)
+                    .values([
+                        { name: 'Aperture Science', plan: 'free' },
+                        { name: 'Black Mesa', plan: 'pro' },
+                    ])
+                    .returning({ id: tOrganization.id })
+                    .executeInsertMany(3)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't insert the minimum/)
+        })
     })
 
     test('execute-insert-many-with-max-throws-when-over-limit', async () => {
-        // Same guard but on the max side: 3 returned rows, max=1 →
-        // `MAXIMUM_ROWS_EXCEEDED`. Mock-only.
-        if (ctx.realDbEnabled) return
+        // Same guard but on the max side: insert 3 rows with
+        // max = 1, so real DB returns 3 rows, 3 > 1 throws
+        // `MAXIMUM_ROWS_EXCEEDED`.
         ctx.mockNext([
             { id: 1 },
             { id: 2 },
             { id: 3 },
         ])
-        let caught: unknown
-        try {
-            await ctx.conn.insertInto(tOrganization)
-                .values([
-                    { name: 'Weyland-Yutani', plan: 'free' },
-                    { name: 'Bluth Company', plan: 'pro' },
-                ])
-                .returning({ id: tOrganization.id })
-                .executeInsertMany(0, 1)
-        } catch (e) {
-            caught = e
-        }
-        expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|insert more that the maximum/)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.insertInto(tOrganization)
+                    .values([
+                        { name: 'Weyland-Yutani', plan: 'free' },
+                        { name: 'Bluth Company', plan: 'pro' },
+                        { name: 'Dunder Mifflin', plan: 'free' },
+                    ])
+                    .returning({ id: tOrganization.id })
+                    .executeInsertMany(0, 1)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|insert more that the maximum/)
+        })
     })
 })

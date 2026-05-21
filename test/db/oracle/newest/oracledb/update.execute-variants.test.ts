@@ -65,21 +65,22 @@ describe(ctx.label, () => {
 
     test('execute-update-throws-when-more-rows-than-max', async () => {
         // `executeUpdate(min, max)` with count > max raises
-        // `MAXIMUM_ROWS_EXCEEDED`. The mock returns 10 to force the
-        // count-above-max branch even though the real DB has only 4
-        // rows seeded.
-        if (ctx.realDbEnabled) return
-        ctx.mockNext(10)
-        let caught: unknown
-        try {
-            await ctx.conn.update(tIssue)
-                .set({ status: 'reviewed' })
-                .where(tIssue.priority.greaterOrEqual(1))
-                .executeUpdate(0, 1)
-        } catch (e) {
-            caught = e
-        }
-        expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|updated more/)
+        // `MAXIMUM_ROWS_EXCEEDED`. WHERE matches all 4 seeded issues
+        // (priority >= 1), so count = 4 > max = 1 fires the throw on
+        // real DB without any mock-shaping.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.update(tIssue)
+                    .set({ status: 'reviewed' })
+                    .where(tIssue.priority.greaterOrEqual(1))
+                    .executeUpdate(0, 1)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|updated more/)
+        })
     })
 
     test('execute-update-none-or-one-with-returning-one-column', async () => {
@@ -117,73 +118,77 @@ describe(ctx.label, () => {
     })
 
     test('execute-update-none-or-one-with-returning-one-column-empty-result', async () => {
-        // Same path but with the engine returning no row → the
-        // `__oneColumn` branch coerces missing to `null` (see
-        // [UpdateQueryBuilder.ts:140](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L140)).
-        // Mock-only: `mockNext(undefined)` simulates the "no row"
-        // condition. Real-DB cells skip the assertion because the
-        // RETURNING path on a non-matching WHERE behaves dialect-
-        // specifically.
-        if (ctx.realDbEnabled) return
+        // Same path as the previous test but the engine returns no
+        // row -> the `__oneColumn` branch coerces missing to `null`
+        // (see [UpdateQueryBuilder.ts:140](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L140)).
+        // Filter on a non-existing id so real-DB also yields no row
+        // from RETURNING.
         ctx.mockNext(undefined)
-        const result = await ctx.conn.update(tIssue)
-            .set({ status: 'reviewed' })
-            .where(tIssue.id.equals(9999))
-            .returningOneColumn(tIssue.status)
-            .executeUpdateNoneOrOne()
+        await ctx.withRollback(async () => {
+            const result = await ctx.conn.update(tIssue)
+                .set({ status: 'reviewed' })
+                .where(tIssue.id.equals(9999))
+                .returningOneColumn(tIssue.status)
+                .executeUpdateNoneOrOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = :0 where id = :1 returning status into :2"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "reviewed",
-            9999,
-            {
-              "as": "result",
-              "dir": 3003,
-            },
-          ]
-        `)
-        expect(result).toBeNull()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"update issue set status = :0 where id = :1 returning status into :2"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                "reviewed",
+                9999,
+                {
+                  "as": "result",
+                  "dir": 3003,
+                },
+              ]
+            `)
+            expect(result).toBeNull()
+        })
     })
 
     test('execute-update-many-with-min-max-throws-when-out-of-range', async () => {
         // `executeUpdateMany(min, max)` checks `rows.length` after the
-        // RETURNING result; with 0 rows and `min=2` it raises
-        // `MINIMUM_ROWS_NOT_REACHED`. Mock-only.
-        if (ctx.realDbEnabled) return
+        // RETURNING result; filter on a non-existing priority so
+        // real-DB returns 0 rows, then min = 2 raises
+        // `MINIMUM_ROWS_NOT_REACHED`.
         ctx.mockNext([])
-        let caught: unknown
-        try {
-            await ctx.conn.update(tIssue)
-                .set({ status: 'reviewed' })
-                .where(tIssue.priority.equals(99))
-                .returning({ id: tIssue.id, status: tIssue.status })
-                .executeUpdateMany(2)
-        } catch (e) {
-            caught = e
-        }
-        expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't update the minimum/)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.update(tIssue)
+                    .set({ status: 'reviewed' })
+                    .where(tIssue.priority.equals(99))
+                    .returning({ id: tIssue.id, status: tIssue.status })
+                    .executeUpdateMany(2)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't update the minimum/)
+        })
     })
 
     test('execute-update-many-with-min-max-throws-when-over-max', async () => {
-        // Same guard but on the max side: 3 returned rows, max=1 →
-        // `MAXIMUM_ROWS_EXCEEDED`. Mock-only.
-        if (ctx.realDbEnabled) return
+        // Same guard but on the max side: WHERE matches all 4 seeded
+        // issues (priority >= 1), max = 1 -> `MAXIMUM_ROWS_EXCEEDED`
+        // on real DB without mock-shaping.
         ctx.mockNext([
             { id: 1, status: 'reviewed' },
             { id: 2, status: 'reviewed' },
             { id: 3, status: 'reviewed' },
+            { id: 4, status: 'reviewed' },
         ])
-        let caught: unknown
-        try {
-            await ctx.conn.update(tIssue)
-                .set({ status: 'reviewed' })
-                .where(tIssue.priority.greaterOrEqual(1))
-                .returning({ id: tIssue.id, status: tIssue.status })
-                .executeUpdateMany(0, 1)
-        } catch (e) {
-            caught = e
-        }
-        expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|updated more/)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.update(tIssue)
+                    .set({ status: 'reviewed' })
+                    .where(tIssue.priority.greaterOrEqual(1))
+                    .returning({ id: tIssue.id, status: tIssue.status })
+                    .executeUpdateMany(0, 1)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|updated more/)
+        })
     })
 })

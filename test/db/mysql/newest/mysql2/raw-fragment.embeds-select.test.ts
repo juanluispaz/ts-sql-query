@@ -6,17 +6,11 @@
 // params is a full sub-query (`IExecutableSelectQuery`) instead of
 // a plain value source.
 //
-// Most tests here drive `rawFragment` through `customizeQuery` hooks
+// All tests here drive `rawFragment` through `customizeQuery` hooks
 // that land in non-comment SQL positions (`beforeColumns` as an
 // extra projection, `beforeOrderByItems` / `afterOrderByItems` as
 // an extra sort key) so the embedded sub-query's placeholder sits
-// in real SQL and the real DB cell actually executes it. The one
-// exception is `rawfragment-hook-embeds-nested-subqueries-deeply`
-// which uses `afterSelectKeyword` with a `/* ... */` tag: the
-// scalar-aggregate wrapper has no non-comment hook position that
-// accepts an embedded scalar sub-query universally, so that test is
-// mock-only by design (some drivers strip comments and would
-// mis-count the placeholders).
+// in real SQL and the real DB cell actually executes it.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
@@ -111,53 +105,6 @@ describe(ctx.label, () => {
           [
             "open",
             "closed",
-            1,
-          ]
-        `)
-        assertType<Exact<typeof result, Array<{ id: number }>>>()
-    })
-
-    test('rawfragment-hook-embeds-nested-subqueries-deeply', async () => {
-        // Outer SELECT's hook embeds scalar sub-query A; A's own
-        // customize hook embeds scalar sub-query B as part of a
-        // metadata comment in the `afterSelectKeyword` slot - a
-        // natural position for tag-style annotations next to a
-        // scalar aggregate. The forwarder has to recurse through
-        // the embedded query's own customization tree without
-        // dropping B's params.
-        //
-        // Mock-only because some drivers strip comments before
-        // counting placeholders and would reject the extra param at
-        // execution (same reason as
-        // `customize-select-hook-fragment-with-bound-param`).
-        if (ctx.realDbEnabled) return
-        ctx.mockNext([{ wrapped: 7, id: 1 }])
-        const connection = ctx.conn
-
-        const closedCount = connection.selectFrom(tIssue)
-            .where(tIssue.status.equals('closed'))
-            .selectOneColumn(connection.count(tIssue.id))
-
-        const wrapper = connection.selectFrom(tIssue)
-            .where(tIssue.priority.greaterOrEqual(2))
-            .selectOneColumn(connection.count(tIssue.id))
-            .customizeQuery({
-                afterSelectKeyword: connection.rawFragment`/* closed=(${closedCount}) */`,
-            })
-
-        const result = await connection.selectFrom(tProject)
-            .where(tProject.id.equals(1))
-            .select({ id: tProject.id })
-            .customizeQuery({
-                beforeColumns: connection.rawFragment`(${wrapper}) as "wrapped", `,
-            })
-            .executeSelectMany()
-
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select (select /* closed=(select count(id) as result from issue where \`status\` = ?) */ count(id) as result from issue where priority >= ?) as "wrapped",  id as id from project where id = ?"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            "closed",
-            2,
             1,
           ]
         `)

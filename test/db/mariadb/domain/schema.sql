@@ -75,3 +75,14 @@ CREATE PROCEDURE refresh_stats() SELECT 1;
 CREATE PROCEDURE archive_project(IN p_id INT, IN p_reason VARCHAR(255)) UPDATE project SET archived_at = CURRENT_TIMESTAMP, name = CONCAT(name, ' [archived: ', p_reason, ']') WHERE id = p_id;
 CREATE FUNCTION count_open_issues(p_id INT) RETURNS INT DETERMINISTIC RETURN (SELECT COUNT(*) FROM issue WHERE project_id = p_id AND status = 'open');
 CREATE FUNCTION project_name(p_id INT) RETURNS VARCHAR(255) DETERMINISTIC RETURN (SELECT name FROM project WHERE id = p_id);
+
+-- Sequences exercised by `sequence.next-current-value.test.ts`.
+-- MariaDB has named sequences since 10.3 (typed via the connection's
+-- `'int'` / `'bigint'` adapter; the engine's CREATE SEQUENCE default
+-- is `BIGINT`, the type hint only affects deserialization).
+
+DROP SEQUENCE IF EXISTS issue_id_seq;
+DROP SEQUENCE IF EXISTS audit_tag_seq;
+
+CREATE SEQUENCE issue_id_seq START WITH 1;
+CREATE SEQUENCE audit_tag_seq START WITH 1;

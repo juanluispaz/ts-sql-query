@@ -62,18 +62,21 @@ describe(ctx.label, () => {
 
     test('execute-delete-throws-when-more-rows-than-max', async () => {
         // `executeDelete(min, max)` with count > max raises
-        // `MAXIMUM_ROWS_EXCEEDED`. Mock-only.
-        if (ctx.realDbEnabled) return
-        ctx.mockNext(10)
-        let caught: unknown
-        try {
-            await ctx.conn.deleteFrom(tIssue)
-                .where(tIssue.priority.greaterOrEqual(1))
-                .executeDelete(0, 1)
-        } catch (e) {
-            caught = e
-        }
-        expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|deleted more/)
+        // `MAXIMUM_ROWS_EXCEEDED`. WHERE matches all 4 seeded issues
+        // (priority >= 1), so count = 4 > max = 1 fires on real DB
+        // without any mock-shaping.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.deleteFrom(tIssue)
+                    .where(tIssue.priority.greaterOrEqual(1))
+                    .executeDelete(0, 1)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|deleted more/)
+        })
     })
 
     test('execute-delete-none-or-one-with-returning-one-column', async () => {
@@ -105,62 +108,69 @@ describe(ctx.label, () => {
     })
 
     test('execute-delete-none-or-one-with-returning-one-column-empty-result', async () => {
-        // Same path but with no row returned → the `__oneColumn`
-        // branch coerces missing to `null` (see
+        // Same path but no row returned -> the `__oneColumn` branch
+        // coerces missing to `null` (see
         // [DeleteQueryBuilder.ts:82](../../../../../src/queryBuilders/DeleteQueryBuilder.ts#L82)).
-        // Mock-only.
-        if (ctx.realDbEnabled) return
+        // Filter on a non-existing id so real-DB also yields no row
+        // from RETURNING.
         ctx.mockNext(undefined)
-        const result = await ctx.conn.deleteFrom(tIssue)
-            .where(tIssue.id.equals(9999))
-            .returningOneColumn(tIssue.status)
-            .executeDeleteNoneOrOne()
+        await ctx.withRollback(async () => {
+            const result = await ctx.conn.deleteFrom(tIssue)
+                .where(tIssue.id.equals(9999))
+                .returningOneColumn(tIssue.status)
+                .executeDeleteNoneOrOne()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = $1 returning status as result"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            9999,
-          ]
-        `)
-        expect(result).toBeNull()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"delete from issue where id = $1 returning status as result"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                9999,
+              ]
+            `)
+            expect(result).toBeNull()
+        })
     })
 
     test('execute-delete-many-with-min-throws-when-empty', async () => {
         // `executeDeleteMany(min, max)` checks `rows.length` after the
-        // RETURNING result; with 0 rows and `min=2` it raises
-        // `MINIMUM_ROWS_NOT_REACHED`. Mock-only.
-        if (ctx.realDbEnabled) return
+        // RETURNING result; filter on a non-existing priority so
+        // real-DB returns 0 rows, then min = 2 raises
+        // `MINIMUM_ROWS_NOT_REACHED`.
         ctx.mockNext([])
-        let caught: unknown
-        try {
-            await ctx.conn.deleteFrom(tIssue)
-                .where(tIssue.priority.equals(99))
-                .returning({ id: tIssue.id, status: tIssue.status })
-                .executeDeleteMany(2)
-        } catch (e) {
-            caught = e
-        }
-        expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't delete the minimum/)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.deleteFrom(tIssue)
+                    .where(tIssue.priority.equals(99))
+                    .returning({ id: tIssue.id, status: tIssue.status })
+                    .executeDeleteMany(2)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't delete the minimum/)
+        })
     })
 
     test('execute-delete-many-with-max-throws-when-over-limit', async () => {
-        // Same guard but on the max side: 3 returned rows, max=1 →
-        // `MAXIMUM_ROWS_EXCEEDED`. Mock-only.
-        if (ctx.realDbEnabled) return
+        // Same guard but on the max side: WHERE matches all 4 seeded
+        // issues (priority >= 1), max = 1 -> `MAXIMUM_ROWS_EXCEEDED`
+        // on real DB without mock-shaping.
         ctx.mockNext([
             { id: 1, status: 'open' },
             { id: 2, status: 'in_progress' },
             { id: 3, status: 'open' },
+            { id: 4, status: 'closed' },
         ])
-        let caught: unknown
-        try {
-            await ctx.conn.deleteFrom(tIssue)
-                .where(tIssue.priority.greaterOrEqual(1))
-                .returning({ id: tIssue.id, status: tIssue.status })
-                .executeDeleteMany(0, 1)
-        } catch (e) {
-            caught = e
-        }
-        expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|deleted more/)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.deleteFrom(tIssue)
+                    .where(tIssue.priority.greaterOrEqual(1))
+                    .returning({ id: tIssue.id, status: tIssue.status })
+                    .executeDeleteMany(0, 1)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|deleted more/)
+        })
     })
 })

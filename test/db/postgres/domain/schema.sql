@@ -87,3 +87,15 @@ CREATE FUNCTION project_name(p_id integer) RETURNS varchar
 LANGUAGE sql AS $$
     SELECT name FROM project WHERE id = p_id
 $$;
+
+-- Sequences exercised by `sequence.next-current-value.test.ts`.
+-- `issueIdSeq` (typed `'int'`) reuses the sequence implicitly
+-- created by `issue.id SERIAL` (PostgreSQL names it `issue_id_seq`);
+-- dropping it explicitly would fail because `issue.id` depends on
+-- it (2BP01). `auditTagSeq` (typed `'bigint'`) is independent and
+-- created here. PostgreSQL sequences are 64-bit internally
+-- regardless of the type hint, which only affects deserialization.
+
+DROP SEQUENCE IF EXISTS audit_tag_seq;
+
+CREATE SEQUENCE audit_tag_seq START 1;

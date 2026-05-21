@@ -42,7 +42,6 @@ describe(ctx.label, () => {
         // `seq.nextValue()` returns a SequenceValueSource tagged
         // `_nextSequenceValue`; SelectQueryBuilder dispatches it
         // through the dialect's `_nextSequenceValue(...)` override.
-        if (ctx.realDbEnabled) return
         ctx.mockNext(42)
         const next = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.issueIdSeq.nextValue())
@@ -50,15 +49,23 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select nextval('issue_id_seq') as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        expect(next).toBe(42)
+        if (!ctx.realDbEnabled) expect(next).toBe(42)
+        else expect(typeof next).toBe('number')
     })
 
     test('sequence-current-value-in-select', async () => {
         // `seq.currentValue()` mirrors nextValue but dispatches to
-        // `_currentSequenceValue` — SQL Server here emits an embedded
-        // sys.sequences subquery; the other dialects emit the engine's
-        // dedicated function.
-        if (ctx.realDbEnabled) return
+        // `_currentSequenceValue` - SQL Server emits an embedded
+        // sys.sequences subquery; the other dialects emit the
+        // engine's dedicated function. On PG/Oracle/MariaDB,
+        // currval/lastval requires nextval to have been called in
+        // the same session, so we call nextValue first when running
+        // real-DB.
+        if (ctx.realDbEnabled) {
+            await ctx.conn.selectFromNoTable()
+                .selectOneColumn(ctx.conn.issueIdSeq.nextValue())
+                .executeSelectOne()
+        }
         ctx.mockNext(41)
         const curr = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.issueIdSeq.currentValue())
@@ -66,14 +73,17 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select currval('issue_id_seq') as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        expect(curr).toBe(41)
+        if (!ctx.realDbEnabled) expect(curr).toBe(41)
+        else expect(typeof curr).toBe('number')
     })
 
     test('sequence-bigint-next-value-emission', async () => {
         // Sequences over `bigint` round-trip through the same
         // dispatcher; the value type only changes how the result is
-        // type-adapted, not the emitted SQL keyword.
-        if (ctx.realDbEnabled) return
+        // type-adapted, not the emitted SQL keyword. Real-DB returns
+        // an engine-assigned bigint (sometimes serialized as string
+        // or number depending on the driver), so the type assertion
+        // accepts all three shapes.
         ctx.mockNext('9223372036854775000')
         const next = await ctx.conn.selectFromNoTable()
             .selectOneColumn(ctx.conn.auditTagSeq.nextValue())
@@ -81,6 +91,6 @@ describe(ctx.label, () => {
 
         expect(ctx.lastSql).toMatchInlineSnapshot(`"select nextval('audit_tag_seq') as result"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
-        expect(typeof next === 'bigint' || typeof next === 'string').toBe(true)
+        expect(typeof next === 'bigint' || typeof next === 'string' || typeof next === 'number').toBe(true)
     })
 })

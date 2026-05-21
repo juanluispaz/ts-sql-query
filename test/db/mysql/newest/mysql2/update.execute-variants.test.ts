@@ -67,18 +67,23 @@ describe(ctx.label, () => {
     })
 
     test('execute-update-throws-when-more-rows-than-max', async () => {
-        if (ctx.realDbEnabled) return
-        ctx.mockNext(10)
-        let caught: unknown
-        try {
-            await ctx.conn.update(tIssue)
-                .set({ status: 'reviewed' })
-                .where(tIssue.priority.greaterOrEqual(1))
-                .executeUpdate(0, 1)
-        } catch (e) {
-            caught = e
-        }
-        expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|updated more/)
+        // `executeUpdate(min, max)` with count > max raises
+        // `MAXIMUM_ROWS_EXCEEDED`. WHERE matches all 4 seeded issues
+        // (priority >= 1), so count = 4 > max = 1 fires the throw on
+        // real DB without any mock-shaping.
+        ctx.mockNext(4)
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.update(tIssue)
+                    .set({ status: 'reviewed' })
+                    .where(tIssue.priority.greaterOrEqual(1))
+                    .executeUpdate(0, 1)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|updated more/)
+        })
     })
 
     // TODO[LIMITATION]: see LIMITATIONS.md — MySQL has no UPDATE …
@@ -92,15 +97,69 @@ describe(ctx.label, () => {
     })
 
     test('execute-update-none-or-one-with-returning-one-column-empty-result', async () => {
-        // See sqlite / postgres cells for the active body.
+        // Same path as the previous test but the engine returns no
+        // row -> the `__oneColumn` branch coerces missing to `null`
+        // (see [UpdateQueryBuilder.ts:140](../../../../../src/queryBuilders/UpdateQueryBuilder.ts#L140)).
+        // Filter on a non-existing id so real-DB also yields no row
+        // from RETURNING.
+        ctx.mockNext(undefined)
+        await ctx.withRollback(async () => {
+            const result = await ctx.conn.update(tIssue)
+                .set({ status: 'reviewed' })
+                .where(tIssue.id.equals(9999))
+                .returningOneColumn(tIssue.status)
+                .executeUpdateNoneOrOne()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+            expect(result).toBeNull()
+        })
     })
 
     test('execute-update-many-with-min-max-throws-when-out-of-range', async () => {
-        // See sqlite / postgres cells for the active body.
+        // `executeUpdateMany(min, max)` checks `rows.length` after the
+        // RETURNING result; filter on a non-existing priority so
+        // real-DB returns 0 rows, then min = 2 raises
+        // `MINIMUM_ROWS_NOT_REACHED`.
+        ctx.mockNext([])
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.update(tIssue)
+                    .set({ status: 'reviewed' })
+                    .where(tIssue.priority.equals(99))
+                    .returning({ id: tIssue.id, status: tIssue.status })
+                    .executeUpdateMany(2)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MINIMUM_ROWS_NOT_REACHED|didn't update the minimum/)
+        })
     })
 
     test('execute-update-many-with-min-max-throws-when-over-max', async () => {
-        // See sqlite / postgres cells for the active body.
+        // Same guard but on the max side: WHERE matches all 4 seeded
+        // issues (priority >= 1), max = 1 -> `MAXIMUM_ROWS_EXCEEDED`
+        // on real DB without mock-shaping.
+        ctx.mockNext([
+            { id: 1, status: 'reviewed' },
+            { id: 2, status: 'reviewed' },
+            { id: 3, status: 'reviewed' },
+            { id: 4, status: 'reviewed' },
+        ])
+        await ctx.withRollback(async () => {
+            let caught: unknown
+            try {
+                await ctx.conn.update(tIssue)
+                    .set({ status: 'reviewed' })
+                    .where(tIssue.priority.greaterOrEqual(1))
+                    .returning({ id: tIssue.id, status: tIssue.status })
+                    .executeUpdateMany(0, 1)
+            } catch (e) {
+                caught = e
+            }
+            expect(String(caught)).toMatch(/MAXIMUM_ROWS_EXCEEDED|updated more/)
+        })
     })
     */
 })

@@ -47,7 +47,7 @@ async function main() {
 
 The `MockQueryRunner` receives a function as argument to the constructor, this function returns the result of the query execution and receives the following arguments:
 
-- **`type: QueryType | 'isTransactionActive'`**: type of the query to be executed. The `QueryType` is defined as:
+- **`type: QueryType`**: type of the query to be executed. The `QueryType` is defined as:
 
 ```ts
 // Types of queries that can be intercepted and mocked
@@ -156,6 +156,29 @@ try {
 } catch (e) {
     if (!(e instanceof Rollback)) throw e
 }
+```
+
+## Transaction-state guards
+
+`MockQueryRunner` mirrors real-driver transaction semantics. The runner keeps an internal transaction-depth counter that `executeBeginTransaction` increments and `executeCommit` / `executeRollback` decrement, and `isTransactionActive()` is answered from that counter. The transaction-lifecycle runtime guards on the connection therefore engage in mock mode exactly as they do for a real driver:
+
+- `commit()` or `rollback()` outside a transaction throws `NOT_IN_TRANSACTION`.
+- Registering `executeBeforeNextCommit` / `executeAfterNextCommit` / `executeAfterNextRollback` outside a transaction throws `NOT_IN_TRANSACTION`.
+- Calling `getTransactionMetadata()` outside a transaction throws `NOT_IN_TRANSACTION`.
+- A nested `transaction(...)` against a runner that reports `nestedTransactionsSupported(): false` throws `NESTED_TRANSACTION_NOT_SUPPORTED`.
+
+`isMocked()` continues to return `true` on `MockQueryRunner`. It is a diagnostic for external consumer code that needs to discriminate "the connection is a mock" from "the connection is real" at runtime (e.g. to skip integration-only assertions) — it no longer controls any guard.
+
+```ts
+const runner = new MockQueryRunner(executor, { database: 'postgreSql' })
+const connection = new DBConnection(runner)
+
+await connection.beginTransaction()
+await connection.commit()
+
+// The second commit hits the same NOT_IN_TRANSACTION guard the real
+// driver would, because the mock's depth counter is back at zero.
+await expect(connection.commit()).rejects.toThrow(/NOT_IN_TRANSACTION/)
 ```
 
 ## Resetting between test cases

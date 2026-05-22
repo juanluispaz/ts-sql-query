@@ -1,7 +1,7 @@
 import type { BeginTransactionOpts, CommitOpts, DatabaseType, PromiseProvider, QueryRunner, QueryType, RollbackOpts } from './QueryRunner.js'
 import { TsSqlError, TsSqlProcessingError, type TsSqlErrorReason } from '../TsSqlError.js'
 
-export type MockQueryExecutor = (type: QueryType | 'isTransactionActive', query: string, params: any[], index: number) => any
+export type MockQueryExecutor = (type: QueryType, query: string, params: any[], index: number) => any
 
 export interface MockQueryRunnerConfig {
     database?: DatabaseType
@@ -34,9 +34,21 @@ export interface MockQueryRunnerConfig {
  * the `select({...})` projects as required. That is the documented invariant, not a
  * bug: the fix in test code is to include every projected column in the mocked row
  * (or to seed `[]` / `undefined` when the test only asserts the emitted SQL).
+ *
+ * **Transaction-state guards.** `MockQueryRunner` maintains an internal
+ * transaction-depth counter — `executeBeginTransaction` increments it,
+ * `executeCommit` / `executeRollback` decrement it — and `isTransactionActive()`
+ * is answered from the counter. The `AbstractConnection` transaction-lifecycle
+ * guards (NOT_IN_TRANSACTION on `commit()` / `rollback()` / hook registration,
+ * NESTED_TRANSACTION_NOT_SUPPORTED on a nested `transaction(...)`) therefore
+ * engage in mock mode exactly as they do for a real driver. `isMocked()`
+ * continues to return `true` purely as a diagnostic for external consumers
+ * that need to discriminate mock vs real at runtime — it no longer disables
+ * any guard.
  */
 export class MockQueryRunner implements QueryRunner {
     private count = 0
+    private transactionDepth = 0
     readonly queryExecutor: MockQueryExecutor
     readonly database: DatabaseType
     readonly promise: PromiseProvider
@@ -53,13 +65,16 @@ export class MockQueryRunner implements QueryRunner {
     }
 
     /**
-     * Reset the internal index used to call `queryExecutor`. The next query
-     * dispatched through this runner will be passed `index = 0`. Useful
-     * when reusing a single `MockQueryRunner` across many test cases that
+     * Reset the internal index used to call `queryExecutor` and the
+     * internal transaction-depth counter. The next query dispatched
+     * through this runner will be passed `index = 0`, and
+     * `isTransactionActive()` will report `false` again. Useful when
+     * reusing a single `MockQueryRunner` across many test cases that
      * each prime their own sequence of responses keyed by index.
      */
     reset(): void {
         this.count = 0
+        this.transactionDepth = 0
     }
 
     useDatabase(database: DatabaseType): void {
@@ -392,6 +407,7 @@ export class MockQueryRunner implements QueryRunner {
             if (result !== undefined && result !== null) {
                 throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'beginTransaction' }, 'Invalid test case result for a beginTransaction with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
+            this.transactionDepth++
             return this.promise.resolve(undefined)
         } catch (e) {
             return this.promise.reject(e)
@@ -403,6 +419,9 @@ export class MockQueryRunner implements QueryRunner {
             const result = this.queryExecutor('commit', 'commit', opts, index)
             if (result !== undefined && result !== null) {
                 throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'commit' }, 'Invalid test case result for a commit with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
+            }
+            if (this.transactionDepth > 0) {
+                this.transactionDepth--
             }
             return this.promise.resolve(undefined)
         } catch (e) {
@@ -416,21 +435,16 @@ export class MockQueryRunner implements QueryRunner {
             if (result !== undefined && result !== null) {
                 throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'rollback' }, 'Invalid test case result for a commit with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null or undefined')
             }
+            if (this.transactionDepth > 0) {
+                this.transactionDepth--
+            }
             return this.promise.resolve(undefined)
         } catch (e) {
             return this.promise.reject(e)
         }
     }
     isTransactionActive(): boolean {
-        const index = this.count++
-        let result = this.queryExecutor('isTransactionActive', '', [], index)
-        if (result !== undefined && result !== null) {
-            result = false
-        }
-        if (typeof result !== 'boolean') {
-            throw new TsSqlProcessingError({ reason: 'INVALID_MOCKED_VALUE', value: result, index, queryType: 'isTransactionActive' }, 'Invalid test case result for an isTransactionActive with index ' + index + '. Your mock function provided to the MockQueryRunner must returns null, undefined, or a boolean')
-        }
-        return result
+        return this.transactionDepth > 0
     }
     executeDatabaseSchemaModification(query: string, params: any[] = []): Promise<void> {
         try {

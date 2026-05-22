@@ -142,7 +142,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     executeBeforeNextCommit(fn: ()=> void): void
     executeBeforeNextCommit(fn: ()=> Promise<void>): void
     executeBeforeNextCommit(fn: ()=> void | Promise<void>): void {
-        if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
+        if (!this.isTransactionActive()) {
             throw new TsSqlProcessingError( { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
         }
         if (this.onRollback === null) {
@@ -163,7 +163,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     executeAfterNextCommit(fn: ()=> void): void
     executeAfterNextCommit(fn: ()=> Promise<void>): void
     executeAfterNextCommit(fn: ()=> void | Promise<void>): void {
-        if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
+        if (!this.isTransactionActive()) {
             throw new TsSqlProcessingError( { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
         }
         if (this.onRollback === null) {
@@ -181,7 +181,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     executeAfterNextRollback(fn: ()=> void): void
     executeAfterNextRollback(fn: ()=> Promise<void>): void
     executeAfterNextRollback(fn: ()=> void | Promise<void>): void {
-        if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
+        if (!this.isTransactionActive()) {
             throw new TsSqlProcessingError( { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
         }
         if (this.onRollback === null) {
@@ -194,7 +194,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
 
     getTransactionMetadata(): Map<unknown, unknown> {
-        if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
+        if (!this.isTransactionActive()) {
             throw new TsSqlProcessingError( { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
         }
         if (!this.transactionMetadata) {
@@ -205,7 +205,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     transaction<T>(fn: () => Promise<T>, isolationLevel?: TransactionIsolationLevel): Promise<T> {
         const source = new QueryExecutionSource('Transaction executed at')
-        if (!this.queryRunner.isMocked() && this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
+        if (this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
             throw new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported')
         }
         const opts: any = isolationLevel || []
@@ -270,7 +270,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
 
     beginTransaction(isolationLevel?: TransactionIsolationLevel): Promise<void> {
         const source = new QueryExecutionSource('Query executed at')
-        if (!this.queryRunner.isMocked() && this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
+        if (this.isTransactionActive() && !this.queryRunner.nestedTransactionsSupported()) {
             throw new TsSqlQueryExecutionError(source, { reason: 'NESTED_TRANSACTION_NOT_SUPPORTED' }, 'Nested transactions not supported')
         }
         const opts: any = isolationLevel || []
@@ -300,7 +300,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
     commit(): Promise<void> {
         const source = new QueryExecutionSource('Query executed at')
-        if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
+        if (!this.isTransactionActive()) {
             throw new TsSqlQueryExecutionError(source, { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
         }
         const opts: any = []
@@ -371,7 +371,7 @@ export abstract class AbstractConnection</*in|out*/ DB extends NDB> implements I
     }
     rollback(): Promise<void> {
         const source = new QueryExecutionSource('Query executed at')
-        if (!this.queryRunner.isMocked() && !this.isTransactionActive()) {
+        if (!this.isTransactionActive()) {
             throw new TsSqlQueryExecutionError(source, { reason: 'NOT_IN_TRANSACTION' }, 'There is no open transaction')
         }
         const opts: any = []

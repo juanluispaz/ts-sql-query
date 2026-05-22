@@ -167,7 +167,7 @@ class RollbackSignal extends Error {
 }
 
 const NON_CONSUMING_TYPES = new Set<string>([
-    'beginTransaction', 'commit', 'rollback', 'isTransactionActive',
+    'beginTransaction', 'commit', 'rollback',
     'executeProcedure', 'executeDatabaseSchemaModification',
     'executeConnectionConfiguration',
 ])

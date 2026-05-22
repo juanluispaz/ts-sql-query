@@ -106,6 +106,8 @@ describe(ctx.label, () => {
         })
     })
 
+    // Not applicable on SQLite: `connection.isolationLevel(...)` is not defined on SqliteConnection — sqlite has no isolation-level support (its only mode is "serializable" implicit). Body kept verbatim for cross-cell diff parity per the symmetry rule.
+    /*
     test('docs:transaction/isolation-level', async () => {
         // Section "Transaction isolation" — pass an isolation level via
         // `connection.isolationLevel(...)` to `.transaction(...)`. SQLite
@@ -126,6 +128,8 @@ describe(ctx.label, () => {
             expect(result).toBe(1)
         })
     })
+    */
+
     test('docs:transaction/execute-before-next-commit', async () => {
         // Section "Deferring logic during a transaction" —
         // `executeBeforeNextCommit` runs the hook just before commit.
@@ -199,23 +203,19 @@ describe(ctx.label, () => {
     })
 
     test('docs-extra:transaction/hooks-no-effect-without-transaction', async () => {
-        // "Note" on the page: calling a deferred-hook registration
-        // outside a transaction throws `NOT_IN_TRANSACTION` on a real
-        // connection, and is silently accepted on a mock connection
-        // (matching the mock-skips-transaction-active-check pattern
-        // used across `AbstractConnection`). Branch on `ctx.realDbEnabled`
-        // to lock both observed paths.
+        // "Note" on the page: deferred-hook registration outside a
+        // transaction throws `NOT_IN_TRANSACTION`. The guard now fires
+        // uniformly in mock and real-DB mode: the lenient mock
+        // short-circuit that used to silence it (`isMocked()` skipping
+        // the check) has been removed —
+        // [MockQueryRunner](../../../../../src/queryRunners/MockQueryRunner.ts)
+        // tracks transaction depth and `AbstractConnection` consults
+        // `isTransactionActive()` directly.
         const connection = ctx.conn
 
-        if (ctx.realDbEnabled) {
-            expect(() => connection.executeBeforeNextCommit(() => { /* */ })).toThrow(/NOT_IN_TRANSACTION/)
-            expect(() => connection.executeAfterNextCommit(() => { /* */ })).toThrow(/NOT_IN_TRANSACTION/)
-            expect(() => connection.executeAfterNextRollback(() => { /* */ })).toThrow(/NOT_IN_TRANSACTION/)
-        } else {
-            expect(() => connection.executeBeforeNextCommit(() => { /* */ })).not.toThrow()
-            expect(() => connection.executeAfterNextCommit(() => { /* */ })).not.toThrow()
-            expect(() => connection.executeAfterNextRollback(() => { /* */ })).not.toThrow()
-        }
+        expect(() => connection.executeBeforeNextCommit(() => { /* */ })).toThrow(/NOT_IN_TRANSACTION/)
+        expect(() => connection.executeAfterNextCommit(() => { /* */ })).toThrow(/NOT_IN_TRANSACTION/)
+        expect(() => connection.executeAfterNextRollback(() => { /* */ })).toThrow(/NOT_IN_TRANSACTION/)
     })
 
     test('docs-extra:transaction/hooks-cleared-after-use', async () => {

@@ -24,8 +24,6 @@ import { MockBunSqliteQueryRunner } from '../../lib/mockRunners/MockBunSqliteQue
 import { MockNodeSqliteQueryRunner } from '../../lib/mockRunners/MockNodeSqliteQueryRunner.js'
 import { MockSqlite3QueryRunner } from '../../lib/mockRunners/MockSqlite3QueryRunner.js'
 import { MockSqlite3WasmOO1QueryRunner } from '../../lib/mockRunners/MockSqlite3WasmOO1QueryRunner.js'
-import type { ITableOrView } from '../../../src/utils/ITableOrView.js'
-import type { CustomizedTableOrView } from '../../../src/utils/tableOrViewUtils.js'
 import { DBConnection } from './domain/connection.js'
 
 /**
@@ -61,20 +59,6 @@ export interface SqliteTestContext extends TestContext<DBConnection> {
     withUuidStrategy(strategy: 'string' | 'uuid-extension'): DBConnection
     /** A `DBConnection` whose `getDateTimeFormat()` is pinned to `format`. */
     withDateTimeFormat(format: SqliteDateTimeFormat): DBConnection
-    /**
-     * A `DBConnection` that exposes `applyCustomization(table, name)` —
-     * a 0-arg `createTableOrViewCustomization` registered on the
-     * subclass — emitting the template
-     * ``rawFragment`/*+ hint *\/ ${table} ${alias}` ``. Lets the
-     * table-customization test pin both `_rawFragmentTableName` and
-     * `_rawFragmentTableAlias` without rebuilding the connection itself.
-     */
-    withTableCustomization(): DBConnection & {
-        applyCustomization: <T extends ITableOrView<any>, NAME extends string>(
-            tableOrView: T,
-            name: NAME,
-        ) => CustomizedTableOrView<T, NAME>
-    }
 }
 
 /**
@@ -103,14 +87,6 @@ function decorateSqliteContext(base: TestContext<DBConnection>): SqliteTestConte
                 protected override getDateTimeFormat(): SqliteDateTimeFormat { return format }
             }
             return new C(base.conn.queryRunner)
-        },
-        withTableCustomization() {
-            class C extends DBConnection {
-                applyCustomization = this.createTableOrViewCustomization(
-                    (table, alias) => this.rawFragment`/*+ hint */ ${table} ${alias}`,
-                )
-            }
-            return new C(base.conn.queryRunner) as C
         },
     })
 }

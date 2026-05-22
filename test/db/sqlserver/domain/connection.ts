@@ -80,6 +80,22 @@ export class DBConnection extends SqlServerConnection<'DBConnection'> {
     // because the tests run mock-only.
     issueIdSeq  = this.sequence('issue_id_seq', 'int')
     auditTagSeq = this.sequence('audit_tag_seq', 'bigint')
+
+    // Table/view customizations — `createTableOrViewCustomization`
+    // produces a function that wraps a table reference with a
+    // user-defined raw fragment in the FROM clause (docs:
+    // https://ts-sql-query.readthedocs.io/en/stable/queries/sql-fragments/#table-or-view-customization).
+    // Distinct API from the fragment builders above: this hooks the
+    // FROM-clause rendering, not an inline expression.
+    //
+    // `withSqlHint` is exercised by select.table-customization.test.ts.
+    // The template prepends a SQL comment so the snapshot can pin both
+    // `_rawFragmentTableName` (`${table}`) and `_rawFragmentTableAlias`
+    // (`${alias}`) in one place; the comment is valid SQL on every
+    // dialect, so the customized table runs end-to-end against the real DB.
+    withSqlHint = this.createTableOrViewCustomization(
+        (table, alias) => this.rawFragment`/*+ hint */ ${table} ${alias}`,
+    )
 }
 
 export const tOrganization = new class TOrganization extends Table<DBConnection, 'TOrganization'> {

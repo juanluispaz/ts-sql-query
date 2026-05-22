@@ -2981,11 +2981,12 @@ export class AbstractSqlBuilder implements SqlBuilder {
         const forceAliasFor = this._getForceAliasFor(params)
         const forceAliasAs = this._getForceAliasAs(params)
         const as = __getTableOrViewPrivate(tableOrView).__as
+        const prefix = this._supportTableAliasWithAs ? 'as ' : ''
 
         if (forceAliasFor === tableOrView && forceAliasAs) {
-            return 'as ' + this._escape(forceAliasAs, true)
+            return prefix + this._escape(forceAliasAs, true)
         } else if (as) {
-            return 'as ' + this._escape(as, true)
+            return prefix + this._escape(as, true)
         }
         return ''
     }

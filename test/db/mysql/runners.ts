@@ -25,8 +25,6 @@ import {
     workerNameLikePattern,
 } from '../../lib/containerLifecycle.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
-import type { ITableOrView } from '../../../src/utils/ITableOrView.js'
-import type { CustomizedTableOrView } from '../../../src/utils/tableOrViewUtils.js'
 import { DBConnection } from './domain/connection.js'
 
 
@@ -61,20 +59,6 @@ export interface MySqlTestContext extends TestContext<DBConnection> {
     withInsensitiveCollation(collation: string | undefined): DBConnection
     /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
     withUuidStrategy(strategy: 'string' | 'binary'): DBConnection
-    /**
-     * A `DBConnection` that exposes `applyCustomization(table, name)` —
-     * a 0-arg `createTableOrViewCustomization` registered on the
-     * subclass — emitting the template
-     * ``rawFragment`/*+ hint *\/ ${table} ${alias}` ``. Lets the
-     * table-customization test pin both `_rawFragmentTableName` and
-     * `_rawFragmentTableAlias` without rebuilding the connection itself.
-     */
-    withTableCustomization(): DBConnection & {
-        applyCustomization: <T extends ITableOrView<any>, NAME extends string>(
-            tableOrView: T,
-            name: NAME,
-        ) => CustomizedTableOrView<T, NAME>
-    }
 }
 
 /**
@@ -97,14 +81,6 @@ function decorateMySqlContext(base: TestContext<DBConnection>): MySqlTestContext
                 protected override uuidStrategy: 'string' | 'binary' = strategy
             }
             return new C(base.conn.queryRunner)
-        },
-        withTableCustomization() {
-            class C extends DBConnection {
-                applyCustomization = this.createTableOrViewCustomization(
-                    (table, alias) => this.rawFragment`/*+ hint */ ${table} ${alias}`,
-                )
-            }
-            return new C(base.conn.queryRunner) as C
         },
     })
 }

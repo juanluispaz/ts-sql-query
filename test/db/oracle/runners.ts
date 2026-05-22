@@ -26,7 +26,89 @@ import {
     workerNameLikePattern,
 } from '../../lib/containerLifecycle.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
+import type { ITableOrView } from '../../../src/utils/ITableOrView.js'
+import type { CustomizedTableOrView } from '../../../src/utils/tableOrViewUtils.js'
 import { DBConnection } from './domain/connection.js'
+
+
+/**
+ * `TestContext<DBConnection>` extended with Oracle-specific connection
+ * factories. Each `withXxx(...)` returns a `DBConnection` (subclass)
+ * whose protected config field is pinned to the requested value. The
+ * subclass shares `ctx.conn`'s underlying `CaptureInterceptor` /
+ * driver, so:
+ *
+ *   - SQL emitted by the alt connection lands in `ctx.lastSql`.
+ *   - In real-DB mode the query reaches the same backing database
+ *     `ctx.conn` sees — no second driver-level connection is opened.
+ *
+ * These factories are the **only** sanctioned way to instantiate a
+ * `DBConnection` inside a test file; tests must not construct their
+ * own runner or `new DBConnection(...)`.
+ */
+export interface OracleTestContext extends TestContext<DBConnection> {
+    /**
+     * A collation name accepted by the underlying engine — used by
+     * `config.insensitive-collation.test.ts` so the
+     * `insensitiveCollation = '<name>'` branch emits SQL that
+     * actually runs against the real DB. Each dialect picks the
+     * built-in case-insensitive collation that ships with a default
+     * install (SQLite: `NOCASE`, PostgreSQL: `"C"`, MySQL/MariaDB:
+     * `utf8mb4_general_ci`, Oracle: `BINARY_CI`, SQL Server:
+     * `Latin1_General_CI_AS`).
+     */
+    readonly exampleInsensitiveCollation: string
+    /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
+    withInsensitiveCollation(collation: string | undefined): DBConnection
+    /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
+    withUuidStrategy(strategy: 'string' | 'custom-functions' | 'built-in'): DBConnection
+    /**
+     * A `DBConnection` that exposes `applyCustomization(table, name)` —
+     * a 0-arg `createTableOrViewCustomization` registered on the
+     * subclass — emitting the template
+     * ``rawFragment`/*+ hint *\/ ${table} ${alias}` ``. Lets the
+     * table-customization test pin both `_rawFragmentTableName` and
+     * `_rawFragmentTableAlias` without rebuilding the connection itself.
+     */
+    withTableCustomization(): DBConnection & {
+        applyCustomization: <T extends ITableOrView<any>, NAME extends string>(
+            tableOrView: T,
+            name: NAME,
+        ) => CustomizedTableOrView<T, NAME>
+    }
+}
+
+/**
+ * Wrap a base `TestContext<DBConnection>` with Oracle-specific
+ * connection factories. Each `withXxx` reaches into the live
+ * `ctx.conn.queryRunner` (the shared interceptor) — `ctx.up()` must
+ * have run before any helper is called.
+ */
+function decorateOracleContext(base: TestContext<DBConnection>): OracleTestContext {
+    return Object.assign(base, {
+        exampleInsensitiveCollation: 'BINARY_CI',
+        withInsensitiveCollation(collation: string | undefined): DBConnection {
+            class C extends DBConnection {
+                protected override insensitiveCollation: string | undefined = collation
+            }
+            return new C(base.conn.queryRunner)
+        },
+        withUuidStrategy(strategy: 'string' | 'custom-functions' | 'built-in'): DBConnection {
+            class C extends DBConnection {
+                protected override uuidStrategy: 'string' | 'custom-functions' | 'built-in' = strategy
+            }
+            return new C(base.conn.queryRunner)
+        },
+        withTableCustomization() {
+            class C extends DBConnection {
+                applyCustomization = this.createTableOrViewCustomization(
+                    (table, alias) => this.rawFragment`/*+ hint */ ${table} ${alias}`,
+                )
+            }
+            return new C(base.conn.queryRunner) as C
+        },
+    })
+}
 
 const DATABASE = 'oracle'
 
@@ -324,7 +406,7 @@ export interface OracleTestSpec {
     compatibilityVersion?: number
 }
 
-export function createOracleDBPoolTestContext(spec: OracleTestSpec): TestContext<DBConnection> {
+export function createOracleDBPoolTestContext(spec: OracleTestSpec): OracleTestContext {
     const version = spec.label.split(' / ')[0] ?? ''
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version)
     const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerUser: string }) => {
@@ -343,7 +425,7 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): TestContext
         }
     })
 
-    return createTestContext<DBConnection>({
+    return decorateOracleContext(createTestContext<DBConnection>({
         label: spec.label,
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
@@ -376,5 +458,5 @@ export function createOracleDBPoolTestContext(spec: OracleTestSpec): TestContext
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    })
+    }))
 }

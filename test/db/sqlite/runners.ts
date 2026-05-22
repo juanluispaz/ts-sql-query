@@ -16,6 +16,7 @@ import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import type { SqliteDateTimeFormat } from '../../../src/connections/SqliteConfiguration.js'
 import { isRealDbEnabled } from '../../lib/backends.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
 import { MockBetterSqlite3QueryRunner } from '../../lib/mockRunners/MockBetterSqlite3QueryRunner.js'
@@ -23,7 +24,96 @@ import { MockBunSqliteQueryRunner } from '../../lib/mockRunners/MockBunSqliteQue
 import { MockNodeSqliteQueryRunner } from '../../lib/mockRunners/MockNodeSqliteQueryRunner.js'
 import { MockSqlite3QueryRunner } from '../../lib/mockRunners/MockSqlite3QueryRunner.js'
 import { MockSqlite3WasmOO1QueryRunner } from '../../lib/mockRunners/MockSqlite3WasmOO1QueryRunner.js'
+import type { ITableOrView } from '../../../src/utils/ITableOrView.js'
+import type { CustomizedTableOrView } from '../../../src/utils/tableOrViewUtils.js'
 import { DBConnection } from './domain/connection.js'
+
+/**
+ * `TestContext<DBConnection>` extended with sqlite-specific connection
+ * factories. Each `withXxx(...)` returns a `DBConnection` (subclass)
+ * whose protected config field is pinned to the requested value. The
+ * subclass shares `ctx.conn`'s underlying `CaptureInterceptor` /
+ * driver, so:
+ *
+ *   - SQL emitted by the alt connection lands in `ctx.lastSql`.
+ *   - In real-DB mode the query reaches the same backing database
+ *     `ctx.conn` sees — no second driver-level connection is opened.
+ *
+ * These factories are the **only** sanctioned way to instantiate a
+ * `DBConnection` inside a test file; tests must not construct their
+ * own runner or `new DBConnection(...)`.
+ */
+export interface SqliteTestContext extends TestContext<DBConnection> {
+    /**
+     * A collation name accepted by the underlying engine — used by
+     * `config.insensitive-collation.test.ts` so the
+     * `insensitiveCollation = '<name>'` branch emits SQL that
+     * actually runs against the real DB. Each dialect picks the
+     * built-in case-insensitive collation that ships with a default
+     * install (SQLite: `NOCASE`, PostgreSQL: `"C"`, MySQL/MariaDB:
+     * `utf8mb4_general_ci`, Oracle: `BINARY_CI`, SQL Server:
+     * `Latin1_General_CI_AS`).
+     */
+    readonly exampleInsensitiveCollation: string
+    /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
+    withInsensitiveCollation(collation: string | undefined): DBConnection
+    /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
+    withUuidStrategy(strategy: 'string' | 'uuid-extension'): DBConnection
+    /** A `DBConnection` whose `getDateTimeFormat()` is pinned to `format`. */
+    withDateTimeFormat(format: SqliteDateTimeFormat): DBConnection
+    /**
+     * A `DBConnection` that exposes `applyCustomization(table, name)` —
+     * a 0-arg `createTableOrViewCustomization` registered on the
+     * subclass — emitting the template
+     * ``rawFragment`/*+ hint *\/ ${table} ${alias}` ``. Lets the
+     * table-customization test pin both `_rawFragmentTableName` and
+     * `_rawFragmentTableAlias` without rebuilding the connection itself.
+     */
+    withTableCustomization(): DBConnection & {
+        applyCustomization: <T extends ITableOrView<any>, NAME extends string>(
+            tableOrView: T,
+            name: NAME,
+        ) => CustomizedTableOrView<T, NAME>
+    }
+}
+
+/**
+ * Wrap a base `TestContext<DBConnection>` with sqlite-specific
+ * connection factories. Each `withXxx` reaches into the live
+ * `ctx.conn.queryRunner` (the shared interceptor) — `ctx.up()` must
+ * have run before any helper is called.
+ */
+function decorateSqliteContext(base: TestContext<DBConnection>): SqliteTestContext {
+    return Object.assign(base, {
+        exampleInsensitiveCollation: 'NOCASE',
+        withInsensitiveCollation(collation: string | undefined): DBConnection {
+            class C extends DBConnection {
+                protected override insensitiveCollation: string | undefined = collation
+            }
+            return new C(base.conn.queryRunner)
+        },
+        withUuidStrategy(strategy: 'string' | 'uuid-extension'): DBConnection {
+            class C extends DBConnection {
+                protected override uuidStrategy: 'string' | 'uuid-extension' = strategy
+            }
+            return new C(base.conn.queryRunner)
+        },
+        withDateTimeFormat(format: SqliteDateTimeFormat): DBConnection {
+            class C extends DBConnection {
+                protected override getDateTimeFormat(): SqliteDateTimeFormat { return format }
+            }
+            return new C(base.conn.queryRunner)
+        },
+        withTableCustomization() {
+            class C extends DBConnection {
+                applyCustomization = this.createTableOrViewCustomization(
+                    (table, alias) => this.rawFragment`/*+ hint */ ${table} ${alias}`,
+                )
+            }
+            return new C(base.conn.queryRunner) as C
+        },
+    })
+}
 
 const DATABASE = 'sqlite'
 
@@ -85,12 +175,12 @@ async function getOrCreateBunSqliteDb(): Promise<import('bun:sqlite').Database> 
     return sharedBunSqliteDb
 }
 
-export function createBunSqliteTestContext(spec: BunSqliteTestSpec): TestContext<DBConnection> {
+export function createBunSqliteTestContext(spec: BunSqliteTestSpec): SqliteTestContext {
     // In-process, but the connector module itself can only load under Bun.
     // Under node+vitest we keep the mock branch and never touch bun:sqlite.
     const realDbEnabled = isBun && isRealDbEnabled(DATABASE, /* needsDocker */ false)
 
-    return createTestContext<DBConnection>({
+    return decorateSqliteContext(createTestContext<DBConnection>({
         label: spec.label,
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
@@ -120,7 +210,7 @@ export function createBunSqliteTestContext(spec: BunSqliteTestSpec): TestContext
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    })
+    }))
 }
 
 // ---- better-sqlite3 (in-process, Node-only — does not load under Bun) ---
@@ -141,12 +231,12 @@ async function getOrCreateBetterSqlite3Db(): Promise<import('better-sqlite3').Da
     return sharedBetterSqlite3Db
 }
 
-export function createBetterSqlite3TestContext(spec: SqliteTestSpec): TestContext<DBConnection> {
+export function createBetterSqlite3TestContext(spec: SqliteTestSpec): SqliteTestContext {
     // better-sqlite3 has a native binding that fails to load under Bun's
     // Node API shim. We only fire the real branch outside Bun.
     const realDbEnabled = !isBun && isRealDbEnabled(DATABASE, /* needsDocker */ false)
 
-    return createTestContext<DBConnection>({
+    return decorateSqliteContext(createTestContext<DBConnection>({
         label: spec.label,
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
@@ -173,12 +263,12 @@ export function createBetterSqlite3TestContext(spec: SqliteTestSpec): TestContex
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    })
+    }))
 }
 
 // ---- node:sqlite (in-process, Node 22.5+) -------------------------------
 
-export function createNodeSqliteTestContext(spec: SqliteTestSpec): TestContext<DBConnection> {
+export function createNodeSqliteTestContext(spec: SqliteTestSpec): SqliteTestContext {
     // `node:sqlite` is a built-in module added in Node 22.5. Under Bun the
     // shim does not expose it. We try the import lazily and fall back to
     // mock-only mode if the runtime does not have it.
@@ -198,7 +288,7 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec): TestContext<D
     }
     const realDbEnabled = isNodeSqliteAvailable() && isRealDbEnabled(DATABASE, /* needsDocker */ false)
 
-    return createTestContext<DBConnection>({
+    return decorateSqliteContext(createTestContext<DBConnection>({
         label: spec.label,
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
@@ -225,7 +315,7 @@ export function createNodeSqliteTestContext(spec: SqliteTestSpec): TestContext<D
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    })
+    }))
 }
 
 let sharedNodeSqliteDb: import('node:sqlite').DatabaseSync | null = null
@@ -254,10 +344,10 @@ function sqlite3Exec(database: import('sqlite3').Database, sql: string): Promise
     return new Promise((res, rej) => database.exec(sql, e => e ? rej(e) : res()))
 }
 
-export function createSqlite3TestContext(spec: SqliteTestSpec): TestContext<DBConnection> {
+export function createSqlite3TestContext(spec: SqliteTestSpec): SqliteTestContext {
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ false)
 
-    return createTestContext<DBConnection>({
+    return decorateSqliteContext(createTestContext<DBConnection>({
         label: spec.label,
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
@@ -284,7 +374,7 @@ export function createSqlite3TestContext(spec: SqliteTestSpec): TestContext<DBCo
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    })
+    }))
 }
 
 // ---- @sqlite.org/sqlite-wasm OO1 API (in-process, universal) ------------
@@ -305,13 +395,13 @@ async function getOrCreateSqliteWasm(): Promise<import('@sqlite.org/sqlite-wasm'
     return sqliteWasmSharedDb
 }
 
-export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec): TestContext<DBConnection> {
+export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec): SqliteTestContext {
     // sqlite-wasm-OO1 is in-process WASM — gated by `TS_SQL_QUERY_WASM`
     // so `tests` (no --wasm) can route this connector through the mock
     // without paying the per-worker WASM bootstrap cost.
     const realDbEnabled = isRealDbEnabled(DATABASE, 'wasm')
 
-    return createTestContext<DBConnection>({
+    return decorateSqliteContext(createTestContext<DBConnection>({
         label: spec.label,
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
@@ -341,5 +431,5 @@ export function createSqliteWasmOO1TestContext(spec: SqliteTestSpec): TestContex
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    })
+    }))
 }

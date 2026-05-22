@@ -25,7 +25,89 @@ import {
     workerNameLikePattern,
 } from '../../lib/containerLifecycle.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
+import type { ITableOrView } from '../../../src/utils/ITableOrView.js'
+import type { CustomizedTableOrView } from '../../../src/utils/tableOrViewUtils.js'
 import { DBConnection } from './domain/connection.js'
+
+
+/**
+ * `TestContext<DBConnection>` extended with MySql-specific connection
+ * factories. Each `withXxx(...)` returns a `DBConnection` (subclass)
+ * whose protected config field is pinned to the requested value. The
+ * subclass shares `ctx.conn`'s underlying `CaptureInterceptor` /
+ * driver, so:
+ *
+ *   - SQL emitted by the alt connection lands in `ctx.lastSql`.
+ *   - In real-DB mode the query reaches the same backing database
+ *     `ctx.conn` sees — no second driver-level connection is opened.
+ *
+ * These factories are the **only** sanctioned way to instantiate a
+ * `DBConnection` inside a test file; tests must not construct their
+ * own runner or `new DBConnection(...)`.
+ */
+export interface MySqlTestContext extends TestContext<DBConnection> {
+    /**
+     * A collation name accepted by the underlying engine — used by
+     * `config.insensitive-collation.test.ts` so the
+     * `insensitiveCollation = '<name>'` branch emits SQL that
+     * actually runs against the real DB. Each dialect picks the
+     * built-in case-insensitive collation that ships with a default
+     * install (SQLite: `NOCASE`, PostgreSQL: `"C"`, MySQL/MariaDB:
+     * `utf8mb4_general_ci`, Oracle: `BINARY_CI`, SQL Server:
+     * `Latin1_General_CI_AS`).
+     */
+    readonly exampleInsensitiveCollation: string
+    /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
+    withInsensitiveCollation(collation: string | undefined): DBConnection
+    /** A `DBConnection` whose `uuidStrategy` is pinned to `strategy`. */
+    withUuidStrategy(strategy: 'string' | 'binary'): DBConnection
+    /**
+     * A `DBConnection` that exposes `applyCustomization(table, name)` —
+     * a 0-arg `createTableOrViewCustomization` registered on the
+     * subclass — emitting the template
+     * ``rawFragment`/*+ hint *\/ ${table} ${alias}` ``. Lets the
+     * table-customization test pin both `_rawFragmentTableName` and
+     * `_rawFragmentTableAlias` without rebuilding the connection itself.
+     */
+    withTableCustomization(): DBConnection & {
+        applyCustomization: <T extends ITableOrView<any>, NAME extends string>(
+            tableOrView: T,
+            name: NAME,
+        ) => CustomizedTableOrView<T, NAME>
+    }
+}
+
+/**
+ * Wrap a base `TestContext<DBConnection>` with MySql-specific
+ * connection factories. Each `withXxx` reaches into the live
+ * `ctx.conn.queryRunner` (the shared interceptor) — `ctx.up()` must
+ * have run before any helper is called.
+ */
+function decorateMySqlContext(base: TestContext<DBConnection>): MySqlTestContext {
+    return Object.assign(base, {
+        exampleInsensitiveCollation: 'utf8mb4_general_ci',
+        withInsensitiveCollation(collation: string | undefined): DBConnection {
+            class C extends DBConnection {
+                protected override insensitiveCollation: string | undefined = collation
+            }
+            return new C(base.conn.queryRunner)
+        },
+        withUuidStrategy(strategy: 'string' | 'binary'): DBConnection {
+            class C extends DBConnection {
+                protected override uuidStrategy: 'string' | 'binary' = strategy
+            }
+            return new C(base.conn.queryRunner)
+        },
+        withTableCustomization() {
+            class C extends DBConnection {
+                applyCustomization = this.createTableOrViewCustomization(
+                    (table, alias) => this.rawFragment`/*+ hint */ ${table} ${alias}`,
+                )
+            }
+            return new C(base.conn.queryRunner) as C
+        },
+    })
+}
 
 const DATABASE = 'mysql'
 
@@ -212,7 +294,7 @@ export interface MySqlTestSpec {
     compatibilityVersion?: number
 }
 
-export function createMySql2PoolTestContext(spec: MySqlTestSpec): TestContext<DBConnection> {
+export function createMySql2PoolTestContext(spec: MySqlTestSpec): MySqlTestContext {
     const version = spec.label.split(' / ')[0] ?? ''
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version)
     const buildRunner = memoizeSharedRunner(async (params: { host: string; port: number; workerDb: string }) => {
@@ -232,7 +314,7 @@ export function createMySql2PoolTestContext(spec: MySqlTestSpec): TestContext<DB
         }
     })
 
-    return createTestContext<DBConnection>({
+    return decorateMySqlContext(createTestContext<DBConnection>({
         label: spec.label,
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
@@ -264,5 +346,5 @@ export function createMySql2PoolTestContext(spec: MySqlTestSpec): TestContext<DB
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    })
+    }))
 }

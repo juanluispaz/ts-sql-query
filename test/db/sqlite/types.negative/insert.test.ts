@@ -2,10 +2,13 @@
 // See `select.test.ts` for the rationale and conventions.
 
 import { test, expect } from '../../../lib/testRunner.js'
-import { MockQueryRunner } from '../../../../src/queryRunners/MockQueryRunner.js'
-import { DBConnection, tIssue, tOrganization, tProject } from '../domain/connection.js'
+import type { DBConnection } from '../domain/connection.js'
+import { tIssue, tOrganization, tProject } from '../domain/connection.js'
 
-const connection = new DBConnection(new MockQueryRunner(() => undefined, 'sqlite'))
+// `connection` is type-only — the function below is checked by tsc but
+// never invoked at runtime, so we don't need a real instance and don't
+// open any driver-level resource just to make the file load.
+declare const connection: DBConnection
 
 function _typeNegatives() {
     // Rule: optional columns (here `body`) on an INSERT can be omitted, but

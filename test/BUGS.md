@@ -29,7 +29,17 @@ That's the contract. Do **not** spend time diagnosing the root cause,
 choosing a category, or proposing a fix — the fixing agent owns all
 of that. Two minutes of triage and one paragraph is the bar.
 
-_No open entries._
+## `_rawFragmentTableAlias` emits `as <alias>` on Oracle, which rejects `AS` between table and alias
+
+**Where**: [`src/sqlBuilders/AbstractSqlBuilder.ts` `_rawFragmentTableAlias`](../src/sqlBuilders/AbstractSqlBuilder.ts) (around L2980). The method unconditionally prepends `'as '` to the escaped alias, ignoring `_supportTableAliasWithAs` (which `OracleSqlBuilder` sets to `false`). `_appendTableOrViewName` already respects the flag — `_rawFragmentTableAlias` is the inconsistent path.
+
+**Reproduction**: [`test/db/oracle/newest/oracledb/select.table-customization.test.ts`](db/oracle/newest/oracledb/select.table-customization.test.ts) — the aliased variant of the table-customization test fails on Oracle real-DB with `ORA-03048: SQL reserved word 'AS' is not syntactically valid following '..."organization"'`. The emitted SQL is `select "o".id as id from /*+ hint */ "organization" as "o"`; Oracle wants the bare `"organization" "o"` form. Other dialects accept both.
+
+**Current workaround in the suite**: the aliased test body on the Oracle cell is wrapped with `// TODO[BUG]: see BUGS.md — _rawFragmentTableAlias ignores _supportTableAliasWithAs on Oracle`. The unaliased variant runs end-to-end.
+
+---
+
+_No open entries beyond the one above._
 
 ---
 

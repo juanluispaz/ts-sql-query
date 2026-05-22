@@ -9,10 +9,13 @@
 // rule it enforces. DESIGN §6.
 
 import { test, expect } from '../../../lib/testRunner.js'
-import { MockQueryRunner } from '../../../../src/queryRunners/MockQueryRunner.js'
-import { DBConnection, tAppUser, tIssue, tProject } from '../domain/connection.js'
+import type { DBConnection } from '../domain/connection.js'
+import { tAppUser, tIssue, tProject } from '../domain/connection.js'
 
-const connection = new DBConnection(new MockQueryRunner(() => undefined, 'postgreSql'))
+// `connection` is type-only — the function below is checked by tsc but
+// never invoked at runtime, so we don't need a real instance and don't
+// open any driver-level resource just to make the file load.
+declare const connection: DBConnection
 
 // The body of `_typeNegatives` is checked by tsc but never executed at
 // runtime; we keep it wrapped in an unreachable function so the throw

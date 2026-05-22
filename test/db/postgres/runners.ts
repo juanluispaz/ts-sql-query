@@ -28,8 +28,85 @@ import {
     workerNameLikePattern,
 } from '../../lib/containerLifecycle.js'
 import { createTestContext, type TestContext } from '../../lib/testContext.js'
-import { DBConnection } from './domain/connection.js'
+import type { ITableOrView } from '../../../src/utils/ITableOrView.js'
+import type { CustomizedTableOrView } from '../../../src/utils/tableOrViewUtils.js'
 import type { QueryRunner } from '../../../src/queryRunners/QueryRunner.js'
+import { DBConnection } from './domain/connection.js'
+
+
+/**
+ * `TestContext<DBConnection>` extended with Postgres-specific connection
+ * factories. Each `withXxx(...)` returns a `DBConnection` (subclass)
+ * whose protected config field is pinned to the requested value. The
+ * subclass shares `ctx.conn`'s underlying `CaptureInterceptor` /
+ * driver, so:
+ *
+ *   - SQL emitted by the alt connection lands in `ctx.lastSql`.
+ *   - In real-DB mode the query reaches the same backing database
+ *     `ctx.conn` sees — no second driver-level connection is opened.
+ *
+ * These factories are the **only** sanctioned way to instantiate a
+ * `DBConnection` inside a test file; tests must not construct their
+ * own runner or `new DBConnection(...)`.
+ */
+export interface PostgresTestContext extends TestContext<DBConnection> {
+    /**
+     * A collation name accepted by the underlying engine — used by
+     * `config.insensitive-collation.test.ts` so the
+     * `insensitiveCollation = '<name>'` branch emits SQL that
+     * actually runs against the real DB. Each dialect picks the
+     * built-in case-insensitive collation that ships with a default
+     * install (SQLite: `NOCASE`, PostgreSQL: `"C"`, MySQL/MariaDB:
+     * `utf8mb4_general_ci`, Oracle: `BINARY_CI`, SQL Server:
+     * `Latin1_General_CI_AS`).
+     */
+    readonly exampleInsensitiveCollation: string
+    /** A `DBConnection` whose `insensitiveCollation` is pinned to `collation`. */
+    withInsensitiveCollation(collation: string | undefined): DBConnection
+    /**
+     * A `DBConnection` that exposes `applyCustomization(table, name)` —
+     * a 0-arg `createTableOrViewCustomization` registered on the
+     * subclass — emitting the template
+     * ``rawFragment`/*+ hint *\/ ${table} ${alias}` ``. Lets the
+     * table-customization test pin both `_rawFragmentTableName` and
+     * `_rawFragmentTableAlias` without rebuilding the connection itself.
+     */
+    withTableCustomization(): DBConnection & {
+        applyCustomization: <T extends ITableOrView<any>, NAME extends string>(
+            tableOrView: T,
+            name: NAME,
+        ) => CustomizedTableOrView<T, NAME>
+    }
+}
+
+/**
+ * Wrap a base `TestContext<DBConnection>` with Postgres-specific
+ * connection factories. Each `withXxx` reaches into the live
+ * `ctx.conn.queryRunner` (the shared interceptor) — `ctx.up()` must
+ * have run before any helper is called.
+ */
+function decoratePostgresContext(base: TestContext<DBConnection>): PostgresTestContext {
+    return Object.assign(base, {
+        // PostgreSqlSqlBuilder wraps the collation name in double
+        // quotes itself (`collate "<name>"`) — pass the unquoted
+        // identifier here.
+        exampleInsensitiveCollation: 'C',
+        withInsensitiveCollation(collation: string | undefined): DBConnection {
+            class C extends DBConnection {
+                protected override insensitiveCollation: string | undefined = collation
+            }
+            return new C(base.conn.queryRunner)
+        },
+        withTableCustomization() {
+            class C extends DBConnection {
+                applyCustomization = this.createTableOrViewCustomization(
+                    (table, alias) => this.rawFragment`/*+ hint */ ${table} ${alias}`,
+                )
+            }
+            return new C(base.conn.queryRunner) as C
+        },
+    })
+}
 
 const DATABASE = 'postgres'
 
@@ -273,7 +350,7 @@ export interface PgTestSpec {
     createRealRunner(uri: string): Promise<{ runner: QueryRunner; shutdown(): Promise<void> }>
 }
 
-export function createPgTestContext(spec: PgTestSpec): TestContext<DBConnection> {
+export function createPgTestContext(spec: PgTestSpec): PostgresTestContext {
     const version = spec.label.split(' / ')[0] ?? ''
     const realDbEnabled = isRealDbEnabled(DATABASE, /* needsDocker */ true, version)
     let workerUri: string | null = null
@@ -282,7 +359,7 @@ export function createPgTestContext(spec: PgTestSpec): TestContext<DBConnection>
     // to know about this — they just build a runner from a URI.
     const buildRunner = memoizeSharedRunner(spec.createRealRunner)
 
-    return createTestContext<DBConnection>({
+    return decoratePostgresContext(createTestContext<DBConnection>({
         label: spec.label,
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
@@ -302,7 +379,7 @@ export function createPgTestContext(spec: PgTestSpec): TestContext<DBConnection>
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    })
+    }))
 }
 
 // ---- PgLite (in-process) test context -----------------------------------
@@ -357,13 +434,13 @@ async function applyPgliteSchemaAndSeed(db: import('@electric-sql/pglite').PGlit
     await db.exec(pgliteSharedSeedSql)
 }
 
-export function createPgLiteTestContext(spec: PgLiteTestSpec): TestContext<DBConnection> {
+export function createPgLiteTestContext(spec: PgLiteTestSpec): PostgresTestContext {
     // PgLite is in-process WASM — gated by `TS_SQL_QUERY_WASM` so
     // `tests` (no --wasm) can route this connector through the mock
     // without paying the per-worker WASM bootstrap cost.
     const realDbEnabled = isRealDbEnabled(DATABASE, 'wasm')
 
-    return createTestContext<DBConnection>({
+    return decoratePostgresContext(createTestContext<DBConnection>({
         label: spec.label,
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
@@ -386,7 +463,7 @@ export function createPgLiteTestContext(spec: PgLiteTestSpec): TestContext<DBCon
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    })
+    }))
 }
 
 // ---- bun:sql for postgres (docker-backed, bun-only) ---------------------
@@ -398,7 +475,7 @@ declare global {
 
 const isBun = typeof globalThis.Bun !== 'undefined'
 
-export function createBunSqlPostgresTestContext(spec: PgTestSpec): TestContext<DBConnection> {
+export function createBunSqlPostgresTestContext(spec: PgTestSpec): PostgresTestContext {
     // bun:sql is bun-only AND docker-backed. Under node we skip the real
     // branch entirely; under bun we still depend on docker for the
     // postgres engine.
@@ -407,7 +484,7 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): TestContext<D
     let workerUri: string | null = null
     const buildRunner = memoizeSharedRunner(spec.createRealRunner)
 
-    return createTestContext<DBConnection>({
+    return decoratePostgresContext(createTestContext<DBConnection>({
         label: spec.label,
         canonicalForDocs: spec.canonicalForDocs,
         compatibilityVersion: spec.compatibilityVersion,
@@ -426,5 +503,5 @@ export function createBunSqlPostgresTestContext(spec: PgTestSpec): TestContext<D
         buildConnection(interceptor, compatibilityVersion) {
             return new DBConnection(interceptor, compatibilityVersion)
         },
-    })
+    }))
 }

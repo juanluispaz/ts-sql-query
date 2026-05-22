@@ -44,26 +44,28 @@ describe(ctx.label, () => {
     })
 
     test('values in update-from', async () => {
-        ctx.mockNext(0)
-        const patch = Values.create(VProjectPatch, 'projectPatch', [
-            { id: 1, name: 'renamed' },
-        ])
-        try {
-            await ctx.conn.update(tProject)
-                .from(patch)
-                .set({ name: patch.name })
-                .where(tProject.id.equals(patch.id))
-                .executeUpdate()
-        } catch {
-            // some real-DB engines reject this exact form; the SQL
-            // builder still emits it and that is what we capture.
-        }
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (:0, :1)) update project set project.name = projectPatch.name from projectPatch where project.id = projectPatch.id"`)
-        expect(ctx.lastParams).toMatchInlineSnapshot(`
-          [
-            1,
-            "renamed",
-          ]
-        `)
+        await ctx.withRollback(async () => {
+            ctx.mockNext(0)
+            const patch = Values.create(VProjectPatch, 'projectPatch', [
+                { id: 1, name: 'renamed' },
+            ])
+            try {
+                await ctx.conn.update(tProject)
+                    .from(patch)
+                    .set({ name: patch.name })
+                    .where(tProject.id.equals(patch.id))
+                    .executeUpdate()
+            } catch {
+                // some real-DB engines reject this exact form; the SQL
+                // builder still emits it and that is what we capture.
+            }
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"with projectPatch(id, name) as (values (:0, :1)) update project set project.name = projectPatch.name from projectPatch where project.id = projectPatch.id"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "renamed",
+              ]
+            `)
+        })
     })
 })

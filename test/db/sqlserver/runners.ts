@@ -173,10 +173,18 @@ async function validateOrResetForReuse(host: string, port: number): Promise<void
 }
 
 async function connectWithRetry(sql: typeof import('mssql'), config: any): Promise<import('mssql').ConnectionPool> {
-    const deadline = Date.now() + 30_000
+    // The container's "ready for client connections" log fires before
+    // the SA login is materialised, so the first few attempts ELOGIN
+    // until the init script finishes. mssql's own connect timeout is
+    // 15 s — at the default 30 s deadline that's only ~2 attempts.
+    // Cap each attempt at 5 s and stretch the outer window to 90 s so
+    // a slow host (especially the cold-start path under bun's
+    // 12-worker fan-out, where every worker hits the half-initialised
+    // container at once) still has ~18 retries to ride out.
+    const deadline = Date.now() + 90_000
     let lastError: unknown
     while (Date.now() < deadline) {
-        const pool = new sql.ConnectionPool(config)
+        const pool = new sql.ConnectionPool({ ...config, connectionTimeout: 5_000 })
         try {
             await pool.connect()
             return pool

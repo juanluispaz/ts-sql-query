@@ -1,10 +1,11 @@
-import type { ToSql, SelectData, WithValuesData } from './SqlBuilder.js'
+import type { ToSql, SelectData, WithValuesData, OrderByEntry, FlatQueryColumns } from './SqlBuilder.js'
+import { flattenQueryColumns } from './SqlBuilder.js'
 import type { TypeAdapter } from '../TypeAdapter.js'
 import { CustomBooleanTypeAdapter } from '../TypeAdapter.js'
 import { AbstractSqlBuilder } from './AbstractSqlBuilder.js'
 import type { DBColumn } from '../utils/Column.js'
 import { isColumn, __getColumnOfObject, __getColumnPrivate } from '../utils/Column.js'
-import type { AnyValueSource, ValueType } from '../expressions/values.js'
+import type { AnyValueSource, ValueType, __AggregatedArrayColumns } from '../expressions/values.js'
 import { __getValueSourcePrivate, __isBooleanValueSource, isValueSource } from '../expressions/values.js'
 import { isDefault } from '../expressions/Default.js'
 import { __getTableOrViewPrivate } from '../utils/ITableOrView.js'
@@ -117,6 +118,56 @@ export class PostgreSqlSqlBuilder extends AbstractSqlBuilder {
             result += ' offset ' + this._appendValue(offset, params, 'int', 'int', undefined, false)
         }
         return result
+    }
+    override _appendOrderByColumnAliasInsensitive(entry: OrderByEntry, query: SelectData, params: any[]): string {
+        // PostgreSQL collation identifiers are case-folded to lowercase unless
+        // quoted — the built-in `"C"` / `"POSIX"` and any mixed-case ICU name
+        // resolve only with the quotes. The value-source insensitive ops on
+        // this builder already quote; this override aligns the ORDER BY path
+        // with them so `... order by col collate "<name>"` is emitted.
+        const collation = this._connectionConfiguration.insensitiveCollation
+        const stringColumn = this._isStringOrderByColumn(entry, query)
+        if (!stringColumn) {
+            return this._appendOrderByColumnAlias(entry, query, params)
+        } else if (collation) {
+            return this._appendOrderByColumnAlias(entry, query, params) + ' collate "' + collation + '"'
+        } else if (collation === '') {
+            return this._appendOrderByColumnAlias(entry, query, params)
+        } else {
+            return 'lower(' + this._appendOrderByColumnAlias(entry, query, params) + ')'
+        }
+    }
+    override _appendAggragateArrayColumns(aggregatedArrayColumns: __AggregatedArrayColumns | AnyValueSource, aggregatedArrayDistinct: boolean, params: any[], query: SelectData | undefined): string {
+        if (aggregatedArrayDistinct && !isValueSource(aggregatedArrayColumns)) {
+            // PostgreSQL's `json` type has no equality operator on any
+            // version, so the abstract default
+            // `json_agg(distinct json_build_object(...))` fails with
+            // "could not identify an equality operator for type json".
+            // Build the per-row object with `jsonb_build_object` so
+            // DISTINCT can use jsonb's equality; the outer `json_agg`
+            // still returns a `json` array (json_agg accepts any
+            // element type), so the publicly-visible result type is
+            // unchanged. Equivalence is safe for this call pattern
+            // because `*_build_object(k1, v1, k2, v2, ...)` with the
+            // same key list is deterministic — two rows produce the
+            // same canonical form iff their scalar inputs match. The
+            // singleton-scalar path
+            // (`aggregateAsArrayOfOneColumnDistinct`) is unaffected:
+            // scalar column types have native equality and the abstract
+            // emission `json_agg(distinct scalar)` works on PG.
+            const columns: FlatQueryColumns = {}
+            flattenQueryColumns(aggregatedArrayColumns, columns, '')
+
+            let result = ''
+            for (let prop in columns) {
+                if (result) {
+                    result += ', '
+                }
+                result += "'" + prop + "', " + this._appendSql(columns[prop]!, params, false)
+            }
+            return 'json_agg(distinct jsonb_build_object(' + result + '))'
+        }
+        return super._appendAggragateArrayColumns(aggregatedArrayColumns, aggregatedArrayDistinct, params, query)
     }
     override _appendCustomBooleanRemapForColumnIfRequired(column: DBColumn, value: any, params: any[], forceTypeCast: boolean): string | null {
         const columnPrivate = __getColumnPrivate(column)

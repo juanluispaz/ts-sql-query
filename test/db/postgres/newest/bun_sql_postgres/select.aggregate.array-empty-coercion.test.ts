@@ -7,7 +7,7 @@
 //      Lands on `_appendAggragateArrayColumns(distinct=true, columns=object)`
 //      on every dialect's SqlBuilder — each builder overrides the
 //      method and renders distinct + json-object together in its own
-//      shape (PostgreSQL: `json_agg(distinct json_build_object(...))`,
+//      shape (PostgreSQL: `json_agg(distinct jsonb_build_object(...))`,
 //      SQLite: `json_group_array(distinct json_object(...))`,
 //      MySQL/MariaDB: `json_arrayagg(distinct json_object(...))`,
 //      Oracle: `json_arrayagg(distinct json_object(...))`, SQL Server:
@@ -28,7 +28,7 @@
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
 import { assertType, type Exact } from '../../../../lib/assertType.js'
-import { tIssue, tProject } from '../../domain/connection.js'
+import { tIssue, tOrganization, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
 describe(ctx.label, () => {
@@ -36,30 +36,65 @@ describe(ctx.label, () => {
     afterAll(() => ctx.down(), ctx.timeoutMs)
     beforeEach(() => { ctx.reset() })
 
-    // Not applicable on PostgreSQL: `json_agg(distinct json_build_object(...))`
-    // fails at runtime with "could not identify an equality operator for type json"
-    // because PG defines no equality on the `json` type. The
-    // `aggregateAsArrayOfOneColumnDistinct` variant (singleton scalar
-    // column) DOES work here, which the sibling test below covers.
-    // TODO[BUG] see test/BUGS.md (aggregateAsArrayDistinct on PG).
-    /*
     test('aggregateAsArrayDistinct-on-object-shape', async () => {
+        // org 2 has projects 3 and 4; project 4 is archived. Distinct
+        // aggregate so the test is robust to row duplication from the
+        // join even though the seed has none here. Returns the two
+        // distinct {id, name} objects.
+        //
+        // On PostgreSQL the emission is
+        // `json_agg(distinct jsonb_build_object(...))` — building each
+        // row with `jsonb_build_object` gives DISTINCT an equality
+        // operator (PG's `json` type has no equality on any version, so
+        // the abstract `json_agg(distinct json_build_object(...))`
+        // rejects with "could not identify an equality operator for
+        // type json"). `json_agg` accepts any element type and keeps
+        // the result as `json`, matching the non-distinct sibling and
+        // the value-typed contract.
+        const expected = {
+            id: 2, name: 'Globex Ltd',
+            projects: [
+                { id: 3, name: 'Public API' },
+                { id: 4, name: 'Legacy app' },
+            ],
+        }
+        ctx.mockNext({
+            id: 2, name: 'Globex Ltd',
+            projects: JSON.stringify([
+                { id: 3, name: 'Public API' },
+                { id: 4, name: 'Legacy app' },
+            ]),
+        })
+        const connection = ctx.conn
         const tProjectLeftJoin = tProject.forUseInLeftJoin()
-        await ctx.conn.selectFrom(tOrganization)
+        const row = await connection.selectFrom(tOrganization)
             .leftJoin(tProjectLeftJoin).on(tProjectLeftJoin.organizationId.equals(tOrganization.id))
             .where(tOrganization.id.equals(2))
             .select({
                 id:       tOrganization.id,
                 name:     tOrganization.name,
-                projects: ctx.conn.aggregateAsArrayDistinct({
+                projects: connection.aggregateAsArrayDistinct({
                     id:   tProjectLeftJoin.id,
                     name: tProjectLeftJoin.name,
                 }),
             })
             .groupBy('id', 'name')
             .executeSelectOne()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select organization.id as id, organization.name as name, json_agg(distinct jsonb_build_object('id', project.id, 'name', project.name)) as projects from organization left join project on project.organization_id = organization.id where organization.id = $1 group by organization.id, organization.name"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            2,
+          ]
+        `)
+        assertType<Exact<typeof row, {
+            id:       number
+            name:     string
+            projects: Array<{ id: number; name: string }>
+        }>>()
+        const projectsSorted = [...(row?.projects ?? [])].sort((a, b) => a.id - b.id)
+        expect({ id: row?.id, name: row?.name, projects: projectsSorted }).toEqual(expected)
     })
-    */
 
     test('useEmptyArrayForNoValue-on-one-column-aggregate', async () => {
         // Left-join project 1 onto issue with an impossible filter →

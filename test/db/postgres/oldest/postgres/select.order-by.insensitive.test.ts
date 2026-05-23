@@ -38,23 +38,13 @@ describe(ctx.label, () => {
     beforeEach(() => { ctx.reset() })
 
     test('collation-set: order-by-insensitive', async () => {
-        // TODO[BUG] PostgreSqlSqlBuilder does not quote the collation
-        // identifier in the ORDER BY ... COLLATE path (it does for the
-        // value-source insensitive ops). PG lowercases the unquoted
-        // identifier and rejects with `collation "c" for encoding "UTF8"
-        // does not exist`. See test/BUGS.md. The guard is applied to
-        // every cell to keep the test body symmetric (DESIGN.md §4.1);
-        // mock-mode SQL+params assertions below lock per-dialect
-        // emission, so once src/ is fixed the snapshot diff makes the
-        // change visible across every cell.
-        if (ctx.realDbEnabled) return
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
         ctx.mockNext([])
         await collated.selectFrom(tAppUser)
             .select({ id: tAppUser.id, fullName: tAppUser.fullName })
             .orderBy(tAppUser.fullName, 'insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as "fullName" from app_user order by app_user.full_name collate C"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as "fullName" from app_user order by app_user.full_name collate "C""`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
@@ -62,28 +52,24 @@ describe(ctx.label, () => {
         // Combines asc + nulls-first + insensitive. Exercises the
         // dialect-specific permutation that builds null-position +
         // collation suffix together.
-        // TODO[BUG] see test/BUGS.md (ORDER BY ... COLLATE unquoted on PG).
-        if (ctx.realDbEnabled) return
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
         ctx.mockNext([])
         await collated.selectFrom(tAppUser)
             .select({ id: tAppUser.id, fullName: tAppUser.fullName })
             .orderBy(tAppUser.fullName, 'asc nulls first insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as "fullName" from app_user order by app_user.full_name collate C asc nulls first"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as "fullName" from app_user order by app_user.full_name collate "C" asc nulls first"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 
     test('collation-set: order-by-desc-insensitive', async () => {
-        // TODO[BUG] see test/BUGS.md (ORDER BY ... COLLATE unquoted on PG).
-        if (ctx.realDbEnabled) return
         const collated = ctx.withInsensitiveCollation(ctx.exampleInsensitiveCollation)
         ctx.mockNext([])
         await collated.selectFrom(tAppUser)
             .select({ id: tAppUser.id, fullName: tAppUser.fullName })
             .orderBy(tAppUser.fullName, 'desc insensitive')
             .executeSelectMany()
-        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as "fullName" from app_user order by app_user.full_name collate C desc"`)
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"select id as id, full_name as "fullName" from app_user order by app_user.full_name collate "C" desc"`)
         expect(ctx.lastParams).toMatchInlineSnapshot(`[]`)
     })
 

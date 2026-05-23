@@ -163,8 +163,13 @@ describe(ctx.label, () => {
             })
             .executeSelectMany()
 
-        expect(ctx.lastSql).toMatchInlineSnapshot()
-        expect(ctx.lastParams).toMatchInlineSnapshot()
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* tenant=? */  select name as label from project where archived_at is null union select title as label from issue where status = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            42,
+            "open",
+          ]
+        `)
         assertType<Exact<typeof result, Array<{ label: string }>>>()
     })
 })

@@ -29,7 +29,51 @@ That's the contract. Do **not** spend time diagnosing the root cause,
 choosing a category, or proposing a fix — the fixing agent owns all
 of that. Two minutes of triage and one paragraph is the bar.
 
-_No open entries._
+## PostgreSqlSqlBuilder: `aggregateAsArrayDistinct` emits `json_agg(distinct json_build_object(...))` which PG rejects
+
+**Where**: `src/sqlBuilders/AbstractSqlBuilder.ts` `_appendAggragateArrayColumns`
+(L3105). PostgreSqlSqlBuilder inherits the abstract default which emits
+`json_agg(distinct json_build_object(...))`. PostgreSQL has no
+equality operator for the `json` type, so DISTINCT rejects with
+`could not identify an equality operator for type json`. `jsonb_agg`
+(or `json_agg(distinct ... )` over a `jsonb` payload) would be valid.
+
+**Reproduction**: `test/db/postgres/newest/pg/select.aggregate.array-empty-coercion.test.ts`
+test `aggregateAsArrayDistinct-on-object-shape`. SQL emitted:
+`select organization.id as id, ..., json_agg(distinct json_build_object('id', project.id, 'name', project.name)) as projects from organization left join project on project.organization_id = organization.id where organization.id = $1 group by organization.id, organization.name`.
+The same call with `aggregateAsArrayOfOneColumnDistinct(singleColumn)`
+(not the object form) works because PG defines equality for the
+column's underlying scalar type.
+
+**Current workaround in the suite**: the test is **commented-out** in
+every postgres cell (8 cells) per DESIGN.md §4.1 with the reason line
+above the block. The non-distinct sibling tests still run end-to-end.
+SQLite/MariaDB cells keep the test active because their JSON aggregates
+DO support DISTINCT.
+
+## PostgreSqlSqlBuilder: ORDER BY ... COLLATE emits unquoted collation name
+
+**Where**: `src/sqlBuilders/PostgreSqlSqlBuilder.ts` — no override of
+`_appendOrderByColumnAliasInsensitive`. The value-source insensitive
+ops (`_equalsInsensitive`, `_likeInsensitive`, etc.) DO quote the
+collation in PostgreSqlSqlBuilder with `'... collate "' + collation + '"'`
+(e.g. L248), but the ORDER BY path inherits the abstract default at
+[AbstractSqlBuilder.ts L1115](../src/sqlBuilders/AbstractSqlBuilder.ts#L1115)
+which emits `' collate ' + collation` without quoting.
+
+**Reproduction**: `test/db/postgres/newest/pg/select.order-by.insensitive.test.ts`
+test `collation-set: order-by-insensitive` (and its asc/desc variants).
+With `insensitiveCollation: 'C'`, the builder emits
+`order by app_user.full_name collate C`; PostgreSQL lowercases the
+unquoted identifier and rejects with `collation "c" for encoding "UTF8"
+does not exist`. The equivalent value-source op (e.g. `.equalsInsensitive`)
+correctly emits `... collate "C"` and runs.
+
+**Current workaround in the suite**: the three `collation-set: order-by-*`
+tests gate their assertion with `if (ctx.realDbEnabled) return` and
+carry a `// TODO[BUG]` comment naming this entry. The mock-mode SQL
+snapshot still pins the (broken) emission so the fix is visible as a
+snapshot diff.
 
 ---
 

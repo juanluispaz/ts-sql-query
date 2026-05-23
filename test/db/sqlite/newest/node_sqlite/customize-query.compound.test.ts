@@ -1,0 +1,175 @@
+// Coverage of `.customizeQuery({...})` on **compound** queries
+// (UNION / UNION ALL / INTERSECT / EXCEPT). Compound queries land on a
+// different code path in `AbstractSqlBuilder._buildSelectWithColumnsInfo`
+// (the `query.__type === 'compound'` branch around
+// [L769](../../../../../src/sqlBuilders/AbstractSqlBuilder.ts#L769))
+// than ordinary SELECTs, and accept a narrower
+// [CompoundSelectCustomization](../../../../../src/expressions/select.ts)
+// — only `beforeQuery`, `afterQuery`, `beforeWithQuery`, `afterWithQuery`,
+// plus `queryExecutionName` / `queryExecutionMetadata` (separately
+// exercised in `docs.advanced.query-execution-metadata.test.ts`).
+//
+// The existing `select.compound*` tests pin the raw compound shape;
+// `customize-query.select.test.ts` covers the SELECT-specific hooks.
+// Nothing in the suite exercises the *compound* hooks, so the
+// `customization.beforeQuery / afterQuery` branches at L779-L802 are
+// only reachable through this file. The WITH-wrapped branch is
+// exercised by the second test below.
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tIssue, tProject } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('customize-compound-before-and-after-query-wrap-union', async () => {
+        // `beforeQuery` + `afterQuery` wrap the whole compound. The
+        // hooks emit comments around `select … union select …` so the
+        // snapshot pins both attachment points in one shot.
+        const expected = [
+            { label: 'Internal tools' },
+            { label: 'Marketing site' },
+            { label: 'Public API' },
+        ]
+        ctx.mockNext(expected)
+        const connection = ctx.conn
+        const projectsQ = connection.selectFrom(tProject)
+            .where(tProject.archivedAt.isNull())
+            .select({ label: tProject.name })
+        const issuesQ = connection.selectFrom(tIssue)
+            .where(tIssue.status.equals('done'))
+            .select({ label: tIssue.title })
+        const result = await projectsQ
+            .union(issuesQ)
+            .orderBy('label')
+            .customizeQuery({
+                beforeQuery: connection.rawFragment`/* compound-head */ `,
+                afterQuery:  connection.rawFragment` /* compound-tail */`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* compound-head */  select name as label from project where archived_at is null union select title as label from issue where status = ? order by label  /* compound-tail */"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "done",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+    })
+
+    test('customize-compound-with-query-hooks-wrap-cte', async () => {
+        // A CTE feeds the left side of an INTERSECT; the compound
+        // carries `beforeWithQuery` / `afterWithQuery` hooks that
+        // wrap the WITH clause itself (NOT the inner select), so the
+        // snapshot shows the comments adjacent to `with` / before the
+        // first compound branch. Lands on
+        // `_buildWith` → `customization.beforeWithQuery / afterWithQuery`
+        // at AbstractSqlBuilder L573-L580.
+        const connection = ctx.conn
+        const openIssues = connection.selectFrom(tIssue)
+            .where(tIssue.status.equals('open'))
+            .select({ id: tIssue.id })
+            .forUseInQueryAs('openIssues')
+        const left = connection.selectFrom(openIssues)
+            .select({ id: openIssues.id })
+        const right = connection.selectFrom(tIssue)
+            .where(tIssue.id.lessOrEqual(2))
+            .select({ id: tIssue.id })
+        ctx.mockNext([{ id: 1 }])
+        const result = await left
+            .intersect(right)
+            .customizeQuery({
+                beforeWithQuery: connection.rawFragment`/* with-head */ `,
+                afterWithQuery:  connection.rawFragment` /* with-tail */`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"with openIssues as (select id as id from issue where status = ?) select id as id from openIssues intersect select id as id from issue where id <= ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            "open",
+            2,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+    })
+
+    test('customize-compound-all-hooks-combined-on-except', async () => {
+        // The four compound hooks at once on an EXCEPT. Documents
+        // exactly where each one lands relative to the others — the
+        // snapshot is the spec.
+        const connection = ctx.conn
+        const allIssueIds = connection.selectFrom(tIssue)
+            .select({ id: tIssue.id })
+            .forUseInQueryAs('allIssueIds')
+        const left = connection.selectFrom(allIssueIds)
+            .select({ id: allIssueIds.id })
+        const right = connection.selectFrom(tIssue)
+            .where(tIssue.priority.equals(1))
+            .select({ id: tIssue.id })
+        ctx.mockNext([{ id: 1 }, { id: 3 }, { id: 4 }])
+        const result = await left
+            .except(right)
+            .orderBy('id')
+            .customizeQuery({
+                beforeWithQuery: connection.rawFragment`/* with-head */ `,
+                afterWithQuery:  connection.rawFragment` /* with-tail */`,
+                beforeQuery:     connection.rawFragment`/* head */ `,
+                afterQuery:      connection.rawFragment` /* tail */`,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* head */  with allIssueIds as (select id as id from issue) select id as id from allIssueIds except select id as id from issue where priority = ? order by id  /* tail */"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            1,
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ id: number }>>>()
+    })
+
+    test('customize-compound-hook-interpolates-bound-param', async () => {
+        // The `beforeQuery` hook interpolates a runtime value via
+        // `${connection.const(...)}` — exercises the path where a
+        // compound's customization fragment binds its own param into
+        // the surrounding query (locks the param-order story for
+        // hook-params relative to compound-body params: hook param
+        // FIRST, body params after).
+        //
+        // Mock-only: the placeholder is emitted inside a `/* ... */`
+        // SQL comment, and several drivers (incl. bun:sqlite) strip
+        // comments before counting placeholders and reject the extra
+        // param at execution. DESIGN.md §1 #18 names "synthetic SQL
+        // that is the test's whole point" as the documented exception
+        // for the guard — mirrors the same guard on
+        // `customize-select-hook-fragment-with-bound-param`.
+        if (ctx.realDbEnabled) return
+        const connection = ctx.conn
+        const projectsQ = connection.selectFrom(tProject)
+            .where(tProject.archivedAt.isNull())
+            .select({ label: tProject.name })
+        const issuesQ = connection.selectFrom(tIssue)
+            .where(tIssue.status.equals('open'))
+            .select({ label: tIssue.title })
+        ctx.mockNext([{ label: 'Update hero copy' }])
+        const result = await projectsQ
+            .union(issuesQ)
+            .customizeQuery({
+                beforeQuery: connection.rawFragment`/* tenant=${connection.const(42, 'int')} */ `,
+            })
+            .executeSelectMany()
+
+        expect(ctx.lastSql).toMatchInlineSnapshot(`"/* tenant=? */  select name as label from project where archived_at is null union select title as label from issue where status = ?"`)
+        expect(ctx.lastParams).toMatchInlineSnapshot(`
+          [
+            42,
+            "open",
+          ]
+        `)
+        assertType<Exact<typeof result, Array<{ label: string }>>>()
+    })
+})

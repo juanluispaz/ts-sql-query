@@ -194,19 +194,78 @@ export async function hashSqlFiles(...contents: string[]): Promise<string> {
 }
 
 /**
+ * Cross-process mutex backed by an exclusive lockfile in `os.tmpdir()`.
+ * Used to serialise the testcontainers reuse-lookup-then-create dance
+ * across parallel worker processes: testcontainers' own
+ * `reusableContainerCreationLock` is in-process only, so 12 bun
+ * workers all calling `withReuse().start()` at the same instant race
+ * past `fetchByLabel` (no container has the hash label visible yet)
+ * and each create their own container. Holding this lock around the
+ * factory means only the first worker reaches `docker create`; the
+ * rest wait on the lockfile, then find the container by hash label
+ * and reuse it.
+ *
+ * Stale locks left by a crashed process are reclaimed once the file's
+ * mtime is older than `staleMs` (default 5 min — comfortably above a
+ * cold container start).
+ */
+async function withCrossProcessLock<T>(name: string, fn: () => Promise<T>, staleMs = 5 * 60_000): Promise<T> {
+    const { open: fsOpen, stat: fsStat, unlink: fsUnlink } = await import('node:fs/promises')
+    const { tmpdir } = await import('node:os')
+    const { join: pathJoin } = await import('node:path')
+
+    const sanitized = name.replace(/[^A-Za-z0-9._-]/g, '_')
+    const lockPath = pathJoin(tmpdir(), `ts-sql-query-${sanitized}.lock`)
+
+    while (true) {
+        try {
+            const handle = await fsOpen(lockPath, 'wx')
+            try {
+                return await fn()
+            } finally {
+                try { await handle.close() } catch { /* ignore */ }
+                try { await fsUnlink(lockPath) } catch { /* ignore */ }
+            }
+        } catch (err) {
+            const e = err as NodeJS.ErrnoException
+            if (e.code !== 'EEXIST') throw err
+            // Lock is held by another process — or by a dead one.
+            try {
+                const st = await fsStat(lockPath)
+                if (Date.now() - st.mtimeMs > staleMs) {
+                    await fsUnlink(lockPath).catch(() => undefined)
+                }
+            } catch { /* stat race — the holder may have just released; retry */ }
+            await new Promise(resolve => setTimeout(resolve, 50))
+        }
+    }
+}
+
+/**
  * Wrap a lazy container factory in the keep-alive lifecycle described above.
  * `factory` is called exactly once per process — subsequent acquires return
  * the same `Promise`.
+ *
+ * When `options.lockKey` is set AND testcontainers reuse is enabled, the
+ * first factory call in this process is also serialised across processes
+ * via a lockfile keyed by `lockKey`. This prevents parallel workers from
+ * racing past testcontainers' `fetchByLabel` lookup and creating duplicate
+ * containers with the same reuse hash. The `lockKey` should be stable per
+ * runner (e.g. the docker image name) so all workers funnel through the
+ * same lockfile.
  */
 export function createContainerHandle<C extends { stop: () => Promise<unknown> }>(
     factory: AcquireFn<C>,
+    options: { lockKey?: string } = {},
 ): ContainerHandle<C> {
     let promise: Promise<C> | null = null
 
     return {
         async acquire(): Promise<C> {
             if (promise === null) {
-                promise = factory()
+                promise = options.lockKey !== undefined && reuseEnabled()
+                    ? withCrossProcessLock(options.lockKey, factory)
+                    : factory()
             }
             return await promise
         },

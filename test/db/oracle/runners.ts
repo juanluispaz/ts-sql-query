@@ -114,7 +114,10 @@ type StartedContainer = {
 // entire test process — see `test/lib/containerLifecycle.ts`. With the
 // `TESTCONTAINERS_REUSE_ENABLE=true` env var the container also survives
 // across separate `bun test` invocations (especially valuable for the
-// Oracle image, whose cold start is the longest of the suite).
+// Oracle image, whose cold start is the longest of the suite). `lockKey`
+// serialises the first-acquire across worker processes so the
+// reuse-lookup-then-create dance in testcontainers (which holds only an
+// in-process lock) doesn't spawn duplicate containers under cold start.
 const container = createContainerHandle<StartedContainer>(async () => {
     const { GenericContainer, Wait } = await import('testcontainers')
     const builder = new GenericContainer(ORACLE_IMAGE)
@@ -132,7 +135,7 @@ const container = createContainerHandle<StartedContainer>(async () => {
     // serialises this across workers running in parallel processes.
     await validateOrResetForReuse(started.getHost(), started.getMappedPort(1521))
     return started
-})
+}, { lockKey: ORACLE_IMAGE })
 const acquireContainer = container.acquire
 const releaseContainer = container.release
 

@@ -106,7 +106,10 @@ type StartedContainer = {
 // Container is started lazily on the first acquire and kept alive for the
 // entire test process — see `test/lib/containerLifecycle.ts`. With the
 // `TESTCONTAINERS_REUSE_ENABLE=true` env var the container also survives
-// across separate `bun test` invocations.
+// across separate `bun test` invocations. `lockKey` serialises the
+// first-acquire across worker processes so the reuse-lookup-then-create
+// dance in testcontainers (which holds only an in-process lock) doesn't
+// spawn duplicate containers under cold start.
 const container = createContainerHandle<StartedContainer>(async () => {
     const { GenericContainer, Wait } = await import('testcontainers')
     const builder = new GenericContainer(MARIADB_IMAGE)
@@ -123,7 +126,7 @@ const container = createContainerHandle<StartedContainer>(async () => {
     // across workers running in parallel processes.
     await validateOrResetForReuse(started.getHost(), started.getMappedPort(3306))
     return started
-})
+}, { lockKey: MARIADB_IMAGE })
 const acquireContainer = container.acquire
 const releaseContainer = container.release
 

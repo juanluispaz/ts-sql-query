@@ -98,6 +98,9 @@ const POSTGRES_IMAGE = 'postgres:18-alpine'
 // the entire test process — see `test/lib/containerLifecycle.ts` for why.
 // `.withReuse()` is opted into via `TESTCONTAINERS_REUSE_ENABLE=true`, which
 // also keeps the container alive across separate `bun test` invocations.
+// `lockKey` serialises the first-acquire across worker processes so the
+// reuse-lookup-then-create dance in testcontainers (which holds only an
+// in-process lock) doesn't spawn duplicate containers under cold start.
 
 const container = createContainerHandle<StartedPostgreSqlContainer>(async () => {
     const builder = new PostgreSqlContainer(POSTGRES_IMAGE)
@@ -110,7 +113,7 @@ const container = createContainerHandle<StartedPostgreSqlContainer>(async () => 
     // across workers running in parallel processes.
     await validateOrResetForReuse(started.getConnectionUri())
     return started
-})
+}, { lockKey: POSTGRES_IMAGE })
 const acquireContainer = container.acquire
 const releaseContainer = container.release
 

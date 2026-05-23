@@ -100,6 +100,9 @@ type StartedContainer = {
 // `TESTCONTAINERS_REUSE_ENABLE=true` env var the container also survives
 // across separate `bun test` invocations (the SQL Server image is heavy
 // enough that the difference is very visible during iterative work).
+// `lockKey` serialises the first-acquire across worker processes so the
+// reuse-lookup-then-create dance in testcontainers (which holds only an
+// in-process lock) doesn't spawn duplicate containers under cold start.
 const container = createContainerHandle<StartedContainer>(async () => {
     const { GenericContainer, Wait } = await import('testcontainers')
     const builder = new GenericContainer(MSSQL_IMAGE)
@@ -118,7 +121,7 @@ const container = createContainerHandle<StartedContainer>(async () => {
     // workers running in parallel processes.
     await validateOrResetForReuse(started.getHost(), started.getMappedPort(1433))
     return started
-})
+}, { lockKey: MSSQL_IMAGE })
 const acquireContainer = container.acquire
 const releaseContainer = container.release
 

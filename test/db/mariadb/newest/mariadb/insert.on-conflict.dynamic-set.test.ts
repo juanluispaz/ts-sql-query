@@ -1,0 +1,138 @@
+// Dynamic `ON CONFLICT … DO UPDATE` builders in
+// [InsertQueryBuilder.ts:1662-1820](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1662-L1820):
+//
+//   - `.onConflictOn(col).doUpdateDynamicSet({…?})` opens an empty (or
+//     pre-populated) update-set; subsequent `.set(...)` / `.setIfValue(...)`
+//     calls route into `__onConflictUpdateSets` instead of the regular
+//     `__sets`.
+//   - `.onConflictOn(col).doUpdateSetIfValue({...})` is the one-shot
+//     value-gated variant — properties whose values fail `_isValue` are
+//     dropped before the SET clause is emitted.
+//   - The bare-form siblings (`.onConflictDoUpdateDynamicSet({…?})` and
+//     `.onConflictDoUpdateSetIfValue({...})`) are mariadb/mysql/sqlite only
+//     and are commented in this PG file for symmetry.
+//
+// The static `.onConflictDoUpdateSet({...})` / `.doUpdateSet({...})` paths
+// are already pinned by `insert.on-conflict.test.ts`; this file only
+// exercises the dynamic + value-gated variants.
+
+import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
+import { assertType, type Exact } from '../../../../lib/assertType.js'
+import { tProject } from '../../domain/connection.js'
+import { ctx } from './setup.js'
+
+describe(ctx.label, () => {
+    beforeAll(() => ctx.up(), ctx.timeoutMs)
+    afterAll(() => ctx.down(), ctx.timeoutMs)
+    beforeEach(() => { ctx.reset() })
+
+    test('do-update-dynamic-set-then-set-builds-incremental-update', async () => {
+        // `doUpdateDynamicSet()` opens an empty update-set, then two
+        // chained `.set(...)` calls dispatch into the opened set via
+        // [InsertQueryBuilder.ts:428-435](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L428-L435).
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            const affected = await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictDoUpdateDynamicSet()
+                .set({ name: 'Stage 1 name' })
+                .set({ slug: 'mktg-site-v2' })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?, slug = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Stage 1 name",
+                "mktg-site-v2",
+              ]
+            `)
+            assertType<Exact<typeof affected, number>>()
+            if (!ctx.realDbEnabled) expect(affected).toBe(1)
+        })
+    })
+
+    test('do-update-dynamic-set-then-set-if-value-skips-undefined-incremental', async () => {
+        // `doUpdateDynamicSet()` (no-arg form) opens an empty update-set;
+        // a chained `.set({name})` adds the only surviving entry; the
+        // following `.setIfValue({slug: undefined})` is dropped because
+        // `undefined` fails `_isValue` ([InsertQueryBuilder.ts:454-476](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L454-L476)).
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictDoUpdateDynamicSet()
+                .set({ name: 'Initial dynamic' })
+                .setIfValue({ slug: undefined })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "Initial dynamic",
+              ]
+            `)
+        })
+    })
+
+    // TODO[BUG]: see test/BUGS.md "doUpdateDynamicSet(columns) / onConflictDoUpdateDynamicSet(columns) throw Illegal state when invoked with an initial map".
+    // The signature `doUpdateDynamicSet(columns: UpdateSets)` is
+    // documented in [docs/api/insert.md:313-334](../../../../../docs/api/insert.md#L313-L334)
+    // but the implementation at
+    // [InsertQueryBuilder.ts:1763-1775](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1763-L1775)
+    // first delegates to `doUpdateSet(columns)` (which sets
+    // `__onConflictUpdateSets = {…}`) and then asserts
+    // `if (__onConflictUpdateSets) throw Illegal state` — so any
+    // non-empty argument throws synchronously.
+    /*
+    test('do-update-dynamic-set-with-initial-columns-then-set-if-value', async () => {
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictDoUpdateDynamicSet({ name: 'Initial dynamic' })
+                .setIfValue({ slug: undefined })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot()
+            expect(ctx.lastParams).toMatchInlineSnapshot()
+        })
+    })
+    */
+
+    test('do-update-set-if-value-keeps-only-properties-passing-value-gate', async () => {
+        // One-shot `doUpdateSetIfValue({...})` at
+        // [InsertQueryBuilder.ts:1806-1828](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1806-L1828):
+        // each property is tested with `_isValue` before being added to
+        // the update-set. `archivedAt: undefined` is filtered out, the
+        // two real values survive.
+        ctx.mockNext(1)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tProject)
+                .values({ organizationId: 1, slug: 'mktg-site', name: 'ignored' })
+                .onConflictDoUpdateSetIfValue({
+                    name:       'kept-1',
+                    slug:       'kept-2',
+                    archivedAt: undefined,
+                })
+                .executeInsert()
+
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, slug, name) values (?, ?, ?) on duplicate key update name = ?, slug = ?"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "mktg-site",
+                "ignored",
+                "kept-1",
+                "kept-2",
+              ]
+            `)
+        })
+    })
+
+})

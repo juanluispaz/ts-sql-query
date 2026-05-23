@@ -42,12 +42,19 @@ run_phase() {
     if [ "$runtime" = "bun" ]; then
         local parallel_flag=
         if [ "$mode" = "parallel" ]; then parallel_flag="--parallel"; fi
+        # Per-test timeout — bun's default of 5s is too tight for the
+        # docker-backed cells under heavy parallel load (an Oracle
+        # `withReseed` drops + recreates the schema and can spike past
+        # 5s during contention). 60s matches what vitest already uses
+        # and covers the worst legitimate cases without masking hangs
+        # for long. Mirrored in `vitest.config.ts` (`testTimeout: 60_000`).
+        local timeout_flag="--timeout 60000"
         # An empty "$@" turns into a literal "" token that `bun test`
         # interprets as a filter matching every project file AND exits 99.
         if [ "$#" -gt 0 ]; then
-            bun test $parallel_flag "$@"
+            bun test $parallel_flag $timeout_flag "$@"
         else
-            bun test $parallel_flag
+            bun test $parallel_flag $timeout_flag
         fi
         ec=$?
         if [ "$ec" -eq 99 ] || [ "$ec" -eq 100 ]; then ec=0; fi

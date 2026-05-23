@@ -206,7 +206,14 @@ export function createTestContext<CONN>(opts: TestContextOptions<CONN>): TestCon
         canonicalForDocs: opts.canonicalForDocs === true,
         compatibilityVersion: opts.compatibilityVersion,
         realDbEnabled: opts.realDbEnabled,
-        timeoutMs: opts.timeoutMs ?? 180_000,
+        // Default timeout for `beforeAll(() => ctx.up(), ctx.timeoutMs)` /
+        // `afterAll(() => ctx.down(), ctx.timeoutMs)` hooks. Covers the
+        // worst-case container cold start (Oracle ~30–60s legit) under
+        // heavy parallel contention (12 workers competing for the same
+        // container can inflate that 2–3×). 6 minutes gives comfortable
+        // headroom over the worst observed legitimate case without
+        // waiting eternities for a truly hung hook.
+        timeoutMs: opts.timeoutMs ?? 360_000,
 
         get conn(): CONN {
             if (conn === null) throw new Error(`TestContext "${opts.label}": conn read before up()`)

@@ -3,9 +3,18 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
     test: {
         include: ['test/**/*.test.ts'],
-        // testcontainers needs time to pull and start images on first run.
+        // Per-test timeout. The default 5s is too tight for the
+        // docker-backed cells under heavy parallel load (an Oracle
+        // `withReseed` drops + recreates the schema and can spike
+        // past 5s during contention). 60s covers the worst legitimate
+        // cases without masking hangs for long. Mirrored in the bun
+        // branch of `scripts/_test-common.sh` (`bun test --timeout 60000`).
+        // No explicit `hookTimeout` — vitest inherits `testTimeout`
+        // for hooks, matching bun's single-knob behaviour. The slow
+        // hooks (`beforeAll`/`afterAll` doing container start/stop)
+        // already override per-call with `ctx.timeoutMs` (180_000),
+        // so the inherited default never bites them.
         testTimeout: 60_000,
-        hookTimeout: 120_000,
         // Tolerate files that declare a `describe` with every `test(...)`
         // commented out per the symmetry rule (DESIGN.md §4). Without
         // this, vitest treats those as failed suites — a soft failure

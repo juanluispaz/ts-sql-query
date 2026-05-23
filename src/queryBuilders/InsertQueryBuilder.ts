@@ -1359,8 +1359,6 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
                         (error as any)['disallowedProperty'] = property;
                         (error as any)['disallowedIndex'] = j
                         throw error
-                    } else {
-                        console.log('b')
                     }
                 }
             }
@@ -1661,7 +1659,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     }
     onConflictDoUpdateDynamicSet(columns?: any): any {
         if (columns) {
-            this.onConflictDoUpdateSet(columns)
+            return this.onConflictDoUpdateSet(columns)
         }
         this.__query = ''
         if (this.__onConflictUpdateSets) {
@@ -1762,7 +1760,7 @@ export class InsertQueryBuilder extends AbstractQueryBuilder implements HasAddWi
     }
     doUpdateDynamicSet(columns?: any): any {
         if (columns) {
-            this.doUpdateSet(columns)
+            return this.doUpdateSet(columns)
         }
         this.__query = ''
         if (this.__onConflictUpdateSets) {

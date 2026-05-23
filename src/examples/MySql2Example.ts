@@ -490,8 +490,6 @@ async function main() {
                 customers: aggregatedCustomersOfAcme7.useEmptyArrayForNoValue()
             })
             .executeSelectOne()
-        console.log(await connection.queryRunner.executeSelectOneColumnOneRow('select json_arrayagg(a_1_.result) from (select concat(concat(first_name, ?), last_name) as result from customer where company_id = ? order by result) as a_1_', [' ', 1]))
-        console.log(acmeCompanyWithCustomers7)
         assertEquals(acmeCompanyWithCustomers7, {
             id: 1,
             name: 'ACME',

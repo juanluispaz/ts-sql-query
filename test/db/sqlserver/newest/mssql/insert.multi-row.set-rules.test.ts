@@ -16,7 +16,6 @@
 // stays satisfiable against every real DB.
 
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from '../../../../lib/testRunner.js'
-import { assertType, type Exact } from '../../../../lib/assertType.js'
 import { tIssue, tProject } from '../../domain/connection.js'
 import { ctx } from './setup.js'
 
@@ -198,48 +197,35 @@ describe(ctx.label, () => {
         expect(thrown.disallowedIndex).toBe(1)
     })
 
-    // TODO[BUG]: see test/BUGS.md "Stray `console.log('b')` in InsertQueryBuilder.disallowAnyOtherSet multi-row allowed branch".
-    // When the allow-list COVERS every staged property the multi-row branch reaches the `else` at
-    // [InsertQueryBuilder.ts:1362-1364](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1362-L1364)
-    // and prints "b" to stdout — debug leak. Snapshot below pins the
-    // intended SQL; the test will start failing the moment the
-    // stray log is removed because the spy will stop seeing it.
     test('disallow-any-other-set-permits-rows-when-every-set-is-allowed', async () => {
-        const calls: any[] = []
-        const original = console.log
-        console.log = ((...args: any[]) => { calls.push(args) }) as any
-        try {
-            ctx.mockNext(2)
-            await ctx.withRollback(async () => {
-                await ctx.conn.insertInto(tProject)
-                    .values([
-                        { organizationId: 1, name: 'A', slug: 'a' },
-                        { organizationId: 1, name: 'B', slug: 'b' },
-                    ])
-                    .disallowAnyOtherSet(
-                        'only org/name/slug may be bulk-imported',
-                        'organizationId', 'name', 'slug',
-                    )
-                    .executeInsert()
+        // Multi-row companion to the row-1-extra throw above
+        // ([InsertQueryBuilder.ts:1341-1366](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1341-L1366)):
+        // when every staged column is in the allow-list the loop
+        // completes silently and the INSERT proceeds.
+        ctx.mockNext(2)
+        await ctx.withRollback(async () => {
+            await ctx.conn.insertInto(tProject)
+                .values([
+                    { organizationId: 1, name: 'A', slug: 'a' },
+                    { organizationId: 1, name: 'B', slug: 'b' },
+                ])
+                .disallowAnyOtherSet(
+                    'only org/name/slug may be bulk-imported',
+                    'organizationId', 'name', 'slug',
+                )
+                .executeInsert()
 
-                expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (@0, @1, @2), (@3, @4, @5)"`)
-                expect(ctx.lastParams).toMatchInlineSnapshot(`
-                  [
-                    1,
-                    "A",
-                    "a",
-                    1,
-                    "B",
-                    "b",
-                  ]
-                `)
-            })
-        } finally {
-            console.log = original
-        }
-        // 2 rows × 3 allowed properties each → 6 stray "b" logs.
-        const bCalls = calls.filter(args => args.length === 1 && args[0] === 'b')
-        expect(bCalls).toHaveLength(6)
-        assertType<Exact<typeof bCalls, any[]>>()
+            expect(ctx.lastSql).toMatchInlineSnapshot(`"insert into project (organization_id, name, slug) values (@0, @1, @2), (@3, @4, @5)"`)
+            expect(ctx.lastParams).toMatchInlineSnapshot(`
+              [
+                1,
+                "A",
+                "a",
+                1,
+                "B",
+                "b",
+              ]
+            `)
+        })
     })
 })

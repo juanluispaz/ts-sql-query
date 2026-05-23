@@ -71,15 +71,7 @@ describe(ctx.label, () => {
     })
     */
 
-    // TODO[BUG]: see test/BUGS.md "doUpdateDynamicSet(columns) / onConflictDoUpdateDynamicSet(columns) throw Illegal state when invoked with an initial map".
-    // The signature `doUpdateDynamicSet(columns: UpdateSets)` is
-    // documented in [docs/api/insert.md:313-334](../../../../../docs/api/insert.md#L313-L334)
-    // but the implementation at
-    // [InsertQueryBuilder.ts:1763-1775](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1763-L1775)
-    // first delegates to `doUpdateSet(columns)` (which sets
-    // `__onConflictUpdateSets = {…}`) and then asserts
-    // `if (__onConflictUpdateSets) throw Illegal state` — so any
-    // non-empty argument throws synchronously.
+    // Not applicable: this dialect has no INSERT ... ON CONFLICT / ON DUPLICATE KEY UPDATE.
     /*
     test('do-update-dynamic-set-with-initial-columns-then-set-if-value', async () => {
         ctx.mockNext(1)

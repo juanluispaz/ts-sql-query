@@ -82,17 +82,15 @@ describe(ctx.label, () => {
         })
     })
 
-    // TODO[BUG]: see test/BUGS.md "doUpdateDynamicSet(columns) / onConflictDoUpdateDynamicSet(columns) throw Illegal state when invoked with an initial map".
-    // The signature `doUpdateDynamicSet(columns: UpdateSets)` is
-    // documented in [docs/api/insert.md:313-334](../../../../../docs/api/insert.md#L313-L334)
-    // but the implementation at
-    // [InsertQueryBuilder.ts:1763-1775](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1763-L1775)
-    // first delegates to `doUpdateSet(columns)` (which sets
-    // `__onConflictUpdateSets = {…}`) and then asserts
-    // `if (__onConflictUpdateSets) throw Illegal state` — so any
-    // non-empty argument throws synchronously.
-    /*
     test('do-update-dynamic-set-with-initial-columns-then-set-if-value', async () => {
+        // Initial-columns form: `doUpdateDynamicSet({...})` at
+        // [InsertQueryBuilder.ts:1761-1773](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L1761-L1773)
+        // seeds the on-conflict update-set in one shot (delegates to
+        // `doUpdateSet`); the chained `setIfValue({slug: undefined})`
+        // is dropped via `_isValue`
+        // ([InsertQueryBuilder.ts:448-478](../../../../../src/queryBuilders/InsertQueryBuilder.ts#L448-L478)).
+        // Same emitted SQL as the no-arg variant above; the difference
+        // is purely the entry point.
         ctx.mockNext(1)
         await ctx.withRollback(async () => {
             await ctx.conn.insertInto(tProject)
@@ -113,7 +111,6 @@ describe(ctx.label, () => {
             `)
         })
     })
-    */
 
     test('do-update-set-if-value-keeps-only-properties-passing-value-gate', async () => {
         // One-shot `doUpdateSetIfValue({...})` at

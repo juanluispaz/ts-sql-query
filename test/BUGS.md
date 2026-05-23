@@ -29,17 +29,7 @@ That's the contract. Do **not** spend time diagnosing the root cause,
 choosing a category, or proposing a fix — the fixing agent owns all
 of that. Two minutes of triage and one paragraph is the bar.
 
-## `doUpdateDynamicSet(columns)` / `onConflictDoUpdateDynamicSet(columns)` throw `Illegal state` when invoked with the documented initial-columns argument
-
-**Where**: [src/queryBuilders/InsertQueryBuilder.ts:1763-1775](../src/queryBuilders/InsertQueryBuilder.ts#L1763-L1775) (`doUpdateDynamicSet`) and the twin at [L1662-1674](../src/queryBuilders/InsertQueryBuilder.ts#L1662-L1674) (`onConflictDoUpdateDynamicSet`). The optional-arg overload is documented in [docs/api/insert.md:313-334](../docs/api/insert.md#L313-L334) (`doUpdateDynamicSet(columns: UpdateSets): this`).
-**Reproduction**: `insert.on-conflict.dynamic-set.test.ts` `do-update-dynamic-set-with-initial-columns-then-set-if-value` (TODO[BUG]-wrapped). Any non-empty argument triggers the throw — the method first delegates to `doUpdateSet(columns)` (which assigns `this.__onConflictUpdateSets = {…}`) and then immediately asserts `if (this.__onConflictUpdateSets) throw 'Illegal state'`. The bug exists on all dialects that type either overload; the no-arg form `.doUpdateDynamicSet().set({…})` still works.
-**Current workaround in the suite**: the targeted test is wrapped in a `/* */` block with a `TODO[BUG]` reason. The active twin `do-update-dynamic-set-then-set-if-value-skips-undefined-incremental` covers the no-arg path. Once fixed, uncomment the wrapped test and remove this entry.
-
-## Stray `console.log('b')` in `InsertQueryBuilder.disallowAnyOtherSet` multi-row allowed branch
-
-**Where**: [src/queryBuilders/InsertQueryBuilder.ts:1363](../src/queryBuilders/InsertQueryBuilder.ts#L1363) — inside the multi-row branch of `disallowAnyOtherSet(...)`, the `else` arm that runs when the staged property IS in the allow-list executes `console.log('b')`. Debug leak left after the surrounding logic was finished.
-**Reproduction**: `insert.multi-row.set-rules.test.ts` `disallow-any-other-set-permits-rows-when-every-set-is-allowed` — a 2-row insert with 3 allowed properties prints `b` six times to stdout.
-**Current workaround in the suite**: the test installs a `console.log` spy, asserts on the six `'b'` calls and pins the intended SQL via inline snapshot. Marked `// TODO[BUG]` on the test. Once removed in `src/`, drop the spy + the `expect(bCalls).toHaveLength(6)` assertion and the `TODO[BUG]` comment.
+_No open entries._
 
 ---
 

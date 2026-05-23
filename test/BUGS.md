@@ -29,7 +29,32 @@ That's the contract. Do **not** spend time diagnosing the root cause,
 choosing a category, or proposing a fix — the fixing agent owns all
 of that. Two minutes of triage and one paragraph is the bar.
 
-_No open entries._
+## `.onConflictOn(...).doUpdateSet({...}).where(cond)` silently drops the WHERE on MariaDB/MySQL
+
+**Where**: `src/sqlBuilders/AbstractMySqlMariaBDSqlBuilder.ts` (the
+`_buildInsertOnConflictBeforeReturning` override that maps `ON CONFLICT`
+to `ON DUPLICATE KEY UPDATE`).
+
+**Reproduction**: the new tests
+`on-conflict-do-update-set-with-where-clause` and
+`on-conflict-on-columns-with-where-do-update` in
+[`insert.on-conflict-do-update-extras.test.ts`](db/sqlite/newest/bun_sqlite/insert.on-conflict-do-update-extras.test.ts).
+On PG/SQLite the emitted SQL contains the `WHERE` clause as written
+by the user (partial UPDATE / partial index target). On
+MariaDB/MySQL the snapshot shows `insert into … values (…) on
+duplicate key update name = ?` — the `WHERE` clause is silently
+dropped. The library does not error, but the constraint the user
+expressed at the API level is not enforced at the SQL level. Same
+applies to the partial-index `onConflictOn(cols).where(cond)` form.
+
+**Current workaround in the suite**: the tests stay green on
+MariaDB/MySQL because the snapshot accurately records the
+silent-drop behaviour. No `// TODO[BUG]` is wrapped around the
+assertion — the snapshot is the bug-report. If the typed surface
+should narrow (so the `.where(...)` chain doesn't compile on
+MariaDB/MySQL connections) the fix is in the connection-level
+expression types plus a negative-type test under
+`test/db/{mariadb,mysql}/types.negative/`.
 
 ---
 
